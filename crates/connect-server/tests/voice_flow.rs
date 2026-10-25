@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Normalized telephone control through generic canonical Sessions and public SDK.
 //! Each provider capability is independent; these are isolated adapter fixtures.
 #![allow(clippy::unwrap_used)]

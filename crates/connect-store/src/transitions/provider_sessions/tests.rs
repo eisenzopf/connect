@@ -2327,3 +2327,62 @@ fn terminal_quarantine_resolution_confirms_absence_without_end_and_redacts_retai
         assert!(!raw.contains("/control"));
     }
 }
+
+#[test]
+fn typed_telephone_parent_and_provider_hosts_exclude_the_same_invitation_target_in_both_orders() {
+    fn telephone(f: &Fixture) -> crate::InitialTelephonePolicy {
+        crate::InitialTelephonePolicy {
+            endpoint_id: f.policy.endpoint_id.clone(),
+            endpoint_credential_id: f.policy.endpoint_credential_id.clone(),
+            route_credential_id: f.policy.route_credential_id.clone(),
+            route_reference: f.policy.route_reference.clone(),
+            sip_authority: "127.0.0.1:5060".into(),
+            timeout_seconds: 30,
+        }
+    }
+    let provider_first = Fixture::new();
+    let _provider = provider_first.origin();
+    let blocked = provider_first.store.prepare_initial_telephone(
+        &provider_first.keys[0],
+        provider_first.request.clone(),
+        &provider_first.parts[1],
+        telephone(&provider_first),
+    );
+    assert!(
+        blocked.is_err(),
+        "same invitation target acquired two physical hosts"
+    );
+    assert_eq!(provider_first.count("provider_session_voice"), 1);
+    assert_eq!(provider_first.count("initial_telephone_operations"), 0);
+    assert_eq!(
+        provider_first.count("connections"),
+        0,
+        "refused host left a partial reservation"
+    );
+    assert_eq!(provider_first.count("operation_effects"), 0);
+
+    let telephone_first = Fixture::new();
+    let _telephone = telephone_first
+        .store
+        .prepare_initial_telephone(
+            &telephone_first.keys[0],
+            telephone_first.request.clone(),
+            &telephone_first.parts[1],
+            telephone(&telephone_first),
+        )
+        .unwrap();
+    let blocked = telephone_first.store.prepare_provider_session_voice(
+        &telephone_first.keys[0],
+        telephone_first.request.clone(),
+        &telephone_first.parts[1],
+        telephone_first.policy.clone(),
+    );
+    assert!(
+        blocked.is_err(),
+        "typed telephone parent failed to exclude provider host"
+    );
+    assert_eq!(telephone_first.count("initial_telephone_operations"), 1);
+    assert_eq!(telephone_first.count("connections"), 1);
+    assert_eq!(telephone_first.count("provider_session_voice"), 0);
+    assert_eq!(telephone_first.count("operation_effects"), 0);
+}

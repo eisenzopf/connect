@@ -19,7 +19,7 @@
   },
   "remaining": [
     "Qualify SIP answered/ready/committed and retirement crash boundaries with still-live external peers; native answer/ready/retirement and SIP submission are scoped passes.",
-    "Fix confirmed schema109 stale provider host guard and missing inverse after typed initial-telephone parent replacement; rerun actual provider creation/query/recovery and existing regressions.",
+    "Complete current schema110 provider actual process-death/query and existing regressions, then native/SIP regressions; full Store suite is running.",
     "Verify bounded authorized operator reconciliation for uncertainty and unresolved-conflict exclusion across required operation classes.",
     "Verify actual owned drain/termination, retained original consultation/handoff/replacement effects and recovery failure cases, then audit complete G6-047 coverage."
   ],
@@ -759,7 +759,7 @@
     "summary": ".local/gate-6/crash-recovery/provider-trigger109-diagnostic.json",
     "sha256": "20f51d548b6c5a063afefa3fdb1193b026f81a3ad4e45ed3068546638a299ec1",
     "confirmed": true,
-    "fixed": false,
+    "fixed": true,
     "observations": {
       "scope": "Readonly EXPLAIN on failed isolated schema109 fixture; no insert executed",
       "schema": 109,
@@ -770,6 +770,8 @@
     },
     "failed_runtime_summary": ".local/gate-6/crash-recovery/provider-submitted007-runtime-007/summary.json",
     "diagnostic_runtime_summary": ".local/gate-6/crash-recovery/provider-diagnostic008-runtime-008/summary.json",
-    "compile_correction": "voice_flow now uses recursion_limit256, matching the native runtime test target; first build failure retained in provider-submitted005."
+    "compile_correction": "voice_flow now uses recursion_limit256, matching the native runtime test target; first build failure retained in provider-submitted005.",
+    "fix_scope": "Schema110 Store guard and four schema checks pass; actual runtime regression qualification pending.",
+    "fix_report": "docs/evidence/gate-6/provider-host-guard-repair.json"
   }
 }
