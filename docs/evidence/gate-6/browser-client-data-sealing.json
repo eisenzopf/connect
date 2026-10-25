@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "in-progress; controlled Store proofs pass, connected runtime building",
+  "status": "in-progress; controlled Store proofs pass, connected runtime still fails",
   "scope": "Fresh queued-data version sealing and bounded terminal admission during internal managed reconciliation. This is not media/performance or full task qualification.",
   "changes": [
     "Queued-data message/audience facts derive once under SQL, then SQL is released for a fresh complete file interval. Exact current SQL/schema/connection/clock version sealing is required. Clock edges rederive under owned current coverage; a changed SQL version refuses stale delivery. No facts or grant are cached between data messages.",
@@ -64,7 +64,11 @@
   },
   "runtime": {
     "report": ".local/gate-6/browser-sdk/data-seal036/summary.json",
-    "status": "optimized build active; no pass claimed"
+    "sha256": "76a3fb054e442adcb0b34be0635a13bab4c738ce4c8e5993f0fbec55fa70e2e2",
+    "status": "completed;6/8 pass with source/executable guards. Captured EdDSA Opus173/145 fails150minimum; captured ES256 identified VP8 97/89 fails90minimum.",
+    "diagnostic_report": ".local/gate-6/browser-sdk/data-trace037/summary.json",
+    "diagnostic_sha256": "bd195b2f2a3c8bd25a32e77e27d5572d86e71a3ec37a93f7cb70a46f31428814",
+    "diagnostic_status": "single traced EdDSA capture case passes; it does not qualify omitted matrix or performance.105 SQL-busy and8 authority-busy callback refusals remain."
   },
   "acceptance_qualified": false,
   "remaining": "Complete connected8-case matrix and28 transport regressions; frozen60second, browser/native, failure/impairment and wider operating profiles remain unqualified.",

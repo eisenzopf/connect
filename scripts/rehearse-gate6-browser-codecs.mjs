@@ -8,6 +8,8 @@ import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const directory=resolve(root,process.argv[2]??'');
+const wholeFrameLoss=process.argv[3]==='--whole-frame-loss';
+if(process.argv[3]!==undefined&&!wholeFrameLoss)throw Error('Unknown codec profile; use --whole-frame-loss explicitly');
 if(!directory.startsWith(root+'/.local/'))throw Error('Provide a fresh output directory under .local/');
 await mkdir(dirname(directory),{recursive:true});await mkdir(directory);await mkdir(resolve(directory,'profile'));
 const fixture='crates/connect-server/tests/fixtures/gate6-webtransport-browser/';
@@ -15,7 +17,7 @@ const names=['browser_codecs.js','browser_rtp.js','uctp_wire.js','uctp_json.js',
 const inputs=[...names.map(n=>'sdk/typescript/dist/'+n),'sdk/typescript/src/browser_codecs.ts','sdk/typescript/src/browser_rtp.ts','scripts/rehearse-gate6-browser-codecs.mjs',fixture+'sdk-codecs.mjs',fixture+'run-browser.mjs','dependencies/source-lock.json'];
 const digest=b=>createHash('sha256').update(b).digest('hex');
 const snapshot=async()=>Object.fromEntries(await Promise.all(inputs.map(async name=>[name,digest(await readFile(resolve(root,name)))])));
-const before=await snapshot();const report={passed:false,started_at:new Date().toISOString(),source_inputs_sha256:before,scope:'Explicit local short synthetic SDK WebCodecs/RTP/canvas primitive checkpoint; no capture, network/native, 60s qualification, complete G6-050, remote/provider, acceptance or publication claim'};
+const before=await snapshot();const report={passed:false,started_at:new Date().toISOString(),source_inputs_sha256:before,whole_frame_loss:wholeFrameLoss,scope:'Explicit local short synthetic SDK WebCodecs/RTP/canvas primitive checkpoint; no capture, network/native, 60s qualification, complete G6-050, remote/provider, acceptance or publication claim'};
 const routes=new Map(await Promise.all(names.map(async n=>['/sdk/'+n,await readFile(resolve(root,'sdk/typescript/dist',n))])));
 routes.set('/sdk-codecs.mjs',await readFile(resolve(root,fixture+'sdk-codecs.mjs')));
 routes.set('/',Buffer.from("<!doctype html><meta charset=utf-8><script type=module>import {run} from '/sdk-codecs.mjs';globalThis.runBrowserFixture=run;</script>"));
@@ -36,7 +38,7 @@ try{
   let log='';chrome.stderr.on('data',b=>{if(log.length<1048576)log+=b;});
   const until=Date.now()+10000;let port;
   for(;;){try{port=Number((await readFile(resolve(directory,'profile/DevToolsActivePort'),'utf8')).split('\n')[0]);if(port>0)break;}catch{}if(chrome.exitCode!==null||Date.now()>until)throw Error('owned Chrome startup deadline');await wait(50);}
-  const config=resolve(directory,'config.json');await writeFile(config,JSON.stringify({debug_port:port,page_url:'http://127.0.0.1:'+server.address().port+'/',run:{actors:[]}}));
+  const config=resolve(directory,'config.json');await writeFile(config,JSON.stringify({debug_port:port,page_url:'http://127.0.0.1:'+server.address().port+'/',run:{actors:[],whole_frame_loss:wholeFrameLoss}}));
   const out=await run(process.execPath,[resolve(root,fixture+'run-browser.mjs'),config]);
   const result=JSON.parse(out);report.browser=result.browser;report.result=result.result;
   await writeFile(resolve(directory,'chrome-stderr.log'),log);

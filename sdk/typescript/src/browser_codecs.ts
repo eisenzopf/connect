@@ -209,6 +209,8 @@ export class BrowserVp8Codec {
     private readonly rateWindow: { timestamp: number; bytes: number }[] = [];
     private needsKey = true;
     private ssrc?: number;
+    private lastSequence?: number;
+    private lastTimestamp?: number;
     constructor(private readonly callbacks: CodecCallbacks<VideoFrame>) {
         if (
             typeof VideoEncoder !== "function" ||
@@ -326,11 +328,29 @@ export class BrowserVp8Codec {
         if (this.ssrc !== frame.ssrc) {
             this.ssrc = frame.ssrc;
             this.needsKey = true;
+            this.lastSequence = undefined;
+            this.lastTimestamp = undefined;
             this.decoder.reset();
             this.decoder.configure({ codec: "vp8", optimizeForLatency: true });
         }
         if (!frame.bytes.length || frame.bytes.length > MEDIA_LIMITS.frameBytes)
             throw new ConnectError("media", "Invalid complete VP8 frame");
+        // A wholly absent frame leaves no partial assembly to expire. Preserve
+        // the assembler's exact RTP range so a later complete delta cannot be
+        // decoded against a broken reference chain. Completed late/duplicate
+        // frames must not move the reference clock backwards, including wrap.
+        if (
+            this.lastTimestamp !== undefined &&
+            ((frame.timestamp - this.lastTimestamp) | 0) <= 0
+        )
+            return false;
+        if (
+            this.lastSequence !== undefined &&
+            frame.firstSequence !== ((this.lastSequence + 1) & 65535)
+        )
+            this.needsKey = true;
+        this.lastSequence = frame.lastSequence;
+        this.lastTimestamp = frame.timestamp;
         if (this.needsKey && !frame.key) return false;
         this.decoder.decode(
             new EncodedVideoChunk({

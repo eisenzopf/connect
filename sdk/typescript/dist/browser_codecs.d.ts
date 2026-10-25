@@ -45,6 +45,8 @@ export declare class BrowserVp8Codec {
     private readonly rateWindow;
     private needsKey;
     private ssrc?;
+    private lastSequence?;
+    private lastTimestamp?;
     constructor(callbacks: CodecCallbacks<VideoFrame>);
     /** Consumes and closes the caller's VideoFrame on every path. */
     encode(frame: VideoFrame): boolean;

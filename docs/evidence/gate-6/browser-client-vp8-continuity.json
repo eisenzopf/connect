@@ -1,0 +1,136 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; missing-frame reference recovery fixed, connected throughput remains failing",
+  "scope": "VP8 reference-chain correctness and explicit local Chrome codec/RTP/canvas loss primitive. No complete task, network impairment, native or frozen60second qualification.",
+  "changes": [
+    "Complete VP8 assemblies carry exact first/last RTP sequence numbers. A completely absent frame is detected at the next completed range, even when there is no incomplete assembly to expire.",
+    "A sequence discontinuity requires a fresh keyframe. Late/duplicate completed frames cannot rewind the same source reference clock. Contiguous RTP sequence/timestamp wrap remains valid.",
+    "The explicit --whole-frame-loss primitive drops every packet of one encoded frame after500ms in each direction, without suppressing packet-sequence advancement. It requires actual independently identified output from a subsequent keyframe within2seconds, retaining the existing frame/motion thresholds."
+  ],
+  "negative_before": {
+    "log": ".local/gate-6/browser-vp8-continuity-before.log",
+    "sha256": "66677d372888196962253ca4724d5a7b086b1a1008aa5bf2eaa9a6079295e51c",
+    "expected_failure": "Old decoder submits a complete delta after a wholly missing RTP reference frame; expectedfalse, observedtrue."
+  },
+  "sdk_suite": {
+    "log": ".local/gate-6/browser-vp8-continuity-sdk-sealed.log",
+    "sha256": "ad28b4a9841ffc023b14daf590cb4a2d1295dab5d37e5c53edcca0a2cc9341bd",
+    "passed": 190
+  },
+  "real_chrome": [
+    {
+      "report": ".local/gate-6/browser-codecs/continuity025/summary.json",
+      "sha256": "09b67fac3197ee20d085459c1511f053a281e9f3b6b03817126e6c442030eab4",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "browser": "Chrome/155.0.8059.85",
+      "result": {
+        "passed": true,
+        "scope": "short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim",
+        "elapsed_ms": 4001.2000000476837,
+        "opus": [
+          {
+            "decoded": 200,
+            "identified": 200
+          },
+          {
+            "decoded": 200,
+            "identified": 200
+          }
+        ],
+        "vp8": [
+          {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 120
+          },
+          {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 117
+          }
+        ],
+        "packets": 644,
+        "max_packet_bytes": 1188,
+        "errors": []
+      }
+    },
+    {
+      "report": ".local/gate-6/browser-codecs/continuity-loss026/summary.json",
+      "sha256": "2be0da7f5b30875b4713c3fb891821bd6edfa46b0cf39048e39bdcf9b6829258",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "browser": "Chrome/155.0.8059.85",
+      "result": {
+        "passed": true,
+        "whole_frame_loss": true,
+        "recovery": [
+          {
+            "at_ms": 585.7000000476837,
+            "timestamp_us": 500000,
+            "packets": 1,
+            "recovered_ms": 505.5,
+            "recovered_timestamp_us": 1000000
+          },
+          {
+            "at_ms": 586.7000000476837,
+            "timestamp_us": 500000,
+            "packets": 2,
+            "recovered_ms": 507,
+            "recovered_timestamp_us": 1000000
+          }
+        ],
+        "scope": "short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim",
+        "elapsed_ms": 4002.4000000953674,
+        "opus": [
+          {
+            "decoded": 200,
+            "identified": 200
+          },
+          {
+            "decoded": 200,
+            "identified": 200
+          }
+        ],
+        "vp8": [
+          {
+            "decoded": 105,
+            "identified": 105,
+            "motion": 105
+          },
+          {
+            "decoded": 105,
+            "identified": 105,
+            "motion": 104
+          }
+        ],
+        "packets": 641,
+        "max_packet_bytes": 1188,
+        "errors": []
+      }
+    }
+  ],
+  "connected_runtime": {
+    "report": ".local/gate-6/browser-sdk/continuity038/summary.json",
+    "sha256": "f9a32397991190b2b813447b33bc626d538110dccfa7d1142edce6c46d53b0e7",
+    "passed": false,
+    "passed_cases": 4,
+    "total_cases": 8,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "failures": [
+      "Direct EdDSA Opus140/140 and identified video26/73; direct ES256 message.send operation_conflict.",
+      "Captured EdDSA identified VP8 71/92 and captured ES25632/42 below unchanged90minimum. Decoded and identified counters now agree under missing-reference refusal; this does not meet throughput."
+    ]
+  },
+  "source_sha256": {
+    "sdk/typescript/src/browser_rtp.ts": "85a3c5a5c8ac2bd537f1a90803739ef47ec3350aa640517314dab9b0cd4adb8a",
+    "sdk/typescript/src/browser_codecs.ts": "5693c2cfa2899b83c97a9f8d00531be68e38bf968e288199008acc602d662479",
+    "sdk/tests/browser_codecs.test.mjs": "03d93ebb769b0735da6bd18ca4468e54a10100f5585eca9ff956d1821d64ce6b",
+    "sdk/tests/browser_rtp.test.mjs": "a95f278b1d41329532bd30548379f8930ee103caaa6776600a00fb5f7b201815",
+    "scripts/rehearse-gate6-browser-codecs.mjs": "bdca1ec367572651b84c8ac008da227f4e5c91bb5713dfb04d641582135d86df",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-codecs.mjs": "9e05933d83d577cf32dafde8174d33d8efbc15060f13e12f4e7188b81c794dbc"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Resolve current packet contention and queued-data admission competing with internal managed reconciliation, repeat full8/28 runtime checks, then frozen60/native/impairment/failure profiles."
+}

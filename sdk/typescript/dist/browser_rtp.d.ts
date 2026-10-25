@@ -60,6 +60,9 @@ export interface Vp8Frame {
     timestamp: number;
     ssrc: number;
     key: boolean;
+    /** Complete contiguous RTP range, including both endpoints. */
+    firstSequence: number;
+    lastSequence: number;
 }
 /** Loss never produces a partial decoded frame; expired assemblies release all bytes. */
 export declare class Vp8Assembler {

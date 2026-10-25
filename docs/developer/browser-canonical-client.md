@@ -221,3 +221,12 @@ profile and observer parameters are frozen in
 The initial harness checkpoint is syntax/smoke verified and remains runtime
 unqualified. Packet tracing cannot be combined with clean measurement, and
 inherited profile/trace environment flags cannot silently select another lane.
+
+VP8 complete frames carry their first and last RTP sequence numbers. The
+receiver requires a fresh keyframe after a sequence gap, including loss of an
+entire frame that leaves no partial assembly to expire. Late or duplicate
+frames cannot rewind the current reference chain; contiguous RTP sequence and
+timestamp wrap remains valid. The explicit codec rehearsal option
+`--whole-frame-loss` checks this recovery with actual Chrome WebCodecs and
+independently identified canvas output. Connected throughput and the full
+impairment profile require their separate runtime evidence.

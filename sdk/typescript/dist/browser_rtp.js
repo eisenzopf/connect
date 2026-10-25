@@ -311,6 +311,8 @@ export class Vp8Assembler {
             timestamp: packet.timestamp,
             ssrc: packet.ssrc,
             key: (output[0] & 1) === 0,
+            firstSequence: frame.start,
+            lastSequence: frame.end,
         };
     }
 }

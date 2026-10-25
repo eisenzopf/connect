@@ -23,7 +23,7 @@ test('VP8 packetizer obeys MTU and receiver assembles reordered fragments, witho
   assert.ok(packets.length>1);assert.ok(packets.every(p=>p.length<=1000));
   const assembler=new Vp8Assembler();let result;
   for(const p of [...packets].reverse())result=assembler.push(decodeRtpDatagram(p),0)??result;
-  assert.deepEqual(result.bytes,original);assert.equal(result.key,true);assert.equal(assembler.queuedFrames,0);
+  assert.deepEqual(result.bytes,original);assert.equal(result.firstSequence,decodeRtpDatagram(packets[0]).sequence);assert.equal(result.lastSequence,decodeRtpDatagram(packets.at(-1)).sequence);assert.equal(result.key,true);assert.equal(assembler.queuedFrames,0);
   for(const p of packets)assert.equal(assembler.push(decodeRtpDatagram(p),1),undefined);
   assert.throws(()=>sender.packetize(new Uint8Array(256*1024+1),0),{code:'protocol'});
 });

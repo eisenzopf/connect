@@ -10,7 +10,8 @@ function tone(frame,hz){
   const power=f=>{let re=0,im=0;for(let n=0;n<pcm.length;n++){const angle=2*Math.PI*f*n/48000;re+=pcm[n]*Math.cos(angle);im+=pcm[n]*Math.sin(angle);}return re*re+im*im;};
   return power(hz)>power(hz===500?250:500)*4&&pcm.some(v=>Math.abs(v)>0.05);
 }
-export async function run(){
+export async function run(config={}){
+  const wholeFrameLoss=config.whole_frame_loss===true,loss=[undefined,undefined];
   const support=await browserCodecSupport();check(support.audio&&support.video,'frozen WebCodecs profile unavailable: '+support.missing.join(', '));
   const codecs=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}];
   const errors=[],audioCodecs=[],videoCodecs=[],assemblers=[new Vp8Assembler(),new Vp8Assembler()],audioClocks=[new RtpClock(48000),new RtpClock(48000)],videoClocks=[new RtpClock(90000),new RtpClock(90000)];
@@ -26,13 +27,16 @@ export async function run(){
         }
       },decoded:frame=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;},error:e=>errors.push(String(e))});
       const v=new BrowserVp8Codec({encoded:frame=>{
-        for(const wire of vs.packetize(frame.bytes,Math.round(frame.timestampUs*90000/1000000)>>>0)){
+        const wires=vs.packetize(frame.bytes,Math.round(frame.timestampUs*90000/1000000)>>>0);
+        if(wholeFrameLoss&&!loss[target]&&frame.timestampUs>=500000){loss[target]={at_ms:performance.now(),timestamp_us:frame.timestampUs,packets:wires.length};return;}
+        for(const wire of wires){
           packets++;maxPacketBytes=Math.max(maxPacketBytes,wire.length);const p=decodeRtpDatagram(wire),complete=assemblers[target].push(p);
           if(complete)videoCodecs[target].decode(complete,videoClocks[target].timestamp(p.timestamp));
         }
       },decoded:frame=>{
         const out=render[i].getContext('2d',{willReadFrequently:true});out.drawImage(frame,0,0,640,360);const pixel=out.getImageData(0,0,1,1).data;
-        video[i].decoded++;if(i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80)video[i].identified++;
+        video[i].decoded++;const identified=i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80;if(identified)video[i].identified++;
+        if(identified&&loss[i]&&loss[i].recovered_ms===undefined&&frame.timestamp>loss[i].timestamp_us){loss[i].recovered_ms=performance.now()-loss[i].at_ms;loss[i].recovered_timestamp_us=frame.timestamp;}
         const row=out.getImageData(0,180,640,1).data;let sum=0,count=0;
         for(let x=0;x<640;x++)if(row[x*4+1]>120&&row[x*4+1]>row[x*4]*1.5&&row[x*4+1]>row[x*4+2]*1.5){sum+=x;count++;}
         if(count>8)video[i].motion.add(Math.round(sum/count));
@@ -54,6 +58,7 @@ export async function run(){
     for(const a of audio)check(a.identified>=150,'insufficient independently identified decoded Opus frames');
     for(const v of video)check(v.identified>=90&&v.motion.size>=40,'insufficient identified rendered VP8 motion');
     check(maxPacketBytes<=1188,'frozen RTP MTU');
-    return {passed:true,scope:'short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim',elapsed_ms:performance.now()-start,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),packets,max_packet_bytes:maxPacketBytes,errors};
+    if(wholeFrameLoss)for(const observed of loss)check(observed&&observed.packets>0&&observed.recovered_ms<=2000&&observed.recovered_timestamp_us>=1000000,'whole missing VP8 frame must wait for an identified keyframe within2seconds: '+JSON.stringify(loss));
+    return {passed:true,whole_frame_loss:wholeFrameLoss,recovery:wholeFrameLoss?loss:[],scope:'short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim',elapsed_ms:performance.now()-start,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),packets,max_packet_bytes:maxPacketBytes,errors};
   }finally{for(const c of codecs)c.close();for(const a of assemblers)a.clear();}
 }

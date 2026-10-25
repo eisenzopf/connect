@@ -25,3 +25,27 @@ test('video accepts capture jitter while retaining thirty frames per rolling sec
     codec.close();assert.equal(codec.encode(frame(2000000)),false);assert.equal(closed,35);
   }finally{codec?.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 });
+test('VP8 refuses deltas after a completely missing RTP frame and resumes only at a current keyframe',async()=>{
+  const {RtpSender,Vp8Assembler,decodeRtpDatagram}=await import('../typescript/dist/browser_rtp.js');
+  const names=['VideoEncoder','VideoDecoder','EncodedVideoChunk'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]),submitted=[];
+  class Codec{state='unconfigured';encodeQueueSize=0;decodeQueueSize=0;configure(){this.state='configured';}reset(){}decode(frame){submitted.push(frame);}close(){this.state='closed';}}
+  Object.defineProperty(globalThis,'VideoEncoder',{configurable:true,value:Codec});Object.defineProperty(globalThis,'VideoDecoder',{configurable:true,value:Codec});Object.defineProperty(globalThis,'EncodedVideoChunk',{configurable:true,value:class{constructor(value){Object.assign(this,value);}}});
+  let codec;try{
+    codec=new BrowserVp8Codec({encoded(){},decoded(){},error(e){throw e;}});
+    const sender=new RtpSender({handle:1,streamId:'video',connectionId:'connection',sessionId:'session',generation:1,kind:'video',codec:'vp8',payloadType:96,direction:'sendrecv'}),assembler=new Vp8Assembler();
+    const next=(key,n)=>assembler.push(decodeRtpDatagram(sender.packetize(new Uint8Array([key?0:1,2,3]),n*3000)[0]),n);
+    const initial=next(true,0);assert.equal(codec.decode(initial,0),true);
+    sender.packetize(new Uint8Array([1,2,3]),3000); // The entire middle RTP frame is absent, so no incomplete assembly can expire.
+    assert.equal(codec.decode(next(false,2),66667),false,'a complete delta cannot repair a lost reference frame');
+    assert.equal(submitted.length,1,'the corrupt reference chain must not reach WebCodecs');
+    const recovered=next(true,3);assert.equal(codec.decode(recovered,100000),true);
+    assert.equal(codec.decode(next(false,4),133333),true);
+    assert.deepEqual(submitted.map(c=>c.type),['key','key','delta']);
+    assert.equal(codec.decode(recovered,100000),false,'late keyframes do not rewind a newer reference chain');
+    const wrapSender=new RtpSender({handle:1,streamId:'video',connectionId:'connection',sessionId:'session',generation:1,kind:'video',codec:'vp8',payloadType:96,direction:'sendrecv'}),wrapAssembler=new Vp8Assembler();
+    const wrapped=(key,sequence,timestamp)=>{const packets=wrapSender.packetize(new Uint8Array([key?0:1,2,3]),timestamp);new DataView(packets[0].buffer).setUint16(10,sequence);new DataView(packets[0].buffer).setUint32(16,(initial.ssrc+1)>>>0);return wrapAssembler.push(decodeRtpDatagram(packets[0]),10+sequence/65536);};
+    assert.equal(codec.decode(wrapped(true,65535,0xfffff448),166667),true);
+    assert.equal(codec.decode(wrapped(false,0,0),200000),true,'contiguous RTP sequence and timestamp wrap retain a usable reference chain');
+    assert.equal(codec.decode(wrapped(false,2,6000),266667),false,'a gap after wrap still requires a keyframe');
+  }finally{codec?.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+});
