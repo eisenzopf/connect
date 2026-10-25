@@ -1,0 +1,181 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; diagnostics isolate RTP gaps and a catalog retry defect for controlled regression",
+  "scope": "Receive-route counters and consistent private failure-state snapshots. These observations do not qualify media throughput or prove that the candidate retry defect causes every loss.",
+  "changes": [
+    "Numeric per-video decoder diagnostics distinguish source epochs, RTP range gaps, late completed frames, incomplete-assembly losses and decoder queue drops. They expose no encoded media or PCM.",
+    "Media failure reports now include route metrics. On browser-driver failure only, SQLite VACUUM INTO captures a consistent private installation snapshot, including WAL contents, under the existing ignored per-case artifact directory. Raw credentials/state remain private."
+  ],
+  "sdk_suite": {
+    "log": ".local/gate-6/browser-route-diagnostics-sdk.log",
+    "sha256": "ebf86901a7c34e50dfd9f0d008b332ac8bfe7e3e5b8d96c17a89692e8bc0f038",
+    "passed": 190
+  },
+  "diagnostics": [
+    {
+      "report": ".local/gate-6/browser-sdk/route-trace041/summary.json",
+      "sha256": "9a8a0e1c3e72218c1be3e418e4e2c3a71537403739618568dbef248ce26b197b",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "measured_video": [
+        {
+          "decoded": 64,
+          "identified": 64,
+          "motion": 64
+        },
+        {
+          "decoded": 67,
+          "identified": 67,
+          "motion": 67
+        }
+      ],
+      "receive_routes": [
+        {
+          "streamId": "browser-video-1",
+          "direction": "recvonly",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 119,
+            "complete": 119,
+            "submitted": 68,
+            "skipped": 51,
+            "decoded": 68,
+            "expired": 0
+          },
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 1,
+            "sequenceGaps": 8,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": false
+          }
+        },
+        {
+          "streamId": "browser-video-0",
+          "direction": "recvonly",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 121,
+            "complete": 121,
+            "submitted": 78,
+            "skipped": 43,
+            "decoded": 78,
+            "expired": 0
+          },
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 1,
+            "sequenceGaps": 8,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": false
+          }
+        }
+      ],
+      "private_database": ".local/gate-6/browser-sdk/route-trace041/browser-artifacts/0/ES256/failed-state.sqlite3",
+      "private_database_sha256": "762d119bb0131b729d03f15cccff7a63930ed4fdbd4947e51397bfb8eeb05f0f",
+      "completed_internal_reconciliations": 7,
+      "stored_plan_descriptors_equal_within_each_connection": true,
+      "note": "Stored plan equality does not compare every opaque Core catalog binding; the controlled runtime regression must prove the decision defect separately."
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/route-end042/summary.json",
+      "sha256": "586a0981f56353bf318cb8d47dc39dde6a8c940f55d6357b741d1f70de174c8f",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "measured_video": [
+        {
+          "decoded": 77,
+          "identified": 77,
+          "motion": 77
+        },
+        {
+          "decoded": 82,
+          "identified": 82,
+          "motion": 82
+        }
+      ],
+      "receive_routes": [
+        {
+          "streamId": "browser-video-1",
+          "direction": "recvonly",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 117,
+            "complete": 117,
+            "submitted": 81,
+            "skipped": 36,
+            "decoded": 81,
+            "expired": 0
+          },
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 1,
+            "sequenceGaps": 5,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": true
+          }
+        },
+        {
+          "streamId": "browser-video-0",
+          "direction": "recvonly",
+          "kind": "video",
+          "counters": {
+            "encoded": 0,
+            "keys": 0,
+            "received": 121,
+            "complete": 120,
+            "submitted": 89,
+            "skipped": 31,
+            "decoded": 89,
+            "expired": 0
+          },
+          "incompleteFrames": 0,
+          "fragments": 0,
+          "recovery": {
+            "sourceEpochs": 1,
+            "sequenceGaps": 5,
+            "lateFrames": 0,
+            "assemblyLosses": 0,
+            "queueDrops": 0,
+            "waitingForKey": false
+          }
+        }
+      ],
+      "private_database": ".local/gate-6/browser-sdk/route-end042/browser-artifacts/0/EdDSA/failed-state.sqlite3",
+      "private_database_sha256": "29645f6b1e48e9153f1cbc0d5e8770f435a99870f476d1c1d1e5a7a9409cc064",
+      "completed_internal_reconciliations": 4,
+      "stored_plan_descriptors_equal_within_each_connection": true,
+      "note": "Stored plan equality does not compare every opaque Core catalog binding; the controlled runtime regression must prove the decision defect separately."
+    }
+  ],
+  "source_sha256": {
+    "sdk/typescript/src/browser_codecs.ts": "cae5cd11cf1575ab4aa3477015471f1e53609981470494a88d97e9eafb017981",
+    "sdk/typescript/src/browser_media.ts": "dd23a9908348e399bbddfb2ce0f9c91fa6e4ea65b1b62a46f69edb6f16342440",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "98a366609a070c056929786c5768f464b67b501c77836621f02ec318ed73ae44",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "582c9f2b512bfa8b6e06142a27443da1426767bcd7d018eee03a1e9af522ba2a"
+  },
+  "candidate_retry_defect": {
+    "file": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs",
+    "observation": "Read-only catalog Conflict/Capacity sets the same retry flag that unconditionally requests a reconciliation effect on the next successful plan. Thus a transient catalog-read failure can force work even when the next full authoritative catalog equals the last committed catalog.",
+    "required_fix": "Separate read/replan scheduling from pending effect/outcome retries. Preserve current authorization retries, exact pending operation/outcome identity and real changed-catalog processing. Add a controlled regression before updating the recorded patch/source lock; never edit immutable deps186."
+  },
+  "acceptance_qualified": false,
+  "remaining": "Prove and fix the retry decision path; repeat actual8/28 and frozen60/native/impairment profiles. Do not increase packet budgets blindly or lower thresholds."
+}

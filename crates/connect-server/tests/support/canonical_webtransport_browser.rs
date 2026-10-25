@@ -190,6 +190,21 @@ fn capture(f: &Fixture, algorithm: &str) {
         }
     }
 }
+fn capture_failure(f: &Fixture, algorithm: &str) {
+    capture(f, algorithm);
+    if let Some(destination) = std::env::var_os("CONNECT_GATE6_BROWSER_ARTIFACTS") {
+        let target = std::path::PathBuf::from(destination)
+            .join(algorithm)
+            .join("failed-state.sqlite3");
+        // A consistent isolated failure snapshot, including WAL contents. Raw
+        // credentials/state remain under the driver's ignored private output.
+        let database = rusqlite::Connection::open(f.server.store.path()).unwrap();
+        database.busy_timeout(Duration::from_secs(2)).unwrap();
+        database
+            .execute("VACUUM main INTO ?1", [target.to_str().unwrap()])
+            .unwrap();
+    }
+}
 async fn browser(algorithm: &str, sdk: bool, media: bool) {
     browser_profile(algorithm, sdk, media, false).await;
 }
@@ -306,7 +321,7 @@ async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media:
     .unwrap();
     if !output.status.success() {
         drop(chrome);
-        capture(&f, algorithm);
+        capture_failure(&f, algorithm);
         if media {
             let snapshot = f.server.service.canonical_runtime_snapshot().unwrap();
             eprintln!(

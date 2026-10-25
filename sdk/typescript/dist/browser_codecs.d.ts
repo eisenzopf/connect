@@ -47,6 +47,10 @@ export declare class BrowserVp8Codec {
     private ssrc?;
     private lastSequence?;
     private lastTimestamp?;
+    private readonly decodeCounts;
+    get decodeDiagnostics(): Readonly<typeof this.decodeCounts & {
+        waitingForKey: boolean;
+    }>;
     constructor(callbacks: CodecCallbacks<VideoFrame>);
     /** Consumes and closes the caller's VideoFrame on every path. */
     encode(frame: VideoFrame): boolean;

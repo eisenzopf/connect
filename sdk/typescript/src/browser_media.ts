@@ -188,6 +188,7 @@ export class BrowserMediaPeer {
         counters: Readonly<Route["observed"]>;
         incompleteFrames: number;
         fragments: number;
+        recovery?: BrowserVp8Codec["decodeDiagnostics"];
     }> {
         return [...this.routes.values()].map((r) => ({
             streamId: r.binding.streamId,
@@ -196,6 +197,7 @@ export class BrowserMediaPeer {
             counters: { ...r.observed },
             incompleteFrames: r.assembler?.queuedFrames ?? 0,
             fragments: r.assembler?.queuedFragments ?? 0,
+            recovery: r.vp8?.decodeDiagnostics,
         }));
     }
     private check(): void {

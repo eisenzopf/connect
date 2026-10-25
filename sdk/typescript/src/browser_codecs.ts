@@ -211,6 +211,18 @@ export class BrowserVp8Codec {
     private ssrc?: number;
     private lastSequence?: number;
     private lastTimestamp?: number;
+    private readonly decodeCounts = {
+        sourceEpochs: 0,
+        sequenceGaps: 0,
+        lateFrames: 0,
+        assemblyLosses: 0,
+        queueDrops: 0,
+    };
+    get decodeDiagnostics(): Readonly<
+        typeof this.decodeCounts & { waitingForKey: boolean }
+    > {
+        return { ...this.decodeCounts, waitingForKey: this.needsKey };
+    }
     constructor(private readonly callbacks: CodecCallbacks<VideoFrame>) {
         if (
             typeof VideoEncoder !== "function" ||
@@ -315,6 +327,7 @@ export class BrowserVp8Codec {
     }
     /** Call after loss/expired assembly; delta frames cannot establish readiness. */
     lost(): void {
+        this.decodeCounts.assemblyLosses++;
         this.needsKey = true;
     }
     requestKeyFrame(): void {
@@ -322,10 +335,12 @@ export class BrowserVp8Codec {
     }
     decode(frame: Vp8Frame, timestampUs: number): boolean {
         if (this.stopped || this.decoder.decodeQueueSize >= 8) {
+            if (!this.stopped) this.decodeCounts.queueDrops++;
             this.needsKey = true;
             return false;
         }
         if (this.ssrc !== frame.ssrc) {
+            this.decodeCounts.sourceEpochs++;
             this.ssrc = frame.ssrc;
             this.needsKey = true;
             this.lastSequence = undefined;
@@ -342,13 +357,17 @@ export class BrowserVp8Codec {
         if (
             this.lastTimestamp !== undefined &&
             ((frame.timestamp - this.lastTimestamp) | 0) <= 0
-        )
+        ) {
+            this.decodeCounts.lateFrames++;
             return false;
+        }
         if (
             this.lastSequence !== undefined &&
             frame.firstSequence !== ((this.lastSequence + 1) & 65535)
-        )
+        ) {
+            this.decodeCounts.sequenceGaps++;
             this.needsKey = true;
+        }
         this.lastSequence = frame.lastSequence;
         this.lastTimestamp = frame.timestamp;
         if (this.needsKey && !frame.key) return false;

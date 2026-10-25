@@ -81,6 +81,7 @@ export class BrowserMediaPeer {
             counters: { ...r.observed },
             incompleteFrames: r.assembler?.queuedFrames ?? 0,
             fragments: r.assembler?.queuedFragments ?? 0,
+            recovery: r.vp8?.decodeDiagnostics,
         }));
     }
     check() {

@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "in-progress; controlled Store checks pass, connected rebuild active",
+  "status": "in-progress; current connected matrix still fails",
   "scope": "Current packet retry admission window and effect-free original data admission while internal managed reconciliation is pending. No media throughput or full task qualification.",
   "changes": [
     "End/Data may wait before admission only when the exact original connection is occupied exclusively by internal stream.reconcile. Revision-sensitive controls and competing client controls keep ordinary conflict handling.",
@@ -61,7 +61,16 @@
   },
   "runtime": {
     "report": ".local/gate-6/browser-sdk/managed039/summary.json",
-    "status": "optimized build live;8 connected methods and28 transport regressions not yet qualified on this source"
+    "sha256": "45401b31be1ec26485b22cd6c2b45d0cedf157e84ba823491ab8589cfc5950ba",
+    "status": "completed;4/8 pass. Media throughput remains low; data and terminal admission can return operation_rejected. No resolution claim.",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "failures": [
+      "Direct EdDSA identified VP8 86/86 versus minimum90.",
+      "Direct ES256 message.send operation_rejected.",
+      "Captured EdDSA media thresholds pass (Opus156/185,VP8 96/96), but original browser-end-1 returns operation_rejected and original status is forbidden.",
+      "Captured ES256 identified VP8 60/58 versus minimum90."
+    ]
   },
   "source_sha256": {
     "crates/connect-service/src/canonical_media/packets.rs": "dee4d53c51db6347c0db42c17464ceb184bd8edc856b5a5d1342ac14407cc999",

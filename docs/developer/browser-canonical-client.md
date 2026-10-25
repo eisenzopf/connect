@@ -237,3 +237,8 @@ authority, and the engine checks the original gate/scene stamps afterward.
 The window bounds retry admission; it does not claim a hard bound on an
 individual SQL projection. Full operating latency remains subject to the
 frozen marker and queue measurements.
+
+`peer.routeDiagnostics` includes numeric VP8 recovery observations: source
+epochs, complete-frame sequence gaps, late frames, assembly losses, decoder
+queue drops and whether a keyframe is required. These counters support
+troubleshooting and grant no authority; they contain no media bytes.

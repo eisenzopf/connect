@@ -92,6 +92,7 @@ export declare class BrowserMediaPeer {
         counters: Readonly<Route["observed"]>;
         incompleteFrames: number;
         fragments: number;
+        recovery?: BrowserVp8Codec["decodeDiagnostics"];
     }>;
     private check;
     private die;
