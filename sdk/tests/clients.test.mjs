@@ -139,3 +139,5 @@ import "./browser_rtcp.test.mjs";
 import "./browser_source_clock.test.mjs";
 
 import "./browser_presentation_clock.test.mjs";
+
+import "./browser_capture_timing.test.mjs";

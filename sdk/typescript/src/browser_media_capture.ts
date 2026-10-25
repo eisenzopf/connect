@@ -421,15 +421,53 @@ export class BrowserMediaCapture {
             if (this.stopped) return;
             try {
                 if (!this.paused) {
-                    origin ??=
-                        performance.now() * 1000 - metadata.mediaTime * 1000000;
+                    // A callback may run a vsync or more after frame submission.
+                    // Use the frame's clock metadata, never callback execution.
+                    const captureTime = (
+                        metadata as VideoFrameCallbackMetadata & {
+                            captureTime?: number;
+                        }
+                    ).captureTime;
+                    let timestamp: number;
+                    if (captureTime !== undefined) {
+                        timestamp = Math.round(captureTime * 1000);
+                        if (!Number.isFinite(captureTime) || captureTime < 0)
+                            throw new ConnectError(
+                                "media-capture",
+                                "Invalid video capture clock",
+                            );
+                    } else {
+                        const presentationUs = Math.round(
+                            metadata.presentationTime * 1000,
+                        );
+                        const mediaUs = Math.round(
+                            metadata.mediaTime * 1000000,
+                        );
+                        if (
+                            !Number.isSafeInteger(presentationUs) ||
+                            !Number.isSafeInteger(mediaUs) ||
+                            !Number.isFinite(metadata.presentationTime) ||
+                            metadata.presentationTime < 0 ||
+                            !Number.isFinite(metadata.mediaTime) ||
+                            metadata.mediaTime < 0
+                        )
+                            throw new ConnectError(
+                                "media-capture",
+                                "Video frame timing unavailable",
+                            );
+                        origin ??= presentationUs - mediaUs;
+                        timestamp = origin + mediaUs;
+                    }
+                    if (!Number.isSafeInteger(timestamp) || timestamp < 0)
+                        throw new ConnectError(
+                            "media-capture",
+                            "Invalid video capture timestamp",
+                        );
                     out.drawImage(video, 0, 0, 640, 360);
                     this.connection.encodeVideo(
                         this.options.videoStreamId!,
                         new VideoFrame(canvas, {
-                            timestamp: Math.round(
-                                origin + metadata.mediaTime * 1000000,
-                            ),
+                            timestamp,
                         }),
                     );
                 }

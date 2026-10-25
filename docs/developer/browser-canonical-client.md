@@ -136,7 +136,15 @@ negotiated senders using an owned microphone/camera/screen or an explicitly
 transferred `MediaStream`. `browserCaptureSupport()` detects required primitives
 before permission. The audio worklet holds at most ten 20 ms mono frames and
 discards partial samples and stale credits on pause/resume. Video uses frame
-callbacks at 640x360. The helper stops late permission grants after cancellation
+callbacks at 640x360. Video timestamps prefer per-frame `captureTime` when
+available. Otherwise the first frame's `presentationTime` and `mediaTime`
+establish a relative epoch, preserving later media gaps across pause/resume.
+Callback execution time never establishes that epoch. The fallback measures
+browser frame submission for composition; it does not establish physical sensor
+capture time. Missing or invalid timing closes capture and releases owned
+resources. The240-method SDK and four controlled negative cases are recorded in
+`docs/evidence/gate-6/browser-client-capture-frame-clock.json`; current connected
+synchronization remains unqualified. The helper stops late permission grants after cancellation
 or the startup deadline, pauses locally when hidden, and requires explicit
 `resume()` from a visible page. Connection closure stops all owned tracks, frame
 callbacks, graph nodes and worklet ports. Device IDs stay local to capture.

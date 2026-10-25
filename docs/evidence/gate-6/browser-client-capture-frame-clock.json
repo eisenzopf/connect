@@ -1,0 +1,48 @@
+{
+  "schema": "connect-gate6-capture-frame-clock/1",
+  "task": "G6-050",
+  "status": "Capture timestamp origin corrected; actual connected operating profile remains unqualified",
+  "source": {
+    "sdk/typescript/src/browser_media_capture.ts": "2537fed8515a1017ee659813a5214c5c66533d1068470a615931f35224ea721a",
+    "sdk/typescript/dist/browser_media_capture.js": "c3b0b51c85867d133fe44fc3bb4faae29e28b23bcde7103759af3fbe13ce7dd2",
+    "sdk/typescript/dist/browser_media_capture.d.ts": "91256fa9f65af438348dd23cfe7144742b984d8867d8152724a2cbf4be991039",
+    "sdk/tests/browser_capture_timing.test.mjs": "fe07ee69d53906d59c2ab4d5d8eb6ad09bc258571b20990e7ba564151610996d",
+    "sdk/tests/clients.test.mjs": "8bb900279cce9a9311d4f354d7a1402d88d2476df93f6fe7eb2f58420f480cb5"
+  },
+  "diagnostic": {
+    "report": ".local/gate-6/capture-timing/capture-clock-probe001/summary.json",
+    "sha256": "6650867f23623595e20a9fbaf748d37892556a446874cb51ba89a2281b46ba7d",
+    "passed": true,
+    "script_unchanged": true,
+    "browser": "Chrome/155.0.8059.85",
+    "scope": "Owned local canvas-only capture timestamp diagnostic. No microphone/camera/device permission, Connect media, profile/AV-sync qualification or observer/source mutation.",
+    "observation": "Owned canvas stream first callback ran at188.5ms while frame presentationTime was138.1ms; direct track processor observed the same frame at138.2ms. captureTime was absent. Callback execution as the epoch adds50.4ms to every later frame timestamp. This identifies a timestamp-origin bug, not a measured connected AV-sync correction."
+  },
+  "sdk": {
+    "report": ".local/gate-6/capture-timing/sdk-guard001/summary.json",
+    "sha256": "7a76ae6f15828b7d0d59c14975b136d441b63d5c82f6e6014e1032d497f374a9",
+    "passed": true,
+    "methods": 240,
+    "new_methods": 4,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "240 actual production SDK methods with source and generated JS/declaration guards. Four new controlled capture timing/ownership methods; mock audio/canvas/clock behavior only. Actual installed browser/Connect host/full operating profile remains separate."
+  },
+  "controlled_negative": {
+    "report": ".local/gate-6/capture-timing/negative002/summary.json",
+    "sha256": "1825dd5c64696fb85058dc6fb02d5fa8fb6034f465b411fd0985f539f833670e",
+    "source_revision": "067027f556be53e3f56d901a53cf4d71fb0bdf7b",
+    "verified_expected_failure": true,
+    "methods": 4,
+    "failures": 4,
+    "inputs_unchanged": true,
+    "scope": "Same four public capture timing cases against byte-exact previous committed production capture JS; only test import path changes."
+  },
+  "behavior": [
+    "Prefer optional per-frame captureTime, including valid zero, in the browser performance timeline. Malformed, negative, nonfinite or unsafe timing closes capture before encoding and releases its owned track/observer/callback.",
+    "When captureTime is unavailable, derive one relative media epoch from the first frame presentationTime and mediaTime; preserve subsequent mediaTime gaps, including pause/resume. Never use delayed callback execution as the epoch. presentationTime denotes browser submission for composition; this fallback does not establish physical sensor capture time.",
+    "Four public capture cases cover late first/later callbacks, direct captureTime including zero, eleven unavailable/malformed/unsafe timings with ownership cleanup, and paused callback discard/resume retaining the epoch. No source, observer, AV offset or quality threshold changes."
+  ],
+  "specification": "https://wicg.github.io/video-rvfc/",
+  "remaining": "The unchanged clean60-shared069 run continues in its original worktree on SDK236/source202. It does not contain this fix. After its terminal outcome, rerun the current SDK240 with the same frozen source, observer and limits; require actual rendered fps as well as all paired markers. Browser/native, independently phased sources, impairment, permissions/background and complete owned teardown remain required. G6-050 and acceptance remain open."
+}
