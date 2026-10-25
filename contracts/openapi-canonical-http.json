@@ -210,6 +210,17 @@
         "x-max-encoded-request-bytes": 65536,
         "x-max-encoded-response-bytes": 2097152,
         "x-response-cache-control": "no-store",
+        "x-connect-operation-recovery": {
+          "target": "Payload operation_id names the existing original operation; top-level operation_id names a separate stable cancel/reconcile decision.",
+          "authority": "Current operation permission, original command/source authority, owner and recipient ceilings apply after restart and on replay.",
+          "uncertain": {
+            "code": 409,
+            "category": "state",
+            "reason": "reconciliation_required"
+          },
+          "evidence": "Reconciliation references existing protected evidence bound to the current operation revision and worker generation. A caller-declared evidence ID or operator attestation cannot manufacture provider termination or physical completion.",
+          "retry": "Preserve original logical IDs and unresolved conflicting reservations. A new ID does not authorize another external submission."
+        },
         "x-native-subscriptions": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect operation outcomes but cannot install a native receive route.",
           "selectors": "Exact strm_id, from_participant, or from_participant with an explicit kinds list. Omitted kinds selects compatible declared receiver kinds within the installed profile, including later admitted sources of that pinned member epoch. A source supporting fewer kinds does not reject the wildcard when at least one kind is compatible and authorized. Unsupported source kinds remain future intent, without granting IO; explicit kinds are required exactly. It does not request unsupported screen/data or grant media capability.",
