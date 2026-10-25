@@ -1,0 +1,39 @@
+{
+  "schema": "connect-gate6-reconciliation-outcome/1",
+  "task": "G6-050",
+  "status": "controlled negative-before verified; production fix pending",
+  "negative_before": {
+    "report": ".local/gate-6/reconciliation-outcome/negative002/summary.json",
+    "sha256": "bf6813bc839903f7481d5bf29c68bd32345777611034ac7a861f49117806db61",
+    "passed": false,
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "cases": [
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_failed_routing_replays_the_exact_error_with_metadata_only_custody",
+        "exit_code": 101,
+        "passed": false,
+        "expected_failure": true,
+        "log": ".local/gate-6/reconciliation-outcome/negative002/case-0.log",
+        "log_sha256": "7664bd324493e761d2a79a801eebecf4bf0f84aec1618ae9736ed6434fe440bc",
+        "elapsed_seconds": 1.4437358330469579
+      }
+    ]
+  },
+  "mechanism": "Actual routing-only Core control refuses once with Conflict before graph commit. The policy delays recording and then lends metadata-only historical custody. Baseline runtime invokes the engine again with that metadata and replaces the captured Conflict with Authority. The exact mismatch assertion fails; no graph revision or port allocation changes. Initial QUIC negative stops before WT, which remains required in the eventual positive.",
+  "test_only_patch": {
+    "path": "patches/rvoip/gate6-reconciliation-error-custody-regression.patch",
+    "sha256": "b1c7c74bca88734e6f6ef89a1c29ba3b54b61731f57c0f7ef98a449a1316bbf1",
+    "patch_count": 189,
+    "source_lock_sha256": "aae8b06fcd81590fb3f01deb43c2b9ba61c9277b6328f950c8d5bc297b997b5f"
+  },
+  "first_harness": {
+    "report": ".local/gate-6/reconciliation-outcome/negative001/summary.json",
+    "passed": false,
+    "verified_expected_failure": false,
+    "observation": "Timed out because notify_one could wake the publisher instead of the retained selector runtime. Revised to notify_waiters and publish the observation counter after validation; first cache/patch/lock are retained privately."
+  },
+  "next": "Record production patch preserving exact success/error plus its original plan across observer retries. Provide an opaque exact-scope/error proof only for definite unchanged-resource atomic routing failure, record the original failed attempt before releasing it, and obtain fresh current authority for further work. Preserve uncertainty for possible resource IO and never run an effect with metadata-only observation custody. Then six actual upstream methods and full current host/browser/native/transport checks.",
+  "scope": "Actual Core/UCTP functional negative only; no passing test, Connect host performance, native interoperability, full task/acceptance or publication claim."
+}

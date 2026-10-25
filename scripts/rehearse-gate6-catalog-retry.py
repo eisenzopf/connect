@@ -14,6 +14,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = 'peer_native::canonical_media::native_offers::future_subscriptions::'
 REGRESSION = PREFIX + 'actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation'
+OUTCOME = PREFIX + 'actual_failed_routing_replays_the_exact_error_with_metadata_only_custody'
 FUTURE = [
     PREFIX + 'actual_future_participant_video_and_screen_reconcile_after_original_command_grant_releases',
     PREFIX + 'actual_future_selection_rechecks_denial_then_reuses_operation_after_bad_confirmation_and_queued_writer',
@@ -45,6 +46,7 @@ def main():
     parser.add_argument('--target-dir', required=True, type=Path)
     parser.add_argument('--expect-regression', action='store_true',
                         help='Historical tests-only patch phase: expect exactly the unchanged-catalog assertion to fail. No passing test claim.')
+    parser.add_argument('--regression', choices=('catalog', 'outcome'), default='catalog', help='Select the exact historical negative assertion; positive runs cover both regressions and retained subscription behavior.')
     args = parser.parse_args()
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
@@ -57,7 +59,7 @@ def main():
     report = dict(passed=False, verified_expected_failure=False,
                   started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  host=platform.platform(), expect_regression=args.expect_regression,
+                  host=platform.platform(), expect_regression=args.expect_regression, regression=args.regression,
                   scope='Controlled actual upstream QUIC/WT subscription/catalog behavior under its locked workspace and recorded release profile. No Connect host/browser media throughput, native SDK, full G6-050 or acceptance qualification.',
                   profile={key: env[key] for key in ('CARGO_INCREMENTAL', 'CARGO_PROFILE_RELEASE_LTO', 'CARGO_PROFILE_RELEASE_CODEGEN_UNITS', 'CARGO_PROFILE_RELEASE_DEBUG', 'CARGO_PROFILE_RELEASE_PANIC')},
                   steps=[], cases=[])
@@ -96,7 +98,9 @@ def main():
             path = Path(found[0]['executable'])
             executables.append(dict(target=name, path=str(path), sha256=digest(path)))
         report['executables'] = executables
-        selected = [(REGRESSION, 'v2_peer_admission')]
+        selected = [(REGRESSION if args.regression == 'catalog' else OUTCOME, 'v2_peer_admission')]
+        if not args.expect_regression:
+            selected.append((OUTCOME if args.regression == 'catalog' else REGRESSION, 'v2_peer_admission'))
         if not args.expect_regression:
             selected.extend((name, 'v2_peer_admission') for name in FUTURE)
             selected.append((CLASSIFIER, 'rvoip_uctp'))
@@ -110,7 +114,7 @@ def main():
             text = log.read_text()
             summary = re.search(r'test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored', text)
             normal = result.returncode == 0 and summary and tuple(map(int, summary.group(2, 3, 4))) == (1, 0, 0)
-            expected = args.expect_regression and result.returncode == 101 and summary and tuple(map(int, summary.group(2, 3, 4))) == (0, 1, 0) and 'A busy read followed by the identical current catalog must not start another reconciliation' in text
+            expected = args.expect_regression and result.returncode == 101 and summary and tuple(map(int, summary.group(2, 3, 4))) == (0, 1, 0) and ('A busy read followed by the identical current catalog must not start another reconciliation' if args.regression == 'catalog' else 'metadata-only retry replaced the original Conflict outcome with another engine result') in text
             case = dict(case=name, exit_code=result.returncode, passed=bool(normal),
                         expected_failure=bool(expected), log=str(log.relative_to(ROOT)),
                         log_sha256=digest(log), elapsed_seconds=time.monotonic() - start)
@@ -123,7 +127,7 @@ def main():
         report['source_inputs_unchanged'] = before == sources()
         report['executables_unchanged'] = bool(executables) and all(digest(Path(e['path'])) == e['sha256'] for e in executables)
         guarded = report['source_inputs_unchanged'] and report['executables_unchanged'] and 'failure' not in report
-        report['passed'] = bool(not args.expect_regression and guarded and len(report['cases']) == 5 and all(c['passed'] for c in report['cases']))
+        report['passed'] = bool(not args.expect_regression and guarded and len(report['cases']) == 6 and all(c['passed'] for c in report['cases']))
         report['verified_expected_failure'] = bool(args.expect_regression and guarded and len(report['cases']) == 1 and report['cases'][0]['expected_failure'])
         report['finished_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         (directory / 'summary.json').write_text(json.dumps(report, indent=2) + '\n')

@@ -1,0 +1,186 @@
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -10,6 +10,12 @@
+     plan: NativeSubscriptionPlan,
+     operation: String,
+     proposal: Mutex<Option<Envelope>>,
++    fail_routing: Arc<AtomicBool>,
++}
++struct ErrorObservation {
++    domain: std::sync::Weak<Grants>,
++    operation: String,
++    error: NativeOfferError,
+ }
+ pub(super) struct Policy {
+     domain: Arc<Grants>,
+@@ -21,6 +27,11 @@
+     attempts: AtomicUsize,
+     reads: AtomicUsize,
+     held: AtomicUsize,
++    fail_routing: Arc<AtomicBool>,
++    capture_error: AtomicBool,
++    captured_error: Mutex<Option<(String, NativeOfferError)>>,
++    error_replays: AtomicUsize,
++    changed_errors: AtomicUsize,
+ }
+ impl Policy {
+     fn new(s: &Scene) -> Arc<Self> {
+@@ -34,6 +45,11 @@
+             attempts: AtomicUsize::new(0),
+             reads: AtomicUsize::new(0),
+             held: AtomicUsize::new(0),
++            fail_routing: Arc::new(AtomicBool::new(false)),
++            capture_error: AtomicBool::new(false),
++            captured_error: Mutex::new(None),
++            error_replays: AtomicUsize::new(0),
++            changed_errors: AtomicUsize::new(0),
+         })
+     }
+ }
+@@ -86,6 +102,19 @@
+         pending: Option<&str>,
+     ) -> Result<NativeSubscriptionAuthority, DispatchError> {
+         self.attempts.fetch_add(1, Ordering::AcqRel);
++        if let Some((operation, error)) = self.captured_error.lock().unwrap().clone() {
++            if pending != Some(operation.as_str()) {
++                return Err(DispatchError::Authority);
++            }
++            return Ok(NativeSubscriptionAuthority {
++                operation: operation.clone(),
++                lease: AuthorityLease::holding(ErrorObservation {
++                    domain: Arc::downgrade(&self.domain),
++                    operation,
++                    error,
++                }),
++            });
++        }
+         let wire = self.wire.grants.clone().read_owned().await;
+         let guard = self.domain.0.clone().read_owned().await;
+         let operation = pending
+@@ -100,6 +129,7 @@
+             plan: plan.clone(),
+             operation: operation.clone(),
+             proposal: Mutex::new(None),
++            fail_routing: self.fail_routing.clone(),
+         };
+         validate(&p, scope)?;
+         self.reads.fetch_add(1, Ordering::AcqRel);
+@@ -116,12 +146,35 @@
+         held: Option<&AuthorityLease>,
+     ) -> Result<(), DispatchError> {
+         let lease = held.ok_or(DispatchError::Authority)?;
++        if let Some(metadata) = lease.authority::<ErrorObservation>() {
++            assert!(metadata.domain.ptr_eq(&Arc::downgrade(&self.domain)));
++            assert_eq!(metadata.operation, operation);
++            if result.as_ref().err() != Some(&metadata.error) {
++                self.changed_errors.fetch_add(1, Ordering::AcqRel);
++                self.error_replays.fetch_add(1, Ordering::AcqRel);
++                return Err(DispatchError::SubmissionUnknown);
++            }
++            self.operations
++                .lock()
++                .unwrap()
++                .push((operation.into(), Err(metadata.error)));
++            self.captured_error.lock().unwrap().take();
++            self.error_replays.fetch_add(1, Ordering::AcqRel);
++            return Ok(());
++        }
+         let p = lease
+             .authority::<FreshProof>()
+             .ok_or(DispatchError::Authority)?;
+         validate(p, scope)?;
+         if !lease.current() || operation != p.operation {
+             return Err(DispatchError::Authority);
++        }
++        if let Err(error) = result {
++            if self.capture_error.swap(false, Ordering::AcqRel) {
++                assert_eq!(*error, NativeOfferError::Conflict);
++                *self.captured_error.lock().unwrap() = Some((operation.into(), *error));
++                return Err(DispatchError::SubmissionUnknown);
++            }
+         }
+         if result.as_ref().is_ok_and(|o| o.resources_changed)
+             && self.fail_observation.swap(false, Ordering::AcqRel)
+@@ -336,6 +389,9 @@
+         };
+         if !matches {
+             return Err(StreamControlError::Authority);
++        }
++        if !plan.changes_resources() && p.fail_routing.swap(false, Ordering::AcqRel) {
++            return Err(rvoip_core::stream_lifecycle::MediaTransitionError::Conflict.into());
+         }
+         let mut o = credential_owner(
+             p.guard
+@@ -850,3 +906,71 @@
+         other.server.shutdown().await.unwrap();
+     }
+ }
++
++#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
++async fn actual_failed_routing_replays_the_exact_error_with_metadata_only_custody() {
++    for kind in ["quic", "wt"] {
++        let (s, mut other, policy) = setup(kind).await;
++        let receiver = s.native.adapters[&s.kind]
++            .media_controller(&s.second_id)
++            .unwrap();
++        other.send(s.f.sign(select(receiver.revision()))).await;
++        assert_eq!(other.read().await.kind(), "ack");
++        tokio::time::sleep(Duration::from_millis(650)).await;
++        let revision = receiver.revision();
++        let budget = receiver.stream_open_budget();
++        let completed_before = policy.operations.lock().unwrap().len();
++        policy.capture_error.store(true, Ordering::Release);
++        policy.fail_routing.store(true, Ordering::Release);
++        policy.changed.notify_waiters();
++        core_fixture::until(|| policy.error_replays.load(Ordering::Acquire) > 0).await;
++        let changed = policy.changed_errors.load(Ordering::Acquire);
++        if changed == 0 {
++            // The historical token owns no policy reader or new media grant.
++            drop(
++                tokio::time::timeout(Duration::from_secs(1), s.grants.0.write())
++                    .await
++                    .unwrap(),
++            );
++            core_fixture::until(|| {
++                policy.operations.lock().unwrap()[completed_before..]
++                    .iter()
++                    .any(|(_, result)| result.is_ok())
++            })
++            .await;
++            let operations = policy.operations.lock().unwrap();
++            let results = &operations[completed_before..];
++            let failed = results
++                .iter()
++                .filter(|(_, result)| matches!(result, Err(NativeOfferError::Conflict)))
++                .collect::<Vec<_>>();
++            assert_eq!(
++                failed.len(),
++                1,
++                "original failed outcome must be recorded once"
++            );
++            assert!(
++                results
++                    .iter()
++                    .any(|(operation, result)| result.is_ok() && operation != &failed[0].0),
++                "a definite failed attempt closes before fresh authorized reconciliation"
++            );
++        }
++        assert_eq!(
++            receiver.revision(),
++            revision,
++            "failed routing changed the graph revision"
++        );
++        assert_eq!(
++            receiver.stream_open_budget(),
++            budget,
++            "routing-only failure allocated resources"
++        );
++        s.wire.server.shutdown().await.unwrap();
++        other.server.shutdown().await.unwrap();
++        assert_eq!(
++            changed, 0,
++            "metadata-only retry replaced the original Conflict outcome with another engine result"
++        );
++    }
++}

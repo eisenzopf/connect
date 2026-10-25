@@ -1053,6 +1053,11 @@
       "path": "patches/rvoip/gate6-reconcile-catalog-read-retries.patch",
       "sha256": "d197741f98a74e0f77f9d4a00aa6d678f70fd77ec375c9f6f7668faf09fda835",
       "source": "G6-050 current catalog read retry is metadata scheduling, not a pending engine-effect retry. Preserve unchanged full catalog suppression after real controller contention, classify catalog Backpressure as StorageUnavailable, retain current authorization retries and exact captured pending outcome replay, and process real later source/capability changes."
+    },
+    {
+      "path": "patches/rvoip/gate6-reconciliation-error-custody-regression.patch",
+      "sha256": "b1c7c74bca88734e6f6ef89a1c29ba3b54b61731f57c0f7ef98a449a1316bbf1",
+      "source": "G6-050 controlled actual routing-only Conflict followed by delayed observation: metadata-only historical custody must replay the same original error without another engine call or revision/allocation. The baseline substitutes Authority for the captured Conflict. Test-only failure hook after current invocation validation, bounded cleanup and later fresh authorized recovery on QUIC/WT; no production fix in this patch."
     }
   ]
 }
