@@ -1,0 +1,46 @@
+{
+  "schema": "connect-gate6-audio-backlog/1",
+  "task": "G6-050",
+  "status": "Controlled steady-tick burst latency reproduced; correction pending",
+  "negative": {
+    "report": ".local/gate-6/audio-backlog/negative002/summary.json",
+    "sha256": "088d400aec3374deaf8373eb571c171b93a7fc365795e3ed81d777302003642d",
+    "candidate_revision": "fa212a83203f80deb9015869cf4928d497f56c33",
+    "verified_expected_failure": true,
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "case": {
+      "selection": "staged_streams::tests::guarded_mixer::guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks",
+      "selected": [
+        "staged_streams::tests::guarded_mixer::guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks"
+      ],
+      "exit_code": 101,
+      "passed": false,
+      "expected_failure": true,
+      "counts": [
+        0,
+        1,
+        0
+      ],
+      "log": ".local/gate-6/audio-backlog/negative002/case-0.log",
+      "log_sha256": "da9f99d561f61dd21fbfb1fb65e6cbe1b983b6452130d35cb877870cdcd3e407",
+      "elapsed_seconds": 0.006278249900788069
+    },
+    "test_only_patch": {
+      "path": "patches/rvoip/gate6-steady-audio-backlog-regression.patch",
+      "sha256": "c3594b602fdf65301fcafeeb00c261c06f71cbafb5c1d6627637edc0458364e6"
+    },
+    "behavior": "Ten contiguous20ms original packets fill the existing input budget. After the first output, one fresh identified7000 packet arrives per nominal tick. On the fourth such tick, old1000 is still played ahead of fresh originals. No missed tick is needed. Negative stops at8kHz;48kHz/wrap and later assertions are not reached. This is a nominal-quantum queue test, not an actual80ms wall-clock operating qualification."
+  },
+  "unqualified_first_attempt": {
+    "report": ".local/gate-6/audio-backlog/negative001/summary.json",
+    "reason": "The focused harness added the newly imported sealing helper to its source manifest during the first build. Its source guard changed, so the actual assertion failure is unqualified. The correctly frozen second attempt reuses the completed build and qualifies the exact expected failure."
+  },
+  "required_correction": [
+    "After playing a quantum, retain the newest not-yet-started original packet while preserving the remainder of a currently playing variable-duration original.",
+    "Keep current source/target/scene/consumer authority, original age, ten-chunk/200ms insertion bounds, two-packet ordering, once-only output and expiry/recovery regressions.",
+    "Verify controlled groups, then actual sustained audio/alignment without changing frozen quality limits or adding a constant video offset."
+  ],
+  "scope": "Actual isolated Core mixer queue behavior only. Connected source194 still has unresolved audio loss and synchronization; no task/acceptance/publication pass."
+}

@@ -1,0 +1,46 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -996,3 +996,43 @@
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
++
++#[tokio::test]
++async fn guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks() {
++    for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        // An initial contiguous burst fills the existing200ms input bound.
++        // Thereafter one fresh20ms original arrives for each nominal tick.
++        // No missed server tick exists for the cadence correction to recover.
++        for offset in 0..10 {
++            s.publish_at(0, 1000, start.wrapping_add(offset * 160));
++        }
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 1000).await;
++        for offset in 10..13 {
++            s.publish_at(0, 7000, start.wrapping_add(offset * 160));
++            s.mixer.tick();
++            let packet = out.try_recv().unwrap();
++            packet.deliver(|_| async { Ok(()) }).await.unwrap();
++        }
++        s.publish_at(0, 7000, start.wrapping_add(13 * 160));
++        s.mixer.tick();
++        heard_labeled(
++            out.try_recv().unwrap(),
++            7000,
++            "steady mixer retained old burst PCM ahead of fresh originals",
++        )
++        .await;
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("queued PCM retained idle authority"),
++        );
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}
