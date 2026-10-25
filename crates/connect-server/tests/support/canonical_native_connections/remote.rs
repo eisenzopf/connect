@@ -612,10 +612,14 @@ async fn distinct_host_server_child() {
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
     )
     .unwrap();
-    let operations:u64=db.query_row("SELECT count(*) FROM operations WHERE operation_id='distinct-host-create' AND owner_id=?1 AND command_type='conversation.create' AND state='completed'",[&f.client.identity_id],|r|r.get(0)).unwrap();
+    let (operations, kind, state): (u64, Option<String>, Option<String>) = db.query_row(
+        "SELECT count(*),min(command_type),min(state) FROM operations WHERE operation_id='distinct-host-create' AND owner_id=?1",
+        [&f.client.identity_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?)),
+    ).unwrap();
     assert_eq!(
-        operations, 1,
-        "guest reconnect did not preserve a single durable mutation"
+        (operations, kind.as_deref(), state.as_deref()),
+        (1, Some("create"), Some("completed")),
+        "guest reconnect did not preserve a single durable create mutation"
     );
     assert_eq!(
         db.query_row("SELECT count(*) FROM native_offer_operations", [], |r| r

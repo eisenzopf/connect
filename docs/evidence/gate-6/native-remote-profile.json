@@ -1,9 +1,9 @@
 {
   "task": "G6-048",
-  "status": "eight-isolated-remote-runtime-methods-qualified-distinct-host-pending",
+  "status": "local-runtime-qualified-distinct-host-fixture-correction-pending",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T02:42:32.927634+00:00",
+  "recorded_at": "2026-10-25T02:50:05.169024+00:00",
   "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
   "draft_implementation": [
     "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
@@ -608,5 +608,95 @@
       }
     ],
     "scope": "Eight isolated Remote methods and two actual SIP SIGKILL public operator methods. Exact uncertainty reason/HTTP409 preserved; no distinct-host or complete G6-048 claim."
+  },
+  "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+  "implementation_branch": "codex/gate6-native-remote",
+  "implementation_on_main": false,
+  "linux_guest_sdk_build": {
+    "passed": true,
+    "compiler_choice": "Clang18 from Ubuntu24.04 packages; previous GCC13 cc1 segfault under x86 emulation retained in linux-build002.",
+    "scope": "Compile public SDK native probe for owned isolated Ubuntu24.04 Linux/amd64 guest; no connection or distinct-host/media/performance qualification yet.",
+    "source_revision": "a3e529ef3345671535e424bdbdcc541a2649a7d3",
+    "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+    "image_id": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+    "image_os": "linux",
+    "image_architecture": "amd64",
+    "image_created": "2026-10-24T19:31:50.394334007-07:00",
+    "base_image": "ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac",
+    "emulation": "Linux/amd64 userland under local Lima aarch64 VM. No native x86_64 performance claim.",
+    "started_at": "2026-10-25T02:32:37.643675+00:00",
+    "exit_code": 0,
+    "elapsed_seconds": 682.8255735419225,
+    "driver_log_sha256": "49494d555b91fad6da2e14a4a22f290bf626d249540a966e603371111beeb3f0",
+    "executable": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/native-remote/linux-build002/target/debug/examples/native_remote_probe",
+    "executable_sha256": "f7149e73d187ff8b47678f9f037fb8eb5c732e9fe2dbc7409d2f5729403a6ff5",
+    "source_inputs_unchanged": true,
+    "finished_at": "2026-10-25T02:44:00.528824+00:00",
+    "summary": ".local/gate-6/native-remote/linux-build003/summary.json",
+    "summary_sha256": "0f9e8c774102206c283c07862e736642ad23eccd1c7613232c2036404b363634"
+  },
+  "initial_distinct_host008": {
+    "passed": false,
+    "scope": "macOS arm64 server and separate isolated Ubuntu24.04 Linux/amd64 guest native SDK control/reconnect, EdDSA/ES256. Guest x86_64 runs under emulation on local aarch64 Lima VM. No distinct-host decoded media or native x86_64 performance claim.",
+    "source_revision": "f87f922969992660810bbd5588e2c6eb60a23317",
+    "native_executable_sha256": "38079a3fade70d63b87291bf5040c943c48e8f8237e957b3fc9e58f42d5642e7",
+    "guest_executable_sha256": "f7149e73d187ff8b47678f9f037fb8eb5c732e9fe2dbc7409d2f5729403a6ff5",
+    "linux_build_summary_sha256": "0f9e8c774102206c283c07862e736642ad23eccd1c7613232c2036404b363634",
+    "native_build_summary_sha256": "a0bde64003a7d84ebfdddd58118181ddf0aa0bd927f97f6757a5ea5d5c7235a9",
+    "image_id": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+    "profiles": [
+      {
+        "algorithm": "EdDSA",
+        "guest_exit_code": 0,
+        "server_exit_code": 101,
+        "guest_witness": [
+          {
+            "algorithm": "EdDSA",
+            "architecture": "x86_64",
+            "logical_operation": "distinct-host-create",
+            "os": "linux",
+            "profile": "remote",
+            "reconnected_receipt_preserved": true,
+            "verified_native_heartbeat": true
+          }
+        ],
+        "server_witness": [],
+        "guest_log_sha256": "52f0b4e4b0137cc97065dc562f66c72f11d747751e516692b801cd98efe853a4",
+        "server_log_sha256": "09cefab95865abb641f0ee88d41da9a9adf2b00de07e470910784ead070d8fc0",
+        "passed": false
+      },
+      {
+        "algorithm": "ES256",
+        "guest_exit_code": 0,
+        "server_exit_code": 101,
+        "guest_witness": [
+          {
+            "algorithm": "ES256",
+            "architecture": "x86_64",
+            "logical_operation": "distinct-host-create",
+            "os": "linux",
+            "profile": "remote",
+            "reconnected_receipt_preserved": true,
+            "verified_native_heartbeat": true
+          }
+        ],
+        "server_witness": [],
+        "guest_log_sha256": "a3b33d5738a4c60523c1eba3ab0051f8001779aea8a3de5973f187191f30159f",
+        "server_log_sha256": "2e9f41d69f42eff3c26c76f3161d88c68a94ffd46ed53fa6ec88916546b671c2",
+        "passed": false
+      }
+    ],
+    "started_at": "2026-10-25T02:44:01.013016+00:00",
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "finished_at": "2026-10-25T02:44:03.484125+00:00",
+    "summary": ".local/gate-6/native-remote/distinct-host008/summary.json",
+    "summary_sha256": "b634d26aa87dd192cb972f0b71d51129fb69b0ccb10c33f22205fa0758036aa1",
+    "failure_analysis": "Both Ubuntu guest SDK processes succeeded for EdDSA/ES256: verified heartbeat and same conversation receipt after reconnect. The host fixture incorrectly filtered internal command_type by wire name conversation.create; current Store persists the granular create scope. Corrected query now counts all matching owner/operation rows and separately requires exactly one completed create receipt. Full rerun pending; initial wrapper remains failed."
+  },
+  "reproduction": {
+    "runner": "scripts/rehearse-gate6-native-remote.py",
+    "container_recipes": "scripts/fixtures/native-remote/README.md",
+    "status": "Implemented and syntax-checked; full versioned rehearsal pending."
   }
 }
