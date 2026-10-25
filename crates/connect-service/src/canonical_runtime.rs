@@ -263,10 +263,12 @@ impl Physical {
         *bound = Some(Arc::downgrade(peer));
         if !matches!(
             self.binding.transport(),
-            Transport::Quic | Transport::WebTransport
+            Transport::Quic | Transport::WebTransport | Transport::WebSocket
         ) {
             return Err(Error::forbidden());
         }
+        // This admits the authenticated physical control transport only. Media
+        // still requires its own registered adapter, current Endpoint and route.
         Ok(())
     }
 }

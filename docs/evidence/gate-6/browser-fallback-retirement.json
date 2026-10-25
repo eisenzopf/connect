@@ -1,0 +1,37 @@
+{
+  "schema": "connect-gate6-profile-retirement/1",
+  "task": "G6-051",
+  "candidate_revision": "871230aaffbdd29f9f9e693a4e194fbd739fb49e",
+  "status": "Both focused physical lifetime retirement methods pass; WSS hosting runtime is separate",
+  "patch": {
+    "path": "patches/rvoip/gate6-owned-profile-retirement.patch",
+    "sha256": "583e10a6c38db72f94167786359fc4d0d941e44a003c6bda1de89e41fd8b52b0"
+  },
+  "source_lock_sha256": "f692165a1fbcdc11b9dcd3bbd4c89a6c85152e8097abba963e141b85204b024e",
+  "report": {
+    "path": ".local/gate-6/fallback/profile-retirement001/summary.json",
+    "sha256": "89907f241642a577c4bd5b99e8ef52c802e46b6fac81f6c5d7248ce5fdd49d19",
+    "passed": true,
+    "inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "e4c654398c6242576e430c95d6cf06af121c8820da1b288c6bff69bb445939de"
+  },
+  "cases": [
+    {
+      "case": "retirement_tests::beginning_shutdown_cancels_active_peer_lifetime_before_awaiting_join",
+      "exit_code": 0,
+      "log_sha256": "a05933e34d6d284a4bf244e50306c2b83fbc298c88dd75e447548815fb121b60"
+    },
+    {
+      "case": "retirement_tests::admission_drain_retains_active_peer_until_explicit_retirement",
+      "exit_code": 0,
+      "log_sha256": "b795811ddbd45218e4285abc2f2079386364978d363c709e6b0d074c941051dd"
+    }
+  ],
+  "procedure": "Extract the exact two upstream retirement test bodies into an isolated harness importing the production ProfileServer. Compile against the actual source197 rvoip_uctp rlib identified in the root Cargo artifact stream; no copied implementation. Hash source, derived harness, helper, patch, lock, linked rlibs and executable before/after.",
+  "behavior": [
+    "begin_shutdown synchronously cancels an already admitted child lifetime before any async shutdown poll; the original owned shared join later finishes with zero active peers.",
+    "begin_drain stops admission while preserving the admitted child lifetime; explicit retirement cancels it and shutdown joins it."
+  ],
+  "scope": "Two upstream API behavior methods only. Network TLS WSS, installed browser, WebRTC, actual forced fallback, complete G6-051 and acceptance require separate evidence."
+}

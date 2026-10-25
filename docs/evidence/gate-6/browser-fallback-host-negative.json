@@ -1,0 +1,111 @@
+{
+  "schema": "connect-gate6-wss-host-negative/1",
+  "task": "G6-051",
+  "candidate_revision": "871230aaffbdd29f9f9e693a4e194fbd739fb49e",
+  "status": "TLS and signed authentication reach the shared service; the first logical command is refused by a native-only physical-control allowlist",
+  "report": {
+    "path": ".local/gate-6/fallback/wss-host001/summary.json",
+    "sha256": "f244ccbca19b15e3b249c3d8accd11e7c48790a508cf3317418d74f5aeaf5e82",
+    "dispatch_revision": "a68e1dce2724668420be5f19111df326b3b44600",
+    "candidate_input_blobs_verified": 2213,
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 5,
+    "selected_methods": 14
+  },
+  "cases": [
+    {
+      "case": "canonical_websocket_control::cancelling_host_shutdown_keeps_wss_and_pending_tls_owned",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "d7cdf3df8d861a08b04f201277a6e5905c80b54e3e2fbc1900ca6c3c95f23497"
+    },
+    {
+      "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0641016f75fcfe719459cb4661975c1011b4927538a0c20fa92f5643280363de"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "a450596e950b87a47f50de2033d5a76f046301d964a6b812696838fcda3a6f09"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_es256",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "1090ba1e1d506f3a7e46f972d1029136686d9d7e46e8e28c5d07167e447ae644"
+    },
+    {
+      "case": "canonical_websocket_control::tls_origin_mount_refusals_do_not_consume_canonical_slots",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "e467343e99745d98e65762d79b7c5b9aed8830c2800ee08a51735f0336c169e0"
+    },
+    {
+      "case": "canonical_websocket_control::physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "a598329199c1506cde37015b00b4f74eb577cc2e6865f2491b223424bd220025"
+    },
+    {
+      "case": "canonical_websocket_control::dropping_host_closes_live_wss_and_releases_tcp_listener",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "6355e9ead01e656f38d966f06fb9f9c764a3529f7a5ec45b6c3bbf242d6a5fa3"
+    },
+    {
+      "case": "canonical_websocket_control::signing_expiry_retires_wss_and_linked_native_and_http3",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "3a62c104b5f589a4b14fcecb5d7f38a7dd595792693bebe0c729eecd368edec7"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "f539908ab8f8fdcaab8718260173bd6fb97c11ce80f92dcbb1284a3c12a88c26"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_es256",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "6f09adfe9864f83b7e06fd31c12a19690410047578f1c27ad2e53024195da178"
+    },
+    {
+      "case": "canonical_websocket::tests::bind_policy_allows_remote_wildcards_but_never_multicast_or_broadcast",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d457d17a6a99cc4a14e70225bf72483cbef1660175627f18f9c2f1b05c5addbb"
+    },
+    {
+      "case": "canonical_websocket::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e66ae8d09c3ebfe42c988ea1639c99d767cf60d41776f2b5a0788cbe49d3f252"
+    },
+    {
+      "case": "canonical_websocket::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0693631ed03af452d619b936684915048d5472c3cbaa01dac8a93102cea59346"
+    },
+    {
+      "case": "canonical_websocket::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dd24efff2910f9f970c7bcf0526d2cac9c53ed9331efb90036a25e305e594a4d"
+    }
+  ],
+  "finding": {
+    "path": "crates/connect-service/src/canonical_runtime.rs",
+    "symbol": "Physical::validate",
+    "behavior": "All9 new WSS integration methods authenticate, then fail at the initial conversation.create with forbidden. The transport check accepts only Transport::Quic and Transport::WebTransport. One existing discovery method and all4 WSS configuration methods pass.",
+    "correction": "Admit Transport::WebSocket as an authenticated physical control transport while retaining current peer/principal/device/current-authority checks. Native media adapter registration and Endpoint/route policy remain separate. A new guarded runtime is required."
+  },
+  "separate_retirement_evidence": "docs/evidence/gate-6/browser-fallback-retirement.json",
+  "scope": "A real negative on installed TLS/control/Store composition. It is not a WSS command/lifecycle/browser/WebRTC/task pass. The separate direct10-method observation reproduces the same9 failures and one discovery pass; do not add duplicate invocations as extra methods."
+}
