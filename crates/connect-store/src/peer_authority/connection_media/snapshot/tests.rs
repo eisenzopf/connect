@@ -5,6 +5,48 @@ mod hints;
 mod owned;
 
 #[test]
+fn current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority() {
+    let f = Fixture::new();
+    let memo = Memo::default();
+    assert_eq!(cached(&f.store, &memo, None, |c| f.derive(c)).unwrap().0, 1);
+
+    // An unrelated control reader can retain the primary SQL mutex while
+    // media remains authorized. Packet policy must still derive current facts
+    // and enter a fresh complete authority interval without borrowing SQL.
+    let primary = f.store.connection().unwrap();
+    let (value, held) = cached(&f.store, &memo, None, |c| f.derive(c))
+        .expect("unrelated primary SQL custody must not mute current packet reads");
+    assert_eq!(value, 1);
+    assert_eq!(
+        f.store
+            .try_acquire_authority(&[f.write.clone()])
+            .unwrap_err()
+            .code,
+        "authority-busy",
+        "independent SQL observation still owns fresh file custody"
+    );
+    drop(held);
+
+    // A committed same-Store update invalidates old metadata even though its
+    // read-only observer did not execute the write or change total_changes.
+    primary
+        .execute("UPDATE packet_snapshot_test SET value=2", [])
+        .unwrap();
+    assert_eq!(cached(&f.store, &memo, None, |c| f.derive(c)).unwrap().0, 2);
+    let writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+    assert_eq!(
+        cached(&f.store, &memo, None, |c| f.derive(c))
+            .unwrap_err()
+            .code,
+        "authority-busy",
+        "a metadata hit never bypasses current exclusive authority"
+    );
+    drop(writer);
+    assert_eq!(cached(&f.store, &memo, None, |c| f.derive(c)).unwrap().0, 2);
+    drop(primary);
+}
+
+#[test]
 fn fresh_projection_resolves_once_when_sql_and_clock_are_unchanged() {
     let f = Fixture::new();
     for _ in 0..8 {

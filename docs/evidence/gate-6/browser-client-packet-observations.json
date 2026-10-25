@@ -1,0 +1,39 @@
+{
+  "schema": "connect-gate6-packet-observations/1",
+  "task": "G6-050",
+  "status": "negative-before verified; production change pending",
+  "scope": "Controlled current packet metadata under unrelated primary SQL custody. No host throughput, native interoperability or task completion claim.",
+  "negative_before": {
+    "report": ".local/gate-6/packet-observation/negative002/summary.json",
+    "sha256": "75d731aa855aee168fc67ecf9e6c9ed57be99a2c8f3044c4d670913ad74f89f7",
+    "passed": false,
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+      "sha256": "8311ddfcda3fca0ba83e38c3dfd6c495f2c39c591c3dbcf34dacf99a5c7b8253"
+    },
+    "groups": [
+      {
+        "name": "negative",
+        "selection": "peer_authority::connection_media::snapshot::tests::current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "peer_authority::connection_media::snapshot::tests::current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority",
+          "--test-threads=1",
+          "--nocapture",
+          "--exact"
+        ],
+        "exit_code": 101,
+        "passed_methods": 0,
+        "failed_methods": 1,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/packet-observation/negative002/negative.log",
+        "log_sha256": "d242e8692783c8692d88c2fd188dfbcf181ab8f76c30566d51136fb7e85ee524",
+        "elapsed_seconds": 0.2706462081987411
+      }
+    ]
+  },
+  "next": "Bounded persistent read-only WAL observers for snapshot metadata, fresh original file admission and exact SQL/source/schema/clock version sealing. Preserve current installation ownership and fail closed under actual observer or authority contention; observe current same-Store and external commits."
+}
