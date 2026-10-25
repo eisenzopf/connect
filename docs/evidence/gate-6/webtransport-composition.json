@@ -14,7 +14,7 @@
     "Both profiles participate in intake/key-expiry cancellation and owned shutdown/drop."
   ],
   "known_remaining": [
-    "Compile and exercise actual independent HTTP3/control handshake and Origin refusal; no typecheck or runtime claim yet.",
+    "Initial library typecheck passed. Exercise actual independent HTTP3/control handshake and Origin refusal next; no runtime, media or browser claim.",
     "Current service Physical.validate, Core adapter registry, PeerNativeIntent and media EndpointBinding still explicitly assume QUIC. Bind actual WebTransport media/Endpoint transport under current authority before task credit.",
     "Serve explicit SDK discovery, validate negotiated datagram/control-only capability and aggregate limits, and qualify current token/key expiry/revocation and durable reconnect.",
     "Actual browser and independent HTTP3 commands/negotiated media, malformed/unauthorized datagram isolation and all owned cleanup/recovery cases remain required."
@@ -43,5 +43,20 @@
   },
   "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
   "runtime_qualification": null,
-  "publication": "Separate; not performed."
+  "publication": "Separate; not performed.",
+  "library_typecheck001": {
+    "source_revision": "45e9e5db838694ea35e478bf2f35f0f09ac10580",
+    "command": "CARGO_INCREMENTAL=0 cargo check --release -p connect-server --lib --locked --offline -j4 --target-dir /Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "handle": 89165,
+    "scope": "Library typecheck only, not WebTransport runtime/media/browser qualification.",
+    "source_tree_clean_at_recording": true,
+    "recorded_at": "2026-10-25T03:13:37.344454+00:00",
+    "exit_code": 0,
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "log_sha256": "5c7cd5bcd1d86d86718351f81c47165004cfbc1e701226440ab655ec1d3737b9",
+    "finished_at": "2026-10-25T03:25:38.908913+00:00",
+    "summary": ".local/gate-6/webtransport/typecheck001-summary.json",
+    "summary_sha256": "c8db27ea2065cad403f353e1e2752b5d26d7885fe38e2062b7dbc65e809b1f72"
+  }
 }

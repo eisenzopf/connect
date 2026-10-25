@@ -871,6 +871,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "uuid",
+ "web-transport-quinn",
  "wiremock",
  "x509-parser 0.18.1",
 ]
