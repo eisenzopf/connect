@@ -1,0 +1,67 @@
+{
+  "task": "G6-050",
+  "status": "prepared; full60second runtime unrun",
+  "scope": "Syntax/CLI and short owned-process observer smoke only. This does not prove the full frozen measurement, browser/native or complete task.",
+  "frozen_profile": {
+    "path": "docs/evidence/gate-6/browser-client-clean60-profile.json",
+    "sha256": "73d03408e355cd4f56be7db1d4274dca847ca84d2c64028ac541dcff5d956bc3"
+  },
+  "browser_preflight": {
+    "log": ".local/gate-6/browser-sdk-clean60-browser-version.txt",
+    "sha256": "413c08f8a697a7cbbece717cd320ee9aaef0b2c45f0cd6446f200c04ce0b3b01",
+    "observed": "Google Chrome155.0.8059.85",
+    "scope": "Actual CDP product must match before full measurement executes."
+  },
+  "preflight": {
+    "steps": [
+      {
+        "command": [
+          "python3",
+          "-m",
+          "py_compile",
+          "scripts/rehearse-gate6-browser-sdk.py",
+          "scripts/lib/browser_media_resources.py"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "node",
+          "--check",
+          "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "node",
+          "--check",
+          "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/rehearse-gate6-browser-sdk.py",
+          "--help"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "log": ".local/gate-6/browser-sdk-clean60-preflight.log",
+    "sha256": "cb7712b7e3280a57511893a880b4d638b97795ea03f548775013cd59197c3eb3"
+  },
+  "resource_observer_smoke": {
+    "path": ".local/gate-6/browser-sdk-resource-observer-smoke.json",
+    "sha256": "536792f09cb7e048bfcb7311a12df18572d12317ffb2b5fb1e9eccfd6b9f631c",
+    "scope": "Owned Python stub, not a production server. CPU clock parser and owned filtering work;2samples are intentionally insufficient for full qualification. No Chrome or native helper measurement."
+  },
+  "source_sha256": {
+    "scripts/rehearse-gate6-browser-sdk.py": "2a3773f8f30c1c7be72f508953cefb286e64bf80bc34c5bd79e21b01925291ae",
+    "scripts/lib/browser_media_resources.py": "b4761924a46321b88eeba231adba692b9399b804c7cb4b0b4b4aedb5dc65c4db",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "383412b12bc9831ff82b8f3c4aba575b82d7aea83bd01de19f0400e46dc6eef1",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "e6b5b86583396b76be87b0b7251e1843aedaf6bb9ed5f74336bc907a707b80c1"
+  },
+  "acceptance_qualified": false
+}

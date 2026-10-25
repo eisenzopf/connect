@@ -2,6 +2,7 @@
 import {readFile} from 'node:fs/promises';
 import {createPrivateKey} from 'node:crypto';
 const config=JSON.parse(await readFile(process.argv[2],'utf8'));
+if(process.env.CONNECT_GATE6_BROWSER_CLEAN60==='1'&&config.run.capture===true)config.run.clean60=true;
 // Normalize the existing enrolled private key into WebCrypto's JWK input;
 // ring-generated Ed25519 PKCS8 v2 is not accepted by Chrome's DER importer.
 for(const actor of config.run.actors){actor.private_jwk=createPrivateKey({key:Buffer.from(actor.private_pkcs8,'base64url'),format:'der',type:'pkcs8'}).export({format:'jwk'});delete actor.private_pkcs8;}
@@ -11,10 +12,10 @@ const version=await versionResponse.json();const socket=new WebSocket(version.we
 await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=()=>reject(Error('owned CDP connection failed'));});
 let serial=0;const pending=new Map();
 socket.onmessage=event=>{const message=JSON.parse(event.data);if(!message.id)return;const request=pending.get(message.id);if(!request)return;pending.delete(message.id);clearTimeout(request.timer);message.error?request.reject(Error('CDP '+request.method+' refused')):request.resolve(message.result);};
-function send(method,params={},sessionId){return new Promise((resolve,reject)=>{const id=++serial;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' deadline'));},70000);pending.set(id,{resolve,reject,timer,method});socket.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});}
+function send(method,params={},sessionId){return new Promise((resolve,reject)=>{const id=++serial;const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP '+method+' deadline'));},config.run.clean60===true?90000:70000);pending.set(id,{resolve,reject,timer,method});socket.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});}
 let target,cover;
 try {
-  const browser=await send('Browser.getVersion');target=(await send('Target.createTarget',{url:config.page_url})).targetId;
+  const browser=await send('Browser.getVersion');if(config.run.clean60===true&&browser.product!=='Chrome/155.0.8059.85')throw Error('Frozen clean60 Chrome patch version mismatch');target=(await send('Target.createTarget',{url:config.page_url})).targetId;
   const session=(await send('Target.attachToTarget',{targetId:target,flatten:true})).sessionId;
   if(config.capture_permissions!==undefined){
     if(!['granted','denied'].includes(config.capture_permissions))throw Error('bounded fixture permission setting');

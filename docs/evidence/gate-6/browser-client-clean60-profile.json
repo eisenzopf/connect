@@ -1,0 +1,62 @@
+{
+  "profile": "connect-browser-clean60/1",
+  "status": "frozen-before-first-run; unqualified",
+  "task": "G6-050",
+  "date": "2026-10-25",
+  "browser": "Chrome155.0.8059.85, actual CDP version required",
+  "contract": {
+    "path": "contracts/connect-media-v2.md",
+    "sha256": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1"
+  },
+  "operating_profile": {
+    "path": "docs/decisions/015-gate-6-operating-profile.md",
+    "sha256": "14621ae41e7ceff8a12af0425a0e71756b1df805a0b74d6fdfae439c466ad28d"
+  },
+  "topology": "two signed production SDK browser peers over actual canonical WT/Store/Core, supplied MediaStream capture/worklet, VP8 canvas and WebAudio graph rendering; separate native topology remains required",
+  "hard_measurements": {
+    "duration_ms": 60000,
+    "decoded_identified_and_rendered_video_fps_minimum": 24,
+    "uniquely_paired_markers_minimum_each_receiver": 42,
+    "median_absolute_skew_ms_maximum": 80,
+    "p95_absolute_skew_ms_maximum": 120,
+    "teardown_ms_maximum": 5000,
+    "owned_idle_ms_maximum": 10000
+  },
+  "retained_short_check_ratio": {
+    "identified_decoded_and_audio_graph_frames_per_second_minimum": 37.5,
+    "explanation": "Existing150/4second checkpoint ratio remains an additional check; it does not replace the frozen video/alignment limits."
+  },
+  "source": {
+    "identity_tones_hz": [
+      500,
+      250
+    ],
+    "identity_tone_gain": 0.25,
+    "marker_tone_hz": "1200+80*unique_id",
+    "marker_gain": 0.12,
+    "marker_cadence_ms": 1000,
+    "visual_marker": "8binary white/black8x8patches starting20,20; source identity color and moving green stripe retained",
+    "codec": "Opus mono48k20ms32kbit; VP8640x360 up to30fps,500k target/1Mbit max; existing RTP/queue/age bounds unchanged"
+  },
+  "observer": {
+    "audio": "Actual renderer graph analyser, FFT2048, smoothing0, sample every5ms; strongest of80candidate bands, nearest bin plus/minus1, >-38dB and >5dB dominance, two consecutive observations",
+    "video": "Actual renderer canvas pixels after a successfully accepted decoded frame; RGBsum>500 is white; first observation of each uniquely decoded marker ID",
+    "partial_initial_marker": "Exclude IDs whose source onset preceded the measurement window; next complete onset is the minimum ID before collection starts",
+    "pairing": "All independently observed matching IDs are paired once; do not choose or filter pairs by latency. Record signed skew and both individual marker counts.",
+    "statistics": "Absolute skew; median averages middle two values for even count; p95 uses nearest rank ceil(.95*N)."
+  },
+  "resources": {
+    "cadence_seconds": 1,
+    "server": "Owned Rust test host containing actual production server, separate from browser descendants/groups",
+    "browser": "Only owned child Chrome processes/groups",
+    "cpu": "Sum maximum observed lifetime CPU per PID; short processes between samples may be undercounted",
+    "rss": "Maximum sampled sum per group; not allocation tracing",
+    "scope": "Whole exact test including setup/negotiation/window/teardown. Native helper absent in this topology. No capacity claim."
+  },
+  "not_qualified_by_this_profile": [
+    "native interoperation",
+    "impairment/fallback/other browsers",
+    "named remote/provider/Linux",
+    "complete G6-050 or Gate6 acceptance/publication"
+  ]
+}

@@ -15,6 +15,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-webtransport.py'))
+ResourceSampler = runpy.run_path(str(ROOT / 'scripts/lib/browser_media_resources.py'))['ResourceSampler']
 digest = BASE['digest']
 CASES = ['canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_' + alg for alg in ('eddsa', 'es256')] + BASE['BROWSER']
 MEDIA = ['canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_' + alg for alg in ('eddsa', 'es256')]
@@ -23,7 +24,7 @@ CAPTURE = ['canonical_webtransport_browser::installed_chrome_production_sdk_capt
 
 def sources():
     result = BASE['sources']()
-    paths = [ROOT / 'scripts/rehearse-gate6-browser-sdk.py']
+    paths = [ROOT / p for p in ('scripts/rehearse-gate6-browser-sdk.py', 'scripts/lib/browser_media_resources.py', 'contracts/connect-media-v2.md', 'docs/decisions/015-gate-6-operating-profile.md', 'docs/evidence/gate-6/browser-client-clean60-profile.json')]
     for folder, extensions in [('sdk/typescript/src', ('.ts',)), ('sdk/typescript/dist', ('.js', '.ts')), ('sdk/tests', ('.mjs', '.py'))]:
         paths.extend(p for p in (ROOT / folder).rglob('*') if p.is_file() and p.suffix in extensions)
     paths.extend(ROOT / 'sdk/typescript' / p for p in ('package.json', 'package-lock.json', 'tsconfig.json'))
@@ -39,9 +40,13 @@ def main():
     parser.add_argument('--installed-browser', action='store_true', required=True)
     parser.add_argument('--media', action='store_true', help='Also run short synthetic Opus/VP8/reliable-data over actual SDK and server; capture/native/full operating qualification remains separate.')
     parser.add_argument('--capture', action='store_true', help='Also run actual supplied-stream capture/worklet and decoded audio/canvas rendering over WT, alongside the media cases. No personal devices are opened.')
+    parser.add_argument('--clean60', action='store_true', help='Capture cases use the frozen60second clean profile with>=24decoded/rendered fps,>=42uniquely paired audio-graph/video markers, median<=80ms/p95<=120ms and separate owned-process observations.')
     parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
     parser.add_argument('--packet-trace', action='store_true', help='Record scoped per-packet policy metadata under private raw logs; diagnostic overhead is not performance qualification.')
     args = parser.parse_args()
+    if args.clean60 and (args.packet_trace or args.case and args.case not in CAPTURE):
+        parser.error('Select clean60 capture methods without diagnostic packet tracing')
+    args.capture = args.capture or args.clean60
     selected = [args.case] if args.case else CASES + (MEDIA if args.media or args.capture else []) + (CAPTURE if args.capture else [])
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
@@ -49,11 +54,15 @@ def main():
     directory.mkdir(parents=True, exist_ok=False)
     (directory / 'tmp').mkdir()
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(directory / 'tmp'), CONNECT_GATE6_BROWSER_ARTIFACTS=str(directory / 'browser-artifacts'))
+    for flag in ('CONNECT_GATE6_PACKET_TRACE', 'CONNECT_GATE6_BROWSER_CLEAN60'):
+        env.pop(flag, None)
     if args.packet_trace:
         env['CONNECT_GATE6_PACKET_TRACE'] = '1'
+    if args.clean60:
+        env['CONNECT_GATE6_BROWSER_CLEAN60'] = '1'
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture additionally selects actual supplied-stream capture/worklet and decoded audio/canvas rendering on the connected path. Packet tracing adds diagnostic overhead. No native-media/full60s/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
+                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing is diagnostic. No native-media/impairment/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, clean60_selected=args.clean60, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
 
     def step(name, command, json_output=False):
         start = time.monotonic()
@@ -91,16 +100,30 @@ def main():
             env['CONNECT_GATE6_BROWSER_ARTIFACTS'] = str(directory / 'browser-artifacts' / str(index))
             logpath = directory / f'case-{index}.log'
             start = time.monotonic()
+            resources = None
             with logpath.open('w') as log:
                 process = subprocess.Popen([str(sealed), case, '--exact', '--ignored', '--test-threads=1', '--nocapture'], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+                sampler = ResourceSampler(process.pid) if args.clean60 and case in CAPTURE else None
                 try:
                     code = process.wait(timeout=120)
                 except subprocess.TimeoutExpired:
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
                     code = 124
-            passed = code == 0 and bool(re.search(r'test result: ok\. 1 passed; 0 failed; 0 ignored;', logpath.read_text()))
+                finally:
+                    if sampler:
+                        resource_path = directory / f'case-{index}-resources.json'
+                        resources = dict(**sampler.finish(resource_path), log=str(resource_path.relative_to(ROOT)), log_sha256=digest(resource_path))
+            logtext = logpath.read_text()
+            passed = code == 0 and bool(re.search(r'test result: ok\. 1 passed; 0 failed; 0 ignored;', logtext))
+            if args.clean60 and case in CAPTURE:
+                witness = re.search(r'^browser_evidence (.+)$', logtext, re.M)
+                result = json.loads(witness[1])['result'] if witness else {}
+                alignment = result.get('alignment', [])
+                passed = passed and result.get('clean60') is True and result.get('measured_ms', 0) >= 60000 and len(result.get('decoded_fps', [])) == 2 and all(fps >= 24 for fps in result['decoded_fps']) and len(alignment) == 2 and all(a['paired_markers'] >= 42 and a['median_abs_skew_ms'] <= 80 and a['p95_abs_skew_ms'] <= 120 for a in alignment) and resources['valid']
             row = dict(case=case, passed=passed, exit_code=code, elapsed_seconds=time.monotonic() - start, log=str(logpath.relative_to(ROOT)), log_sha256=digest(logpath))
+            if resources:
+                row['resources'] = resources
             report['cases'].append(row)
             print(json.dumps(row), flush=True)
         report['executable_unchanged'] = digest(binary) == digest(sealed) == sha

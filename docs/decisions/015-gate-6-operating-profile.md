@@ -20,6 +20,13 @@ x86_64; record image digest, kernel and package versions before its rehearsal.
 A local machine cannot claim an uninstalled remote runner has been tested.
 Profile changes update this record before the affected run.
 
+October 25 local WT measurement update: the installed Chrome runner is now
+155.0.8059.85. Pin that patch version for the explicit 60-second capture/render
+measurements and record its actual CDP version in each report. The original
+155.0.8059.80 installation baseline remains historical. Firefox/fallback,
+Linux, native interoperation and named remote/provider profiles retain their
+separate qualification requirements; no media threshold changes are made.
+
 Native endpoint TLS verifies configured server identity and trust. Hosted HTTP
 requires HTTPS, WSS and HTTP/3 with declared origins and trusted proxy policy.
 Provision short-lived scoped participant/device credentials through a trusted

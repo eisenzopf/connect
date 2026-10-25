@@ -194,3 +194,24 @@ The full G6-050 completion still requires identified duplex Opus/VP8/data
 between browser/browser and browser/native, capture/permission and unsupported
 API/codec refusals, background/resume, impairment recovery, and owned teardown.
 Transport availability and these control/RTP checks do not qualify those paths.
+
+The explicit `--clean60` lane implies `--capture` and applies the approved
+60-second measurement to the two capture methods. `--case` can select one exact
+capture method for diagnosis; omitted methods remain unqualified. It requires
+Chrome 155.0.8059.85 before the measurement, at least 24 identified decoded and
+rendered video frames per second over the measured window, and at least 42
+uniquely paired audio-graph/canvas markers per receiver. Median absolute skew
+must be at most 80 ms and nearest-rank p95 at most 120 ms. The existing audio
+checkpoint ratio remains an additional check. Partial initial markers are
+excluded; every independently observed matching ID is paired without filtering
+by latency. The receiver observes the real renderer analyser and canvas rather
+than treating RTP timestamps as synchronization evidence.
+
+One-second observations attribute the owned Rust server test host and its Chrome
+processes separately; resource files describe whole-test lifetime CPU and sampled
+peak RSS limitations. This browser/browser topology has no native helper. The
+profile and observer parameters are frozen in
+`docs/evidence/gate-6/browser-client-clean60-profile.json` before execution.
+The initial harness checkpoint is syntax/smoke verified and remains runtime
+unqualified. Packet tracing cannot be combined with clean measurement, and
+inherited profile/trace environment flags cannot silently select another lane.
