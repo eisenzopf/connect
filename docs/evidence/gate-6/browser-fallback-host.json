@@ -1,0 +1,143 @@
+{
+  "schema": "connect-gate6-canonical-wss-host/1",
+  "task": "G6-051",
+  "candidate_revision": "15b5f278421014ba63494003517511b1bab540b1",
+  "source_lock_sha256": "f692165a1fbcdc11b9dcd3bbd4c89a6c85152e8097abba963e141b85204b024e",
+  "patch_count": 197,
+  "status": "All14 exact canonical WSS hosting methods pass; WebRTC and installed-browser fallback remain open",
+  "report": {
+    "path": ".local/gate-6/fallback/wss-host003/summary.json",
+    "sha256": "89b859debab10ea8b2a2b38869cc4f57f739d4af318b86533a7b39a23383db10",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "selected_methods": 14,
+    "passed_methods": 14
+  },
+  "cases": [
+    {
+      "case": "canonical_websocket::tests::bind_policy_allows_remote_wildcards_but_never_multicast_or_broadcast",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d457d17a6a99cc4a14e70225bf72483cbef1660175627f18f9c2f1b05c5addbb"
+    },
+    {
+      "case": "canonical_websocket::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e66ae8d09c3ebfe42c988ea1639c99d767cf60d41776f2b5a0788cbe49d3f252"
+    },
+    {
+      "case": "canonical_websocket::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0693631ed03af452d619b936684915048d5472c3cbaa01dac8a93102cea59346"
+    },
+    {
+      "case": "canonical_websocket::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "dd24efff2910f9f970c7bcf0526d2cac9c53ed9331efb90036a25e305e594a4d"
+    },
+    {
+      "case": "canonical_websocket_control::cancelling_host_shutdown_keeps_wss_and_pending_tls_owned",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "0b5d1565539feac13b1a9901439137f1bc087e76b62c049063c399691700046f"
+    },
+    {
+      "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "7a989fe35a8f9748788e9b6d4b26e114b12aa55b3989f71e684f4ba738437fed"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "9cebe7e71d2c6f002d9b8fdf8b3cc5baa5fb5ecf33e605959d8b251d557305ee"
+    },
+    {
+      "case": "canonical_websocket_control::tls_wss_signed_control_reconnect_and_native_original_receipt_es256",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "1b469d5a198b870443f458ebde36370673499fb90e88e15a5cb857aeabf9d3f2"
+    },
+    {
+      "case": "canonical_websocket_control::tls_origin_mount_refusals_do_not_consume_canonical_slots",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "d7dff791998568dcea5f21c513e822fc8416e2db4d46c958cc034d315abed2b6"
+    },
+    {
+      "case": "canonical_websocket_control::physical_budget_is_shared_across_wss_http3_and_native_and_reuses_retired_slots",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "4a753126fed5d20ca053021615862ad72cdcb326e02d4da349cc2fb20b168857"
+    },
+    {
+      "case": "canonical_websocket_control::dropping_host_closes_live_wss_and_releases_tcp_listener",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c2db285623bcc8f3a697741a671a56399bc9277b2f65fb9d5a95bc65f3fd2560"
+    },
+    {
+      "case": "canonical_websocket_control::signing_expiry_retires_wss_and_linked_native_and_http3",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "cde5fded4e90117802958c9cdf32a9b1a8c09f8976396008561fe85cb53994a7"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "c0e0647de50ad8e4f0e251aa36d9ee2738fd8e7932979f07eb72dbe421a92ee2"
+    },
+    {
+      "case": "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_es256",
+      "passed": true,
+      "exit_code": 0,
+      "log_sha256": "e5b73c9de6970a30d0aad5c5694188127609c4f6d3a9038e3ea2866d01cfe4c5"
+    }
+  ],
+  "actual_sdk_witnesses": [
+    {
+      "algorithm": "EdDSA",
+      "canonical_wss": true,
+      "fresh_status_only": true,
+      "original_receipt": true,
+      "passed": true,
+      "platform_tls": true,
+      "scope": "Node actual TLS SDK control; no browser or WebRTC qualification"
+    },
+    {
+      "algorithm": "ES256",
+      "canonical_wss": true,
+      "fresh_status_only": true,
+      "original_receipt": true,
+      "passed": true,
+      "platform_tls": true,
+      "scope": "Node actual TLS SDK control; no browser or WebRTC qualification"
+    }
+  ],
+  "behavior": [
+    "Protected independent TCP/TLS WSS listener shares the canonical identity, signed framing, Store handlers, operation receipts and physical factory with QUIC/WebTransport. Both EdDSA and ES256 execute commands and recover original receipts through fresh WSS and public native clients.",
+    "The production TypeScript SDK uses actual TLS WSS through Node built-in WebSocket with designated Origin and explicit fixture CA trust; closes its first peer and only queries status on the fresh peer. Exactly one original mutation record remains. This is network SDK evidence, not a browser rehearsal.",
+    "Untrusted TLS, absent/foreign/repeated Origin and wrong mount are refused before the valid command lane. Configuration bounds cover network-profile addresses, exact origins, advertised contact normalization and derived IPv4/IPv6 contact.",
+    "Authenticated public HTTP discovery advertises both actual configured contacts. Its SDK rejects insecure/credential-bearing/query-bearing/missing-Origin-policy WSS metadata, unknown/incompatible descriptors and oversized collection.",
+    "Real signed WSS and HTTP3 original-status round trips establish two held transports. Excess public native admission fails; both held peers continue; after HTTP3 retirement a fresh native peer obtains the original completed receipt. The witness does not infer transport count from lazy Core views.",
+    "Host drop and cancellation of an in-progress shutdown close live WSS peers, an incomplete TLS socket and the TCP listener. Signing-key expiry retires WSS plus native/HTTP3 intake; unexpected expiry remains a shutdown failure, not a successful requested stop."
+  ],
+  "separate_scopes": {
+    "sdk_unit_methods": "211 Root SDK methods pass, including5 original Opus timestamp regressions. This is separate from14 hosting methods.",
+    "profile_retirement": "docs/evidence/gate-6/browser-fallback-retirement.json:2 exact upstream test bodies against the actual prepared production rlib; separate API behavior scope.",
+    "initial_negative": "docs/evidence/gate-6/browser-fallback-host-negative.json:5/14 due native-only control allowlist; retained.",
+    "budget_witness_negative": "docs/evidence/gate-6/browser-fallback-budget-witness.json:13/14 with a lazy Core-view count; retained before correcting the observer."
+  },
+  "remaining": [
+    "Canonical Connection/operation-bound SDP/ICE/WebRTC media, current transport-specific Endpoint and route authority, older offer-ready dialect removal.",
+    "Actual forced WT/UDP failure in Chrome and Firefox, same conversation/transition commands, original uncertain/accepted mutation IDs and explicit unsupported migration.",
+    "Required fallback media/data, permission, background/resume, impairment and owned teardown profiles; Linux/named remote/provider and acceptance qualifications remain assigned tasks."
+  ],
+  "scope": "Local isolated macOS arm64 actual TLS/control/Store composition, public native/HTTP SDK and production TypeScript SDK via Node. No installed browser WSS, WebRTC media, automatic fallback, complete G6-051, wider operating profile, acceptance or publication qualification."
+}
