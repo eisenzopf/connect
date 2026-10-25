@@ -14,6 +14,165 @@ fn mutation(id: &str) -> MutationOptions {
     }
 }
 #[tokio::test]
+async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_and_own_only_local_parameters(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_native_end_scope(algorithm, 16).await;
+        super::canonical_native_connections::ready_endpoint_with_capabilities(
+            &f,
+            vec!["audio".into(), "video".into(), "data".into()],
+        )
+        .await;
+        let client = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let room = client
+            .create_conversation(
+                vec![f.peer.identity_id.parse().unwrap()],
+                ConversationPolicy::Persistent,
+                mutation("native-sdk-create"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let session = room
+            .invite(
+                "native-sdk-session".parse().unwrap(),
+                vec![],
+                sdk::SessionMedium::Mixed,
+                "native-sdk-solo".into(),
+                json!({"audio":["g.711-mu"],"video":["vp8"],"data":["reliable-ordered"]}),
+                mutation("native-sdk-invite"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(session.refresh(options()).await.unwrap().state, "accepted");
+        let stream = |id: &str, kind, direction, codec: &str| sdk::OfferedStream {
+            id: id.parse().unwrap(),
+            kind,
+            direction,
+            codecs: NonEmpty {
+                first: codec.into(),
+                rest: vec![],
+            },
+        };
+        let first = NonEmpty {
+            first: stream(
+                "native-sdk-audio",
+                sdk::Medium::Audio,
+                sdk::Direction::Sendonly,
+                "g.711-mu",
+            ),
+            rest: vec![
+                stream(
+                    "native-sdk-video",
+                    sdk::Medium::Video,
+                    sdk::Direction::Recvonly,
+                    "vp8",
+                ),
+                stream(
+                    "native-sdk-data",
+                    sdk::Medium::Data,
+                    sdk::Direction::Sendrecv,
+                    "json",
+                ),
+            ],
+        };
+        let second = NonEmpty {
+            first: stream(
+                "native-sdk-other-audio",
+                sdk::Medium::Audio,
+                sdk::Direction::Sendrecv,
+                "g.711-mu",
+            ),
+            rest: vec![],
+        };
+        let (one, two) = tokio::join!(
+            session.offer_connection(
+                "native-sdk-one".parse().unwrap(),
+                first.clone(),
+                mutation("native-sdk-offer-one")
+            ),
+            session.offer_connection(
+                "native-sdk-two".parse().unwrap(),
+                second,
+                mutation("native-sdk-offer-two")
+            )
+        );
+        let one = one.unwrap();
+        let two = two.unwrap();
+        let saved = one.reference_json();
+        let one = one.wait(options()).await.unwrap().value;
+        let two = two.wait(options()).await.unwrap().value;
+        let a = one.native_negotiation().unwrap().unwrap();
+        let b = two.native_negotiation().unwrap().unwrap();
+        assert_eq!(a.streams.len(), 3);
+        assert_eq!(b.streams.len(), 1);
+        assert_eq!(a.streams[0].direction, sdk::Direction::Sendonly);
+        assert_eq!(a.streams[1].direction, sdk::Direction::Recvonly);
+        assert_eq!(a.streams[2].medium, sdk::Medium::Data);
+        let handles: std::collections::BTreeSet<_> = a
+            .streams
+            .iter()
+            .chain(&b.streams)
+            .filter_map(|s| s.stream_local_id)
+            .collect();
+        assert_eq!(handles.len(), 3);
+        for connection in [&one, &two] {
+            let current = connection.refresh(options()).await.unwrap();
+            assert_eq!(&current.id, connection.id());
+            assert_eq!(&current.session_id, session.id());
+            assert_eq!(&current.conversation_id, room.id());
+            assert!(current.generation > 0);
+            assert_eq!(current.stream_revision, None); // The journal does not echo negotiated revision.
+            assert_eq!(connection.receipt_stream_revision().unwrap().get(), 1);
+        }
+        // Same-ID replay may return a durable result directly, without a second
+        // negotiation. Its original intent must remain byte-for-byte unchanged.
+        let replay = session
+            .offer_connection(
+                "native-sdk-one".parse().unwrap(),
+                first.clone(),
+                mutation("native-sdk-offer-one"),
+            )
+            .await
+            .unwrap();
+        assert_eq!(replay.wait(options()).await.unwrap().value.id(), one.id());
+        let mut changed = first;
+        changed.first.direction = sdk::Direction::Sendrecv;
+        let result = session
+            .offer_connection(
+                "native-sdk-one".parse().unwrap(),
+                changed,
+                mutation("native-sdk-offer-one"),
+            )
+            .await;
+        assert!(
+            matches!(result,Err(ref e) if e.certainty==sdk::Certainty::Refused && e.operation.as_ref().unwrap().operation_id.as_str()=="native-sdk-offer-one")
+        );
+        let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let restored = fresh
+            .restore(saved, fresh.operation_kinds().connection_offer)
+            .unwrap();
+        let recovered = restored.wait(options()).await.unwrap().value;
+        assert_eq!(recovered.id(), one.id());
+        assert!(recovered.native_negotiation().unwrap().is_none()); // No physical ownership from a saved reference.
+        fresh.close(options()).await.unwrap();
+        client.close(options()).await.unwrap();
+        assert!(one.native_negotiation().is_err());
+        f.server.shutdown().await.unwrap();
+    }
+}
+#[tokio::test]
 async fn public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct() {
     for algorithm in ["EdDSA", "ES256"] {
         let f = Fixture::with_membership_scope(algorithm, 8, true).await;

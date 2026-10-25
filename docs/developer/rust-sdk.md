@@ -22,6 +22,7 @@ recipient consumption or media readiness. The compiled starting example is in
 | `Conversation::invite` | Saved new Session ID, targets, medium, intent and capabilities; empty targets permit a solo Session |
 | `Session::invite_participants` | Nonempty targets, current media, original intent/capabilities and topology revision |
 | `Session::accept`, `reject`, `cancel_invitation`, `update`, `end` | Explicit topology revision |
+| `Session::offer_connection` | Saved new Connection ID and nonempty typed stream offers |
 
 Session updates include role changes, participant leave, additive media upgrades
 and codec preference changes. Codec reconciliation references remain separate
@@ -85,3 +86,31 @@ an outcome. Nonempty decision extensions currently refuse before I/O. Server
 failures keep uncertain acceptance under the original decision ID. Additional
 control verification is in `docs/evidence/gate-6/rust-sdk-decisions.json`; positive
 backend reconciliation and cancellation of actual pending native work remain open.
+
+`Session::offer_connection` submits a new native Connection with typed stream
+IDs, media, directions and codec preferences. It returns an observable operation
+after the initial signed answer. The owned driver validates the later server
+parameter offer and signs its exact same-root confirmation. Native negotiation
+has no final ACK; `Operation::wait` reads the separate durable result. Status and
+durable decisions remain available while a parameter offer is pending.
+
+The builder supports PCMU, PCMA, mono Opus, VP8 video/screen and reliable ordered
+text/JSON/binary parameters. It preserves the original codec preference list,
+including unsupported preferences before a supported fallback. An offer with no
+supported codec for a stream refuses before I/O. Other transition preparation
+profiles require their own authorized workflows. The driver bounds owned native
+Connection metadata to 64 entries and refuses cross-Connection hop-handle
+collisions before signing confirmation.
+
+`Connection::refresh` reads current authorized journal metadata. Its resource
+revision has its own `ConnectionRevision` type. The journal does not provide a
+negotiated stream revision, so that optional field remains absent. A completed
+offer exposes its original `receipt_stream_revision` separately.
+`native_negotiation` observes this client's locally signed parameters; it does
+not prove media flow or remote consumption. A restored operation can recover a
+Connection receipt without gaining another physical peer's hop-local handles.
+
+`docs/evidence/gate-6/rust-sdk-native-offers.json` records the mixed negotiation,
+pending status, parameter refusal, replay, shared-peer and fresh-client checks.
+This adds the fourteenth mapped mutation kind. Media I/O, Stream controls,
+Connection update/end/device move and consultation/handoff remain in progress.

@@ -90,7 +90,7 @@ use connect_client::{
 async fn ready_endpoint(f: &Fixture) {
     ready_endpoint_with_capabilities(f, vec!["audio".into(), "video".into()]).await;
 }
-async fn ready_endpoint_with_capabilities(f: &Fixture, capabilities: Vec<String>) {
+pub(super) async fn ready_endpoint_with_capabilities(f: &Fixture, capabilities: Vec<String>) {
     static LOGS: std::sync::Once = std::sync::Once::new();
     LOGS.call_once(|| {
         if dtmf_diagnostics::install() {

@@ -24,11 +24,13 @@
 //! client.close(wait).await?;
 //! # Ok(()) }
 //! ```
+mod connections;
 mod control;
 mod conversations;
 mod decisions;
 mod error;
 mod ids;
+mod native_negotiation;
 mod operation;
 mod participants;
 mod sessions;
@@ -37,6 +39,9 @@ mod worker;
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
+pub use connections::{
+    Connection, ConnectionSnapshot, Direction, NativeNegotiation, NegotiatedStream, OfferedStream,
+};
 pub use conversations::{
     Conversation, ConversationSnapshot, MessageAcceptance, ParticipantSnapshot,
 };

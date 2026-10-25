@@ -111,6 +111,9 @@ pub struct Session {
     reconciliation: Option<connect_protocol::session_codecs::ReconciliationReference>,
 }
 impl Session {
+    pub(super) fn client(&self) -> &Client {
+        &self.client
+    }
     fn new(client: Client, id: SessionId, conversation_id: ConversationId) -> Self {
         Self {
             client,

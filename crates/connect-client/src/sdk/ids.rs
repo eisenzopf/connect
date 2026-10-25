@@ -32,7 +32,8 @@ ids!(
     OperationId,
     MessageId,
     IdentityId,
-    EndpointId
+    EndpointId,
+    DeviceId
 );
 macro_rules! revisions {
     ($($name:ident),+ $(,)?) => {$ (
@@ -51,6 +52,7 @@ macro_rules! revisions {
     )+};
 }
 revisions!(
+    ConnectionRevision,
     ConversationRevision,
     SessionRevision,
     TopologyRevision,

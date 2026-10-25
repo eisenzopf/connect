@@ -7,21 +7,27 @@ use std::sync::{
 };
 use tokio::sync::{mpsc, oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 const REQUEST_CAPACITY: usize = 16;
+const NATIVE_CONNECTION_CAPACITY: usize = 64;
+type NativeCache =
+    std::collections::BTreeMap<ConnectionId, (SessionId, ConversationId, NativeNegotiation)>;
 pub(super) struct Shared {
     requests: mpsc::Sender<Command>,
     stop: CancellationToken,
     pub(super) closed: Arc<AtomicBool>,
     slots: Arc<Semaphore>,
+    native: Arc<std::sync::Mutex<NativeCache>>,
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
 }
 struct InFlight {
     exchange: crate::canonical::exchange::Exchange,
     key: Option<OperationKey>,
-    reply: oneshot::Sender<Result<ReplyBatch>>,
+    reply: Option<oneshot::Sender<Result<ReplyBatch>>>,
+    native: Option<native_negotiation::Pending>,
     _slot: OwnedSemaphorePermit,
 }
 struct Command {
     slot: OwnedSemaphorePermit,
+    native: bool,
     kind: String,
     payload: Value,
     scope: CommandScope,
@@ -46,6 +52,8 @@ impl Shared {
         let owned_slots = slots.clone();
         let closed = Arc::new(AtomicBool::new(false));
         let owned_closed = closed.clone();
+        let native = Arc::new(std::sync::Mutex::new(NativeCache::new()));
+        let owned_native = native.clone();
         let task = tokio::spawn(async move {
             let mut active: Vec<InFlight> = Vec::new();
             let failure = loop {
@@ -62,14 +70,40 @@ impl Shared {
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        if frame.kind()=="connection.offer" {
+                            if let Some(index)=active.iter().position(|p|p.native.is_some() && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(|v|v.as_str())==frame.scope(crate::canonical::Scope::Connection)) {
+                                let until=active[index].exchange.deadline;
+                                let result=tokio::select! { biased;
+                                    _=stopping.cancelled()=>break ErrorKind::Cancelled,
+                                    result=tokio::time::timeout_at(until,confirm_native(&mut peer,&active[index],&frame,&owned_native))=>result
+                                };
+                                let selected=match result {Ok(Ok(selected))=>selected,Ok(Err(error))=>break error.kind,Err(_)=>break ErrorKind::Deadline};
+                                let pending=active.swap_remove(index);
+                                let key=pending.key.expect("native key");
+                                let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
+                                cache.insert(key.scope.connection_id.expect("native connection"),(key.scope.session_id.expect("native session"),key.scope.conversation_id.expect("native conversation"),selected));
+                                continue;
+                            }
+                        }
                         let index = active.iter().position(|pending| frame.scope(crate::canonical::Scope::Reply) == Some(pending.exchange.id.as_str()));
                         if let Some(index) = index {
+                            let native_answer=active[index].native.is_some() && frame.kind()=="connection.answer";
+                            if native_answer {
+                                let pending=&mut active[index];
+                                if let Err(error)=pending.native.as_mut().expect("native pending").answer(&frame,&pending.exchange.id){break error.kind;}
+                            }
+                            let native_frame=native_answer.then(||frame.clone());
                             match peer.accept_exchange_frame(&mut active[index].exchange,frame) {
                                 Ok(true)=> {
                                     let pending=active.swap_remove(index);
-                                    let _=pending.reply.send(Ok(pending.exchange.finish()));
+                                    if let Some(reply)=pending.reply {let _=reply.send(Ok(pending.exchange.finish()));}
                                 }
-                                Ok(false)=>{},
+                                Ok(false)=>{
+                                    if let Some(frame)=native_frame {
+                                        let pending=&mut active[index];
+                                        if let Some(reply)=pending.reply.take(){let _=reply.send(Ok(ReplyBatch{request_id:pending.exchange.id.clone(),frames:vec![frame]}));}
+                                    }
+                                },
                                 Err(error)=>break Error::transport(error,None).kind,
                             }
                         } else if let Err(error)=peer.retain_unmatched_frame(frame) {
@@ -85,6 +119,14 @@ impl Shared {
                             let _=command.reply.send(Err(Error::request(kind,command.key.as_ref(),false)));
                             continue;
                         }
+                        if command.native {
+                            let count=match owned_native.lock(){Ok(cache)=>cache.len(),Err(_)=>break ErrorKind::Protocol};
+                            if count+active.iter().filter(|p|p.native.is_some()).count()>=NATIVE_CONNECTION_CAPACITY {
+                                let _=command.reply.send(Err(Error::request(ErrorKind::Configuration,command.key.as_ref(),false)));
+                                continue;
+                            }
+                        }
+                        let negotiation=command.native.then(||native_negotiation::Pending::new(command.payload.clone(),command.scope.clone()));
                         // Only explicit close may interrupt a started write. Local caller
                         // cancellation leaves its correlation/limits/deadline owned here.
                         let result=tokio::select! { biased;
@@ -95,7 +137,7 @@ impl Shared {
                             result=peer.begin_exchange(&command.kind,command.payload,command.scope)=>result
                         };
                         match result {
-                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:command.reply,_slot:command.slot}),
+                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,_slot:command.slot}),
                             Err(error)=> {
                                 let error=Error::transport(error,command.key.as_ref());
                                 let kind=error.kind;
@@ -113,10 +155,9 @@ impl Shared {
             // submitted logical IDs. Unwritten queued commands remain unsubmitted.
             peer.close();
             for pending in active {
-                let _ =
-                    pending
-                        .reply
-                        .send(Err(Error::request(failure, pending.key.as_ref(), true)));
+                if let Some(reply) = pending.reply {
+                    let _ = reply.send(Err(Error::request(failure, pending.key.as_ref(), true)));
+                }
             }
             receiver.close();
             while let Some(command) = receiver.recv().await {
@@ -132,11 +173,55 @@ impl Shared {
             stop,
             closed,
             slots,
+            native,
             task: Mutex::new(Some(task)),
         }))
     }
+    pub(super) fn native_negotiation(
+        &self,
+        id: &ConnectionId,
+        sid: &SessionId,
+        cid: &ConversationId,
+    ) -> Result<Option<NativeNegotiation>> {
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::local(ErrorKind::Cancelled));
+        }
+        let cache = self
+            .native
+            .lock()
+            .map_err(|_| Error::local(ErrorKind::Protocol))?;
+        match cache.get(id) {
+            Some((session, conversation, selected)) if session == sid && conversation == cid => {
+                Ok(Some(selected.clone()))
+            }
+            Some(_) => Err(Error::local(ErrorKind::Protocol)),
+            None => Ok(None),
+        }
+    }
     pub(super) async fn request(
         &self,
+        kind: &str,
+        payload: Value,
+        scope: CommandScope,
+        key: Option<&OperationKey>,
+        options: RequestOptions,
+    ) -> Result<ReplyBatch> {
+        self.request_inner(false, kind, payload, scope, key, options)
+            .await
+    }
+    pub(super) async fn native_offer(
+        &self,
+        payload: Value,
+        scope: CommandScope,
+        key: Option<&OperationKey>,
+        options: RequestOptions,
+    ) -> Result<ReplyBatch> {
+        self.request_inner(true, "connection.offer", payload, scope, key, options)
+            .await
+    }
+    async fn request_inner(
+        &self,
+        native: bool,
         kind: &str,
         payload: Value,
         scope: CommandScope,
@@ -179,6 +264,7 @@ impl Shared {
         let (reply, response) = oneshot::channel();
         permit.send(Command {
             slot,
+            native,
             kind: kind.to_owned(),
             payload,
             scope,
@@ -220,4 +306,45 @@ impl Shared {
         }
         Ok(())
     }
+}
+
+async fn confirm_native(
+    peer: &mut CanonicalClient,
+    pending: &InFlight,
+    frame: &crate::canonical::Envelope,
+    cache: &std::sync::Mutex<NativeCache>,
+) -> Result<NativeNegotiation> {
+    let fail = || Error::request(ErrorKind::Protocol, pending.key.as_ref(), true);
+    let negotiation = pending.native.as_ref().ok_or_else(fail)?;
+    let answer = negotiation.confirmation(frame)?;
+    let selected = negotiation.selected()?.clone();
+    let connection = pending
+        .key
+        .as_ref()
+        .and_then(|k| k.scope.connection_id.as_ref())
+        .ok_or_else(fail)?;
+    {
+        let cache = cache.lock().map_err(|_| fail())?;
+        // Validate physical handle ownership before signing anything. A logical
+        // saved reference cannot overwrite a live binding on this peer.
+        if cache.len() >= NATIVE_CONNECTION_CAPACITY
+            || cache.contains_key(connection)
+            || selected
+                .streams
+                .iter()
+                .filter_map(|s| s.stream_local_id)
+                .any(|handle| {
+                    cache
+                        .values()
+                        .flat_map(|(_, _, n)| &n.streams)
+                        .any(|s| s.stream_local_id == Some(handle))
+                })
+        {
+            return Err(fail());
+        }
+    }
+    peer.answer_connection_offer(frame, answer, &negotiation.scope)
+        .await
+        .map_err(|e| Error::transport(e, pending.key.as_ref()))?;
+    Ok(selected)
 }

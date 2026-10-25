@@ -8,6 +8,7 @@ pub(super) mod native_media;
 mod owned_signaling;
 mod sdk_decisions;
 mod sdk_multiplex;
+mod sdk_native;
 mod sdk_worker;
 mod step_up;
 use auth_refresh::RefreshReply;
@@ -64,6 +65,7 @@ fn canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_even
 pub(super) enum Fault {
     SdkWorker(sdk_worker::Traffic),
     SdkMultiplex(sdk_multiplex::Case),
+    SdkNative(sdk_native::Case),
     SdkDecision(sdk_decisions::Case),
     ForeignScope,
     ReplyCount,
@@ -129,6 +131,12 @@ pub(super) async fn controlled(
             sdk_decisions::emit(case, request, &mut writer, &mut reader, &signer).await;
             connection.closed().await;
             server.close(0u32.into(), b"SDK decision fixture complete");
+            return;
+        }
+        if let Fault::SdkNative(case) = fault {
+            sdk_native::emit(case, request, &mut writer, &mut reader, &signer).await;
+            connection.closed().await;
+            server.close(0u32.into(), b"SDK native fixture complete");
             return;
         }
         if let Fault::SdkMultiplex(case) = fault {
