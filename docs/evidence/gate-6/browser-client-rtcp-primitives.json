@@ -1,0 +1,34 @@
+{
+  "schema": "connect-gate6-browser-rtcp-primitives/1",
+  "task": "G6-050",
+  "status": "Verified internal SR/SDES primitives; transport and shared presentation clock integration pending",
+  "source": {
+    "sdk/typescript/src/browser_rtcp.ts": "a28dcc4490e93b9685fbfb63f381f3fcf5ec154acc89a5ae766c9b5b5287722f",
+    "sdk/typescript/dist/browser_rtcp.js": "918d020040a5cbb9978357ce2b37b6b58849fa961e23eb8645a97cdb864256b0",
+    "sdk/typescript/dist/browser_rtcp.d.ts": "6a86e3b9af7500b72ecae8ef323eab0328138ad2aed22fab599cfe37ca7d1ebb",
+    "sdk/tests/browser_rtcp.test.mjs": "96ee76b828bd035ec3105ed696e4db3cc48e96cc8e55488ea34079d373f37261",
+    "sdk/tests/clients.test.mjs": "da7d7b85507dc02abb8904a06708af55bbcf547c50cf9312a841388c13e8af79"
+  },
+  "verification": {
+    "report": ".local/gate-6/mixer-clock/rtcp-sdk002/summary.json",
+    "sha256": "6231395fc7a86ccefd944bf1218be8f4950e96686324d260850d15bf20ec6563",
+    "passed": true,
+    "tests": 219,
+    "new_tests": 8,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "Production SDK internal bounded RTCP SR/SDES encoding, parsing and RTP/NTP interpolation primitives. Source/module guarded219methods only. Not wired to peer transport, mixer input/output, common clock or presentation; no connected profile qualification."
+  },
+  "behavior": [
+    "Build bounded SR plus matching SDES CNAME compounds; preserve exact u32 RTP/counters and u64 NTP fractions/era wrapping.",
+    "Parse bounded compound sizes/counts, receive report blocks, strict UTF8 CNAME identity and terminal padding. Refuse truncated, oversized, mismatched, duplicate, missing or malformed identities and BYE as a live clock sample.",
+    "Classify RTP/RTCP within the fixed payload profile and retain the existing allocated-handle/physical-sequence wrapper. Classification and timing metadata grant no IO.",
+    "Interpolate signed RTP wrap into NTP with explicit zero-report unavailability and ambiguous half-range refusal. Computed NTP zero remains a valid value."
+  ],
+  "standards": [
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1",
+    "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1",
+    "https://www.rfc-editor.org/rfc/rfc5761.html#section-4"
+  ],
+  "remaining": "Internal module only: not yet admitted/emitted by BrowserMediaPeer or canonical native transport, not yet negotiated or bound to current SSRC/handle/generation, and no common capture or receiver presentation clock. No connected profile, AV synchronization, whole task or acceptance qualification."
+}
