@@ -219,7 +219,7 @@ struct Actor {
     bindings: HashMap<String, Binding>,
     revision: u64,
     operations: HashMap<String, Value>,
-    queries: HashMap<String, String>,
+    queries: HashMap<String, (String, bool)>,
     data: Vec<Value>,
     audio: Vec<u8>,
     audio_events: Vec<Value>,
@@ -345,12 +345,27 @@ impl Actor {
         } else if frame.kind() == "operation.updated" {
             assert_eq!(original["cid"], self.cid);
             let p = &original["payload"];
-            if let Some(operation) = original["in_reply_to"]
+            if let Some((operation, received)) = original["in_reply_to"]
+                .as_str()
+                .and_then(|reply| self.queries.get_mut(reply))
+            {
+                assert_eq!(p["operation_id"], *operation);
+                assert!(
+                    !*received,
+                    "duplicate original operation status in one reply"
+                );
+                *received = true;
+                self.operations.insert(operation.clone(), p.clone());
+            }
+        } else if frame.kind() == "ack" {
+            if let Some((_, received)) = original["in_reply_to"]
                 .as_str()
                 .and_then(|reply| self.queries.remove(reply))
             {
-                assert_eq!(p["operation_id"], operation);
-                self.operations.insert(operation, p.clone());
+                assert!(
+                    received,
+                    "status ACK omitted its correlated authoritative state"
+                );
             }
         } else if frame.kind() == "message.send" {
             for (field, value) in [
@@ -463,11 +478,11 @@ impl Actor {
                 Instant::now() < deadline,
                 "original native operation deadline: {operation}"
             );
-            if Instant::now() >= next_query {
-                assert!(
-                    self.queries.len() < 8,
-                    "bounded original operation status requests"
-                );
+            if Instant::now() >= next_query && self.queries.is_empty() {
+                // Keep processing signed native parameter offers while a status
+                // request waits for the original command to release authority.
+                // Completion requires the correlated operation state; the ACK
+                // alone neither completes the command nor opens another query.
                 let query = self
                     .client
                     .send_value(
@@ -480,7 +495,7 @@ impl Actor {
                     )
                     .await
                     .unwrap();
-                self.queries.insert(query, operation.into());
+                self.queries.insert(query, (operation.into(), false));
                 next_query = Instant::now() + Duration::from_millis(50);
             }
         }

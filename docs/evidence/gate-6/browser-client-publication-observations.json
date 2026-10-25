@@ -1,0 +1,36 @@
+{
+  "schema": "connect-gate6-publication-observations/1",
+  "task": "G6-050",
+  "status": "negative-before verified; implementation pending",
+  "scope": "Controlled original signed publication metadata under unrelated primary SQL custody; no runtime or task completion claim.",
+  "negative_before": {
+    "report": ".local/gate-6/publication-observation/negative002/summary.json",
+    "sha256": "7707ce6517b813a396fb32dda00bf7194240b7f57460d952fd05152a67a0ed9f",
+    "passed": false,
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "groups": [
+      {
+        "name": "negative",
+        "selection": "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql",
+          "--test-threads=1",
+          "--nocapture",
+          "--exact"
+        ],
+        "exit_code": 101,
+        "passed_methods": 0,
+        "failed_methods": 1,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/publication-observation/negative002/negative.log",
+        "log_sha256": "2d3d328bf0d31f27b78371015a3b982a26156cb5be8599a4cb34b3df277c0e74",
+        "elapsed_seconds": 1.7129021671134979
+      }
+    ]
+  },
+  "observation": "The original publication proof and begun logical attempt are current, but metadata cannot finish while the primary SQL mutex is held. A500ms bounded wait fails; SQL is always released and the worker joined. No native-data IO write occurs. This exceeds the service metadata retry window without any authority change.",
+  "next": "One complete exact attempt/media/frozen-message read on a read-only observer, under the original already-owned authority interval, with SQL/source/schema/clock sealing; remove duplicate final primary-SQL preflight reads. Keep initial physical/format admission and the single actual adapter revalidation/publication call."
+}

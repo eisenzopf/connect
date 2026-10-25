@@ -160,5 +160,19 @@
     "Native software source encoding occurs before the measurement; native live encoding/playout and CPU/RSS separation remain unqualified.",
     "Current native client runs in the owned server test host; no native operating-capacity claim.",
     "Native/browser full60second, synchronization, impairment, Linux/remote/provider and complete task/acceptance remain open."
-  ]
+  ],
+  "status_polling": {
+    "implementation": "one raw correlated operation.get at a time while the owned signaling loop continues confirming native offers; wait for the matching status and ACK, notifications remain hints and mutations are never retried",
+    "blocking_attempt": {
+      "report": ".local/gate-6/browser-sdk/native-status047/summary.json",
+      "passed": false,
+      "observation": "Public blocking operation_get during initial negotiation prevented the same foreground actor from confirming its native offer; removed this attempted approach."
+    },
+    "current": {
+      "report": ".local/gate-6/browser-sdk/native-status048/summary.json",
+      "sha256": "30b57eef7156a721c98bcc459b72b3847a87b5781837c452f9766639910ecbbb",
+      "passed": false,
+      "observation": "Single-query event loop compiles and reaches actual browser-data-0-json failure: authority-busy Native data metadata deadline elapsed. No query-bound panic or initial native-offer stall. Native interoperability remains unqualified."
+    }
+  }
 }

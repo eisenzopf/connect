@@ -11,7 +11,10 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-REGRESSION = 'peer_authority::connection_media::snapshot::tests::current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority'
+REGRESSIONS = {
+    'packet': ('peer_authority::connection_media::snapshot::tests::current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority', 'unrelated primary SQL custody must not mute current packet reads', 'authority-busy'),
+    'publication': ('connection_control::tests::native_stream_authority::data_reads::original_publication_metadata_does_not_queue_behind_unrelated_command_sql', 'owned publication metadata queued behind unrelated SQL custody', 'Timeout'),
+}
 GROUPS = [
     ('native-authority', 'connection_control::tests::native_stream_authority::'),
     ('snapshot', 'peer_authority::connection_media::snapshot::tests::'),
@@ -37,7 +40,9 @@ def main():
     parser.add_argument('--target-dir', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--expect-regression', action='store_true', help='Historical negative phase only: verify the exact unrelated SQL custody assertion fails, never report a pass.')
+    parser.add_argument('--regression', choices=REGRESSIONS, default='packet', help='Select the exact historical negative assertion; positive runs always cover all groups.')
     args = parser.parse_args()
+    regression, assertion, detail = REGRESSIONS[args.regression]
     output = args.output.resolve()
     if not output.is_relative_to((ROOT / '.local').resolve()):
         parser.error('Keep private raw evidence under ignored .local/')
@@ -72,7 +77,7 @@ def main():
         sha = digest(binary)
         report['executable'] = dict(path=str(binary), sha256=sha)
         env['CARGO_MANIFEST_DIR'] = str(ROOT / 'crates/connect-store')
-        groups = [('negative', REGRESSION)] if args.expect_regression else GROUPS
+        groups = [('negative', regression)] if args.expect_regression else GROUPS
         for name, selection in groups:
             command = [str(binary), selection, '--test-threads=1', '--nocapture']
             if args.expect_regression:
@@ -90,7 +95,7 @@ def main():
             report['groups'].append(row)
             print(json.dumps(row), flush=True)
             if args.expect_regression:
-                report['verified_expected_failure'] = code != 0 and (passed, failed, ignored) == (0, 1, 0) and 'unrelated primary SQL custody must not mute current packet reads' in text and 'authority-busy' in text
+                report['verified_expected_failure'] = code != 0 and (passed, failed, ignored) == (0, 1, 0) and assertion in text and detail in text
             else:
                 assert code == 0 and passed > 0 and failed == 0 and (ignored == 0 or name == 'file-fences' and ignored == 1), name
         report['executable_unchanged'] = digest(binary) == sha

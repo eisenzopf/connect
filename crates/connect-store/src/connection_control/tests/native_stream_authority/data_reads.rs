@@ -259,3 +259,42 @@ fn native_data_read_held_current_check_uses_no_store_lock_and_fresh_contention_r
     drop(proof);
     assert!(d.fresh().is_ok());
 }
+
+#[test]
+fn original_publication_metadata_does_not_queue_behind_unrelated_command_sql() {
+    let d = fixture(1, true);
+    let (lease, proof) = d.begin();
+    let store = &d.f.store;
+    let source = d.source.clone();
+    let primary = d.f.store.connection().unwrap();
+    let (started, entered) = std::sync::mpsc::channel();
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let observed = std::thread::scope(|threads| {
+        let worker = threads.spawn(move || {
+            started.send(()).unwrap();
+            let result = store.native_data_read_with_peer(&source, &proof, &lease);
+            sender.send(result.map(|read| read.current())).unwrap();
+        });
+        entered
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .unwrap();
+        let observed = receiver.recv_timeout(std::time::Duration::from_millis(500));
+        // Release and join even in the historical negative phase.
+        drop(primary);
+        worker.join().unwrap();
+        observed
+    });
+    assert!(
+        observed.is_ok(),
+        "owned publication metadata queued behind unrelated SQL custody: {observed:?}"
+    );
+    assert!(
+        observed.unwrap().unwrap(),
+        "original current proof lost its authority"
+    );
+    assert_eq!(
+        d.f.count("native_data_writes"),
+        0,
+        "metadata made an IO effect"
+    );
+}
