@@ -524,6 +524,50 @@ fn reconnect_scan_is_read_only_and_connected_session_never_expires_from_silence(
     });
 }
 #[test]
+fn idle_connected_reconnect_reconciliation_does_not_queue_a_writer_behind_live_media() {
+    let (f, _, origin) = started_fixture();
+    let held = f.store.try_native_media_read(&origin, None).unwrap();
+    let before = f.store.connection().unwrap().total_changes();
+    assert!(!f
+        .store
+        .reconcile_session_reconnect(origin.conversation_id(), origin.session_id())
+        .unwrap());
+    assert!(held.current());
+    assert_eq!(f.store.connection().unwrap().total_changes(), before);
+    assert_eq!(state(&f, &origin), "active");
+}
+#[test]
+fn connected_reconnect_boundary_clearing_still_waits_for_original_media_readers() {
+    let (f, _, origin) = started_fixture();
+    let at = chrono::Utc::now().timestamp_millis() - 40_000;
+    f.store.connection().unwrap().execute("UPDATE session_reconnect_boundaries SET lost_at_millis=?2,deadline_millis=?2+grace_seconds*1000 WHERE session_id=?1", params![origin.session_id(), at]).unwrap();
+    let held = f.store.try_native_media_read(&origin, None).unwrap();
+    let store = &f.store;
+    let (send, receive) = std::sync::mpsc::sync_channel(1);
+    std::thread::scope(|scope| {
+        let origin = &origin;
+        scope.spawn(move || {
+            send.send(
+                store.reconcile_session_reconnect(origin.conversation_id(), origin.session_id()),
+            )
+            .unwrap()
+        });
+        let blocked = receive.recv_timeout(Duration::from_millis(100));
+        drop(held);
+        assert!(matches!(
+            blocked,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+        ));
+        assert!(!receive
+            .recv_timeout(Duration::from_secs(1))
+            .unwrap()
+            .unwrap());
+    });
+    assert_eq!(state(&f, &origin), "active");
+    let boundary: (Option<i64>, Option<i64>) = f.store.connection().unwrap().query_row("SELECT lost_at_millis,deadline_millis FROM session_reconnect_boundaries WHERE session_id=?1", [origin.session_id()], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+    assert_eq!(boundary, (None, None));
+}
+#[test]
 fn reconnect_current_pending_offer_preserves_session_after_grace_until_permission_is_revoked() {
     let (f, request, origin) = started_fixture();
     pending_offer(&f, &request);

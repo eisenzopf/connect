@@ -187,6 +187,17 @@ impl Store {
             {
                 return Ok(false);
             }
+            // An already-connected active Session with no loss boundary needs
+            // no mutation. This fresh metadata hint grants no IO; actual loss,
+            // activation and boundary clearing still take the writer below and
+            // recheck their current state. Do not queue an idle writer behind
+            // packet readers or repeat the same view inside a write transaction.
+            if phase == "active"
+                && connected_now(&c, self, sid)?
+                && c.query_row("SELECT EXISTS(SELECT 1 FROM session_reconnect_boundaries WHERE session_id=?1 AND lost_at_millis IS NULL AND deadline_millis IS NULL)", [sid], |r| r.get::<_, bool>(0)).map_err(|_| Error::storage())?
+            {
+                return Ok(false);
+            }
         }
         let _authority = self.runtime_conversation_authority(|_| Ok(vec![cid.to_owned()]))?;
         let mut c = self.connection()?;

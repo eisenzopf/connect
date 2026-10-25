@@ -1,0 +1,35 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; runtime pending",
+  "scope": "Controlled Store proof that idle active/connected reconnect maintenance does not queue a writer behind live media. No runtime audio-resolution claim.",
+  "change": "Fresh runtime-owned metadata may return without mutation only for active connected Sessions whose stored loss time and deadline are both NULL. Activation, loss, pending deadlines and boundary clearing still acquire original writer and recheck state. No IO grant or cached authority is introduced.",
+  "negative_before": {
+    "log": ".local/gate-6/browser-sdk-idle-reconnect-before.log",
+    "sha256": "3733c5f82e0ef0649e2def3356208d961a6dc29a97711e2a5cb3816e48c13fc0",
+    "expected_failure": "Existing idle maintenance waits behind held NativeMediaRead then returns authority-busy."
+  },
+  "positive_after": {
+    "log": ".local/gate-6/browser-sdk-idle-reconnect-after.log",
+    "sha256": "bca4c7949e540b88d3988a6fc6200462d8936e2b9fb18a7b7b64d96d759bfd14",
+    "passed": 11,
+    "scope": "Reconnect-selected cases, including original readers still fence actual expired-boundary clearing."
+  },
+  "broader_store": {
+    "report": ".local/gate-6/browser-sdk-idle-reconnect-store.json",
+    "sha256": "109e5e885caa1e616783bec386f3c3c58e958b0034ff87f6f7de053376dec948",
+    "passed": 38,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "scope": "24 flow/activation/reconnect tests and14 version-sealed metadata tests. Controlled facts, not actual media."
+  },
+  "source_sha256": {
+    "crates/connect-store/src/session_reconnect.rs": "8684d0f9c84b7c4d396fbd53d09bb01061226caa2eebc8717da75fcb4707d1a8",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/flow_facts.rs": "6d921ae59faa5383e6bfedcb4af1058e513b33f1333c5c6ef9bc987385c4c4aa"
+  },
+  "runtime_build": {
+    "log": ".local/gate-6/browser-sdk-idle-reconnect-build.log",
+    "status": "live at checkpoint; not a passing check"
+  },
+  "remaining": "Repeat complete connected capture and existing authorization/lifecycle runtime matrices. Browser/native, full frozen measurements and failure/recovery scope remain open.",
+  "acceptance_qualified": false
+}
