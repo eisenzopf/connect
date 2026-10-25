@@ -1,7 +1,7 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T00:51:41.135985+00:00",
-  "status": "native-answer-and-ready-actual-sigkill-slices-pass-full-task-open",
+  "recorded_at": "2026-10-25T00:58:38.650503+00:00",
+  "status": "native-answer-ready-and-surviving-sip-submission-crash-slices-pass-full-task-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "approved_work": "Reconcile accepted operations and external effects after crashes; mark interrupted live sessions honestly, query supported provider state and expose bounded operator reconciliation when certainty is unavailable. Prevent duplicate redial, stale bridge resurrection or database-only completion. Drain or terminate resources on shutdown.",
@@ -13,15 +13,15 @@
   ],
   "current_implementation": {
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
-    "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256.",
+    "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256. Actual submitted SIP call remains external after server SIGKILL: successor reports Unknown at original attempt1, clears readiness, preserves receipt, refuses operator-declared completion, and replay/conflicting invitation cause no redial. Store process-exit boundaries separately cover local transactions with a synthetic effect counter.",
     "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
-    "verification": "All four actual parent cases pass with source/executable guards."
+    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately."
   },
   "remaining": [
-    "Add and qualify native pre-admission and retirement boundaries; current answered-before-confirmation and ready/committed SIGKILL behavior is not complete G6-047 coverage.",
-    "Cover submit/answer and retirement boundaries for actual native/SIP/provider effects, including still-live external fixtures.",
-    "Verify supported provider queries, bounded authorized operator reconciliation, no duplicate external effects and unresolved-conflict exclusion.",
-    "Verify actual owned drain/termination and recovery failure cases across approved operation classes, then audit the complete G6-047 scope."
+    "Qualify native retirement, SIP answered/ready/committed and retirement crash boundaries with still-live external peers; current six SIGKILL parent cases do not close the task.",
+    "Qualify supported provider state queries after actual process death; prepared actual-SDK external-HTTP fixtures are building and are not yet qualification.",
+    "Verify bounded authorized operator reconciliation for uncertainty and unresolved-conflict exclusion across required operation classes.",
+    "Verify actual owned drain/termination, retained original consultation/handoff/replacement effects and recovery failure cases, then audit complete G6-047 coverage."
   ],
   "verification": {
     "native_ready_commit": {
@@ -213,6 +213,405 @@
           "stale_native_signal_refused_without_source_or_io": true
         }
       ]
+    },
+    "sip_submission_surviving_peer": {
+      "summary": ".local/gate-6/crash-recovery/sip-submitted004-runtime-004/summary.json",
+      "summary_sha256": "9c8da8e81488b8767fa24101d04a2620ff3c65191cb88a23cdd7296542bb96e0",
+      "scope": "Two actual SIP submission SIGKILL cases with parent-owned still-ringing UDP peer, EdDSA and ES256. No answer/media/retirement coverage in this slice. Raw driver prose inherited a reference to regressions; the exact two profile IDs delimit this run. Those regressions passed in separately retained runtime003.",
+      "source_revision": "5c0eaf88dc59ecc5c7019668d65ce2d4c590957d",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "executable_sha256": "6cf701fc5f30dfd87162ff3f697a4ce697e72b7f102e85d0ef1bc08ab0941269",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "profiles": [
+        {
+          "phase": "sip-submitted",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "afaaa0faaf6986583d7497319985da44c088f991085827a07013543fbbcefa95",
+          "observations": {
+            "algorithm": "EdDSA",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        },
+        {
+          "phase": "sip-submitted",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "a6cb44c71aa6d3cce66cb2ab52d65403d067c50ed4179867f231c0af43cfb4e4",
+          "observations": {
+            "algorithm": "ES256",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        }
+      ]
+    },
+    "store_crash_boundaries": {
+      "summary": ".local/gate-6/crash-recovery/store-boundaries006-runtime-006/summary.json",
+      "summary_sha256": "434facad999fd8304d01d6d061ec0132471fd314bc95efe6b84c3e953ca425d9",
+      "scope": "Two current Store parent methods exercise 19 durable admission/claim/effect/ready/commit/reconcile boundaries plus 8 cancellation/evidence/cleanup boundaries via actual child process exit86. Synthetic effect counter, not real network/provider media. Does not complete G6-047.",
+      "source_revision": "5c0eaf88dc59ecc5c7019668d65ce2d4c590957d",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "executable_sha256": "d6e8e591346606482daf9e5e2aeae673f1b8b65d30e2206ff797876eb4d5ea7b",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "profiles": [
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "transitions::tests::process_crashes_cover_durable_boundaries_without_duplicate_callbacks_or_partial_local_commit",
+          "runtime_exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "transitions::tests::process_crashes_keep_cancellation_evidence_reconciliation_and_cleanup_atomic",
+          "runtime_exit_code": 0,
+          "passed": true
+        }
+      ],
+      "boundary_count": 27,
+      "boundary_groups": {
+        "admission_claim_effect_ready_commit_reconciliation": 19,
+        "cancellation_evidence_reconciliation_cleanup": 8
+      }
+    },
+    "sip_fixture_scope_correction": {
+      "summary": ".local/gate-6/crash-recovery/sip-submitted003-runtime-003/summary.json",
+      "summary_sha256": "ff1c170f84032ab6c658a90c73c4bad7bde5d2ebd6c5732346c0124b7594b6dc",
+      "scope": "Actual native answer/ready SIGKILL and actual SIP submission with still-live parent UDP peer; honest uncertainty, no redial or false reconciliation; EdDSA/ES256. Two initial-SIP answer/end constructor regressions. Not complete G6-047.",
+      "source_revision": "5c0eaf88dc59ecc5c7019668d65ce2d4c590957d",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "executable_sha256": "1f596c9035955e44736800400c9c508b0a413e9fc57f6f54db201e2fef6b8251",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": false,
+      "profiles": [
+        {
+          "phase": "native-ready",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "46bc54bda4d1decf7f0fd6f622134add240833c22b6b21fc9cd73757886ef01c",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "new_runtime_epoch": true,
+            "phase": "ready",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_b5294b0827864234b3472ecdb2adab88",
+                "created_at": 1792889714,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792889718
+              },
+              "kind": "session"
+            },
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-ready",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "e56bc1d7016bec691bdf8df9649149a008390a015f474570f1b8e556184689ee",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "new_runtime_epoch": true,
+            "phase": "ready",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_44e606f9def2481b8c55a2406dbac947",
+                "created_at": 1792889719,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792889723
+              },
+              "kind": "session"
+            },
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-answered",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "3b8365983b26a0abcae6aef56be8f3d66e808589f0731c187ab1c55d9f6ee616",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": {
+              "answered_before_confirmation": true,
+              "new_runtime_admissions": 0,
+              "original_effect_attempt": 1,
+              "original_effect_state": "failed",
+              "original_operation_state": "failed",
+              "ready_or_started_before_or_after": false,
+              "replay_disposition": "historical-outcome-only",
+              "replay_preserved_original_record": true
+            },
+            "decoded_duplex_before_kill": false,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "new_runtime_epoch": true,
+            "phase": "answered",
+            "physical_after_restart": [
+              [
+                "crash-answer-connection",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_ab2755d372e249d08b8dce3cd433a8f2",
+                "created_at": 1792889723,
+                "ended_reason": null,
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 2,
+                "state": "accepted",
+                "topology_revision": 1,
+                "updated_at": 1792889723
+              },
+              "kind": "session"
+            },
+            "session_ended_after_grace": false,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-answered",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "1e68bec7abc9562bd7815f5bb655591060d15c27b2c84cd6ea828fac64eb434b",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": {
+              "answered_before_confirmation": true,
+              "new_runtime_admissions": 0,
+              "original_effect_attempt": 1,
+              "original_effect_state": "failed",
+              "original_operation_state": "failed",
+              "ready_or_started_before_or_after": false,
+              "replay_disposition": "historical-outcome-only",
+              "replay_preserved_original_record": true
+            },
+            "decoded_duplex_before_kill": false,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "new_runtime_epoch": true,
+            "phase": "answered",
+            "physical_after_restart": [
+              [
+                "crash-answer-connection",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_a73619efd01e4aacb1496d2bb39020e0",
+                "created_at": 1792889724,
+                "ended_reason": null,
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 2,
+                "state": "accepted",
+                "topology_revision": 1,
+                "updated_at": 1792889724
+              },
+              "kind": "session"
+            },
+            "session_ended_after_grace": false,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "sip-submitted",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "phase": "sip-submitted",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+          "runtime_exit_code": 101,
+          "passed": false
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
+          "runtime_exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+          "runtime_exit_code": 0,
+          "passed": true
+        }
+      ],
+      "correction": "Two SIP cases initially failed at the false-reconciliation check because the collaboration caller lacked operation.reconcile. The corrected test explicitly issues an operator-scoped credential for the same owning identity and requires reconciliation-required from the actual uncertain operation. No product change, lowered assertion or pass relabeling. All four native parent and two initial-SIP answer/end regressions passed in this original run."
     }
   }
 }

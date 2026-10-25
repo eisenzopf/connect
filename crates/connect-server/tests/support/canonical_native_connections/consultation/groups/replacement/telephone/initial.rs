@@ -14,6 +14,9 @@ mod received;
 #[path = "initial/subscriptions.rs"]
 mod subscriptions;
 use rusqlite::OptionalExtension;
+#[cfg(unix)]
+#[path = "initial/crash.rs"]
+mod crash;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once()
 {
@@ -111,6 +114,45 @@ async fn configured_initial_with_target(
     receive_dtmf: bool,
     target_kind: Option<IdentityKind>,
 ) -> ConfiguredInitial {
+    let peer = PeerSip::with_audio_for_user(
+        payload,
+        if transport == EndpointTransport::Sip {
+            "callee"
+        } else {
+            "+14155550123"
+        },
+    )
+    .await;
+    let (f, phone_credential, target_reference) = configured_initial_at(
+        algorithm,
+        timeout_seconds,
+        transport,
+        dtmf,
+        receive_dtmf,
+        target_kind,
+        peer.address,
+    )
+    .await;
+    *peer.ledger.lock().unwrap() = Some(f.config.database.clone());
+    ConfiguredInitial {
+        f,
+        peer,
+        phone_credential,
+        target_reference,
+    }
+}
+
+// The route may terminate in another process; the peer remains owned by its
+// caller so crash tests can keep the actual external resource alive.
+async fn configured_initial_at(
+    algorithm: &str,
+    timeout_seconds: u32,
+    transport: EndpointTransport,
+    dtmf: bool,
+    receive_dtmf: bool,
+    target_kind: Option<IdentityKind>,
+    peer_address: std::net::SocketAddr,
+) -> (Fixture, String, String) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -161,16 +203,6 @@ async fn configured_initial_with_target(
         f.peer.credential_id = issued.id;
         f.peer.credential = issued.token;
     }
-    let peer = PeerSip::with_audio_for_user(
-        payload,
-        if transport == EndpointTransport::Sip {
-            "callee"
-        } else {
-            "+14155550123"
-        },
-    )
-    .await;
-    *peer.ledger.lock().unwrap() = Some(f.config.database.clone());
     let store = &f.server.store;
     let admin = store.authenticate(&f.admin).unwrap();
     let ProvisioningOutcome::Identity {
@@ -218,7 +250,7 @@ async fn configured_initial_with_target(
         )
         .unwrap();
     let address = if transport == EndpointTransport::Sip {
-        format!("sip:callee@{}", peer.address)
+        format!("sip:callee@{}", peer_address)
     } else {
         "+14155550123".into()
     };
@@ -264,7 +296,7 @@ async fn configured_initial_with_target(
         endpoint_credential_id: phone_key.id.clone(),
         route_credential_id: route_key.id.clone(),
         route_reference: "config_initial_callback".into(),
-        sip_authority: peer.address.to_string(),
+        sip_authority: peer_address.to_string(),
         timeout_seconds,
     };
     let Fixture {
@@ -304,12 +336,7 @@ async fn configured_initial_with_target(
         admin,
         key_revision,
     };
-    ConfiguredInitial {
-        f,
-        peer,
-        phone_credential: phone_key.id,
-        target_reference,
-    }
+    (f, phone_key.id, target_reference)
 }
 async fn initial_case(public_end: bool) {
     initial_selected_case(

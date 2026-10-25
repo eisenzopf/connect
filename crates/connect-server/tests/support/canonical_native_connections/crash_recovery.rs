@@ -115,7 +115,7 @@ fn checkpoint(
     std::fs::rename(pending, root.join("ready.json")).unwrap();
 }
 
-struct Child(std::process::Child);
+pub(super) struct Child(pub(super) std::process::Child);
 impl Drop for Child {
     fn drop(&mut self) {
         if self.0.try_wait().ok().flatten().is_none() {
@@ -124,9 +124,9 @@ impl Drop for Child {
         }
     }
 }
-struct Scratch(Option<tempfile::TempDir>);
+pub(super) struct Scratch(pub(super) Option<tempfile::TempDir>);
 impl Scratch {
-    fn path(&self) -> &Path {
+    pub(super) fn path(&self) -> &Path {
         self.0.as_ref().unwrap().path()
     }
 }
