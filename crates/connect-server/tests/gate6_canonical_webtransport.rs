@@ -3,10 +3,10 @@
 #![allow(clippy::unwrap_used)]
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use connect_client::{
-    canonical::{CanonicalClient, CanonicalClientConfig, CommandScope},
+    canonical::{CanonicalClient, CanonicalClientConfig},
     ClientConfig,
 };
-use connect_protocol::{provisioning::*, Operation, Outcome};
+use connect_protocol::provisioning::*;
 use connect_server::{
     canonical::{CanonicalServerConfig, RunningCanonicalServer},
     cli::init,
@@ -405,3 +405,6 @@ mod canonical_webtransport_media;
 #[cfg(unix)]
 #[path = "support/canonical_webtransport_browser.rs"]
 mod canonical_webtransport_browser;
+
+#[path = "support/canonical_webtransport_discovery.rs"]
+mod canonical_webtransport_discovery;

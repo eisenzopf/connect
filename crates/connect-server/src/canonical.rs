@@ -350,8 +350,23 @@ impl RunningCanonicalServer {
         if public_assistants.is_none() {
             service.readiness.unconfigured("public-assistant-host");
         }
+        let discovery = connect_protocol::canonical_discovery::TransportDiscovery {
+            profile: connect_protocol::canonical_http::PROFILE.into(),
+            max_control_envelope_bytes: rvoip_uctp::v2::MAX_ENVELOPE_BYTES as u32,
+            max_physical_peers: config.limits.connections as u32,
+            webtransport: config.webtransport.as_ref().map(|wt| {
+                connect_protocol::canonical_discovery::WebTransportEndpoint {
+                    url: wt.contact(address),
+                    origin_required: true,
+                    datagrams:
+                        connect_protocol::canonical_discovery::DatagramNegotiation::PerSession,
+                }
+            }),
+        };
         let http = match config.http_bind {
-            Some(address) => Some(crate::HttpListener::bind(address, service.clone(), None).await?),
+            Some(address) => Some(
+                crate::HttpListener::bind_canonical(address, service.clone(), discovery).await?,
+            ),
             None => None,
         };
         let http_address = http.as_ref().map(|h| h.address);

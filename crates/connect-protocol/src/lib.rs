@@ -1,5 +1,6 @@
 //! Transport-independent Connect application contract carried by UCTP envelopes.
 pub mod application_api;
+pub mod canonical_discovery;
 pub mod canonical_http;
 pub mod connection_control;
 pub mod conversations;

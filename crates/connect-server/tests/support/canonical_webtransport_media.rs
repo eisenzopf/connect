@@ -421,6 +421,16 @@ async fn duplex(algorithm: &str) {
     let b = second.subscribe(&cid, 1, &initiator, b).await;
     decoded(&first, &second, a, b, 1, 16).await;
     decoded(&second, &first, b, a, 1001, 32).await;
+    let (started, _) = f
+        .server
+        .store
+        .session_started_template(&cid, "http3-media-session")
+        .unwrap();
+    assert_eq!(started.active_connections.len(), 2);
+    assert!(started
+        .active_connections
+        .iter()
+        .all(|c| c.transport == "webtransport"));
     let db = rusqlite::Connection::open_with_flags(
         &f.config.database,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,

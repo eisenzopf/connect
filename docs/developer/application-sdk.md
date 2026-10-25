@@ -116,3 +116,11 @@ selection performs a fresh owned read of its original resource and queues the
 actual incoming lifecycle, without dialing or accepting a Participant. See
 [incoming-contact routing](incoming-contact-routing.md) and its
 [HTTP reference](../../contracts/openapi-incoming-contacts.json).
+
+Canonical clients can call `CanonicalHttpClient::transport_discovery()` or
+`transport_discovery_with_cancel(token)` to obtain configured native control
+limits and the optional WebTransport contact through authenticated
+`GET /v2/discovery`. The response is bounded to8192 bytes during collection and
+uses the configured request deadline. It supplies contact metadata; separately
+configured TLS and enrolled signing trust are still required. See
+[canonical transport discovery](canonical-http.md#canonical-transport-discovery).

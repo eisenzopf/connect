@@ -195,6 +195,28 @@ impl ApplicationClient {
         cancellation: CancellationToken,
         decode: impl FnOnce(reqwest::StatusCode, &[u8]) -> Result<T>,
     ) -> Result<T> {
+        self.transact_method(
+            reqwest::Method::POST,
+            path,
+            body,
+            wait,
+            cancellation,
+            MAX_RESPONSE,
+            decode,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn transact_method<T>(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: Vec<u8>,
+        wait: u32,
+        cancellation: CancellationToken,
+        max_response: usize,
+        decode: impl FnOnce(reqwest::StatusCode, &[u8]) -> Result<T>,
+    ) -> Result<T> {
         if cancellation.is_cancelled() {
             return Err(ClientError::Cancelled);
         }
@@ -217,7 +239,7 @@ impl ApplicationClient {
         let request = async {
             let mut response = self
                 .client
-                .post(format!("http://{}{path}", self.config.endpoint))
+                .request(method, format!("http://{}{path}", self.config.endpoint))
                 .bearer_auth(&self.config.credential)
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(body)
@@ -230,7 +252,7 @@ impl ApplicationClient {
             }
             if response
                 .content_length()
-                .is_some_and(|n| n > MAX_RESPONSE as u64)
+                .is_some_and(|n| n > max_response as u64)
             {
                 return Err(ClientError::Protocol);
             }
@@ -242,7 +264,7 @@ impl ApplicationClient {
                 if cancellation.is_cancelled() {
                     return Err(ClientError::Cancelled);
                 }
-                if bytes.len().saturating_add(chunk.len()) > MAX_RESPONSE {
+                if bytes.len().saturating_add(chunk.len()) > max_response {
                     return Err(ClientError::Protocol);
                 }
                 bytes.extend_from_slice(&chunk);

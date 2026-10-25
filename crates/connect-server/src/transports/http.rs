@@ -14,6 +14,8 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 
 #[derive(Clone)]
 pub(super) struct HttpState {
+    pub(super) canonical_discovery:
+        Option<Arc<connect_protocol::canonical_discovery::TransportDiscovery>>,
     pub(super) service: Arc<Service>,
     pub(super) provider_routes: Option<Arc<Vec<String>>>,
     pub(super) verifier: Option<Arc<telnyx::webhooks::Verifier>>,
@@ -47,7 +49,7 @@ impl Listener {
         service: Arc<Service>,
         public_key: Option<&str>,
     ) -> anyhow::Result<Self> {
-        Self::bind_mode(address, service, public_key, false, None).await
+        Self::bind_mode(address, service, public_key, false, None, None).await
     }
 
     /// Bind only the callback route. A tunnel may expose this listener without
@@ -57,7 +59,7 @@ impl Listener {
         service: Arc<Service>,
         public_key: Option<&str>,
     ) -> anyhow::Result<Self> {
-        Self::bind_mode(address, service, public_key, true, None).await
+        Self::bind_mode(address, service, public_key, true, None, None).await
     }
 
     pub(crate) async fn bind_canonical_webhooks(
@@ -76,6 +78,25 @@ impl Listener {
             Some(public_key),
             true,
             Some(Arc::new(routes)),
+            None,
+        )
+        .await
+    }
+
+    /// Protected canonical composition advertises only its configured listener.
+    pub(crate) async fn bind_canonical(
+        address: SocketAddr,
+        service: Arc<Service>,
+        discovery: connect_protocol::canonical_discovery::TransportDiscovery,
+    ) -> anyhow::Result<Self> {
+        discovery.validate()?;
+        Self::bind_mode(
+            address,
+            service,
+            None,
+            false,
+            None,
+            Some(Arc::new(discovery)),
         )
         .await
     }
@@ -86,6 +107,7 @@ impl Listener {
         public_key: Option<&str>,
         webhooks_only: bool,
         provider_routes: Option<Arc<Vec<String>>>,
+        canonical_discovery: Option<Arc<connect_protocol::canonical_discovery::TransportDiscovery>>,
     ) -> anyhow::Result<Self> {
         anyhow::ensure!(address.ip().is_loopback(), "HTTP listener must be loopback");
         let verifier = public_key
@@ -103,6 +125,7 @@ impl Listener {
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?;
         let state = HttpState {
+            canonical_discovery,
             provider_routes,
             service,
             verifier,

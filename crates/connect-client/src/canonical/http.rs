@@ -16,6 +16,49 @@ impl CanonicalHttpClient {
             record_download: None,
         })
     }
+    /// Read authenticated configured transport metadata. The returned URL
+    /// installs neither certificate/signing trust nor media authority.
+    pub async fn transport_discovery(
+        &self,
+    ) -> Result<connect_protocol::canonical_discovery::TransportDiscovery> {
+        self.transport_discovery_with_cancel(CancellationToken::new())
+            .await
+    }
+    pub async fn transport_discovery_with_cancel(
+        &self,
+        cancellation: CancellationToken,
+    ) -> Result<connect_protocol::canonical_discovery::TransportDiscovery> {
+        use connect_protocol::canonical_discovery as discovery;
+        self.application
+            .transact_method(
+                reqwest::Method::GET,
+                discovery::PATH,
+                Vec::new(),
+                0,
+                cancellation,
+                discovery::MAX_RESPONSE_BYTES,
+                |status, bytes| {
+                    if bytes.len() > discovery::MAX_RESPONSE_BYTES {
+                        return Err(ClientError::Protocol);
+                    }
+                    if !status.is_success() {
+                        let rejection: contract::Rejection =
+                            serde_json::from_slice(bytes).map_err(|_| ClientError::Protocol)?;
+                        if rejection.profile != contract::PROFILE
+                            || rejection.problem.code != status.as_u16()
+                        {
+                            return Err(ClientError::Protocol);
+                        }
+                        return Err(remote_error(rejection.problem.code as u64));
+                    }
+                    let value: discovery::TransportDiscovery =
+                        serde_json::from_slice(bytes).map_err(|_| ClientError::Protocol)?;
+                    value.validate().map_err(|_| ClientError::Protocol)?;
+                    Ok(value)
+                },
+            )
+            .await
+    }
     /// Pin the HTTPS record origin explicitly before following reference replies.
     pub fn with_record_tls(mut self, config: RecordTlsConfig) -> Result<Self> {
         let app = self.application.record_config()?;

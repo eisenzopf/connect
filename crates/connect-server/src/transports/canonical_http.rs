@@ -6,7 +6,7 @@ use axum::{
     http::{HeaderMap, Request, StatusCode, Version},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{get, post},
     Json, Router,
 };
 use connect_protocol::{canonical_http::*, Error};
@@ -17,6 +17,7 @@ use rvoip_uctp::v2::Envelope;
 pub(super) fn router(state: HttpState) -> Router<HttpState> {
     Router::new()
         .route("/v2/commands", post(command))
+        .route(connect_protocol::canonical_discovery::PATH, get(discovery))
         .route_layer(middleware::from_fn_with_state(state, admit))
         .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES))
 }
@@ -164,5 +165,33 @@ async fn command(
         )
             .into_response(),
         Err(error) => rejection(error),
+    }
+}
+
+async fn discovery(
+    State(state): State<HttpState>,
+    input: Result<Bytes, BytesRejection>,
+) -> Response {
+    match input {
+        Ok(bytes) if bytes.is_empty() => (),
+        Err(error) if error.status() == StatusCode::PAYLOAD_TOO_LARGE => {
+            return rejection(Error::new(
+                "request-too-large",
+                "Discovery request exceeds its bound",
+            ))
+        }
+        _ => {
+            return rejection(Error::new(
+                "invalid-request",
+                "Discovery GET requires an empty body",
+            ))
+        }
+    }
+    match state.canonical_discovery {
+        Some(value) => Json(value.as_ref().clone()).into_response(),
+        None => rejection(Error::new(
+            "not-found",
+            "Canonical transport discovery is not configured",
+        )),
     }
 }

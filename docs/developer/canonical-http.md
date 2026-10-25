@@ -151,3 +151,21 @@ Native QUIC listeners and clients use the explicit
 [local/remote network profile](native-network.md), configured TLS trust and
 verified server identity. The plaintext application HTTP listener remains
 loopback; native Remote configuration does not expose it.
+
+## Canonical transport discovery
+
+`CanonicalHttpClient::transport_discovery` reads authenticated
+`GET /v2/discovery` on the canonical application listener. It returns the
+`connect/2` profile, control-envelope and physical-peer limits, and the configured
+WebTransport HTTPS contact (or `null` when disabled). The contact requires an
+exact allowed Origin; datagram availability is negotiated per session. Install
+TLS trust and the enrolled server signing pin separately before opening it.
+
+The GET body must be empty. Current bearer authentication and the shared HTTP
+concurrency budget apply before body collection. Responses use `no-store`.
+The SDK bounds response collection to 8192 bytes, retains its existing absolute
+deadline and cancellation behavior, rejects unknown/incompatible descriptors,
+and performs no automatic retry. Discovery creates no Session, Endpoint
+verification, trust enrollment or media grant. An unrelated application listener
+returns unavailable; callback-only listeners expose no discovery route.
+See the [HTTP/OpenAPI reference](../../contracts/openapi-canonical-http.json).

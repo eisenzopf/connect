@@ -249,6 +249,16 @@ async fn browser(algorithm: &str) {
         created
     );
     native.shutdown().await.unwrap();
+    let (started, _) = f
+        .server
+        .store
+        .session_started_template(&cid, "http3-media-session")
+        .unwrap();
+    assert_eq!(started.active_connections.len(), 2);
+    assert!(started
+        .active_connections
+        .iter()
+        .all(|c| c.transport == "webtransport"));
     let db = rusqlite::Connection::open_with_flags(
         &f.config.database,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,

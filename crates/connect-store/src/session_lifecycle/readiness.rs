@@ -166,7 +166,7 @@ fn native(
         connection: SessionActiveConnection {
             connid: origin.connection_id().into(),
             participant_id: origin.participant_id().into(),
-            transport: "quic".into(),
+            transport: view.endpoint_transport.as_str().into(),
         },
         epoch: origin.membership_epoch(),
         observed_at_millis: if public_handoff {
