@@ -286,3 +286,17 @@ including ordered two-packet bursts, long packet remainders, fresh recovery and
 current authorization. These component results do not qualify sustained browser
 audio or A/V alignment. See
 `docs/evidence/gate-6/browser-client-audio-backlog.json`.
+
+`BrowserClient.open` also accepts explicit canonical WSS control with
+`{ transport: "websocket", url: "wss://configured-host/connect", ... }`. It uses
+the same enrolled signing identities, server verification, correlated receipts
+and original operation IDs. WSS uses platform TLS trust; WebTransport certificate
+hashes are refused in this mode. Transport loss retires the peer without an
+automatic mutation retry. `browserTransportSupport()` reports both APIs, and
+`client.datagrams` refuses in WSS mode.
+
+The 206-method SDK result includes 16 WSS control-boundary cases with actual
+signature verification in an in-process socket fixture. Installed WSS hosting,
+canonical WebRTC media/ICE and actual Chrome/Firefox fallback remain G6-051 work.
+This control option does not select the older browser-only signaling dialect.
+See `docs/evidence/gate-6/browser-fallback-control.json`.

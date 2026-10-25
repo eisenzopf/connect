@@ -36,6 +36,7 @@ async fn page(sdk: bool, media: bool, native: Option<Arc<native_actor::Coordinat
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk/typescript/dist");
         [
             "browser_client.js",
+            "browser_control_transport.js",
             "browser_media.js",
             "browser_media_capture.js",
             "browser_capture.js",

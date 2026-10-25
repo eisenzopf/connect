@@ -2,6 +2,8 @@ import { type JsonObject } from "./uctp_json.js";
 import { type ServerTrust, type SigningIdentity } from "./uctp_signing.js";
 import { type Envelope, type Scope } from "./uctp_wire.js";
 export interface BrowserClientOptions {
+    /** Explicit physical control transport; WebTransport is the default. No mutation is retried on transport loss. */
+    transport?: "webtransport" | "websocket";
     url: string;
     credential: string;
     identityId: string;
@@ -12,7 +14,7 @@ export interface BrowserClientOptions {
     };
     signing: SigningIdentity;
     server: ServerTrust;
-    /** Explicit short-lived development certificate pins; omit for platform TLS trust. */
+    /** Explicit short-lived development WebTransport certificate pins; WSS uses platform TLS trust. */
     serverCertificateHashes?: WebTransportHash[];
     timeoutMs?: number;
     signal?: AbortSignal;
@@ -24,6 +26,7 @@ export interface RequestOptions {
 export declare function browserTransportSupport(): {
     secureContext: boolean;
     webTransport: boolean;
+    webSocket: boolean;
     webCrypto: boolean;
 };
 /** Canonical connect/2 client. A failed mutation retains its caller's logical ID. */

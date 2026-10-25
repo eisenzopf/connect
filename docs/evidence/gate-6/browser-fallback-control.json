@@ -1,0 +1,41 @@
+{
+  "schema": "connect-gate6-fallback-control/1",
+  "task": "G6-051",
+  "status": "Canonical signed WSS control boundary implemented; installed hosting and WebRTC/browser fallback remain pending",
+  "base_revision": "67b861bbb3114433a44144ffdd07ff5561229e2f",
+  "sources_sha256": {
+    "sdk/typescript/src/browser_client.ts": "dbb51f249971a52e6b536e84ad454654ee8840bf51eb62e9547645bca5c84faf",
+    "sdk/typescript/src/browser_control_transport.ts": "0e21b99a5c841c647895817522a15d25844d2f0f5a602f206c18d872f8222cad",
+    "sdk/tests/browser_wss.test.mjs": "e3b3a94362c97d79a64914ec447acd9b5d7409b791887bd0319a44cbaeff767b",
+    "sdk/typescript/dist/browser_client.js": "64592dd04a8d54927b0db27e7574e4149e089703233a8c58b02ba34f30061709",
+    "sdk/typescript/dist/browser_control_transport.js": "6930de9d2b9b103ca248813f84de24a4dcc2ccce419033222f813681882e6c63",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "cd378b0baa847c8c2c0c6fd7b8cab6600cb4cc340d68d508c11cc357d0115bda"
+  },
+  "verification": {
+    "report": ".local/gate-6/fallback/sdk-root005/summary.json",
+    "sha256": "45a6250f6fa0a64e90a50638c456efbe732fbddc56d55b1a2ec3f4d1c1d7a796",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "sdk_methods": 206,
+    "preexisting_methods": 190,
+    "new_wss_methods": 16,
+    "log_sha256": "c8fcc9d3910990ea16fbe3e60472cf640e303a1e12120dfd0b60e74574a2e9a4",
+    "fixture": "In-process WebSocket event boundary with distinct enrolled client/server keys. EdDSA and ES256 signatures are actually produced and verified. Accepted-effect/ACK-loss recovery uses a fixture receipt map, not a real Store or installed listener."
+  },
+  "behavior": [
+    "BrowserClient selects explicit webtransport or websocket control. WebTransport remains the default. WSS requires secure context/WebCrypto/WebSocket without requiring a WebTransport API. It never constructs a known-unusable WT path when WSS is explicitly selected.",
+    "The same canonical envelope reader, signatures, freshness/replay protection, operation correlation, receipt handling and caller-owned logical mutation IDs apply to both transports. WSS carries one JSON text envelope per message.",
+    "A lost accepted-mutation reply retires the peer with its original ID. A fresh peer can query that receipt; the client does not automatically resubmit the mutation. Cancellation and protocol refusal likewise create no replacement ID.",
+    "BrowserClient requires wss URLs and rejects WebTransport-only certificate-pin options in WSS mode; platform TLS trust and enrolled server signing verification are separate. This fixture does not qualify actual TLS.",
+    "Text UTF8 envelopes are capped at1MiB; the local stream queue at4framed-envelope capacities; buffered data writes are refused above1MiB. Binary/empty/oversized text, invalid UTF8, duplicate ownership and replay refuse.",
+    "WSS owns no WT datagrams; client.datagrams explicitly refuses. Actual WebRTC SDP/ICE/Connection-scoped media is still required.",
+    "Owned WT browser fixture serves the new internal transport module. Connected WT regression must be rerun on the combined candidate."
+  ],
+  "remaining": [
+    "Install canonical WSS hosting and discovery/OpenAPI reference on the same current-authority service profile, with shared budgets, Origin/mount/TLS and owned expiry/shutdown/drop.",
+    "Implement exact canonical Connection/operation-bound SDP/ICE/WebRTC media and replace the old browser-only offer-ready dialect.",
+    "Force WT/UDP failure in actual Chrome and Firefox, running the same conversation/transition commands with original accepted/uncertain dial/message IDs and explicit unsupported migration.",
+    "Qualify actual duplex media/data, permissions, background/resume, loss, current authorization and owned teardown for the required fallback profiles."
+  ],
+  "scope": "SDK control-boundary component only. No real network/listener/TLS/WebRTC/Chrome/Firefox fallback, complete task, acceptance or publication qualification."
+}

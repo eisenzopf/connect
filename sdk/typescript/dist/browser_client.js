@@ -1,3 +1,4 @@
+import { WebTransportControl, WebSocketControl, } from "./browser_control_transport.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
 import { signEnvelope, validateSigningIdentity, verifyEnvelope, } from "./uctp_signing.js";
@@ -6,6 +7,7 @@ export function browserTransportSupport() {
     return {
         secureContext: globalThis.isSecureContext === true,
         webTransport: typeof WebTransport === "function",
+        webSocket: typeof WebSocket === "function",
         webCrypto: !!globalThis.crypto?.subtle,
     };
 }
@@ -27,26 +29,35 @@ export class BrowserClient {
     auth;
     constructor(options) {
         this.options = options;
-        this.transport = new WebTransport(options.url, {
-            allowPooling: false,
-            serverCertificateHashes: options.serverCertificateHashes,
-        });
-        void this.transport.closed.then(() => this.close(), () => this.close(new ConnectError("transport", "WebTransport closed")));
+        this.transport =
+            options.transport === "websocket"
+                ? new WebSocketControl(options.url)
+                : new WebTransportControl(options.url, options.serverCertificateHashes);
+        void this.transport.closed.then(() => this.close(), (error) => this.close(error instanceof ConnectError
+            ? error
+            : new ConnectError("transport", "Canonical control transport closed")));
     }
     static async open(options) {
         const support = browserTransportSupport();
         if (!support.secureContext ||
-            !support.webTransport ||
+            !(options.transport === "websocket"
+                ? support.webSocket
+                : support.webTransport) ||
             !support.webCrypto)
-            throw new ConnectError("unsupported-transport", "Secure WebTransport and WebCrypto are required");
+            throw new ConnectError("unsupported-transport", "Secure context, WebCrypto and the selected control transport are required");
         let url;
         try {
             url = new URL(options.url);
         }
         catch {
-            throw new ConnectError("invalid-request", "Invalid WebTransport URL");
+            throw new ConnectError("invalid-request", "Invalid canonical control URL");
         }
-        if (url.protocol !== "https:" ||
+        if (url.protocol !==
+            (options.transport === "websocket" ? "wss:" : "https:") ||
+            (options.transport !== undefined &&
+                !["websocket", "webtransport"].includes(options.transport)) ||
+            (options.transport === "websocket" &&
+                options.serverCertificateHashes !== undefined) ||
             url.username ||
             url.password ||
             url.search ||
@@ -59,14 +70,14 @@ export class BrowserClient {
             !options.device.platform ||
             !options.credential ||
             options.credential.length > 16384)
-            throw new ConnectError("invalid-request", "Use an explicit HTTPS endpoint and enrolled participant credentials");
+            throw new ConnectError("invalid-request", "Use the selected HTTPS/WSS endpoint, enrolled credentials and transport-specific TLS options");
         validateSigningIdentity(options.signing, "sign");
         validateSigningIdentity(options.server, "verify");
         const client = new BrowserClient(options);
         try {
             const until = performance.now() + client.timeout(options.timeoutMs);
             await client.bound(client.transport.ready, until, options.signal);
-            const stream = await client.bound(client.transport.createBidirectionalStream(), until, options.signal);
+            const stream = await client.bound(client.transport.stream(), until, options.signal);
             client.reader = stream.readable.getReader();
             client.writer = stream.writable.getWriter();
             void client.pump().catch((error) => client.close(error));
@@ -124,7 +135,10 @@ export class BrowserClient {
     /** Media owns these streams; one datagram reader/writer per physical peer. */
     get datagrams() {
         this.check();
-        return this.transport.datagrams;
+        const datagrams = this.transport.datagrams;
+        if (!datagrams)
+            throw new ConnectError("unsupported-transport", "WebSocket media requires a WebRTC connection");
+        return datagrams;
     }
     timeout(value = 10000) {
         if (!Number.isFinite(value) || value < 1 || value > 60000)
@@ -390,7 +404,7 @@ export class BrowserClient {
         this.listeners.clear();
         void this.reader?.cancel().catch(() => { });
         void this.writer?.abort().catch(() => { });
-        this.transport.close({ closeCode: 0, reason: "Connect client closed" });
+        this.transport.close();
         for (const callback of this.closeListeners) {
             try {
                 callback(this.failure);
