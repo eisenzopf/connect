@@ -1,0 +1,48 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -954,3 +954,45 @@
+     s.mixer.tick();
+     assert!(out.try_recv().is_err(), "fresh recovery audio repeated");
+ }
++
++#[tokio::test]
++async fn guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback() {
++    for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        for (offset, value) in [1000, 2000, 4000, 7000].into_iter().enumerate() {
++            s.publish_at(0, value, start.wrapping_add(offset as u32 * 160));
++        }
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 1000).await;
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("idle mixer retained source authority"),
++        );
++        // The next call represents the current60ms quantum. Two scheduled
++        //20ms quanta were missed; they cannot become delayed playout.
++        tokio::time::sleep(Duration::from_millis(65)).await;
++        s.mixer.tick();
++        heard_labeled(
++            out.try_recv().unwrap(),
++            7000,
++            "missed mixer ticks left original PCM behind the current quantum",
++        )
++        .await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "missed audio replayed later");
++        // A gap with no queued audio must not discard the sole fresh input.
++        tokio::time::sleep(Duration::from_millis(65)).await;
++        s.publish_at(0, 4000, start.wrapping_add(640));
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 4000).await;
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "fresh recovery audio repeated");
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}

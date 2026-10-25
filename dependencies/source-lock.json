@@ -1073,6 +1073,10 @@
       "path": "patches/rvoip/gate6-preserve-contiguous-original-pcm.patch",
       "sha256": "9a867dfe6462799b5e4d584e82ad555f1469688f5ce6fee88eb018eaa3c3de71",
       "source": "G6-050 preserve distinct contiguous original PCM clock intervals across one mixer tick instead of discarding all but newest. Measure negotiated source clock span before resampling, support RTP wrap; keep existing overlap/discontinuity supersession. Queue only exact original metadata/PCM, at most10chunks/200ms, no idle authority; take() retains original age/current source/scene/consumer/route admission. Add capacity/expiry/fresh recovery test; original pause/resume and overlap tests remain required."
+    },
+    {
+      "path": "patches/rvoip/gate6-missed-audio-tick-regression.patch",
+      "sha256": "4a51240b1e3abfac85d9106d70b8fa3141f12b77b16e48e643c9c4153f91bb67"
     }
   ]
 }

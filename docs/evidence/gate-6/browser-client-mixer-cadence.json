@@ -1,0 +1,42 @@
+{
+  "schema": "connect-gate6-mixer-cadence/1",
+  "task": "G6-050",
+  "status": "Controlled missed-tick failure reproduced; correction and host qualification pending",
+  "negative": {
+    "report": ".local/gate-6/audio-cadence/negative001/summary.json",
+    "sha256": "9e89a1b7e3f3b89a2f3a7a85db75f33d67f5048a7469a4f8dbe849f71a9a1e17",
+    "candidate_revision": "2c540356cd3802293110baabaedb2f187f6d6df2",
+    "passed": false,
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "case": {
+      "selection": "staged_streams::tests::guarded_mixer::guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback",
+      "selected": [
+        "staged_streams::tests::guarded_mixer::guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback"
+      ],
+      "exit_code": 101,
+      "passed": false,
+      "expected_failure": true,
+      "counts": [
+        0,
+        1,
+        0
+      ],
+      "log": ".local/gate-6/audio-cadence/negative001/case-0.log",
+      "log_sha256": "a7a63e70947888dad471e2b5b43ec98af6e9d12b3ec4090ca071eb183cd62245",
+      "elapsed_seconds": 0.08778466703370214
+    },
+    "observation": "At8kHz, four consecutive original20ms packets are queued. After the first block and a65ms stall, the old mixer emits the second1980(decoded2000) instead of the fourth7000. The negative stops there;48kHz/wrap/fresh-recovery portions have not run.",
+    "patch": {
+      "path": "patches/rvoip/gate6-missed-audio-tick-regression.patch",
+      "sha256": "4a51240b1e3abfac85d9106d70b8fa3141f12b77b16e48e643c9c4153f91bb67"
+    }
+  },
+  "required_correction": [
+    "Advance the mixer RTP clock by elapsed20ms quanta without accumulating fractional scheduling drift.",
+    "Discard only missed PCM quanta within the existing ten-chunk/200ms budget, preserve the newest available quantum after an idle gap, and retain original source/scene/consumer/route/age checks at output.",
+    "Verify the complete guarded mixer/scene groups and actual connected host; this controlled witness does not prove the sustained runtime profile passes."
+  ],
+  "scope": "Actual local Core mixer behavior with isolated policy/adapter fixtures; no connected throughput, full task/acceptance or publication claim."
+}

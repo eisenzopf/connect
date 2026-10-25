@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = runpy.run_path(str(ROOT / 'scripts/rehearse-gate6-catalog-retry.py'))
 REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick'
 ASSERTION = 'contiguous original audio frame was discarded by newer input'
+CADENCE_REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_missed_ticks_catch_up_without_delayed_original_playback'
+CADENCE_ASSERTION = 'missed mixer ticks left original PCM behind the current quantum'
 GROUPS = ('staged_streams::tests::guarded_mixer::', 'staged_streams::tests::media_scene::')
 
 
@@ -35,6 +37,7 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--target-dir', required=True, type=Path)
     parser.add_argument('--expect-regression', action='store_true')
+    parser.add_argument('--regression', choices=('contiguous', 'cadence'), default='contiguous', help='Exact expected-failure witness; positive runs still select both complete groups.')
     args = parser.parse_args()
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
@@ -47,7 +50,7 @@ def main():
     report = dict(passed=False, verified_expected_failure=False, expect_regression=args.expect_regression,
                   scope='Actual Core guarded mixer/scene tests only. No Connect host throughput, browser/native interoperability, full operating/task/acceptance/publication qualification.',
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), steps=[], cases=[])
+                  regression=args.regression, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), steps=[], cases=[])
     before = sources()
     report['source_inputs_sha256'] = before
     executable = None
@@ -84,8 +87,10 @@ def main():
         report['executable'] = executable
         available = subprocess.check_output([str(sealed), '--list'], env=env, text=True)
         names = [line.removesuffix(': test') for line in available.splitlines() if line.endswith(': test')]
-        assert REGRESSION in names
-        selections = [(REGRESSION, True)] if args.expect_regression else [(group, False) for group in GROUPS]
+        regression = CADENCE_REGRESSION if args.regression == 'cadence' else REGRESSION
+        assertion = CADENCE_ASSERTION if args.regression == 'cadence' else ASSERTION
+        assert regression in names
+        selections = [(regression, True)] if args.expect_regression else [(group, False) for group in GROUPS]
         for index, (selection, exact) in enumerate(selections):
             selected = [name for name in names if name == selection] if exact else [name for name in names if name.startswith(selection)]
             assert selected
@@ -98,7 +103,7 @@ def main():
             match = re.search(r'test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored', text)
             counts = tuple(map(int, match.group(2, 3, 4))) if match else None
             passed = code == 0 and counts == (len(selected), 0, 0)
-            expected = args.expect_regression and code == 101 and counts == (0, 1, 0) and ASSERTION in text
+            expected = args.expect_regression and code == 101 and counts == (0, 1, 0) and assertion in text
             row = dict(selection=selection, selected=selected, exit_code=code, passed=passed,
                        expected_failure=expected, counts=counts, log=str(log.relative_to(ROOT)),
                        log_sha256=digest(log), elapsed_seconds=time.monotonic() - start)
