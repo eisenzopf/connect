@@ -8,6 +8,16 @@ use std::{
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_util::sync::CancellationToken;
 
+#[path = "canonical_webtransport_browser_native.rs"]
+mod native_actor;
+struct OwnedNative(Option<tokio::task::JoinHandle<Value>>);
+impl Drop for OwnedNative {
+    fn drop(&mut self) {
+        if let Some(task) = &self.0 {
+            task.abort();
+        }
+    }
+}
 struct Page {
     address: SocketAddr,
     stop: CancellationToken,
@@ -19,7 +29,7 @@ impl Drop for Page {
         self.task.abort();
     }
 }
-async fn page(sdk: bool, media: bool) -> Page {
+async fn page(sdk: bool, media: bool, native: Option<Arc<native_actor::Coordination>>) -> Page {
     let mut sdk_files = if sdk {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk/typescript/dist");
         [
@@ -56,6 +66,15 @@ async fn page(sdk: bool, media: bool) -> Page {
         assert!(body.len() <= 1048576);
         sdk_files.insert("/sdk-media.mjs".into(), body);
     }
+    if native.is_some() {
+        let body = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-webtransport-browser/sdk-native.mjs"),
+        )
+        .unwrap();
+        assert!(body.len() <= 1048576);
+        sdk_files.insert("/sdk-native.mjs".into(), body);
+    }
     let sdk_files = Arc::new(sdk_files);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
@@ -72,10 +91,21 @@ async fn page(sdk: bool, media: bool) -> Page {
                 continue;
             }
             let sdk_files = sdk_files.clone();
+            let native = native.clone();
             children.spawn(async move {
                 let mut bytes=[0u8;8192];let Ok(Ok(size))=tokio::time::timeout(Duration::from_secs(2),socket.read(&mut bytes)).await else {return};
                 let request=String::from_utf8_lossy(&bytes[..size]);let path=request.split_whitespace().nth(1).unwrap_or("");
+                let (path,query)=path.split_once('?').unwrap_or((path,""));
+                let native_body=if path=="/native-state" { native.as_ref().map(|state| {
+                    if let Some(flag)=query.strip_prefix("set=") {
+                        assert!(["browser-offered","browser-subscribed","data-go","measure-start","measure-end","native-end"].contains(&flag));
+                        state.signal(flag);
+                    } else { assert!(query.is_empty()); }
+                    state.snapshot().to_string()
+                }) } else { None };
                 let (status,mime,body)=match path {
+                    "/native-state" if native_body.is_some() => ("200 OK","application/json",native_body.as_deref().unwrap()),
+                    "/" if native.is_some() => ("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/sdk-native.mjs';globalThis.runBrowserFixture=run;</script>"),
                     "/" if media =>("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/sdk-media.mjs';globalThis.runBrowserFixture=run;</script>"),
                     "/" if sdk =>("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/sdk-peer.mjs';globalThis.runBrowserFixture=run;</script>"),
                     "/"=>("200 OK","text/html","<!doctype html><meta charset=utf-8><script type=module>import {run} from '/peer.mjs';globalThis.runBrowserFixture=run;</script>"),
@@ -188,6 +218,33 @@ fn capture(f: &Fixture, algorithm: &str) {
                 std::fs::copy(source, directory.join(name)).unwrap();
             }
         }
+        let received = f.temp.path().join("native-received");
+        if received.is_dir() {
+            let destination = directory.join("native-received");
+            std::fs::create_dir_all(&destination).unwrap();
+            for name in [
+                "received.frames",
+                "received.ivf",
+                "received.json",
+                "native-observed.json",
+            ] {
+                if received.join(name).is_file() {
+                    std::fs::copy(received.join(name), destination.join(name)).unwrap();
+                }
+            }
+            for folder in ["audio-observed", "video-observed"] {
+                let source = received.join(folder);
+                if source.is_dir() {
+                    std::fs::create_dir_all(destination.join(folder)).unwrap();
+                    for name in ["decode.log", "summary.json", "received.opus"] {
+                        if source.join(name).is_file() {
+                            std::fs::copy(source.join(name), destination.join(folder).join(name))
+                                .unwrap();
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 fn capture_failure(f: &Fixture, algorithm: &str) {
@@ -209,6 +266,15 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
     browser_profile(algorithm, sdk, media, false).await;
 }
 async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media: bool) {
+    browser_profile_mode(algorithm, sdk, media, capture_media, false).await;
+}
+async fn browser_profile_mode(
+    algorithm: &str,
+    sdk: bool,
+    media: bool,
+    capture_media: bool,
+    native_media: bool,
+) {
     if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
         let _ = tracing_subscriber::fmt()
             .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug,connect_store::sql_custody=trace")
@@ -217,7 +283,9 @@ async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media:
             .with_test_writer()
             .try_init();
     }
-    let page = page(sdk, media).await;
+    assert!(!native_media || (sdk && media));
+    let coordination = native_media.then(|| Arc::new(native_actor::Coordination::default()));
+    let page = page(sdk, media, coordination.clone()).await;
     let Fixture {
         temp,
         mut config,
@@ -298,11 +366,36 @@ async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media:
         },
     )
     .await;
+    let mut native_task = OwnedNative(None);
+    let native_received = f.temp.path().join("native-received");
+    if let Some(state) = coordination.as_ref() {
+        native_actor::endpoint(&f, &other);
+        let fixtures = std::env::var_os("CONNECT_GATE6_NATIVE_FIXTURES")
+            .map(std::path::PathBuf::from)
+            .expect("Explicit native fixtures prepared by the native browser runner");
+        let (config, cid, source, state, output) = (
+            other.clone(),
+            cid.clone(),
+            initiator.clone(),
+            state.clone(),
+            native_received.clone(),
+        );
+        native_task.0 = Some(tokio::spawn(async move {
+            native_actor::run(config, cid, source, state, &fixtures, &output).await
+        }));
+        tokio::time::timeout(Duration::from_secs(8), async {
+            while !coordination.as_ref().unwrap().has("native-offered") {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("Public native offer deadline");
+    }
     let profile = f.temp.path().join("owned-chrome-profile");
     std::fs::create_dir(&profile).unwrap();
     let mut chrome = launch(&profile, &f.temp.path().join("chrome-stderr.log"));
     let port = debug_port(&mut chrome, &profile).await;
-    let config = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"user_gesture":capture_media,"run":{"capture":capture_media,"media_cid":cid,"participants":[initiator,recipient],"actors":[actor(&f,&f.client,&hash),actor(&f,&other,&hash)]}});
+    let config = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"user_gesture":capture_media,"run":{"native":native_media,"capture":capture_media,"media_cid":cid,"participants":[initiator,recipient],"actors":[actor(&f,&f.client,&hash),if native_media {json!({"identity_id":other.identity_id})} else {actor(&f,&other,&hash)}]}});
     let path = f.temp.path().join("browser-private-config.json");
     std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -334,7 +427,40 @@ async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media:
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let mut result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    if let Some(task) = native_task.0.as_mut() {
+        let received = tokio::time::timeout(Duration::from_secs(5), task)
+            .await
+            .expect("Public native terminal task deadline")
+            .unwrap();
+        native_task.0.take();
+        let observer = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/gate6-webtransport-browser/native/observe.py");
+        let observed = tokio::time::timeout(
+            Duration::from_secs(45),
+            tokio::process::Command::new("python3")
+                .arg(observer)
+                .arg("--received")
+                .arg(&native_received)
+                .kill_on_drop(true)
+                .output(),
+        )
+        .await
+        .expect("Independent native media decoding deadline")
+        .unwrap();
+        if !observed.status.success() {
+            capture_failure(&f, algorithm);
+            panic!(
+                "Independent native received media failed: {}",
+                String::from_utf8_lossy(&observed.stderr)
+            );
+        }
+        let observation: Value = serde_json::from_slice(&observed.stdout).unwrap();
+        assert_eq!(observation["passed"], true);
+        assert_eq!(received["canonical_public_native_client"], true);
+        result["result"]["decoded_reverse"] = json!(true);
+        result["result"]["native_received"] = observation;
+    }
     assert_eq!(result["result"]["passed"], true);
     if media {
         assert_eq!(result["result"]["production_sdk_media"], true);
@@ -408,7 +534,10 @@ async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media:
         .unwrap(),
         1
     );
-    assert_eq!(db.query_row("SELECT count(*) FROM operations o JOIN connections c ON c.id=o.connection_id JOIN endpoints e ON e.id=c.endpoint_id WHERE o.command_type='connection.offer' AND o.operation_id IN ('browser-offer-0','browser-offer-1') AND o.state='completed' AND e.transport='webtransport'",[],|r|r.get::<_,u64>(0)).unwrap(),if sdk && !media { 0 } else { 2 });
+    assert_eq!(db.query_row("SELECT count(*) FROM operations o JOIN connections c ON c.id=o.connection_id JOIN endpoints e ON e.id=c.endpoint_id WHERE o.command_type='connection.offer' AND o.operation_id IN ('browser-offer-0','browser-offer-1') AND o.state='completed' AND e.transport='webtransport'",[],|r|r.get::<_,u64>(0)).unwrap(),if sdk && !media { 0 } else if native_media {1} else { 2 });
+    if native_media {
+        assert_eq!(db.query_row("SELECT count(*) FROM operations o JOIN connections c ON c.id=o.connection_id JOIN endpoints e ON e.id=c.endpoint_id WHERE o.command_type='connection.offer' AND o.operation_id='browser-offer-1' AND o.state='completed' AND e.transport='quic'",[],|r|r.get::<_,u64>(0)).unwrap(),1);
+    }
     if media {
         assert_eq!(db.query_row("SELECT count(*) FROM operations WHERE command_type='message.send' AND operation_id LIKE 'browser-data-%' AND state='completed'", [], |r|r.get::<_,u64>(0)).unwrap(),6);
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -481,4 +610,27 @@ async fn installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_d
 #[ignore = "Explicit production SDK captured Opus/VP8/data and playback on actual WebTransport"]
 async fn installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256() {
     browser_profile("ES256", true, true, true).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit owned Chrome and public native QUIC Opus/VP8/data functional profile"]
+async fn installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa() {
+    browser_profile_mode("EdDSA", true, true, false, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit owned Chrome and public native QUIC Opus/VP8/data functional profile"]
+async fn installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256() {
+    browser_profile_mode("ES256", true, true, false, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit owned Chrome and public native QUIC Opus/VP8/data functional profile"]
+async fn installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa()
+{
+    browser_profile_mode("EdDSA", true, true, true, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit owned Chrome and public native QUIC Opus/VP8/data functional profile"]
+async fn installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256()
+{
+    browser_profile_mode("ES256", true, true, true, true).await;
 }

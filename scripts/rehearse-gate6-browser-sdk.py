@@ -21,6 +21,7 @@ CASES = ['canonical_webtransport_browser::installed_chrome_production_sdk_signed
 MEDIA = ['canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_' + alg for alg in ('eddsa', 'es256')]
 CAPTURE = ['canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_' + alg for alg in ('eddsa', 'es256')]
 
+NATIVE = ['canonical_webtransport_browser::installed_chrome_production_sdk_' + capture + 'browser_native_opus_vp8_and_reliable_data_' + alg for capture in ('', 'captured_') for alg in ('eddsa', 'es256')]
 
 def sources():
     result = BASE['sources']()
@@ -28,6 +29,7 @@ def sources():
     for folder, extensions in [('sdk/typescript/src', ('.ts',)), ('sdk/typescript/dist', ('.js', '.ts')), ('sdk/tests', ('.mjs', '.py'))]:
         paths.extend(p for p in (ROOT / folder).rglob('*') if p.is_file() and p.suffix in extensions)
     paths.extend(ROOT / 'sdk/typescript' / p for p in ('package.json', 'package-lock.json', 'tsconfig.json'))
+    paths.extend((ROOT / 'crates/connect-server/tests/fixtures/gate6-webtransport-browser/native').glob('*.py'))
     for path in paths:
         result[str(path.relative_to(ROOT))] = digest(path)
     return dict(sorted(result.items()))
@@ -40,21 +42,23 @@ def main():
     parser.add_argument('--installed-browser', action='store_true', required=True)
     parser.add_argument('--media', action='store_true', help='Also run short synthetic Opus/VP8/reliable-data over actual SDK and server; capture/native/full operating qualification remains separate.')
     parser.add_argument('--capture', action='store_true', help='Also run actual supplied-stream capture/worklet and decoded audio/canvas rendering over WT, alongside the media cases. No personal devices are opened.')
+    parser.add_argument('--native', action='store_true', help='Also run actual public CanonicalClient QUIC/browser WT duplex Opus/VP8/reliable data with independently decoded native received packets. Native live encode/playout/full operating qualification remains separate.')
     parser.add_argument('--clean60', action='store_true', help='Capture cases use the frozen60second clean profile with>=24decoded/rendered fps,>=42uniquely paired audio-graph/video markers, median<=80ms/p95<=120ms and separate owned-process observations.')
-    parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
+    parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE + NATIVE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
     parser.add_argument('--packet-trace', action='store_true', help='Record scoped per-packet policy metadata under private raw logs; diagnostic overhead is not performance qualification.')
     args = parser.parse_args()
-    if args.clean60 and (args.packet_trace or args.case and args.case not in CAPTURE):
+    if args.clean60 and (args.native or args.packet_trace or args.case and args.case not in CAPTURE):
         parser.error('Select clean60 capture methods without diagnostic packet tracing')
     args.capture = args.capture or args.clean60
-    selected = [args.case] if args.case else CASES + (MEDIA if args.media or args.capture else []) + (CAPTURE if args.capture else [])
+    args.native = args.native or args.case in NATIVE
+    selected = [args.case] if args.case else CASES + (MEDIA if args.media or args.capture else []) + (CAPTURE if args.capture else []) + (NATIVE if args.native else [])
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
         parser.error('Keep private evidence under ignored .local/')
     directory.mkdir(parents=True, exist_ok=False)
     (directory / 'tmp').mkdir()
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(directory / 'tmp'), CONNECT_GATE6_BROWSER_ARTIFACTS=str(directory / 'browser-artifacts'))
-    for flag in ('CONNECT_GATE6_PACKET_TRACE', 'CONNECT_GATE6_BROWSER_CLEAN60'):
+    for flag in ('CONNECT_GATE6_PACKET_TRACE', 'CONNECT_GATE6_BROWSER_CLEAN60', 'CONNECT_GATE6_NATIVE_FIXTURES'):
         env.pop(flag, None)
     if args.packet_trace:
         env['CONNECT_GATE6_PACKET_TRACE'] = '1'
@@ -62,7 +66,7 @@ def main():
         env['CONNECT_GATE6_BROWSER_CLEAN60'] = '1'
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing is diagnostic. No native-media/impairment/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, clean60_selected=args.clean60, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
+                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing is diagnostic. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media or args.capture, capture_selected=args.capture, native_selected=args.native, clean60_selected=args.clean60, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
 
     def step(name, command, json_output=False):
         start = time.monotonic()
@@ -82,6 +86,9 @@ def main():
         step('dependencies', ['bash', 'scripts/prepare-dependencies.sh'])
         step('rust-format', ['bash', 'scripts/format.sh', '--check'])
         step('sdk-suite', ['npm', 'test', '--prefix', 'sdk/typescript'])
+        if args.native:
+            env['CONNECT_GATE6_NATIVE_FIXTURES'] = str(directory / 'native-fixtures')
+            step('native-codec-sources', ['python3', 'crates/connect-server/tests/fixtures/gate6-webtransport-browser/native/prepare.py', str(directory / 'native-fixtures')])
         step('node', ['node', '--version'])
         step('rustc', ['rustc', '--version', '--verbose'])
         step('build', ['cargo', 'test', '-p', 'connect-server', '--test', 'gate6_canonical_webtransport', '--no-run', '--release', '--locked', '--offline', '-j2', '--target-dir', str(args.target_dir.resolve()), '--message-format=json'], True)

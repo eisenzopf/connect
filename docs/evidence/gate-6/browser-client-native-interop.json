@@ -1,0 +1,164 @@
+{
+  "schema": "connect-gate6-browser-native/1",
+  "task": "G6-050",
+  "status": "compiled; actual four-case runtime fails; interoperability remains unqualified",
+  "public_interface": "connect_client::canonical::CanonicalClient over real signed QUIC, production BrowserClient/BrowserMediaPeer over real WT; shared production Store/Core",
+  "source": "Short software Opus250Hz32k and VP8blue640x36030fps fixtures; browser500Hz/red, optional actual supplied-stream capture/render. Native RTP preserves VP8 marker and sequence gaps across skipped source frames. Current independent FFmpeg observers map actual received packets to original arrival windows with decoder pre-roll; cannot count ACKs or source packets as received decoded media.",
+  "primitive_report": {
+    "report": ".local/gate-6/browser-native/observer002/summary.json",
+    "sha256": "79f2732eedd5cc98874fbfc34781be005fba6322651965eb4897324789f583c5",
+    "passed": true,
+    "scope": "Synthetic arrival-event primitive only;200expected tone/0wrongtone,120expected color-motion/0wrongcolor."
+  },
+  "first_runtime": {
+    "report": ".local/gate-6/browser-sdk/observers045/summary.json",
+    "sha256": "81d11a75b1653c0b63002dbca909b8bbf0981e73b129e5f62bf14fd6e546885b",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 6,
+    "selected_methods": 12,
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.3806077078916132,
+        "log": ".local/gate-6/browser-sdk/observers045/case-0.log",
+        "log_sha256": "bbf3d67d38248d2768bad817c8d94e9cf14b44b6a3e732272b83dbb15a089e5a"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.7833177919965237,
+        "log": ".local/gate-6/browser-sdk/observers045/case-1.log",
+        "log_sha256": "3af91839a00a4b5190577f30908ef9f618ad8d095db6c28bafa3b6772ba18030"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.426151958061382,
+        "log": ".local/gate-6/browser-sdk/observers045/case-2.log",
+        "log_sha256": "fdf769228af3ce1f04dc89324f259dc6ba321e22e471ef8e1ef3e7d0741d32c2"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.418710957979783,
+        "log": ".local/gate-6/browser-sdk/observers045/case-3.log",
+        "log_sha256": "e310aab437dd8fe26472c2fa61d8e54055f97dbf9dc8fb275f7c33d2a997c2c2"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 2.41156395804137,
+        "log": ".local/gate-6/browser-sdk/observers045/case-4.log",
+        "log_sha256": "dc309e29df97767e4f23bde3f1e18d9896378ac7426188cfe7460291605d1453"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.21160600008443,
+        "log": ".local/gate-6/browser-sdk/observers045/case-5.log",
+        "log_sha256": "bcd7b1e146365bbe783d4e7ab1b1e8581d53d1ccfe6618746485ee01da141f29"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.292940000072122,
+        "log": ".local/gate-6/browser-sdk/observers045/case-6.log",
+        "log_sha256": "46353077c2b6f89479370c46ea9d960c17462170c7f9c04895dc62b2a38e375c"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 7.336385624948889,
+        "log": ".local/gate-6/browser-sdk/observers045/case-7.log",
+        "log_sha256": "953c4b418cb30b5203bb4d37dbfbe0bc1daa124e8efe6034677cc13bb16b91a2"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 17.04125995794311,
+        "log": ".local/gate-6/browser-sdk/observers045/case-8.log",
+        "log_sha256": "660fcd2049ade0baa93c4573de84b6d2dda2cae18d100a4ae349571ba2a8da84"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 17.046434917021543,
+        "log": ".local/gate-6/browser-sdk/observers045/case-9.log",
+        "log_sha256": "82bc3af5deafecb5090348a23a6bcce55f7464d2283c84231c94c9cb7d553f52"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 17.062117624795064,
+        "log": ".local/gate-6/browser-sdk/observers045/case-10.log",
+        "log_sha256": "43ecb88a4de0584e645a3109d5ce10314689bf22407f62215d8b55d01fcebf75"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 1.9507584581151605,
+        "log": ".local/gate-6/browser-sdk/observers045/case-11.log",
+        "log_sha256": "0adfa1c637dfe0930748dd1687eef1d267fbcbed136d17b3e9c92cabe5e087d0"
+      }
+    ]
+  },
+  "native_cases": [
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 17.04125995794311,
+      "log": ".local/gate-6/browser-sdk/observers045/case-8.log",
+      "log_sha256": "660fcd2049ade0baa93c4573de84b6d2dda2cae18d100a4ae349571ba2a8da84"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 17.046434917021543,
+      "log": ".local/gate-6/browser-sdk/observers045/case-9.log",
+      "log_sha256": "82bc3af5deafecb5090348a23a6bcce55f7464d2283c84231c94c9cb7d553f52"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 17.062117624795064,
+      "log": ".local/gate-6/browser-sdk/observers045/case-10.log",
+      "log_sha256": "43ecb88a4de0584e645a3109d5ce10314689bf22407f62215d8b55d01fcebf75"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+      "passed": false,
+      "exit_code": 101,
+      "elapsed_seconds": 1.9507584581151605,
+      "log": ".local/gate-6/browser-sdk/observers045/case-11.log",
+      "log_sha256": "0adfa1c637dfe0930748dd1687eef1d267fbcbed136d17b3e9c92cabe5e087d0"
+    }
+  ],
+  "findings": [
+    "Three native methods hit the fixture bound on concurrent outstanding raw operation.get requests while awaiting native-data-sent. Use the public correlated operation_get API with one request in flight; preserve original mutation IDs and actual authority failures.",
+    "Captured native ES256 instead reaches a real server data failure: accepted original message fails authority-busy after its metadata deadline. Do not classify it as fixture success.",
+    "No native independent received decoder witness reached its passing end state. All4native methods remain failures."
+  ],
+  "limits": [
+    "Native software source encoding occurs before the measurement; native live encoding/playout and CPU/RSS separation remain unqualified.",
+    "Current native client runs in the owned server test host; no native operating-capacity claim.",
+    "Native/browser full60second, synchronization, impairment, Linux/remote/provider and complete task/acceptance remain open."
+  ]
+}

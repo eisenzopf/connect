@@ -5,7 +5,7 @@ const config=JSON.parse(await readFile(process.argv[2],'utf8'));
 if(process.env.CONNECT_GATE6_BROWSER_CLEAN60==='1'&&config.run.capture===true)config.run.clean60=true;
 // Normalize the existing enrolled private key into WebCrypto's JWK input;
 // ring-generated Ed25519 PKCS8 v2 is not accepted by Chrome's DER importer.
-for(const actor of config.run.actors){actor.private_jwk=createPrivateKey({key:Buffer.from(actor.private_pkcs8,'base64url'),format:'der',type:'pkcs8'}).export({format:'jwk'});delete actor.private_pkcs8;}
+for(const actor of config.run.actors.filter(actor=>actor.private_pkcs8)){actor.private_jwk=createPrivateKey({key:Buffer.from(actor.private_pkcs8,'base64url'),format:'der',type:'pkcs8'}).export({format:'jwk'});delete actor.private_pkcs8;}
 const versionResponse=await fetch(`http://127.0.0.1:${config.debug_port}/json/version`);
 if(!versionResponse.ok)throw Error('owned Chrome debugger unavailable');
 const version=await versionResponse.json();const socket=new WebSocket(version.webSocketDebuggerUrl);

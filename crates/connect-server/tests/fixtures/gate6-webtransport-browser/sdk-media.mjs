@@ -6,7 +6,7 @@ import {BrowserMediaRenderer} from '/sdk/browser_media_renderer.js';
 import {unbase64url} from '/sdk/uctp_signing.js';
 const check=(ok,message)=>{if(!ok)throw Error(message);};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
-async function options(actor){
+export async function options(actor){
   const a=actor.algorithm==='ES256'?{name:'ECDSA',namedCurve:'P-256'}:{name:'Ed25519'};
   const s=actor.server_algorithm==='ES256'?{name:'ECDSA',namedCurve:'P-256'}:{name:'Ed25519'};
   return {url:actor.url,credential:actor.credential,identityId:actor.identity_id,device:actor.device,
@@ -14,7 +14,7 @@ async function options(actor){
     server:{key:await crypto.subtle.importKey('raw',unbase64url(actor.server_public_raw),s,false,['verify']),keyId:actor.server_keyid,algorithm:actor.server_algorithm,notBefore:actor.server_not_before,expiresAt:actor.server_expires_at},
     serverCertificateHashes:[{algorithm:'sha-256',value:unbase64url(actor.certificate_sha256)}]};
 }
-function tone(frame,hz){
+export function tone(frame,hz){
   const pcm=new Float32Array(frame.numberOfFrames);frame.copyTo(pcm,{planeIndex:0,format:'f32-planar'});
   const power=f=>{let re=0,im=0;for(let n=0;n<pcm.length;n++){const angle=2*Math.PI*f*n/48000;re+=pcm[n]*Math.cos(angle);im+=pcm[n]*Math.sin(angle);}return re*re+im*im;};
   return frame.sampleRate===48000&&frame.numberOfChannels===1&&power(hz)>power(hz===500?250:500)*4&&pcm.some(v=>Math.abs(v)>0.04);

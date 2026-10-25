@@ -250,3 +250,5 @@ authorization retries and exact captured-outcome recovery keep their own
 state; genuine source or capability changes still require fresh authorization
 and negotiation. Packet publication and delivery continue to check current
 authority independently.
+
+The explicit `--native` option adds four short browser/public `CanonicalClient` QUIC Opus/VP8/data cases (both signing algorithms, synthetic and supplied-stream capture). Native encoded fixture sources use the frozen codec bounds; native received RTP is independently decoded with its actual arrival-window mapping. Only the browser private key is given to the browser in this topology. Current first-run native cases fail and are recorded in `docs/evidence/gate-6/browser-client-native-interop.json`. The same-host native actor, preencoded native source and offline independent decoder do not qualify live native encoding/playout, separate native resource usage, full60seconds or synchronization.
