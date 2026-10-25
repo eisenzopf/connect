@@ -154,6 +154,16 @@ impl Drop for OwnedSignaling {
     }
 }
 impl OwnedSignaling {
+    /// Explicit ownership close joins the reader after cancellation. Drop remains
+    /// the nonblocking emergency boundary for callers which skip shutdown.
+    pub(super) async fn shutdown(&mut self) -> Result<()> {
+        self.task.abort();
+        match (&mut self.task).await {
+            Ok(()) => Ok(()),
+            Err(error) if error.is_cancelled() => Ok(()),
+            Err(_) => Err(ClientError::Transport),
+        }
+    }
     pub(super) fn start(
         mut reader: quinn::RecvStream,
         verifier: Arc<Sig9421Verifier>,

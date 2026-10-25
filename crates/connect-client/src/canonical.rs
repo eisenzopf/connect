@@ -806,7 +806,7 @@ impl CanonicalClient {
     }
     /// Close owned transport and give QUIC its bounded protocol-drain interval.
     /// A drain failure does not revoke a receipt already returned to the caller.
-    pub async fn shutdown(self) -> Result<()> {
+    pub async fn shutdown(mut self) -> Result<()> {
         // Match the pinned transport's three-PTO closing interval. Its RTT
         // estimator bounds variance by twice smoothed RTT; a fixed two-second
         // allowance can therefore expire while protocol drain is still valid.
@@ -817,10 +817,15 @@ impl CanonicalClient {
             .saturating_add(Duration::from_millis(250))
             .clamp(Duration::from_secs(5), Duration::from_secs(30));
         self.close();
-        tokio::time::timeout(protocol_drain_budget, self.endpoint.wait_idle())
-            .await
-            .map_err(|_| ClientError::Transport)?;
-        Ok(())
+        tokio::time::timeout(protocol_drain_budget, async {
+            if let Some(reader) = self.owned_signaling.as_mut() {
+                reader.shutdown().await?;
+            }
+            self.endpoint.wait_idle().await;
+            Ok(())
+        })
+        .await
+        .map_err(|_| ClientError::Transport)?
     }
 }
 impl Drop for CanonicalClient {

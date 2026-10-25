@@ -35,6 +35,7 @@ mod media;
 mod media_end;
 mod operations;
 mod receipt_operations;
+pub mod sdk;
 pub mod task_diagnostics;
 mod task_operations;
 mod transition_operations;
