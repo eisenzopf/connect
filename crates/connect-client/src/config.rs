@@ -1,5 +1,6 @@
-//! Protected client configuration and mandatory local trust.
+//! Protected client configuration and native network policy.
 use crate::{ClientError, Result};
+pub use connect_protocol::native_network::NativeNetworkProfile;
 use serde::{Deserialize, Serialize};
 use std::{
     net::SocketAddr,

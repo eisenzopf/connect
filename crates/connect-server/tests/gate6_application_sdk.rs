@@ -25,9 +25,12 @@ fn port() -> std::net::SocketAddr {
         .unwrap()
 }
 fn native_config(state: &Path, address: std::net::SocketAddr) -> CanonicalClientConfig {
-    let mut c = CanonicalClientConfig::load(&state.join("reviews.toml")).unwrap();
-    c.endpoint = address;
-    c
+    let path = state.join("reviews.toml");
+    let mut document: toml::Value =
+        toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    document["endpoint"] = toml::Value::String(address.to_string());
+    std::fs::write(&path, toml::to_string(&document).unwrap()).unwrap();
+    CanonicalClientConfig::load(&path).unwrap()
 }
 struct Fixture {
     _temp: tempfile::TempDir,

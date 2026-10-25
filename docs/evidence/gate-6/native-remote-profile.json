@@ -1,0 +1,40 @@
+{
+  "task": "G6-048",
+  "status": "implementation-started-address-policy-only-qualified",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "recorded_at": "2026-10-25T01:21:45.434822+00:00",
+  "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
+  "draft_implementation": [
+    "Shared explicit native Local/Remote configuration policy; local remains the default, while concrete remote endpoints and routable client UDP binding require Remote.",
+    "Canonical native server honors explicit listener policy; plaintext application HTTP remains on loopback.",
+    "Configured bounded DER/PEM trust roots, bounded server certificate chain/key loading and normal rustls identity/validity verification remain mandatory.",
+    "One total native open/auth deadline and owned failure cleanup.",
+    "Same-peer QUIC UDP rebinding checks current client authority and profile/address family without renewing credentials or logical operation IDs.",
+    "Native pinned record-origin configuration accepts only the selected network profile, configured trust and exact server identity."
+  ],
+  "verification": {
+    "scope": "Address-policy unit only; no client/server typecheck or TLS/media/network claim.",
+    "case": "native_network::tests::local_is_default_and_remote_is_explicit_without_weakening_endpoint_shape",
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "executable_sha256": "aa077eb19d4a39217d42028fdb5e2fed5f7c87cd9481f9f93259a3ec788ae571",
+    "source_sha256": {
+      "crates/connect-protocol/src/native_network.rs": "a99d9d4bcb9175812a8249eb449553eba7f9d416ae353d38fbb976ebfc659284",
+      "crates/connect-protocol/src/lib.rs": "9cba050bd95146326da40d63cf738ff97886f48f7850d1296fcb2bad31106bca"
+    },
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "log": ".local/gate-6/native-remote/address-policy001/runtime.log",
+    "log_sha256": "f2753db4acc065cf01b759db8538685e59e8358a9c51fe3df6058fee019c8e1a"
+  },
+  "remaining": [
+    "Compile the complete client/server/config/bootstrap changes after the independent G6-047 runtime verification releases its build cache.",
+    "Qualify default local operation and explicit remote profile with trusted CA/leaf chains, untrusted root, wrong hostname, expired certificate, missing/invalid trust and bounded stalled negotiation.",
+    "Qualify expired/revoked credentials, same-peer migration with real native datagrams, interrupted/reconnected operation identity and media authority.",
+    "Run the approved distinct-host fixture and record actual hosting/platform scope; named remote/provider lanes require concrete G6-093 configuration.",
+    "Update the server/native HTTP/reference/setup documentation and complete requirement-level audit before task credit."
+  ],
+  "publication": "Separate; not performed."
+}

@@ -196,7 +196,7 @@ pub struct RecordTlsConfig {
 pub(super) struct RecordDownload {
     address: std::net::IpAddr,
     server_name: String,
-    certificate: reqwest::Certificate,
+    certificates: Vec<reqwest::Certificate>,
     pub(super) credential: String,
 }
 impl RecordDownload {
@@ -205,13 +205,14 @@ impl RecordDownload {
         name: &str,
         der: &[u8],
         credential: String,
+        profile: NativeNetworkProfile,
     ) -> Result<Self> {
         rustls::pki_types::ServerName::try_from(name.to_owned())
             .map_err(|_| ClientError::Configuration)?;
         if name
             .parse::<std::net::IpAddr>()
             .is_ok_and(|ip| ip != address)
-            || !address.is_loopback()
+            || !profile.permits_endpoint(SocketAddr::new(address, 1))
             || name.is_empty()
             || name.len() > 253
             || name.contains(['/', '@', '?', '#'])
@@ -221,8 +222,13 @@ impl RecordDownload {
         Ok(Self {
             address,
             server_name: name.to_owned(),
-            certificate: reqwest::Certificate::from_der(der)
-                .map_err(|_| ClientError::Configuration)?,
+            certificates: trust::certificates(der)?
+                .iter()
+                .map(|cert| {
+                    reqwest::Certificate::from_der(cert.as_ref())
+                        .map_err(|_| ClientError::Configuration)
+                })
+                .collect::<Result<Vec<_>>>()?,
             credential,
         })
     }
@@ -268,9 +274,11 @@ impl RecordDownload {
             .to_std()
             .map_err(|_| ClientError::Timeout)?;
         let deadline = deadline.min(tokio::time::Instant::now() + remaining);
-        let client = reqwest::Client::builder()
-            .tls_built_in_root_certs(false)
-            .add_root_certificate(self.certificate.clone())
+        let mut builder = reqwest::Client::builder().tls_built_in_root_certs(false);
+        for certificate in &self.certificates {
+            builder = builder.add_root_certificate(certificate.clone());
+        }
+        let client = builder
             .no_proxy()
             .redirect(reqwest::redirect::Policy::none())
             .http1_only()
@@ -395,13 +403,15 @@ mod tests {
             "localhost",
             certificate.cert.der().as_ref(),
             "protected-current-bearer".into(),
+            NativeNetworkProfile::Local,
         )
         .unwrap();
         assert!(RecordDownload::new(
             "127.0.0.2".parse().unwrap(),
             "127.0.0.1",
             certificate.cert.der().as_ref(),
-            "protected-current-bearer".into()
+            "protected-current-bearer".into(),
+            NativeNetworkProfile::Local,
         )
         .is_err());
         let path = "/v2/record-references/0123456789abcdef0123456789abcdef";

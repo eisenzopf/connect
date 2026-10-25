@@ -19,12 +19,13 @@ impl CanonicalHttpClient {
     /// Pin the HTTPS record origin explicitly before following reference replies.
     pub fn with_record_tls(mut self, config: RecordTlsConfig) -> Result<Self> {
         let app = self.application.record_config()?;
-        let certificate = bounded_file(&config.trust_certificate, 65_536)?;
+        let certificate = bounded_file(&config.trust_certificate, trust::MAX_TRUST_BYTES)?;
         self.record_download = Some(records::RecordDownload::new(
             app.endpoint.ip(),
             &config.server_name,
             &certificate,
             app.credential.clone(),
+            NativeNetworkProfile::Local,
         )?);
         Ok(self)
     }

@@ -69,9 +69,13 @@ async fn stop(child: &mut tokio::process::Child) {
         .success());
 }
 fn config(path: &Path, name: &str, address: std::net::SocketAddr) -> CanonicalClientConfig {
-    let mut c = CanonicalClientConfig::load(&path.join(format!("{name}.toml"))).unwrap();
-    c.endpoint = address;
-    c
+    let path = path.join(format!("{name}.toml"));
+    // Publish the test's actual ephemeral listener before loading its client.
+    let mut document: toml::Value =
+        toml::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    document["endpoint"] = toml::Value::String(address.to_string());
+    std::fs::write(&path, toml::to_string(&document).unwrap()).unwrap();
+    CanonicalClientConfig::load(&path).unwrap()
 }
 #[tokio::test]
 async fn default_installed_init_serve_enrolls_signed_clients_and_preserves_receipts_after_restart()

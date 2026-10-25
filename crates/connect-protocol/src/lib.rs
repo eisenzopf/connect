@@ -7,6 +7,7 @@ pub mod native_capabilities;
 pub mod native_data;
 pub mod native_dtmf;
 pub mod native_gates;
+pub mod native_network;
 pub mod native_streams;
 pub mod received_dtmf;
 pub mod record_mutations;

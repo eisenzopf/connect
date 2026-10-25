@@ -26,6 +26,8 @@ use tokio_util::sync::CancellationToken;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CanonicalServerConfig {
+    #[serde(default)]
+    pub network_profile: connect_protocol::native_network::NativeNetworkProfile,
     pub bind: SocketAddr,
     pub database: PathBuf,
     pub certificate: PathBuf,
@@ -100,8 +102,9 @@ impl CanonicalServerConfig {
         }
         let now = chrono::Utc::now();
         anyhow::ensure!(
-            self.bind.ip().is_loopback() && self.http_bind.is_none_or(|a| a.ip().is_loopback()),
-            "Canonical local listeners require loopback addresses"
+            self.network_profile.permits_listener(self.bind)
+                && self.http_bind.is_none_or(|a| a.ip().is_loopback()),
+            "Canonical native listener requires its explicit network profile; plaintext HTTP remains loopback"
         );
         anyhow::ensure!(
             (1..=1024).contains(&self.limits.connections)

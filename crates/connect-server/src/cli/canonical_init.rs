@@ -127,6 +127,7 @@ fn populate(
     let expires = chrono::DateTime::from_timestamp(now.timestamp() + 30 * 86400, 0)
         .context("Canonical bootstrap expiry")?;
     let server = CanonicalServerConfig {
+        network_profile: Default::default(),
         session_reconnect_grace_seconds: 30,
         bind,
         database: "state.sqlite3".into(),
@@ -257,6 +258,7 @@ fn write_client(
         },
     )?;
     let client = CanonicalClientConfig {
+        network_profile: Default::default(),
         endpoint: server.bind,
         server_name: "localhost".into(),
         trust_certificate: "certificate.der".into(),
