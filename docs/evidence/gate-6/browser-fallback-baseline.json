@@ -1,0 +1,69 @@
+{
+  "schema": "connect-gate6-fallback-baseline/1",
+  "task": "G6-051",
+  "status": "Implementation started with source audit; canonical fallback is incomplete and unqualified",
+  "candidate_revision": "8305e1856cf8e8c85e095a1c901e87485dfb1df6",
+  "sources_sha256": {
+    "sdk/typescript/src/browser_client.ts": "ccbac4b403165d83c909c79255f9fbfc7bbd6addce6f0d4909de2a996494a3df",
+    "sdk/typescript/src/browser_negotiation.ts": "2563abd799231ffb9a1d9c1380a5ca068af5ff8bc8aae75e99d0b66d68aac3c1",
+    "sdk/typescript/src/browser_voice.ts": "8699c6f439578fb2383798eeaa8794f9fe60d6372c485dc8719a5bf1dd0921b2",
+    "crates/connect-server/src/canonical.rs": "8ab5debced1c04c6b8d4ad58eeba2ccabf482043878cfd02a7f6991484088aeb",
+    "crates/connect-server/src/transports/websocket.rs": "9d2999a7f7a790112bc6d2a8ac9cc3e78c6d9e2d16e30d2b2e49702c56ed8dfd",
+    ".deps/rvoip/crates/uctp/rvoip-websocket/src/canonical.rs": "21365591875984fefe95366aa5155173c604e48bec381a5fff02341c6d979ee2",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_media.rs": "33dde6fd315769c4732480077df96ace8b7e0b37dfd84e436fbae0a972e28814",
+    ".deps/rvoip/crates/uctp/rvoip-websocket/src/media_bridge.rs": "8e75871536e548254e0f6e3a70d557681e2810a8fbc72f9974a0e2839fb4ee35"
+  },
+  "observations": [
+    {
+      "path": "sdk/typescript/src/browser_client.ts",
+      "fact": "Canonical BrowserClient owns WebTransport directly; its open path requires secure WebTransport and WebCrypto."
+    },
+    {
+      "path": "sdk/typescript/src/browser_negotiation.ts",
+      "fact": "The existing WebRTC negotiation still sends offer-ready and waits for answer plus ready, using its separate correlation state."
+    },
+    {
+      "path": "sdk/typescript/src/browser_voice.ts",
+      "fact": "Existing BrowserVoiceSession owns RTCPeerConnection and a separate WebSocket with loopback-only ws URL validation and its own signaling lease."
+    },
+    {
+      "path": "crates/connect-server/src/canonical.rs",
+      "fact": "Canonical hosting installs native QUIC and optional WebTransport profiles. It has no canonical WebSocket config/listener installation."
+    },
+    {
+      "path": "crates/connect-server/src/transports/websocket.rs",
+      "fact": "The existing loopback WS parity listener uses UctpCoordinator and a v0 descriptor. It is not the required canonical WSS/WebRTC fallback."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-websocket/src/canonical.rs",
+      "fact": "The pinned upstream already provides a canonical TLS WebSocket text-frame driver with Origin/mount checks and profile-owned authenticated lifetime. Reuse this driver."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_media.rs",
+      "fact": "The native datagram media owner explicitly refuses WebSocket; attaching the existing datagram path cannot provide WebRTC media."
+    },
+    {
+      "path": ".deps/rvoip/crates/uctp/rvoip-websocket/src/media_bridge.rs",
+      "fact": "The existing WebRTC bridge uses the older connection substrate payloads. It cannot be treated as canonical lifecycle integration without implementing current scoped negotiation/authority."
+    }
+  ],
+  "implementation_order": [
+    "Add explicitly configured canonical WSS hosting/discovery with the same canonical profile, current service authorization, shared physical budgets, signing lifetime and owned shutdown/drop. Cover Origin/mount/TLS refusal and expose HTTP/OpenAPI reference.",
+    "Separate canonical signed browser control from its transport, reusing envelope validation, operation correlation, bounded queues, receipts and current authentication over WSS.",
+    "Bind actual WebRTC SDP/ICE/media to the exact canonical Connection and parameter operation, with current source/target authority and bounded per-connection candidate state. Replace the old browser-only control dialect; preserve capture/permission ownership without a legacy compatibility path.",
+    "Force WT/UDP failure and exercise the same public conversation and transition commands in actual Chrome and Firefox. An accepted or uncertain dial/message retains its original logical ID; transport selection cannot resubmit it. Explicitly refuse unsupported migration.",
+    "Verify actual identified duplex media/data, loss/recovery, revocation, closure and owned teardown, with separate runtime evidence for each required browser profile."
+  ],
+  "dependencies_verified_done": [
+    "G6-016",
+    "G6-020",
+    "G6-037",
+    "G6-049"
+  ],
+  "qualification": {
+    "runtime_tests_run": 0,
+    "fallback_qualified": false,
+    "acceptance_qualified": false
+  },
+  "scope": "Read-only current-source contract audit. No working canonical WSS/WebRTC fallback, behavioral test pass, completed task, remote/provider or publication claim."
+}
