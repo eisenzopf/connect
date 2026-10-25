@@ -1,6 +1,8 @@
 //! Actual production listener exercises public owned SDK handles and recovery.
 #[path = "sdk_handles/media.rs"]
 mod media;
+#[path = "sdk_handles/stream_metadata.rs"]
+mod stream_metadata;
 use super::*;
 use connect_client::sdk::{
     self, Client, ConversationPolicy, MutationOptions, NonEmpty, RequestOptions,
@@ -89,7 +91,7 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
         };
         let second = NonEmpty {
             first: stream(
-                "native-sdk-other-audio",
+                "native-sdk-audio",
                 sdk::Medium::Audio,
                 sdk::Direction::Sendrecv,
                 "g.711-mu",
@@ -127,6 +129,13 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
             .filter_map(|s| s.stream_local_id)
             .collect();
         assert_eq!(handles.len(), 3);
+        for connection in [&one, &two] {
+            let stream = connection.stream_by_id("native-sdk-audio".parse().unwrap());
+            let snapshot = stream.refresh(options()).await.unwrap();
+            assert_eq!(&snapshot.connection_id, connection.id());
+            assert_eq!(snapshot.medium, sdk::Medium::Audio);
+        }
+
         for connection in [&one, &two] {
             let current = connection.refresh(options()).await.unwrap();
             assert_eq!(&current.id, connection.id());

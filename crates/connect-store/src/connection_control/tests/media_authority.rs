@@ -158,7 +158,15 @@ fn current_media_refuses_sql_contention_and_foreign_store_without_wait_or_side_e
     let f = Fixture::new();
     let origin = f.origin(0, "target");
     let count = f.count("operations");
-    let c = f.store.connection().unwrap();
+    // Primary control SQL custody is independent of the packet observer pool.
+    let primary = f.store.connection().unwrap();
+    assert!(f.store.try_native_media_read(&origin, None).is_ok());
+    drop(primary);
+    let mut observers = Vec::new();
+    while let Ok(reader) = f.store.try_packet_connection() {
+        observers.push(reader);
+    }
+    assert_eq!(observers.len(), 4, "occupy every bounded packet observer");
     let start = Instant::now();
     assert_eq!(
         f.store
@@ -169,7 +177,7 @@ fn current_media_refuses_sql_contention_and_foreign_store_without_wait_or_side_e
         "authority-busy"
     );
     assert!(start.elapsed() < Duration::from_millis(500));
-    drop(c);
+    drop(observers);
     assert_eq!(f.count("operations"), count);
     let foreign = Fixture::new();
     assert_eq!(

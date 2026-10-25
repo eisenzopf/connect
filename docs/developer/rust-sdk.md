@@ -138,10 +138,21 @@ gaps remain distinct from local queue loss. `Client::media_stats` reports queue,
 overflow, malformed packet and unknown-handle counters. Closing the client
 clears queued media and wakes packet readers.
 
-The current server topology snapshot still omits Stream rows. `Stream::refresh`
-therefore returns `ReceiptUnavailable` until its authoritative server projection
-is implemented. The SDK does not substitute its local negotiation cache for
-current stream state. This remains a required G6-060 gap, alongside reliable
-data I/O and the remaining typed controls. Packet-flow evidence and the exact
-producer/receiver qualification scope are recorded in
-`docs/evidence/gate-6/rust-sdk-media.json`.
+`Stream::refresh` reads recorded native binding metadata from the authorized
+server snapshot. Ordinary offer and stream-control captures commit atomically
+with their operation. `negotiated` records bound parameters; `active` and `paused`
+record captured controls. A confirmed retired Connection exposes known streams
+as `ended`, including after normal restart. Core termination and its receipt
+can precede this separate retirement observation. A missing or mismatched capture is
+unavailable; the SDK never substitutes its local negotiation cache. Stream IDs
+are scoped by Connection. Resource observation versions are independent of
+native-control revisions and cannot be used as `expected_revision`.
+
+Schema112 stores at most32current bindings and64current/ended summaries per
+Connection. Every snapshot page checks current Connection/Session visibility,
+membership epoch and recipient ceilings. This metadata grants no media I/O.
+Pre-alpha existing state requires a fresh schema112 database. Transition-specific
+captures, reliable data I/O and the remaining typed controls are still G6-060
+work. RTP/clock evidence is in `docs/evidence/gate-6/rust-sdk-media.json`;
+authoritative metadata evidence is in
+`docs/evidence/gate-6/rust-sdk-stream-metadata.json`.

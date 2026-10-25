@@ -12,6 +12,25 @@ transaction, together with the installation journal high watermark. Message bodi
 and file bytes remain in the separately paged history and artifact APIs. No physical
 stream facts are invented before the media coordinator supplies them.
 
+Ordinary native offer and stream-control completions now record bounded binding
+metadata in the same transaction as their operation result. Stream identity is
+scoped by Connection ID plus Stream ID. `negotiated` describes captured parameters;
+it does not establish media flow. `active` and `paused` describe captured control
+state. A confirmed `retired` Connection projects its recorded streams as `ended`.
+Core termination and its command receipt can precede the separate durable
+retirement observation; callers wait for the current Connection snapshot.
+The Stream resource observation version is independent of the native stream
+revision used by control commands. Unchanged streams retain that version.
+
+A snapshot omits a projection if its captured generation/revision cannot match
+the recorded Connection state. Concurrent descriptor unavailability cannot turn
+an older capture into a current one. Each Connection retains at most 32 current
+bindings and 64 current/terminal summaries in total. Eviction affects only
+terminal snapshot summaries; original operation and journal identities remain.
+Every Stream page rechecks the same current audience, recipient ceiling,
+membership and private-leg restrictions as its Connection. This metadata never
+grants physical stream ownership or media permission.
+
 Drain `next` until `has_more` is false before treating the snapshot as complete.
 Every page retains the original snapshot ID, revision and watermark, even if a role
 or operation changes while it is paged. Fetch subsequent events after that watermark.

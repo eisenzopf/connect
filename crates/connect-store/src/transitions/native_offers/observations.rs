@@ -30,6 +30,10 @@ pub enum NativeOfferObservation {
 /// No network parser can construct an implementation or a native attempt lease.
 pub trait NativeOfferRuntimeObservation: Send + Sync {
     fn observe(&self) -> Result<NativeOfferObservation>;
+    /// Required for a Ready observation. Retired observations have no bindings.
+    fn bindings(&self) -> Result<Vec<connect_protocol::native_streams::CodecBinding>> {
+        Err(Error::forbidden())
+    }
 }
 fn bound(c: &Connection, lease: &NativeOfferLease) -> Result<rows::Saved> {
     let row = rows::by_record(c, &lease.record)?;
@@ -136,6 +140,19 @@ impl Store {
         }) {
             return Err(Error::forbidden());
         }
+        let bindings = observation.bindings()?;
+        crate::native_stream_projection::validate(&bindings, ready.generation)?;
+        let ids: std::collections::BTreeSet<_> =
+            bindings.iter().map(|b| b.stream_id.as_str()).collect();
+        if ids != ready.streams.iter().map(String::as_str).collect()
+            || bindings.iter().any(|b| {
+                !offered
+                    .iter()
+                    .any(|v| v["id"] == b.stream_id && v["kind"] == b.medium)
+            })
+        {
+            return Err(Error::forbidden());
+        }
         let mut details = serde_json::json!({"streams":ready.streams,"stream_revision":ready.stream_revision,"participant_revision":ready.participant_revision});
         if ready.handoff_preparation {
             details["handoff_preparation"] = serde_json::json!({"profile":"connect-handoff-preparation-v1","prepared_muted":true});
@@ -143,6 +160,21 @@ impl Store {
         if let Some(record) = &ready.private_consultation {
             details["private_consultation"] = serde_json::json!({"operation_record_id":record,"profile":"connect-private-audio-v1","prepared_muted":true});
         }
+        let mut readiness = details.clone();
+        crate::native_stream_projection::replace(
+            &mut readiness,
+            ready.generation,
+            None,
+            ready.stream_revision,
+            &bindings,
+        )?;
+        crate::native_stream_projection::save(
+            &tx,
+            &lease.connection,
+            ready.generation,
+            ready.stream_revision,
+            &readiness,
+        )?;
         let changed=tx.execute("UPDATE connections SET state='ready',revision=revision+1,observed_runtime_id=?2,observed_at=?3,readiness_json=?4 WHERE id=?1 AND state='preparing' AND generation=?5 AND observed_runtime_id IS NULL",params![lease.connection,self.runtime_epoch(),crate::now(),details.to_string(),lease.generation]).map_err(|_|Error::storage())?;
         if changed != 1 {
             return Err(Error::forbidden());
@@ -158,7 +190,7 @@ impl Store {
         tx.execute("INSERT INTO native_connection_lifetimes(operation_record_id,connection_id,runtime_epoch,generation) VALUES(?1,?2,?3,?4)",params![lease.record,lease.connection,self.runtime_epoch(),lease.generation]).map_err(|_|Error::storage())?;
         rows::event(&tx, &lease.record, "operation_updated", self)?;
         fact(&tx, self, &row, "connection_ready")?;
-        if observation.observe()? != observed {
+        if observation.observe()? != observed || observation.bindings()? != bindings {
             return Err(Error::forbidden());
         }
         self.require_peer_source(&tx, proof, credential)?;

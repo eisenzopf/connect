@@ -291,7 +291,7 @@ fn native_data_attempt_cannot_be_completed_as_a_subscription() {
         .begin_native_stream_with_peer(&f.keys[0], &proof)
         .unwrap()
         .unwrap();
-    assert!(lease.committed(2, true).is_err());
+    assert!(lease.committed(2, true, None).is_err());
     assert_eq!(status(&f).state, OperationState::Preparing);
 }
 #[test]

@@ -138,8 +138,13 @@ struct Ready {
     runtime: Arc<Runtime>,
     physical: Arc<Physical>,
     expected: NativeReadyObservation,
+    bindings: Vec<connect_protocol::native_streams::CodecBinding>,
 }
 impl NativeOfferRuntimeObservation for Ready {
+    fn bindings(&self) -> Result<Vec<connect_protocol::native_streams::CodecBinding>> {
+        self.observe()?;
+        Ok(self.bindings.clone())
+    }
     fn observe(&self) -> Result<NativeOfferObservation> {
         if self.physical.lifetime.is_cancelled()
             || self.controller.revision() != self.expected.stream_revision
@@ -667,6 +672,7 @@ impl Runtime {
             owner,
             runtime: self.clone(),
             physical,
+            bindings: crate::canonical_native_streams::codec_bindings(&outcome.bindings)?,
             expected: NativeReadyObservation {
                 private_consultation: private,
                 handoff_preparation,

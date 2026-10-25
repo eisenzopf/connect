@@ -882,7 +882,7 @@ fn captured_native_stream_outcome_records_once_after_cancel_and_never_revives_a_
             .unwrap();
             c.execute("UPDATE connections SET state='retired',generation=generation+1 WHERE id='connection-native'",[]).unwrap();
         }
-        let receipt = lease.committed(2, true).unwrap();
+        let receipt = lease.committed(2, true, None).unwrap();
         f.store.connection().unwrap().execute_batch("CREATE TRIGGER fail_stream_completion BEFORE INSERT ON journal WHEN NEW.kind='operation_updated' BEGIN SELECT RAISE(ABORT,'isolated completion rollback'); END;").unwrap();
         assert!(f.store.complete_native_stream(&receipt).is_err());
         assert_eq!(operation(&f).state, OperationState::Unknown);
@@ -1151,7 +1151,7 @@ fn native_connection_end_cannot_use_subscription_success_or_another_generation_a
             generation: lease.generation() + u64::from(wrong == 2),
         };
         assert!(if wrong == 0 {
-            lease.committed(2, true)
+            lease.committed(2, true, None)
         } else {
             lease.ended(&observation)
         }

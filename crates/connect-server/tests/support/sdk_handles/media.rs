@@ -228,10 +228,17 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
             })
             .collect();
         target.start_signaling_reader().unwrap();
-        // Current server conversation snapshots omit Stream rows. The first
-        // rehearsal records that independent metadata gap. This fixture proves
-        // packet I/O through owned, negotiated handles; Stream.refresh remains
-        // unqualified until its authoritative server projection is implemented.
+        for stream in [&audio, &video] {
+            let current = stream.refresh(options()).await.unwrap();
+            assert_eq!(&current.id, stream.id());
+            assert_eq!(&current.connection_id, connection.id());
+            assert_eq!(current.ownership, sdk::MediaOwnership::Observation);
+            assert_eq!(current.state, "negotiated");
+            assert!(current.revision.get() > 0);
+            assert!(
+                current.format.is_none() && current.direction.is_none() && current.clock.is_none()
+            );
+        }
         let cancelled = options();
         cancelled.signal.cancel();
         assert!(

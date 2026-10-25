@@ -10,7 +10,7 @@ fn native_reconciliation_successor_keeps_unknown_custody_and_refuses_old_origins
         .begin_native_reconciliation(&source, "restart-reconcile", json!({"streams":[]}))
         .unwrap();
     let record = lease.record_id().to_owned();
-    let receipt = lease.committed(3, true).unwrap();
+    let receipt = lease.committed(3, true, None).unwrap();
     let path = f.store.path().to_owned();
     let key = f.keys[0].clone();
     drop(source);
@@ -81,7 +81,7 @@ fn selected_with_profile(
         .unwrap();
     // A fabricated engine observation is permitted only in this controlled
     // Store fixture. Production obtains the receipt from the actual Core call.
-    let receipt = lease.committed(2, false).unwrap();
+    let receipt = lease.committed(2, false, None).unwrap();
     f.store.complete_native_stream(&receipt).unwrap();
     drop(proof);
     (f, request, origin)
@@ -136,7 +136,7 @@ fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_
         );
     }
     f.store
-        .complete_native_stream(&managed.committed(3, true).unwrap())
+        .complete_native_stream(&managed.committed(3, true, None).unwrap())
         .unwrap();
     let accepted = f
         .store
@@ -229,7 +229,7 @@ fn native_reconciliation_requires_completed_selector_and_current_exact_original_
         .store
         .begin_native_reconciliation(&source, "server-reconcile-2", json!({"streams":[]}))
         .is_err());
-    let receipt = lease.committed(3, true).unwrap();
+    let receipt = lease.committed(3, true, None).unwrap();
     let first = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(first.state, OperationState::Completed);
     assert_eq!(
@@ -312,7 +312,7 @@ fn native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit
         .store
         .begin_native_reconciliation(&source, "same-reconcile", json!({"streams":["camera"]}))
         .unwrap();
-    let receipt = lease.committed(3, true).unwrap();
+    let receipt = lease.committed(3, true, None).unwrap();
     let c = f.store.connection().unwrap();
     c.execute_batch("CREATE TRIGGER controlled_reconcile_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='same-reconcile' AND json_extract(NEW.data_json,'$.state')='completed' BEGIN SELECT RAISE(ABORT,'controlled captured outcome storage failure'); END;").unwrap();
     drop(c);
@@ -455,7 +455,7 @@ fn native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a
         .is_err());
     // Captured actual success is still historical success if cancellation raced
     // the already-running engine. It never authorizes another engine attempt.
-    let receipt = lease.committed(3, true).unwrap();
+    let receipt = lease.committed(3, true, None).unwrap();
     let completed = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(completed.state, OperationState::Completed);
     assert!(completed.cancel_requested);
@@ -565,7 +565,7 @@ fn data_admission_waits_without_a_message_or_effect_then_accepts_the_original_au
         );
     }
     f.store
-        .complete_native_stream(&managed.committed(3, true).unwrap())
+        .complete_native_stream(&managed.committed(3, true, None).unwrap())
         .unwrap();
     let accepted = f
         .store

@@ -1,0 +1,199 @@
+{
+  "schema": "connect-gate6-rust-sdk-stream-metadata/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-25T23:46:40.432171+00:00",
+  "base_revision": "f364a24f4cc77eb55ad21aebedef6d0f77962a49",
+  "scope": "Local macOS arm64 ordinary native binding metadata in authorized server snapshots, independent resource versions, public SDK reads, actual Canonical native controls and normal shutdown/restart. No whole-task, transition-profile, abrupt-crash, reliable-data, external-crate, package, remote/Linux or performance qualification.",
+  "schema_version": 112,
+  "fresh_state_required": true,
+  "implementation": [
+    "Actual sealed native-offer Ready bindings and captured stream-control outcomes commit bounded metadata with their operation. The archive is separate from readiness and never grants media admission or route ownership.",
+    "Stream identity is Connection ID plus Stream ID. Captures validate medium, generation, exact original offered IDs and current native revision. Partial gate updates cannot revive an unavailable capture; missing full captures omit current metadata without reapplying known successful effects.",
+    "An independent monotonic per-Connection observation counter gives unchanged descriptors stable resource versions and advances changed binding generations, gates, removal and confirmed retirement. Bounded ended-summary eviction cannot reset the resource version when an ID reappears. This counter is not native-control expected_revision.",
+    "Confirmed retired Connections project known streams as ended even after readiness is cleared and Connection generation advances. Normal restart preserves the ended observation version. Uncertain/retiring state is not fabricated as ended.",
+    "At most32current bindings,64current/ended summaries and32768encoded projection bytes per Connection. Only ended summaries may evict; original operation and journal identities remain reserved.",
+    "Every Stream snapshot page reuses current Connection/Session/credential/membership-epoch/recipient-ceiling/private-leg visibility and checks the current archive. No codecs, hop handles, format/direction/clock or physical ownership are invented in StreamState.",
+    "The SDK keys snapshots by Connection ID plus Stream ID. Two live native Connections can share a logical Stream ID and refresh independently."
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-stream-metadata/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-stream-metadata/format-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "client_library": {
+      "passed_functions": 107,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/client-suite-01.log",
+        "sha256": "772286968b276cf0cd101899b63fed89ca7339d9188e54850e6a5c9b3f57d36b"
+      }
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/rustdoc-01.log",
+        "sha256": "d057145dfe6273fe6f34e7b82192edaae2a7ba1bbe02d27c111c6be9a0d1e08c"
+      }
+    },
+    "store": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/store-04-summary.json",
+        "sha256": "5d0cba703b07ea8bd863029f3ba5ff1b31acc73eba8fea31d0df216fc859b9ac"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/inputs-04.json",
+        "sha256": "ae35eb0cf4de1a08ec6680c36d7dab9270e96fd5ff4a935c49cafd5c5b47b87b"
+      },
+      "passed_functions": 290,
+      "failed_functions": 0,
+      "binary_sha256": "af4e4109669d4248012fa58c17df8cb9f7a9eff68e1dd555c6f820fcd5bac2bd",
+      "final_source_equivalence": "The only input04-to05 difference is the production test fixture waiting for retirement; all Store/client/runtime sources are unchanged.",
+      "groups": [
+        {
+          "group": "native_stream_projection::tests::",
+          "passed_functions": 3,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "events::tests::",
+          "passed_functions": 22,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "connection_control::tests::native_wire::",
+          "passed_functions": 14,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "connection_control::tests::native_stream_authority::",
+          "passed_functions": 178,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "connection_control::tests::private_provider::",
+          "passed_functions": 35,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "connection_control::tests::media_authority::",
+          "passed_functions": 18,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "connection_control::tests::sip_consultation::initial::readiness::private_admission_expiry_requires_cleanup_instead_of_continuing_execution_authority",
+          "passed_functions": 1,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        },
+        {
+          "group": "peer_authority::connection_media::snapshot::tests::",
+          "passed_functions": 19,
+          "exit_code": 0,
+          "inputs_unchanged": true
+        }
+      ],
+      "scope": "Targeted Store native metadata, snapshot, native control custody, private-provider/read authority and prior failed timing/expiry scopes. Functional profile connect-store opt-level0, other dependencies release defaults; two test threads. No whole Store/default-parallel/performance claim."
+    },
+    "production": {
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-stream-metadata/production-test-05",
+        "sdk_handles::",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.661637917160988,
+      "binary_sha256": "8e899ca13a08df7757bbec7b7cba1baf394ac08bee2a10088c6fea196f4d6327",
+      "sealed_binary_sha256": "8e899ca13a08df7757bbec7b7cba1baf394ac08bee2a10088c6fea196f4d6327",
+      "build_log_sha256": "5d47c35ec433119d08ce58df090ff3a5fc0d27b8e5342cf69111c9ada16e03f0",
+      "build_jsonl_sha256": "65e8c14270568713fff528b918a13e887c0994d94719834440191bf7c69961d2",
+      "profile": "release with connect-store, connect-service and connect-server opt-level=0; other packages use release defaults. Functional behavior only; no performance claim.",
+      "log_sha256": "8901d5615d7f2715fcfbe509b002f5585ee2e15618677535f5dd5455e5258448",
+      "inputs_unchanged": true,
+      "driver_sha256": "0af11c5d4134922af359bb9128915f714d830cc2091e45a6c5aee109c44d8263",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/production-05-summary.json",
+        "sha256": "a251ba99fdd160b1976b855f29125df017b625f048ccb7f7ad0b1585fed3cf36"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/inputs-05.json",
+        "sha256": "80027e8041ffa2a4f4054bd4cca73adaa44ec20c08868602083e74176f9192ef"
+      },
+      "guarded_source_inputs": 1303,
+      "passed_functions": 8,
+      "failed_functions": 0,
+      "algorithm_scenes": 16,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "behaviors": [
+        "Public SDK RTP producer still routes independently decoded PCMU/VP8 media while Stream.refresh returns captured negotiated metadata with positive resource versions and observation-only ownership.",
+        "Two actual native Connections on one SDK peer use the same logical audio Stream ID and return the correct scoped snapshot.",
+        "Actual owner inactive hold, resume and targeted PCMU-to-PCMA renegotiation update public SDK metadata. Unrelated video observation stays unchanged by audio-only gates; resource versions remain distinct from model revisions.",
+        "A currently authorized second participant reads the Stream without a local media cache. A narrowed recipient ceiling hides it. Removal refuses both fresh reads and a previously captured page.",
+        "Actual native connection.end exposes ended streams with advancing resource version. Joined close followed by normal server restart and a fresh SDK client preserves that ended version."
+      ]
+    },
+    "checks": {
+      "openapi_generator_check": "passed",
+      "plan_integrity": "passed;50done/3in-progress/52not-started;0Gate6 acceptance",
+      "diff_check": "passed"
+    }
+  },
+  "failed_and_superseded_runs": [
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/production-03-summary.json",
+        "sha256": "9ea739f4b7bd57bbc9a7d54c4b5844e7f2b4dfec0405fa5e832d6244829e4c73"
+      },
+      "result": "7passed/1failed: new fixture placed inactive direction at top level. Server correctly returned default directional hold active state. Final fixture uses details.direction and selects only audio for codec renegotiation. No runtime implementation changed between production candidates03and04."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/production-04-summary.json",
+        "sha256": "9378a5e875065e96bbce830160a2127586507b631d7680b3869d20175189ab32"
+      },
+      "result": "7passed/1failed: final new lifecycle fixture asserted ended immediately after Core termination receipt, before the distinct offer worker durable retirement observation. Final fixture waits at most5seconds for the current Connection snapshot retired state without repeating termination; no runtime implementation changed."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/store-03-with-additional-summary.json",
+        "sha256": "dcd8ddbbabe71617fc9d7fe3d1e0d3803bb28072aa42bd4a6106f5388b77a776"
+      },
+      "result": "289targetedfunctions passed/1failed. Stale fixture held primary control SQL instead of the packet observer pool. Final fixture proves primary independence, exhausts all4observers, retains<500ms authority-busy refusal, no operation side effects and foreign-store refusal; all final selected groups pass."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/superseded-schema111-runs.json",
+        "sha256": "524619ccd4ebd2979588efa77de3476681a095c4380c7a6af6e447ca9fd8e3d8"
+      },
+      "result": "Old schema111 broad default-parallel Store and production build were superseded by archive schema112 before qualification. Partial broad failures are preserved in ignored logs; no full Store/default-parallel/performance pass claimed."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-stream-metadata/superseded-checks.json",
+        "sha256": "879c3cf8b693bbcb51c5eb07d07c2728afcd393c9b2724714ba9ebc8095c3842"
+      },
+      "result": "Early service checks were superseded after source/schema changes; no qualification claim."
+    }
+  ],
+  "remaining": [
+    "G6-060 remains in progress:14of22mappedmutation kinds. Consult/return/handoff, Connection update/replace/end and Stream subscribe/unsubscribe typed mutations remain.",
+    "Replacement/consultation/return/handoff capture paths need separate integration and lifecycle qualification; missing/mismatched captures remain unavailable.",
+    "Reliable ordered data I/O, both-ends SDK decoded journeys, events/capabilities/raw/admin/config surfaces, external-crate/package validation, incompatible-server/recovery/abrupt-crash and approved remote/Linux profiles remain.",
+    "No whole Store suite or performance claim; final Store run is8targeted groups with2testthreads andopt-level0 Store. Production is functional opt-level0 Store/service/server; other packages use release defaults. Publication remains separate."
+  ]
+}

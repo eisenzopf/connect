@@ -251,7 +251,28 @@ fn visible(c: &Connection, actor: &Actor, cid: &str, item: &SnapshotItem) -> Res
             crate::records::read::availability(c, actor, cid, value.session_id())?.as_ref()
                 == Some(value)
         }
-        SnapshotItem::Stream(_) => false, // No durable stream rows exist before the media coordinator.
+        SnapshotItem::Stream(value) => {
+            let Some(connection) = &value.connection_id else {
+                return Ok(false);
+            };
+            let parent:Option<ConnectionState>=c.query_row("SELECT v.id,v.session_id,v.participant_id,v.membership_epoch,v.endpoint_id,e.device_id,v.generation,v.revision,v.state,v.replaces FROM connections v JOIN endpoints e ON e.id=v.endpoint_id WHERE v.id=?1",[connection],|r|Ok(ConnectionState{connection_id:r.get(0)?,session_id:r.get(1)?,participant_id:r.get(2)?,membership_epoch:r.get(3)?,endpoint_id:r.get(4)?,device_id:r.get(5)?,generation:r.get(6)?,revision:r.get(7)?,state:r.get(8)?,replaces:r.get(9)?})).optional().map_err(|_|Error::storage())?;
+            let Some(parent) = parent else {
+                return Ok(false);
+            };
+            if parent.session_id != value.session_id
+                || parent.participant_id != value.participant_id
+                || !visible(c, actor, cid, &SnapshotItem::Connection(parent.clone()))?
+            {
+                return Ok(false);
+            }
+            crate::native_stream_projection::snapshot(c, &parent)?
+                .iter()
+                .any(|now| {
+                    now.stream_id == value.stream_id
+                        && now.medium == value.medium
+                        && now.revision >= value.revision
+                })
+        }
         SnapshotItem::ProviderCall(value) => {
             match crate::transitions::provider_sessions::view_for_actor(c, actor, &value.id) {
                 Ok(now) => {
@@ -376,10 +397,13 @@ pub(super) fn capture(
                         })
                         .map_err(|_| Error::storage())?
                     {
-                        let value =
-                            SnapshotItem::Connection(connection.map_err(|_| Error::storage())?);
+                        let parent = connection.map_err(|_| Error::storage())?;
+                        let value = SnapshotItem::Connection(parent.clone());
                         if visible(c, actor, cid, &value)? {
                             push(&mut items, &mut bytes, value)?;
+                            for stream in crate::native_stream_projection::snapshot(c, &parent)? {
+                                push(&mut items, &mut bytes, SnapshotItem::Stream(stream))?;
+                            }
                         }
                     }
                 }

@@ -264,7 +264,17 @@ impl NativeSubscriptionPolicy for Policy {
             Ok(out) => Captured::Success(
                 Arc::new(
                     lease
-                        .committed(out.revision, out.resources_changed)
+                        .committed(
+                            out.revision,
+                            out.resources_changed,
+                            crate::canonical_native_streams::captured_projection(
+                                &runtime,
+                                &ConnectionId::from_string(
+                                    self.entry.origin.runtime_connection_id(),
+                                ),
+                                out.revision,
+                            ),
+                        )
                         .map_err(|_| DispatchError::Authority)?,
                 ),
                 out.revision,

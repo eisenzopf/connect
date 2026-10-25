@@ -357,7 +357,7 @@ fn native_dtmf_attempt_cannot_be_completed_with_a_media_or_descriptor_receipt() 
         let (f, request) = fixture(true, true);
         let lease = begin(&f, &request);
         let receipt = match kind {
-            "streams" => lease.committed(2, true),
+            "streams" => lease.committed(2, true, None),
             "quality" => lease.quality_configured(400),
             "descriptor" => lease.advertisement_received(),
             _ => lease.queued(),

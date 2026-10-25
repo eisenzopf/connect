@@ -116,7 +116,7 @@ impl Stream {
         let current = snapshot::read(&self.client, &self.key.conversation_id, options)
             .await?
             .streams
-            .remove(&self.key.stream_id)
+            .remove(&(self.key.connection_id.clone(), self.key.stream_id.clone()))
             .ok_or_else(|| Error::request(ErrorKind::ReceiptUnavailable, None, false))?;
         if current.connection_id != self.key.connection_id
             || current.session_id != self.key.session_id

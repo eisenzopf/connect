@@ -24,6 +24,7 @@ enum CommittedOutcome {
     Streams {
         revision: u64,
         resources_changed: bool,
+        projection: Option<Vec<connect_protocol::native_streams::CodecBinding>>,
     },
     Codecs {
         revision: u64,
@@ -165,6 +166,7 @@ impl NativeStreamLease {
         self,
         revision: u64,
         resources_changed: bool,
+        projection: Option<Vec<connect_protocol::native_streams::CodecBinding>>,
     ) -> Result<NativeStreamCommitted> {
         if !matches!(
             self.command,
@@ -176,11 +178,15 @@ impl NativeStreamLease {
         {
             return Err(conflict());
         }
+        if let Some(bindings) = &projection {
+            crate::native_stream_projection::validate(bindings, self.generation)?;
+        }
         Ok(NativeStreamCommitted {
             lease: self,
             outcome: CommittedOutcome::Streams {
                 revision,
                 resources_changed,
+                projection,
             },
         })
     }
@@ -293,6 +299,7 @@ impl Store {
             CommittedOutcome::Streams {
                 revision,
                 resources_changed,
+                ..
             } => {
                 serde_json::json!({"connection_id":lease.connection,"stream_revision":revision,"resources_changed":resources_changed})
             }
@@ -365,6 +372,43 @@ impl Store {
                         // an unbounded history or a current media grant.
                         tx.execute("UPDATE connections SET readiness_json=json_set(readiness_json,'$.last_gate',json(?2)) WHERE id=?1", params![lease.connection, serde_json::to_string(&result).map_err(|_| Error::storage())?]).map_err(|_| Error::storage())?;
                     }
+                }
+            }
+            if live {
+                match &receipt.outcome {
+                    CommittedOutcome::Streams {
+                        revision,
+                        projection,
+                        ..
+                    } => crate::native_stream_projection::complete(
+                        &tx,
+                        &lease.connection,
+                        lease.generation,
+                        lease.expected_revision,
+                        *revision,
+                        projection.as_deref(),
+                    )?,
+                    CommittedOutcome::Codecs {
+                        revision, bindings, ..
+                    } => crate::native_stream_projection::complete(
+                        &tx,
+                        &lease.connection,
+                        lease.generation,
+                        lease.expected_revision,
+                        *revision,
+                        Some(bindings),
+                    )?,
+                    CommittedOutcome::Gates { revision, streams } => {
+                        crate::native_stream_projection::gates(
+                            &tx,
+                            &lease.connection,
+                            lease.generation,
+                            lease.expected_revision,
+                            *revision,
+                            streams,
+                        )?
+                    }
+                    _ => {}
                 }
             }
             if let CommittedOutcome::Quality { interval_ms } = &receipt.outcome {

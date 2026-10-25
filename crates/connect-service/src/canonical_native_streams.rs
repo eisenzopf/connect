@@ -598,9 +598,11 @@ impl Runtime {
                         }
                     }
                 }
-                Ok(Observed::Streams(outcome)) => {
-                    lease.committed(outcome.revision, outcome.resources_changed)
-                }
+                Ok(Observed::Streams(outcome)) => lease.committed(
+                    outcome.revision,
+                    outcome.resources_changed,
+                    captured_projection(&self, &id, outcome.revision),
+                ),
                 Ok(Observed::Codecs(outcome)) => match codec_bindings(&outcome.bindings) {
                     Ok(bindings) => lease.codecs_committed(outcome.revision, bindings),
                     Err(error) => {
@@ -694,4 +696,24 @@ impl Runtime {
             }
         }
     }
+}
+
+/// Fence a metadata-only copy with the actual operation result's revision.
+/// A concurrent later commit makes the descriptor unavailable; the captured
+/// successful operation outcome is still recorded without repeating Core IO.
+pub(crate) fn captured_projection(
+    runtime: &Runtime,
+    id: &rvoip_core::ids::ConnectionId,
+    revision: u64,
+) -> Option<Vec<connect_protocol::native_streams::CodecBinding>> {
+    let native = runtime.connection_native_adapter(id).ok()?;
+    let controller = native.media_controller(id).ok()?;
+    if controller.revision() != revision {
+        return None;
+    }
+    let bindings = controller.active_bindings();
+    if controller.revision() != revision {
+        return None;
+    }
+    codec_bindings(&bindings).ok()
 }
