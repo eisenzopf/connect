@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "Shared120msfixedlead passes247SDKmethods; installed-browser/actual impairment runtime pending",
+  "status": "SDK247/source203 original clean60 browser/browser cohort077passes8/8; fullG6-050 remains in progress",
   "recorded_at": "2026-10-25T20:09:01.239833+00:00",
   "source": {
     "sdk/typescript/src/browser_media_renderer.ts": "8e3facc21f332c4528925645b6bc4a42eee57924c93a7872e8169b60d6179c2d",
@@ -50,5 +50,1217 @@
     "Initial001passes246/247: the new unit case requested50fpsvideo, above the30fpsprofile; mock callbacks coalesced3of50due frames. The corrected fixture sends25fpsvideo with50fpsaudio, checking every25actualvideo presentation and all51audio admissions. The initial failure remains private.",
     "Existing timing methods now observe the120mslead. A100msfuture source gap submitted immediately is explicitly refused by the unchanged200msbound; resubmitting after60msadmits it and preserves the original100mscapture gap. The expiration sample is130msold so it remains beyond120msdeadline. Overlap, one-sample rounding, natural ending,250msstall recovery and owned cleanup assertions remain."
   ],
-  "remaining": "Current247SDK verification alone is not impairment qualification. Run current original installed-browser clean60 and native profiles; retain073/074unknownsubscription and short audio failures until their own scopes pass. Independent sources, actual3percentloss/100msvariation/two250msbursts, live native encoding/presentation, permissions/background/other profiles and all105tasks remain required."
+  "remaining": "Both current unchanged original browser/browser60secondcases pass, including all retained paired markers/actual presentation/owned teardown. Earlier failures remain recorded. Current short/nativeSDK247 cohort, subscriptionunknown investigation, actual3percentloss/100msvariation/two250msbursts, independent sources, permissions/API/codec/background and native live/other profiles retain their full assigned scope. All105tasks and acceptance remain active.",
+  "actual_clean60": {
+    "report": ".local/gate-6/browser-sdk/clean60-jitter077/summary.json",
+    "report_sha256": "d69c110426efa4536fc8335a324171d77bdcf57bec6cb46a04e6f45fc3026305",
+    "source_revision": "f301b5bd1d0162b22358f4ad4ab0832926aca6c1",
+    "passed": true,
+    "passed_cases": 8,
+    "total_cases": 8,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "62e5d83be6ce16561faf42af3b9d461f6fab86d588e1636e46d4ee712930ce47",
+    "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+    "short_cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.9578731250949204,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-0.log",
+        "log_sha256": "a0cb526b4617ae314397548b352dc91d91273a043d8dde53ea32bd90e88652b2"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8338483339175582,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-1.log",
+        "log_sha256": "02e3c7c46c0ff43e7572ff41279f1dea231b6012edfe983cefaa36576ea0e92f"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.422064999816939,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-2.log",
+        "log_sha256": "82a0e4ff9af982b5514690c71d59914bce7febab929b1ca2c651e7a4acdc7ff5"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.419193666893989,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-3.log",
+        "log_sha256": "6055c91ecf3ef166cb4d90d8a0662779967da1e85a1ea91467b5afd3117153b3"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.047660874901339,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-4.log",
+        "log_sha256": "29c3915b91244d0936d684e4230ee53b945ecedf101433a3ec501dfcf56bbbec"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 6.028226708993316,
+        "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-5.log",
+        "log_sha256": "7170628794e597c7186af73242cc32e935511793a5e1cdb08f28976ad062dcc5"
+      }
+    ],
+    "actual_capture_cases": [
+      {
+        "algorithm": "EdDSA",
+        "passed": true,
+        "measured_ms": 60002.5,
+        "playback": [
+          {
+            "audio": 2873,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.13031900000000007,
+            "meanQueuedAudioSeconds": 0.08932118040408327,
+            "peakRms": 0.9298229988007531,
+            "queueSamples": 9900,
+            "queueSecondsTotal": 884.2796860004244,
+            "video": 1698
+          },
+          {
+            "audio": 2906,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.12692333333333217,
+            "meanQueuedAudioSeconds": 0.09451806282832695,
+            "peakRms": 0.8083801319101735,
+            "queueSamples": 9900,
+            "queueSecondsTotal": 935.7288220004368,
+            "video": 1744
+          }
+        ],
+        "alignment": [
+          {
+            "audio_markers": 59,
+            "median_abs_skew_ms": 37.09999990463257,
+            "p95_abs_skew_ms": 65.5,
+            "paired_markers": 59,
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 65.5
+              },
+              {
+                "id": 4,
+                "skew_ms": 42
+              },
+              {
+                "id": 5,
+                "skew_ms": 43.40000009536743
+              },
+              {
+                "id": 6,
+                "skew_ms": 37.200000047683716
+              },
+              {
+                "id": 7,
+                "skew_ms": 3.700000047683716
+              },
+              {
+                "id": 8,
+                "skew_ms": -144
+              },
+              {
+                "id": 9,
+                "skew_ms": 48.80000019073486
+              },
+              {
+                "id": 10,
+                "skew_ms": 48.90000009536743
+              },
+              {
+                "id": 11,
+                "skew_ms": 34.69999980926514
+              },
+              {
+                "id": 12,
+                "skew_ms": 25
+              },
+              {
+                "id": 13,
+                "skew_ms": 55.5
+              },
+              {
+                "id": 14,
+                "skew_ms": 45.40000009536743
+              },
+              {
+                "id": 15,
+                "skew_ms": 50.60000014305115
+              },
+              {
+                "id": 16,
+                "skew_ms": 53.799999952316284
+              },
+              {
+                "id": 17,
+                "skew_ms": 43.40000009536743
+              },
+              {
+                "id": 18,
+                "skew_ms": 33.89999985694885
+              },
+              {
+                "id": 19,
+                "skew_ms": 54.5
+              },
+              {
+                "id": 20,
+                "skew_ms": 46.90000009536743
+              },
+              {
+                "id": 21,
+                "skew_ms": 64.59999990463257
+              },
+              {
+                "id": 22,
+                "skew_ms": 43
+              },
+              {
+                "id": 23,
+                "skew_ms": 18
+              },
+              {
+                "id": 24,
+                "skew_ms": -3.5
+              },
+              {
+                "id": 25,
+                "skew_ms": 48.299999952316284
+              },
+              {
+                "id": 26,
+                "skew_ms": 54.90000009536743
+              },
+              {
+                "id": 27,
+                "skew_ms": 62.09999990463257
+              },
+              {
+                "id": 28,
+                "skew_ms": 27.600000143051147
+              },
+              {
+                "id": 29,
+                "skew_ms": 37.299999952316284
+              },
+              {
+                "id": 30,
+                "skew_ms": 15.600000143051147
+              },
+              {
+                "id": 31,
+                "skew_ms": 39.59999990463257
+              },
+              {
+                "id": 32,
+                "skew_ms": 30.700000047683716
+              },
+              {
+                "id": 33,
+                "skew_ms": 54.10000014305115
+              },
+              {
+                "id": 34,
+                "skew_ms": 29.899999856948853
+              },
+              {
+                "id": 35,
+                "skew_ms": 40.700000047683716
+              },
+              {
+                "id": 36,
+                "skew_ms": 49.5
+              },
+              {
+                "id": 37,
+                "skew_ms": 37.09999990463257
+              },
+              {
+                "id": 38,
+                "skew_ms": 31.5
+              },
+              {
+                "id": 39,
+                "skew_ms": 28.90000009536743
+              },
+              {
+                "id": 40,
+                "skew_ms": 38.299999952316284
+              },
+              {
+                "id": 41,
+                "skew_ms": 12.600000143051147
+              },
+              {
+                "id": 42,
+                "skew_ms": 24.100000143051147
+              },
+              {
+                "id": 43,
+                "skew_ms": 36.09999990463257
+              },
+              {
+                "id": 44,
+                "skew_ms": 25.09999990463257
+              },
+              {
+                "id": 45,
+                "skew_ms": -27.90000009536743
+              },
+              {
+                "id": 46,
+                "skew_ms": 34.5
+              },
+              {
+                "id": 47,
+                "skew_ms": 39.799999952316284
+              },
+              {
+                "id": 48,
+                "skew_ms": 46.5
+              },
+              {
+                "id": 49,
+                "skew_ms": 27.600000143051147
+              },
+              {
+                "id": 50,
+                "skew_ms": 32.80000019073486
+              },
+              {
+                "id": 51,
+                "skew_ms": 36.5
+              },
+              {
+                "id": 52,
+                "skew_ms": 36.700000047683716
+              },
+              {
+                "id": 53,
+                "skew_ms": 34.299999952316284
+              },
+              {
+                "id": 54,
+                "skew_ms": 33
+              },
+              {
+                "id": 55,
+                "skew_ms": 35.39999985694885
+              },
+              {
+                "id": 56,
+                "skew_ms": 32.59999990463257
+              },
+              {
+                "id": 57,
+                "skew_ms": 36.799999952316284
+              },
+              {
+                "id": 58,
+                "skew_ms": 23.799999952316284
+              },
+              {
+                "id": 59,
+                "skew_ms": 33.90000009536743
+              },
+              {
+                "id": 60,
+                "skew_ms": -211.29999995231628
+              },
+              {
+                "id": 61,
+                "skew_ms": 39.09999990463257
+              }
+            ],
+            "video_markers": 59
+          },
+          {
+            "audio_markers": 59,
+            "median_abs_skew_ms": 22.90000009536743,
+            "p95_abs_skew_ms": 62.299999952316284,
+            "paired_markers": 59,
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 250.79999995231628
+              },
+              {
+                "id": 4,
+                "skew_ms": -18.09999990463257
+              },
+              {
+                "id": 5,
+                "skew_ms": 23.100000143051147
+              },
+              {
+                "id": 6,
+                "skew_ms": 17
+              },
+              {
+                "id": 7,
+                "skew_ms": 23.700000047683716
+              },
+              {
+                "id": 8,
+                "skew_ms": 18.899999856948853
+              },
+              {
+                "id": 9,
+                "skew_ms": 17.100000143051147
+              },
+              {
+                "id": 10,
+                "skew_ms": 42.59999990463257
+              },
+              {
+                "id": 11,
+                "skew_ms": 55.09999990463257
+              },
+              {
+                "id": 12,
+                "skew_ms": 23.199999809265137
+              },
+              {
+                "id": 13,
+                "skew_ms": 23.600000143051147
+              },
+              {
+                "id": 14,
+                "skew_ms": 43.10000014305115
+              },
+              {
+                "id": 15,
+                "skew_ms": 17.59999990463257
+              },
+              {
+                "id": 16,
+                "skew_ms": 20.700000047683716
+              },
+              {
+                "id": 17,
+                "skew_ms": 23.09999990463257
+              },
+              {
+                "id": 18,
+                "skew_ms": 14.100000143051147
+              },
+              {
+                "id": 19,
+                "skew_ms": 21.800000190734863
+              },
+              {
+                "id": 20,
+                "skew_ms": 16.299999952316284
+              },
+              {
+                "id": 21,
+                "skew_ms": 11.5
+              },
+              {
+                "id": 22,
+                "skew_ms": 23
+              },
+              {
+                "id": 23,
+                "skew_ms": 22.90000009536743
+              },
+              {
+                "id": 24,
+                "skew_ms": 16.799999952316284
+              },
+              {
+                "id": 25,
+                "skew_ms": 54.799999952316284
+              },
+              {
+                "id": 26,
+                "skew_ms": 18
+              },
+              {
+                "id": 27,
+                "skew_ms": 56
+              },
+              {
+                "id": 28,
+                "skew_ms": 36.69999980926514
+              },
+              {
+                "id": 29,
+                "skew_ms": 15.100000143051147
+              },
+              {
+                "id": 30,
+                "skew_ms": 35.40000009536743
+              },
+              {
+                "id": 31,
+                "skew_ms": 18.799999952316284
+              },
+              {
+                "id": 32,
+                "skew_ms": 10.5
+              },
+              {
+                "id": 33,
+                "skew_ms": 21.100000143051147
+              },
+              {
+                "id": 34,
+                "skew_ms": 8.599999904632568
+              },
+              {
+                "id": 35,
+                "skew_ms": 47.5
+              },
+              {
+                "id": 36,
+                "skew_ms": 43.10000014305115
+              },
+              {
+                "id": 37,
+                "skew_ms": 16.899999856948853
+              },
+              {
+                "id": 38,
+                "skew_ms": 52
+              },
+              {
+                "id": 39,
+                "skew_ms": 18.800000190734863
+              },
+              {
+                "id": 40,
+                "skew_ms": 17.399999856948853
+              },
+              {
+                "id": 41,
+                "skew_ms": 20.09999990463257
+              },
+              {
+                "id": 42,
+                "skew_ms": 56.5
+              },
+              {
+                "id": 43,
+                "skew_ms": 12.5
+              },
+              {
+                "id": 44,
+                "skew_ms": 46.59999990463257
+              },
+              {
+                "id": 45,
+                "skew_ms": 49
+              },
+              {
+                "id": 46,
+                "skew_ms": 14
+              },
+              {
+                "id": 47,
+                "skew_ms": 19.600000143051147
+              },
+              {
+                "id": 48,
+                "skew_ms": 5.5
+              },
+              {
+                "id": 49,
+                "skew_ms": 31.59999990463257
+              },
+              {
+                "id": 50,
+                "skew_ms": 18.200000047683716
+              },
+              {
+                "id": 51,
+                "skew_ms": 68.70000004768372
+              },
+              {
+                "id": 52,
+                "skew_ms": 55.200000047683716
+              },
+              {
+                "id": 53,
+                "skew_ms": 26.100000143051147
+              },
+              {
+                "id": 54,
+                "skew_ms": 62.299999952316284
+              },
+              {
+                "id": 55,
+                "skew_ms": 2.5
+              },
+              {
+                "id": 56,
+                "skew_ms": 23.299999952316284
+              },
+              {
+                "id": 57,
+                "skew_ms": 22.700000047683716
+              },
+              {
+                "id": 58,
+                "skew_ms": 35.59999990463257
+              },
+              {
+                "id": 59,
+                "skew_ms": 19.199999809265137
+              },
+              {
+                "id": 60,
+                "skew_ms": 23.90000009536743
+              },
+              {
+                "id": 61,
+                "skew_ms": 30.799999952316284
+              }
+            ],
+            "video_markers": 59
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "teardown_ms": 97,
+        "actual_rendered_fps": [
+          28.298820882463232,
+          29.065455606016418
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 37.5,
+              "peak_observed_rss_bytes": 73678848,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.06,
+              "peak_observed_rss_bytes": 2359934976,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91176960,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-6-resources.json",
+          "log_sha256": "572328f7e3224fda089b554fdfdb0eac229b098e3df7670a8f550a822271e0ff"
+        },
+        "log_sha256": "da65f17edad5b8b5475d1a959e6cbafdb4bd940d278ffb68aec38ba81a5f99e5"
+      },
+      {
+        "algorithm": "ES256",
+        "passed": true,
+        "measured_ms": 60005.59999990463,
+        "playback": [
+          {
+            "audio": 2485,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.12614500000000062,
+            "meanQueuedAudioSeconds": 0.08755932334385637,
+            "peakRms": 0.8110085051106904,
+            "queueSamples": 10144,
+            "queueSecondsTotal": 888.201776000079,
+            "video": 1695
+          },
+          {
+            "audio": 2967,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.13542933333333274,
+            "meanQueuedAudioSeconds": 0.10150720941780049,
+            "peakRms": 0.9324399752297909,
+            "queueSamples": 10144,
+            "queueSecondsTotal": 1029.689132334168,
+            "video": 1738
+          }
+        ],
+        "alignment": [
+          {
+            "audio_markers": 59,
+            "median_abs_skew_ms": 59.299999952316284,
+            "p95_abs_skew_ms": 91.09999990463257,
+            "paired_markers": 59,
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": -91.09999990463257
+              },
+              {
+                "id": 4,
+                "skew_ms": 81.10000014305115
+              },
+              {
+                "id": 5,
+                "skew_ms": 25.700000047683716
+              },
+              {
+                "id": 6,
+                "skew_ms": 51.200000047683716
+              },
+              {
+                "id": 7,
+                "skew_ms": 69
+              },
+              {
+                "id": 8,
+                "skew_ms": 60.59999990463257
+              },
+              {
+                "id": 9,
+                "skew_ms": 44.5
+              },
+              {
+                "id": 10,
+                "skew_ms": 60.80000019073486
+              },
+              {
+                "id": 11,
+                "skew_ms": 6.299999952316284
+              },
+              {
+                "id": 12,
+                "skew_ms": 62.5
+              },
+              {
+                "id": 13,
+                "skew_ms": 58.40000009536743
+              },
+              {
+                "id": 14,
+                "skew_ms": 45.30000019073486
+              },
+              {
+                "id": 15,
+                "skew_ms": 52.200000047683716
+              },
+              {
+                "id": 16,
+                "skew_ms": 60.39999985694885
+              },
+              {
+                "id": 17,
+                "skew_ms": -412.5
+              },
+              {
+                "id": 18,
+                "skew_ms": 28.600000143051147
+              },
+              {
+                "id": 19,
+                "skew_ms": 69.59999990463257
+              },
+              {
+                "id": 20,
+                "skew_ms": 49.799999952316284
+              },
+              {
+                "id": 21,
+                "skew_ms": 62.90000009536743
+              },
+              {
+                "id": 22,
+                "skew_ms": 61.09999990463257
+              },
+              {
+                "id": 23,
+                "skew_ms": 65.39999985694885
+              },
+              {
+                "id": 24,
+                "skew_ms": 61.200000047683716
+              },
+              {
+                "id": 25,
+                "skew_ms": 67.5
+              },
+              {
+                "id": 26,
+                "skew_ms": 32.40000009536743
+              },
+              {
+                "id": 27,
+                "skew_ms": 70.59999990463257
+              },
+              {
+                "id": 28,
+                "skew_ms": 50.5
+              },
+              {
+                "id": 29,
+                "skew_ms": 69.09999990463257
+              },
+              {
+                "id": 30,
+                "skew_ms": 37.299999952316284
+              },
+              {
+                "id": 31,
+                "skew_ms": 64.70000004768372
+              },
+              {
+                "id": 32,
+                "skew_ms": 77.5
+              },
+              {
+                "id": 33,
+                "skew_ms": 82.10000014305115
+              },
+              {
+                "id": 34,
+                "skew_ms": 28.700000047683716
+              },
+              {
+                "id": 35,
+                "skew_ms": 60.200000047683716
+              },
+              {
+                "id": 36,
+                "skew_ms": 24.59999990463257
+              },
+              {
+                "id": 37,
+                "skew_ms": 46.700000047683716
+              },
+              {
+                "id": 38,
+                "skew_ms": 61.700000047683716
+              },
+              {
+                "id": 39,
+                "skew_ms": 82.09999990463257
+              },
+              {
+                "id": 40,
+                "skew_ms": 42.90000009536743
+              },
+              {
+                "id": 41,
+                "skew_ms": 59.299999952316284
+              },
+              {
+                "id": 42,
+                "skew_ms": 48.299999952316284
+              },
+              {
+                "id": 43,
+                "skew_ms": 104.90000009536743
+              },
+              {
+                "id": 44,
+                "skew_ms": 63.90000009536743
+              },
+              {
+                "id": 45,
+                "skew_ms": 4.5
+              },
+              {
+                "id": 46,
+                "skew_ms": 39.799999952316284
+              },
+              {
+                "id": 47,
+                "skew_ms": 79.60000014305115
+              },
+              {
+                "id": 48,
+                "skew_ms": 30.299999952316284
+              },
+              {
+                "id": 49,
+                "skew_ms": 58.39999985694885
+              },
+              {
+                "id": 50,
+                "skew_ms": 47.89999985694885
+              },
+              {
+                "id": 51,
+                "skew_ms": 57.5
+              },
+              {
+                "id": 52,
+                "skew_ms": 39.89999985694885
+              },
+              {
+                "id": 53,
+                "skew_ms": 60.299999952316284
+              },
+              {
+                "id": 54,
+                "skew_ms": 63.09999990463257
+              },
+              {
+                "id": 55,
+                "skew_ms": 31.200000047683716
+              },
+              {
+                "id": 56,
+                "skew_ms": 0
+              },
+              {
+                "id": 57,
+                "skew_ms": 43.700000047683716
+              },
+              {
+                "id": 58,
+                "skew_ms": 69.39999985694885
+              },
+              {
+                "id": 59,
+                "skew_ms": 69.5
+              },
+              {
+                "id": 60,
+                "skew_ms": -42
+              },
+              {
+                "id": 61,
+                "skew_ms": 41.299999952316284
+              }
+            ],
+            "video_markers": 59
+          },
+          {
+            "audio_markers": 59,
+            "median_abs_skew_ms": 50.5,
+            "p95_abs_skew_ms": 66.90000009536743,
+            "paired_markers": 59,
+            "pairs": [
+              {
+                "id": 3,
+                "skew_ms": 51
+              },
+              {
+                "id": 4,
+                "skew_ms": 35.5
+              },
+              {
+                "id": 5,
+                "skew_ms": 58.89999985694885
+              },
+              {
+                "id": 6,
+                "skew_ms": 55.200000047683716
+              },
+              {
+                "id": 7,
+                "skew_ms": 59.299999952316284
+              },
+              {
+                "id": 8,
+                "skew_ms": 51.299999952316284
+              },
+              {
+                "id": 9,
+                "skew_ms": 30.5
+              },
+              {
+                "id": 10,
+                "skew_ms": 51.700000047683716
+              },
+              {
+                "id": 11,
+                "skew_ms": 53.299999952316284
+              },
+              {
+                "id": 12,
+                "skew_ms": 71.70000004768372
+              },
+              {
+                "id": 13,
+                "skew_ms": 57.299999952316284
+              },
+              {
+                "id": 14,
+                "skew_ms": 73
+              },
+              {
+                "id": 15,
+                "skew_ms": 60.10000014305115
+              },
+              {
+                "id": 16,
+                "skew_ms": 51.39999985694885
+              },
+              {
+                "id": 17,
+                "skew_ms": 59.89999985694885
+              },
+              {
+                "id": 18,
+                "skew_ms": 51.5
+              },
+              {
+                "id": 19,
+                "skew_ms": -1.1000001430511475
+              },
+              {
+                "id": 20,
+                "skew_ms": 51.200000047683716
+              },
+              {
+                "id": 21,
+                "skew_ms": 58.59999990463257
+              },
+              {
+                "id": 22,
+                "skew_ms": 51.700000047683716
+              },
+              {
+                "id": 23,
+                "skew_ms": 39.40000009536743
+              },
+              {
+                "id": 24,
+                "skew_ms": 49.200000047683716
+              },
+              {
+                "id": 25,
+                "skew_ms": 47.90000009536743
+              },
+              {
+                "id": 26,
+                "skew_ms": 56.700000047683716
+              },
+              {
+                "id": 27,
+                "skew_ms": 53.200000047683716
+              },
+              {
+                "id": 28,
+                "skew_ms": 54.799999952316284
+              },
+              {
+                "id": 29,
+                "skew_ms": 59.69999980926514
+              },
+              {
+                "id": 30,
+                "skew_ms": 23.59999990463257
+              },
+              {
+                "id": 31,
+                "skew_ms": 55.200000047683716
+              },
+              {
+                "id": 32,
+                "skew_ms": 46.60000014305115
+              },
+              {
+                "id": 33,
+                "skew_ms": 49.700000047683716
+              },
+              {
+                "id": 34,
+                "skew_ms": 47.90000009536743
+              },
+              {
+                "id": 35,
+                "skew_ms": 50.5
+              },
+              {
+                "id": 36,
+                "skew_ms": 47.700000047683716
+              },
+              {
+                "id": 37,
+                "skew_ms": 51.40000009536743
+              },
+              {
+                "id": 38,
+                "skew_ms": 62.799999952316284
+              },
+              {
+                "id": 39,
+                "skew_ms": 32.200000047683716
+              },
+              {
+                "id": 40,
+                "skew_ms": 48
+              },
+              {
+                "id": 41,
+                "skew_ms": 55.40000009536743
+              },
+              {
+                "id": 42,
+                "skew_ms": 33.09999990463257
+              },
+              {
+                "id": 43,
+                "skew_ms": 50.799999952316284
+              },
+              {
+                "id": 44,
+                "skew_ms": 62.60000014305115
+              },
+              {
+                "id": 45,
+                "skew_ms": 45.40000009536743
+              },
+              {
+                "id": 46,
+                "skew_ms": 46.700000047683716
+              },
+              {
+                "id": 47,
+                "skew_ms": 66.90000009536743
+              },
+              {
+                "id": 48,
+                "skew_ms": 49.299999952316284
+              },
+              {
+                "id": 49,
+                "skew_ms": 54.30000019073486
+              },
+              {
+                "id": 50,
+                "skew_ms": 49.299999952316284
+              },
+              {
+                "id": 51,
+                "skew_ms": 45.10000014305115
+              },
+              {
+                "id": 52,
+                "skew_ms": 46.700000047683716
+              },
+              {
+                "id": 53,
+                "skew_ms": 47.40000009536743
+              },
+              {
+                "id": 54,
+                "skew_ms": 46.59999990463257
+              },
+              {
+                "id": 55,
+                "skew_ms": 50.40000009536743
+              },
+              {
+                "id": 56,
+                "skew_ms": 49.799999952316284
+              },
+              {
+                "id": 57,
+                "skew_ms": 45.10000014305115
+              },
+              {
+                "id": 58,
+                "skew_ms": 47
+              },
+              {
+                "id": 59,
+                "skew_ms": 48.700000047683716
+              },
+              {
+                "id": 60,
+                "skew_ms": 50
+              },
+              {
+                "id": 61,
+                "skew_ms": 29.40000009536743
+              }
+            ],
+            "video_markers": 59
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "teardown_ms": 62.59999990463257,
+        "actual_rendered_fps": [
+          28.24736357944415,
+          28.963963363465446
+        ],
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 32.71,
+              "peak_observed_rss_bytes": 73498624,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.5,
+              "peak_observed_rss_bytes": 2315665408,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91144192,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-jitter077/case-7-resources.json",
+          "log_sha256": "3e4c681d4c65d2597a5830c171c9d143915e32b6a3d418538a4800560d35646e"
+        },
+        "log_sha256": "d1475b1dc6216c8b5e0dce6dd4c8f707d9e26630bd79d35bffe3ec96d5eed1de"
+      }
+    ]
+  }
 }
