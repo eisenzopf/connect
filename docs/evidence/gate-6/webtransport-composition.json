@@ -3,7 +3,7 @@
   "status": "local-contact-and-lifecycle-implementation-runtime-in-progress",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T04:56:54.369373+00:00",
+  "recorded_at": "2026-10-25T05:09:39.117513+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -39,7 +39,7 @@
   },
   "source_sha256": {
     "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
-    "crates/connect-server/src/canonical.rs": "462cffbaf018c95e39de60c989a4e5eeef4645b7287645754a0771582f08fcfa",
+    "crates/connect-server/src/canonical.rs": "8ab5debced1c04c6b8d4ad58eeba2ccabf482043878cfd02a7f6991484088aeb",
     "crates/connect-service/src/canonical_runtime.rs": "3480f8261f11ce02a0f5b40432fbf8f75ce1d26b46298bf00abb7ef1da9fd122",
     "crates/connect-service/src/canonical_media.rs": "67a27b7c7c34c4c870298b26ac7ab72574fdfaf6ecdc23d7779a947b6a9f29e7",
     "crates/connect-service/src/canonical_native.rs": "d529225317c2efe29734dbd5121f8e7befce98495293a043da9e57796fcf025a",
@@ -48,8 +48,8 @@
     "crates/connect-store/src/peer_authority/native_endpoint.rs": "3a27b8dbb03fb562bb7566ebd1f8d43d37dd278c5fc034fe343f28d4f5a46c0a",
     "crates/connect-store/src/peer_authority/connection_projection.rs": "48ddb1c2f05f84b37241ba25f6d56f343d74342e05f96cfd1e9d32c961a1240c",
     "crates/connect-store/migrations/111_native_webtransport.sql": "3938fe30481e9a2744c03281e618effb6fddcdd848dfe54ca8ad2efffaefdd19",
-    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "19e3e54464b5505c11afd5d0679d1e57af10513f7fd71fbccb5777c446a6917a",
-    "crates/connect-server/tests/gate6_canonical_webtransport.rs": "d880e7b595d2519ac2c7d217de94c762776d610436018cba5ed608a025c5b027",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "0cfe5e9a7cb58bf9da9a1677455e035b4c3a1c2a94ef86e3ab75720be9bb7f5d",
+    "crates/connect-server/tests/gate6_canonical_webtransport.rs": "e8c23b955c9f9b2f9dec692d244ba87909991722b7944cac8d562c1726eacc28",
     "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "5686bf3b82062b440677e9eba57d59eb4f35f56c4f68b311cb24f04bd0079c7d",
     "crates/connect-server/tests/fixtures/gate6-webtransport-browser/peer.mjs": "e97d2c4b94dd6c16b8b90bce354b75d84776634ac8600140688c1cb5b31f8e3e",
     "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "ea4c6b469472a2e4eb0abf0a9a2d6064996790f2fb4edfc2f6d7186aec8eeec1",
@@ -62,10 +62,10 @@
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
     "crates/connect-store/src/session_lifecycle/readiness.rs": "b0f322b852f886e59dab986bc9cfb2f864ba44554fb8216508a78bf0bd3f5364",
     "crates/connect-server/tests/support/canonical_webtransport_discovery.rs": "0f2f6c483eda0c043c78490a4cb04a7483caf35ed3c6137515fd71aea2aeb9b2",
-    "scripts/rehearse-gate6-webtransport.py": "9336d687a21b8ea03f48f4155845529f928527f5be016d2d223d004afe32e580",
+    "scripts/rehearse-gate6-webtransport.py": "76fa38ee4f7b0414d8f4985f659df2581594c282bd5dd92c1557016ff41b5a2d",
     "crates/connect-server/src/tls.rs": "44159338e69def36d5008d74c1098258145424bcbe59dcba801f10b59a9c9712",
-    "crates/connect-server/tests/support/canonical_webtransport_lifecycle.rs": "a9a0c8af8c2825d72dd75e526871de9ac4dc2e830a15acd0dddee7fe64e82b0e",
-    "crates/connect-server/tests/support/canonical_webtransport_mixed.rs": "ea80076207a5e896b1ad789d0ff3282e7505da4dbcd752f72b97167afffd3b2b"
+    "crates/connect-server/tests/support/canonical_webtransport_lifecycle.rs": "cbac940a1e03bb219292dd2ce6846443f6f4c29ea55c16d9fbdcd41ae0b58bb7",
+    "crates/connect-server/tests/support/canonical_webtransport_mixed.rs": "ac474e56f348131380be7c4f6dc9d0c2abee0adb2e9999266ec1e2610c570b10"
   },
   "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
   "runtime_qualification": {
@@ -876,17 +876,92 @@
     "finding": "All12 exact optimized methods pass:2 server configuration unit methods,2 signed independent control/reconnect/native receipt parity,1 Origin/mount refusal,2 independently decoded subscribed WT duplex,3 actual public SDK/HTTP discovery cases and2 explicit installed Chrome control/reconnect/decoded duplex. Independent and browser media also assert original session.started facts contain exactly two webtransport Connections. Source map, original executables and sealed executables remain unchanged. No complete-task or default Local browser contact claim."
   },
   "pending_qualification": {
-    "run": "lifecycle021",
-    "state": "actual-optimized-build-running",
-    "exact_methods": 27,
+    "run": "lifecycle022",
+    "state": "actual-optimized-server-rebuild-running",
+    "exact_methods": 28,
+    "base_revision": "bd4e82b4",
     "source_revision_is_base": true,
-    "base_revision": "5126300026b93fbc30a9b700020b388c4e8a70bc",
-    "scope": "Four configuration/TLS units; independent HTTP3/control/receipt/decoded media and discovery; nine lifetime/capacity/negative methods; live-media server shutdown/drop; two mixed WT/native decoded isolation methods; two installed-Chrome methods using the derived Local contact. No new pass claimed."
+    "scope": "Prior27 fixture intent corrected to28 cases: required missing-QUIC-datagram admission refusal plus valid data-only Endpoint audio refusal, all lifetime/decoded mixed/default contact cases. Ordinary WT duplex also reads original media record/state on fresh WT and native peers without allocating routes. No new pass claimed."
   },
   "default_local_contact_repair": {
     "state": "implemented-runtime-verification-pending",
     "behavior": "Derive optional Local contact from actual bound SocketAddr, preserving IPv4/bracketed IPv6 rather than resolving localhost to another family. Fresh generated Local certificates add explicit127.0.0.1/::1 SANs while retaining localhost and normal trust verification.",
     "browser": "Existing explicit Chrome fixture now consumes/asserts public SDK discovery and uses the derived contact with separate explicit TLS hash and signing pin.",
     "diagnostics": "Protected runtime snapshot projects actual NativePeerMedia ingress accepted/rejected counters; no authority or remote-consumption claim. Negative fixtures must observe processing rather than infer rejection from missing packets."
+  },
+  "lifecycle021": {
+    "passed": false,
+    "source_revision": "5126300026b93fbc30a9b700020b388c4e8a70bc",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.20837850007228553,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.021406417014077306,
+        "log_sha256": "e794146d99fad54562fdcbd4a7c8b22b0240d2b0312ff6d879d67939b3131850"
+      },
+      {
+        "name": "openapi",
+        "command": [
+          "python3",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.029721125029027462,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 101,
+        "elapsed_seconds": 752.8962275411468,
+        "log_sha256": "e5308bc4a910d4dc1066c03d5c9350f7973cf6f396715fca1d2d08adde9ad2a3"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "started_at": "2026-10-25T04:53:56.761304+00:00",
+    "finished_at": "2026-10-25T05:06:30.059298+00:00",
+    "cases": [],
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "2571a8d0fa8cc61fbd6e82ad7e9df819622108888214a677a3fac8e930407d92",
+    "finding": "Optimized integration build fails101 with four unresolved bytes crate references in new fixture helper types. No runtime method executed; no new pass credited. Helpers now retain Vec<u8> until the transport boundary, without a new dependency. Source audit also identified an invalid test assumption about absent QUIC datagrams; see separate required capability correction."
+  },
+  "required_datagram_capability": {
+    "source": "https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-14.html#section-3.1",
+    "finding": "Selected HTTP3 profile requires HTTP/3 and QUIC datagrams. Pinned web-transport-quinn Session.max_datagram_size assumes QUIC support and panics if absent; the shared ProfileServer supervisor cancels all WT peers on child panic. This is a source-audit finding; lifecycle021 never reached runtime.",
+    "repair": "The protected canonical TLS/ALPN intake now refuses h3 peers missing QUIC datagrams before WebTransport supervisor dispatch/authentication. Raw QUIC control-only behavior is unchanged. A valid authenticated WT Device with a data-only Endpoint separately tests audio offer501 without Connection allocation.",
+    "verification": "lifecycle022 adds a missing-capability refusal with exact remote close reason and healthy native/WT peer continuity, plus the valid Endpoint capability case. Pending actual results."
   }
 }

@@ -153,9 +153,13 @@ async fn transport_mode(
     match result {
         Ok(Ok(session)) => Ok((endpoint, connection, session)),
         _ => {
+            let remote_reason = connection
+                .close_reason()
+                .map(|error| error.to_string())
+                .unwrap_or_default();
             connection.close(0u32.into(), b"expected HTTP3 upgrade refusal");
             let _ = tokio::time::timeout(Duration::from_secs(2), endpoint.wait_idle()).await;
-            Err("HTTP3 upgrade refused".into())
+            Err(format!("HTTP3 upgrade refused: {remote_reason}"))
         }
     }
 }

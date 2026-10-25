@@ -64,3 +64,10 @@ selected. The report distinguishes these local cases from the remaining G6-049
 lifecycle/fault cases, production browser SDK G6-050, remote/provider, acceptance
 and publication work. Current scoped evidence is in
 [webtransport-composition.json](../evidence/gate-6/webtransport-composition.json).
+
+WebTransport sessions require both HTTP/3 and QUIC datagram support. A peer
+omitting QUIC datagrams is refused before canonical authentication; it cannot
+retire other peers or allocate a media route. An authenticated Device Endpoint
+whose capability profile permits only control/data can still use commands, but
+an audio offer is refused before a Connection slot is allocated. See the
+[selected HTTP/3 protocol requirement](https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-14.html#section-3.1).

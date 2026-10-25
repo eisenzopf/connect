@@ -7,6 +7,14 @@ use connect_client::{
 use rvoip_uctp::substrate::{pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload};
 
 pub(super) fn endpoint(f: &Fixture, config: &CanonicalClientConfig, index: usize) {
+    endpoint_caps(f, config, index, vec!["audio".into()]);
+}
+pub(super) fn endpoint_caps(
+    f: &Fixture,
+    config: &CanonicalClientConfig,
+    index: usize,
+    capabilities: Vec<String>,
+) {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
         .server
@@ -28,7 +36,7 @@ pub(super) fn endpoint(f: &Fixture, config: &CanonicalClientConfig, index: usize
                     "{}/device-{index}",
                     f.server.webtransport_url.as_ref().unwrap()
                 ),
-                capabilities: vec!["audio".into()],
+                capabilities,
                 secret_ref: None,
             },
         )
@@ -332,7 +340,7 @@ fn decode_ulaw(byte: u8) -> i32 {
         magnitude
     }
 }
-pub(super) fn tone_packet(source: u16, seq: u32, period: usize) -> bytes::Bytes {
+pub(super) fn tone_packet(source: u16, seq: u32, period: usize) -> Vec<u8> {
     let payload = (0..160)
         .map(|n| if n % period < period / 2 { 0x80 } else { 0x00 })
         .collect::<Vec<_>>();
@@ -349,7 +357,7 @@ pub(super) fn tone_packet(source: u16, seq: u32, period: usize) -> bytes::Bytes 
         },
     })
     .unwrap()
-    .into()
+    .to_vec()
 }
 pub(super) fn tone_decoded(bytes: &[u8], target: u16, period: usize) -> bool {
     let frame = unpack_rtp_datagram(bytes).unwrap();
@@ -389,7 +397,7 @@ async fn decoded(
     let send = async {
         for seq in start..start + 80 {
             from._session
-                .send_datagram(tone_packet(source, seq, period))
+                .send_datagram(tone_packet(source, seq, period).into())
                 .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -513,6 +521,76 @@ async fn duplex_mode(algorithm: &str, server_end: Option<bool>) {
     })
     .await
     .unwrap();
+    // New physical readers recover original durable media status; reading a
+    // completed offer must not allocate a replacement route or relabel it.
+    let before = connect_store::Store::inspect_snapshot(&f.config.database).unwrap();
+    let expected_record: String = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap()
+    .query_row(
+        "SELECT record_id FROM operations WHERE owner_id=?1 AND operation_id='http3-media-offer-0'",
+        [&f.client.identity_id],
+        |r| r.get(0),
+    )
+    .unwrap();
+    let mut fresh = Http3Peer::open(&f).await;
+    let mut request = envelope(
+        "operation.get",
+        json!({"operation_id":"http3-media-offer-0"}),
+    );
+    request["cid"] = json!(cid);
+    let id = fresh.send(request, true).await;
+    let mut observed = false;
+    let mut done = false;
+    for _ in 0..128 {
+        let frame = fresh.read().await;
+        if frame.original()["in_reply_to"] != id {
+            continue;
+        }
+        assert_ne!(frame.kind(), "error", "{:?}", frame.original());
+        if frame.kind() == "operation.updated" {
+            assert_eq!(frame.original()["payload"]["record_id"], expected_record);
+            assert_eq!(frame.original()["payload"]["state"], "completed");
+            observed = true;
+        }
+        if frame.kind() == "ack" {
+            done = true;
+            break;
+        }
+    }
+    assert!(done && observed);
+    let mut native = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let retained = native
+        .operation_get(
+            "http3-media-offer-0",
+            connect_client::canonical::CommandScope {
+                conversation_id: Some(cid.clone()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    let retained = serde_json::to_value(retained).unwrap();
+    assert_eq!(retained["record_id"], expected_record);
+    assert_eq!(retained["state"], "completed");
+    assert_eq!(
+        f.server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .connections,
+        0
+    );
+    assert_eq!(
+        connect_store::Store::inspect_snapshot(&f.config.database).unwrap(),
+        before
+    );
+    native.shutdown().await.unwrap();
+    fresh.close().await;
+    drop(fresh);
+    super::canonical_webtransport_lifecycle::drained(&f).await;
     f.server.shutdown().await.unwrap();
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

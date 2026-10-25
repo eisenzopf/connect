@@ -127,7 +127,7 @@ async fn wt_to_native(
     let send = async {
         for seq in start..start + 80 {
             wt._session
-                .send_datagram(tone_packet(source, seq, 16))
+                .send_datagram(tone_packet(source, seq, 16).into())
                 .unwrap();
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -233,7 +233,7 @@ async fn mixed(algorithm: &str) {
         .media_datagrams_rejected;
     attacker
         ._session
-        .send_datagram(tone_packet(a, 2001, 8))
+        .send_datagram(tone_packet(a, 2001, 8).into())
         .unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {

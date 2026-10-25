@@ -227,7 +227,7 @@ async fn list(peer: &mut Http3Peer) {
         .await;
     assert_eq!(terminal(peer, &id).await.kind(), "ack");
 }
-fn packets() -> Vec<bytes::Bytes> {
+fn packets() -> Vec<Vec<u8>> {
     use rvoip_uctp::substrate::{pack_rtp_datagram, RtpDatagram, RtpMediaPayload};
     let valid = pack_rtp_datagram(&RtpDatagram {
         flags: 0,
@@ -250,12 +250,12 @@ fn packets() -> Vec<bytes::Bytes> {
     let mut rtp = valid.to_vec();
     rtp[8] = 0;
     vec![
-        bytes::Bytes::new(),
-        bytes::Bytes::from_static(&[1, 0, 0]),
+        Vec::new(),
+        vec![1, 0, 0],
         version.into(),
         zero.into(),
         rtp.into(),
-        valid,
+        valid.to_vec(),
     ]
 }
 async fn rejected(f: &Fixture, peer: &Http3Peer) {
@@ -263,7 +263,7 @@ async fn rejected(f: &Fixture, peer: &Http3Peer) {
     let packets = packets();
     let expected = packets.len() as u64;
     for packet in packets {
-        peer._session.send_datagram(packet).unwrap();
+        peer._session.send_datagram(packet.into()).unwrap();
     }
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
@@ -311,14 +311,14 @@ async fn malformed_and_unallocated_datagrams_are_observed_rejected_before_and_af
     }
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn negotiated_control_only_http3_keeps_commands_but_refuses_new_media_without_slots() {
+async fn authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots() {
     for algorithm in ["EdDSA", "ES256"] {
         let f = fixture(algorithm).await;
-        super::canonical_webtransport_media::endpoint(&f, &f.client, 0);
+        super::canonical_webtransport_media::endpoint_caps(&f, &f.client, 0, vec!["data".into()]);
         let other = super::canonical_webtransport_media::other(&f);
         let (cid, _, _) = super::canonical_webtransport_media::accepted(&f, &other).await;
-        let mut peer = Http3Peer::open_mode(&f, &f.client, false).await;
-        assert_eq!(peer._session.max_datagram_size(), 0);
+        let mut peer = Http3Peer::open_mode(&f, &f.client, true).await;
+        assert!(peer._session.max_datagram_size() >= 20);
         list(&mut peer).await;
         let mut request = envelope(
             "connection.offer",
@@ -335,7 +335,7 @@ async fn negotiated_control_only_http3_keeps_commands_but_refuses_new_media_with
         assert_eq!(refused.original()["payload"]["code"], 501);
         let s = f.server.service.canonical_runtime_snapshot().unwrap();
         assert_eq!(s.connections, 0);
-        assert_eq!(s.media_readers, 0);
+        assert_eq!(s.media_readers, 1);
         let db = rusqlite::Connection::open_with_flags(
             &f.config.database,
             rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
@@ -507,6 +507,50 @@ async fn disabled_webtransport_retains_native_tls_commands_and_refuses_h3_withou
     );
     one_create(&f);
     native.shutdown().await.unwrap();
+    drained(&f).await;
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive() {
+    let f = fixture("EdDSA").await;
+    let mut healthy = Http3Peer::open(&f).await;
+    let mut native = CanonicalClient::open(f.client.clone()).await.unwrap();
+    let before = connect_store::Store::inspect_snapshot(&f.config.database).unwrap();
+    let refusal = transport_mode(&f, MOUNT, &[ORIGIN], false)
+        .await
+        .err()
+        .expect("missing QUIC datagrams must refuse WebTransport admission");
+    assert!(
+        refusal.contains("WebTransport requires QUIC datagrams"),
+        "{refusal}"
+    );
+    assert_eq!(
+        connect_store::Store::inspect_snapshot(&f.config.database).unwrap(),
+        before
+    );
+    assert_eq!(
+        f.server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .physical_peers,
+        2
+    );
+    list(&mut healthy).await;
+    let cid = healthy.create(&input(&f)).await;
+    assert_eq!(
+        native
+            .create_conversation("http3-create", input(&f))
+            .await
+            .unwrap()
+            .id,
+        cid
+    );
+    one_create(&f);
+    native.shutdown().await.unwrap();
+    healthy.close().await;
+    drop(healthy);
     drained(&f).await;
     f.server.shutdown().await.unwrap();
 }

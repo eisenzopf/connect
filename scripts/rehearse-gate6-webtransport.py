@@ -27,6 +27,7 @@ INDEPENDENT = [
         'discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection')],
 ]
 INDEPENDENT += [
+    'canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive',
     'canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings',
     'canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings',
     'canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots',
@@ -34,7 +35,7 @@ INDEPENDENT += [
     'canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime',
     'canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers',
     'canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation',
-    'canonical_webtransport_lifecycle::negotiated_control_only_http3_keeps_commands_but_refuses_new_media_without_slots',
+    'canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots',
     'canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection',
     'canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other',
     'canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority',

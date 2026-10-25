@@ -439,7 +439,7 @@ impl RunningCanonicalServer {
                                 impl Drop for ObservedPath{fn drop(&mut self){self.1.fetch_max(self.0.stats().path.rtt.as_millis().min(u64::MAX as u128) as u64,Ordering::AcqRel);}}
                                 let _path=ObservedPath(connection.clone(),observed_rtt);
                                 let alpn = connection.handshake_data().and_then(|value| value.downcast::<quinn::crypto::rustls::HandshakeData>().ok()).and_then(|value| value.protocol.clone());
-                                let target = if alpn.as_deref()==Some(RAW_QUIC_ALPN) { &sender } else if alpn.as_deref()==Some(b"h3".as_slice()) { &wt_sender } else { connection.close(0u32.into(),b"unsupported canonical transport"); return; };
+                                let target = if alpn.as_deref()==Some(RAW_QUIC_ALPN) { &sender } else if alpn.as_deref()==Some(b"h3".as_slice()) { if connection.max_datagram_size().is_none() { connection.close(0u32.into(),b"WebTransport requires QUIC datagrams"); return; } &wt_sender } else { connection.close(0u32.into(),b"unsupported canonical transport"); return; };
                                 if let Err(error)=target.try_send(connection.clone()){error.into_inner().close(0u32.into(),b"canonical admission full");return;}
                                 // Retain this physical slot through the entire peer lifetime.
                                 tokio::select!{biased;_=cancelled.cancelled()=>{connection.close(0u32.into(),b"canonical admission stopped");},_=connection.closed()=>{}}
