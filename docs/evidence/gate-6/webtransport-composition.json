@@ -3,7 +3,7 @@
   "status": "implementation-started-unqualified",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T03:10:57.291550+00:00",
+  "recorded_at": "2026-10-25T03:32:44.964904+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -58,5 +58,16 @@
     "finished_at": "2026-10-25T03:25:38.908913+00:00",
     "summary": ".local/gate-6/webtransport/typecheck001-summary.json",
     "summary_sha256": "c8db27ea2065cad403f353e1e2752b5d26d7885fe38e2062b7dbc65e809b1f72"
+  },
+  "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
+  "implementation_branch": "codex/gate6-webtransport",
+  "implementation_on_main": false,
+  "implementation_revision": "d6034cb7",
+  "independent_http3_fixture": {
+    "source_revision": "d6034cb7",
+    "path": "crates/connect-server/tests/gate6_canonical_webtransport.rs",
+    "methods": 3,
+    "scope": "Signed HTTP3 auth/control/reconnect with native durable receipt parity for EdDSA/ES256, plus wrong/missing/duplicate Origin and wrong mount refusal/cleanup. Actual optimized build in progress; no runtime pass claimed.",
+    "raw_directory": ".local/gate-6/webtransport/control002"
   }
 }
