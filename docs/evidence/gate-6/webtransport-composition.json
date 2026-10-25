@@ -1,9 +1,9 @@
 {
   "task": "G6-049",
-  "status": "media-implementation-in-progress-unqualified",
+  "status": "independent-http3-qualified-browser-and-lifecycle-in-progress",
   "full_task_complete": false,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T03:52:58.412530+00:00",
+  "recorded_at": "2026-10-25T04:23:40.470351+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -15,10 +15,10 @@
     "Register separate QUIC and WebTransport native adapters on the same Core. Select by sealed physical transport or actual Core Connection ownership for controls, data, DTMF, capabilities, refresh and mixed audience/replacement work; retain both adapters for absence/recovery observations.",
     "Select this Device's exact verified transport-specific endpoint, retain actual Endpoint transport in current projections and Core intent/bindings, and refuse new mismatched/control-only media before slot/effect allocation while preserving immutable existing receipt reads.",
     "Fresh schema111 permits verified native WebTransport consultation endpoints under the same original source, credential, membership and paired receipt constraints. Earlier schema states retain the explicit incompatible-state refusal policy.",
-    "Independent HTTP3 negotiated duplex fixture uses distinct enrolled identities, both signing algorithms, actual media datagrams, independent G.711 output decoding, persisted WebTransport binding checks and owned EOF drains. These new runtime methods are not yet qualified."
+    "Independent HTTP3 negotiated duplex passes for distinct enrolled identities with EdDSA and ES256, explicit signed stream subscriptions, actual media datagrams, independent G.711 decoding with distinct forward/reverse tones, persisted WebTransport binding checks and owned EOF drains."
   ],
   "known_remaining": [
-    "Final optimized actual HTTP3 runtime build/qualification of source186 and media bindings, including the three earlier failing controls/refusals and both independent decoded duplex methods. Initial typecheck003 was superseded after the concrete Store failure and is not credited. All51 protocol unit methods,21 distinct Store methods and all four schema safety methods pass in their recorded scopes.",
+    "Actual independent HTTP3 runtime013 passes all five exact methods with whole-source and executable guards. Browser, expiry/revocation, aggregate limits, malformed/unauthorized datagrams and recovery coverage remain open; G6-049 remains in progress.",
     "Serve explicit protocol-owned SDK discovery; qualify actual browser commands/media, negotiated control-only capability, token/key expiry/revocation and aggregate admission limits.",
     "Qualify malformed/unauthorized datagram isolation, reconnect/recovery and all owned cleanup cases. Native regressions and fresh-schema authority cases remain required."
   ],
@@ -48,10 +48,18 @@
     "crates/connect-store/src/peer_authority/native_endpoint.rs": "3a27b8dbb03fb562bb7566ebd1f8d43d37dd278c5fc034fe343f28d4f5a46c0a",
     "crates/connect-store/src/peer_authority/connection_projection.rs": "48ddb1c2f05f84b37241ba25f6d56f343d74342e05f96cfd1e9d32c961a1240c",
     "crates/connect-store/migrations/111_native_webtransport.sql": "3938fe30481e9a2744c03281e618effb6fddcdd848dfe54ca8ad2efffaefdd19",
-    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "84acb8e76eb0c773b0aad2341073d971d606453ff20f5047dd85245bcc2f1be7"
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "58dbb9a6af7e524a116f5182f65a84ab005b946c9c5c5e69c896140f42d29282",
+    "crates/connect-server/tests/gate6_canonical_webtransport.rs": "9da576bdd5d824f636479a538c60ec8f6f4c77cd00c3f9341b8456fb22b91953"
   },
   "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
-  "runtime_qualification": null,
+  "runtime_qualification": {
+    "passed": true,
+    "run": "independent_http3_runtime013",
+    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
+    "full_task_complete": false,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true
+  },
   "publication": "Separate; not performed.",
   "library_typecheck001": {
     "source_revision": "45e9e5db838694ea35e478bf2f35f0f09ac10580",
@@ -123,7 +131,7 @@
     "source_revision": "d6034cb7",
     "path": "crates/connect-server/tests/gate6_canonical_webtransport.rs",
     "methods": 3,
-    "scope": "Signed HTTP3 auth/control/reconnect with native durable receipt parity for EdDSA/ES256, plus wrong/missing/duplicate Origin and wrong mount refusal/cleanup. Actual optimized build in progress; no runtime pass claimed.",
+    "scope": "Initial three-method independent fixture. The failed control002 run remains recorded; corrected five-method runtime013 now passes its stated independent HTTP3 scope.",
     "raw_directory": ".local/gate-6/webtransport/control002"
   },
   "store_runtime006": {
@@ -187,5 +195,273 @@
     "passed": false,
     "exit_code": 130,
     "disposition": "Superseded after actual Store failure required additional canonical substrate/held transport changes; deliberately interrupted, not credited. Final optimized actual HTTP3 runtime build is next."
+  },
+  "independent_http3_runtime008": {
+    "passed": false,
+    "source_revision": "d74674fd8262b0549cca7f423b0a963420357182",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 766.6429455841426,
+    "source_inputs_unchanged": true,
+    "executable_sha256": "6c898f0efbd1101d9c3fc4813c16b47330c5a3da0437dac4e40a2937d555d036",
+    "executable_unchanged": true,
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 0.24174637510441244,
+        "passed": false,
+        "log_sha256": "558ffd98d05467aec67be206e9d9f4bb925324ee2101e8aa1cbf86d109f14926"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 0.18802987481467426,
+        "passed": false,
+        "log_sha256": "d33255fcca215cf75942f220f684075b06eb6d1b50844a5f3f6b60444d6c198b"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.565481917001307,
+        "passed": true,
+        "log_sha256": "e4656cd754b6616c351a2dad478c7226eee9e26977daf4a81a15761175fda011"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 0.23924512485973537,
+        "passed": false,
+        "log_sha256": "f52084b7a7c559466ab5daf9672fa830c2b78323d33a4ed99cf9fc8763c929fe"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 0.18838320788927376,
+        "passed": false,
+        "log_sha256": "76c70c8a9392708ecc524d79c16d6867283efe4c93c10a5566d6c69112e49aad"
+      }
+    ],
+    "finding": "Actual wrong/missing/duplicate Origin and wrong mount refusal passes after recorded QPACK repair. Other four methods remain failures: control fixture expected nonexistent conversation.created instead of actual conversation.opened+completed ACK, and media fixture reused one globally unique Endpoint URI for two Devices before media negotiation. Correct those fixture inputs while preserving production contracts. The successor also strengthens duplex provenance with distinct500Hz/250Hz independent decoded witnesses."
+  },
+  "independent_http3_runtime009": {
+    "passed": false,
+    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
+    "source_revision": "d74674fd8262b0549cca7f423b0a963420357182",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 37.735448042163625,
+    "executable_sha256": "5bbde6188d5815aa6e857ff4a85aeb25dd46ac5a1bfe46f04f7923a6cbc1ad14",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "started_at": "2026-10-25T04:09:02.256613+00:00",
+    "finished_at": "2026-10-25T04:09:53.684840+00:00",
+    "source_revision_is_base": true,
+    "source_input_note": "The guarded source map includes the uncommitted fixture corrections for this run; HEAD identifies its committed base.",
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5569802501704544,
+        "passed": true,
+        "log_sha256": "8f0f0057cca4e9063a3aa8ede0c24c9997a351db6a44f1a6d723e767e6b9b26f"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5454117078334093,
+        "passed": true,
+        "log_sha256": "e3a0d439fc214ebfe9fa56b320649842e6098100071a62cdd22ad486ef734220"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5931390409823507,
+        "passed": true,
+        "log_sha256": "1566df5df7b18d31ed9b293ca9e17537cc406ee086e921bfeed3260b5a55a265"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 5.347389000002295,
+        "passed": false,
+        "log_sha256": "4e26c95cd9d5a4b925b5083c80b9a6eba9b0c05215008d47bcc2e9b1f6be3c0e"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 5.351795666851103,
+        "passed": false,
+        "log_sha256": "e20efe598cbff21599142896f8a2f5a0f4ad48472269911dfe42d8ad26e1a0b2"
+      }
+    ],
+    "raw_summary_sha256": "6142ca134edb50ad60bd6f517cdb80daee04f11f8f1f4d394fbaa7847dded0e2",
+    "source_inputs_map_sha256": "577c4c8ec172f803a6ee2c6f7978e8f912bd6dd5f2cc66ba84dd2483d9cc0ced",
+    "finding": "Three control/Origin methods pass; both media methods fail waiting for a nonexistent final root ACK after connection.answer. Fixture must query the actual current operation instead."
+  },
+  "independent_http3_runtime010": {
+    "passed": false,
+    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
+    "source_revision": "d74674fd8262b0549cca7f423b0a963420357182",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 38.70086762495339,
+    "executable_sha256": "bbf96a1fd5f21abaf33d220668b8ee08a2fc440cee289a3b525201d670ba6dea",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "started_at": "2026-10-25T04:11:20.180375+00:00",
+    "finished_at": "2026-10-25T04:12:12.558934+00:00",
+    "source_revision_is_base": true,
+    "source_input_note": "The guarded source map includes the uncommitted fixture corrections for this run; HEAD identifies its committed base.",
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5419023330323398,
+        "passed": true,
+        "log_sha256": "b8f4ad7371432f137c442b15ba7aca1e6e70e142e7bc1ab355d3abd0cd5577b0"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5529779170174152,
+        "passed": true,
+        "log_sha256": "a2c615ce6f3f7658e378a67a16400fc900780ba4c779c410470307b2211973c1"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5632403329946101,
+        "passed": true,
+        "log_sha256": "63c75aa194f9dde5438e9f610ef86b6662e04a2a043b964ab2713edb995f7d1b"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 5.351649624994025,
+        "passed": false,
+        "log_sha256": "eca143f7741dd025a7159077a0fc303b1c86e2d1cd08b99c43ed0ca4ebd922eb"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 5.367849207948893,
+        "passed": false,
+        "log_sha256": "33ca23623a7a0d353883a3c131c0f826a2d2561baf70813d1b601d7d5ae879fe"
+      }
+    ],
+    "raw_summary_sha256": "4b55c9640df8912e49d1e37a51b3186d40b983f6300e36ec7fa178dd887e31bf",
+    "source_inputs_map_sha256": "6bd570a8ad3854573ee9a640cbdfd2a45adaed84bc97b6b91ed71257027e5676",
+    "finding": "Diagnostic fixture confirms the same three passes/two failures at the nonexistent root ACK; no media pass credited."
+  },
+  "independent_http3_runtime011": {
+    "passed": false,
+    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
+    "source_revision": "d74674fd8262b0549cca7f423b0a963420357182",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 38.583838457940146,
+    "executable_sha256": "53c216cd5da0a42c1362b99b60d4535c451f8ef62a96e4ba2632fed1bbcd422a",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "started_at": "2026-10-25T04:13:52.404541+00:00",
+    "finished_at": "2026-10-25T04:14:42.676369+00:00",
+    "source_revision_is_base": true,
+    "source_input_note": "The guarded source map includes the uncommitted fixture corrections for this run; HEAD identifies its committed base.",
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 0.542418166063726,
+        "passed": true,
+        "log_sha256": "f7eb5fb6c5957a728086d80e96ff127461836ac1412645df64c6c867f49b99cc"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5387731250375509,
+        "passed": true,
+        "log_sha256": "92cdc613b6abae573f34962901cc49ea52aa7f5adcad48a28c558462591f8797"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5590311249252409,
+        "passed": true,
+        "log_sha256": "3333481b3cb5ed5c6c513b52d65763afb0b5feeec5836467c94023ea356ed9db"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 101,
+        "elapsed_seconds": 4.4014093328733,
+        "passed": false,
+        "log_sha256": "5cc1e84b60298176144f823e816441707a014962ced7f1f773d3d44345300cb0"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 4.369210291886702,
+        "passed": false,
+        "log_sha256": "1542627cc159088f9a54659b39c58c4db5935720309b7289db72c11cb90f366f"
+      }
+    ],
+    "raw_summary_sha256": "6458c3239f3c6c504bf42991df649c309d5d76a2379357edcbea4009a5a9b991",
+    "source_inputs_map_sha256": "cc27db0ae4ce1757e397884cb374c3a08ec2c10258d89f176a50bacc5000af3d",
+    "finding": "Three control/Origin methods pass; both media methods fail actual decoded duplex deadline. Packet trace012 diagnoses missing explicit subscription. Routing correctly requires signed stream.subscribe; do not add implicit fanout."
+  },
+  "independent_http3_runtime013": {
+    "passed": true,
+    "scope": "Five independent actual HTTP3/canonical production listener methods: signed authentication/control/reconnect/native receipt parity both algorithms, exact Origin/mount refusal/cleanup, and actual negotiated independently decoded WT duplex with persisted transport bindings/EOF drain both algorithms. No browser or complete G6-049 claim.",
+    "source_revision": "d74674fd8262b0549cca7f423b0a963420357182",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 38.75667629111558,
+    "executable_sha256": "d90e2f1358336ceab085a3f79608716902d71f69335c8d1e9385fd93c2aef208",
+    "executable_unchanged": true,
+    "source_inputs_unchanged": true,
+    "started_at": "2026-10-25T04:21:43.839374+00:00",
+    "finished_at": "2026-10-25T04:22:33.632114+00:00",
+    "source_revision_is_base": true,
+    "source_input_note": "The guarded source map includes the uncommitted fixture corrections for this run; HEAD identifies its committed base.",
+    "methods": [
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5705284159630537,
+        "passed": true,
+        "log_sha256": "50d807e7f8c90755c6667dd196056f27da69f2fbea8a1c6ba3100762c32b784c"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5163257080130279,
+        "passed": true,
+        "log_sha256": "c586aa3b761302149b9ced39a1ca27d220043b48d17d15ec3d4776a4d65e7b7c"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "exit_code": 0,
+        "elapsed_seconds": 0.5649673750158399,
+        "passed": true,
+        "log_sha256": "568153495c68ec6913367571379f5fbb447cf420d5812adc6467fa5113100475"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 4.043724083807319,
+        "passed": true,
+        "log_sha256": "93d5f1c2e54d3f219e2612b347719efb98b83e6384b26b0a42a0db55a9dc554d"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 4.062518584076315,
+        "passed": true,
+        "log_sha256": "0b8612ff3b35699a5d91c9c1e0a5678e8d58f2ced22420419f6227fde49dcd33"
+      }
+    ],
+    "raw_summary_sha256": "2b55badeb071a742e1584da79b42a142f0fcaa88183d96072eaa24a676f364e8",
+    "source_inputs_map_sha256": "b0c1ed16c40a46c76de11881fc96239c21d2a6c1a8b63d9009d679ec700dcc35",
+    "finding": "All five exact methods pass after correcting fixture ACK expectations, unique logical Device endpoint URIs, actual operation completion polling and explicit signed subscriptions in both directions. Distinct 500Hz/250Hz independent decoded witnesses, persisted WT bindings, receipt parity and EOF cleanup are asserted. Browser and full-task coverage remain open."
   }
 }

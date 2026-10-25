@@ -27,7 +27,7 @@ const ORIGIN: &str = "https://browser.fixture.invalid";
 const MOUNT: &str = "/connect";
 
 async fn fixture(algorithm: &str) -> Fixture {
-    let f = Fixture::with_membership_scope(algorithm, 8, true).await;
+    let f = Fixture::with_native_stream_scope(algorithm, 8).await;
     let Fixture {
         temp,
         mut config,
@@ -280,12 +280,26 @@ impl Http3Peer {
             assert_eq!(frame.original()["in_reply_to"], id);
             bytes += serde_json::to_vec(frame.original()).unwrap().len();
             assert!(bytes <= 2 * 1024 * 1024);
-            if frame.kind() == "conversation.created" {
+            if frame.kind() == "conversation.opened" {
                 cid = Some(frame.original()["cid"].as_str().unwrap().to_owned());
             }
             assert_ne!(frame.kind(), "error", "{:?}", frame.original());
             if frame.kind() == "ack" {
-                return cid.expect("missing durable conversation projection");
+                let cid = cid.expect("missing durable conversation projection");
+                assert_eq!(
+                    frame.original()["payload"]["details"]["reply_complete"],
+                    true
+                );
+                let value: connect_protocol::Conversation = serde_json::from_value(
+                    frame.original()["payload"]["details"]["conversation"].clone(),
+                )
+                .unwrap();
+                assert_eq!(value.id, cid);
+                assert!(value
+                    .receipt
+                    .as_ref()
+                    .is_some_and(|receipt| receipt.matches("http3-create", &cid)));
+                return cid;
             }
         }
         panic!("HTTP3 reply batch exceeded its bound")
