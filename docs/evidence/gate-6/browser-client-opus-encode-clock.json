@@ -1,0 +1,188 @@
+{
+  "task": "G6-050",
+  "status": "Original capture-timestamp encoding correction passes251SDKmethods; current connected/default/native runtime pending",
+  "recorded_at": "2026-10-25T20:24:04.337514+00:00",
+  "behavior": "Keep at most ten original accepted20msPCM capture timestamps until matching Opus encoder outputs. Packetization uses each original timestamp, preserving capture gaps and suspended-graph intervals when WebCodecs emits a continuous sample clock. Output without an original refuses; synchronous encode failure removes only its own metadata; close clears pending metadata and fences late output. Existing decoder restoration/packet/queue/authority/source-clock/renderer bounds remain. No arbitrary AVoffset or source/observer/threshold change.",
+  "source": {
+    "sdk/typescript/src/browser_codecs.ts": "4a1ad85754428396539326920521037ea0967314aec2ff197ed22b1f930c63ec",
+    "sdk/typescript/dist/browser_codecs.js": "56306513b0d1a59e71873efea7136fe94e897fc121e246c7e22d64915c05cb8e",
+    "sdk/typescript/dist/browser_codecs.d.ts": "fd185c2e3f68ddbda916e0531dfc91b619c349bf1a092368a139f1c94cad435a",
+    "sdk/tests/browser_opus_clock.test.mjs": "17c2715eb1ea1300275bca823e8d56247b8b7c04bd9d446c191b1d7b7f491e1f",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "2b031fc22d49a94bf685c8c03e7e60d2a2639adac5f6a60ca28c4d89dd69ffa5",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "f8d0a1186d252597ca9048071c873183a4c7868994babe3d48cf55d444721a11",
+    "scripts/rehearse-gate6-browser-sdk.py": "1902b92a860f7690b72b84fc17d8b8a7f3c80bd4af27461faf93965c79bf36d9"
+  },
+  "verification": {
+    "positive": {
+      "report": ".local/gate-6/opus-encode-clock/positive083/summary.json",
+      "sha256": "46768f53ec8c8bf8f97be83ab2f84a84e17bd4a326cd072e5431f77f2d7b0b09",
+      "scope": "All251current TypeScriptSDKmethods with full rehearsal-input source/generated-module guards; no installed-browser qualification.",
+      "dependencies": {
+        "exit_code": 0,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format": {
+        "exit_code": 0,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      "sdk": {
+        "exit_code": 0,
+        "log_sha256": "3dc6cb1ac1358e264a6f3b313a9291ae4c38fa46401bf2556c22ff67206421ca"
+      },
+      "inputs_unchanged": true,
+      "passed": true
+    },
+    "negative": {
+      "report": ".local/gate-6/opus-encode-clock/negative083/summary.json",
+      "sha256": "9f205ce601a928c781065a16c744ce3f496fda8d36d9b8382a75b23a2312afda",
+      "scope": "Four new capture-timestamp/boundedpending/unsolicited-output/synchronous-refusal methods against byte-exact priorOpuscodec in isolated package. All four must fail.",
+      "exit_code": 1,
+      "negative_valid": true,
+      "prior_codec_sha256": "7a05d1c554b0933b32db1be7d6c182fee399df35dfeb043cd480f6adde35de90",
+      "log_sha256": "523d7a1682958879181259c0a0197e2a0811f69d7c77842c2e3f266ee371f7a5"
+    },
+    "boundary_cli": {
+      "report": ".local/gate-6/connected-capture-boundaries/cli083/summary.json",
+      "sha256": "cd9b5b0abcf81872a0eb3b470aced1edf58f549c84f0edaa0ddbd0532c155aa4",
+      "scope": "Reject ambiguous/mixed capture-boundary qualification flags before creating output or starting a browser.",
+      "cases": [
+        {
+          "args": [],
+          "exit_code": 2,
+          "expected_refusal": true
+        },
+        {
+          "args": [
+            "--case",
+            "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+            "--clean60"
+          ],
+          "exit_code": 2,
+          "expected_refusal": true
+        },
+        {
+          "args": [
+            "--case",
+            "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+            "--native"
+          ],
+          "exit_code": 2,
+          "expected_refusal": true
+        },
+        {
+          "args": [
+            "--case",
+            "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+            "--packet-trace",
+            "summary"
+          ],
+          "exit_code": 2,
+          "expected_refusal": true
+        },
+        {
+          "args": [
+            "--case",
+            "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa"
+          ],
+          "exit_code": 2,
+          "expected_refusal": true
+        }
+      ],
+      "passed": true
+    }
+  },
+  "original_boundary_failures": [
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary079-0/summary.json",
+      "sha256": "1417f6b49a6aff8d41b5dab2c166344deabb43066ee88554694403173e061898",
+      "mode": "permission-denied",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 6.527561375172809,
+        "log": ".local/gate-6/browser-sdk/capture-boundary079-0/case-0.log",
+        "log_sha256": "2050c70bf7e4e4f8d06ee7977bae08d2dcd5f4d06d9fe9932cab9ea007fbce8a"
+      },
+      "observation": "Original retained playback assertion fails130/150audio after actual connected permission-denial preflight."
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary079-1/summary.json",
+      "sha256": "002a36f6ba64b315f646fb560c1f222f1ae2ec3303de21871c27fd06f79dc02e",
+      "mode": "unsupported-api-codec",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 6.301327457884327,
+        "log": ".local/gate-6/browser-sdk/capture-boundary079-1/case-0.log",
+        "log_sha256": "dc7050e33d634a0b09352520a0b6b23114049e6735acb1a9bf6abab0663c961e"
+      },
+      "observation": "Original retained playback assertion fails139/150audio after injected missingAPI/unsupportedcodec preflights."
+    },
+    {
+      "report": ".local/gate-6/browser-sdk/capture-boundary079-2/summary.json",
+      "sha256": "c365d35d098b3fa0ee0a574b757de6a297b95db29a8209ca13d3f8ac714d75ec",
+      "mode": "background-resume",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "case": {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 8.714697916992009,
+        "log": ".local/gate-6/browser-sdk/capture-boundary079-2/case-0.log",
+        "log_sha256": "608e7cd89c15bc33a7d63861fdb3641dd734c3d2a975625bb3d3dcbac92d6bdd"
+      },
+      "observation": "Actual hidden-pause/visible-resume checks return, but original retained playback assertion plays0/0audio against150minimum while video116/116. No full profile pass."
+    }
+  ],
+  "diagnostics": [
+    {
+      "report": ".local/gate-6/presentation-diagnostic/boundary080/summary.json",
+      "sha256": "3dd2638e3035c1bfe848deda8e5c210a11b52b179857419087736fd44c791b91",
+      "exit_code": 101,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "scope": "Bounded read-only numeric prototype/encoder wrappers around actual connected background-resume. Original source/observer/limits retained; diagnostic only, not performance qualification.",
+      "finding": "After actual resume, received audio clock mappings trail local time by about2.9seconds. Renderer1has143nonmonotonic and57late refusals; renderer2has146nonmonotonic and63late. Video resumes, so graph/capture readiness alone does not prove audio presentation."
+    },
+    {
+      "report": ".local/gate-6/presentation-diagnostic/boundary081/summary.json",
+      "sha256": "0d8a8624ff2f80e980abf3f5f080efe04468b86323a289e3d319bdade662b7b3",
+      "exit_code": 101,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "scope": "Bounded read-only numeric prototype/encoder wrappers around actual connected background-resume. Original source/observer/limits retained; diagnostic only, not performance qualification.",
+      "actual_encoder_observations": [
+        {
+          "inputs": 269,
+          "outputs": 269,
+          "original_us": 5300400,
+          "chunk_us": 2500466,
+          "compressed_capture_gap_us": 2799934,
+          "duration_us": 20000
+        },
+        {
+          "inputs": 268,
+          "outputs": 268,
+          "original_us": 5326233,
+          "chunk_us": 2515499,
+          "compressed_capture_gap_us": 2810734,
+          "duration_us": 20000
+        }
+      ],
+      "finding": "Original AudioEncoder output compresses resumed capture gaps by2799934/2810734microseconds. BrowserOpusCodec previously packetized chunk.timestamp while RTCP sampled original capture time, making current audio appear seconds late. This directly motivates original-timestamp encoding metadata."
+    }
+  ],
+  "remaining": "Rerun all three connected boundaries, then current default clean60 and short/native cohorts. Historical subscriptionunknown requires its own failure/recovery proof. Actual impairment/independent sources/native live/other assigned profiles and all105tasks/acceptance remain required."
+}

@@ -80,6 +80,7 @@ export class BrowserOpusCodec {
     private readonly encoder: AudioEncoder;
     private readonly decoder: AudioDecoder;
     private stopped = false;
+    private readonly pendingEncode: { timestampUs: number }[] = [];
     private readonly pendingDecode: { timestampUs: number }[] = [];
     constructor(private readonly callbacks: CodecCallbacks<AudioData>) {
         if (
@@ -94,6 +95,12 @@ export class BrowserOpusCodec {
             output: (chunk) => {
                 if (this.stopped) return;
                 try {
+                    const original = this.pendingEncode.shift();
+                    if (!original)
+                        throw new ConnectError(
+                            "media",
+                            "Unmatched Opus encoder output",
+                        );
                     if (chunk.byteLength > 1160)
                         throw new ConnectError(
                             "media",
@@ -103,7 +110,9 @@ export class BrowserOpusCodec {
                     chunk.copyTo(bytes);
                     callbacks.encoded({
                         bytes,
-                        timestampUs: chunk.timestamp,
+                        // AudioEncoder can compress capture gaps, including a
+                        // suspended graph, into a continuous sample clock.
+                        timestampUs: original.timestampUs,
                         key: true,
                     });
                 } catch (e) {
@@ -119,18 +128,36 @@ export class BrowserOpusCodec {
                     if (this.stopped) return;
                     const original = this.pendingDecode.shift();
                     if (!original)
-                        throw new ConnectError("media", "Unmatched Opus decoder output");
-                    if (frame.sampleRate !== 48000 || frame.numberOfChannels !== 1 || frame.numberOfFrames !== 960)
-                        throw new ConnectError("unsupported-media-profile", "Decoded Opus requires mono 20 ms at 48 kHz");
+                        throw new ConnectError(
+                            "media",
+                            "Unmatched Opus decoder output",
+                        );
+                    if (
+                        frame.sampleRate !== 48000 ||
+                        frame.numberOfChannels !== 1 ||
+                        frame.numberOfFrames !== 960
+                    )
+                        throw new ConnectError(
+                            "unsupported-media-profile",
+                            "Decoded Opus requires mono 20 ms at 48 kHz",
+                        );
                     // WebCodecs may emit a continuous sample clock across missing
                     // RTP packets. Keep the caller's original timeline so gaps,
                     // late packets and duplicates do not acquire invented times.
                     if (frame.timestamp !== original.timestampUs) {
                         const samples = new Float32Array(960);
-                        frame.copyTo(samples, { planeIndex: 0, format: "f32-planar" });
-                        restored = new AudioData({ format: "f32-planar", sampleRate: 48000,
-                            numberOfFrames: 960, numberOfChannels: 1,
-                            timestamp: original.timestampUs, data: samples });
+                        frame.copyTo(samples, {
+                            planeIndex: 0,
+                            format: "f32-planar",
+                        });
+                        restored = new AudioData({
+                            format: "f32-planar",
+                            sampleRate: 48000,
+                            numberOfFrames: 960,
+                            numberOfChannels: 1,
+                            timestamp: original.timestampUs,
+                            data: samples,
+                        });
                     }
                     callbacks.decoded(restored ?? frame);
                 } catch (e) {
@@ -165,7 +192,10 @@ export class BrowserOpusCodec {
                 "media",
                 "Use 960 finite mono PCM samples per 20 ms Opus frame",
             );
-        if (this.encoder.encodeQueueSize >= MEDIA_LIMITS.audioPackets)
+        if (
+            this.encoder.encodeQueueSize >= MEDIA_LIMITS.audioPackets ||
+            this.pendingEncode.length >= MEDIA_LIMITS.audioPackets
+        )
             return false;
         const frame = new AudioData({
             format: "f32-planar",
@@ -175,9 +205,15 @@ export class BrowserOpusCodec {
             timestamp: timestampUs,
             data: new Float32Array(samples),
         });
+        const original = { timestampUs };
+        this.pendingEncode.push(original);
         try {
             this.encoder.encode(frame);
             return true;
+        } catch (e) {
+            const index = this.pendingEncode.indexOf(original);
+            if (index >= 0) this.pendingEncode.splice(index, 1);
+            throw e;
         } finally {
             frame.close();
         }
@@ -189,14 +225,26 @@ export class BrowserOpusCodec {
             this.pendingDecode.length >= MEDIA_LIMITS.audioPackets
         )
             return false;
-        if (!bytes.length || bytes.length > 1160 || !Number.isSafeInteger(timestampUs))
-            throw new ConnectError("media", "Invalid Opus RTP payload or timestamp");
+        if (
+            !bytes.length ||
+            bytes.length > 1160 ||
+            !Number.isSafeInteger(timestampUs)
+        )
+            throw new ConnectError(
+                "media",
+                "Invalid Opus RTP payload or timestamp",
+            );
         const original = { timestampUs };
         this.pendingDecode.push(original);
         try {
-            this.decoder.decode(new EncodedAudioChunk({
-                type: "key", timestamp: timestampUs, duration: 20000, data: bytes,
-            }));
+            this.decoder.decode(
+                new EncodedAudioChunk({
+                    type: "key",
+                    timestamp: timestampUs,
+                    duration: 20000,
+                    data: bytes,
+                }),
+            );
         } catch (e) {
             const index = this.pendingDecode.indexOf(original);
             if (index >= 0) this.pendingDecode.splice(index, 1);
@@ -213,6 +261,7 @@ export class BrowserOpusCodec {
     close(): void {
         if (this.stopped) return;
         this.stopped = true;
+        this.pendingEncode.length = 0;
         this.pendingDecode.length = 0;
         if (this.encoder.state !== "closed") this.encoder.close();
         if (this.decoder.state !== "closed") this.decoder.close();

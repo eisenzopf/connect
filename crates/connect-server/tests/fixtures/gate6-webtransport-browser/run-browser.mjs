@@ -3,6 +3,14 @@ import {readFile} from 'node:fs/promises';
 import {createPrivateKey} from 'node:crypto';
 const config=JSON.parse(await readFile(process.argv[2],'utf8'));
 if(process.env.CONNECT_GATE6_BROWSER_CLEAN60==='1'&&config.run.capture===true)config.run.clean60=true;
+const captureBoundary=process.env.CONNECT_GATE6_BROWSER_CAPTURE_BOUNDARY;
+if(captureBoundary!==undefined){
+  if(!['permission-denied','unsupported-api-codec','background-resume'].includes(captureBoundary)||config.run.capture!==true||config.run.clean60||config.run.native)throw Error('Select an explicit short browser/browser capture boundary');
+  config.run.captureBoundary=captureBoundary;
+  if(captureBoundary==='permission-denied')config.capture_permissions='denied';
+  if(captureBoundary==='background-resume')config.visibility_probe=true;
+}
+
 // Normalize the existing enrolled private key into WebCrypto's JWK input;
 // ring-generated Ed25519 PKCS8 v2 is not accepted by Chrome's DER importer.
 for(const actor of config.run.actors.filter(actor=>actor.private_pkcs8)){actor.private_jwk=createPrivateKey({key:Buffer.from(actor.private_pkcs8,'base64url'),format:'der',type:'pkcs8'}).export({format:'jwk'});delete actor.private_pkcs8;}

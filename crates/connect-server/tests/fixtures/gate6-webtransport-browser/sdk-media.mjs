@@ -19,8 +19,57 @@ export function tone(frame,hz){
   const power=f=>{let re=0,im=0;for(let n=0;n<pcm.length;n++){const angle=2*Math.PI*f*n/48000;re+=pcm[n]*Math.cos(angle);im+=pcm[n]*Math.sin(angle);}return re*re+im*im;};
   return frame.sampleRate===48000&&frame.numberOfChannels===1&&power(hz)>power(hz===500?250:500)*4&&pcm.some(v=>Math.abs(v)>0.04);
 }
+// Explicit connected failure profiles. Normal media/clean60 sources and limits
+// remain below; every boundary also completes that original short journey.
+async function capturePreflightBoundary(config,clients,peers,connections,contexts){
+  const mode=config.captureBoundary;
+  if(mode===undefined)return;
+  check(!config.clean60&&config.capture&&!config.native,'short connected capture boundary only');
+  const result={mode,passed:false},connection=connections[0],capture={audioStreamId:'browser-audio-0',videoStreamId:'browser-video-0',timeoutMs:3000};
+  if(mode==='permission-denied'){
+    const before=contexts.length;let refusal;
+    try{const unexpected=await BrowserMediaCapture.open(connection,capture);unexpected.close();}catch(error){refusal=error.code;}
+    check(refusal==='media-denied'&&contexts.length===before,'connected actual browser permission denial before graph');
+    result.permission_denied=true;result.graphs_created_on_denial=contexts.length-before;
+  }else if(mode==='unsupported-api-codec'){
+    const descriptor=Object.getOwnPropertyDescriptor(globalThis,'AudioWorkletNode'),devices=navigator.mediaDevices,originalGetUserMedia=devices.getUserMedia;
+    let requests=0,apiRefusal;
+    try{
+      Object.defineProperty(globalThis,'AudioWorkletNode',{configurable:true,value:undefined});
+      devices.getUserMedia=async()=>{requests++;throw Error('unexpected physical device request');};
+      try{const unexpected=await BrowserMediaCapture.open(connection,capture);unexpected.close();}catch(error){apiRefusal=error.code;}
+    }finally{if(descriptor)Object.defineProperty(globalThis,'AudioWorkletNode',descriptor);else delete globalThis.AudioWorkletNode;devices.getUserMedia=originalGetUserMedia;}
+    check(apiRefusal==='unsupported-media-profile'&&requests===0&&contexts.length===0,'connected missing capture API refuses before device/graph');
+    const originalSupport=AudioEncoder.isConfigSupported,request=clients[0].request;let controlRequests=0,codecRefusal;
+    try{
+      AudioEncoder.isConfigSupported=async config=>({supported:false,config});
+      clients[0].request=function(...args){controlRequests++;return request.apply(this,args);};
+      try{await peers[0].offerConnection({conversationId:config.media_cid,sessionId:'http3-media-session',connectionId:'browser-unsupported-codec',operationId:'browser-unsupported-codec',audio:'unsupported-audio'});}catch(error){codecRefusal=error.code;}
+    }finally{AudioEncoder.isConfigSupported=originalSupport;clients[0].request=request;}
+    check(codecRefusal==='unsupported-media-profile'&&controlRequests===0&&!clients[0].closed,'connected unsupported Opus refuses before control mutation');
+    result.injected_missing_api_refused=true;result.injected_unsupported_codec_refused=true;result.device_requests=requests;result.control_requests=controlRequests;
+  }else check(mode==='background-resume','known connected capture boundary');
+  return result;
+}
+async function captureVisibilityBoundary(result,captures,renderers,streams,peers){
+  if(result?.mode!=='background-resume')return;
+  const visibility=async visible=>{const until=performance.now()+5000;while((document.visibilityState==='visible')!==visible){check(performance.now()<until,'connected actual visibility deadline');await wait(20);}};
+  globalThis.captureVisibilityPhase='hide';await visibility(false);await wait(100);
+  check(renderers.every(r=>r.diagnostics.paused&&r.diagnostics.pendingAudio===0&&r.diagnostics.pendingVideo===0),'connected hidden page drains owned presentation');
+  check(streams.every(s=>s.getTracks().every(t=>!t.enabled)),'connected hidden page disables owned tracks');
+  const encoded=()=>peers.map(p=>p.routeDiagnostics.reduce((sum,r)=>sum+r.counters.encoded,0));
+  const before=encoded();await wait(250);check(JSON.stringify(before)===JSON.stringify(encoded()),'connected hidden capture quiescence');
+  result.actual_hidden_pause=true;result.hidden_encoded_before=before;result.hidden_encoded_after=encoded();
+  globalThis.captureVisibilityPhase='hidden';await visibility(true);
+  await Promise.all(renderers.map(r=>r.resume()));await Promise.all(captures.map(c=>c.resume()));
+  const resumed=performance.now(),counts=encoded(),until=resumed+2000;
+  while(encoded().some((n,i)=>n<=counts[i]+10)){check(performance.now()<until,'connected fresh capture resume deadline');await wait(20);}
+  check(streams.every(s=>s.getTracks().every(t=>t.enabled))&&renderers.every(r=>!r.diagnostics.paused),'connected explicit visible resume restores tracks and graphs');
+  result.explicit_visible_resume=true;result.fresh_capture_recovery_ms=performance.now()-resumed;
+}
 export async function run(config){
   const clean60=config.clean60===true;check(!clean60||config.capture===true,'clean60 requires actual capture/render');
+  let captureBoundary;
   const clients=[],peers=[],connections=[],errors=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}],data=[[],[]];
   const source=[document.createElement('canvas'),document.createElement('canvas')],render=[document.createElement('canvas'),document.createElement('canvas')];
   for(const c of [...source,...render]){c.width=640;c.height=360;}
@@ -60,6 +109,7 @@ export async function run(config){
         data:['text','json','binary'].map(protocol=>({id:'browser-'+protocol+'-'+i,protocol}))}));
     }
     for(let i=0;i<2;i++)await connections[i].subscribe('browser-subscribe-'+i,config.participants[1-i],['audio','video','data']);
+    if(config.captureBoundary)captureBoundary=await capturePreflightBoundary(config,clients,peers,connections,contexts);
     if(config.capture){
       for(let i=0;i<2;i++)renderers.push(await BrowserMediaRenderer.open(connections[i],{video:{['browser-video-'+(1-i)]:render[i]},volume:0,timeoutMs:3000}));
       for(let i=0;i<2;i++){
@@ -94,6 +144,7 @@ export async function run(config){
       for(const body of bodies)await connections[i].sendData('browser-data-'+i+'-'+body.type,'browser-message-'+i+'-'+body.type,'browser-'+body.type+'-'+i,body);
     }
 
+      if(captureBoundary?.mode==='background-resume')await captureVisibilityBoundary(captureBoundary,captures,renderers,streams,peers);
       for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
       const before=renderers.map(r=>r.diagnostics);
       const measured=performance.now();minimumMarker=Math.floor((measured-markerStart)/1000)+2;measuring=true;
@@ -140,6 +191,7 @@ export async function run(config){
     for(const peer of peers)peer.close();
     check(clients.every(c=>c.closed)&&peers.every(p=>p.diagnostics.activeBindings===0&&p.diagnostics.queuedBytes===0),'owned media cleanup');
     if(config.capture)check(performance.now()-retiring<=5000,'frozen terminal intent through confirmed ends/local owned teardown exceeds5seconds');
-    return{passed:true,production_sdk_media:true,actual_capture_render:config.capture===true,clean60,alignment:clean60?alignment:[],algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:observedAudio,vp8:observedVideo,decoded_fps:observedVideo.map(v=>v.identified*1000/measurement.elapsed_ms),metrics,accepted,playback,owned_graph_states:contexts.filter(c=>!sourceContexts.has(c)).map(c=>c.state),owned_track_states:streams.flatMap(s=>s.getTracks().map(t=>({kind:t.kind,state:t.readyState}))),teardown_ms:performance.now()-retiring,readiness_ms,duration_ms:duration,measured_ms:measurement.elapsed_ms,scope:clean60?'60second actual supplied-stream capture/worklet/SDK/WT/Store/Core/decoded/rendered browser-browser Opus/VP8/data and uniquely paired graph/canvas markers; native/impairment/other browser profiles remain open':config.capture?'short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open':'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
+    if(captureBoundary)captureBoundary.passed=true;
+    return{passed:true,production_sdk_media:true,capture_boundary:captureBoundary,actual_capture_render:config.capture===true,clean60,alignment:clean60?alignment:[],algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:observedAudio,vp8:observedVideo,decoded_fps:observedVideo.map(v=>v.identified*1000/measurement.elapsed_ms),metrics,accepted,playback,owned_graph_states:contexts.filter(c=>!sourceContexts.has(c)).map(c=>c.state),owned_track_states:streams.flatMap(s=>s.getTracks().map(t=>({kind:t.kind,state:t.readyState}))),teardown_ms:performance.now()-retiring,readiness_ms,duration_ms:duration,measured_ms:measurement.elapsed_ms,scope:clean60?'60second actual supplied-stream capture/worklet/SDK/WT/Store/Core/decoded/rendered browser-browser Opus/VP8/data and uniquely paired graph/canvas markers; native/impairment/other browser profiles remain open':config.capture?'short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open':'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
   }finally{for(const c of captures)c.close();for(const r of renderers)r.close();for(const o of oscillators)o.stop();for(const stream of streams)for(const t of stream.getTracks())t.stop();for(const peer of peers)peer.close();for(const client of clients)client.close();await Promise.all(contexts.filter(c=>c.state!=='closed').map(c=>c.close().catch(()=>{})));globalThis.AudioContext=OriginalAudioContext;}
 }
