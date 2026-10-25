@@ -232,11 +232,11 @@ impl Runtime {
             &self.stop,
             &invocation_cancelled,
             &physical.lifetime,
-            || {
-                self.data_preflight(&a, &physical, &credential)?;
-                store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
-                self.media.data_invocation(a.clone(), &lease, deadline)
-            },
+            // This performs the complete exact attempt/source/message capture
+            // under the original signed command's current interval. Initial
+            // physical/format preflight preceded acceptance; the single actual
+            // adapter call below rechecks its current physical peer and binding.
+            || self.media.data_invocation(a.clone(), &lease, deadline),
         )
         .await
         {

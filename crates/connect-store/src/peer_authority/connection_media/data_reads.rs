@@ -162,17 +162,30 @@ impl Store {
         if wire.command != Command::Data {
             return Err(Error::forbidden());
         }
-        let media = self.native_stream_media_read_with_peer(source, None, proof, lease)?;
-        let c = self.try_connection()?;
-        let (scopes, expires_at) = facts(self, &c, source, source, false, wire)?;
-        if !self.authority_covers(&proof._scopes, &scopes) {
-            return Err(Error::forbidden());
-        }
-        Ok(NativeDataRead {
-            media,
-            expires_at: expires_at.min(lease.expires_at()).min(proof.expires_at()),
+        let credential = proof
+            .request
+            .credentials
+            .last()
+            .ok_or_else(Error::forbidden)?;
+        // The original command already owns its complete file interval. Resolve
+        // attempt, media and frozen message facts together on one immediate
+        // read-only observer, then seal SQL/source/schema/clock versions. Never
+        // queue on command SQL or acquire a new reader behind a queued writer.
+        snapshot::current_under(self, &proof._scopes, |c| {
+            let projected = self.validate_native_stream_attempt_at(c, credential, proof, lease)?;
+            let media =
+                self.native_stream_media_read_at(c, source, None, proof, lease, &projected)?;
+            let (scopes, expires_at) = facts(self, c, source, source, false, wire)?;
+            Ok((
+                NativeDataRead {
+                    expires_at: expires_at.min(media.expires_at()),
+                    media,
+                },
+                scopes,
+            ))
         })
     }
+
     /// Fresh bounded queued-message delivery. Never reenter this path while
     /// retaining an initial command read; the engine supplies sealed facts only.
     pub fn try_native_data_read(

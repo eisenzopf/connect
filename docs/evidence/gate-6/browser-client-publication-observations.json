@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-publication-observations/1",
   "task": "G6-050",
-  "status": "negative-before verified; implementation pending",
+  "status": "238 controlled Store methods pass; service/runtime pending",
   "scope": "Controlled original signed publication metadata under unrelated primary SQL custody; no runtime or task completion claim.",
   "negative_before": {
     "report": ".local/gate-6/publication-observation/negative002/summary.json",
@@ -32,5 +32,76 @@
     ]
   },
   "observation": "The original publication proof and begun logical attempt are current, but metadata cannot finish while the primary SQL mutex is held. A500ms bounded wait fails; SQL is always released and the worker joined. No native-data IO write occurs. This exceeds the service metadata retry window without any authority change.",
-  "next": "One complete exact attempt/media/frozen-message read on a read-only observer, under the original already-owned authority interval, with SQL/source/schema/clock sealing; remove duplicate final primary-SQL preflight reads. Keep initial physical/format admission and the single actual adapter revalidation/publication call."
+  "next": "One complete exact attempt/media/frozen-message read on a read-only observer, under the original already-owned authority interval, with SQL/source/schema/clock sealing; remove duplicate final primary-SQL preflight reads. Keep initial physical/format admission and the single actual adapter revalidation/publication call.",
+  "implementation": [
+    "Capture exact original attempt, source media and frozen-message facts through one read-only observer under the original signed command interval. No new reader is acquired behind queued authority writers.",
+    "Retain SQL-connection/data/schema/source/clock seals and original credential/device/generation/intent/audience/expiry checks; a clock edge rederives under the same held interval. No facts or positive permission are cached between publications.",
+    "Initial actual physical source/negotiated-format preflight remains before acceptance. Final complete data invocation capture validates the exact begun attempt, and the single adapter publication rechecks its live original physical peer and current binding. Remove duplicate final primary-SQL projections and attempt reads; no metadata budget increase, repeated Core call or mutation retry."
+  ],
+  "positive_after": {
+    "report": ".local/gate-6/publication-observation/positive001/summary.json",
+    "sha256": "a88102a168af0b5ffc5ec70df3b915142246926d3fa3a3ace4d1c5ceff630fa4",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "groups": [
+      {
+        "name": "native-authority",
+        "selection": "connection_control::tests::native_stream_authority::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "connection_control::tests::native_stream_authority::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 177,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/publication-observation/positive001/native-authority.log",
+        "log_sha256": "50eaaec1284103a389b3a4baa66cb1890b8ae1fcfed2799eee85d6e339017989",
+        "elapsed_seconds": 92.97286116704345
+      },
+      {
+        "name": "snapshot",
+        "selection": "peer_authority::connection_media::snapshot::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "peer_authority::connection_media::snapshot::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 19,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/publication-observation/positive001/snapshot.log",
+        "log_sha256": "d9ff06d7e6606a274091c962eff7ef98916b31ad8e8f70f3fc6e51117632639b",
+        "elapsed_seconds": 7.519291915930808
+      },
+      {
+        "name": "file-fences",
+        "selection": "authority_fences::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "authority_fences::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 42,
+        "failed_methods": 0,
+        "ignored_helpers": 1,
+        "log": ".local/gate-6/publication-observation/positive001/file-fences.log",
+        "log_sha256": "860cf7cfc973cb9437cface49ab9f09e26e1d3f9635919c45f18636077176565",
+        "elapsed_seconds": 27.791601417120546
+      }
+    ],
+    "passed_methods": 238,
+    "ignored_helpers": 1
+  },
+  "host_runtime": {
+    "status": "not yet verified; current browser/native/transport after service build required"
+  },
+  "remaining": "Unchanged-resource reconciliation error/outcome recording remains under investigation. A separate unpromoted draft preserves exact errors and uses opaque invocation-bound proof for definite atomic routing failure; no current runtime resolution claim."
 }

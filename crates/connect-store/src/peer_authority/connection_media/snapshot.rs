@@ -246,6 +246,16 @@ fn acquire_with<T>(
 // The complete file interval is already owned. Coverage checks perform no file
 // admission or IO, so retain one short SQL interval through capture and sealing.
 // External commits and clock edges still require the same exact version checks.
+/// One complete current projection under an original caller-owned interval.
+/// Retains neither SQL nor a new/partial authority reader after return.
+pub(super) fn current_under<T>(
+    store: &Store,
+    held: &Arc<AuthorityGuardSet>,
+    mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
+) -> Result<T> {
+    acquire_under(store, |c, _| derive(c), |_| Ok(()), held).map(|(facts, _)| facts)
+}
+
 fn acquire_under<T>(
     store: &Store,
     mut derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,
