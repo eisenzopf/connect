@@ -1,7 +1,7 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T01:19:40.395708+00:00",
-  "status": "native-answer-ready-and-surviving-sip-submission-crash-slices-pass-full-task-open",
+  "recorded_at": "2026-10-25T01:34:00.094297+00:00",
+  "status": "schema110-native-sip-provider-crash-and-owned-teardown-runtime-passes-task-audit-open",
   "full_task_complete": false,
   "full_goal_complete": false,
   "approved_work": "Reconcile accepted operations and external effects after crashes; mark interrupted live sessions honestly, query supported provider state and expose bounded operator reconciliation when certainty is unavailable. Prevent duplicate redial, stale bridge resurrection or database-only completion. Drain or terminate resources on shutdown.",
@@ -15,13 +15,12 @@
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
     "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256. Actual submitted SIP call remains external after server SIGKILL: successor reports Unknown at original attempt1, clears readiness, preserves receipt, refuses operator-declared completion, and replay/conflicting invitation cause no redial. Store process-exit boundaries separately cover local transactions with a synthetic effect counter.",
     "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
-    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately. Both native retirement parents now also pass with source/executable guards: six native SIGKILL parents total across answer, ready and metadata retirement; two SIP submission SIGKILL parents separately pass. Schema110 actual Vapi-SDK external-provider SIGKILL recovery passes both algorithms; three existing creation/quarantine/public-end regressions also pass. Same original effect at attempt1, original immutable receipt, authenticated list/Get settlement of original externally ended call, no second POST or fabricated local media."
+    "verification": "Current schema110:19 exact runtime methods pass with source/executable guards (10 native/SIP SIGKILL and answer/end methods,5 provider death/query and regression methods,4 actual configured shutdown/Drop/lost-command-reply methods). Ten actual SIGKILL parents cover native answer/ready/metadata retirement, still-live SIP submission and still-live HTTP provider creation, each both algorithms. Drop/orderly/reply-loss vectors remain separately labeled. Focused two-order host guard and four schema tests pass. Full Store suite remains in progress, not a pass."
   },
   "remaining": [
-    "Qualify SIP answered/ready/committed and retirement crash boundaries with still-live external peers; native answer/ready/retirement and SIP submission are scoped passes.",
-    "Finish current schema110 native/SIP rerun, resolve incomplete full Store suite, and perform the complete G6-047 requirements audit.",
-    "Verify bounded authorized operator reconciliation for uncertainty and unresolved-conflict exclusion across required operation classes.",
-    "Verify actual owned drain/termination, retained original consultation/handoff/replacement effects and recovery failure cases, then audit complete G6-047 coverage."
+    "Finish the full current Store library qualification. Serial wrapper600sec interruption is incomplete; exact final case passes8.85sec. Four-thread same-executable run with1200sec wrapper bound is live.",
+    "Audit every G6-047 work/verification requirement against current and source-bound evidence: accepted operations, journal/runtime agreement, supported provider queries, bounded authorized operator reconciliation, unresolved conflict exclusion and owned shutdown.",
+    "Identify and execute any missing required operation/phase/failure vectors found by that audit. Unexecuted SIP answered/committed SIGKILL variations remain unqualified, not silently equivalent to existing Drop/cleanup cases."
   ],
   "verification": {
     "native_ready_commit": {
@@ -837,6 +836,524 @@
       "passed": true,
       "summary": ".local/gate-6/crash-recovery/schema110-provider011-runtime-011/summary.json",
       "summary_sha256": "5e29de6412e8921072fed000e4e6a9f13ad7defb2d04395f024f8e323056476b"
+    },
+    "current_schema110_native_sip": {
+      "summary": ".local/gate-6/crash-recovery/schema110-native012-runtime-012/summary.json",
+      "summary_sha256": "dec368a6d55f5fa590ad4a7129790815b20e51b900563527964d1390eed87801",
+      "scope": "Schema110 actual native SIGKILL at answer/ready/retirement, actual SIP submitted SIGKILL with surviving external peer, both algorithms, plus initial SIP answer/end regressions; ten exact methods, not complete G6-047.",
+      "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
+      "executable_sha256": "2214892f74b6eca86f5e8285f4bb4ed7ca66885b5fafa4039d67d9a276119e82",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "profiles": [
+        {
+          "phase": "native-ready",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "38f3491a8274aefba93d1d6e803427a277e8ac7284a9abc3627de168796d9d16",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": false,
+            "new_runtime_epoch": true,
+            "phase": "ready",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_1bd9e992470d411f8861fc728aac4fce",
+                "created_at": 1792891273,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792891277
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": false,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-ready",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "0cf8a9310c63fbff22198217ff5317755bb6493d3e03f99446540c011ffe0097",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": false,
+            "new_runtime_epoch": true,
+            "phase": "ready",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_cfa9e267c86f422c935fe93fbfd5f6b6",
+                "created_at": 1792891277,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792891281
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": false,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-answered",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "b5ad066ec88775096b6e774a4ddf591eb4b53d9002b6a43afb086c9b77460cf4",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": {
+              "answered_before_confirmation": true,
+              "new_runtime_admissions": 0,
+              "original_effect_attempt": 1,
+              "original_effect_state": "failed",
+              "original_operation_state": "failed",
+              "ready_or_started_before_or_after": false,
+              "replay_disposition": "historical-outcome-only",
+              "replay_preserved_original_record": true
+            },
+            "decoded_duplex_before_kill": false,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": false,
+            "new_runtime_epoch": true,
+            "phase": "answered",
+            "physical_after_restart": [
+              [
+                "crash-answer-connection",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_6adbc8afbb404d45959bdb42e15ee82c",
+                "created_at": 1792891282,
+                "ended_reason": null,
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 2,
+                "state": "accepted",
+                "topology_revision": 1,
+                "updated_at": 1792891282
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": false,
+            "session_ended_after_grace": false,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-answered",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "ed2aa37d7dbcfad6b0ca28636fba9f038e41a63d54e5b4ab544b89fa6ab5927b",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": {
+              "answered_before_confirmation": true,
+              "new_runtime_admissions": 0,
+              "original_effect_attempt": 1,
+              "original_effect_state": "failed",
+              "original_operation_state": "failed",
+              "ready_or_started_before_or_after": false,
+              "replay_disposition": "historical-outcome-only",
+              "replay_preserved_original_record": true
+            },
+            "decoded_duplex_before_kill": false,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": false,
+            "new_runtime_epoch": true,
+            "phase": "answered",
+            "physical_after_restart": [
+              [
+                "crash-answer-connection",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_c3252bb1f9474b54904628a935437ff4",
+                "created_at": 1792891282,
+                "ended_reason": null,
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 2,
+                "state": "accepted",
+                "topology_revision": 1,
+                "updated_at": 1792891282
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": false,
+            "session_ended_after_grace": false,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "sip-submitted",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "afaaa0faaf6986583d7497319985da44c088f991085827a07013543fbbcefa95",
+          "observations": {
+            "algorithm": "EdDSA",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        },
+        {
+          "phase": "sip-submitted",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "a6cb44c71aa6d3cce66cb2ab52d65403d067c50ed4179867f231c0af43cfb4e4",
+          "observations": {
+            "algorithm": "ES256",
+            "caller_declared_completion_refused": true,
+            "external_peer_still_live": true,
+            "killed_signal": 9,
+            "new_epoch_same_installation": true,
+            "operation_state": "unknown",
+            "original_effect_attempt": 1,
+            "original_effect_state": "unknown",
+            "phase": "submitted",
+            "physical_after_restart": [
+              "unknown",
+              2,
+              null,
+              null
+            ],
+            "replay_preserved_receipt_and_original_operation": true,
+            "runtime_connections": 0,
+            "runtime_media_readers": 0,
+            "session_started_facts": 0,
+            "unique_external_calls": 1,
+            "unresolved_conflict_did_not_redial": true
+          }
+        },
+        {
+          "phase": "native-retiring",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "cae5f90fa04ca16ba1f828f6476c6d18e5cf6494e55139790352378ac81be90b",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": true,
+            "new_runtime_epoch": true,
+            "phase": "retiring",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_42f81d8b180b4582aac25f95e9cc7380",
+                "created_at": 1792891285,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792891289
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": true,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-retiring",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "f35a5a3d3903f87bf760fd1e5bd199aae323d93c7cbe85f5bfe5a1411f19253d",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": true,
+            "new_runtime_epoch": true,
+            "phase": "retiring",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_0a02559327ba42189b3796b3dd58a403",
+                "created_at": 1792891289,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792891293
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": true,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
+          "runtime_exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": null,
+          "algorithm": null,
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+          "runtime_exit_code": 0,
+          "passed": true
+        }
+      ]
+    },
+    "current_schema110_owned_teardown": {
+      "summary": ".local/gate-6/crash-recovery/schema110-owned-recovery015/summary.json",
+      "summary_sha256": "a8475302044fddac0e4bf274dd971e0b2b7814d7152b217f54ed49fbec5af90c",
+      "scope": "Actual configured telephone ringing shutdown, completed/private owner Drop and lost-command-reply recovery. These are orderly/Drop/lost-reply vectors, distinct from the separately qualified SIGKILL parents. Real original SIP peer and native media/asserted custody; no complete G6-047 claim.",
+      "source_revision": "a5222ca2db3ab0a964b925689df0cbd2f9bb0489",
+      "executable_sha256": "2214892f74b6eca86f5e8285f4bb4ed7ca66885b5fafa4039d67d9a276119e82",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "passed": true,
+      "cases": [
+        {
+          "name": "ringing-shutdown",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_configured_shutdown_cancels_the_actual_ringing_callback",
+          "runtime_exit_code": 0,
+          "elapsed_seconds": 3.8785995000507683,
+          "log_sha256": "515911f1f61ebe4961e2246f980ee614af8fbb27d3a0a517e9db1e35f51dd3f6",
+          "passed": true
+        },
+        {
+          "name": "private-owner-drop",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_restart_private_owner_drop_preserves_captures_and_refuses_old_io",
+          "runtime_exit_code": 0,
+          "elapsed_seconds": 6.177388000069186,
+          "log_sha256": "00eb48f9e5163dd06b45340aee1eef20f4fb05678f6d42f6bdddc1e338cf4bcd",
+          "passed": true
+        },
+        {
+          "name": "completed-owner-drop",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_restart_completed_owner_drop_fences_ready_claim_under_successor_epoch",
+          "runtime_exit_code": 0,
+          "elapsed_seconds": 18.27436637505889,
+          "log_sha256": "6971f7bb41dfcee42ebf88ac2ab1eacc797851fc74da24ee969c3190083119a8",
+          "passed": true
+        },
+        {
+          "name": "lost-command-reply",
+          "case": "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_lost_command_reply_recovers_same_attempt_and_never_redials_unknown_submission",
+          "runtime_exit_code": 0,
+          "elapsed_seconds": 16.949552916921675,
+          "log_sha256": "7bb02c39d7a40614f772e7ddb54a8bb585a39a5907e95894a8596fa6f195218c",
+          "passed": true
+        }
+      ]
     }
   },
   "provider_trigger_regression": {

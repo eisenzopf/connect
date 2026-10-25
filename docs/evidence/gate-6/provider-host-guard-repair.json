@@ -50,6 +50,18 @@
       "source_inputs_unchanged": true,
       "executable_unchanged": true,
       "observed": "External loopback HTTP provider survives actual server child SIGKILL; real Vapi SDK queries the original correlated resource and never repeats creation; existing uncertain-creation, quarantine and public-end behavior passes."
+    },
+    {
+      "name": "current schema110 native/SIP crash and active-owned recovery regressions",
+      "passed": 14,
+      "failed": 0,
+      "ignored": 0,
+      "native_summary": ".local/gate-6/crash-recovery/schema110-native012-runtime-012/summary.json",
+      "native_summary_sha256": "dec368a6d55f5fa590ad4a7129790815b20e51b900563527964d1390eed87801",
+      "owned_summary": ".local/gate-6/crash-recovery/schema110-owned-recovery015/summary.json",
+      "owned_summary_sha256": "a8475302044fddac0e4bf274dd971e0b2b7814d7152b217f54ed49fbec5af90c",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true
     }
   ],
   "source_sha256": {
@@ -59,9 +71,8 @@
     "crates/connect-server/tests/voice_flow.rs": "6739ac985da647b25a2e7aa0b458e9cc6240dbeb1c1a8ab4fcf9c40d1848ca23"
   },
   "pending": [
-    "Current schema110 native/SIP ten-case rerun is building.",
-    "Full Store serial run reached wrapper600sec deadline with no failed test result before interruption. It remains incomplete, not a pass; exact last-case diagnostic is running before the replacement full qualification.",
-    "Full G6-047 requirements audit and other operation/drain scope remain open."
+    "Full Store four-thread run is active; serial600sec interruption is retained as incomplete and exact final case passes alone.",
+    "Complete full G6-047 scope audit and any required uncovered behavior."
   ],
   "publication": "Separate; not performed."
 }
