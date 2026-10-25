@@ -18,6 +18,7 @@ class Control {
       const changed=this.mode==='scope'?{...scope,connid:'foreign'}:scope;
       const frame=envelope('connection.offer',{by_participant:'participant_test',substrate:'webtransport',substrate_setup:{kind:'native-prepared/1',revision:scope.expected_revision+1,offer_id:this.mode==='offer'?'foreign':id,streams:[{strm_id:'data',kind:'data',direction:'sendrecv',stream_local_id:scope.expected_revision+1,codec:{name:'binary',params:{reliability:'reliable_ordered'}}}]}},changed);
       if(this.mode==='receiver'&&type==='stream.subscribe')frame.payload.substrate_setup.streams.push({strm_id:'remote_data',kind:'data',direction:'sendonly',stream_local_id:9,codec:{name:'binary',params:{reliability:'reliable_ordered'}}});
+      if(this.mode==='audio')frame.payload.substrate_setup.streams=[{strm_id:'audio',kind:'audio',direction:'sendrecv',stream_local_id:1,codec:{name:'opus',params:{sample_rate:48000,channels:1,payload_type:111}}}];
       this.confirm=()=>finish?.([envelope('ack',{}, {...scope,in_reply_to:id})]);
       for(const fn of this.events)fn(frame);
     });
@@ -78,4 +79,24 @@ test('managed server reconciliation preserves selected receiver ports and cannot
     await assert.rejects(()=>connection.sendData('next-op','next-message','data',{type:'binary',value:new Uint8Array([5])}),{code:'protocol'});
     assert.equal(c.closed,true);
   }finally{p.close();}
+});
+test('bounded media read bursts yield to codec output tasks before dropping decoded audio',async()=>{
+  const names=['AudioEncoder','AudioDecoder','AudioData','EncodedAudioChunk'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
+  let decoded=0,closed=0,resolve;const done=new Promise(r=>{resolve=r;});
+  class Encoder {static async isConfigSupported(){return{supported:true};}state='unconfigured';encodeQueueSize=0;configure(){this.state='configured';}close(){this.state='closed';}}
+  class Decoder extends Encoder {
+    decodeQueueSize=0;constructor(callbacks){super();this.callbacks=callbacks;}
+    decode(chunk){this.decodeQueueSize++;setTimeout(()=>{this.decodeQueueSize--;if(this.state!=='closed')this.callbacks.output({timestamp:chunk.timestamp,close(){closed++;}});},0);}
+  }
+  const values=[Encoder,Decoder,class{},class{constructor(init){Object.assign(this,init);}}];
+  for(let i=0;i<names.length;i++)Object.defineProperty(globalThis,names[i],{configurable:true,value:values[i]});
+  const client=new Control('audio');let ingress;client.datagrams.readable=new ReadableStream({start:c=>{ingress=c;}});
+  const peer=new BrowserMediaPeer(client,{audio:()=>{if(++decoded===64)resolve();}});let timeout;
+  try{
+    await peer.offerConnection({...input,data:undefined,audio:'audio'});
+    const sender=new RtpSender({handle:1,streamId:'audio',connectionId:'connection',sessionId:'session',generation:1,kind:'audio',codec:'opus',payloadType:111,direction:'sendrecv'});
+    for(let n=0;n<64;n++)ingress.enqueue(sender.packetize(new Uint8Array([1]),n*960)[0]);
+    await Promise.race([done,new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('codec tasks received '+decoded+' of 64 burst frames')),500);})]);
+    assert.equal(decoded,64);assert.equal(closed,64);assert.equal(peer.diagnostics.received,64);
+  }finally{clearTimeout(timeout);peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 });

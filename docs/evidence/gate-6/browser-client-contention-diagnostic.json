@@ -1,0 +1,53 @@
+{
+  "task": "G6-050",
+  "status": "diagnostic; integration still failing",
+  "qualified": false,
+  "scope": "Single exact installed-Chrome media method with scoped packet tracing. Overhead is diagnostic, not an operating/performance pass.",
+  "raw_summary": ".local/gate-6/browser-sdk/packet014/summary.json",
+  "raw_summary_sha256": "f341cf948a136e41b1291f959955445fc295acafaf518ce4b48f2d42374a3646",
+  "source_revision": "f33d754bf30d8851e6cdff683d1eff2c0b94dae8",
+  "input_unchanged": true,
+  "executable_unchanged": true,
+  "case": {
+    "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+    "passed": false,
+    "exit_code": 101,
+    "elapsed_seconds": 3.1593050002120435,
+    "log": ".local/gate-6/browser-sdk/packet014/case-0.log",
+    "log_sha256": "014d1bc2e8b4a043dd6feff8e32349d6393dd8ee021c26d499334593debab8ff"
+  },
+  "trace_counts": [
+    {
+      "purpose": "publish",
+      "problem": "authority-busy",
+      "detail": "Current authority is busy",
+      "count": 61
+    },
+    {
+      "purpose": "publish",
+      "problem": "authority-busy",
+      "detail": "Current state is busy",
+      "count": 151
+    },
+    {
+      "purpose": "publish",
+      "problem": "ok",
+      "detail": "",
+      "count": 567
+    },
+    {
+      "purpose": "receive",
+      "problem": "authority-busy",
+      "detail": "Current state is busy",
+      "count": 5
+    },
+    {
+      "purpose": "receive",
+      "problem": "ok",
+      "detail": "",
+      "count": 283
+    }
+  ],
+  "observed": "The policy explicitly reports transient authority-busy at current SQL and authority admission, rather than unknown RTP format. Distinct publish/receive callback counts are not one-to-one datagram counts.",
+  "remaining": "Bounded fresh-read recovery and real full media rerun; deny/expiry/gate/scene fences cannot be bypassed."
+}

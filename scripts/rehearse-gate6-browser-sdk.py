@@ -37,17 +37,21 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--installed-browser', action='store_true', required=True)
     parser.add_argument('--media', action='store_true', help='Also run short synthetic Opus/VP8/reliable-data over actual SDK and server; capture/native/full operating qualification remains separate.')
+    parser.add_argument('--case', choices=CASES + MEDIA, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
+    parser.add_argument('--packet-trace', action='store_true', help='Record scoped per-packet policy metadata under private raw logs; diagnostic overhead is not performance qualification.')
     args = parser.parse_args()
-    selected = CASES + (MEDIA if args.media else [])
+    selected = [args.case] if args.case else CASES + (MEDIA if args.media else [])
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
         parser.error('Keep private evidence under ignored .local/')
     directory.mkdir(parents=True, exist_ok=False)
     (directory / 'tmp').mkdir()
     env = dict(os.environ, CARGO_INCREMENTAL='0', TMPDIR=str(directory / 'tmp'), CONNECT_GATE6_BROWSER_ARTIFACTS=str(directory / 'browser-artifacts'))
+    if args.packet_trace:
+        env['CONNECT_GATE6_PACKET_TRACE'] = '1'
     report = dict(passed=False, started_at=datetime.datetime.now(datetime.timezone.utc).isoformat(), host=platform.platform(),
                   source_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                  scope='Actual production TypeScript canonical control in owned Chrome: both algorithms, separately enrolled trust, bad credential refusal, same-owner replay and native durable receipt parity. Optional media selects short synthetic source over actual SDK/WT/Store/Core with identified Opus/VP8/data, signed subscriptions and durable teardown. Two independent PCMU regressions remain distinct. No capture/playback/native-media/full60s/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media, steps=[], cases=[])
+                  scope='Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Packet tracing adds diagnostic overhead. No capture/playback/native-media/full60s/remote/provider/complete G6-050/acceptance/publication claim.', media_selected=args.media, selected=selected, packet_trace=args.packet_trace, steps=[], cases=[])
 
     def step(name, command, json_output=False):
         start = time.monotonic()

@@ -1,0 +1,62 @@
+{
+  "task": "G6-050",
+  "status": "in-progress",
+  "scope": "Production peer read loop yields within eight packets so queued stream microtasks cannot starve WebCodecs task callbacks. A simulated task-scheduled decoder reproduces 10/64 before and verifies64/64 after; this is not real-network qualification.",
+  "sdk_suite": {
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0
+  },
+  "negative_before": {
+    "log": ".local/gate-6/browser-sdk-codec-starvation-before.log",
+    "sha256": "d3b13ce96c60c6f29a62f6173316e8efb31184b7f5331b99328536a0c2329486",
+    "expected_failure": "10 decoded of64 burstframes"
+  },
+  "positive_after": {
+    "log": ".local/gate-6/browser-sdk-codec-fairness-after.log",
+    "sha256": "3454421454490d7538df455a02ff1e3dafea6d2698318ee7af86cf0bdffbfa7d",
+    "observed": "64 callbacks and64 closed owned frames;178SDKtests pass"
+  },
+  "standalone_real_chrome_codecs": {
+    "summary": ".local/gate-6/browser-sdk/codecs015/summary.json",
+    "sha256": "05e4eb0ebd330f4ddd20603859d7c14d55ffd986552118f419fad4e0b9f99b9b",
+    "passed": true,
+    "result": {
+      "passed": true,
+      "scope": "short synthetic SDK codec/RTP/canvas primitive checkpoint only; no capture, network, native, full 60s operating profile or G6-050 completion claim",
+      "elapsed_ms": 4001.5999999046326,
+      "opus": [
+        {
+          "decoded": 200,
+          "identified": 200
+        },
+        {
+          "decoded": 200,
+          "identified": 200
+        }
+      ],
+      "vp8": [
+        {
+          "decoded": 120,
+          "identified": 120,
+          "motion": 120
+        },
+        {
+          "decoded": 120,
+          "identified": 120,
+          "motion": 117
+        }
+      ],
+      "packets": 644,
+      "max_packet_bytes": 1188,
+      "errors": []
+    }
+  },
+  "source_sha256": {
+    "sdk/typescript/src/browser_media.ts": "ac862349b85d4cbfaa29973053b02ea381fafb605434bec42dda4bd6c022f975",
+    "sdk/typescript/dist/browser_media.js": "7f60a0ec4aeb75097e0b2fde1785bac4f81abdd9d46b314547e8e73a610e29ef",
+    "sdk/tests/browser_media.test.mjs": "46a495701171a101d74bcd87c0ace36c2fbc2fb077823c97efb70968f8ac319f"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Server metadata retries currently building; real duplex browser/native, capture/playback, permissions/loss/background/teardown and full operating qualification still open."
+}

@@ -598,12 +598,21 @@ export class BrowserMediaPeer {
         }
     }
     private async receive(): Promise<void> {
+        let burst = 0;
         while (!this.stopped) {
             const { value, done } = await this.reader.read();
             if (done) {
                 if (!this.stopped)
                     throw new ConnectError("transport", "Media datagram EOF");
                 return;
+            }
+            // A stream with queued chunks can resolve every read as a microtask.
+            // Give WebCodecs output/dequeue tasks a turn within its eight-frame
+            // decode bound, rather than treating task starvation as media loss.
+            if (++burst === 8) {
+                burst = 0;
+                await new Promise<void>((resolve) => setTimeout(resolve, 0));
+                if (this.stopped) return;
             }
             let packet, route;
             try {

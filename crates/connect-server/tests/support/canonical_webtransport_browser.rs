@@ -187,6 +187,14 @@ fn capture(f: &Fixture, algorithm: &str) {
     }
 }
 async fn browser(algorithm: &str, sdk: bool, media: bool) {
+    if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug")
+            .without_time()
+            .with_ansi(false)
+            .with_test_writer()
+            .try_init();
+    }
     let page = page(sdk, media).await;
     let Fixture {
         temp,
