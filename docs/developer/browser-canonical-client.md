@@ -274,3 +274,9 @@ output retains the existing original-age and current-authority checks. The
 controlled stall, recovery and regression evidence is in
 `docs/evidence/gate-6/browser-client-mixer-cadence.json`; connected sustained
 audio and alignment still require their own measurements.
+
+Rehearsal executables are sealed once per content digest and executable mode
+under ignored `.local/gate-6/sealed-executables/`. Runs link only independently
+copied, verified sealed bytes. Cargo outputs remain separate so a later build
+cannot rewrite the sealed executable. Corrupt entries refuse admission; source
+and executable digest checks still cover each run.

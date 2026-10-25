@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import re
 import runpy
-import shutil
+from lib.sealed_executable import seal_executable
 import subprocess
 import time
 
@@ -82,7 +82,7 @@ def main():
         binary = Path(found[0]['executable'])
         sealed = directory / 'qualified-core-audio'
         sha = digest(binary)
-        shutil.copy2(binary, sealed)
+        seal_executable(binary, sealed, sha)
         executable = dict(path=str(binary), sealed_path=str(sealed.relative_to(ROOT)), sha256=sha)
         report['executable'] = executable
         available = subprocess.check_output([str(sealed), '--list'], env=env, text=True)

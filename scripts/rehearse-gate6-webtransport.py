@@ -9,7 +9,7 @@ from pathlib import Path
 import platform
 import re
 import runpy
-import shutil
+from lib.sealed_executable import seal_executable
 import signal
 import subprocess
 import time
@@ -116,7 +116,7 @@ def main():
             name = artifact['target']['name']
             sha = digest(binary)
             sealed = directory / ('qualified-' + name)
-            shutil.copy2(binary, sealed)
+            seal_executable(binary, sealed, sha)
             assert digest(sealed) == sha
             report['executables'].append(dict(target=name, path=str(binary), sealed_path=str(sealed.relative_to(ROOT)), sha256=sha))
             listing = subprocess.check_output([str(sealed), '--list'], env=env, text=True)

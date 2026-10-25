@@ -8,7 +8,7 @@ from pathlib import Path
 import platform
 import re
 import runpy
-import shutil
+from lib.sealed_executable import seal_executable
 import signal
 import subprocess
 import time
@@ -101,7 +101,7 @@ def main():
         binary = Path(artifacts[0]['executable'])
         sealed = directory / 'qualified-browser-sdk'
         sha = digest(binary)
-        shutil.copy2(binary, sealed)
+        seal_executable(binary, sealed, sha)
         report['executable'] = dict(path=str(binary), sealed_path=str(sealed.relative_to(ROOT)), sha256=sha)
         env['CARGO_MANIFEST_DIR'] = artifacts[0]['manifest_path'].rsplit('/', 1)[0]
         available = subprocess.check_output([str(sealed), '--list'], env=env, text=True)

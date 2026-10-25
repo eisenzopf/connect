@@ -1,0 +1,38 @@
+{
+  "schema": "connect-gate6-sealed-executables/1",
+  "task": "G6-050",
+  "status": "Content-addressed private sealing prevents repeated per-run executable copies; four focused custody tests pass",
+  "implementation": [
+    "scripts/lib/sealed_executable.py",
+    "scripts/rehearse-gate6-browser-sdk.py",
+    "scripts/rehearse-gate6-webtransport.py",
+    "scripts/rehearse-gate6-audio-pcm.py"
+  ],
+  "behavior": [
+    "Only an independent copy of build output enters the pool; build output is never hard-linked into it. Pool identity includes SHA256 and executable mode.",
+    "Concurrent creation is exclusive and validated. Each run hard-links verified sealed bytes; no existing evidence path is replaced. Source and executable digest guards remain in the runners.",
+    "A source rewrite cannot change the sealed executable. Corrupt stored bytes refuse admission. Existing destinations cannot be overwritten."
+  ],
+  "tests": {
+    "log": ".local/gate-6/audio-cadence/sealed-executable-tests001.log",
+    "sha256": "1c5734d9d08347053f9f5097b2a590e93942d13ed5fa1fdc56154d3855158362",
+    "passed_methods": 4,
+    "scope": "Actual temporary files, inode separation, physical execution after source rewrite, corrupt-pool refusal, concurrent sealers and exclusive destinations. No media/profile qualification."
+  },
+  "failed_diagnostic": {
+    "report": ".local/gate-6/browser-sdk/audio-summary063/summary.json",
+    "sha256": "6a646b8f7c49e9813944fe464025fbd2b8645605710f34464982de677c898586",
+    "failure": "[Errno 28] No space left on device: '/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-3329a58baa09e017' -> '/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser-sdk/audio-summary063/qualified-browser-sdk'",
+    "runtime_cases": 0,
+    "source_inputs_unchanged": true,
+    "scope": "Build succeeded; executable copy failed from exhausted space before any runtime method. Not an audio or synchronization result."
+  },
+  "recovery": {
+    "private_manifest": ".local/gate-6/artifact-dedup003.json",
+    "reclaimed_bytes": 343055552,
+    "qualified_paths_hashes_modes_preserved": true,
+    "partial_unqualified_copy_removed_with_hash_record": true,
+    "source_logs_and_cargo_outputs_preserved": true
+  },
+  "scope": "Rehearsal artifact custody and disk use only. Current194functional results and failed clean qualification remain as recorded in browser-client-cadence-host.json."
+}
