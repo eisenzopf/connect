@@ -1063,6 +1063,11 @@
       "path": "patches/rvoip/gate6-reconcile-exact-error-and-no-effect.patch",
       "sha256": "a6d3151c9029a8389237556c2d1497091d2b6a90ad01f95be737f53f29a1b838",
       "source": "G6-050 preserve exact original success/error and plan across observer retries; metadata-only historical custody cannot reenter the engine. Opaque adapter proof binds exact lifecycle origin, operation, stream revision, connection/credential generations, conversation and error for failed unchanged-resource atomic routing only. Close a definite failed attempt after recording, obtain fresh current authority for further work; preserve original IDs and uncertainty for possible resource IO. Existing future-resource confirmation/denial/recovery cases remain required."
+    },
+    {
+      "path": "patches/rvoip/gate6-contiguous-audio-burst-regression.patch",
+      "sha256": "5454dcf4a0b275cbcc6266fe6ea775fd5544525bac4e71b223b5728ce1de9745",
+      "source": "G6-050 tests-only negative for distinct contiguous original audio packets decoded within one mixer tick. Manual real guarded scene at8kHz/48kHz, negotiated G711 source clock and RTP wrap, ordered once-only decoded output, idle writer access, pause/resume discard and unchanged port budget. Existing overlapping/superseded packet semantics remain required."
     }
   ]
 }

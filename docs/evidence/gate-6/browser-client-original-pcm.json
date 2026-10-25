@@ -1,0 +1,42 @@
+{
+  "schema": "connect-gate6-original-pcm/1",
+  "task": "G6-050",
+  "status": "Controlled actualCore negative verified; production correction not yet applied",
+  "negative_before": {
+    "report": ".local/gate-6/audio-pcm/negative001/summary.json",
+    "sha256": "7a91b92098ba5e357c1e529e6514ece785bfd10b1e99a5693c01f1413f9800d4",
+    "passed": false,
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "cases": [
+      {
+        "selection": "staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick",
+        "selected": [
+          "staged_streams::tests::guarded_mixer::guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick"
+        ],
+        "exit_code": 101,
+        "passed": false,
+        "expected_failure": true,
+        "counts": [
+          0,
+          1,
+          0
+        ],
+        "log": ".local/gate-6/audio-pcm/negative001/case-0.log",
+        "log_sha256": "19c9ce3d7784e2801596b7186b1fda3db9577ad29f557aa6ce3742280b123026",
+        "elapsed_seconds": 0.013213290832936764
+      }
+    ]
+  },
+  "test_only_patch": {
+    "path": "patches/rvoip/gate6-contiguous-audio-burst-regression.patch",
+    "sha256": "5454dcf4a0b275cbcc6266fe6ea775fd5544525bac4e71b223b5728ce1de9745",
+    "patch_count": 191,
+    "source_lock_sha256": "5b768aec9ad1106013ade22927abebe7a8ca8ad08217cdb9d9d3ef10ef8efe19"
+  },
+  "mechanism": "Two distinct G711 original packets cover consecutive negotiated8kHz RTP intervals and are published before one real guarded scene tick. Current collect() decodes both but clears the first PCM when the second arrives. First actualdecoded output is6908 (the7000secondpacket) rather than1000firstpacket. Failure stops initial8kHzcase;48kHz/wrap/pause checks await the positive run. This is a failing regression, not a passing test.",
+  "distinction": "Existing burst/supersession tests use the same RTP timestamp for replacement packets. Those semantics remain required; this regression adds nonoverlapping original clock intervals.",
+  "next": "Retain only contiguous original decodedPCM in order, using source clock sample count before resampling and wrapping timestamps. Keep overlapping/discontinuous newest-input behavior, original packet age/current authority, ten20msframes/200ms bounds, pause/revocation safety, no idle reader and no repeatedIO. Positive allguarded_mixer+media_scene tests then actualhost/browser/native/transport and frozenalignment remain required.",
+  "scope": "ActualCore functional negative only. Does not explain all observed skew/video loss, qualify actual host throughput, completeG6-050/Gate6 acceptance, or authorize publication."
+}

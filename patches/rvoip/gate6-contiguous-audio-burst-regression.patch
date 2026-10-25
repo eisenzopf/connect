@@ -1,0 +1,113 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -163,6 +163,9 @@
+         self.adapters[index].port(Medium::Audio)
+     }
+     fn publish(&self, index: usize, value: i16) {
++        self.publish_at(index, value, 0);
++    }
++    fn publish_at(&self, index: usize, value: i16, timestamp: u32) {
+         let port = self.port(index);
+         let MediaFormat::Encoded {
+             name,
+@@ -192,7 +195,7 @@
+                 sample_rate: *clock_rate_hz,
+                 channels: *channels,
+                 duration: Duration::from_millis(20),
+-                timestamp: 0,
++                timestamp,
+             })
+             .unwrap();
+         let payload_type = port.0.state.lock().unwrap().payload_type;
+@@ -200,7 +203,7 @@
+             stream_id: port.binding().transport_id.clone(),
+             kind: StreamKind::Audio,
+             payload: payload.into(),
+-            timestamp_rtp: 0,
++            timestamp_rtp: timestamp,
+             source_clock: None,
+             captured_at: chrono::Utc::now(),
+             payload_type,
+@@ -209,6 +212,9 @@
+     }
+ }
+ async fn heard(queue: QueuedMedia, expected: i16) {
++    heard_labeled(queue, expected, "decoded audio").await;
++}
++async fn heard_labeled(queue: QueuedMedia, expected: i16, label: &'static str) {
+     queue
+         .deliver(|frame| async move {
+             let mut decoder = rvoip_media_core::codec::factory::CodecFactory::create_codec(
+@@ -221,7 +227,7 @@
+             assert_eq!(samples.len(), 160);
+             assert!(
+                 (i32::from(samples[80]) - i32::from(expected)).abs() < 350,
+-                "expected {expected}, got {}",
++                "{label}: expected {expected}, got {}",
+                 samples[80]
+             );
+             Ok(())
+@@ -841,3 +847,62 @@
+         "superseded partial audio replayed"
+     );
+ }
++
++#[tokio::test]
++async fn guarded_mixer_contiguous_original_packets_remain_ordered_across_one_tick() {
++    // Source RTP uses its negotiated8kHz clock even when the mixer is48kHz.
++    // Include timestamp wrap; this is ordered original audio, not duplication.
++    for (rate, start) in [(8000, 0u32), (48000, 0), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        s.publish_at(0, 1000, start);
++        s.publish_at(0, 7000, start.wrapping_add(160));
++        s.mixer.tick();
++        heard_labeled(
++            out.try_recv().unwrap(),
++            1000,
++            "contiguous original audio frame was discarded by newer input",
++        )
++        .await;
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("queued original PCM retained authority"),
++        );
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 7000).await;
++        s.mixer.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "original PCM was emitted more than once"
++        );
++
++        s.publish_at(0, 2000, start.wrapping_add(320));
++        s.publish_at(0, 4000, start.wrapping_add(480));
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 2000).await;
++        let c = &s.controllers[0];
++        let logical = desired(Medium::Audio).logical_id;
++        c.set_paused(&logical, c.revision(), true, deadline())
++            .await
++            .unwrap();
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "queued PCM survived source pause");
++        c.set_paused(&logical, c.revision(), false, deadline())
++            .await
++            .unwrap();
++        s.mixer.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "pre-pause PCM replayed after resume"
++        );
++        s.publish_at(0, 7000, start.wrapping_add(640));
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 7000).await;
++        assert_eq!(budget, c.stream_open_budget());
++    }
++}
