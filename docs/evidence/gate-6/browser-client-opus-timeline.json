@@ -119,5 +119,9 @@
     "Close both original and replacement frames after the borrowed callback, including failures. Refuse unmatched/non20ms output before callback, remove a failed synchronous submission stamp and clear metadata on close.",
     "Preserve existing capture/network/current-authorization rules, bounded queues, original mutation IDs, source/observer/thresholds. No constant A/V offset or cross-stream synchronization claim."
   ],
-  "connected_result": "Pending actual corrected-client capture/render rehearsal; G6-050 remains in progress."
+  "connected_result": {
+    "evidence": "docs/evidence/gate-6/browser-client-opus-host.json",
+    "sha256": "d056501a5d0b6193070865f7c3eac6489e010c2a2666bf799003a86b1914f3d4",
+    "scope": "Current production197+originalOpus timestamp correction: six short methods and both60second throughput checks pass; both capture alignment checks fail"
+  }
 }
