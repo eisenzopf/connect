@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-browser-clean60-mixer/1",
   "task": "G6-050",
-  "status": "Explicit48kHz mixer restores59pairedmarkers in all4receiver observations; both frozen alignment checks still fail; no clean profile qualification",
+  "status": "48kHzrestoreswidebandmarkers; PCM192passesfunctionalchecks but both60secondcapturemethods fail sustainedaudio. No cleanqualification.",
   "frozen_profile": "docs/evidence/gate-6/browser-client-clean60-profile.json",
   "frozen_profile_sha256": "73d03408e355cd4f56be7db1d4274dca847ca84d2c64028ac541dcff5d956bc3",
   "negative_before": {
@@ -491,5 +491,14 @@
     ],
     "remaining": "Both60secondcapturecases have59pairedmarkers perreceiver, but median96.1\u2013118.2ms/p95121.9\u2013153.6ms fail unchanged80/120ms limits. Short syntheticEdDSA stillfailsaudio147/115<150 withvideo119/112. Marker bandwidth mismatch is corrected; audio delivery and alignment remain unresolved."
   },
-  "next": "Controlled Core regression for distinct contiguous original PCM packets decoded within one mixer tick. Current collect() unconditionally clears prior PCM; distinguish contiguous timestamps from existing overlapping/superseded-packet behavior. Prove negative before production change, retain current authorization/age/queue bounds. No claimed cause for all skew or video loss."
+  "next": "Controlled Core regression for distinct contiguous original PCM packets decoded within one mixer tick. Current collect() unconditionally clears prior PCM; distinguish contiguous timestamps from existing overlapping/superseded-packet behavior. Prove negative before production change, retain current authorization/age/queue bounds. No claimed cause for all skew or video loss.",
+  "after_contiguous_pcm": {
+    "evidence": "docs/evidence/gate-6/browser-client-pcm-host.json",
+    "sha256": "462dd575b26027426672e8f9cb0eaae4255e089123f5d0dc28ffb79d6f323369",
+    "browser_baseline_passed": "8/8",
+    "native_passed": "4/4",
+    "transport_passed": "28/28",
+    "clean60": "6/8methods; bothcapturemethods failed sustained audio",
+    "scope": "Allfunctionalmethods pass; sustainedaudio/alignment/impairment remain open."
+  }
 }

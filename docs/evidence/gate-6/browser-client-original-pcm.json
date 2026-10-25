@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-original-pcm/1",
   "task": "G6-050",
-  "status": "Production patch192 passes71focused Core methods; actual host throughput/alignment remains pending",
+  "status": "Controlled71Core methods and current12browser/native/28transport pass; sustained60secondaudio remains failed",
   "negative_before": {
     "report": ".local/gate-6/audio-pcm/negative001/summary.json",
     "sha256": "7a91b92098ba5e357c1e529e6514ece785bfd10b1e99a5693c01f1413f9800d4",
@@ -89,5 +89,14 @@
       }
     ],
     "verification": "New regression passes8kHz,48kHz andRTPwrap: correct ordered first/second original output once, writer access while laterPCM waits, pause/resume invalidation and fresh recovery with unchanged port budget. Capacity test receives exactly ten20ms outputs from retained200ms, expires remaining original PCM after210ms, and accepts one fresh recovery without repetition. Existing same-timestamp burst supersession and long/partial packet behavior still pass."
+  },
+  "host_runtime": {
+    "evidence": "docs/evidence/gate-6/browser-client-pcm-host.json",
+    "sha256": "462dd575b26027426672e8f9cb0eaae4255e089123f5d0dc28ffb79d6f323369",
+    "browser_baseline_passed": "8/8",
+    "native_passed": "4/4",
+    "transport_passed": "28/28",
+    "clean60": "6/8methods; bothcapturemethods failed sustained audio",
+    "scope": "Allfunctionalmethods pass; sustainedaudio/alignment/impairment remain open."
   }
 }

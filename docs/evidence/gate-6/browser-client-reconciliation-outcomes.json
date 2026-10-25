@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-reconciliation-outcome/1",
   "task": "G6-050",
-  "status": "Current host:8/8browser baseline,3/4native,28/28transport; native captured ES256 video remains failed",
+  "status": "Current source192:12/12shortbrowser/native and28/28transportpass; bothfrozen60capturemethods fail sustainedaudio",
   "negative_before": {
     "report": ".local/gate-6/reconciliation-outcome/negative002/summary.json",
     "sha256": "bf6813bc839903f7481d5bf29c68bd32345777611034ac7a861f49117806db61",
@@ -175,11 +175,12 @@
     "behavior": "New controlled test covers both preparing and unknown original attempts, rollback during failed-outcome journal insertion, blocked terminal admission with no new effect until commit, idempotent recording of the same failed receipt, then one accepted original terminal intent. This is Store metadata evidence, not manufactured native IO evidence."
   },
   "host_runtime": {
-    "evidence": "docs/evidence/gate-6/browser-client-outcome-host.json",
-    "sha256": "3a77e58f5fd5dad0af18efdc8dbea2993cfce72510813fc0652cc17e3c45a5ba",
+    "evidence": "docs/evidence/gate-6/browser-client-pcm-host.json",
+    "sha256": "462dd575b26027426672e8f9cb0eaae4255e089123f5d0dc28ffb79d6f323369",
     "browser_baseline_passed": "8/8",
-    "native_passed": "3/4",
+    "native_passed": "4/4",
     "transport_passed": "28/28",
-    "scope": "Captured ES256 native video failed65<90; task remains in progress."
+    "clean60": "6/8methods; bothcapturemethods failed sustained audio",
+    "scope": "Allfunctionalmethods pass; sustainedaudio/alignment/impairment remain open."
   }
 }
