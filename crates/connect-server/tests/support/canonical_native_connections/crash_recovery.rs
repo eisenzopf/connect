@@ -15,12 +15,14 @@ mod answered;
 enum Phase {
     Ready,
     Answered,
+    Retiring,
 }
 impl Phase {
     fn name(self) -> &'static str {
         match self {
             Self::Ready => "ready",
             Self::Answered => "answered",
+            Self::Retiring => "retiring",
         }
     }
 }
@@ -49,7 +51,11 @@ async fn native_ready_child() {
         answered::child(&root, &algorithm).await;
         return;
     }
-    assert_eq!(phase, "ready");
+    let phase = match phase.as_str() {
+        "ready" => Phase::Ready,
+        "retiring" => Phase::Retiring,
+        _ => panic!("unknown native crash phase"),
+    };
     let mut f = Fixture::with_native_dtmf_scope(&algorithm, 12).await;
     assert!(f.config.database.starts_with(&root));
     f.server.store.configure_session_reconnect_grace(1).unwrap();
@@ -76,17 +82,56 @@ async fn native_ready_child() {
         .unwrap(),
         "active"
     );
+    let retirement = if phase == Phase::Retiring {
+        use connect_store::{AuthorityMode, AuthorityScope, AuthorityWait};
+        let scopes = [AuthorityScope::conversation(&scene.cid, AuthorityMode::Write).unwrap()];
+        let hold = scene
+            .f
+            .server
+            .store
+            .acquire_authority(&scopes, &AuthorityWait::new(Duration::from_secs(1)))
+            .unwrap();
+        for client in &mut scene.clients {
+            client.close();
+        }
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+        loop {
+            let runtime = scene.f.server.service.canonical_runtime_snapshot().unwrap();
+            if runtime.connections == 0 && runtime.physical_peers == 0 {
+                break;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "actual closed native transports did not retire"
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert_eq!(
+            db.query_row(
+                "SELECT count(*) FROM native_connection_lifetimes WHERE retired=0",
+                [],
+                |r| r.get::<_, u64>(0)
+            )
+            .unwrap(),
+            2,
+            "blocked metadata retirement falsely claimed settlement"
+        );
+        Some(hold)
+    } else {
+        None
+    };
     checkpoint(
         &scene.f,
         &root,
         &scene.cid,
-        Phase::Ready,
+        phase,
         vec!["codec-source".into(), "codec-target".into()],
         None,
     );
     // Keep the actual peers, installation lock and native engine alive. The
     // parent must kill this process; no destructor/shutdown can qualify death.
     std::future::pending::<()>().await;
+    drop(retirement);
     drop(scene);
 }
 
@@ -155,6 +200,15 @@ async fn production_sigkill_native_answer_before_confirmation_never_becomes_read
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256() {
     native_crash("ES256", Phase::Answered).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_eddsa() {
+    native_crash("EdDSA", Phase::Retiring).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_es256() {
+    native_crash("ES256", Phase::Retiring).await;
 }
 
 async fn native_crash(algorithm: &str, phase: Phase) {
@@ -241,7 +295,7 @@ async fn native_crash(algorithm: &str, phase: Phase) {
         .unwrap(),
         0
     );
-    if phase == Phase::Ready {
+    if phase != Phase::Answered {
         let until = tokio::time::Instant::now() + Duration::from_secs(5);
         loop {
             let state: String = db
@@ -277,7 +331,7 @@ async fn native_crash(algorithm: &str, phase: Phase) {
         .iter()
         .find(|item| item["kind"] == "session" && item["data"]["id"] == "native-session")
         .unwrap();
-    let answer_recovery = if phase == Phase::Ready {
+    let answer_recovery = if phase != Phase::Answered {
         assert_eq!(ended["data"]["state"], "ended");
         assert_eq!(ended["data"]["ended_reason"], "reconnect-grace-expired");
         Value::Null
@@ -330,7 +384,7 @@ async fn native_crash(algorithm: &str, phase: Phase) {
     if let Some(path) = std::env::var_os("CONNECT_G6_CRASH_CAPTURE") {
         let path = std::path::PathBuf::from(path);
         assert!(path.is_absolute() && path.starts_with(workspace.join(".local/gate-6")));
-        std::fs::write(path.with_extension(format!("{algorithm}.json")),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"phase":phase,"killed_signal":death.signal(),"decoded_duplex_before_kill":phase==Phase::Ready,"new_runtime_epoch":true,"installation_preserved":true,"physical_after_restart":physical,"unretired_old_lifetimes":0,"session_ended_after_grace":phase==Phase::Ready,"public_session_after_crash":ended,"answer_recovery":answer_recovery,"stale_native_signal_refused_without_source_or_io":true,"fresh_conversation_without_physical_resurrection":true})).unwrap()).unwrap();
+        std::fs::write(path.with_extension(format!("{algorithm}.json")),serde_json::to_vec_pretty(&json!({"algorithm":algorithm,"phase":phase,"killed_signal":death.signal(),"decoded_duplex_before_kill":phase!=Phase::Answered,"retirement_pending_at_kill":phase==Phase::Retiring,"native_transports_closed_before_kill":phase==Phase::Retiring,"new_runtime_epoch":true,"installation_preserved":true,"physical_after_restart":physical,"unretired_old_lifetimes":0,"session_ended_after_grace":phase!=Phase::Answered,"public_session_after_crash":ended,"answer_recovery":answer_recovery,"stale_native_signal_refused_without_source_or_io":true,"fresh_conversation_without_physical_resurrection":true})).unwrap()).unwrap();
     }
     client.close();
     drop(db);

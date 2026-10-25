@@ -1,6 +1,6 @@
 {
   "task": "G6-047",
-  "recorded_at": "2026-10-25T00:58:38.650503+00:00",
+  "recorded_at": "2026-10-25T01:04:59.245623+00:00",
   "status": "native-answer-ready-and-surviving-sip-submission-crash-slices-pass-full-task-open",
   "full_task_complete": false,
   "full_goal_complete": false,
@@ -15,11 +15,11 @@
     "source": "crates/connect-server/tests/support/canonical_native_connections/crash_recovery.rs",
     "scope": "Actual subprocess native ready/committed decoded bridge and actual server answer before callback confirmation; parent SIGKILL, successor ownership, old physical readiness/lifetime fencing, honest failed unconfirmed offer, immutable replay/no duplicate admission, public snapshot and stale signal refusal. EdDSA and ES256. Actual submitted SIP call remains external after server SIGKILL: successor reports Unknown at original attempt1, clears readiness, preserves receipt, refuses operator-declared completion, and replay/conflicting invitation cause no redial. Store process-exit boundaries separately cover local transactions with a synthetic effect counter.",
     "entrypoint_policy": "One explicitly ignored child-only entry point is invoked by four parent tests using --ignored; never counted as a skipped qualification or standalone pass.",
-    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately."
+    "verification": "Four native SIGKILL parents and two surviving-peer SIP SIGKILL parents pass, plus two Store parents/27 controlled process-exit boundaries. SIP constructor answer/end regressions pass. Every run retains source/executable guards; failed first SIP authorization fixture is retained separately. Both native retirement parents now also pass with source/executable guards: six native SIGKILL parents total across answer, ready and metadata retirement; two SIP submission SIGKILL parents separately pass."
   },
   "remaining": [
-    "Qualify native retirement, SIP answered/ready/committed and retirement crash boundaries with still-live external peers; current six SIGKILL parent cases do not close the task.",
-    "Qualify supported provider state queries after actual process death; prepared actual-SDK external-HTTP fixtures are building and are not yet qualification.",
+    "Qualify SIP answered/ready/committed and retirement crash boundaries with still-live external peers; native answer/ready/retirement and SIP submission are scoped passes.",
+    "Fix confirmed schema109 stale provider host guard and missing inverse after typed initial-telephone parent replacement; rerun actual provider creation/query/recovery and existing regressions.",
     "Verify bounded authorized operator reconciliation for uncertainty and unresolved-conflict exclusion across required operation classes.",
     "Verify actual owned drain/termination, retained original consultation/handoff/replacement effects and recovery failure cases, then audit complete G6-047 coverage."
   ],
@@ -612,6 +612,164 @@
         }
       ],
       "correction": "Two SIP cases initially failed at the false-reconciliation check because the collaboration caller lacked operation.reconcile. The corrected test explicitly issues an operator-scoped credential for the same owning identity and requires reconciliation-required from the actual uncertain operation. No product change, lowered assertion or pass relabeling. All four native parent and two initial-SIP answer/end regressions passed in this original run."
+    },
+    "native_retirement_pending": {
+      "source_revision": "ae76ae4d1a963d31ce5c18e23c0985e72d48faf4",
+      "source_lock_sha256": "2d4f2eff9286f03ae7bc09b8ad9e6ae73b54e04dfcfed17eeff3eb4e086188be",
+      "executable_sha256": "5c3b1f87c50509fd5cb6ef568bd6b806046ad6d65d26c292a0b2dddb577fd6a4",
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "profiles": [
+        {
+          "phase": "native-retiring",
+          "algorithm": "EdDSA",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_eddsa",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "4b9ff969381b78a63e28861f978f7ce4ba82fc7b77b2ce3517af13dd491c54a3",
+          "observations": {
+            "algorithm": "EdDSA",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": true,
+            "new_runtime_epoch": true,
+            "phase": "retiring",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_1aafceebf03e412699e91e6809db6162",
+                "created_at": 1792890269,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792890273
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": true,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        },
+        {
+          "phase": "native-retiring",
+          "algorithm": "ES256",
+          "case": "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_es256",
+          "runtime_exit_code": 0,
+          "passed": true,
+          "capture_sha256": "82921f6c54dca1126325661c4c811fa5f347556436d1650c5c28b57a85992e93",
+          "observations": {
+            "algorithm": "ES256",
+            "answer_recovery": null,
+            "decoded_duplex_before_kill": true,
+            "fresh_conversation_without_physical_resurrection": true,
+            "installation_preserved": true,
+            "killed_signal": 9,
+            "native_transports_closed_before_kill": true,
+            "new_runtime_epoch": true,
+            "phase": "retiring",
+            "physical_after_restart": [
+              [
+                "codec-source",
+                "retired",
+                3,
+                null,
+                null
+              ],
+              [
+                "codec-target",
+                "retired",
+                3,
+                null,
+                null
+              ]
+            ],
+            "public_session_after_crash": {
+              "data": {
+                "capabilities_offer": {
+                  "audio": [
+                    "g.711-mu",
+                    "g.711-a"
+                  ]
+                },
+                "codec_preferences": [],
+                "conversation_id": "conv_0af1dc9eee6f449aa02b450a331a7683",
+                "created_at": 1792890274,
+                "ended_reason": "reconnect-grace-expired",
+                "id": "native-session",
+                "intent": "conference",
+                "is_main": true,
+                "media": [
+                  "audio"
+                ],
+                "revision": 9,
+                "state": "ended",
+                "topology_revision": 2,
+                "updated_at": 1792890277
+              },
+              "kind": "session"
+            },
+            "retirement_pending_at_kill": true,
+            "session_ended_after_grace": true,
+            "stale_native_signal_refused_without_source_or_io": true,
+            "unretired_old_lifetimes": 0
+          }
+        }
+      ],
+      "passed": true,
+      "summary": ".local/gate-6/crash-recovery/native-retiring009-runtime-009/summary.json",
+      "summary_sha256": "9fa3b0207024523b5b692cee924d40c3666891f51476b37db29e6f5b81f745fc",
+      "scope": "Two native retirement SIGKILL parents; decoded actual duplex, both physical peers closed while Conversation writer blocks old lifetime metadata settlement, actual process kill, successor absence recovery/grace/public snapshot/stale refusal. EdDSA and ES256. Raw wrapper inherited prose is superseded by exact case IDs and captures."
     }
+  },
+  "provider_trigger_regression": {
+    "summary": ".local/gate-6/crash-recovery/provider-trigger109-diagnostic.json",
+    "sha256": "20f51d548b6c5a063afefa3fdb1193b026f81a3ad4e45ed3068546638a299ec1",
+    "confirmed": true,
+    "fixed": false,
+    "observations": {
+      "scope": "Readonly EXPLAIN on failed isolated schema109 fixture; no insert executed",
+      "schema": 109,
+      "error": "no such column: i.invitation_record_id",
+      "cause": "Migration105 replaced initial_telephone_operations with parent_record_id/parent_kind; provider-side guard retained removed invitation_record_id, while dropping the table removed its inverse guard.",
+      "stale_trigger_sha256": "a14dafadf784286696548b740efde3bec59a9199cf2173da9066d40dc266aa73",
+      "inverse_guard_present": false
+    },
+    "failed_runtime_summary": ".local/gate-6/crash-recovery/provider-submitted007-runtime-007/summary.json",
+    "diagnostic_runtime_summary": ".local/gate-6/crash-recovery/provider-diagnostic008-runtime-008/summary.json",
+    "compile_correction": "voice_flow now uses recursion_limit256, matching the native runtime test target; first build failure retained in provider-submitted005."
   }
 }
