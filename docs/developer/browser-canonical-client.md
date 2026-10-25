@@ -123,7 +123,11 @@ reliable ordered canonical publication with original logical IDs and at most
 64 KiB decoded bytes. Completion proves queue admission, rather than recipient
 consumption; the recipient observes its actual data callback with original
 sender/message/operation attribution. `connection.end` reconciles terminal
-operation status and retires local routes. Physical client closure retires all
+operation status and retires local routes. Normal clearing names the exact
+Connection and original operation ID without conditioning terminal intent on a
+stream revision that server reconciliation may advance. Current credential,
+Connection generation and physical ownership checks still apply.
+Physical client closure retires all
 owned media codecs, readers, writers, timers and queued datagrams.
 
 The explicit short codec lane synthesizes two distinct tones and moving color

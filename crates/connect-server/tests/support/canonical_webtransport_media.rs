@@ -61,11 +61,21 @@ pub(super) fn other(f: &Fixture) -> CanonicalClientConfig {
     other_caps(f, vec!["audio".into()])
 }
 pub(super) fn other_caps(f: &Fixture, capabilities: Vec<String>) -> CanonicalClientConfig {
+    other_caps_with_end(f, capabilities, false)
+}
+pub(super) fn other_caps_with_end(
+    f: &Fixture,
+    capabilities: Vec<String>,
+    end: bool,
+) -> CanonicalClientConfig {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope
         .operations
         .extend(["stream.subscribe".into(), "stream.unsubscribe".into()]);
+    if end {
+        scope.operations.push("connection.end".into());
+    }
     let issued = f
         .server
         .store

@@ -56,6 +56,8 @@ test('media control binds native parameters, confirms once and completes from st
     for(const fn of client.events)fn(message);
     assert.deepEqual(received[0].body.value,new Uint8Array([0,255,8]));assert.equal(received[0].messageId,'message_from_other');
     await connection.end('terminal');assert.throws(()=>connection.revision,{code:'closed'});
+    const end=client.sent.find(x=>x.type==='connection.end');
+    assert.equal(end.scope.connid,'connection');assert.equal(end.scope.expected_revision,undefined);
     assert.equal(peer.diagnostics.activeBindings,0);
   }finally{peer.close();}
   assert.equal(client.closed,true);assert.equal(client.events.size,0);assert.equal(client.lifetimes.size,0);

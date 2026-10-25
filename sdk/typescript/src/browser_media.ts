@@ -1183,7 +1183,6 @@ export class BrowserMediaPeer {
             {
                 ...state.scope,
                 operation_id: operationId,
-                expected_revision: state.revision,
             },
             options,
         );

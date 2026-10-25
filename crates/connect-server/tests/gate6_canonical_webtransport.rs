@@ -27,7 +27,14 @@ const ORIGIN: &str = "https://browser.fixture.invalid";
 const MOUNT: &str = "/connect";
 
 async fn fixture(algorithm: &str) -> Fixture {
-    let f = Fixture::with_native_stream_scope(algorithm, 8).await;
+    fixture_with_end(algorithm, false).await
+}
+async fn fixture_with_end(algorithm: &str, end: bool) -> Fixture {
+    let f = if end {
+        Fixture::with_native_end_scope(algorithm, 8).await
+    } else {
+        Fixture::with_native_stream_scope(algorithm, 8).await
+    };
     let Fixture {
         temp,
         mut config,

@@ -1,0 +1,501 @@
+{
+  "task": "G6-050",
+  "status": "in-progress",
+  "scope": "Short actual production browser/browser Opus/VP8/reliable-data checkpoint plus current authorization/lifecycle regressions. No capture/playback, browser/native Opus/VP8, 60-second or full G6-050 claim.",
+  "changes": [
+    "Current packet Store reads retry only authority-busy for at most 2ms inside original Core admission callback; original gate/scene stamps still fence completion",
+    "Reliable data retries readonly pre-effect metadata within 200ms and original cancellation/lease deadline; durable accept/begin and single Core publication are not retried",
+    "Explicit media fixture grants connection.end to both actors; normal SDK end retains exact Connection and original logical operation identity without conditioning terminal intent on stream revision"
+  ],
+  "sdk_suite": {
+    "passed": 184,
+    "failed": 0,
+    "skipped": 0,
+    "log": ".local/gate-6/browser-sdk/end019/sdk-suite.log",
+    "sha256": "4730c756ba3182c61b442d6df38146a6710adc0cc5af1b4c43f3adafd619731a"
+  },
+  "service_units": {
+    "report": ".local/gate-6/browser-sdk-contention-service-tests.json",
+    "sha256": "243513c4d9e4c6907006ae733bd247ef077e0e51029dec2bb0281a9b983684d1",
+    "passed": 11
+  },
+  "browser_runtime": {
+    "summary": ".local/gate-6/browser-sdk/end019/summary.json",
+    "sha256": "b61eceb2f539002b664146596e8e18c31b3fb2f4bdd47782b1cf2aeeace6b01a",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.888195666950196,
+        "log": ".local/gate-6/browser-sdk/end019/case-0.log",
+        "log_sha256": "0d431b7ee1227d3d350ea3e47b52574220ac4aaeda32dcb37ce825275f91c7e9"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8303125000093132,
+        "log": ".local/gate-6/browser-sdk/end019/case-1.log",
+        "log_sha256": "0ba800ef33aa685973747e72b09cc43206a41ace8842b5e503a2a9fe3c24a0c1"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.405731667065993,
+        "log": ".local/gate-6/browser-sdk/end019/case-2.log",
+        "log_sha256": "723c7c27e915f0130e61171b0c1109cf5bea400e3f83f69becbc1da546c84a47"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.435603083111346,
+        "log": ".local/gate-6/browser-sdk/end019/case-3.log",
+        "log_sha256": "37c255248a4f31c938745a67225d3e3e665799e569f98994bb605cdc45bac29a"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.782343209022656,
+        "log": ".local/gate-6/browser-sdk/end019/case-4.log",
+        "log_sha256": "1feb9b1e9d312a16052b5c273b58dc7a329fe1b3c5770cb5ba375254e6c772c1"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.57731695799157,
+        "log": ".local/gate-6/browser-sdk/end019/case-5.log",
+        "log_sha256": "f219e6ea94b0a5adc6bf62f3bb19ecb7e30c90d31a3fea8737ae09a9668d7dc3"
+      }
+    ]
+  },
+  "media_observations": [
+    {
+      "browser": {
+        "js_version": "15.5.35.25",
+        "product": "Chrome/155.0.8059.85",
+        "protocol_version": "1.3",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      },
+      "result": {
+        "accepted": {
+          "audio": [
+            231,
+            231
+          ],
+          "video": [
+            139,
+            139
+          ]
+        },
+        "algorithm": "EdDSA",
+        "created_cid": "conv_828a90e1ce0b49e6afb7ba3c2b072877",
+        "decoded_forward": true,
+        "decoded_reverse": true,
+        "duration_ms": 4000,
+        "metrics": [
+          {
+            "activeBindings": 3,
+            "decodedAudio": 182,
+            "decodedVideo": 121,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 305,
+            "rejected": 0,
+            "sent": 373
+          },
+          {
+            "activeBindings": 3,
+            "decodedAudio": 205,
+            "decodedVideo": 122,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 329,
+            "rejected": 0,
+            "sent": 372
+          }
+        ],
+        "opus": [
+          {
+            "decoded": 167,
+            "identified": 167
+          },
+          {
+            "decoded": 189,
+            "identified": 189
+          }
+        ],
+        "owned_cleanup": true,
+        "passed": true,
+        "production_sdk_media": true,
+        "readiness_ms": 289.30000019073486,
+        "reliable_data_duplex": true,
+        "scope": "short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open",
+        "vp8": [
+          {
+            "decoded": 111,
+            "identified": 111,
+            "motion": 106
+          },
+          {
+            "decoded": 114,
+            "identified": 114,
+            "motion": 107
+          }
+        ]
+      }
+    },
+    {
+      "browser": {
+        "js_version": "15.5.35.25",
+        "product": "Chrome/155.0.8059.85",
+        "protocol_version": "1.3",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+      },
+      "result": {
+        "accepted": {
+          "audio": [
+            221,
+            221
+          ],
+          "video": [
+            133,
+            133
+          ]
+        },
+        "algorithm": "ES256",
+        "created_cid": "conv_b7d6289106d944af88e83911179ac359",
+        "decoded_forward": true,
+        "decoded_reverse": true,
+        "duration_ms": 4000,
+        "metrics": [
+          {
+            "activeBindings": 3,
+            "decodedAudio": 180,
+            "decodedVideo": 111,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 293,
+            "rejected": 0,
+            "sent": 357
+          },
+          {
+            "activeBindings": 3,
+            "decodedAudio": 188,
+            "decodedVideo": 111,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 301,
+            "rejected": 0,
+            "sent": 356
+          }
+        ],
+        "opus": [
+          {
+            "decoded": 174,
+            "identified": 174
+          },
+          {
+            "decoded": 182,
+            "identified": 182
+          }
+        ],
+        "owned_cleanup": true,
+        "passed": true,
+        "production_sdk_media": true,
+        "readiness_ms": 118.5,
+        "reliable_data_duplex": true,
+        "scope": "short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open",
+        "vp8": [
+          {
+            "decoded": 108,
+            "identified": 108,
+            "motion": 84
+          },
+          {
+            "decoded": 108,
+            "identified": 108,
+            "motion": 81
+          }
+        ]
+      }
+    }
+  ],
+  "authorization_lifecycle_regression": {
+    "summary": ".local/gate-6/webtransport/contention027/summary.json",
+    "sha256": "88f9bf08e4b8538d54520d244ca0951298a0d5c654bde85cf88bf47df88c14d0",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "cases": [
+      {
+        "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012217999901622534,
+        "log": ".local/gate-6/webtransport/contention027/case-0.log",
+        "log_sha256": "aa4bd31f276d8513a98a37b2a66456e112cc45ee72626a94b5e697dacf81eb3a"
+      },
+      {
+        "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012138500111177564,
+        "log": ".local/gate-6/webtransport/contention027/case-1.log",
+        "log_sha256": "28ae8738ae5e46ffc27dfc9e38043174307f173eee61aefaf73ec15f4c3e8413"
+      },
+      {
+        "case": "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.005869541084393859,
+        "log": ".local/gate-6/webtransport/contention027/case-2.log",
+        "log_sha256": "3543bf639ebf98159e7ee5f3c9161caa87aec727dc6e66275f62ef2ed0cfcbc7"
+      },
+      {
+        "case": "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012282167095690966,
+        "log": ".local/gate-6/webtransport/contention027/case-3.log",
+        "log_sha256": "589668653ee303f544835b9e0e6d38406686e9c9a6f7d8f36b3751ddc6ba1b92"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5403970831539482,
+        "log": ".local/gate-6/webtransport/contention027/case-4.log",
+        "log_sha256": "1d01200f26fa7f2d0e47816da1d6c09220df2e2554f1433cd786f3b1c07db306"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5191247921902686,
+        "log": ".local/gate-6/webtransport/contention027/case-5.log",
+        "log_sha256": "1e6ef178bdf9f7a123738fa8c95e07b6ed27d7d441368f9aa16fbb00a7853d41"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6148967500776052,
+        "log": ".local/gate-6/webtransport/contention027/case-6.log",
+        "log_sha256": "f8e769dc826e6be6fe2075d2f89a7f868ad5201d51a5ac5e6a162921fb13dfa3"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.27614341606386,
+        "log": ".local/gate-6/webtransport/contention027/case-7.log",
+        "log_sha256": "47c0770530f3e5aae1256e0bab8562b7e98943ad74aa820e99ad4c3ce35e44d4"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.276020166929811,
+        "log": ".local/gate-6/webtransport/contention027/case-8.log",
+        "log_sha256": "97a86b519fe6cc78e70dde8b67dbaa967f51595ae2b9db797ab2cdbc9bf1e81e"
+      },
+      {
+        "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.24929258320480585,
+        "log": ".local/gate-6/webtransport/contention027/case-9.log",
+        "log_sha256": "614e77193f72f28ddd595b864f5572fd26e48dc2cf664d876c498e7d11feedd9"
+      },
+      {
+        "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.2092187087982893,
+        "log": ".local/gate-6/webtransport/contention027/case-10.log",
+        "log_sha256": "b8ced2926310e9a24577d45ec64ce7267860d00ecb8c70679a0b3c6c54c37b86"
+      },
+      {
+        "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.2109105410054326,
+        "log": ".local/gate-6/webtransport/contention027/case-11.log",
+        "log_sha256": "3218bb3856ac242c26209cf2ce6bbc1429e7b1645634283a718e44d80f5fb3cb"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5488588749431074,
+        "log": ".local/gate-6/webtransport/contention027/case-12.log",
+        "log_sha256": "3b498dbb3f3598cc5fc1bf892d11cf9af32c212f849ce8cd276555ac3d361884"
+      },
+      {
+        "case": "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.9835808330681175,
+        "log": ".local/gate-6/webtransport/contention027/case-13.log",
+        "log_sha256": "dadbdfd958b316bb5c783c4f2fb8379fc8991bca941038099722844cb4a886e6"
+      },
+      {
+        "case": "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.9468011669814587,
+        "log": ".local/gate-6/webtransport/contention027/case-14.log",
+        "log_sha256": "f550caf8ef76dd7ad711e524efb03e576b5f49267781f830d1077001b3e86c7a"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.2620569169521332,
+        "log": ".local/gate-6/webtransport/contention027/case-15.log",
+        "log_sha256": "179565cef4155c0af377d3d872280182a5683dbf8729ebf1ed143ecfc8c82152"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.6201031659729779,
+        "log": ".local/gate-6/webtransport/contention027/case-16.log",
+        "log_sha256": "9078459840c68eb7b3bcfc365552f77e68f88a9cc60d9006e3170847b99843dd"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.317189000081271,
+        "log": ".local/gate-6/webtransport/contention027/case-17.log",
+        "log_sha256": "edee37ccfe9fa9b6d7a49cb3a845c23f7fc4a561861419503dc2709850f40c25"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.9436649999115616,
+        "log": ".local/gate-6/webtransport/contention027/case-18.log",
+        "log_sha256": "64dce310189f2cf470ca1ff1fd98c6d69306c6293b6f0f0a8a71438985378d4f"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.7029589170124382,
+        "log": ".local/gate-6/webtransport/contention027/case-19.log",
+        "log_sha256": "81df07a6178ce1796ece4393c37ca764eb701bde9b0c665830de36f509a2c293"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8073676249478012,
+        "log": ".local/gate-6/webtransport/contention027/case-20.log",
+        "log_sha256": "6705d556e1b2c293ad3c3e9f29bbf5e37cd9c8875798cad089dc72823d77bb46"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.3887266251258552,
+        "log": ".local/gate-6/webtransport/contention027/case-21.log",
+        "log_sha256": "fe46978a00812a428aa8428e405c8cbcd6624e036d5c1c18ef510cc338d08dc2"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 11.617775874910876,
+        "log": ".local/gate-6/webtransport/contention027/case-22.log",
+        "log_sha256": "d83452b193079ec418517e2aeecda8ce7985f3cbb8b6c41a141f7d4ad8e02d76"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.3143696249462664,
+        "log": ".local/gate-6/webtransport/contention027/case-23.log",
+        "log_sha256": "dd06e45af0f61aeeb7283dd161fd12d87c782a0d1c0c1a7ebcd03439fa11c916"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.607702374923974,
+        "log": ".local/gate-6/webtransport/contention027/case-24.log",
+        "log_sha256": "3946c9a5481a7257a97e3609438c81b4d2eb1a54c61ec728ba567e195b28bfce"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.635197249939665,
+        "log": ".local/gate-6/webtransport/contention027/case-25.log",
+        "log_sha256": "4d324ca8fea29e95ce8a94dcaaa4d261810a17a08301977f9da59504507ea31f"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.532730084145442,
+        "log": ".local/gate-6/webtransport/contention027/case-26.log",
+        "log_sha256": "d1950f0d90e0c39d0fcaf561f64a8c8e1bf5b27e90405422b30eaec652fd06c0"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.400240833172575,
+        "log": ".local/gate-6/webtransport/contention027/case-27.log",
+        "log_sha256": "65c5c1d68c1c5119661755504c79fb6bd776b62c5c8f94a7acb8e38cde72999a"
+      }
+    ]
+  },
+  "retained_runs": [
+    {
+      "summary": ".local/gate-6/browser-sdk/contention016/summary.json",
+      "sha256": "95c12b18e2eceedc66295ff6b5ae3cfe9eaef100b16ca77c738fd3f0cd03727a",
+      "passed": false,
+      "scope": "Both media/data checks reach end but missing separately named end grant refuses; generated formatting also fails source guard. Not qualified."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/contention017/summary.json",
+      "sha256": "2754e30c553feab83b91a3f9a4c74a0f4461fc80dd3da74f4c7bea78d773d900",
+      "passed": false,
+      "scope": "5/6 pass; ES256 original end conflicts while conditional on stream revision. Source/binary guards pass."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/end018/summary.json",
+      "sha256": "6306a8e4f1711acc6ab29a2397212fca5100a9e8dad409948c3870f9aee530f9",
+      "passed": true,
+      "scope": "Single ES256 diagnostic passes before SDK end intent refinement; omitted matrix not qualified."
+    }
+  ],
+  "source_sha256": {
+    "crates/connect-service/src/canonical_media/packets.rs": "2a4c8938e47db91710b8572313998cb17bdcb8c1030a052962b678ef691894ad",
+    "crates/connect-service/src/canonical_native_data.rs": "49c23c1a2b3ae4b9ae602ebd45b47ff391bf47f01baf5c6ae0282c152886c9c0",
+    "sdk/typescript/src/browser_media.ts": "cbd33c92842019609d54a1425e1721c3253dd77d0a267601e2d480ad175d3f5e",
+    "sdk/typescript/dist/browser_media.js": "ec669652f2fc07c88eda4b007bdd2a80888c1a65fbcf0628cfad023664aa9eb8",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "3eb01a7dbc04bb99eb9780c8c43e3f8ef2d5d7d7781278962a85a77ca2374c2c",
+    "crates/connect-server/tests/gate6_canonical_webtransport.rs": "77c2cbbacf758e514e83d29e2c777ada55505bba34b6e8c0b7660d490b735ff2",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "4db5499ba90c01a5e01b83aa8ea7bf6901fa0e0a8f1f0fd0e9d3d92b79082050",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "4f94a466c166a997d3611a99da66236455a01dd24c3c986d6564abb2451db8ed"
+  },
+  "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+  "acceptance_qualified": false,
+  "remaining": "Actual capture and audio playback; browser/native identified Opus/VP8/data; permissions, unsupported APIs/codecs, background/resume, loss/teardown and full frozen 60-second measurements."
+}

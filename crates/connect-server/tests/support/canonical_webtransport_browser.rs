@@ -204,7 +204,7 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
         peer,
         admin,
         key_revision,
-    } = fixture(algorithm).await;
+    } = fixture_with_end(algorithm, media).await;
     // Exercise the derived contact for the actual bound address family.
     assert!(config
         .webtransport
@@ -264,7 +264,7 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
         vec!["audio".into()]
     };
     super::canonical_webtransport_media::endpoint_caps(&f, &f.client, 0, capabilities.clone());
-    let other = super::canonical_webtransport_media::other_caps(&f, capabilities);
+    let other = super::canonical_webtransport_media::other_caps_with_end(&f, capabilities, media);
     let (cid, initiator, recipient) = super::canonical_webtransport_media::accepted_caps(
         &f,
         &other,

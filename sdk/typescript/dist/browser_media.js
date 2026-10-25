@@ -834,7 +834,6 @@ export class BrowserMediaPeer {
         await this.client.request("connection.end", { reason_code: 200, reason: "normal-clearing" }, {
             ...state.scope,
             operation_id: operationId,
-            expected_revision: state.revision,
         }, options);
         await this.completed(state.scope.cid, operationId, performance.now() + (options.timeoutMs ?? 10000), options.signal);
         this.retire(id);

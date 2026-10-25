@@ -1,5 +1,29 @@
 //! Current per-packet policy; only exact active source file custody is reused.
 use super::*;
+
+/// Retry only an unavailable current read, inside the engine's original packet
+/// admission callback. No positive grant, SQL lock or partial reader survives a
+/// failed attempt. The engine still checks its original gate/scene stamps after
+/// this callback, so a mute/retirement during contention cannot become a replay.
+fn packet_read<T>(
+    mut read: impl FnMut() -> connect_protocol::Result<T>,
+) -> connect_protocol::Result<T> {
+    let until = std::time::Instant::now() + std::time::Duration::from_millis(2);
+    packet_read_until(until, &mut read)
+}
+fn packet_read_until<T>(
+    until: std::time::Instant,
+    mut read: impl FnMut() -> connect_protocol::Result<T>,
+) -> connect_protocol::Result<T> {
+    loop {
+        match read() {
+            Err(error) if error.code == "authority-busy" && std::time::Instant::now() < until => {
+                std::thread::yield_now()
+            }
+            result => return result,
+        }
+    }
+}
 impl Policy {
     pub(super) fn packet_current(
         &self,
@@ -30,23 +54,25 @@ impl Policy {
             _ => None,
         };
         let started = std::time::Instant::now();
-        let result = match (held.as_deref(), source.as_ref()) {
-            (Some(held), Some((descriptor, source))) => {
+        if let (Some(held), Some((descriptor, source))) = (held.as_deref(), source.as_ref()) {
+            source_matches(descriptor, source, held.target())?;
+        }
+        let result = packet_read(|| match (held.as_deref(), source.as_ref()) {
+            (Some(held), Some((_, source))) => {
                 // The opaque context must be this actual source binding, not
                 // another grant that happens to cover the same Conversation.
-                source_matches(descriptor, source, held.target())?;
                 self.store
                     .try_native_media_read_under(&entry.origin, &source.origin, held)
             }
             (Some(held), None) if matches!(scope.purpose, MediaPurpose::Publish) => self
                 .store
                 .try_native_media_source_read_under(&entry.origin, held),
-            (Some(_), None) => return Err(StreamControlError::Authority),
+            (Some(_), None) => return Err(connect_protocol::Error::forbidden()),
             (None, _) => self.store.try_native_media_read(
                 &entry.origin,
                 source.as_ref().map(|(_, entry)| entry.origin.as_ref()),
             ),
-        };
+        });
         tracing::trace!(target: "connect_service::canonical_packet",
             connection = entry.origin.connection_id(),
             elapsed_us = started.elapsed().as_micros() as u64,
@@ -88,5 +114,67 @@ impl Policy {
             .ok_or(StreamControlError::NotReady)?
             .current(owner).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet activation refused");error})?;
         Ok(Box::new(Fresh::new(owner, read, held)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn temporary_packet_read_rechecks_and_never_reuses_a_prior_grant() {
+        let mut calls = 0;
+        let read = packet_read_until(
+            std::time::Instant::now() + std::time::Duration::from_secs(1),
+            || {
+                calls += 1;
+                if calls == 1 {
+                    Err(connect_protocol::Error::new("authority-busy", "held"))
+                } else {
+                    Err::<(), _>(connect_protocol::Error::forbidden())
+                }
+            },
+        );
+        assert_eq!(calls, 2);
+        assert_eq!(read.unwrap_err().code, "forbidden");
+        let mut calls = 0;
+        let read = packet_read_until(
+            std::time::Instant::now() + std::time::Duration::from_secs(1),
+            || {
+                calls += 1;
+                if calls == 1 {
+                    Err(connect_protocol::Error::new("authority-busy", "held"))
+                } else {
+                    Ok("fresh-current-source")
+                }
+            },
+        )
+        .unwrap();
+        assert_eq!(read, "fresh-current-source");
+        assert_eq!(calls, 2);
+    }
+    #[test]
+    fn permanent_packet_refusal_is_immediate_and_busy_work_is_bounded() {
+        let mut calls = 0;
+        assert_eq!(
+            packet_read(|| {
+                calls += 1;
+                Err::<(), _>(connect_protocol::Error::new("storage", "failed"))
+            })
+            .unwrap_err()
+            .code,
+            "storage"
+        );
+        assert_eq!(calls, 1);
+        let mut calls = 0;
+        assert_eq!(
+            packet_read_until(std::time::Instant::now(), || {
+                calls += 1;
+                Err::<(), _>(connect_protocol::Error::new("authority-busy", "held"))
+            })
+            .unwrap_err()
+            .code,
+            "authority-busy"
+        );
+        assert_eq!(calls, 1);
     }
 }

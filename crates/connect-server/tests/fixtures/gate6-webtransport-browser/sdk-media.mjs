@@ -80,7 +80,13 @@ export async function run(config){
       }
     }
     const metrics=peers.map(p=>p.diagnostics);
-    for(let i=0;i<2;i++)await connections[i].end('browser-end-'+i);
+    for(let i=0;i<2;i++){
+      const operation='browser-end-'+i,revision=connections[i].revision;
+      try{await connections[i].end(operation);}catch(error){
+        let status;try{status=await clients[i].operationStatus(config.media_cid,operation);}catch(e){status=String(e);}
+        throw Error('original media end refused '+JSON.stringify({index:i,revision,operation,error:String(error),status,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size}))}));
+      }
+    }
     for(const peer of peers)peer.close();
     check(clients.every(c=>c.closed)&&peers.every(p=>p.diagnostics.activeBindings===0&&p.diagnostics.queuedBytes===0),'owned media cleanup');
     return{passed:true,production_sdk_media:true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),metrics,accepted,readiness_ms,duration_ms:duration,scope:'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
