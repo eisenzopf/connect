@@ -162,7 +162,11 @@ return value means accepted for presentation. Audio copies PCM; video retains
 only owned `VideoFrame` clones. The decoder keeps ownership of its originals.
 
 One presentation origin maps shared decoded timestamps to the playback clock.
-Capture gaps remain gaps. If late audio changes its actual scheduling time,
+Capture gaps remain gaps. Audio that overlaps already scheduled PCM by more
+than one 48 kHz sample is refused before scheduling; repeated clock-report
+phase adjustments cannot serialize overlapping PCM and accumulate a shared
+presentation delay. One-sample timestamp rounding remains admissible. If late
+audio changes its actual scheduling time,
 queued video follows that same origin. Audio holds at most ten20ms sources and
 200ms of work. Each of at most eight canvases holds at most eight owned frames,
 also bounded to200ms. A late pump displays only the newest due frame per stream.

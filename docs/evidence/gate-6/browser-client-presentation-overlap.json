@@ -1,0 +1,65 @@
+{
+  "schema": "connect-gate6-presentation-overlap/1",
+  "task": "G6-050",
+  "status": "Overlapping audio clock phases refused before scheduling; current connected qualification pending",
+  "source": {
+    "sdk/typescript/src/browser_media_renderer.ts": "0e34e7f88929e2390f62be2b8e0f0878957d7e16c99566bee6ffe3817b563a10",
+    "sdk/typescript/dist/browser_media_renderer.js": "a77f4a89a3475934ba3eea5fee1daf16c14f237cce28845e3c09a0834e5c3303",
+    "sdk/typescript/dist/browser_media_renderer.d.ts": "df3c0a2be7f6ee9f89a4fba1bca406f8061266e3b72276029b25f9b7ddbb96ed",
+    "sdk/tests/browser_presentation_clock.test.mjs": "28fb598a32e680e9b5149449dc896501988a84b8cf5d5df158ae6c146a1ccf0c"
+  },
+  "current_failed_browser_rehearsal": {
+    "report": ".local/gate-6/browser-sdk/clean60-frame070/summary.json",
+    "sha256": "01b87f29c9e44f3d190d0954b69514f8bbb646b255fc8000a2daa3b2e303ac96",
+    "source_revision": "9e65d12849faa827e9d77946cd61fbe308e83873",
+    "sdk_methods": 240,
+    "passed": false,
+    "methods": 8,
+    "passed_methods": 5,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "failures": [
+      "Short EdDSA synthetic method identifies134/187audio against150minimum; intermittent audio remains unresolved.",
+      "Long EdDSA capture decodes1685/1682video and identifies1685/1172 with605/570motion positions; reverse throughput is below unchanged24fps requirement.",
+      "Long ES256 capture decodes1718/1733video and identifies1718/560 with606/377motion positions; reverse throughput is below unchanged24fps requirement."
+    ],
+    "unexecuted": "Both long cases throw before actual renderer counters/alignment/original terminal intent/owned teardown assertions; no inferred rendered-fps, alignment or teardown pass."
+  },
+  "timing_diagnostic": {
+    "report": ".local/gate-6/presentation-diagnostic/timing002/analysis.json",
+    "sha256": "afca214d6498786ecb6616914f782e659d25c77f8840c17c801324dfc61b70d5",
+    "observation_valid": true,
+    "source_inputs_unchanged": true,
+    "inputs_unchanged": true,
+    "sealed_executable_unchanged": true,
+    "scope": "Bounded diagnostic wrappers around original renderer calls in one owned Chrome supplied-stream60second method. Original source/observer/limits are unchanged, but extra diagnostic sampling precludes operating/performance qualification. No personal devices.",
+    "observation": "Bounded original renderer-call wrappers observe common origin moving185.09/234.38ms. Renderer2 accepted569/2805audio and148/1733video; later fresh video is235.28ms ahead and refused by the200ms bound, even with no pending audio/video. Renderer1 has ten pending audio sources and later video exceeds200ms. Repeated overlap serialization can advance a common origin without bound. No production/source/observer mutation.",
+    "attempts": "First private runner fails before runtime on missing Python import path. Second completes the original failing method and records timing; its initial summary parser wrongly expects a line-start marker. Analysis extracts exact existing JSON after the Rust stderr prefix and retains the original failed parser summary. No runtime rerun or input mutation."
+  },
+  "sdk": {
+    "report": ".local/gate-6/presentation-overlap/sdk-guard001/summary.json",
+    "sha256": "783de26ce4074e7bf58ea2e37c25c0a630cdacf3920929474c5a5b9bab75d3c2",
+    "passed": true,
+    "methods": 242,
+    "new_methods": 2,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "242 actual production SDK methods with source and generated JS/declaration guards. Two new controlled shared presentation overlap/rounding methods; mock audio/canvas/clock behavior only. Actual installed browser/Connect host/full operating profile remains separate."
+  },
+  "controlled_negative": {
+    "report": ".local/gate-6/presentation-overlap/negative001/summary.json",
+    "sha256": "ac6aff776a540ed92362349c35bddfb48462c8e03059b0a5affc613aba3e200f",
+    "verified_expected_failure": true,
+    "methods": 10,
+    "original_passing_methods": 8,
+    "new_expected_failures": 2,
+    "inputs_unchanged": true,
+    "scope": "Ten presentation methods against byte-exact previous committed renderer JS; the original eight pass and the two new overlap/rounding regressions fail. Only the test import path changes. No production module mutation or operating qualification."
+  },
+  "behavior": [
+    "Refuse a decoded audio interval that overlaps already scheduled PCM by more than one48kHz sample, before copying/allocating/scheduling. Do not serialize the overlap and advance the common origin again. Audio arriving late without overlap can still move the common origin and retime queued video.",
+    "A600-step/12second controlled sequence includes60backward5msphase adjustments. They refuse without origin accumulation, maintain at most two pending audio nodes, and permit fresh source-aligned video. One-sample rounding remains admissible; a200us overlap refuses while a later40mscapture gap remains40ms.",
+    "Original queue/age/current-binding bounds, borrowed/owned resource rules and common audio/video timing remain unchanged. No per-stream offset or source/observer/quality threshold change."
+  ],
+  "remaining": "Rerun current SDK242 unchanged installed-Chrome capture profile. Native clock-aware public SDK, intermittent audio, independent sources, impairment, permissions/background/owned teardown and all remaining Gate6 tasks remain required. No acceptance qualification."
+}

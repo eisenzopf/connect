@@ -256,6 +256,14 @@ export class BrowserMediaRenderer {
             return false;
         }
         const desired = this.presentationTime(frame.timestamp);
+        // A clock-report phase adjustment may overlap already scheduled PCM.
+        // Do not serialize that overlap and advance the shared origin again:
+        // repeated adjustments would accumulate latency until both tracks refuse.
+        // Permit only the rounding error of one 48 kHz sample.
+        if (desired + 1 / 48000 < this.nextAudio) {
+            this.counts.droppedAudio++;
+            return false;
+        }
         const start = Math.max(now + 0.01, this.nextAudio, desired);
         if (desired < now - 0.2 || start + 0.02 - now > 0.2) {
             this.counts.droppedAudio++;

@@ -68,3 +68,30 @@ test('a late presentation callback displays only the newest due frame instead of
  const {renderer:r,connection:c}=e;for(let n=0;n<8;n++)r.video(c.streams[1],e.frame(n*1000));assert.equal(e.drawn.length,0);
  e.advance(.1);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,7000);assert.equal(r.diagnostics.video,1);assert.equal(r.diagnostics.droppedVideo,7);assert.ok(e.clones.every(c=>c.closed===1));
 }));
+
+test('overlapping audio clock phases cannot accumulate shared presentation latency or strand fresh video',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);
+ let accepted=1;
+ for(let step=1;step<=600;step++){
+  const now=step*.02;
+  for(const source of e.contexts[0].sources)if(source.startedAt+.02<=now)source.onended?.();
+  e.advance(now);
+  const overlaps=step%10===0,pts=step*20000-(overlaps?5000:0);
+  assert.equal(r.audio(c.streams[0],e.audio(pts)),!overlaps,'overlap was serialized instead of refused');
+  if(!overlaps){accepted++;assert.ok(Math.abs(e.contexts[0].sources.at(-1).startedAt-(.01+pts/1000000))<1e-9,'shared origin accumulated an overlapping phase');}
+  assert.ok(r.diagnostics.pendingAudio<=2);
+ }
+ assert.equal(r.diagnostics.audio,accepted);assert.equal(r.diagnostics.droppedAudio,60);
+ assert.equal(r.video(c.streams[1],e.frame(12000000)),true);
+ e.advance(12.011,11);assert.equal(e.drawn.at(-1).timestamp,12000000);
+ assert.ok(Math.abs(e.drawn.at(-1).at-12.01)<.002);
+}));
+test('one-sample audio timestamp rounding remains admissible while a real overlap preserves the next capture gap',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;
+ assert.equal(r.audio(c.streams[0],e.audio(0)),true);
+ assert.equal(r.audio(c.streams[0],e.audio(19800)),false);
+ assert.equal(r.audio(c.streams[0],e.audio(19999)),true);
+ assert.equal(r.audio(c.streams[0],e.audio(59999)),true);
+ assert.ok(Math.abs(e.contexts[0].sources[2].startedAt-e.contexts[0].sources[1].startedAt-.04)<1e-9);
+ assert.equal(r.diagnostics.droppedAudio,1);
+}));
