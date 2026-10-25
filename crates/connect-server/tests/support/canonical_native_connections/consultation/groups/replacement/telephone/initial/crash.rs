@@ -256,6 +256,31 @@ async fn submitted(algorithm: &str) {
         },
     );
     assert_eq!(reconcile.unwrap_err().code, "reconciliation-required");
+    // The public HTTP operator reaches the same uncertainty boundary with
+    // current permission and exact resource assertions after actual SIGKILL.
+    let mut operator_http =
+        CanonicalHttpClient::open(connect_client::application::ApplicationClientConfig {
+            endpoint: server.http_address.unwrap(),
+            credential: operator.token,
+            expires_at: chrono::Utc::now() + chrono::Duration::minutes(10),
+            timeout_ms: 5000,
+        })
+        .await
+        .unwrap();
+    let refusal = operator_http.request(
+        serde_json::from_value(json!({"type":"operation.reconcile","payload":{
+            "operation_id":original.0,"outcome":"completed","evidence_id":"caller-declared-completion"
+        }})).unwrap(),
+        CommandScope {operation_id:Some("crash-sip-operator-wire-review".into()),
+            conversation_id:Some(prepared.invitation.conversation_id.clone()),
+            session_id:Some(prepared.invitation.session_id.clone()), connection_id:Some(original.2.clone()),
+            ..Default::default()},
+    ).await;
+    assert!(
+        matches!(refusal,Err(ClientError::Application(error)) if error.code=="conflict"),
+        "authorized public reconciliation must report unresolved physical custody"
+    );
+
     // A fresh invitation ID cannot evade unresolved custody in the same Session.
     let mut conflicting = prepared.invitation.clone();
     conflicting.operation_id = "crash-sip-conflicting-invite".into();

@@ -140,3 +140,8 @@ retains current source authority and exact record custody through actual socket
 IO. See [http-record-retrieval.md](http-record-retrieval.md) for bounds, expiry,
 cancellation and current reference-delivery limits. Native retrieval is documented
 in [native-record-retrieval.md](native-record-retrieval.md).
+
+Native QUIC listener and client address selection are configured separately through
+the [native network profiles](native-network.md). The explicit native Remote
+profile preserves this loopback HTTP boundary; hosted HTTPS and origin/proxy
+policy require their declared hosting profile.

@@ -209,10 +209,10 @@ impl RecordDownload {
     ) -> Result<Self> {
         rustls::pki_types::ServerName::try_from(name.to_owned())
             .map_err(|_| ClientError::Configuration)?;
-        if name
-            .parse::<std::net::IpAddr>()
-            .is_ok_and(|ip| ip != address)
-            || !profile.permits_endpoint(SocketAddr::new(address, 1))
+        if name.parse::<std::net::IpAddr>().is_ok_and(|ip| {
+            NativeNetworkProfile::canonical_address(SocketAddr::new(ip, 1)).ip()
+                != NativeNetworkProfile::canonical_address(SocketAddr::new(address, 1)).ip()
+        }) || !profile.permits_endpoint(SocketAddr::new(address, 1))
             || name.is_empty()
             || name.len() > 253
             || name.contains(['/', '@', '?', '#'])

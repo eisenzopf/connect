@@ -38,6 +38,8 @@ mod participants;
 mod public_assistant;
 #[path = "canonical_native_connections/quality.rs"]
 mod quality;
+#[path = "canonical_native_connections/remote.rs"]
+mod remote;
 #[path = "canonical_native_connections/selector_policy.rs"]
 mod selector_policy;
 #[path = "canonical_native_connections/session_activation.rs"]

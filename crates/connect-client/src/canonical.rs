@@ -164,12 +164,16 @@ impl Drop for Pending {
 impl CanonicalClient {
     pub async fn open(config: CanonicalClientConfig) -> Result<Self> {
         config.validate()?;
+        if config.endpoint.port() == 0 {
+            return Err(ClientError::Configuration);
+        }
         let deadline = Duration::from_millis(config.timeout_ms);
         tokio::time::timeout(deadline, Self::open_inner(config))
             .await
             .map_err(|_| ClientError::Timeout)?
     }
-    async fn open_inner(config: CanonicalClientConfig) -> Result<Self> {
+    async fn open_inner(mut config: CanonicalClientConfig) -> Result<Self> {
+        config.endpoint = NativeNetworkProfile::canonical_address(config.endpoint);
         let _ = rustls::crypto::ring::default_provider().install_default();
         let secret = bounded_file(&config.signing_private_key, 16_384)?;
         let signer = match config.signing_algorithm.as_str() {
@@ -775,6 +779,7 @@ impl CanonicalClient {
     /// This does not reconnect or renew application/credential authority.
     pub fn rebind_network(&mut self, bind: SocketAddr) -> Result<SocketAddr> {
         self.check_current()?;
+        let bind = NativeNetworkProfile::canonical_address(bind);
         if bind.is_ipv6() != self.server_address.is_ipv6()
             || !self.network_profile.permits_listener(bind)
         {
