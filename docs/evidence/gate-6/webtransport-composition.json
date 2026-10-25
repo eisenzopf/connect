@@ -1,9 +1,9 @@
 {
   "task": "G6-049",
-  "status": "local-contact-and-lifecycle-implementation-runtime-in-progress",
-  "full_task_complete": false,
+  "status": "qualified-g6-049-local-composition",
+  "full_task_complete": true,
   "full_goal_complete": false,
-  "recorded_at": "2026-10-25T05:09:39.117513+00:00",
+  "recorded_at": "2026-10-25T05:31:06.403857+00:00",
   "approved_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings. Validate browser origins, token lifetime, session limits and transport capabilities; expose discovery suitable for the SDK.",
   "approved_verification": "Browser and independent HTTP3 clients authenticate, exchange canonical commands and negotiated media, and recover retained state. Cross-origin, malformed and unauthorized datagrams fail without allocating leaked resources.",
   "reuse": "Pinned rvoip-webtransport canonical supervisor already accepts canonical profiles, exact Origin sets, bounded authentication, native datagram transport and owned ProfileServer lifetime; no stock legacy adapter/fallback is selected.",
@@ -17,11 +17,7 @@
     "Fresh schema111 permits verified native WebTransport consultation endpoints under the same original source, credential, membership and paired receipt constraints. Earlier schema states retain the explicit incompatible-state refusal policy.",
     "Independent HTTP3 negotiated duplex passes for distinct enrolled identities with EdDSA and ES256, explicit signed stream subscriptions, actual media datagrams, independent G.711 decoding with distinct forward/reverse tones, persisted WebTransport binding checks and owned EOF drains."
   ],
-  "known_remaining": [
-    "Correct and qualify the default Local browser discovery contact: current localhost fallback can resolve IPv6 while the listener binds IPv4. Successful actual Chrome qualification uses an explicit configured IPv4 contact; default browser setup is not credited.",
-    "Qualify control-only negotiation, current token/client-key/server-key expiry and revocation, aggregate shared physical/session limits, malformed/unauthorized datagram observed rejection and isolation. The discovery HTTP revocation check alone is not media lifetime coverage.",
-    "Qualify owned shutdown/drop/restart retained-state recovery and mixed WT/QUIC independently decoded regressions. Preserve current scoped schema/Store proofs; no whole-gate, production browser SDK, remote/provider, acceptance or publication claim."
-  ],
+  "known_remaining": [],
   "lock_update": {
     "existing_package_versions_unchanged": true,
     "added_packages": [
@@ -48,7 +44,7 @@
     "crates/connect-store/src/peer_authority/native_endpoint.rs": "3a27b8dbb03fb562bb7566ebd1f8d43d37dd278c5fc034fe343f28d4f5a46c0a",
     "crates/connect-store/src/peer_authority/connection_projection.rs": "48ddb1c2f05f84b37241ba25f6d56f343d74342e05f96cfd1e9d32c961a1240c",
     "crates/connect-store/migrations/111_native_webtransport.sql": "3938fe30481e9a2744c03281e618effb6fddcdd848dfe54ca8ad2efffaefdd19",
-    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "0cfe5e9a7cb58bf9da9a1677455e035b4c3a1c2a94ef86e3ab75720be9bb7f5d",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "51daf40fa84c2aa7e93cf22ef70115e22e80a9a3aca31f04e9567b9293f3438b",
     "crates/connect-server/tests/gate6_canonical_webtransport.rs": "e8c23b955c9f9b2f9dec692d244ba87909991722b7944cac8d562c1726eacc28",
     "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "5686bf3b82062b440677e9eba57d59eb4f35f56c4f68b311cb24f04bd0079c7d",
     "crates/connect-server/tests/fixtures/gate6-webtransport-browser/peer.mjs": "e97d2c4b94dd6c16b8b90bce354b75d84776634ac8600140688c1cb5b31f8e3e",
@@ -64,19 +60,18 @@
     "crates/connect-server/tests/support/canonical_webtransport_discovery.rs": "0f2f6c483eda0c043c78490a4cb04a7483caf35ed3c6137515fd71aea2aeb9b2",
     "scripts/rehearse-gate6-webtransport.py": "76fa38ee4f7b0414d8f4985f659df2581594c282bd5dd92c1557016ff41b5a2d",
     "crates/connect-server/src/tls.rs": "44159338e69def36d5008d74c1098258145424bcbe59dcba801f10b59a9c9712",
-    "crates/connect-server/tests/support/canonical_webtransport_lifecycle.rs": "cbac940a1e03bb219292dd2ce6846443f6f4c29ea55c16d9fbdcd41ae0b58bb7",
+    "crates/connect-server/tests/support/canonical_webtransport_lifecycle.rs": "736509712e0055b623edafa7d609643f9b0e0606ab0277d671ccace5c9fcae9c",
     "crates/connect-server/tests/support/canonical_webtransport_mixed.rs": "ac474e56f348131380be7c4f6dc9d0c2abee0adb2e9999266ec1e2610c570b10"
   },
   "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
   "runtime_qualification": {
     "passed": true,
-    "run": "discovery018",
-    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery and configuration validation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
-    "methods": 12,
+    "run": "lifecycle026",
+    "methods": 28,
     "source_inputs_unchanged": true,
     "executables_unchanged": true,
-    "full_task_complete": false,
-    "browser_sdk_g6_050_complete": false
+    "task_audit": "docs/evidence/gate-6/webtransport-composition-audit.json",
+    "repeated_retained_read": "retirement027:2distinct methods,3iterations each; all6invocations pass"
   },
   "publication": "Separate; not performed.",
   "library_typecheck001": {
@@ -96,8 +91,7 @@
   },
   "artifact_workspace": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect",
   "implementation_branch": "codex/gate6-webtransport",
-  "implementation_on_main": false,
-  "implementation_revision": "033d7b921e479c898b01550b6326adf75dd349a4",
+  "implementation_revision": "5f4e0c7bd23f70dcbf4b40c71d06ffaf8b178152",
   "independent_http3_control002": {
     "passed": false,
     "source_revision": "d6034cb7a55c4259cf4e4eeacce01619c7ba6dc4",
@@ -144,7 +138,7 @@
     "repair": "Preserve every repeated regular header through QPACK/HTTP header encoding and decoding. Canonical allowlist then requires exactly one Origin. Reject repeated pseudo-headers. Existing prepared185 tree preserved; new186 tree reproduced and verified."
   },
   "implementation_base_revision": "9146026a",
-  "implementation_commit_note": "Implementation source map matches pushed033d7b92. This report records actual scoped rehearsal018 results; full G6-049 remains incomplete.",
+  "implementation_commit_note": "Qualified implementation source map matches5f4e0c7b. Task closure is supported by the separate requirement audit; full Gate6, browser SDK and operating/release qualifications remain separate.",
   "initial_independent_http3_fixture": {
     "source_revision": "d6034cb7",
     "path": "crates/connect-server/tests/gate6_canonical_webtransport.rs",
@@ -875,16 +869,8 @@
     ],
     "finding": "All12 exact optimized methods pass:2 server configuration unit methods,2 signed independent control/reconnect/native receipt parity,1 Origin/mount refusal,2 independently decoded subscribed WT duplex,3 actual public SDK/HTTP discovery cases and2 explicit installed Chrome control/reconnect/decoded duplex. Independent and browser media also assert original session.started facts contain exactly two webtransport Connections. Source map, original executables and sealed executables remain unchanged. No complete-task or default Local browser contact claim."
   },
-  "pending_qualification": {
-    "run": "lifecycle022",
-    "state": "actual-optimized-server-rebuild-running",
-    "exact_methods": 28,
-    "base_revision": "bd4e82b4",
-    "source_revision_is_base": true,
-    "scope": "Prior27 fixture intent corrected to28 cases: required missing-QUIC-datagram admission refusal plus valid data-only Endpoint audio refusal, all lifetime/decoded mixed/default contact cases. Ordinary WT duplex also reads original media record/state on fresh WT and native peers without allocating routes. No new pass claimed."
-  },
   "default_local_contact_repair": {
-    "state": "implemented-runtime-verification-pending",
+    "state": "qualified",
     "behavior": "Derive optional Local contact from actual bound SocketAddr, preserving IPv4/bracketed IPv6 rather than resolving localhost to another family. Fresh generated Local certificates add explicit127.0.0.1/::1 SANs while retaining localhost and normal trust verification.",
     "browser": "Existing explicit Chrome fixture now consumes/asserts public SDK discovery and uses the derived contact with separate explicit TLS hash and signing pin.",
     "diagnostics": "Protected runtime snapshot projects actual NativePeerMedia ingress accepted/rejected counters; no authority or remote-consumption claim. Negative fixtures must observe processing rather than infer rejection from missing packets."
@@ -962,6 +948,988 @@
     "source": "https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-14.html#section-3.1",
     "finding": "Selected HTTP3 profile requires HTTP/3 and QUIC datagrams. Pinned web-transport-quinn Session.max_datagram_size assumes QUIC support and panics if absent; the shared ProfileServer supervisor cancels all WT peers on child panic. This is a source-audit finding; lifecycle021 never reached runtime.",
     "repair": "The protected canonical TLS/ALPN intake now refuses h3 peers missing QUIC datagrams before WebTransport supervisor dispatch/authentication. Raw QUIC control-only behavior is unchanged. A valid authenticated WT Device with a data-only Endpoint separately tests audio offer501 without Connection allocation.",
-    "verification": "lifecycle022 adds a missing-capability refusal with exact remote close reason and healthy native/WT peer continuity, plus the valid Endpoint capability case. Pending actual results."
-  }
+    "verification": "Actual required-capability refusal, remote reason, unchanged Store and continuing signed native/WT peers pass in lifecycle026. Data-only Endpoint audio refusal returns one immutable failed native-offer operation and completed response ACK; exact retry preserves the record and0effects/Connections."
+  },
+  "lifecycle022": {
+    "passed": false,
+    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery, derived Local address-family/TLS identity, shared physical/Session limits, current credential/key lifetimes, actual rejected datagrams, owned shutdown/drop/restart and mixed WT/native isolation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
+    "source_revision": "bd4e82b46dd5ae404e440be13a77efb857ff3219",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "installed_browser": true,
+    "skipped": [],
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.1944587081670761,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.02323058294132352,
+        "log_sha256": "e794146d99fad54562fdcbd4a7c8b22b0240d2b0312ff6d879d67939b3131850"
+      },
+      {
+        "name": "openapi",
+        "command": [
+          "python3",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.030792207922786474,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 255.52842424996197,
+        "log_sha256": "c3d1fe524a5361704395f9a1bf57e16ca509aeacfa7c64a3a6d5350c21fa3f72"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "started_at": "2026-10-25T05:07:07.030598+00:00",
+    "finished_at": "2026-10-25T05:12:34.358513+00:00",
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "57127f62f9a4e6480d7895038a66a2b9adf786fb339e02add76fc2f822272d44",
+    "source_inputs_map_sha256": "9d7249ed9d5f3f8f37e1a0b8dd9b2e30d99af44045b65ccde4bd6439db9089e6",
+    "methods": [
+      {
+        "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.01325470907613635,
+        "log_sha256": "aa4bd31f276d8513a98a37b2a66456e112cc45ee72626a94b5e697dacf81eb3a"
+      },
+      {
+        "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012489042012020946,
+        "log_sha256": "28ae8738ae5e46ffc27dfc9e38043174307f173eee61aefaf73ec15f4c3e8413"
+      },
+      {
+        "case": "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012303415918722749,
+        "log_sha256": "3543bf639ebf98159e7ee5f3c9161caa87aec727dc6e66275f62ef2ed0cfcbc7"
+      },
+      {
+        "case": "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.01228154101409018,
+        "log_sha256": "589668653ee303f544835b9e0e6d38406686e9c9a6f7d8f36b3751ddc6ba1b92"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5427596250083297,
+        "log_sha256": "350759fb993b83d6074c28e8b3278b0eef8e9e1d4f1dfb6410030494e1fb3575"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5536861668806523,
+        "log_sha256": "2d63a35384c48103304e0ed847377388c0b698d55db69f6513de8aa756a8348c"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6186142500955611,
+        "log_sha256": "06085e4387e76ac2868c203d765f8b6fd443bb66249231ef9f3f6a931edd577e"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.266222459031269,
+        "log_sha256": "ce009479411cd74e3d0df9f39ea51baa21e31de5d416308a3ade4b744d7e858a"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.28489779192023,
+        "log_sha256": "96cea4c5a119f6ed91546f71c34f70c35d72bdb863f564d26fd46931274758a2"
+      },
+      {
+        "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.267285417066887,
+        "log_sha256": "a1b8506f0cd75d17fe7d0d5d39c994b90c37afc9742e2763c5746b22e356c45a"
+      },
+      {
+        "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.20028249989263713,
+        "log_sha256": "14227cb1cf9a4e14b1ff48a56c538a6844a0dadcef2794c08bdfb61acae876d5"
+      },
+      {
+        "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.20847262511961162,
+        "log_sha256": "2a652f743b2c7b724895b5b7b980db9a70f0b9d79c7a909281cf3e86841e3c84"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 0.3147651250474155,
+        "log_sha256": "23218ec776d59040b06d3c7c9974a5cabccd646255272d1a17a8af0f486c5585"
+      },
+      {
+        "case": "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.960817291866988,
+        "log_sha256": "bccc579761de723fc346af7ece74bc2b04643526745544f61ab085896ba3b8bf"
+      },
+      {
+        "case": "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.9152014169376343,
+        "log_sha256": "1baa5656a23257df754149cab45c13da8076cc532bad9625f2b4d367afb49206"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 0.2632256248034537,
+        "log_sha256": "f7dc7b13b13cbbfdad8ac177bff7a937c59333c953f0af0cc316cba4ede310d2"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.5897696248721331,
+        "log_sha256": "0e711df0e8cf9209f48a78a71718f292b040d1298c1dcc73d3e93e7e743ec860"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.320633166935295,
+        "log_sha256": "93a3d5443ea70aa9f13e06d117b2a43b8f15457a4dacdb54dc8505d31db25d2f"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.9002328331116587,
+        "log_sha256": "50a3a90bd975248614d88cabb05f18028f70c22fc6cd46642a188a4d9ab4c36e"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6777595421299338,
+        "log_sha256": "799b153343fc1e6a19a6f05dec1f4d81850faef92ffd5fad63f7c95e9bb79fcd"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 0.3231773341540247,
+        "log_sha256": "74eca35a6144cfb427e5445de9c86f15bfeb917cd0301e6863e8fc6dc9c54bf8"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 5.243752750102431,
+        "log_sha256": "72fee799d853feb28b8b3819e381e7328adb7909163f18b2a6753f32790cea78"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 12.099974957993254,
+        "log_sha256": "33b56f6d38e885fb5470b6366bf2b4ae52d1fdadbfc389b557d91db303bb2e10"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.3181251250207424,
+        "log_sha256": "6b0fe690d964025e06a93c96fb4f1a9560739a5c6402553c916d577bed856aff"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.589851500000805,
+        "log_sha256": "f43a155db5da392f1783e781342771403ccb3f6decc439672fd7253b10c667f6"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.649750167038292,
+        "log_sha256": "cde44e19c51c078d0ccb95dce99609ba5540eb9e4561322cde58bae44a575d2f"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.006489583058283,
+        "log_sha256": "9c4c09453050d040241b52864d342a24799656c4c327f2f8fae4385e47066249"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.416349124861881,
+        "log_sha256": "0a5855ed87baeda1300d43f5bde5fbde30ba098f69b0298cf45ad87dec509999"
+      }
+    ],
+    "finding": "Actual optimized build succeeds;24/28 methods pass. Two fixtures incorrectly counted lazy Core peer views as admitted control transports; another expected a wire error instead of the existing durable failed native-offer operation plus ACK; the Session fixture used SDK request field names instead of normative to/capabilities_offer. Whole-run failure preserved.",
+    "executables": [
+      {
+        "target": "connect_server",
+        "sha256": "d886050393c16708d5d30aa72d1f02df9d2883bc3fa7c83b8b33230cb2357c4b"
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "sha256": "e633ca68589620f44536cc4f0ede98e5de4989c1b42541fe4adb8b8369c22ee2"
+      }
+    ]
+  },
+  "lifecycle023": {
+    "passed": false,
+    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery, derived Local address-family/TLS identity, shared physical/Session limits, current credential/key lifetimes, actual rejected datagrams, owned shutdown/drop/restart and mixed WT/native isolation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
+    "source_revision": "837abf6c34ecd53dd99edafbab4556f1bbf02460",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "installed_browser": true,
+    "skipped": [],
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.18827408296056092,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.02101266710087657,
+        "log_sha256": "e794146d99fad54562fdcbd4a7c8b22b0240d2b0312ff6d879d67939b3131850"
+      },
+      {
+        "name": "openapi",
+        "command": [
+          "python3",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.030311041045933962,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 47.40290145808831,
+        "log_sha256": "5d15b1a2e5cfbc7a67fe33ddbafa854afce0d775675aa707fd78736f56b2b7cf"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "started_at": "2026-10-25T05:13:58.068595+00:00",
+    "finished_at": "2026-10-25T05:15:52.906082+00:00",
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "88094230defce801254d1bd3126ebb2ba714624f36eb7eed58bd67e2ae5e975c",
+    "source_inputs_map_sha256": "2a56cbcaddeec2274287aac792f09fbbffefcd8ade1e3378c3c3556e5e0c9d40",
+    "methods": [
+      {
+        "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.013166334014385939,
+        "log_sha256": "aa4bd31f276d8513a98a37b2a66456e112cc45ee72626a94b5e697dacf81eb3a"
+      },
+      {
+        "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.01272708410397172,
+        "log_sha256": "28ae8738ae5e46ffc27dfc9e38043174307f173eee61aefaf73ec15f4c3e8413"
+      },
+      {
+        "case": "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012466917047277093,
+        "log_sha256": "3543bf639ebf98159e7ee5f3c9161caa87aec727dc6e66275f62ef2ed0cfcbc7"
+      },
+      {
+        "case": "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.011868458008393645,
+        "log_sha256": "589668653ee303f544835b9e0e6d38406686e9c9a6f7d8f36b3751ddc6ba1b92"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5439160000532866,
+        "log_sha256": "fd77d064c7abf57dae7350529e58a0a6972f01867ee291cd454f6d70629f464e"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5432029580697417,
+        "log_sha256": "26c137f2000ee40aa88427cb3325ff080aff87176af700af7632fe7e40cf7058"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6052057091146708,
+        "log_sha256": "ec5180a759189d2109f8a82d781fb0cddee458d715c109c5693a16cd0ed6f111"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 4.1141560829710215,
+        "log_sha256": "174a5f16500ff92481082464cf58ad207693f0a1c4b02afd66726efd1ff5c813"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.241935083176941,
+        "log_sha256": "2a3e5b54bdd6b619c3122df8f27950f7ab730bc0cdc280516c053583ee1aa62d"
+      },
+      {
+        "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.26570558408275247,
+        "log_sha256": "2ac82c44e8182ab30eb432847fde923c2a61a79b58314c16853047d5587ab895"
+      },
+      {
+        "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.20182429207488894,
+        "log_sha256": "0221191ffd01e62ad0ac653140db3bbebc5e3a476f3a0a43ab78b30d714914b4"
+      },
+      {
+        "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.20638999994844198,
+        "log_sha256": "2b0a8cff9a89c33e689da5666235f0323766bb657c79ac068f6f3aaf2fcf3fc2"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5231679591815919,
+        "log_sha256": "a9e09e6e70e93cab85d458fade16ebeb869ac544d17945f80012a8e7d2ab55e3"
+      },
+      {
+        "case": "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.00687920791097,
+        "log_sha256": "87e89f34c38dae7083b84e95f3571a885c7a33ef47d7e2e994ab97fea076315e"
+      },
+      {
+        "case": "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.948846499901265,
+        "log_sha256": "9cf520ebbba34aa49efa932fe0e1b68faf567656c8ef6e025d51db0a8512dd4e"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.2568805830087513,
+        "log_sha256": "bed67efd62dcfab0bdc4fc998d0fd494801675dfa8867f646addd109061ad2b6"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.5848329160362482,
+        "log_sha256": "c87bdae12d5df7a4e831f82f36f68f501d116c4b43bcb45358b5e1380cf572d5"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.289526749867946,
+        "log_sha256": "f7297c6cc773eed4f2727a660376c341c1b6cd8ccba557ef893a62e4ab3fae3b"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.8589284589979798,
+        "log_sha256": "e0d50918696ce77c7571774dc5e8f738a900b3b426f95ed13be4b2dc6ab048a9"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6621277499943972,
+        "log_sha256": "4ef4eb915a9d15436f81faed1dbdad8999c44633454ca67f5b36b2b7394dc906"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8397429590113461,
+        "log_sha256": "1e345037e660302663cd6ef1534d49fb4a7003dba52096ffb2dce661ec9e0cf3"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.44013700005598366,
+        "log_sha256": "02e1bd8506b961ffdbf815ad9cf85b058b9716b7b01917b8992141dc5a89f59e"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 11.59277725010179,
+        "log_sha256": "262fd393ba9c8d7f9e3ac4063dc183303373220f133935c9876f2128111b3377"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.32626424985937774,
+        "log_sha256": "b1c751063b08eacdca02c67771fffbe4c10cd69df220bf6513d0186932145d5c"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.63663295796141,
+        "log_sha256": "672ed94f4d5edf68e9bc7eba8cf4840d63cf7a9c5b19197c7345715b424ecb93"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.653467708034441,
+        "log_sha256": "f5e30a3539b7e60ad1ebb9fe0e16d73c4a55307e61d00a777cbaa4afc73c7ea1"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.532391374930739,
+        "log_sha256": "d709017c7e9b1c5ba2d7cbfe19f6c80ee3c2a9867be3ab1b037dd516d86e19d8"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.401370665989816,
+        "log_sha256": "c76e8a0aadf1bec9d2344de98387a605649aa6f157e8a9696f77c4e41f760cca"
+      }
+    ],
+    "finding": "Test-only corrections prove actual held transport count through signed round trips across1native+7WT, ninth refusal before/after exact slot reuse, immutable failed native-offer record/no effects and canonical Session invitation fields.27/28 methods pass. One post-EOF retained-read full Store digest changes because Core retirement can precede tracked authoritative Store cleanup. Whole-run failure preserved.",
+    "executables": [
+      {
+        "target": "connect_server",
+        "sha256": "d886050393c16708d5d30aa72d1f02df9d2883bc3fa7c83b8b33230cb2357c4b"
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "sha256": "d2de2761e262b92af4b55a5b9d1caf39a672f5f516ce1646a2da119a1adfebf0"
+      }
+    ]
+  },
+  "retention024": {
+    "passed": false,
+    "scope": "Two diagnostic HTTP3 duplex and retained media status methods with actual per-table digest diff; no complete-task or whole-suite qualification.",
+    "source_revision": "837abf6c34ecd53dd99edafbab4556f1bbf02460",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 47.04440258303657,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "b8151a85647ded8e4e93e6a819bf8280a38df9dc218f6ceae78cb30274d633c7",
+    "started_at": "2026-10-25T05:18:32.205153+00:00",
+    "finished_at": "2026-10-25T05:19:28.960740+00:00",
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "841a5d26b7597ee4ca65fe955e032a83a67bf0cf139649d70454e58aafbda9d3",
+    "source_inputs_map_sha256": "23631e8181c3c0ef99dee661f2d005bf210cb058d9c8152662f00a41db26dfab",
+    "methods": [
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 4.263765959069133,
+        "passed": true,
+        "log_sha256": "6230cb3e6507b3f508398472ddddc512977f2c108bf45bd8e01cbde0ff9d6dbf"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 101,
+        "elapsed_seconds": 4.158013083040714,
+        "passed": false,
+        "log_sha256": "ac62e036d1dc2cd45b177d525c245d514316b5cd8037fa94c445b58bf2c1e5f9"
+      }
+    ],
+    "finding": "Diagnostic two-method run:1pass/1fail. Per-table hashes sampled separately did not localize the full-snapshot change; no causal table claim or whole-suite pass is inferred."
+  },
+  "retention025": {
+    "passed": true,
+    "scope": "Two diagnostic HTTP3 duplex and retained media status methods with actual per-table digest diff; no complete-task or whole-suite qualification.",
+    "source_revision": "837abf6c34ecd53dd99edafbab4556f1bbf02460",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "build_exit_code": 0,
+    "build_elapsed_seconds": 47.68631087499671,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "executable_sha256": "f0a2721e6580c61551aa6134cb7f37396dcb83ed3c750e4b83a8ae69a75ee696",
+    "started_at": "2026-10-25T05:21:10.509019+00:00",
+    "finished_at": "2026-10-25T05:22:08.176738+00:00",
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "05e239710d294f4b89e76b2b1846a20e618f73f8de646d758939043335d03289",
+    "source_inputs_map_sha256": "c6712b8f5baa48ec787ca029b211a257e7c78ead2b1a7a96e6977ae40fe63a13",
+    "methods": [
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "elapsed_seconds": 4.331879707984626,
+        "passed": true,
+        "log_sha256": "6c009ce24fb9b62319e93f78a3852e89620f93fa526d866a217ee0d15c5df1f1"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 0,
+        "elapsed_seconds": 4.355254750000313,
+        "passed": true,
+        "log_sha256": "742cdc80c8aaad919473b5eaffdacfd8cef05ad9ad74cf1a024a528b4cf24ea3"
+      }
+    ],
+    "finding": "Two backup-aligned diagnostic methods pass. This is diagnostic evidence only, not a substitute for authoritative retirement fencing or the full suite."
+  },
+  "lifecycle026": {
+    "passed": true,
+    "scope": "Local isolated actual canonical HTTP3/control/receipt parity, subscribed independently decoded duplex, transport start facts, exact Origin/mount refusal, authenticated bounded SDK discovery, derived Local address-family/TLS identity, shared physical/Session limits, current credential/key lifetimes, actual rejected datagrams, owned shutdown/drop/restart and mixed WT/native isolation. Installed Chrome is explicit. No complete G6-049, browser SDK G6-050, remote/provider, acceptance or publication claim.",
+    "source_revision": "837abf6c34ecd53dd99edafbab4556f1bbf02460",
+    "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "installed_browser": true,
+    "skipped": [],
+    "steps": [
+      {
+        "name": "dependencies",
+        "command": [
+          "bash",
+          "scripts/prepare-dependencies.sh"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.1220763751771301,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "name": "compiler",
+        "command": [
+          "rustc",
+          "--version",
+          "--verbose"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.02009979193098843,
+        "log_sha256": "e794146d99fad54562fdcbd4a7c8b22b0240d2b0312ff6d879d67939b3131850"
+      },
+      {
+        "name": "openapi",
+        "command": [
+          "python3",
+          "scripts/generate-canonical-http-openapi.py",
+          "--check"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.02922345814295113,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "build",
+        "command": [
+          "cargo",
+          "test",
+          "-p",
+          "connect-server",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--release",
+          "--locked",
+          "--offline",
+          "-j4",
+          "--target-dir",
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+          "--message-format=json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 46.96387991704978,
+        "log_sha256": "bbbe990f6ed9d953e054ac286922f7c2c66a5de0acc8857f27ae2a67076d64e2"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "started_at": "2026-10-25T05:23:45.782603+00:00",
+    "finished_at": "2026-10-25T05:25:40.911524+00:00",
+    "source_revision_is_base": true,
+    "raw_summary_sha256": "59f631b5cd073886af8d27d976f87ad8b35d042da8c0a11ab5363b9eaa474f9e",
+    "source_inputs_map_sha256": "ec5312c75de2eebc20c93d4120bc56742599ed090999c9a03bd3d09a9b7d101c",
+    "methods": [
+      {
+        "case": "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.013196832966059446,
+        "log_sha256": "aa4bd31f276d8513a98a37b2a66456e112cc45ee72626a94b5e697dacf81eb3a"
+      },
+      {
+        "case": "canonical_webtransport::tests::advertised_contact_refuses_parser_normalization_of_whitespace_and_controls",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012566166929900646,
+        "log_sha256": "28ae8738ae5e46ffc27dfc9e38043174307f173eee61aefaf73ec15f4c3e8413"
+      },
+      {
+        "case": "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012479125056415796,
+        "log_sha256": "3543bf639ebf98159e7ee5f3c9161caa87aec727dc6e66275f62ef2ed0cfcbc7"
+      },
+      {
+        "case": "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.012180916033685207,
+        "log_sha256": "589668653ee303f544835b9e0e6d38406686e9c9a6f7d8f36b3751ddc6ba1b92"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5445363752078265,
+        "log_sha256": "ebe4e0b4664ce41b221ebaea090e111a2aa82d2d29e472640a7e6f2b171f53a3"
+      },
+      {
+        "case": "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5598173341713846,
+        "log_sha256": "0ed6f02bb941c0624c133166bdf441ae28f309966a849ab13f2a6285280a0c15"
+      },
+      {
+        "case": "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5934609170071781,
+        "log_sha256": "c304daaf52ae1401fec146fa537fd65f96cbfbd283d7b0765f394ea7305547f1"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.290567707968876,
+        "log_sha256": "a9887da510d73d33aeeaa4874355ac6055a8e07e0a49e224d5c908276fb90998"
+      },
+      {
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.276617040857673,
+        "log_sha256": "1d9f92f7a1dba5cd70ff3d9bcabce5bb4f5c3073fd35adbe911cd5f392053959"
+      },
+      {
+        "case": "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.2579016250092536,
+        "log_sha256": "40f697748303e28b82c5f51d36461bfcf2b4886fbae4ff24bfd29910ac4e82fe"
+      },
+      {
+        "case": "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.1969137080013752,
+        "log_sha256": "0df4c7ae0e1277c6c5c87c31332a2b21546abc5bcd5647499e102c2368bbca5f"
+      },
+      {
+        "case": "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.19985683378763497,
+        "log_sha256": "94ee16aa05adb9913dd24ddc9db459e4dfcc3bc3ee0a2e0cf38972e74aec680b"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.5065792920067906,
+        "log_sha256": "afe5d24bcf92979aecea2fc279d572d60e57df130e938e6391075ea3e953b7a8"
+      },
+      {
+        "case": "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.9563429169356823,
+        "log_sha256": "ea920423826a0b79e2ac4b0222fe17f89875f0a8f74513d3aabc365165581c8c"
+      },
+      {
+        "case": "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.922035374911502,
+        "log_sha256": "7e26e2a3287f629bcaf857bf0321a7e12632710221f1ca697731dac4d90d8872"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.2205404171254486,
+        "log_sha256": "2afc5555a423e9b6ff42f8bc521fbbaa4771c3e0674d9b238242145c649cb28c"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.606656374875456,
+        "log_sha256": "4a3de8a0a57576811526f0a1d3006096f6e9ab2c60a43d2baf40d95f51efc6da"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 3.3001379589550197,
+        "log_sha256": "b743992be4a68a0a1679e11e8e31ec4c009824939630f74566ea22032a398f02"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.9084423331078142,
+        "log_sha256": "8d1c88c5d6000b23b7161f83f0f2bb199b7bbbc0bd82cc3e4d30563eeffbf707"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.6672533750534058,
+        "log_sha256": "30e86b34e70b5905c6c8f7df9629f25dd5e05810ba8cb8d04979b2e3535b7254"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.8387950418982655,
+        "log_sha256": "01e6e98a719da8158d94d510ea2a6f14de7e901f1d01147154e775ac3c6a91d6"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.4351179169025272,
+        "log_sha256": "34a1d719f22d8092b785186924084240a4d108f9a7d2747eaa15b527b7cd44b2"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 12.126126165967435,
+        "log_sha256": "6da77c522412adc3194f26bb88c1dd79e1b85f9fd72daedbf3935915990a358c"
+      },
+      {
+        "case": "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.31891345884650946,
+        "log_sha256": "384a0c421d2288a5c8e939a4d3eb2115a97fe6988ad8b9959524739fb2c44c44"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.590736707905307,
+        "log_sha256": "9f3589b5cc2bb89ca251bf6099549eb0c5a0e43dae70db48c0cd10b6e7789904"
+      },
+      {
+        "case": "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 7.638341709040105,
+        "log_sha256": "7d80f3d7757dd8370c9304e02117c122adc86e499b8246b37a08a7b788251545"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.473134917207062,
+        "log_sha256": "ea9f5928dd6a6b44f3b10e91c6608120b823957469c3ba0d541c85d3fa025a68"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.509649124927819,
+        "log_sha256": "0aee8bdcd947370de02176c9b16888a15107d8d449629ace2a68dad007a2eb9e"
+      }
+    ],
+    "finding": "All28 exact methods pass with unchanged sources and original/sealed executables. Retained media reads now first observe both original connections and lifetimes durably retired, then fresh signed WT and native public SDK readers return the original completed media record without new Core allocation or any Store digest change. All four prior fixture failures are corrected while retaining or strengthening behavior assertions.",
+    "executables": [
+      {
+        "target": "connect_server",
+        "sha256": "d886050393c16708d5d30aa72d1f02df9d2883bc3fa7c83b8b33230cb2357c4b"
+      },
+      {
+        "target": "gate6_canonical_webtransport",
+        "sha256": "f7547e610cf080dd6a1ef460b207adfcdc54fbb4f60631442dedc4c59bc941e8"
+      }
+    ],
+    "verified_implementation_revision": "5f4e0c7bd23f70dcbf4b40c71d06ffaf8b178152"
+  },
+  "retirement027": {
+    "passed": true,
+    "scope": "Repeated post-EOF authoritative retirement barrier and retained media record reads:2distinct actual decoded WT duplex/status methods,3iterations each. Six invocations are not six distinct methods or a substitute for28-case lifecycle026.",
+    "executable_sha256": "f7547e610cf080dd6a1ef460b207adfcdc54fbb4f60631442dedc4c59bc941e8",
+    "cases": [
+      {
+        "iteration": 0,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.328786458121613,
+        "log_sha256": "117c1dff05d5be3fcd11decdd7fb86e76ed15a87d7cb51e7d16877f24facf446"
+      },
+      {
+        "iteration": 0,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.239784500095993,
+        "log_sha256": "b6636f3f1409b61582e2d12d2f2d735358e54c0fcce9f4b8e4c34b8b17d916f2"
+      },
+      {
+        "iteration": 1,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.2837267918512225,
+        "log_sha256": "84db2ae39b5da7aca0285f614d040c20131d7223d1160d435aaa3897907569a8"
+      },
+      {
+        "iteration": 1,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.366693041054532,
+        "log_sha256": "2cd7d12a6b7e5c9f7621afcecf183f63966c1a5c6bfe9ff9ad4f83ba93123750"
+      },
+      {
+        "iteration": 2,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.262353542027995,
+        "log_sha256": "d5340ab60ee925205f567830c552c28edc957da16adb3bff2e93e6e551ec545b"
+      },
+      {
+        "iteration": 2,
+        "case": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "exit_code": 0,
+        "passed": true,
+        "elapsed_seconds": 4.294800749979913,
+        "log_sha256": "559367db55a509c418c65130221ce3067c72d3ab93193d1a47b1b27c669874c7"
+      }
+    ],
+    "started_at": "2026-10-25T05:26:11.371600+00:00",
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "finished_at": "2026-10-25T05:26:37.268464+00:00",
+    "raw_summary_sha256": "27732203d5701b9f1ad69f075946a29ce23f510f05a235c87cee2e117ad483c7",
+    "distinct_methods": 2,
+    "invocations": 6
+  },
+  "assigned_later_scope": [
+    "G6-050 production browser SDK/capture/render/audio-video-data qualification",
+    "G6-051 WSS/WebRTC fallback and migration profiles",
+    "G6-056 Linux hosted installation; G6-086 hosting/provider guides",
+    "G6-093 bounded named remote/provider configuration and G6-095 real browser/remote operating qualification",
+    "Whole Gate6 conformance, release, acceptance and separate publication."
+  ]
 }

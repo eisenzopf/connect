@@ -1,0 +1,158 @@
+{
+  "task": "G6-049",
+  "status": "complete",
+  "full_gate_complete": false,
+  "recorded_at": "2026-10-25T05:31:06.403857+00:00",
+  "implementation_revision": "5f4e0c7bd23f70dcbf4b40c71d06ffaf8b178152",
+  "plan_work": "Integrate HTTP3/WebTransport control and datagrams with the same identity, canonical handlers, operation store and media bindings; validate browser origins, token lifetime, session limits and transport capabilities; expose SDK discovery.",
+  "plan_verification": "Browser and independent HTTP3 authentication, canonical commands, negotiated media and retained-state recovery; cross-origin/malformed/unauthorized datagram refusal without resource leaks.",
+  "requirements": [
+    {
+      "requirement": "Same identity, canonical handlers and operation Store",
+      "status": "verified",
+      "methods": [
+        "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation"
+      ],
+      "observation": "Both signing algorithms; canonical signed authentication/commands, reconnect/native same-owner receipt parity and one durable mutation; current credential/key revocation retires the peer."
+    },
+    {
+      "requirement": "WebTransport control/datagrams retain actual media bindings",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256"
+      ],
+      "observation": "Actual subscribed PCMU500Hz/250Hz duplex, persisted verified transport/Device bindings and original session.started facts; mixed native public SDK/WT routes decode before/after foreign-physical-handle rejection."
+    },
+    {
+      "requirement": "Validate browser Origins and mount",
+      "status": "verified",
+      "methods": [
+        "wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority",
+        "canonical_webtransport::tests::exact_origins_mount_and_remote_contact_are_required_before_startup"
+      ],
+      "observation": "Missing/foreign/duplicate Origin and wrong mount refuse before authority with unchanged Store and drained resources; protected secure exact bounded configuration is validated."
+    },
+    {
+      "requirement": "Validate token and signing-key lifetime",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_lifecycle::current_credential_and_key_revocation_retire_http3_without_replaying_durable_mutation",
+        "canonical_webtransport_lifecycle::client_credential_and_signing_key_expiry_retire_http3_without_extending_each_other",
+        "canonical_webtransport_lifecycle::server_signing_expiry_closes_http3_and_native_intake_and_releases_owned_runtime"
+      ],
+      "observation": "Independent token3s/key600s and key3s/token600s both algorithms, current revocation and server-key expiry; both intake profiles close and expired startup refuses."
+    },
+    {
+      "requirement": "Validate shared physical and Session limits",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_lifecycle::shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_retired_slots",
+        "canonical_webtransport_lifecycle::http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_no_connection"
+      ],
+      "observation": "One native plus seven WT held/authenticated transports retain signed IO across ninth refusal, exact retired-slot reuse and another ninth refusal; one WT Session consumes the shared quota and native admission refuses without another Session/Connection."
+    },
+    {
+      "requirement": "Validate transport and Endpoint capabilities",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_lifecycle::missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other_peers_alive",
+        "canonical_webtransport_lifecycle::authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_without_slots",
+        "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "canonical_webtransport_lifecycle::disabled_webtransport_retains_native_tls_commands_and_refuses_h3_without_authority"
+      ],
+      "observation": "Missing mandatory QUIC datagrams refuse before WT dispatch while healthy peers continue. Data-only Endpoint audio refusal preserves one failed record, response ACK,0effects and0Connections. Disabled WT retains native TLS/control and rejects h3."
+    },
+    {
+      "requirement": "Expose discovery suitable for the SDK",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_discovery::configured_webtransport_discovery_is_bounded_authenticated_current_and_read_only",
+        "canonical_webtransport_discovery::disabled_webtransport_and_unrelated_http_listener_do_not_invent_transport_discovery",
+        "canonical_webtransport_discovery::discovery_sdk_refuses_incompatible_and_oversized_responses_during_collection"
+      ],
+      "observation": "Actual authenticated canonical-only GET and public SDK, current revoked bearer/cancellation, empty/bounded input, no-store, disabled/null/unrelated listener behavior, closed descriptor and declared/chunked8192-byte response limits. No automatic trust or media grant."
+    },
+    {
+      "requirement": "Browser and independent clients authenticate and exchange commands/media",
+      "status": "verified",
+      "methods": [
+        "independent_http3_signed_control_and_reconnect_share_native_receipt_eddsa",
+        "independent_http3_signed_control_and_reconnect_share_native_receipt_es256",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256",
+        "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256"
+      ],
+      "observation": "Both algorithms; independent HTTP3 and owned installed Chrome155 use explicit TLS/signing trust, actual negotiated subscribed datagrams and independent G.711 output decoding. Chrome consumes derived Local discovery contact."
+    },
+    {
+      "requirement": "Recover retained state",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_lifecycle::owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fence_old_peers",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_es256"
+      ],
+      "observation": "Original create receipt survives physical reconnect and graceful/drop restart both algorithms. After authoritative media retirement, fresh WT and native readers recover the same completed media record with no new route or Store change; repeated3times per algorithm."
+    },
+    {
+      "requirement": "Malformed and unauthorized datagrams fail without leaked resources",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport_lifecycle::malformed_and_unallocated_datagrams_are_observed_rejected_before_and_after_auth_without_allocation",
+        "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_eddsa",
+        "canonical_webtransport_mixed::actual_mixed_webtransport_and_native_duplex_survives_foreign_physical_handle_rejection_es256",
+        "canonical_webtransport_media::server_shutdown_with_live_decoded_webtransport_media_retires_all_physical_bindings",
+        "canonical_webtransport_media::server_drop_with_live_decoded_webtransport_media_retires_all_physical_bindings"
+      ],
+      "observation": "All6invalid/unallocated-handle datagrams are observed rejected before/after authentication with no accepted input/DB mutation/Connection. A third authenticated physical peer cannot borrow a live handle; original routes still decode. Actual decoded-media shutdown/drop and EOF retire physical peers/readers/bindings."
+    },
+    {
+      "requirement": "Local contact preserves address family and normal TLS identity",
+      "status": "verified",
+      "methods": [
+        "canonical_webtransport::tests::derived_local_contact_preserves_bound_ipv4_and_ipv6_address_family",
+        "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts",
+        "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256"
+      ],
+      "observation": "Derived actual IPv4/bracketed IPv6 contact; normal WebPKI validates localhost/127.0.0.1/::1 and refuses foreign names/IPs. Browser now qualifies the derived IPv4 contact."
+    }
+  ],
+  "supporting_evidence": {
+    "current_runtime": "webtransport-composition.json#lifecycle026",
+    "retirement_repeats": "webtransport-composition.json#retirement027",
+    "store": "webtransport-composition.json#store020 (26distinct controlled metadata/authority methods)",
+    "schema": "webtransport-composition.json#schema007 (4actual schema111 safety methods)",
+    "upstream": "webtransport-composition.json#qpack_repeated_headers_repair (51actual unit methods; recorded patch/source-lock; separately reproduced immutable186 tree)",
+    "reference": "contracts/openapi-canonical-http.json; docs/developer/canonical-http.md; docs/developer/canonical-webtransport.md; docs/developer/application-sdk.md"
+  },
+  "source_inputs_map_sha256": "ec5312c75de2eebc20c93d4120bc56742599ed090999c9a03bd3d09a9b7d101c",
+  "source_inputs_match_current_revision": true,
+  "source_lock_sha256": "808e1fc326f1fab0680276c9daf0c4ea3ee6ff829c376a08c2e3dc3106f8baee",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "operating_scope": "Local macOS arm64 production server, independent HTTP3/native public SDK and explicit isolated installed Chrome. Linux hosting, broader browser/remote/provider operating profiles, conformance/release/acceptance and publication keep their assigned later tasks.",
+  "failed_attempts_preserved": [
+    "control002",
+    "store-runtime004",
+    "runtime008",
+    "runtime009",
+    "runtime010",
+    "runtime011",
+    "browser014",
+    "browser015",
+    "browser016 omitted JS guard;017 supersedes",
+    "store019 zero-match harness refusal",
+    "lifecycle021 compiler failure;0runtime methods",
+    "lifecycle02224/28 failure",
+    "lifecycle02327/28 failure",
+    "retention0241/2 diagnostic failure"
+  ],
+  "unresolved_task_requirements": [],
+  "publication": "Separate; not performed."
+}
