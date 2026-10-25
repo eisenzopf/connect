@@ -176,12 +176,12 @@
     }
   },
   "current_runtime": {
-    "evidence": "docs/evidence/gate-6/browser-client-cadence-host.json",
-    "sha256": "2d5663d9b78bd30654d0dff8f81416b36faab4f6b9f83f3f93fe7489eadc9f4d",
-    "browser_native": "12/12pass",
+    "evidence": "docs/evidence/gate-6/browser-client-waiting-host.json",
+    "sha256": "eb152474c70a15eff5e4f5db7191cececbeeea55071d5d388e7967c2406a255f",
+    "browser_native": "11/12; all4nativepass, syntheticES256audiofailed",
     "transport": "28/28pass",
-    "clean60": "6/8; EdDSAalignmentfailed,ES256audiofailed",
-    "scope": "Current194actualruntime; controlledfix valid, sustained/sync qualification remains open."
+    "clean60": "Bothcapturethroughputs pass; bothalignmentfail. Wholecohort6/8.",
+    "scope": "Source196actualruntime; no frozen clean or overalltaskqualification."
   },
   "receive_diagnostics": {
     "reports": [

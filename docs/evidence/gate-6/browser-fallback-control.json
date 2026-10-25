@@ -37,5 +37,13 @@
     "Force WT/UDP failure in actual Chrome and Firefox, running the same conversation/transition commands with original accepted/uncertain dial/message IDs and explicit unsupported migration.",
     "Qualify actual duplex media/data, permissions, background/resume, loss, current authorization and owned teardown for the required fallback profiles."
   ],
-  "scope": "SDK control-boundary component only. No real network/listener/TLS/WebRTC/Chrome/Firefox fallback, complete task, acceptance or publication qualification."
+  "scope": "SDK control-boundary component only. No real network/listener/TLS/WebRTC/Chrome/Firefox fallback, complete task, acceptance or publication qualification.",
+  "wt_runtime": {
+    "evidence": "docs/evidence/gate-6/browser-client-waiting-host.json",
+    "sha256": "eb152474c70a15eff5e4f5db7191cececbeeea55071d5d388e7967c2406a255f",
+    "browser_native": "11/12; all4nativepass, syntheticES256audiofailed",
+    "transport": "28/28pass",
+    "clean60": "Bothcapturethroughputs pass; bothalignmentfail. Wholecohort6/8.",
+    "scope": "Source196actualruntime; no frozen clean or overalltaskqualification."
+  }
 }

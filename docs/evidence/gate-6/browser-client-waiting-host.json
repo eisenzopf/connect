@@ -1,0 +1,1386 @@
+{
+  "schema": "connect-gate6-waiting-host/1",
+  "task": "G6-050",
+  "candidate_revision": "4bb52e8ec11247a1c068969d9b681ebbeacebbb9",
+  "source_lock_sha256": "17c4608580fc3e43e2ee96035106f4e0177bf79cea11aee6808458ca390d5aeb",
+  "patch_count": 196,
+  "status": "Both60secondcaptures pass audio/video throughput and60marker pairing, but fail alignment. Short browser/native cohort11/12; all4native cases and28transport methods pass.",
+  "browser_native": {
+    "report": ".local/gate-6/browser-sdk/backlog066/summary.json",
+    "sha256": "7d6bef46c914a87774ffceec88189d09ce76c504b6bb8e5708261c1893177f98",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 11,
+    "selected_methods": 12,
+    "native_passed": "4/4",
+    "native_cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "log_sha256": "0aa81c0de4ee4b9767fc91ffaf9f383410b88153a08acc3399aa470b7a2b219f",
+        "observed": {
+          "opus": {
+            "decoded": 199,
+            "identified": 199
+          },
+          "vp8": {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 120
+          },
+          "native_received": {
+            "audio": {
+              "decoded": 186,
+              "decoded_sha256": "31e492925e8ff9c5deaf19095960ada9466b7bb226de1d5a5c441a28ec382b6e",
+              "identified": 186,
+              "input_sha256": "82f91add1c17b8eef137196999cb7949ba0cf7f68fcf637bf93611442a2c1c27"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4007.3041669999993,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 122,
+              "decoded_sha256": "fdafad1cf961f40641751094a4194664605bca78c81800f3addeb3318289b08e",
+              "distinct_motion": 105,
+              "identified": 122,
+              "input_sha256": "c6391dbcf0ce31b3c65014b3846a4d7ec72b5b50811b4323ddb801ebbf06ff6a"
+            },
+            "video_sequence_gaps": 0
+          },
+          "teardown_ms": 159.20000004768372
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "log_sha256": "8726968f48c7591460c9ca9f56ff22048f809d5f2c50aa9c24aa372b7492a963",
+        "observed": {
+          "opus": {
+            "decoded": 194,
+            "identified": 194
+          },
+          "vp8": {
+            "decoded": 119,
+            "identified": 119,
+            "motion": 119
+          },
+          "native_received": {
+            "audio": {
+              "decoded": 202,
+              "decoded_sha256": "128a64d93cfb65746d3e518300b07b4e94c5a65938a40bf3a216462aa77d4251",
+              "identified": 202,
+              "input_sha256": "7ac4edb1cfbb764372a1509248abdfe2d6ad51bb35cb19b520bc1450111b4954"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4008.9241250000005,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 122,
+              "decoded_sha256": "702708ec24986f11b156c905207db4627d157a3aad89ecc4c6fcdde04a61ff4e",
+              "distinct_motion": 105,
+              "identified": 122,
+              "input_sha256": "214785e742b487245b377da12428b7f2c3262844f77536c739c27b3bdad0e247"
+            },
+            "video_sequence_gaps": 0
+          },
+          "teardown_ms": 182.70000004768372
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "log_sha256": "03f04a7abc6bd775ada27b101c43c2052eff8697bb7be5d1358fc854183b0b11",
+        "observed": {
+          "opus": {
+            "decoded": 202,
+            "identified": 202
+          },
+          "vp8": {
+            "decoded": 119,
+            "identified": 119,
+            "motion": 119
+          },
+          "native_received": {
+            "audio": {
+              "decoded": 200,
+              "decoded_sha256": "3e4df02bd123fe21b446f3102b90f282b15f05208cee8325cd212ca5a91b0575",
+              "identified": 200,
+              "input_sha256": "bc11c547b548e973644a7dc6fd974058db97461c72ebeaca149fc522ffef10d4"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4009.6999589999996,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 117,
+              "decoded_sha256": "3d5b3f8cdb2801b7ba9a5372cfd26be4e1000b95b6c2272eda71ad2d5debb3d2",
+              "distinct_motion": 102,
+              "identified": 117,
+              "input_sha256": "b1303de6bca00b81a83190fa07ffcd09ea2998cef7774e2fdf3cc215dcfb8fbd"
+            },
+            "video_sequence_gaps": 0
+          },
+          "teardown_ms": 164.79999995231628
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "log_sha256": "3bcc20bf925d279e211787aea019ba0a9a35ec78b642eb478adfb2d2cb7086a6",
+        "observed": {
+          "opus": {
+            "decoded": 198,
+            "identified": 198
+          },
+          "vp8": {
+            "decoded": 119,
+            "identified": 119,
+            "motion": 119
+          },
+          "native_received": {
+            "audio": {
+              "decoded": 184,
+              "decoded_sha256": "271938bba72315acde5e96da0ac15ed72f903bdde3d4fec86393a7452e59f595",
+              "identified": 184,
+              "input_sha256": "1cbb8e6abc529e1b38d44f578c8a4985c389e836776ef10d8096bd91a96ad184"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4003.417875,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 93,
+              "decoded_sha256": "46364aa222a64c3ebeaf2b07412d6c8c0f96fd946fc7da958ea57b44bce035b4",
+              "distinct_motion": 89,
+              "identified": 93,
+              "input_sha256": "34f5a3007ffcfd9e9b21d27801841a0dc31f173c0e112d5a31d535b60e4258ec"
+            },
+            "video_sequence_gaps": 4
+          },
+          "teardown_ms": 185.20000004768372
+        }
+      }
+    ],
+    "failed_cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "log_sha256": "edad3bb0782816c839fd9af152b9cf8d779d342e8a72a399962d5596c12dd028",
+        "failure": "One short synthetic ES256 receiver identifies140audio frames against unchanged150 minimum",
+        "measurement": {
+          "audio": [
+            {
+              "decoded": 195,
+              "identified": 195
+            },
+            {
+              "decoded": 140,
+              "identified": 140
+            }
+          ],
+          "video": [
+            {
+              "decoded": 106,
+              "identified": 106,
+              "motion": 106
+            },
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 119
+            }
+          ],
+          "measured_ms": 4011.9000000953674
+        }
+      }
+    ]
+  },
+  "clean60": {
+    "report": ".local/gate-6/browser-sdk/clean60-backlog065/summary.json",
+    "sha256": "df0b60eb1ec9fd0cbeec85d81f34ec6e2534f859980f45f5aa6cbb51e840341a",
+    "passed": false,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 6,
+    "selected_methods": 8,
+    "capture_failures": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "failure": "Frozen80msmedian/120msp95 alignment; terminal-intent checks not reached",
+        "log_sha256": "4eee3e81006f7e167f9c9fef1e52f620c31bedc37be1847b145b1ce67049789c",
+        "alignment": [
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 132.59999990463257
+              },
+              {
+                "id": 3,
+                "skew_ms": 112.5
+              },
+              {
+                "id": 4,
+                "skew_ms": 87.89999985694885
+              },
+              {
+                "id": 5,
+                "skew_ms": 89.89999985694885
+              },
+              {
+                "id": 6,
+                "skew_ms": 115.70000004768372
+              },
+              {
+                "id": 7,
+                "skew_ms": 91.5
+              },
+              {
+                "id": 8,
+                "skew_ms": 117.20000004768372
+              },
+              {
+                "id": 9,
+                "skew_ms": 103
+              },
+              {
+                "id": 10,
+                "skew_ms": 93.80000019073486
+              },
+              {
+                "id": 11,
+                "skew_ms": 116.60000014305115
+              },
+              {
+                "id": 12,
+                "skew_ms": 119.20000004768372
+              },
+              {
+                "id": 13,
+                "skew_ms": 73.10000014305115
+              },
+              {
+                "id": 14,
+                "skew_ms": 112.59999990463257
+              },
+              {
+                "id": 15,
+                "skew_ms": 95.79999995231628
+              },
+              {
+                "id": 16,
+                "skew_ms": 109.59999990463257
+              },
+              {
+                "id": 17,
+                "skew_ms": 117.79999995231628
+              },
+              {
+                "id": 18,
+                "skew_ms": 112.89999985694885
+              },
+              {
+                "id": 19,
+                "skew_ms": -321.7000000476837
+              },
+              {
+                "id": 20,
+                "skew_ms": 93.40000009536743
+              },
+              {
+                "id": 21,
+                "skew_ms": 85.60000014305115
+              },
+              {
+                "id": 22,
+                "skew_ms": 90.90000009536743
+              },
+              {
+                "id": 23,
+                "skew_ms": 94.80000019073486
+              },
+              {
+                "id": 24,
+                "skew_ms": 91.29999995231628
+              },
+              {
+                "id": 25,
+                "skew_ms": 104.29999995231628
+              },
+              {
+                "id": 26,
+                "skew_ms": 113.29999995231628
+              },
+              {
+                "id": 27,
+                "skew_ms": 101.70000004768372
+              },
+              {
+                "id": 28,
+                "skew_ms": 108.29999995231628
+              },
+              {
+                "id": 29,
+                "skew_ms": 93.79999995231628
+              },
+              {
+                "id": 30,
+                "skew_ms": 106.39999985694885
+              },
+              {
+                "id": 31,
+                "skew_ms": 82.09999990463257
+              },
+              {
+                "id": 32,
+                "skew_ms": 112.79999995231628
+              },
+              {
+                "id": 33,
+                "skew_ms": 108.79999995231628
+              },
+              {
+                "id": 34,
+                "skew_ms": 102.60000014305115
+              },
+              {
+                "id": 35,
+                "skew_ms": 125.70000004768372
+              },
+              {
+                "id": 36,
+                "skew_ms": 118.60000014305115
+              },
+              {
+                "id": 37,
+                "skew_ms": 115.29999995231628
+              },
+              {
+                "id": 38,
+                "skew_ms": 113.60000014305115
+              },
+              {
+                "id": 39,
+                "skew_ms": 115.5
+              },
+              {
+                "id": 40,
+                "skew_ms": 101.20000004768372
+              },
+              {
+                "id": 41,
+                "skew_ms": 113.59999990463257
+              },
+              {
+                "id": 42,
+                "skew_ms": 95.59999990463257
+              },
+              {
+                "id": 43,
+                "skew_ms": 123.5
+              },
+              {
+                "id": 44,
+                "skew_ms": 132.20000004768372
+              },
+              {
+                "id": 45,
+                "skew_ms": 119.90000009536743
+              },
+              {
+                "id": 46,
+                "skew_ms": 129.40000009536743
+              },
+              {
+                "id": 47,
+                "skew_ms": 115.10000014305115
+              },
+              {
+                "id": 48,
+                "skew_ms": 131.89999985694885
+              },
+              {
+                "id": 49,
+                "skew_ms": 117.89999985694885
+              },
+              {
+                "id": 50,
+                "skew_ms": 119
+              },
+              {
+                "id": 51,
+                "skew_ms": 123.5
+              },
+              {
+                "id": 52,
+                "skew_ms": 94.79999995231628
+              },
+              {
+                "id": 53,
+                "skew_ms": 130.40000009536743
+              },
+              {
+                "id": 54,
+                "skew_ms": 116.90000009536743
+              },
+              {
+                "id": 55,
+                "skew_ms": 109.5
+              },
+              {
+                "id": 56,
+                "skew_ms": 114.5
+              },
+              {
+                "id": 57,
+                "skew_ms": 124.5
+              },
+              {
+                "id": 58,
+                "skew_ms": 111.19999980926514
+              },
+              {
+                "id": 59,
+                "skew_ms": 131.5
+              },
+              {
+                "id": 60,
+                "skew_ms": 92
+              },
+              {
+                "id": 61,
+                "skew_ms": 117.20000004768372
+              }
+            ],
+            "paired_markers": 60,
+            "audio_markers": 60,
+            "video_markers": 60,
+            "median_abs_skew_ms": 112.84999990463257,
+            "p95_abs_skew_ms": 131.89999985694885,
+            "signed_median_skew_ms": 112.69999992847443
+          },
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 146.60000014305115
+              },
+              {
+                "id": 3,
+                "skew_ms": 173.29999995231628
+              },
+              {
+                "id": 4,
+                "skew_ms": 167.70000004768372
+              },
+              {
+                "id": 5,
+                "skew_ms": 177
+              },
+              {
+                "id": 6,
+                "skew_ms": 154.39999985694885
+              },
+              {
+                "id": 7,
+                "skew_ms": 126.20000004768372
+              },
+              {
+                "id": 8,
+                "skew_ms": 105.09999990463257
+              },
+              {
+                "id": 9,
+                "skew_ms": 112.70000004768372
+              },
+              {
+                "id": 10,
+                "skew_ms": 135.20000004768372
+              },
+              {
+                "id": 11,
+                "skew_ms": 103.90000009536743
+              },
+              {
+                "id": 12,
+                "skew_ms": 133.39999985694885
+              },
+              {
+                "id": 13,
+                "skew_ms": 124.59999990463257
+              },
+              {
+                "id": 14,
+                "skew_ms": 119
+              },
+              {
+                "id": 15,
+                "skew_ms": 111.70000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 119.29999995231628
+              },
+              {
+                "id": 17,
+                "skew_ms": 132.10000014305115
+              },
+              {
+                "id": 18,
+                "skew_ms": 133.09999990463257
+              },
+              {
+                "id": 19,
+                "skew_ms": 125.20000004768372
+              },
+              {
+                "id": 20,
+                "skew_ms": 118.79999995231628
+              },
+              {
+                "id": 21,
+                "skew_ms": 123.70000004768372
+              },
+              {
+                "id": 22,
+                "skew_ms": 129.60000014305115
+              },
+              {
+                "id": 23,
+                "skew_ms": 132.5
+              },
+              {
+                "id": 24,
+                "skew_ms": -429.40000009536743
+              },
+              {
+                "id": 25,
+                "skew_ms": 138.70000004768372
+              },
+              {
+                "id": 26,
+                "skew_ms": 116.70000004768372
+              },
+              {
+                "id": 27,
+                "skew_ms": 132.70000004768372
+              },
+              {
+                "id": 28,
+                "skew_ms": 133.70000004768372
+              },
+              {
+                "id": 29,
+                "skew_ms": 118.5
+              },
+              {
+                "id": 30,
+                "skew_ms": 126.59999990463257
+              },
+              {
+                "id": 31,
+                "skew_ms": 127
+              },
+              {
+                "id": 32,
+                "skew_ms": 101.90000009536743
+              },
+              {
+                "id": 33,
+                "skew_ms": 129.20000004768372
+              },
+              {
+                "id": 34,
+                "skew_ms": 134.60000014305115
+              },
+              {
+                "id": 35,
+                "skew_ms": 102.20000004768372
+              },
+              {
+                "id": 36,
+                "skew_ms": 109.79999995231628
+              },
+              {
+                "id": 37,
+                "skew_ms": 108.89999985694885
+              },
+              {
+                "id": 38,
+                "skew_ms": 121.59999990463257
+              },
+              {
+                "id": 39,
+                "skew_ms": 116.70000004768372
+              },
+              {
+                "id": 40,
+                "skew_ms": 114.59999990463257
+              },
+              {
+                "id": 41,
+                "skew_ms": 102.5
+              },
+              {
+                "id": 42,
+                "skew_ms": 120.29999995231628
+              },
+              {
+                "id": 43,
+                "skew_ms": 99.60000014305115
+              },
+              {
+                "id": 44,
+                "skew_ms": 124.29999995231628
+              },
+              {
+                "id": 45,
+                "skew_ms": 132.89999985694885
+              },
+              {
+                "id": 46,
+                "skew_ms": 111.20000004768372
+              },
+              {
+                "id": 47,
+                "skew_ms": 112.59999990463257
+              },
+              {
+                "id": 48,
+                "skew_ms": 108.89999985694885
+              },
+              {
+                "id": 49,
+                "skew_ms": 130.29999995231628
+              },
+              {
+                "id": 50,
+                "skew_ms": 114.5
+              },
+              {
+                "id": 51,
+                "skew_ms": 116.70000004768372
+              },
+              {
+                "id": 52,
+                "skew_ms": 47
+              },
+              {
+                "id": 53,
+                "skew_ms": 132.20000004768372
+              },
+              {
+                "id": 54,
+                "skew_ms": 119.19999980926514
+              },
+              {
+                "id": 55,
+                "skew_ms": 141.09999990463257
+              },
+              {
+                "id": 56,
+                "skew_ms": 147.20000004768372
+              },
+              {
+                "id": 57,
+                "skew_ms": 143.5
+              },
+              {
+                "id": 58,
+                "skew_ms": 120.09999990463257
+              },
+              {
+                "id": 59,
+                "skew_ms": 122.39999985694885
+              },
+              {
+                "id": 60,
+                "skew_ms": 120.5
+              },
+              {
+                "id": 61,
+                "skew_ms": 160.09999990463257
+              }
+            ],
+            "paired_markers": 60,
+            "audio_markers": 61,
+            "video_markers": 60,
+            "median_abs_skew_ms": 124,
+            "p95_abs_skew_ms": 167.70000004768372,
+            "signed_median_skew_ms": 123.04999995231628
+          }
+        ],
+        "measurement": {
+          "opus": [
+            {
+              "decoded": 2952,
+              "identified": 2944
+            },
+            {
+              "decoded": 2910,
+              "identified": 2910
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 1693,
+              "identified": 1693,
+              "motion": 608
+            },
+            {
+              "decoded": 1690,
+              "identified": 1690,
+              "motion": 607
+            }
+          ],
+          "playback": [
+            {
+              "peakRms": 0.7970268542419484,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.07800000000000051,
+              "queueSamples": 9883,
+              "queueSecondsTotal": 379.5400000006056,
+              "meanQueuedAudioSeconds": 0.038403318830375954,
+              "audio": 2952,
+              "video": 1693
+            },
+            {
+              "peakRms": 0.9288188155528347,
+              "maxPending": 5,
+              "maxQueuedSeconds": 0.09933333333333572,
+              "queueSamples": 9883,
+              "queueSecondsTotal": 350.1566666668858,
+              "meanQueuedAudioSeconds": 0.03543020000676777,
+              "audio": 2910,
+              "video": 1690
+            }
+          ],
+          "measured_ms": 60001.59999990463
+        },
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 37.22,
+              "peak_observed_rss_bytes": 73089024,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.830000000000002,
+              "peak_observed_rss_bytes": 2369519616,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91029504,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-backlog065/case-6-resources.json",
+          "log_sha256": "9190f58bfe41a14505e63699a1e55224d016f272a59a18a5ff16a98d3eea1a6d"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": false,
+        "failure": "Frozen80msmedian/120msp95 alignment; terminal-intent checks not reached",
+        "log_sha256": "cc8bad750535359daa5efe6f1176b03f42444809b33988931559553391f59c9a",
+        "alignment": [
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 59.200000047683716
+              },
+              {
+                "id": 3,
+                "skew_ms": 113.29999995231628
+              },
+              {
+                "id": 4,
+                "skew_ms": 105.19999980926514
+              },
+              {
+                "id": 5,
+                "skew_ms": 104.5
+              },
+              {
+                "id": 6,
+                "skew_ms": 117.10000014305115
+              },
+              {
+                "id": 7,
+                "skew_ms": 108.79999995231628
+              },
+              {
+                "id": 8,
+                "skew_ms": 101.80000019073486
+              },
+              {
+                "id": 9,
+                "skew_ms": 124.20000004768372
+              },
+              {
+                "id": 10,
+                "skew_ms": 119.90000009536743
+              },
+              {
+                "id": 11,
+                "skew_ms": 110.79999995231628
+              },
+              {
+                "id": 12,
+                "skew_ms": 116.10000014305115
+              },
+              {
+                "id": 13,
+                "skew_ms": 125.20000004768372
+              },
+              {
+                "id": 14,
+                "skew_ms": 119.20000004768372
+              },
+              {
+                "id": 15,
+                "skew_ms": 108.70000004768372
+              },
+              {
+                "id": 16,
+                "skew_ms": 105.79999995231628
+              },
+              {
+                "id": 17,
+                "skew_ms": 112
+              },
+              {
+                "id": 18,
+                "skew_ms": 101.70000004768372
+              },
+              {
+                "id": 19,
+                "skew_ms": 109.29999995231628
+              },
+              {
+                "id": 20,
+                "skew_ms": 106.20000004768372
+              },
+              {
+                "id": 21,
+                "skew_ms": 126.19999980926514
+              },
+              {
+                "id": 22,
+                "skew_ms": 135.09999990463257
+              },
+              {
+                "id": 23,
+                "skew_ms": 120.39999985694885
+              },
+              {
+                "id": 24,
+                "skew_ms": 134.10000014305115
+              },
+              {
+                "id": 25,
+                "skew_ms": 125.89999985694885
+              },
+              {
+                "id": 26,
+                "skew_ms": 122.90000009536743
+              },
+              {
+                "id": 27,
+                "skew_ms": 104.29999995231628
+              },
+              {
+                "id": 28,
+                "skew_ms": 103.59999990463257
+              },
+              {
+                "id": 29,
+                "skew_ms": 123.60000014305115
+              },
+              {
+                "id": 30,
+                "skew_ms": 118.30000019073486
+              },
+              {
+                "id": 31,
+                "skew_ms": 131.59999990463257
+              },
+              {
+                "id": 32,
+                "skew_ms": 136.79999995231628
+              },
+              {
+                "id": 33,
+                "skew_ms": 73.5
+              },
+              {
+                "id": 34,
+                "skew_ms": 127.59999990463257
+              },
+              {
+                "id": 35,
+                "skew_ms": 103.59999990463257
+              },
+              {
+                "id": 36,
+                "skew_ms": 119.10000014305115
+              },
+              {
+                "id": 37,
+                "skew_ms": 84.5
+              },
+              {
+                "id": 38,
+                "skew_ms": 116.29999995231628
+              },
+              {
+                "id": 39,
+                "skew_ms": 107.90000009536743
+              },
+              {
+                "id": 40,
+                "skew_ms": 82.70000004768372
+              },
+              {
+                "id": 41,
+                "skew_ms": 63.60000014305115
+              },
+              {
+                "id": 42,
+                "skew_ms": 56.700000047683716
+              },
+              {
+                "id": 43,
+                "skew_ms": 130.59999990463257
+              },
+              {
+                "id": 44,
+                "skew_ms": 94
+              },
+              {
+                "id": 45,
+                "skew_ms": 95.89999985694885
+              },
+              {
+                "id": 46,
+                "skew_ms": 109.20000004768372
+              },
+              {
+                "id": 47,
+                "skew_ms": 159.69999980926514
+              },
+              {
+                "id": 48,
+                "skew_ms": 120.10000014305115
+              },
+              {
+                "id": 49,
+                "skew_ms": 104.70000004768372
+              },
+              {
+                "id": 50,
+                "skew_ms": 132.40000009536743
+              },
+              {
+                "id": 51,
+                "skew_ms": 103.90000009536743
+              },
+              {
+                "id": 52,
+                "skew_ms": 129.90000009536743
+              },
+              {
+                "id": 53,
+                "skew_ms": 107.80000019073486
+              },
+              {
+                "id": 54,
+                "skew_ms": 135.20000004768372
+              },
+              {
+                "id": 55,
+                "skew_ms": 97
+              },
+              {
+                "id": 56,
+                "skew_ms": 109.69999980926514
+              },
+              {
+                "id": 57,
+                "skew_ms": 99.09999990463257
+              },
+              {
+                "id": 58,
+                "skew_ms": 106.29999995231628
+              },
+              {
+                "id": 59,
+                "skew_ms": 100.79999995231628
+              },
+              {
+                "id": 60,
+                "skew_ms": 114.60000014305115
+              },
+              {
+                "id": 61,
+                "skew_ms": 115.80000019073486
+              }
+            ],
+            "paired_markers": 60,
+            "audio_markers": 60,
+            "video_markers": 60,
+            "median_abs_skew_ms": 110.24999988079071,
+            "p95_abs_skew_ms": 135.09999990463257,
+            "signed_median_skew_ms": 110.24999988079071
+          },
+          {
+            "pairs": [
+              {
+                "id": 2,
+                "skew_ms": 137
+              },
+              {
+                "id": 3,
+                "skew_ms": 143.60000014305115
+              },
+              {
+                "id": 4,
+                "skew_ms": 125.39999985694885
+              },
+              {
+                "id": 5,
+                "skew_ms": 119.29999995231628
+              },
+              {
+                "id": 6,
+                "skew_ms": 105.90000009536743
+              },
+              {
+                "id": 7,
+                "skew_ms": 117.10000014305115
+              },
+              {
+                "id": 8,
+                "skew_ms": 144.79999995231628
+              },
+              {
+                "id": 9,
+                "skew_ms": 137
+              },
+              {
+                "id": 10,
+                "skew_ms": 107.79999995231628
+              },
+              {
+                "id": 11,
+                "skew_ms": 111
+              },
+              {
+                "id": 12,
+                "skew_ms": 128.90000009536743
+              },
+              {
+                "id": 13,
+                "skew_ms": 115.29999995231628
+              },
+              {
+                "id": 14,
+                "skew_ms": 120.79999995231628
+              },
+              {
+                "id": 15,
+                "skew_ms": 110.5
+              },
+              {
+                "id": 16,
+                "skew_ms": 126.20000004768372
+              },
+              {
+                "id": 17,
+                "skew_ms": 116.5
+              },
+              {
+                "id": 18,
+                "skew_ms": 116.90000009536743
+              },
+              {
+                "id": 19,
+                "skew_ms": 128.29999995231628
+              },
+              {
+                "id": 20,
+                "skew_ms": 105
+              },
+              {
+                "id": 21,
+                "skew_ms": 121.19999980926514
+              },
+              {
+                "id": 22,
+                "skew_ms": 113.70000004768372
+              },
+              {
+                "id": 23,
+                "skew_ms": 110.29999995231628
+              },
+              {
+                "id": 24,
+                "skew_ms": 110.10000014305115
+              },
+              {
+                "id": 25,
+                "skew_ms": 110.69999980926514
+              },
+              {
+                "id": 26,
+                "skew_ms": 115.39999985694885
+              },
+              {
+                "id": 27,
+                "skew_ms": 113.20000004768372
+              },
+              {
+                "id": 28,
+                "skew_ms": 113.20000004768372
+              },
+              {
+                "id": 29,
+                "skew_ms": 113.59999990463257
+              },
+              {
+                "id": 30,
+                "skew_ms": 109.90000009536743
+              },
+              {
+                "id": 31,
+                "skew_ms": 112.79999995231628
+              },
+              {
+                "id": 32,
+                "skew_ms": 112.29999995231628
+              },
+              {
+                "id": 33,
+                "skew_ms": 140.79999995231628
+              },
+              {
+                "id": 34,
+                "skew_ms": 137
+              },
+              {
+                "id": 35,
+                "skew_ms": 142.39999985694885
+              },
+              {
+                "id": 36,
+                "skew_ms": 114.5
+              },
+              {
+                "id": 37,
+                "skew_ms": 115.79999995231628
+              },
+              {
+                "id": 38,
+                "skew_ms": 118.20000004768372
+              },
+              {
+                "id": 39,
+                "skew_ms": 126.79999995231628
+              },
+              {
+                "id": 40,
+                "skew_ms": 123.80000019073486
+              },
+              {
+                "id": 41,
+                "skew_ms": 130.89999985694885
+              },
+              {
+                "id": 42,
+                "skew_ms": 120.39999985694885
+              },
+              {
+                "id": 43,
+                "skew_ms": 118.20000004768372
+              },
+              {
+                "id": 44,
+                "skew_ms": 125.59999990463257
+              },
+              {
+                "id": 45,
+                "skew_ms": 99.90000009536743
+              },
+              {
+                "id": 46,
+                "skew_ms": 116.10000014305115
+              },
+              {
+                "id": 47,
+                "skew_ms": 115.79999995231628
+              },
+              {
+                "id": 48,
+                "skew_ms": 108
+              },
+              {
+                "id": 49,
+                "skew_ms": 112.89999985694885
+              },
+              {
+                "id": 50,
+                "skew_ms": 118.70000004768372
+              },
+              {
+                "id": 51,
+                "skew_ms": 154
+              },
+              {
+                "id": 52,
+                "skew_ms": 113.20000004768372
+              },
+              {
+                "id": 53,
+                "skew_ms": 74.5
+              },
+              {
+                "id": 54,
+                "skew_ms": 110.40000009536743
+              },
+              {
+                "id": 55,
+                "skew_ms": 120.39999985694885
+              },
+              {
+                "id": 56,
+                "skew_ms": 130.39999985694885
+              },
+              {
+                "id": 57,
+                "skew_ms": 131.59999990463257
+              },
+              {
+                "id": 58,
+                "skew_ms": 119.70000004768372
+              },
+              {
+                "id": 59,
+                "skew_ms": -46
+              },
+              {
+                "id": 60,
+                "skew_ms": 193.40000009536743
+              },
+              {
+                "id": 61,
+                "skew_ms": 120.29999995231628
+              }
+            ],
+            "paired_markers": 60,
+            "audio_markers": 60,
+            "video_markers": 60,
+            "median_abs_skew_ms": 117.00000011920929,
+            "p95_abs_skew_ms": 143.60000014305115,
+            "signed_median_skew_ms": 117.00000011920929
+          }
+        ],
+        "measurement": {
+          "opus": [
+            {
+              "decoded": 2642,
+              "identified": 2642
+            },
+            {
+              "decoded": 2939,
+              "identified": 2932
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 1730,
+              "identified": 1730,
+              "motion": 608
+            },
+            {
+              "decoded": 1721,
+              "identified": 1721,
+              "motion": 608
+            }
+          ],
+          "playback": [
+            {
+              "peakRms": 0.8871284135141901,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.07666666666663247,
+              "queueSamples": 9777,
+              "queueSecondsTotal": 251.83799999995307,
+              "meanQueuedAudioSeconds": 0.025758208039271053,
+              "audio": 2642,
+              "video": 1730
+            },
+            {
+              "peakRms": 0.9124189700732789,
+              "maxPending": 4,
+              "maxQueuedSeconds": 0.07400000000000073,
+              "queueSamples": 9777,
+              "queueSecondsTotal": 307.97333333475757,
+              "meanQueuedAudioSeconds": 0.03149977839160863,
+              "audio": 2939,
+              "video": 1721
+            }
+          ],
+          "measured_ms": 60002.59999990463
+        },
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 35.59,
+              "peak_observed_rss_bytes": 72679424,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 18.93,
+              "peak_observed_rss_bytes": 2384232448,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91045888,
+              "observed_process_count": 3
+            }
+          },
+          "errors": [],
+          "log": ".local/gate-6/browser-sdk/clean60-backlog065/case-7-resources.json",
+          "log_sha256": "fb8fc9c8ca4b78dcfb85f9688c63e78eb4cc9e2ae275872a60c8994a14c9951b"
+        }
+      }
+    ]
+  },
+  "transport": {
+    "report": ".local/gate-6/webtransport/backlog035/summary.json",
+    "sha256": "80a776a08169efea8a6f6c5b3b910f8c43f5c22bd2499ea89cd44dce5b21f1e5",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "passed_methods": 28,
+    "selected_methods": 28
+  },
+  "interpretation": [
+    "The waiting-original correction has actual sustained throughput evidence in both frozen capture methods. It does not qualify synchronization or the overall profile.",
+    "A duplicate short synthetic ES256 method passes in the clean60 cohort but fails with140identifiedaudio frames in the later11/12cohort. Keep both results; do not combine passing duplicates into a12/12claim.",
+    "All observed60pairedmarkers perreceiver are retained; medianabsolute skew110.25\u2013124ms andp95131.9\u2013167.7ms still fail80/120ms. Signed medians are positive: audio later than matching video.",
+    "Current196serverpacketages have not yet been measured. Historical194ages cannot be substituted. Next use the bounded diagnostic, then address shared clock/presentation timing without a constant offset or changed observer.",
+    "Four short publicnativeQUIC/browserWT cases independently decode actualreceived Opus/VP8/data; preencoded/offline-native scope does not qualify a live native encoder/presenter or full native operating/sync profile."
+  ],
+  "scope": "Actual local macOS arm64/Chrome155.0.8059.85/productionSDK+Store+Core. No clean-sync, actual network impairment, WSS/WebRTC fallback, Linux/remote/provider, complete task/acceptance or publication qualification."
+}

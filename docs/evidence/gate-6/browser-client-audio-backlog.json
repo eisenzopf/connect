@@ -186,5 +186,13 @@
       "Existing two-packet ordering, original expiry, pause/resume, stable budgets, idle writer access, ten-chunk/200ms insertion capacity, source/target/scene/consumer authority and missed-tick tests pass.",
       "No constant video offset or quality threshold was changed; connected operating results must be measured separately."
     ]
+  },
+  "host_runtime": {
+    "evidence": "docs/evidence/gate-6/browser-client-waiting-host.json",
+    "sha256": "eb152474c70a15eff5e4f5db7191cececbeeea55071d5d388e7967c2406a255f",
+    "browser_native": "11/12; all4nativepass, syntheticES256audiofailed",
+    "transport": "28/28pass",
+    "clean60": "Bothcapturethroughputs pass; bothalignmentfail. Wholecohort6/8.",
+    "scope": "Source196actualruntime; no frozen clean or overalltaskqualification."
   }
 }
