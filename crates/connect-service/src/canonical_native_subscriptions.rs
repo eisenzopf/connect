@@ -4,7 +4,7 @@ use crate::{
     canonical_runtime::Runtime,
 };
 use async_trait::async_trait;
-use connect_store::{NativeStreamCommitted, NativeStreamLease, Store};
+use connect_store::{NativeStreamCommitted, NativeStreamLease, NativeStreamNoEffect, Store};
 use rvoip_auth_core::{
     bearer::ValidatedBearer,
     sig9421::{PrincipalVerificationKey, ResolvedVerificationKey},
@@ -15,8 +15,8 @@ use rvoip_uctp::v2::{
     native_negotiation::NativeOfferError,
     native_requests::{NativeRequestPolicy, NativeRequestScope},
     native_subscriptions::{
-        NativeSubscriptionAuthority, NativeSubscriptionOutcome, NativeSubscriptionPlan,
-        NativeSubscriptionPolicy,
+        NativeSubscriptionAuthority, NativeSubscriptionNoEffect, NativeSubscriptionOutcome,
+        NativeSubscriptionPlan, NativeSubscriptionPolicy,
     },
     payloads::Device,
     Envelope, Identifier, Scope,
@@ -42,7 +42,8 @@ struct Attempt {
 }
 enum Captured {
     Success(Arc<NativeStreamCommitted>, u64, bool),
-    Unknown(Arc<NativeStreamLease>),
+    Unknown(Arc<NativeStreamLease>, NativeOfferError),
+    NoEffect(Arc<NativeStreamNoEffect>, NativeOfferError),
 }
 struct Recording {
     captured: Captured,
@@ -198,7 +199,16 @@ impl NativeSubscriptionPolicy for Policy {
         operation: &str,
         result: &Result<NativeSubscriptionOutcome, NativeOfferError>,
         held: Option<&AuthorityLease>,
+        no_effect: Option<&NativeSubscriptionNoEffect>,
     ) -> Result<(), DispatchError> {
+        if no_effect.is_some_and(|p| {
+            result
+                .as_ref()
+                .err()
+                .is_none_or(|error| !p.matches(scope, operation, error))
+        }) {
+            return Err(DispatchError::Authority);
+        }
         let held = held.ok_or(DispatchError::Authority)?;
         let historical = held.authority::<Observation>();
         let grant = held.authority::<Arc<Grant>>();
@@ -230,13 +240,19 @@ impl NativeSubscriptionPolicy for Policy {
                 (Captured::Success(_, revision, resources), Ok(out)) => {
                     *revision == out.revision && *resources == out.resources_changed
                 }
-                (Captured::Unknown(_), Err(_)) => true,
+                (Captured::Unknown(_, old), Err(error)) => old == error && no_effect.is_none(),
+                (Captured::NoEffect(_, old), Err(error)) => old == error && no_effect.is_some(),
                 _ => false,
             };
             if !same || historical.is_some_and(|p| !Arc::ptr_eq(&p.recording, recording)) {
                 return Err(DispatchError::Authority);
             }
             if recording.done.load(Ordering::Acquire) {
+                // Recording uncertainty is not resolution. Keep the original
+                // captured error/operation and permit historical observation only.
+                if matches!(recording.captured, Captured::Unknown(..)) {
+                    return Err(DispatchError::SubmissionUnknown);
+                }
                 *state = None;
                 return Ok(());
             }
@@ -255,8 +271,19 @@ impl NativeSubscriptionPolicy for Policy {
                 out.resources_changed,
             ),
             Err(error) => {
-                tracing::debug!(target:"connect_service::canonical_native_streams",?error,"Native reconciliation engine outcome remains uncertain");
-                Captured::Unknown(Arc::new(lease))
+                if no_effect.is_some() {
+                    tracing::debug!(target:"connect_service::canonical_native_streams",?error,"Native routing reconciliation failed before graph commit");
+                    Captured::NoEffect(
+                        Arc::new(lease.without_effect(connect_protocol::Error::new(
+                            "native-reconciliation-no-effect",
+                            error.to_string(),
+                        ))),
+                        *error,
+                    )
+                } else {
+                    tracing::debug!(target:"connect_service::canonical_native_streams",?error,"Native reconciliation engine outcome remains uncertain");
+                    Captured::Unknown(Arc::new(lease), *error)
+                }
             }
         };
         let recording = Arc::new(Recording {
@@ -274,7 +301,8 @@ impl NativeSubscriptionPolicy for Policy {
             loop {
                 let saved=match &recording.captured {
                     Captured::Success(receipt,_,_)=>store.complete_native_stream(receipt),
-                    Captured::Unknown(lease)=>store.native_stream_attempt_uncertain(lease),
+                    Captured::Unknown(lease,_)=>store.native_stream_attempt_uncertain(lease),
+                    Captured::NoEffect(receipt,_)=>store.record_native_stream_without_effect(receipt),
                 };
                 if saved.is_ok(){recording.done.store(true,Ordering::Release);return;}
                 tokio::select!{biased;_=stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(100))=>{}}

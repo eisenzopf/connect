@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-reconciliation-outcome/1",
   "task": "G6-050",
-  "status": "controlled negative-before verified; production fix pending",
+  "status": "six focused upstream methods and239 Store methods pass; host/runtime pending",
   "negative_before": {
     "report": ".local/gate-6/reconciliation-outcome/negative002/summary.json",
     "sha256": "bf6813bc839903f7481d5bf29c68bd32345777611034ac7a861f49117806db61",
@@ -35,5 +35,146 @@
     "observation": "Timed out because notify_one could wake the publisher instead of the retained selector runtime. Revised to notify_waiters and publish the observation counter after validation; first cache/patch/lock are retained privately."
   },
   "next": "Record production patch preserving exact success/error plus its original plan across observer retries. Provide an opaque exact-scope/error proof only for definite unchanged-resource atomic routing failure, record the original failed attempt before releasing it, and obtain fresh current authority for further work. Preserve uncertainty for possible resource IO and never run an effect with metadata-only observation custody. Then six actual upstream methods and full current host/browser/native/transport checks.",
-  "scope": "Actual Core/UCTP functional negative only; no passing test, Connect host performance, native interoperability, full task/acceptance or publication claim."
+  "scope": "Actual Core/UCTP functional negative only; no passing test, Connect host performance, native interoperability, full task/acceptance or publication claim.",
+  "implementation": {
+    "patch": "patches/rvoip/gate6-reconcile-exact-error-and-no-effect.patch",
+    "patch_sha256": "a6d3151c9029a8389237556c2d1497091d2b6a90ad01f95be737f53f29a1b838",
+    "patch_count": 190,
+    "source_lock_sha256": "9d2b1e3f5e8830091380c3fbc9622e0b751c9fed7857330c8d485cda7343d4c2",
+    "behavior": [
+      "Retain the exact original success OR error and original plan while observation/journal recording retries; observation custody never reenters the engine.",
+      "Adapter-issued opaque no-effect proof exists only after a failed unchanged-resource atomic routing call. It binds lifecycle origin, operation, stream revision, connection and credential generations, Conversation and exact error; no permission or executable handle is retained. Wrong operation/error/revision proofs are rejected by the actual regression.",
+      "Host records certified failure with the original NativeStreamNoEffect receipt. The failed pending attempt closes only after that record commits; subsequent work obtains fresh current authorization. Historical recording may finish after the original permission interval, but cannot authorize new work.",
+      "A possible native resource IO failure stays uncertain. Recording an unknown state is not resolution: the host retains its exact captured operation/error, and does not acknowledge it as a definite outcome. Existing resource confirmation/denial/bad-confirmation/queued-writer cases preserve original identity."
+    ]
+  },
+  "positive_after": {
+    "report": ".local/gate-6/reconciliation-outcome/positive001/summary.json",
+    "sha256": "91ee266ad4b70b4131bb9ee3bb1456af79d917aead231cf86a740a951aa46620",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "cases": [
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_failed_routing_replays_the_exact_error_with_metadata_only_custody",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-0.log",
+        "log_sha256": "d1acdfa344c74fd069d520b052fc5987cbb4b5eaac082c8b1063d2b2cf44d6c9",
+        "elapsed_seconds": 2.1441029580309987
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-1.log",
+        "log_sha256": "54892625b5aab8484ad895e30f0d1528e314ea45c92691e9942c3fa157460387",
+        "elapsed_seconds": 12.801690499996766
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_participant_video_and_screen_reconcile_after_original_command_grant_releases",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-2.log",
+        "log_sha256": "17f32bbf882ead794eebcae5585b8d969f646368de76f3669c26f66febcc3a25",
+        "elapsed_seconds": 0.3916377502027899
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_selection_rechecks_denial_then_reuses_operation_after_bad_confirmation_and_queued_writer",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-3.log",
+        "log_sha256": "e867521203d6da0ec89478e5d73a62148bf8f6aba83654e9c6dc5f5c28820efb",
+        "elapsed_seconds": 0.5648438329808414
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_data_receiver_negotiates_only_with_supported_physical_profile",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-4.log",
+        "log_sha256": "0948c9e3bafd73730d6aadbccd752963dc4c71f61196c55403b92e83b491e945",
+        "elapsed_seconds": 0.023461125092580914
+      },
+      {
+        "case": "v2::native_subscriptions::catalog_tests::catalog_contention_does_not_reclassify_missing_stale_or_resource_capacity",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/reconciliation-outcome/positive001/case-5.log",
+        "log_sha256": "b795af1d477d02454223d9a7c4c25fc9ddd2b771b44e5fc83dad6726e9d333c8",
+        "elapsed_seconds": 0.5543418750166893
+      }
+    ]
+  },
+  "store_recording": {
+    "report": ".local/gate-6/reconciliation-outcome/store001/summary.json",
+    "sha256": "c2087c2fa576385e2f362d2cb503817f9f71f102b5f60f4315d556545dfee621",
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "passed_methods": 239,
+    "groups": [
+      {
+        "name": "native-authority",
+        "selection": "connection_control::tests::native_stream_authority::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "connection_control::tests::native_stream_authority::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 178,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/reconciliation-outcome/store001/native-authority.log",
+        "log_sha256": "81733a97144beb2d081bea13fc280776c2b349bc859325abe225de85ca68dabc",
+        "elapsed_seconds": 92.08827008400112
+      },
+      {
+        "name": "snapshot",
+        "selection": "peer_authority::connection_media::snapshot::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "peer_authority::connection_media::snapshot::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 19,
+        "failed_methods": 0,
+        "ignored_helpers": 0,
+        "log": ".local/gate-6/reconciliation-outcome/store001/snapshot.log",
+        "log_sha256": "a7544c672284d3a1d9fa351fc9219840aa85f33dd50039b3c2a57fd7e79a74d2",
+        "elapsed_seconds": 7.427556291921064
+      },
+      {
+        "name": "file-fences",
+        "selection": "authority_fences::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.local/share/connect/store-received-snapshot-target/debug/deps/connect_store-2446f4223b9f6bff",
+          "authority_fences::tests::",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "exit_code": 0,
+        "passed_methods": 42,
+        "failed_methods": 0,
+        "ignored_helpers": 1,
+        "log": ".local/gate-6/reconciliation-outcome/store001/file-fences.log",
+        "log_sha256": "52344d03b7afb6ca80757559be409185d715960eb31d4fd10b9d076bf6887369",
+        "elapsed_seconds": 31.626450583105907
+      }
+    ],
+    "ignored_helpers": 1,
+    "behavior": "New controlled test covers both preparing and unknown original attempts, rollback during failed-outcome journal insertion, blocked terminal admission with no new effect until commit, idempotent recording of the same failed receipt, then one accepted original terminal intent. This is Store metadata evidence, not manufactured native IO evidence."
+  },
+  "host_runtime": {
+    "status": "current source190/publication fix host build active; current browser8/native4/transport28 and operating profiles remain unverified"
+  }
 }

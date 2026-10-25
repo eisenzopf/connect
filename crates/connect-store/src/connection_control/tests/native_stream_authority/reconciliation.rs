@@ -331,6 +331,100 @@ fn native_reconciliation_storage_rollback_preserves_the_original_id_and_explicit
         OperationState::Completed
     );
 }
+
+#[test]
+fn original_no_effect_recording_releases_managed_admission_only_after_its_commit() {
+    for uncertain in [false, true] {
+        let (f, mut request, origin) = selected_with_end(true);
+        let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+        let lease = f
+            .store
+            .begin_native_reconciliation(
+                &source,
+                "routing-definitely-failed",
+                json!({"streams":[],"resources_changed":false}),
+            )
+            .unwrap();
+        drop(source);
+        if uncertain {
+            f.store.native_stream_attempt_uncertain(&lease).unwrap();
+        }
+        let original = status(&f, "routing-definitely-failed");
+        // This Store-only fixture supplies the trusted owned-job observation.
+        // Production accepts it only after the adapter's opaque no-effect proof.
+        let receipt = lease.without_effect(Error::new("atomic-routing-refused", "No graph commit"));
+        let PeerCommand::NativeStream(wire) = &mut request.command else {
+            panic!()
+        };
+        wire.command = Command::End;
+        wire.operation_id = "original-end-after-failed-routing".into();
+        wire.expected_revision = None;
+        wire.payload = json!({"reason_code":200,"reason":"normal-clearing"});
+        let proof = admit(&f, &request).unwrap();
+        let before = (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal"),
+        );
+        f.store.connection().unwrap().execute_batch("CREATE TRIGGER fail_original_routing_receipt BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.operation_id')='routing-definitely-failed' AND json_extract(NEW.data_json,'$.state')='failed' BEGIN SELECT RAISE(ABORT,'controlled failed routing recording'); END;").unwrap();
+        assert!(f
+            .store
+            .record_native_stream_without_effect(&receipt)
+            .is_err());
+        assert_eq!(status(&f, "routing-definitely-failed"), original);
+        assert!(f
+            .store
+            .try_accept_native_control_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            (
+                f.count("operations"),
+                f.count("operation_effects"),
+                f.count("journal")
+            ),
+            before
+        );
+        f.store
+            .connection()
+            .unwrap()
+            .execute_batch("DROP TRIGGER fail_original_routing_receipt")
+            .unwrap();
+        let failed = f
+            .store
+            .record_native_stream_without_effect(&receipt)
+            .unwrap();
+        assert_eq!(failed.state, OperationState::Failed);
+        assert_eq!(failed.record_id, original.record_id);
+        assert_eq!(failed.operation_id, "routing-definitely-failed");
+        assert_eq!(
+            f.store
+                .record_native_stream_without_effect(&receipt)
+                .unwrap(),
+            failed
+        );
+        let accepted = f
+            .store
+            .try_accept_native_control_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .unwrap();
+        assert_eq!(accepted.operation_id, "original-end-after-failed-routing");
+        assert_eq!(
+            f.store
+                .try_accept_native_control_with_peer(&f.keys[0], &proof)
+                .unwrap()
+                .unwrap()
+                .record_id,
+            accepted.record_id
+        );
+        assert_eq!(f.count("operations"), before.0 + 1);
+        assert_eq!(
+            f.count("operation_effects"),
+            before.1,
+            "failed receipt resubmitted an effect"
+        );
+    }
+}
 #[test]
 fn native_reconciliation_cancellation_cannot_create_a_second_attempt_or_invent_a_failed_commit() {
     let (f, _, origin) = selected();

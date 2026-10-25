@@ -1,0 +1,211 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1423,7 +1423,35 @@
+             resources,
+         }))
+     }
++    /// Routing-only errors precede the one graph/model commit. The broker does
++    /// not initiate a native resource exchange on this branch. Preserve that
++    /// exact no-effect fact; resource-changing errors remain uncertain.
+     pub(crate) async fn reconcile_native_subscriptions(
++        &self,
++        core: &rvoip_core::orchestrator::Orchestrator,
++        id: &ConnectionId,
++        invocation: Arc<super::native_subscriptions::NativeSubscriptionInvocation>,
++        policy: Arc<dyn super::native_subscriptions::NativeSubscriptionPolicy>,
++        slot: Arc<super::native_requests::NativeRequestSlot>,
++    ) -> (
++        std::result::Result<
++            super::native_subscriptions::NativeSubscriptionOutcome,
++            super::native_negotiation::NativeOfferError,
++        >,
++        Option<super::native_subscriptions::NativeSubscriptionNoEffect>,
++    ) {
++        let result = self
++            .reconcile_native_subscriptions_once(core, id, invocation.clone(), policy, slot)
++            .await;
++        let no_effect = (result.is_err() && !invocation.plan().changes_resources()).then(|| {
++            super::native_subscriptions::NativeSubscriptionNoEffect::from_failed_routing(
++                &invocation,
++                *result.as_ref().err().expect("checked failed routing"),
++            )
++        });
++        (result, no_effect)
++    }
++    async fn reconcile_native_subscriptions_once(
+         &self,
+         core: &rvoip_core::orchestrator::Orchestrator,
+         id: &ConnectionId,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions.rs
+@@ -28,6 +28,55 @@
+ pub struct NativeSubscriptionOutcome {
+     pub revision: u64,
+     pub resources_changed: bool,
++}
++/// Opaque historical proof that this exact unchanged-resource attempt failed
++/// before its single atomic routing commit. It owns no authority or IO handle.
++/// Only the adapter's completed routing-only call can construct this proof.
++#[derive(Clone)]
++pub struct NativeSubscriptionNoEffect {
++    origin: std::sync::Weak<super::native_lifecycle::NativeLifecycleScope>,
++    operation: String,
++    revision: u64,
++    generation: u64,
++    credential: u64,
++    conversation: rvoip_core::ids::ConversationId,
++    error: NativeOfferError,
++}
++impl NativeSubscriptionNoEffect {
++    pub(crate) fn from_failed_routing(
++        invocation: &NativeSubscriptionInvocation,
++        error: NativeOfferError,
++    ) -> Self {
++        assert!(!invocation.plan().changes_resources());
++        let scope = invocation.scope();
++        Self {
++            origin: std::sync::Arc::downgrade(&scope.origin),
++            operation: invocation.operation().into(),
++            revision: scope.stream_revision,
++            generation: scope.connection_generation,
++            credential: scope.credential_revision,
++            conversation: scope.conversation.clone(),
++            error,
++        }
++    }
++    /// Match original historical scope/error, not current permission. A match
++    /// authorizes no request, engine call, packet or different operation.
++    pub fn matches(
++        &self,
++        scope: &super::native_requests::NativeRequestScope,
++        operation: &str,
++        error: &NativeOfferError,
++    ) -> bool {
++        self.operation == operation
++            && self.revision == scope.stream_revision
++            && self.generation == scope.connection_generation
++            && self.credential == scope.credential_revision
++            && self.conversation == scope.conversation
++            && self.error == *error
++            && self
++                .origin
++                .ptr_eq(&std::sync::Arc::downgrade(&scope.origin))
++    }
+ }
+ pub(crate) fn parse(
+     e: &Envelope,
+@@ -180,6 +229,7 @@
+         operation: &str,
+         result: &Result<NativeSubscriptionOutcome, NativeOfferError>,
+         held: Option<&super::auth_dispatch::AuthorityLease>,
++        no_effect: Option<&NativeSubscriptionNoEffect>,
+     ) -> Result<(), super::auth_dispatch::DispatchError>;
+     fn changes(&self) -> Option<std::sync::Arc<tokio::sync::Notify>> {
+         None
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+@@ -59,7 +59,10 @@
+     async fn run(weak: Weak<Self>) {
+         let mut last: Option<NativeSubscriptionPlan> = None;
+         let mut pending: Option<String> = None;
+-        let mut known: Option<NativeSubscriptionOutcome> = None;
++        let mut known: Option<(
++            Result<NativeSubscriptionOutcome, NativeOfferError>,
++            Option<NativeSubscriptionNoEffect>,
++        )> = None;
+         let mut committed_plan: Option<NativeSubscriptionPlan> = None;
+         let mut retry = false;
+         let mut authorization_pending = false;
+@@ -116,8 +119,8 @@
+                 }
+                 Err(_) => None,
+             };
+-            // A local commit followed by an observer/journal failure retries
+-            // that exact historical operation and plan, never a new revision.
++            // An observed success or error followed by journal failure retries
++            // only that exact historical result and plan, never engine IO.
+             let wanted = if known.is_some() {
+                 committed_plan.clone()
+             } else {
+@@ -158,8 +161,8 @@
+                                     operation.clone(),
+                                     authority.lease,
+                                 );
+-                                let outcome = match known.clone() {
+-                                    Some(known) => Ok(known),
++                                let (outcome, no_effect) = match known.clone() {
++                                    Some(known) => known,
+                                     None => {
+                                         adapter
+                                             .reconcile_native_subscriptions(
+@@ -172,15 +175,16 @@
+                                             .await
+                                     }
+                                 };
+-                                if let Ok(outcome) = &outcome {
+-                                    known = Some(outcome.clone());
+-                                    committed_plan = Some(plan.clone());
+-                                }
++                                // Keep the actual error as well as success. Metadata-only
++                                // observer custody can never rerun the engine or manufacture
++                                // a new authority error for the original captured attempt.
++                                known = Some((outcome.clone(), no_effect.clone()));
++                                committed_plan = Some(plan.clone());
+                                 let held = invocation.lease();
+                                 let observed = tokio::select! {biased;
+                                     _=runtime.cancel.cancelled()=>return,
+                                     _=tokio::time::sleep_until(invocation.deadline())=>Err(DispatchError::Closed),
+-                                    result=runtime.policy.observe(invocation.scope(),&operation,&outcome,Some(&held))=>result,
++                                    result=runtime.policy.observe(invocation.scope(),&operation,&outcome,Some(&held),no_effect.as_ref())=>result,
+                                 };
+                                 if observed.is_ok() {
+                                     authorization_pending =
+@@ -193,8 +197,15 @@
+                                                 DispatchError::SubmissionUnknown
+                                             ))
+                                     );
+-                                    if outcome.is_ok() {
++                                    if outcome.is_ok() || no_effect.is_some() {
+                                         pending = None;
++                                        known = None;
++                                        committed_plan = None;
++                                    } else {
++                                        // The host acknowledged this exact error. Keep
++                                        // its original logical ID, but any further call
++                                        // requires another current policy grant. A host
++                                        // retaining uncertainty never acknowledges it.
+                                         known = None;
+                                         committed_plan = None;
+                                     }
+diff --git a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/future_subscriptions.rs
+@@ -144,11 +144,25 @@
+         operation: &str,
+         result: &Result<NativeSubscriptionOutcome, NativeOfferError>,
+         held: Option<&AuthorityLease>,
++        no_effect: Option<&NativeSubscriptionNoEffect>,
+     ) -> Result<(), DispatchError> {
+         let lease = held.ok_or(DispatchError::Authority)?;
+         if let Some(metadata) = lease.authority::<ErrorObservation>() {
+             assert!(metadata.domain.ptr_eq(&Arc::downgrade(&self.domain)));
+             assert_eq!(metadata.operation, operation);
++            let proof = no_effect
++                .expect("exact failed routing outcome requires its opaque no-effect proof");
++            assert!(proof.matches(scope, operation, &metadata.error));
++            assert!(!proof.matches(scope, "another-operation", &metadata.error));
++            assert!(!proof.matches(scope, operation, &NativeOfferError::Authority));
++            let wrong_revision = NativeRequestScope {
++                origin: scope.origin.clone(),
++                stream_revision: scope.stream_revision + 1,
++                conversation: scope.conversation.clone(),
++                connection_generation: scope.connection_generation,
++                credential_revision: scope.credential_revision,
++            };
++            assert!(!proof.matches(&wrong_revision, operation, &metadata.error));
+             if result.as_ref().err() != Some(&metadata.error) {
+                 self.changed_errors.fetch_add(1, Ordering::AcqRel);
+                 self.error_replays.fetch_add(1, Ordering::AcqRel);
