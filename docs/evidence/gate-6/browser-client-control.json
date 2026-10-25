@@ -1,0 +1,38 @@
+{
+  "task": "G6-050",
+  "status": "in-progress",
+  "scope": "Canonical browser control foundation only. No actual-browser transport or decoded media qualification in this checkpoint.",
+  "base": "a5a85fd31ac5b378a9155b03a58fec0e3445eecf",
+  "verified_at": "2026-10-25T05:41:24.642616+00:00",
+  "verification": {
+    "prepare_dependencies": "passed",
+    "typescript_build": "passed",
+    "sdk_suite": {
+      "passed": 126,
+      "failed": 0,
+      "skipped": 0
+    },
+    "control_checks": [
+      "Independent upstream RFC8032/JCS cross-language signature vector",
+      "Ed25519 and P-256 full content verification, trust/lifetime/freshness refusals",
+      "Duplicate keys, malformed UTF-8/Unicode, nonfinite numbers and bounded framing",
+      "Signed mock transport authentication and durable create ID replay across physical peers",
+      "Timeout/cancellation without automatic retry, tampered session refusal, replay and event overflow retirement"
+    ]
+  },
+  "raw_log": ".local/gate-6/browser-sdk-control-tests.log",
+  "source_sha256": {
+    "sdk/typescript/src/uctp_json.ts": "b12d48789c34b2b321e2a141a8064c125d92a8998a3b42970a155127defa2844",
+    "sdk/typescript/src/uctp_wire.ts": "a6dc0b55dcdd82507cb647a916152efe7de2b8e1688c3a319b0aa8625a33bfa5",
+    "sdk/typescript/src/uctp_signing.ts": "7c87ef0e3e5f0c3f29101f9049a0741abae5a2ac13c2b919a850e07059178f5e",
+    "sdk/typescript/src/browser_client.ts": "3053c3d2006f6134ff1d664beba400fda9447b54556f3632726a3e549d08addc",
+    "sdk/tests/browser_uctp.test.mjs": "65ebf6e5a86ab13f9d97419de13ffa0f647bf9ca73127980f7050befa4fd60ff"
+  },
+  "remaining": [
+    "Actual installed browser with production SDK/control and native server",
+    "Opus/VP8 capture, packetization, bounded reassembly, decode and rendering",
+    "Identified duplex audio/video/data browser/browser and browser/native",
+    "Permission/API refusal, background/resume, impairment/loss and teardown"
+  ],
+  "acceptance_qualified": false
+}

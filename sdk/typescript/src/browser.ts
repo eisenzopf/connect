@@ -1,4 +1,17 @@
 /** Browser-only Connect surface. This entry point imports no Node modules. */
+export {
+    BrowserClient,
+    browserTransportSupport,
+    type BrowserClientOptions,
+    type RequestOptions,
+} from "./browser_client.js";
+export type {
+    SigningAlgorithm,
+    SigningIdentity,
+    ServerTrust,
+} from "./uctp_signing.js";
+export type { Envelope, Scope } from "./uctp_wire.js";
+export type { Json, JsonObject } from "./uctp_json.js";
 export { BrowserHttpClient } from "./browser_http.js";
 export {
     BrowserVoiceSession,

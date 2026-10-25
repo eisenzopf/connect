@@ -1,4 +1,5 @@
 import './media_diagnostics.test.mjs';
+import './browser_uctp.test.mjs';
 import './tasks.test.mjs';
 import './record_context.test.mjs';
 import './contacts.test.mjs';
