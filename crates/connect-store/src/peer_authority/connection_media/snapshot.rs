@@ -63,12 +63,14 @@ struct Entry<T> {
 }
 impl<T> Entry<T> {
     fn matches(&self, version: Version, source: Option<&MetadataToken>) -> bool {
-        self.version == version
-            && match (&self.source, source) {
-                (None, None) => true,
-                (Some(old), Some(current)) => old.ptr_eq(&Arc::downgrade(current)),
-                _ => false,
-            }
+        self.version == version && self.same_source(source)
+    }
+    fn same_source(&self, source: Option<&MetadataToken>) -> bool {
+        match (&self.source, source) {
+            (None, None) => true,
+            (Some(old), Some(current)) => old.ptr_eq(&Arc::downgrade(current)),
+            _ => false,
+        }
     }
 }
 
@@ -144,11 +146,53 @@ fn cached_with<T: Clone>(
         });
         Ok((facts, scopes))
     };
-    let result = match held {
-        Some(held) => acquire_under(store, &mut capture, finish, held),
-        None => acquire_with(store, &mut capture, finish, |scopes| {
-            store.try_acquire_authority(scopes)
-        }),
+    let mut finish = Some(finish);
+    let mut optimistic = None;
+    if held.is_none() {
+        // Copy metadata outside SQL and use only its old scope names to try a
+        // new file interval. It lends no grant. The exact current SQL/clock/
+        // source version must still match under that new interval. A mismatch
+        // drops both SQL and the disposable reader before normal derivation.
+        let previous = memo.0.try_lock().ok().and_then(|slot| {
+            slot.as_ref()
+                .filter(|entry| entry.same_source(source))
+                .cloned()
+        });
+        if let Some(previous) = previous {
+            if let Ok(reader) = store.try_acquire_authority(&previous.scopes) {
+                let c = store.try_connection()?;
+                let before = version(&c)?;
+                if previous.matches(before, source) {
+                    optimistic = Some(seal(
+                        store,
+                        &c,
+                        before,
+                        previous.facts,
+                        previous.scopes,
+                        reader,
+                        &mut capture,
+                        finish.take().ok_or_else(Error::storage)?,
+                    ));
+                }
+            }
+        }
+    }
+    let result = match optimistic {
+        Some(result) => result,
+        None => match held {
+            Some(held) => acquire_under(
+                store,
+                &mut capture,
+                finish.take().ok_or_else(Error::storage)?,
+                held,
+            ),
+            None => acquire_with(
+                store,
+                &mut capture,
+                finish.take().ok_or_else(Error::storage)?,
+                |scopes| store.try_acquire_authority(scopes),
+            ),
+        },
     }?;
     // Publish only a fully admitted unchanged capture. Neither cache lock nor
     // SQL is retained by the caller's owned fresh authority guard.

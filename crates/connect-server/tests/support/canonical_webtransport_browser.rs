@@ -196,7 +196,7 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
 async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media: bool) {
     if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
         let _ = tracing_subscriber::fmt()
-            .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug")
+            .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug,connect_store::sql_custody=trace")
             .without_time()
             .with_ansi(false)
             .with_test_writer()

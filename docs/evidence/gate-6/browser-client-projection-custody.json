@@ -1,0 +1,44 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; optimized runtime pending",
+  "scope": "Controlled proof for unchanged packet metadata copying outside SQL, followed by a fresh exact file interval and current SQL/clock/source version sealing. No runtime audio-resolution or full task claim.",
+  "change": [
+    "An unchanged metadata entry may supply scope names for a disposable new file admission; it never supplies an IO grant.",
+    "The new interval must seal the exact current SQL/schema/connection/clock/source version. Misses release SQL and old readers before the original complete derivation/admission path.",
+    "Existing active source intervals retain their exact complete-coverage path; no reader is retained in metadata.",
+    "Scoped trace-only SQL custody events include elapsed time and static caller file/line, never SQL text/parameters or credentials. Normal successful events emit after guard fields release SQL and ownership proof. The new dependency reuses the existing locked workspace tracing version."
+  ],
+  "negative_before": {
+    "log": ".local/gate-6/browser-sdk-projection-copy-before.log",
+    "sha256": "09ef609eddd862f4d5bf17b7d9e72f4110d3885d771cd10a915ae8531ef7fc5b",
+    "expected_failure": "Unchanged projection cloning holds SQL against a concurrent current read; observed[false]."
+  },
+  "focused_after": {
+    "log": ".local/gate-6/browser-sdk-projection-final-snapshot-tests.log",
+    "sha256": "865548ac181c5394420c863291b845e5865f6dce24a23c9eb41f1050945e03a8",
+    "passed": 16
+  },
+  "broader_store": {
+    "report": ".local/gate-6/browser-sdk-projection-store-verified.json",
+    "sha256": "86f96f0dd60bdc2043acec13cd937b1b0274b1b3f19eb38c342f278470883f86",
+    "passed_default_methods": 89,
+    "ignored_helpers": 1,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "scope": "89 default controlled cases pass; one ignored process_worker fixture is explicitly invoked by selected cross-process parent tests and is not a separate passing method. No runtime media qualification."
+  },
+  "source_sha256": {
+    "Cargo.lock": "fc5a16c978e63e1c1850b7dc01a50d9dfc48d087b9dbfbaca6862195df2919a7",
+    "crates/connect-store/Cargo.toml": "bba0754b7635bdc0a1befba3faf1bf3aef5ce6d59ede21dfe085a45a5d1e7476",
+    "crates/connect-store/src/installation_ownership.rs": "e1770bd2957f91c34a85ef19c5691a4a95089ff920df098118f390577769f6ff",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "5d7d4fd0bbd23e45dfcad76e41678cb1c433c4a505dea5323044f260ef554009",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "2d9004a42a7cf3cd7abed9c3eb1c8d271a66c3de7b4cb997b0f34af50dba1a01",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "6bdd6784aba174ce522356fb0e8ef8e75c04727ac647995e39838d5368e0b3fb"
+  },
+  "runtime_build": {
+    "log": ".local/gate-6/browser-sdk-projection-build.log",
+    "status": "live; not qualified"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Repeat complete connected8-case and existing28authorization/lifecycle runtime checks, then frozen60second and native/impairment/failure profiles. Preserve all earlier failures."
+}

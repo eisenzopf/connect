@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "in-progress; runtime pending",
+  "status": "in-progress; complete runtime matrix remains7/8",
   "scope": "Controlled Store proof that idle active/connected reconnect maintenance does not queue a writer behind live media. No runtime audio-resolution claim.",
   "change": "Fresh runtime-owned metadata may return without mutation only for active connected Sessions whose stored loss time and deadline are both NULL. Activation, loss, pending deadlines and boundary clearing still acquire original writer and recheck state. No IO grant or cached authority is introduced.",
   "negative_before": {
@@ -28,8 +28,19 @@
   },
   "runtime_build": {
     "log": ".local/gate-6/browser-sdk-idle-reconnect-build.log",
-    "status": "live at checkpoint; not a passing check"
+    "sha256": "88e8bb0f0c2105010ed577b1fd3da7bd752dace9a9cae0153f9331c58a0ded43",
+    "status": "terminal successful build;15m04s"
   },
   "remaining": "Repeat complete connected capture and existing authorization/lifecycle runtime matrices. Browser/native, full frozen measurements and failure/recovery scope remain open.",
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "runtime": {
+    "summary": ".local/gate-6/browser-sdk/idle032/summary.json",
+    "sha256": "6d2cf7274a00a79a663eff749ab37d12cfbf3a1991ec8167c535cfeb76377ce1",
+    "passed": false,
+    "cases_passed": 7,
+    "case_count": 8,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "failure": "Captured ES256 window Opus142/181 against unchanged150minimum. The idle writer fix is independently controlled-proven, but does not resolve the whole current audio issue."
+  }
 }

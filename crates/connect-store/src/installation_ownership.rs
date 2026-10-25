@@ -243,6 +243,33 @@ pub(crate) struct ConnectionGuard<'a> {
     connection: MutexGuard<'a, rusqlite::Connection>,
     _owner: Option<Arc<InstallationOwnership>>,
     immediate: bool,
+    // Declared last: tracing happens after SQLite and installation proof drop.
+    _timing: Option<SqlCustodyTiming>,
+}
+struct SqlCustodyTiming {
+    started: std::time::Instant,
+    caller: &'static std::panic::Location<'static>,
+}
+impl SqlCustodyTiming {
+    #[track_caller]
+    fn capture() -> Option<Self> {
+        if tracing::enabled!(target: "connect_store::sql_custody", tracing::Level::TRACE) {
+            Some(Self {
+                started: std::time::Instant::now(),
+                caller: std::panic::Location::caller(),
+            })
+        } else {
+            None
+        }
+    }
+}
+impl Drop for SqlCustodyTiming {
+    fn drop(&mut self) {
+        let elapsed_us = self.started.elapsed().as_micros() as u64;
+        if elapsed_us >= 500 {
+            tracing::trace!(target: "connect_store::sql_custody", elapsed_us, file=self.caller.file(), line=self.caller.line(), "Slow SQL custody unit");
+        }
+    }
 }
 impl Drop for ConnectionGuard<'_> {
     fn drop(&mut self) {
@@ -296,9 +323,11 @@ impl Store {
         }
         Ok(())
     }
+    #[track_caller]
     pub(crate) fn connection(&self) -> Result<ConnectionGuard<'_>> {
         let owner = self.runtime_ownership.permit(&self.path)?;
         let connection = self.connection.lock().map_err(|_| Error::storage())?;
+        let timing = SqlCustodyTiming::capture();
         // Retirement can happen while this caller is waiting for SQLite.
         if let Some(owner) = &owner {
             owner.check(&self.path)?;
@@ -307,11 +336,13 @@ impl Store {
             connection,
             _owner: owner,
             immediate: false,
+            _timing: timing,
         })
     }
     /// Packet policy cannot queue on either this process's SQL mutex or another
     /// process's SQLite transaction. Keep the temporary zero busy timeout inside
     /// the same owned mutex and restore the ordinary timeout on every exit.
+    #[track_caller]
     pub(crate) fn try_connection(&self) -> Result<ConnectionGuard<'_>> {
         let owner = self.runtime_ownership.permit(&self.path)?;
         let connection = self.connection.try_lock().map_err(|error| match error {
@@ -320,6 +351,7 @@ impl Store {
             }
             std::sync::TryLockError::Poisoned(_) => Error::storage(),
         })?;
+        let timing = SqlCustodyTiming::capture();
         if let Some(owner) = &owner {
             owner.check(&self.path)?;
         }
@@ -330,6 +362,7 @@ impl Store {
             connection,
             _owner: owner,
             immediate: true,
+            _timing: timing,
         })
     }
     pub(crate) fn require_runtime_owner(&self) -> Result<Arc<InstallationOwnership>> {

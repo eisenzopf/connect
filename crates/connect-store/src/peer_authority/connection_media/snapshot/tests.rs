@@ -4,6 +4,107 @@ use std::time::{Duration, Instant};
 mod hints;
 mod owned;
 
+#[test]
+fn unchanged_packet_projection_copy_does_not_hold_sql_against_other_current_reads() {
+    struct Projection {
+        store: Arc<Store>,
+        copies: Arc<std::sync::Mutex<Vec<bool>>>,
+    }
+    impl Clone for Projection {
+        fn clone(&self) -> Self {
+            self.copies
+                .lock()
+                .unwrap()
+                .push(self.store.try_connection().is_ok());
+            Self {
+                store: self.store.clone(),
+                copies: self.copies.clone(),
+            }
+        }
+    }
+    let f = Fixture::new();
+    let memo = Memo::default();
+    let copies = Arc::new(std::sync::Mutex::new(Vec::new()));
+    for _ in 0..8 {
+        let second = crate::now();
+        let derive = |_: &Connection| {
+            Ok((
+                Projection {
+                    store: f.store.clone(),
+                    copies: copies.clone(),
+                },
+                vec![f.read.clone()],
+            ))
+        };
+        drop(cached(&f.store, &memo, None, derive).unwrap());
+        copies.lock().unwrap().clear();
+        drop(cached(&f.store, &memo, None, derive).unwrap());
+        if crate::now() == second {
+            let observed = copies.lock().unwrap();
+            assert!(!observed.is_empty());
+            assert!(observed.iter().all(|available| *available), "Unchanged projection copies retained SQL against a concurrent current read: {observed:?}");
+            return;
+        }
+    }
+    panic!("No unchanged policy-clock interval available for the controlled copy test");
+}
+
+#[test]
+fn optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change() {
+    let f = Fixture::new();
+    let memo = Memo::default();
+    let scopes = [
+        f.read.clone(),
+        AuthorityScope::identity("changed-packet", AuthorityMode::Read).unwrap(),
+        AuthorityScope::identity("latest-packet", AuthorityMode::Read).unwrap(),
+    ];
+    let derive = |c: &Connection| {
+        let (value, _) = f.derive(c)?;
+        Ok((value, vec![scopes[(value - 1) as usize].clone()]))
+    };
+    drop(cached(&f.store, &memo, None, derive).unwrap());
+    f.store
+        .connection()
+        .unwrap()
+        .execute("UPDATE packet_snapshot_test SET value=2", [])
+        .unwrap();
+    // Old metadata scope contention is not current authority. A changed SQL
+    // version must derive and admit the new complete scope set instead.
+    let old_writer = f.store.try_acquire_authority(&[f.write.clone()]).unwrap();
+    let (value, current) = cached(&f.store, &memo, None, derive).unwrap();
+    assert_eq!(value, 2);
+    drop(current);
+    drop(old_writer);
+    f.store
+        .connection()
+        .unwrap()
+        .execute("UPDATE packet_snapshot_test SET value=3", [])
+        .unwrap();
+    let latest_writer = f
+        .store
+        .try_acquire_authority(&[
+            AuthorityScope::identity("latest-packet", AuthorityMode::Write).unwrap(),
+        ])
+        .unwrap();
+    assert_eq!(
+        cached(&f.store, &memo, None, derive).unwrap_err().code,
+        "authority-busy"
+    );
+    // The optimistic old reader is disposable, and cannot lend its different
+    // file custody to the refusing current scope or survive failed admission.
+    drop(
+        f.store
+            .try_acquire_authority(&[AuthorityScope::identity(
+                "changed-packet",
+                AuthorityMode::Write,
+            )
+            .unwrap()])
+            .unwrap(),
+    );
+    drop(latest_writer);
+    assert_eq!(cached(&f.store, &memo, None, derive).unwrap().0, 3);
+}
+
 struct Fixture {
     _dir: tempfile::TempDir,
     store: Arc<Store>,
