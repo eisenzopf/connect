@@ -1302,3 +1302,6 @@ mod auxiliary_clauses;
 
 #[path = "support/canonical_session_cancellation.rs"]
 mod caller_cancellations;
+
+#[path = "support/sdk_handles.rs"]
+mod sdk_handles;
