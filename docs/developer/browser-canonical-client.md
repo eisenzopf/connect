@@ -161,25 +161,28 @@ named receive Streams. Forward borrowed decoded callbacks to
 return value means accepted for presentation. Audio copies PCM; video retains
 only owned `VideoFrame` clones. The decoder keeps ownership of its originals.
 
-One presentation origin maps shared decoded timestamps to the playback clock.
-Capture gaps remain gaps. Audio that overlaps already scheduled PCM by more
-than one 48 kHz sample is refused before scheduling; repeated clock-report
-phase adjustments cannot serialize overlapping PCM and accumulate a shared
-presentation delay. One-sample timestamp rounding remains admissible. If late
-audio changes its actual scheduling time,
-queued video follows that same origin. Audio holds at most ten20ms sources and
-200ms of work. Each of at most eight canvases holds at most eight owned frames,
-also bounded to200ms. A late pump displays only the newest due frame per stream.
-Current bindings and original queued age are rechecked before output. No idle
-timer or permission is retained when the queues empty.
+One fixed presentation origin maps shared decoded timestamps to the playback
+clock. Both tracks share an 80 ms startup jitter buffer (four Opus quanta)
+inside the existing 200 ms queue limit. Capture gaps remain gaps; late callbacks
+and expired audio never move that origin. Audio arriving after its original
+playout slot, or overlapping scheduled PCM by more than one 48 kHz sample,
+is refused before allocation. One-sample rounding remains admissible.
+
+Audio holds at most ten20ms sources and200ms of work. Each of at most eight
+canvases holds at most eight owned frames, also bounded to200ms. A late pump
+displays only the newest due frame per stream. Current bindings and original
+queued age are rechecked before output. No idle timer or permission is retained
+when the queues empty. The244-method SDK proof, two controlled negative cases
+and bounded timing diagnosis are recorded in
+`docs/evidence/gate-6/browser-client-fixed-playout-deadline.json`.
 
 Hidden pages pause and discard pending output; call `resume()` from a visible
 page. `close()` stops buffers, closes clones and retires the graph; await
 `finished` to observe completion, presentation errors or graph-close failure.
 Diagnostics expose bounded counts, audio graph state and aggregate RMS without
-raw samples. The236-method SDK proof is scoped in
-`docs/evidence/gate-6/browser-client-shared-presentation.json`. Actual installed
-browser synchronization and the full operating profile still require measurement.
+raw samples. Earlier renderer/component and ES256 operating evidence remains
+historical in its recorded scope. The current fixed-deadline operating profile
+still requires measurement.
 
 `connection.sendData(operationId, messageId, streamId, body)` uses signed,
 reliable ordered canonical publication with original logical IDs and at most

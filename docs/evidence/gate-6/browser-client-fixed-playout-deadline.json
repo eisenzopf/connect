@@ -1,0 +1,56 @@
+{
+  "schema": "connect-gate6-fixed-playout-deadline/1",
+  "task": "G6-050",
+  "status": "Fixed shared playout deadline implemented and SDK verified; current operating rehearsal pending",
+  "source": {
+    "sdk/typescript/src/browser_media_renderer.ts": "bbc9b810ffacf2257c470d5fc4cdddc371aa9859b82ddae4f6160a0921ed87f4",
+    "sdk/typescript/dist/browser_media_renderer.js": "f7c34ecdaa40a81101dd0998a790cff6139fa1fdb87f81cea8346a1095f5a021",
+    "sdk/typescript/dist/browser_media_renderer.d.ts": "df3c0a2be7f6ee9f89a4fba1bca406f8061266e3b72276029b25f9b7ddbb96ed",
+    "sdk/tests/browser_presentation_clock.test.mjs": "bad6e3ad70ec42b7b1fbc2f8be3ead3f1cd5696e9a972a5ddbac2c2efc236655",
+    "sdk/tests/browser_playout_deadline.test.mjs": "26ec90b6d132b09c1ad32e2dd36bd8d4de71e1d80c4adaf6e13f253c711dccf6",
+    "sdk/tests/browser_renderer.test.mjs": "5a8e5b39f562068c210b6ed5887e4ae92d10cd01dc1803992342f5f1029fc0b5",
+    "sdk/tests/clients.test.mjs": "8ced2da65d8d66445eec854f12ba2f8fb9cf713048591a3e46130d4a07da425c"
+  },
+  "diagnostic": {
+    "report": ".local/gate-6/presentation-diagnostic/timing004/summary.json",
+    "sha256": "aa3ebe2b4c7512b69e7bd353f3f5a1ac838d2de15f4f8fcd25410ad0650614bd",
+    "diagnostic_valid": true,
+    "source_inputs_unchanged": true,
+    "inputs_unchanged": true,
+    "sealed_executable_unchanged": true,
+    "scope": "Bounded diagnostic wrappers around original renderer calls in one owned Chrome supplied-stream60second method. Original source/observer/limits are unchanged, but extra diagnostic sampling precludes operating/performance qualification. No personal devices.",
+    "observation": "SDK242 after overlap refusal still shifts common origins82.06/135.55ms in this bounded diagnostic. A source audio sample arrives99.33ms behind its intended schedule. Both this method and a prior diagnostic happen to pass original media assertions, but diagnostics do not erase frozen071EdDSA failures and are not performance qualification. Current behavior remains sensitive to isolated late packets.",
+    "attempts": "timing003 completes original method successfully but loses timing because the fixture only displays Node stderr on failure. timing004 adds timing to the private Node driver JSON on success as well as stderr on failure; original source/observer/limits are untouched."
+  },
+  "sdk": {
+    "report": ".local/gate-6/playout-deadline/sdk-guard002/summary.json",
+    "sha256": "7aecd8a1133a9929bdb97011f6d1a60cd6ac6d7f06c98bd401664b53f635af51",
+    "passed": true,
+    "methods": 244,
+    "new_methods": 2,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "244 actual production SDK methods with source and generated JS/declaration guards. Two new controlled fixed-deadline late-original and stall-recovery methods; mock audio/canvas/clock behavior only. Actual installed browser/Connect host/full operating profile remains separate."
+  },
+  "controlled_negative": {
+    "report": ".local/gate-6/playout-deadline/negative002/summary.json",
+    "sha256": "b89184098c0016bc44e4167854d13fcff0bb4636ced74880ae750eda3afa4143",
+    "verified_expected_failure": true,
+    "methods": 2,
+    "expected_failures": 2,
+    "inputs_unchanged": true,
+    "module_sha256": "a77f4a89a3475934ba3eea5fee1daf16c14f237cce28845e3c09a0834e5c3303",
+    "scope": "Two same fixed-deadline late-original/stall-recovery methods against byte-exact previously committed renderer JS. Only the test import path changes. No production module mutation, actual browser or AV operating qualification."
+  },
+  "behavior": [
+    "One fixed common origin reserves four20msOpus quanta(80ms) for arrival variation, within the existing200msowned queue limit. The exact same source-to-playout transform applies to audio/video. This is common jitter buffering, not a stream-specific AVoffset or changed capture timestamp.",
+    "Audio whose original source slot has expired by more than one48kHzsample refuses before allocation. An isolated late original cannot shift any later audio or queued video; overlapping PCM still refuses and one-sample rounding remains admissible.",
+    "Source gaps remain gaps. Thirty sequences of late originals plus fresh audio/video retain exactly one epoch, synchronized fresh scheduling and bounded queues. A250mswall/playback stall expires originals; fresh source time resumes on the same epoch without replaying the old frame or acquiring idle permission.",
+    "Original borrowed/owned frame rules, ten-audio/eight-video/200msbounds, current-binding checks, pause/resume and error cleanup remain unchanged. Existing behavior tests now assert fixed deadlines rather than accepting timeline movement; no frozen source/observer/quality limit changes."
+  ],
+  "attempts": [
+    "Initial SDK draft241/242 failed an obsolete exact sub-sample gap assertion: clamping a1usrounding overlap changes a later gap by1us. The assertion now requires one48kHzsample resolution, consistent with the already declared rounding tolerance.",
+    "Initial full guard243/244 and first controlled-negative attempt expose mock audio nodes that never naturally end; their expiration counts were mistaken for late refusals, and a250mslate sample already exceeded the old200msbound. The fixture now completes played sources naturally and uses150mslate arrival /140msoriginal recovery timing inside the oldbound. Final244and two byte-exact negative cases pass their required checks."
+  ],
+  "remaining": "Rerun the unchanged installed-Chrome full capture cohort using SDK244/source202; prior071SDK242 remains6/8 with EdDSA short audio/reverse-video failures. Actual current presentation rates, all marker pairs and original owned teardown remain required. Native public clock-aware SDK, independent sources, impairment, permissions/background and all other Gate6 tasks retain their full scope. No G6-050/acceptance pass."
+}

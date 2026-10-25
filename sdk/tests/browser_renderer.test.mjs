@@ -38,9 +38,9 @@ test('renderer refuses stale and foreign bindings and pause clears old playback 
     assert.equal(renderer.video({...connection.streams[1],generation:2},{}),false);assert.equal(renderer.video({...connection.streams[1],connectionId:'foreign'},{}),false);
     assert.equal(renderer.video({...connection.streams[1],sessionId:'foreign'},{}),false);
     const video=time=>({timestamp:time,clone:()=>({timestamp:time,close(){}})});
-    assert.equal(renderer.video(connection.streams[1],video(0)),true);assert.equal(drawn,0);contexts[0].currentTime=.011;await new Promise(r=>setTimeout(r,15));assert.equal(drawn,1);
+    assert.equal(renderer.video(connection.streams[1],video(0)),true);assert.equal(drawn,0);contexts[0].currentTime=.081;await new Promise(r=>setTimeout(r,15));assert.equal(drawn,1);
     const audio=time=>({sampleRate:48000,numberOfChannels:1,numberOfFrames:960,timestamp:time,copyTo(){}});
-    assert.equal(renderer.audio(connection.streams[0],audio(0)),true);renderer.pause();assert.equal(renderer.diagnostics.pendingAudio,0);
+    assert.equal(renderer.audio(connection.streams[0],audio(20000)),true);renderer.pause();assert.equal(renderer.diagnostics.pendingAudio,0);
     assert.equal(renderer.audio(connection.streams[0],audio(20000)),false);assert.equal(renderer.video(connection.streams[1],{}),false);
     await renderer.resume();assert.equal(renderer.audio(connection.streams[0],audio(40000)),true);assert.equal(renderer.video(connection.streams[1],video(40000)),true);assert.equal(contexts[0].state,'running');
   }finally{renderer.close();await renderer.finished;}

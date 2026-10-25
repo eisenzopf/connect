@@ -141,3 +141,5 @@ import "./browser_source_clock.test.mjs";
 import "./browser_presentation_clock.test.mjs";
 
 import "./browser_capture_timing.test.mjs";
+
+import "./browser_playout_deadline.test.mjs";

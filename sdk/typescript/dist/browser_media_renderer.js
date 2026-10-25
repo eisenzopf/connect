@@ -186,8 +186,10 @@ export class BrowserMediaRenderer {
             this.counts.droppedAudio++;
             return false;
         }
-        const start = Math.max(now + 0.01, this.nextAudio, desired);
-        if (desired < now - 0.2 || start + 0.02 - now > 0.2) {
+        // Keep a fixed common playout deadline. A late original is discarded;
+        // it cannot ratchet all future audio/video into the queue-size boundary.
+        const start = Math.max(now, this.nextAudio, desired);
+        if (desired + 1 / 48000 < now || start + 0.02 - now > 0.2) {
             this.counts.droppedAudio++;
             return false;
         }
@@ -218,10 +220,6 @@ export class BrowserMediaRenderer {
             source.disconnect();
             throw error;
         }
-        // If audio arrives late, move the one presentation origin by its actual
-        // scheduling delay. Queued video uses that same origin on the next pump.
-        // Timestamp gaps remain gaps; there is no stream-specific AV offset.
-        this.clock.local += start - desired;
         this.nextAudio = start + 0.02;
         this.lastAudio = frame.timestamp;
         this.counts.audio++;
@@ -232,7 +230,10 @@ export class BrowserMediaRenderer {
         return this.context?.currentTime ?? performance.now() / 1000;
     }
     presentationTime(timestamp) {
-        this.clock ??= { source: timestamp, local: this.now() + 0.01 };
+        // Four 20 ms Opus quanta absorb arrival variation inside the existing
+        // 200 ms owned queue bound. Audio and video share this one fixed lead;
+        // neither callback delay nor late media changes the established epoch.
+        this.clock ??= { source: timestamp, local: this.now() + 0.08 };
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }
     /** Copy borrowed frames into a bounded owned presentation queue. */
