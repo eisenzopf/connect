@@ -1,0 +1,367 @@
+{
+  "schema": "connect-gate6-sdk-contract-candidate/1",
+  "task": "G6-059",
+  "status": "candidate-under-review",
+  "basis": "docs/decisions/016-gate-6-sdk.md",
+  "protocol_profile": "connect/2",
+  "handles": [
+    {
+      "name": "Client",
+      "id_field": null,
+      "parent_scope": [],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Conversation",
+      "id_field": "conversation_id",
+      "parent_scope": [],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Participant",
+      "id_field": "participant_id",
+      "parent_scope": [
+        "conversation_id"
+      ],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Session",
+      "id_field": "session_id",
+      "parent_scope": [
+        "conversation_id"
+      ],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Connection",
+      "id_field": "connection_id",
+      "parent_scope": [
+        "conversation_id",
+        "session_id"
+      ],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Stream",
+      "id_field": "stream_id",
+      "parent_scope": [
+        "conversation_id",
+        "session_id",
+        "connection_id"
+      ],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    },
+    {
+      "name": "Operation",
+      "id_field": "operation_id",
+      "parent_scope": [
+        "conversation_id"
+      ],
+      "snapshot_grants_authority": false,
+      "from_id_grants_authority": false
+    }
+  ],
+  "methods": [
+    {
+      "id": "conversation.create",
+      "target_typescript": "Client.conversations.create",
+      "canonical_type": "conversation.create",
+      "result": "Conversation",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "message.private",
+      "target_typescript": "Conversation.send",
+      "canonical_type": "message.send",
+      "result": "MessageReceipt",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "conversation.snapshot",
+      "target_typescript": "Conversation.refresh",
+      "canonical_type": "conversation.get",
+      "result": "ConversationSnapshot",
+      "logical_operation_id_required": false,
+      "implementation_qualified": false
+    },
+    {
+      "id": "participant.add",
+      "target_typescript": "Conversation.participants.add",
+      "canonical_type": "conversation.participant.add",
+      "result": "Participant",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "participant.update",
+      "target_typescript": "Participant.update",
+      "canonical_type": "conversation.participant.update",
+      "result": "Participant",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "participant.remove",
+      "target_typescript": "Participant.remove",
+      "canonical_type": "conversation.participant.remove",
+      "result": "Participant",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.invite",
+      "target_typescript": "Conversation.sessions.invite",
+      "canonical_type": "session.invite",
+      "result": "Session",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.accept",
+      "target_typescript": "Session.accept",
+      "canonical_type": "session.accept",
+      "result": "Session",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.reject",
+      "target_typescript": "Session.reject",
+      "canonical_type": "session.reject",
+      "result": "SessionDecision",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.cancel",
+      "target_typescript": "Session.cancelInvitation",
+      "canonical_type": "session.cancel",
+      "result": "SessionDecision",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.consult",
+      "target_typescript": "Session.consult",
+      "canonical_type": "session.consult",
+      "result": "Consultation",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.consult.return",
+      "target_typescript": "Consultation.returnToRetained",
+      "canonical_type": "session.consult.return",
+      "result": "Session",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.handoff",
+      "target_typescript": "Session.handoff",
+      "canonical_type": "session.handoff",
+      "result": "HandoffResult",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.update",
+      "target_typescript": "Session.update",
+      "canonical_type": "session.update",
+      "result": "Session",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "session.end",
+      "target_typescript": "Session.end",
+      "canonical_type": "session.end",
+      "result": "Session",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "connection.offer",
+      "target_typescript": "Session.connections.offer",
+      "canonical_type": "connection.offer",
+      "result": "Connection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "connection.update",
+      "target_typescript": "Connection.update",
+      "canonical_type": "connection.update",
+      "result": "Connection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "connection.replace",
+      "target_typescript": "Connection.replaceDevice",
+      "canonical_type": "connection.replace",
+      "result": "Connection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "connection.end",
+      "target_typescript": "Connection.end",
+      "canonical_type": "connection.end",
+      "result": "Connection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "stream.subscribe",
+      "target_typescript": "Connection.streams.subscribe",
+      "canonical_type": "stream.subscribe",
+      "result": "StreamSelection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "stream.unsubscribe",
+      "target_typescript": "Connection.streams.unsubscribe",
+      "canonical_type": "stream.unsubscribe",
+      "result": "StreamSelection",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "operation.status",
+      "target_typescript": "Operation.status",
+      "canonical_type": "operation.get",
+      "result": "OperationSnapshot",
+      "logical_operation_id_required": false,
+      "implementation_qualified": false
+    },
+    {
+      "id": "operation.cancel",
+      "target_typescript": "Operation.cancel",
+      "canonical_type": "operation.cancel",
+      "result": "DecisionReceipt",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "operation.reconcile",
+      "target_typescript": "Operation.reconcile",
+      "canonical_type": "operation.reconcile",
+      "result": "DecisionReceipt",
+      "logical_operation_id_required": true,
+      "implementation_qualified": false
+    },
+    {
+      "id": "events",
+      "target_typescript": "Conversation.events",
+      "canonical_type": "conversation.subscribe",
+      "result": "EventStream",
+      "logical_operation_id_required": false,
+      "implementation_qualified": false
+    }
+  ],
+  "operation_states": [
+    "accepted",
+    "preparing",
+    "ready",
+    "committing",
+    "completed",
+    "cancelled",
+    "failed",
+    "interrupted",
+    "unknown"
+  ],
+  "rules": {
+    "saved_control_intent_before_first_write": true,
+    "stable_logical_id_across_uncertainty": true,
+    "wire_attempt_ids_may_change": true,
+    "same_id_changed_intent_refuses": true,
+    "wait_cancel_is_not_remote_cancel": true,
+    "remote_cancel_has_separate_decision_id": true,
+    "ack_is_not_media_readiness": true,
+    "unknown_is_not_failure_or_success": true,
+    "no_implicit_retry_or_transport_downgrade_after_uncertainty": true,
+    "current_authorization_on_every_replay": true,
+    "ordinary_api_requires_internal_route_ids": false,
+    "ordinary_api_requires_store_access": false,
+    "ordinary_api_requires_provider_calls": false,
+    "admin_client_separate": true,
+    "raw_canonical_access_available": true,
+    "native_media_frames_are_ephemeral_not_journal_mutations": true,
+    "capabilities_advertised_are_not_qualified_media": true
+  },
+  "session_snapshot": {
+    "authoritative_model": "crates/connect-protocol/src/session_control.rs::SessionView",
+    "fields": [
+      "id",
+      "conversation_id",
+      "state",
+      "media",
+      "intent",
+      "capabilities_offer",
+      "codec_preferences",
+      "is_main",
+      "revision",
+      "topology_revision",
+      "created_at",
+      "updated_at",
+      "ended_reason"
+    ],
+    "legacy_session_alias_allowed": false,
+    "appearances_connections_streams_are_separate": true
+  },
+  "runtime_targets": {
+    "rust": {
+      "minimum": "1.97.1",
+      "role": "native control/audio/video/data and trusted composition boundary"
+    },
+    "node": {
+      "minimum": "22",
+      "role": "managed helper or explicit HTTP control; bounded programmatic media through helper"
+    },
+    "python": {
+      "minimum": "3.11",
+      "role": "async context-managed client; separately named optional sync adapter, managed helper or explicit HTTP control"
+    },
+    "browser": {
+      "role": "canonical WT or WSS/WebRTC, capability detection, separate device capture/render",
+      "pinned_qualification_profiles": "docs/decisions/015-gate-6-operating-profile.md"
+    }
+  },
+  "package_candidates": {
+    "rust": "connect-client",
+    "npm": "@eisenzopf/connect",
+    "python_distribution": "rudeless-connect",
+    "python_import": "connect_sdk",
+    "namespace_ownership_verified": false,
+    "publisher_credentials_verified": false,
+    "publication_authorized": false
+  },
+  "required_application_outlines": [
+    "private-send",
+    "consultation",
+    "handoff",
+    "device-move",
+    "recovery",
+    "incoming-invitation",
+    "cancel-wait-versus-operation",
+    "unsupported-capability"
+  ],
+  "remaining": [
+    "Resolve ergonomic mutation/Operation await syntax against decision016; every language outline must express the same full scenarios.",
+    "Type-check Rust, browser/Node TypeScript and Python contract outlines; these are contract proof, not SDK runtime implementations.",
+    "Complete method/input/result and transport-role contract review; isolate trusted provisioning and ordinary participant APIs.",
+    "Use current SessionView snapshots; audit remaining legacy generic result/facade debt for G6-060/062/063 without compatibility aliases.",
+    "Recheck publisher identity, package manifests and release version in G6-069; lookup404 is neither reservation nor ownership."
+  ]
+}

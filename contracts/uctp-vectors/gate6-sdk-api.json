@@ -1,0 +1,318 @@
+{
+  "schema": "connect-gate6-sdk-api-vectors/1",
+  "scope": "Candidate contract boundary vectors only; no SDK execution or runtime qualification.",
+  "vectors": [
+    {
+      "id": "SDK-APP-PRIVATE-SEND",
+      "scenario": "private-send",
+      "envelope": {
+        "v": 2,
+        "type": "message.send",
+        "id": "sdk_private_send",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "saved_message_001",
+          "to": [
+            "part_organizer"
+          ],
+          "content_type": "text/plain",
+          "body": "Can we talk?"
+        },
+        "operation_id": "op_vector_33"
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-CONSULTATION",
+      "scenario": "consultation",
+      "envelope": {
+        "v": 2,
+        "type": "session.consult",
+        "id": "sdk_consultation",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "conn_organizer",
+          "private_participants": [
+            "part_assistant",
+            "part_owner"
+          ],
+          "hold_treatment": "silence"
+        },
+        "operation_id": "op_vector_57",
+        "expected_revision": 1
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-HANDOFF",
+      "scenario": "handoff",
+      "envelope": {
+        "v": 2,
+        "type": "session.handoff",
+        "id": "sdk_handoff",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "source_participant": "part_assistant",
+          "target_participant": "part_owner",
+          "retained_connid": "conn_organizer",
+          "outgoing": "leave",
+          "role_scope": "session"
+        },
+        "operation_id": "op_vector_58",
+        "expected_revision": 1
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-DEVICE-MOVE",
+      "scenario": "device-move",
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "sdk_device_move",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "conn_organizer",
+          "endpoint_id": "endpoint_owner_phone"
+        },
+        "operation_id": "op_vector_59",
+        "expected_revision": 1
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-RECOVERY",
+      "scenario": "recovery",
+      "envelope": {
+        "v": 2,
+        "type": "operation.get",
+        "id": "sdk_recovery",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "op_vector_59"
+        }
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-INCOMING-INVITATION",
+      "scenario": "incoming-invitation",
+      "envelope": {
+        "v": 2,
+        "type": "session.invite",
+        "id": "sdk_incoming_invitation",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "to": [
+            "part_owner"
+          ],
+          "medium": "audio",
+          "intent": "consult",
+          "capabilities_offer": {}
+        },
+        "operation_id": "op_vector_12"
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-INVITATION-REJECT",
+      "scenario": "invitation-reject",
+      "envelope": {
+        "v": 2,
+        "type": "session.reject",
+        "id": "sdk_invitation_reject",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "reason_code": 0,
+          "reason": "example"
+        },
+        "operation_id": "op_vector_14"
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-APP-CANCEL-OPERATION",
+      "scenario": "cancel-operation",
+      "envelope": {
+        "v": 2,
+        "type": "operation.cancel",
+        "id": "sdk_cancel_operation",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "op_vector_59"
+        },
+        "operation_id": "op_vector_61"
+      },
+      "schema_valid": true,
+      "contract_valid": true
+    },
+    {
+      "id": "SDK-REFUSE-PRIVATE-ALL",
+      "scenario": "private-send",
+      "envelope": {
+        "v": 2,
+        "type": "message.send",
+        "id": "sdk_private_send",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "saved_message_001",
+          "to": "all",
+          "content_type": "text/plain",
+          "body": "Can we talk?"
+        },
+        "operation_id": "op_vector_33"
+      },
+      "schema_valid": true,
+      "contract_valid": false,
+      "rule": "private-audience"
+    },
+    {
+      "id": "SDK-REFUSE-MISSING-LOGICAL-ID",
+      "scenario": "private-send",
+      "envelope": {
+        "v": 2,
+        "type": "message.send",
+        "id": "sdk_private_send",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "msg_id": "saved_message_001",
+          "to": [
+            "part_organizer"
+          ],
+          "content_type": "text/plain",
+          "body": "Can we talk?"
+        }
+      },
+      "schema_valid": false,
+      "contract_valid": false,
+      "rule": "logical-id"
+    },
+    {
+      "id": "SDK-REFUSE-CONSULT-WITHOUT-RETAINED",
+      "scenario": "consultation",
+      "envelope": {
+        "v": 2,
+        "type": "session.consult",
+        "id": "sdk_consultation",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "private_participants": [
+            "part_assistant",
+            "part_owner"
+          ],
+          "hold_treatment": "silence"
+        },
+        "operation_id": "op_vector_57",
+        "expected_revision": 1
+      },
+      "schema_valid": false,
+      "contract_valid": false,
+      "rule": "retained-connection"
+    },
+    {
+      "id": "SDK-REFUSE-MOVE-TWO-TARGETS",
+      "scenario": "device-move",
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "sdk_device_move",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "conn_organizer",
+          "endpoint_id": "endpoint_owner_phone",
+          "candidate_connid": "conn_candidate"
+        },
+        "operation_id": "op_vector_59",
+        "expected_revision": 1
+      },
+      "schema_valid": false,
+      "contract_valid": false,
+      "rule": "one-move-target"
+    },
+    {
+      "id": "SDK-REFUSE-CANCEL-ID-CONFLATION",
+      "scenario": "cancel-operation",
+      "envelope": {
+        "v": 2,
+        "type": "operation.cancel",
+        "id": "sdk_cancel_operation",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "op_vector_59"
+        },
+        "operation_id": "op_vector_59"
+      },
+      "schema_valid": true,
+      "contract_valid": false,
+      "rule": "decision-id"
+    },
+    {
+      "id": "SDK-REFUSE-RECOVERY-REDIAL",
+      "scenario": "recovery",
+      "envelope": {
+        "v": 2,
+        "type": "connection.replace",
+        "id": "sdk_recovery",
+        "ts": "2026-10-25T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "retained_connid": "conn_organizer",
+          "endpoint_id": "endpoint_owner_phone"
+        },
+        "operation_id": "op_move_again",
+        "expected_revision": 1
+      },
+      "schema_valid": true,
+      "contract_valid": false,
+      "rule": "recovery-query-only"
+    }
+  ]
+}

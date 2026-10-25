@@ -1,0 +1,79 @@
+{
+  "schema": "connect-gate6-sdk-contract-preparation/1",
+  "task": "G6-059",
+  "status": "In progress; candidate inventory and boundary audit recorded, final contract not frozen",
+  "source": {
+    "contracts/sdk-gate-6-api.json": "82cf63603e40177ad19f6e309729e4b45b9e0d52708a589d2e6ded5d964f0509",
+    "contracts/uctp-vectors/gate6-sdk-api.json": "137669a4c23d50741fae6033fc6626431802e9138366b53833357eba4241c6d8",
+    "docs/SDK_COMPATIBILITY.md": "6296973ba10b71e343d85fc0248c234ec33fa73c1386dd700bcb9ad4a68fdbe6",
+    "scripts/check-gate6-sdk-contract.py": "e07e9d4e9fbb16b83eedf81b8eab342f48ebdd767de1aa2003a94de626a1ac21"
+  },
+  "verification": {
+    "report": ".local/gate-6/sdk-contract/preparation001/summary.json",
+    "sha256": "4ca9bc5470a5b186c6cc6966af589837894fe92e82a42ab371f29c8659519245",
+    "passed": true,
+    "candidate_finalized": false,
+    "scope": "Candidate contract inventory, canonical schema/refusal vectors and current snapshot source audit only. Final language outlines/type checking/review remain pending. No SDK runtime/parity/package ownership or whole-task qualification.",
+    "handles": 7,
+    "mapped_methods": 25,
+    "vectors": 14,
+    "source_guards": true
+  },
+  "snapshot_audit": {
+    "current_session_view_fields": [
+      "id",
+      "conversation_id",
+      "state",
+      "media",
+      "intent",
+      "capabilities_offer",
+      "codec_preferences",
+      "is_main",
+      "revision",
+      "topology_revision",
+      "created_at",
+      "updated_at",
+      "ended_reason"
+    ],
+    "typescript_interface_matches": true,
+    "python_canonical_event_validator_matches": true,
+    "legacy_python_generic_result_differs": true,
+    "interpretation": "The October20 blanket SessionSnapshot alias finding is stale for current TSinterface/Pythoncanonicalevent paths. Their13fields now match RustSessionView. Legacy genericresult/facade migration remains separate and is not restored via compatibility aliases."
+  },
+  "registry_preflight": {
+    "report": ".local/gate-6/sdk-contract/registry-preflight.json",
+    "sha256": "1e9bd2f579c22953a60ee07c28149434dc2404d1f0f58e7b48cf44197941eaf0",
+    "checked_at": "2026-10-25T19:32:31.664296+00:00",
+    "scope": "Read-only official registry lookup; not name reservation, namespace ownership, publisher credential verification or publication. Recheck candidate manifests and credentials in G6-069 before any registry action.",
+    "candidates": [
+      {
+        "candidate": "connect-client",
+        "url": "https://crates.io/api/v1/crates/connect-client",
+        "status": 404,
+        "body_sha256": "e1795ca7cb623c939ce7c2cab7f2aa8b9777363b10ff29e347f78fd0bb26cb92",
+        "response_within_bound": true,
+        "ownership_verified": false,
+        "observation": "No public package record at this URL at lookup time"
+      },
+      {
+        "candidate": "@eisenzopf/connect",
+        "url": "https://registry.npmjs.org/@eisenzopf%2fconnect",
+        "status": 404,
+        "body_sha256": "c8d3eae160a892e32837db3dcae515e843e5383fef52b8141940c8bcf8b6d59f",
+        "response_within_bound": true,
+        "ownership_verified": false,
+        "observation": "No public package record at this URL at lookup time"
+      },
+      {
+        "candidate": "rudeless-connect",
+        "url": "https://pypi.org/pypi/rudeless-connect/json",
+        "status": 404,
+        "body_sha256": "b82014934f66beeb9e05a37f65357c4b50db0349d25d68d818ed0319dd4feb40",
+        "response_within_bound": true,
+        "ownership_verified": false,
+        "observation": "No public package record at this URL at lookup time"
+      }
+    ]
+  },
+  "remaining": "Freeze final await/Operation syntax, full input/result/error and role matrices, type-check the same complete Rust/browser+NodeTS/Python application outlines, and finish current-interface review. Current candidates are not SDK execution, installed parity, publisher credentials, namespace ownership or publication. G6-059 stays in progress; all105task scope remains unchanged."
+}
