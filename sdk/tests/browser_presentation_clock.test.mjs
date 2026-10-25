@@ -25,17 +25,17 @@ async function environment(t,run){
    advance(time,milliseconds=Math.round((time-contexts[0].currentTime)*1000)){contexts[0].currentTime=time;wall+=milliseconds;t.mock.timers.tick(milliseconds);}});
  }finally{renderer?.close();await renderer?.finished.catch(()=>{});t.mock.timers.reset();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 }
-test('presentation preserves a same-tick audio capture gap and schedules video at that same source time',t=>environment(t,async e=>{
- const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);assert.equal(r.audio(c.streams[0],e.audio(100000)),true);
+test('presentation preserves an audio capture gap and schedules video at that same source time',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);assert.equal(r.audio(c.streams[0],e.audio(100000)),false,'future gap exceeds the unchanged200msqueue budget');e.advance(.06);assert.equal(r.audio(c.streams[0],e.audio(100000)),true);
  assert.ok(Math.abs(e.contexts[0].sources[1].startedAt-e.contexts[0].sources[0].startedAt-.1)<1e-9,'audio capture gap collapsed into contiguous playback');
  const original=e.frame(100000);assert.equal(r.video(c.streams[1],original),true);original.close();assert.equal(e.drawn.length,0);assert.equal(e.clones[0].closed,0);
- e.advance(.179);assert.equal(e.drawn.length,0);e.advance(.181);assert.equal(e.drawn.length,1);assert.ok(Math.abs(e.drawn[0].at-e.contexts[0].sources[1].startedAt)<.002);
+ e.advance(.219);assert.equal(e.drawn.length,0);e.advance(.221);assert.equal(e.drawn.length,1);assert.ok(Math.abs(e.drawn[0].at-e.contexts[0].sources[1].startedAt)<.002);
  assert.equal(e.clones[0].closed,1);assert.equal(original.closed,1);assert.equal(r.diagnostics.pendingVideo,0);
 }));
 test('late audio is refused without retiming already queued video or later capture gaps',t=>environment(t,async e=>{
- const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);r.video(c.streams[1],e.frame(20000));e.advance(.105);assert.equal(e.drawn.length,1);
+ const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);r.video(c.streams[1],e.frame(20000));e.advance(.145);assert.equal(e.drawn.length,1);
  assert.equal(r.audio(c.streams[0],e.audio(20000)),false);assert.equal(e.contexts[0].sources.length,1);
- assert.equal(r.video(c.streams[1],e.frame(40000)),true);e.advance(.119);assert.equal(e.drawn.length,1);e.advance(.121);assert.equal(e.drawn.length,2);assert.ok(Math.abs(e.drawn[1].at-.12)<.002);
+ assert.equal(r.video(c.streams[1],e.frame(40000)),true);e.advance(.159);assert.equal(e.drawn.length,1);e.advance(.161);assert.equal(e.drawn.length,2);assert.ok(Math.abs(e.drawn[1].at-.16)<.002);
 }));
 test('presentation bounds owned video and retires queued audio/video after the negotiated binding disappears',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;r.audio(c.streams[0],e.audio(0));for(let n=0;n<40;n++)r.video(c.streams[1],e.frame(n*1000));
@@ -51,22 +51,22 @@ test('pause and close release every owned video clone and never consume the deco
 test('a stalled playback clock expires original queued work then presents fresh media after recovery',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;r.audio(c.streams[0],e.audio(0));r.video(c.streams[1],e.frame(0));e.advance(0,201);
  assert.equal(r.diagnostics.pendingAudio,0);assert.equal(r.diagnostics.pendingVideo,0);assert.equal(e.clones[0].closed,1);assert.equal(e.drawn.length,0);
- e.advance(.22,19);assert.equal(r.audio(c.streams[0],e.audio(220000)),true);assert.equal(r.video(c.streams[1],e.frame(220000)),true);e.advance(.301,81);
+ e.advance(.22,19);assert.equal(r.audio(c.streams[0],e.audio(220000)),true);assert.equal(r.video(c.streams[1],e.frame(220000)),true);e.advance(.341,121);
  assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,220000);assert.ok(e.contexts[0].sources[0].stopped);assert.ok(e.clones.every(c=>c.closed===1));
 }));
 test('a delayed canvas failure closes the graph and all remaining owned frames',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;const draw=e.canvas.getContext();draw.drawImage=()=>{throw Error('fixture canvas refused');};
- r.audio(c.streams[0],e.audio(0));r.video(c.streams[1],e.frame(0));r.video(c.streams[1],e.frame(20000));e.advance(.081);
+ r.audio(c.streams[0],e.audio(0));r.video(c.streams[1],e.frame(0));r.video(c.streams[1],e.frame(20000));e.advance(.121);
  await assert.rejects(r.finished,/fixture canvas refused/);assert.equal(r.diagnostics.pendingVideo,0);assert.equal(r.diagnostics.pendingAudio,0);assert.ok(e.clones.every(c=>c.closed===1));assert.ok(e.originals.every(f=>f.closed===0));
 }));
 test('an invalid owned clone is closed before refusal and cannot consume the next valid source frame',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;let closed=0;assert.throws(()=>r.video(c.streams[1],{timestamp:0,clone:()=>({timestamp:1,close(){closed++;}})}),{code:'media-playback'});assert.equal(closed,1);assert.equal(r.diagnostics.pendingVideo,0);
- assert.equal(r.video(c.streams[1],e.frame(0)),true);e.advance(.081);assert.equal(e.drawn.length,1);assert.equal(e.clones[0].closed,1);
+ assert.equal(r.video(c.streams[1],e.frame(0)),true);e.advance(.121);assert.equal(e.drawn.length,1);assert.equal(e.clones[0].closed,1);
 }));
 
 test('a late presentation callback displays only the newest due frame instead of replaying a burst',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;for(let n=0;n<8;n++)r.video(c.streams[1],e.frame(n*1000));assert.equal(e.drawn.length,0);
- e.advance(.1);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,7000);assert.equal(r.diagnostics.video,1);assert.equal(r.diagnostics.droppedVideo,7);assert.ok(e.clones.every(c=>c.closed===1));
+ e.advance(.14);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,7000);assert.equal(r.diagnostics.video,1);assert.equal(r.diagnostics.droppedVideo,7);assert.ok(e.clones.every(c=>c.closed===1));
 }));
 
 test('overlapping audio clock phases cannot accumulate shared presentation latency or strand fresh video',t=>environment(t,async e=>{
@@ -78,13 +78,13 @@ test('overlapping audio clock phases cannot accumulate shared presentation laten
   e.advance(now);
   const overlaps=step%10===0,pts=step*20000-(overlaps?5000:0);
   assert.equal(r.audio(c.streams[0],e.audio(pts)),!overlaps,'overlap was serialized instead of refused');
-  if(!overlaps){accepted++;assert.ok(Math.abs(e.contexts[0].sources.at(-1).startedAt-(.08+pts/1000000))<1e-9,'shared origin accumulated an overlapping phase');}
-  assert.ok(r.diagnostics.pendingAudio<=6);
+  if(!overlaps){accepted++;assert.ok(Math.abs(e.contexts[0].sources.at(-1).startedAt-(.12+pts/1000000))<1e-9,'shared origin accumulated an overlapping phase');}
+  assert.ok(r.diagnostics.pendingAudio<=8);
  }
  assert.equal(r.diagnostics.audio,accepted);assert.equal(r.diagnostics.droppedAudio,60);
  assert.equal(r.video(c.streams[1],e.frame(12000000)),true);
- e.advance(12.081,81);assert.equal(e.drawn.at(-1).timestamp,12000000);
- assert.ok(Math.abs(e.drawn.at(-1).at-12.08)<.002);
+ e.advance(12.121,121);assert.equal(e.drawn.at(-1).timestamp,12000000);
+ assert.ok(Math.abs(e.drawn.at(-1).at-12.12)<.002);
 }));
 test('one-sample audio timestamp rounding remains admissible while a real overlap preserves the next capture gap',t=>environment(t,async e=>{
  const {renderer:r,connection:c}=e;
@@ -103,8 +103,8 @@ test('a delayed first decoder callback cannot anchor fresh receive-clock media t
  assert.equal(e.contexts[0].sources.length,0);
  assert.equal(r.audio(c.streams[0],e.audio(150000)),true);
  assert.equal(r.video(c.streams[1],e.frame(150000)),true);
- assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.23)<1e-9);
- e.advance(.231,81);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,150000);
+ assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.27)<1e-9);
+ e.advance(.271,121);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,150000);
  assert.equal(r.diagnostics.droppedAudio,1);assert.equal(e.clones[0].closed,1);
 }));
 
@@ -115,6 +115,6 @@ test('video-first startup uses receive-clock time despite an expired initial dec
  assert.equal(e.clones.length,0);
  assert.equal(r.video(c.streams[1],e.frame(400000)),true);
  assert.equal(r.audio(c.streams[0],e.audio(400000)),true);
- e.advance(.481,81);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,400000);
- assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.48)<1e-9);
+ e.advance(.521,121);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,400000);
+ assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.52)<1e-9);
 }));

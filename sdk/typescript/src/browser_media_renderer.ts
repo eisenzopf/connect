@@ -307,15 +307,16 @@ export class BrowserMediaRenderer {
         return this.context?.currentTime ?? performance.now() / 1000;
     }
     private presentationTime(timestamp: number): number {
-        // Four 20 ms Opus quanta absorb arrival variation inside the existing
-        // 200 ms owned queue bound. Audio and video share this one fixed lead;
+        // Six 20 ms Opus quanta cover the profile's 100 ms delay variation plus
+        // one packet interval inside the existing 200 ms owned queue bound.
+        // Audio and video share this one fixed lead;
         // neither callback delay nor late media changes the established epoch.
         // RtcpReceiveClock maps decoded timestamps to performance.now(). An
         // initial decoder callback may contain old buffered media; using that
         // frame as the origin would postpone every fresh frame by its backlog.
         this.clock ??= {
             source: Math.round(performance.now() * 1000),
-            local: this.now() + 0.08,
+            local: this.now() + 0.12,
         };
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }

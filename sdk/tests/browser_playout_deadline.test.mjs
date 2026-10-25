@@ -46,8 +46,27 @@ test('a250ms playback stall expires originals and resumes fresh output without c
  const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);const lead=e.contexts[0].sources[0].startedAt;
  assert.equal(r.video(c.streams[1],e.frame(0)),true);e.advance(0,251);
  assert.equal(r.diagnostics.pendingAudio,0);assert.equal(r.diagnostics.pendingVideo,0);assert.equal(e.clones[0].closed,1);assert.equal(e.drawn.length,0);
- e.advance(.25,0);assert.equal(r.audio(c.streams[0],e.audio(140000)),false,'expired source deadline was moved to now');
+ e.advance(.25,0);assert.equal(r.audio(c.streams[0],e.audio(120000)),false,'expired source deadline was moved to now');
  assert.equal(r.audio(c.streams[0],e.audio(250000)),true);assert.equal(r.video(c.streams[1],e.frame(250000)),true);
  assert.ok(Math.abs(e.contexts[0].sources.at(-1).startedAt-(.25+lead))<1e-9);e.advance(.25+lead+.001);
  assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,250000);assert.ok(e.contexts[0].sources[0].stopped);assert.ok(e.clones.every(f=>f.closed===1));
+}));
+
+test('100ms arrival variation retains fixed common audio/video deadlines inside the original queue budget',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;assert.equal(r.audio(c.streams[0],e.audio(0)),true);
+ const lead=e.contexts[0].sources[0].startedAt;
+ assert.ok(lead>0&&lead+.02<=.2);
+ for(let step=1;step<=50;step++){
+  const source=step*.02,pts=step*20000;e.advance(source+.1);
+  assert.equal(r.audio(c.streams[0],e.audio(pts)),true,'bounded delay variation missed the fixed audio deadline');
+  if(step%2===0)assert.equal(r.video(c.streams[1],e.frame(pts)),true);
+  assert.ok(Math.abs(e.contexts[0].sources.at(-1).startedAt-(source+lead))<1e-9,'arrival jitter moved the shared origin');
+  assert.ok(r.diagnostics.pendingAudio<=3&&r.diagnostics.pendingVideo<=2);
+  assert.ok(r.diagnostics.queuedAudioSeconds<=.2);
+ }
+ e.advance(1+lead+.001);
+ assert.equal(r.diagnostics.audio,51);assert.equal(r.diagnostics.droppedAudio,0);
+ assert.equal(e.drawn.length,25);assert.equal(e.drawn.at(-1).timestamp,1000000);
+ assert.ok(Math.abs(e.drawn.at(-1).at-e.contexts[0].sources.at(-1).startedAt)<.002);
+ assert.ok(e.clones.every(f=>f.closed===1));assert.ok(e.originals.every(f=>f.closed===0));
 }));

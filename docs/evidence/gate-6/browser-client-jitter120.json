@@ -1,0 +1,54 @@
+{
+  "task": "G6-050",
+  "status": "Shared120msfixedlead passes247SDKmethods; installed-browser/actual impairment runtime pending",
+  "recorded_at": "2026-10-25T20:09:01.239833+00:00",
+  "source": {
+    "sdk/typescript/src/browser_media_renderer.ts": "8e3facc21f332c4528925645b6bc4a42eee57924c93a7872e8169b60d6179c2d",
+    "sdk/typescript/dist/browser_media_renderer.js": "38caed567e2c5f578a98c7dddfc5afc99cbecfb2d243c2643d62ab9ac8538452",
+    "sdk/tests/browser_playout_deadline.test.mjs": "f3ce9f96ad8e664d385e742a0105d84d90303797889f4a5d984a6ff5e16c96d1",
+    "sdk/tests/browser_presentation_clock.test.mjs": "8ce1346853e325a3b7d4965b061f9f1acf309fa58af23d4c24e34a79356c809e",
+    "sdk/tests/browser_renderer.test.mjs": "39ca0001e4df734c3135c768bd27aa7167a2bc3bc1b76b87499cf5a2a30a05ac"
+  },
+  "design": "One fixed120mscommon playout lead covers the approved100msdelayvariation plus one20msaudiointerval. Existing200msownedqueue/original-age bounds,10audionodes,8video-clonebounds, current bindings, late/overlap refusal, fixed receive-clock calibration and borrowed lifetimes stay enforced. Neither original late arrivals nor per-track offsets move the common epoch. This is implementation buffering, not a changed capture/observer/quality threshold.",
+  "verification": {
+    "positive": {
+      "report": ".local/gate-6/playout-jitter120/positive003/summary.json",
+      "sha256": "51e62944fa21588c4cdd0b982b4d04657df0a3a70fa80eb924fdea3627b718c1",
+      "scope": "All production TypeScript SDK library methods with unchanged source/generated module guards; no installed browser or impairment qualification.",
+      "dependencies": {
+        "exit_code": 0,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format": {
+        "exit_code": 0,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      "sdk": {
+        "exit_code": 0,
+        "log_sha256": "96dd912ab36a07c5ba8ca9f5087ab0ba458517c7dfafd8cee46837fd8082f098"
+      },
+      "inputs_unchanged": true,
+      "passed": true
+    },
+    "negative": {
+      "report": ".local/gate-6/playout-jitter120/negative001/summary.json",
+      "sha256": "df282b93e4c142d3979ec3228050dbf380262fe697c4748aba5b2269c8c2896d",
+      "scope": "Current100msarrivalvariation behavior against byte-exact prior80msrenderer in isolated package; expected refusal must fail.",
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern=100ms arrival variation",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/playout-jitter120/negative001/sdk/tests/browser_playout_deadline.test.mjs"
+      ],
+      "exit_code": 1,
+      "negative_valid": true,
+      "prior_renderer_sha256": "45e34cf5f79196b6bcd2ca5a95419cb318d454a2e82e05ef23afceaef314c6bf",
+      "log_sha256": "b5688025dfbd86860f4a10a2f46725b3858812e342ce7e427fedfdefee6722da"
+    }
+  },
+  "attempts": [
+    "Initial001passes246/247: the new unit case requested50fpsvideo, above the30fpsprofile; mock callbacks coalesced3of50due frames. The corrected fixture sends25fpsvideo with50fpsaudio, checking every25actualvideo presentation and all51audio admissions. The initial failure remains private.",
+    "Existing timing methods now observe the120mslead. A100msfuture source gap submitted immediately is explicitly refused by the unchanged200msbound; resubmitting after60msadmits it and preserves the original100mscapture gap. The expiration sample is130msold so it remains beyond120msdeadline. Overlap, one-sample rounding, natural ending,250msstall recovery and owned cleanup assertions remain."
+  ],
+  "remaining": "Current247SDK verification alone is not impairment qualification. Run current original installed-browser clean60 and native profiles; retain073/074unknownsubscription and short audio failures until their own scopes pass. Independent sources, actual3percentloss/100msvariation/two250msbursts, live native encoding/presentation, permissions/background/other profiles and all105tasks remain required."
+}
