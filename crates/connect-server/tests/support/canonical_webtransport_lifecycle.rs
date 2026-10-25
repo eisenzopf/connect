@@ -35,24 +35,27 @@ async fn shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_
     for _ in 1..f.config.limits.connections {
         peers.push(Http3Peer::open(&f).await);
     }
+    assert_eq!(peers.len() + 1, f.config.limits.connections);
+    let cid = peers[0].create(&input(&f)).await;
+    for peer in &mut peers {
+        assert!(peer.connection.close_reason().is_none());
+        assert_eq!(peer.create(&input(&f)).await, cid);
+    }
     assert_eq!(
-        f.server
-            .service
-            .canonical_runtime_snapshot()
+        native
+            .create_conversation("http3-create", input(&f))
+            .await
             .unwrap()
-            .physical_peers,
-        f.config.limits.connections
+            .id,
+        cid
     );
     assert!(transport(&f, MOUNT, &[ORIGIN]).await.is_err());
-    assert_eq!(
-        f.server
-            .service
-            .canonical_runtime_snapshot()
-            .unwrap()
-            .physical_peers,
-        f.config.limits.connections
-    );
-    let cid = peers[0].create(&input(&f)).await;
+    // Core peer views are created lazily by scoped media work. Count held
+    // authenticated transports through their real signed round trips instead.
+    for peer in &mut peers {
+        assert!(peer.connection.close_reason().is_none());
+        assert_eq!(peer.create(&input(&f)).await, cid);
+    }
     assert_eq!(
         native
             .create_conversation("http3-create", input(&f))
@@ -62,30 +65,13 @@ async fn shared_native_and_http3_physical_budget_refuses_excess_and_reuses_only_
         cid
     );
     native.shutdown().await.unwrap();
-    tokio::time::timeout(Duration::from_secs(5), async {
-        while f
-            .server
-            .service
-            .canonical_runtime_snapshot()
-            .unwrap()
-            .physical_peers
-            != f.config.limits.connections - 1
-        {
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
-    })
-    .await
-    .unwrap();
     let mut replacement = Http3Peer::open(&f).await;
     assert_eq!(replacement.create(&input(&f)).await, cid);
-    assert_eq!(
-        f.server
-            .service
-            .canonical_runtime_snapshot()
-            .unwrap()
-            .physical_peers,
-        f.config.limits.connections
-    );
+    for peer in &mut peers {
+        assert_eq!(peer.create(&input(&f)).await, cid);
+    }
+    assert!(transport(&f, MOUNT, &[ORIGIN]).await.is_err());
+    assert_eq!(replacement.create(&input(&f)).await, cid);
     one_create(&f);
     replacement.close().await;
     drop(replacement);
@@ -212,6 +198,30 @@ async fn owned_http3_shutdown_and_drop_restart_preserve_original_receipt_and_fen
     }
 }
 
+async fn failed_offer(peer: &mut Http3Peer, id: &str) -> String {
+    let mut record = None;
+    for _ in 0..128 {
+        let frame = peer.read().await;
+        if frame.original()["in_reply_to"] != id {
+            continue;
+        }
+        assert_ne!(frame.kind(), "error", "{:?}", frame.original());
+        if frame.kind() == "operation.updated" {
+            let p = &frame.original()["payload"];
+            assert_eq!(p["state"], "failed");
+            assert_eq!(p["problem"]["code"], "unsupported-media-profile");
+            record = Some(p["record_id"].as_str().unwrap().to_owned());
+        }
+        if frame.kind() == "ack" {
+            assert_eq!(
+                frame.original()["payload"]["details"]["reply_complete"],
+                true
+            );
+            return record.expect("durable failed native offer precedes completed reply ACK");
+        }
+    }
+    panic!("bounded failed offer response count");
+}
 async fn terminal(peer: &mut Http3Peer, id: &str) -> Envelope {
     for _ in 0..128 {
         let frame = peer.read().await;
@@ -329,10 +339,12 @@ async fn authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_wi
         request["connid"] = json!("control-only-connection");
         request["operation_id"] = json!("control-only-offer");
         request["expected_revision"] = json!(0);
-        let id = peer.send(request, true).await;
-        let refused = terminal(&mut peer, &id).await;
-        assert_eq!(refused.kind(), "error");
-        assert_eq!(refused.original()["payload"]["code"], 501);
+        let id = peer.send(request.clone(), true).await;
+        let original = failed_offer(&mut peer, &id).await;
+        request["id"] = json!(format!("env_{}", uuid::Uuid::new_v4().simple()));
+        request["ts"] = json!(chrono::Utc::now());
+        let retry = peer.send(request, true).await;
+        assert_eq!(failed_offer(&mut peer, &retry).await, original);
         let s = f.server.service.canonical_runtime_snapshot().unwrap();
         assert_eq!(s.connections, 0);
         assert_eq!(s.media_readers, 1);
@@ -350,6 +362,8 @@ async fn authenticated_control_only_endpoint_keeps_commands_but_refuses_audio_wi
             .unwrap(),
             0
         );
+        assert_eq!(db.query_row("SELECT count(*) FROM operations WHERE owner_id=?1 AND operation_id='control-only-offer' AND state='failed'",[&f.client.identity_id],|r|r.get::<_,u64>(0)).unwrap(),1);
+        assert_eq!(db.query_row("SELECT count(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.owner_id=?1 AND o.operation_id='control-only-offer'",[&f.client.identity_id],|r|r.get::<_,u64>(0)).unwrap(),0);
         drop(db);
         list(&mut peer).await;
         peer.close().await;
@@ -371,7 +385,7 @@ async fn http3_session_budget_is_shared_with_native_commands_and_refusal_leaves_
     let cid = peer.create(&input(&f)).await;
     let mut invite = envelope(
         "session.invite",
-        json!({"participants":[],"medium":"voice","intent":"conference","capabilities":{"audio":["g.711-mu"]}}),
+        json!({"to":[],"medium":"voice","intent":"conference","capabilities_offer":{"audio":["g.711-mu"]}}),
     );
     invite["cid"] = json!(cid);
     invite["sid"] = json!("budget-first-session");
@@ -534,8 +548,8 @@ async fn missing_quic_datagram_capability_is_refused_before_auth_and_keeps_other
             .service
             .canonical_runtime_snapshot()
             .unwrap()
-            .physical_peers,
-        2
+            .connections,
+        0
     );
     list(&mut healthy).await;
     let cid = healthy.create(&input(&f)).await;

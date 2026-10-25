@@ -523,6 +523,14 @@ async fn duplex_mode(algorithm: &str, server_end: Option<bool>) {
     .unwrap();
     // New physical readers recover original durable media status; reading a
     // completed offer must not allocate a replacement route or relabel it.
+    // Adapter retirement precedes the tracked Store worker's final commit.
+    // Wait for authoritative cleanup, including the retired lifetime, before
+    // comparing durable state across read-only status recovery.
+    tokio::time::timeout(Duration::from_secs(5),async{loop{
+        let c=rusqlite::Connection::open_with_flags(&f.config.database,rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+        let retired:u64=c.query_row("SELECT count(*) FROM connections n JOIN native_connection_lifetimes life ON life.connection_id=n.id WHERE n.session_id='http3-media-session' AND n.state='retired' AND n.observed_runtime_id IS NULL AND life.retired=1",[],|r|r.get(0)).unwrap();
+        if retired==2{return;}tokio::time::sleep(Duration::from_millis(20)).await;
+    }}).await.expect("both original media lifetimes must commit retirement before status reads");
     let before = connect_store::Store::inspect_snapshot(&f.config.database).unwrap();
     let expected_record: String = rusqlite::Connection::open_with_flags(
         &f.config.database,
