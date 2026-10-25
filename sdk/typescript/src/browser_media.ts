@@ -48,8 +48,10 @@ export interface BrowserConnectionOptions {
     data?: { id: string; protocol: BrowserDataProtocol }[];
 }
 export interface BrowserMediaCallbacks {
-    /** Borrowed synchronously; the SDK closes each decoded frame after this callback. */
+    /** Borrowed synchronously; timestamps use the local performance.now() timeline.
+     * The SDK closes each decoded frame after this callback. */
     audio?: (binding: Readonly<MediaBinding>, frame: AudioData) => void;
+    /** Same local receive timeline and borrowed lifetime as decoded audio. */
     video?: (binding: Readonly<MediaBinding>, frame: VideoFrame) => void;
     data?: (message: {
         conversationId: string;

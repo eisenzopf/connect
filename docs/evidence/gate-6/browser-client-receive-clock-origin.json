@@ -1,0 +1,78 @@
+{
+  "task": "G6-050",
+  "status": "Receive-clock startup correction passes246SDKmethods; current installed-browser runtime pending",
+  "recorded_at": "2026-10-25T20:01:01.936992+00:00",
+  "behavior": "Decoded AudioData/VideoFrame timestamps use the local performance.now receive timeline. The renderer maps that timeline to its playback graph once, with the existing shared80mslead. A delayed first decoder callback no longer defines the clock origin, so stale backlog cannot push fresh media beyond the existing200msqueue bound. No per-track offset, source/observer/threshold change or late-packet deadline extension.",
+  "source": {
+    "sdk/typescript/src/browser_media_renderer.ts": "3c88e47819cd4575568af1f703b983fabd3051cbd9d0c70ba38833564f6d19ba",
+    "sdk/typescript/src/browser_media.ts": "7d4c7ed00a97354df1deb391f6697804c772a26b727356e27ad3e8f1b6b5ddc8",
+    "sdk/typescript/dist/browser_media_renderer.js": "45e34cf5f79196b6bcd2ca5a95419cb318d454a2e82e05ef23afceaef314c6bf",
+    "sdk/tests/browser_presentation_clock.test.mjs": "f5be1c227264172e0ef0a142007e77e32af0c800c98489dd28b08c3b22d49b2e",
+    "sdk/tests/browser_renderer.test.mjs": "9d67156b344a7ab9bb0901f7cf482109d9e8140089c595b7b5c82048d48484d2"
+  },
+  "verification": {
+    "positive": {
+      "report": ".local/gate-6/receive-origin/positive002/summary.json",
+      "sha256": "55be16b456ba796e747d19851244e00ceef92fbd25d4e68d873b673f1ae1637a",
+      "scope": "All production TypeScript SDK library methods with unchanged source/generated module guards; no installed browser or native operating qualification.",
+      "dependencies": {
+        "exit_code": 0,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "sdk": {
+        "exit_code": 0,
+        "log_sha256": "d387299d2ec0e400d00e4d8d83a83f3065a6341ded02f4db63b9c45e38e350a2"
+      },
+      "inputs_unchanged": true,
+      "passed": true
+    },
+    "negative": {
+      "report": ".local/gate-6/receive-origin/negative001/summary.json",
+      "sha256": "62d2b1d28f09f41b8fab3c56013f11beb5b45b4177ce488c118c6b3637729ad8",
+      "scope": "Two current delayed-start regressions against byte-exact prior renderer JS in isolated package; both must fail.",
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern=delayed first decoder|video-first startup",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/receive-origin/negative001/sdk/tests/browser_presentation_clock.test.mjs"
+      ],
+      "exit_code": 1,
+      "expected_failures": 2,
+      "negative_valid": true,
+      "log_sha256": "3d91849a7214514d6acf0f75316de22d57358fde42d226d2755548da1e998d55"
+    }
+  },
+  "diagnostics": [
+    {
+      "report": ".local/gate-6/presentation-diagnostic/timing005/summary.json",
+      "sha256": "9d8f90a359411533124f738d87cc1bd6a9087886a3b0e513eae2018288bbeddb",
+      "exit_code": 101,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "finding": "Original short capture fails144/150audio. Second renderer has50late and1overlap refusal, while150video callbacks remain admitted; no timing/performance qualification."
+    },
+    {
+      "report": ".local/gate-6/presentation-diagnostic/native006/summary.json",
+      "sha256": "d45586b8bb2bb62714a917f0f328da66e9f229245a598108192c55ca0b56ef33",
+      "exit_code": 101,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "finding": "Original captured native EdDSA setup succeeds; later native video readiness fails1identified/146decoded. Trace is diagnostic only and does not erase073unknownsubscription."
+    },
+    {
+      "report": ".local/gate-6/presentation-diagnostic/native007/summary.json",
+      "sha256": "29d87820f742eed853f2d9e9149e6764c5a6b4ca03a108132c5e63e3b050c787",
+      "exit_code": 101,
+      "diagnostic_valid": true,
+      "source_inputs_unchanged": true,
+      "sealed_executable_unchanged": true,
+      "finding": "Original captured native EdDSA setup succeeds; first renderer callback at425.1mscontains frame274.1ms. Frame-defined origin admits8/258audio, rejects250asfuture and admits1/151video. Fresh video remains~218msaheadofgraph, past200msqueuebound. Both source and sealed executable unchanged. This directly motivates monotonic startup calibration."
+    }
+  ],
+  "attempts": [
+    "Initial positive001 passes245/246; an old basic renderer mock had no monotonic performance clock, unlike production decoded timestamps. Its mock now shares graph time with performance.now. All original ownership/refusal assertions remain."
+  ],
+  "remaining": "Original073 short capture127/150audio and native subscriptionunknown failures remain recorded. No native control-race fix or fullG6-050/acceptance claim. Current installed-browser/native cohorts must run; other live native, independent-source, impairment and assigned profiles stay required."
+}

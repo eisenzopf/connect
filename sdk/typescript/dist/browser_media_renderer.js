@@ -1,5 +1,5 @@
 import { ConnectError } from "./errors.js";
-/** Borrowed-frame entry points with bounded owned presentation queues. */
+/** Borrowed decoded frames use the Connection's local monotonic receive timeline. */
 export class BrowserMediaRenderer {
     connection;
     options;
@@ -233,7 +233,13 @@ export class BrowserMediaRenderer {
         // Four 20 ms Opus quanta absorb arrival variation inside the existing
         // 200 ms owned queue bound. Audio and video share this one fixed lead;
         // neither callback delay nor late media changes the established epoch.
-        this.clock ??= { source: timestamp, local: this.now() + 0.08 };
+        // RtcpReceiveClock maps decoded timestamps to performance.now(). An
+        // initial decoder callback may contain old buffered media; using that
+        // frame as the origin would postpone every fresh frame by its backlog.
+        this.clock ??= {
+            source: Math.round(performance.now() * 1000),
+            local: this.now() + 0.08,
+        };
         return this.clock.local + (timestamp - this.clock.source) / 1000000;
     }
     /** Copy borrowed frames into a bounded owned presentation queue. */

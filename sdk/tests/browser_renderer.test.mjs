@@ -4,7 +4,7 @@ import {BrowserMediaRenderer} from '../typescript/dist/browser_media_renderer.js
 const binding=(handle,kind)=>({handle,streamId:kind,connectionId:'connection',sessionId:'session',generation:1,kind,codec:kind==='audio'?'opus':'vp8',payloadType:kind==='audio'?111:96,direction:'sendrecv'});
 function owner(){const closed=new Set();return{id:'connection',streams:[binding(1,'audio'),binding(2,'video')],closed,onClose(fn){closed.add(fn);return()=>closed.delete(fn);}};}
 async function environment(resume,run){
-  const contexts=[],names=['AudioContext','document'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
+  const contexts=[],names=['AudioContext','document','performance'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
   class Node{connect(){}disconnect(){}gain={value:1};fftSize=0;getFloatTimeDomainData(array){array.fill(.1);}}
   class Context{
     sampleRate=48000;state='suspended';currentTime=0;sources=[];destination={};
@@ -15,7 +15,7 @@ async function environment(resume,run){
     createGain(){return new Node();}createAnalyser(){return new Node();}createBuffer(){return{copyToChannel(){}};}
     createBufferSource(){const n=new Node();n.stop=()=>{n.stopped=true;};n.start=()=>{};this.sources.push(n);return n;}
   }
-  const values=[Context,{visibilityState:'visible',addEventListener(){},removeEventListener(){}}];for(let i=0;i<names.length;i++)Object.defineProperty(globalThis,names[i],{configurable:true,value:values[i]});
+  const values=[Context,{visibilityState:'visible',addEventListener(){},removeEventListener(){}},{now:()=>1000*(contexts[0]?.currentTime??0)}];for(let i=0;i<names.length;i++)Object.defineProperty(globalThis,names[i],{configurable:true,value:values[i]});
   try{await run(contexts);}finally{for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 }
 test('renderer startup deadline closes its pending graph and detaches Connection ownership',()=>environment(()=>new Promise(()=>{}),async contexts=>{

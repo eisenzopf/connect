@@ -129,3 +129,10 @@ The [held media control hook](media-control.md) now lets an authenticated
 invocation construct/change/pause/end its retained controller without reacquiring
 its grant lock. Packet authority remains independently current. The production
 store policy, full negotiation/managed graph and credential rotation remain open.
+
+Browser decoded audio and video timestamps use the local monotonic
+`performance.now()` receive timeline. `BrowserMediaRenderer` maps that clock to
+its audio graph with one fixed common playout lead. An initial decoder backlog
+keeps its original age; its callback cannot establish a fresh origin for all
+later media. Pass the borrowed decoded frames synchronously, retaining the
+current negotiated binding.

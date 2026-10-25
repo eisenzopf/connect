@@ -8,7 +8,7 @@ export interface BrowserMediaRendererOptions {
     timeoutMs?: number;
     signal?: AbortSignal;
 }
-/** Borrowed-frame entry points with bounded owned presentation queues. */
+/** Borrowed decoded frames use the Connection's local monotonic receive timeline. */
 export declare class BrowserMediaRenderer {
     private readonly connection;
     private readonly options;

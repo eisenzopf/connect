@@ -95,3 +95,26 @@ test('one-sample audio timestamp rounding remains admissible while a real overla
  assert.ok(Math.abs(e.contexts[0].sources[2].startedAt-e.contexts[0].sources[1].startedAt-.04)<1/48000);
  assert.equal(r.diagnostics.droppedAudio,1);
 }));
+
+test('a delayed first decoder callback cannot anchor fresh receive-clock media to its old backlog',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;
+ e.advance(.15,150);
+ assert.equal(r.audio(c.streams[0],e.audio(0)),false,'expired decoder backlog acquired a fresh playout origin');
+ assert.equal(e.contexts[0].sources.length,0);
+ assert.equal(r.audio(c.streams[0],e.audio(150000)),true);
+ assert.equal(r.video(c.streams[1],e.frame(150000)),true);
+ assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.23)<1e-9);
+ e.advance(.231,81);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,150000);
+ assert.equal(r.diagnostics.droppedAudio,1);assert.equal(e.clones[0].closed,1);
+}));
+
+test('video-first startup uses receive-clock time despite an expired initial decoded frame',t=>environment(t,async e=>{
+ const {renderer:r,connection:c}=e;
+ e.advance(.4,400);
+ assert.equal(r.video(c.streams[1],e.frame(0)),false);
+ assert.equal(e.clones.length,0);
+ assert.equal(r.video(c.streams[1],e.frame(400000)),true);
+ assert.equal(r.audio(c.streams[0],e.audio(400000)),true);
+ e.advance(.481,81);assert.equal(e.drawn.length,1);assert.equal(e.drawn[0].timestamp,400000);
+ assert.ok(Math.abs(e.contexts[0].sources[0].startedAt-.48)<1e-9);
+}));
