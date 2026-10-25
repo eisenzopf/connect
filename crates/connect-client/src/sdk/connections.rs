@@ -39,6 +39,7 @@ pub struct NegotiatedStream {
 }
 #[derive(Clone, Debug)]
 pub struct NativeNegotiation {
+    pub source_clock: bool,
     pub stream_revision: StreamRevision,
     pub streams: Vec<NegotiatedStream>,
 }
@@ -104,6 +105,9 @@ impl std::fmt::Debug for Connection {
     }
 }
 impl Connection {
+    pub(super) fn client(&self) -> &Client {
+        &self.client
+    }
     pub(super) fn new(
         client: Client,
         id: ConnectionId,

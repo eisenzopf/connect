@@ -50,6 +50,19 @@ impl std::fmt::Debug for Error {
     }
 }
 impl Error {
+    pub(super) fn media(kind: ErrorKind, submitted: bool) -> Self {
+        Self {
+            kind,
+            certainty: if submitted {
+                Certainty::Uncertain
+            } else {
+                Certainty::NotSubmitted
+            },
+            operation: None,
+            problem: None,
+            observation: None,
+        }
+    }
     pub(super) fn local(kind: ErrorKind) -> Self {
         Self {
             kind,

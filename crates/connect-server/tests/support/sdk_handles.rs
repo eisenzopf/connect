@@ -1,4 +1,6 @@
 //! Actual production listener exercises public owned SDK handles and recovery.
+#[path = "sdk_handles/media.rs"]
+mod media;
 use super::*;
 use connect_client::sdk::{
     self, Client, ConversationPolicy, MutationOptions, NonEmpty, RequestOptions,

@@ -16,7 +16,16 @@ pub(super) struct Shared {
     pub(super) closed: Arc<AtomicBool>,
     slots: Arc<Semaphore>,
     native: Arc<std::sync::Mutex<NativeCache>>,
+    media: Arc<media::Inbox>,
+    media_requests: mpsc::Sender<MediaCommand>,
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
+}
+struct MediaCommand {
+    key: streams::StreamKey,
+    packet: MediaPacket,
+    expires: tokio::time::Instant,
+    signal: CancellationToken,
+    reply: oneshot::Sender<Result<LocalMediaSubmission>>,
 }
 struct InFlight {
     exchange: crate::canonical::exchange::Exchange,
@@ -45,6 +54,10 @@ impl Shared {
     pub(super) fn start(mut peer: CanonicalClient) -> Result<Arc<Self>> {
         peer.start_signaling_reader()
             .map_err(|e| Error::transport(e, None))?;
+        let (media_requests, mut media_receiver) =
+            mpsc::channel::<MediaCommand>(media::SEND_CAPACITY);
+        let media = Arc::new(media::Inbox::default());
+        let owned_media = media.clone();
         let (requests, mut receiver) = mpsc::channel::<Command>(REQUEST_CAPACITY);
         let stop = CancellationToken::new();
         let stopping = stop.clone();
@@ -62,7 +75,14 @@ impl Shared {
                     .map(|pending| pending.exchange.deadline)
                     .min()
                     .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(60));
-                tokio::select! { biased;
+                if stopping.is_cancelled() {
+                    break ErrorKind::Cancelled;
+                }
+                if !active.is_empty() && tokio::time::Instant::now() >= next_deadline {
+                    break ErrorKind::Deadline;
+                }
+                // Fair selection keeps both packet directions and control live.
+                tokio::select! {
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
                     _=tokio::time::sleep_until(next_deadline), if !active.is_empty()=>break ErrorKind::Deadline,
                     frame=peer.receive_owned_frame()=> {
@@ -81,7 +101,9 @@ impl Shared {
                                 let pending=active.swap_remove(index);
                                 let key=pending.key.expect("native key");
                                 let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
-                                cache.insert(key.scope.connection_id.expect("native connection"),(key.scope.session_id.expect("native session"),key.scope.conversation_id.expect("native conversation"),selected));
+                                let cid=key.scope.conversation_id.expect("native conversation");let sid=key.scope.session_id.expect("native session");let conn=key.scope.connection_id.expect("native connection");
+                                if let Err(error)=owned_media.install(&cid,&sid,&conn,&selected){break error.kind;}
+                                cache.insert(conn,(sid,cid,selected));
                                 continue;
                             }
                         }
@@ -109,6 +131,30 @@ impl Shared {
                         } else if let Err(error)=peer.retain_unmatched_frame(frame) {
                             break Error::transport(error,None).kind;
                         }
+                    }
+                    datagram=peer.receive_owned_native_datagram()=> {
+                        match datagram {
+                            Ok(bytes)=>if let Err(error)=owned_media.push(bytes){break error.kind;},
+                            Err(crate::ClientError::Protocol)=>if let Err(error)=owned_media.malformed(){break error.kind;},
+                            Err(error)=>break Error::transport(error,None).kind,
+                        }
+                    }
+                    command=media_receiver.recv()=> {
+                        let Some(command)=command else{break ErrorKind::Cancelled;};
+                        if command.reply.is_closed() || command.signal.is_cancelled() || stopping.is_cancelled() || tokio::time::Instant::now()>=command.expires {
+                            let kind=if tokio::time::Instant::now()>=command.expires{ErrorKind::Deadline}else{ErrorKind::Cancelled};
+                            let _=command.reply.send(Err(Error::media(kind,false)));continue;
+                        }
+                        let result=(|| {
+                            let binding=native_binding(&owned_native,&command.key)?;
+                            let (bytes,datagram_sequence)=media::encode(&binding,&command.packet)?;
+                            peer.send_native_media_datagram(&bytes).map_err(|e| {
+                                let kind=Error::transport(e,None).kind;
+                                Error::media(kind,!matches!(kind,ErrorKind::Protocol|ErrorKind::Validation|ErrorKind::Configuration))
+                            })?;
+                            Ok(LocalMediaSubmission{datagram_sequence})
+                        })();
+                        let _=command.reply.send(result);
                     }
                     command=receiver.recv()=> {
                         let command=match command {Some(command)=>command,None=>break ErrorKind::Cancelled};
@@ -150,6 +196,11 @@ impl Shared {
                 tokio::task::consume_budget().await;
             };
             owned_closed.store(true, Ordering::Release);
+            owned_media.end();
+            media_receiver.close();
+            while let Some(command) = media_receiver.recv().await {
+                let _ = command.reply.send(Err(Error::media(failure, false)));
+            }
             owned_slots.close();
             // Retire the physical peer on an incomplete exchange, preserving all
             // submitted logical IDs. Unwritten queued commands remain unsubmitted.
@@ -174,8 +225,65 @@ impl Shared {
             closed,
             slots,
             native,
+            media,
+            media_requests,
             task: Mutex::new(Some(task)),
         }))
+    }
+    pub(super) fn media_stats(&self) -> Result<MediaStats> {
+        self.media.stats()
+    }
+    pub(super) async fn receive_media(
+        &self,
+        key: &streams::StreamKey,
+        options: RequestOptions,
+    ) -> Result<MediaPacket> {
+        options.validate()?;
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::request(ErrorKind::Cancelled, None, false));
+        }
+        let binding =
+            native_binding(&self.native, key).map_err(|e| Error::request(e.kind, None, false))?;
+        if binding.stream.stream_local_id.is_none()
+            || !matches!(
+                binding.stream.direction,
+                Direction::Recvonly | Direction::Sendrecv
+            )
+        {
+            return Err(Error::request(ErrorKind::Unsupported, None, false));
+        }
+        self.media.receive(key, options).await
+    }
+    pub(super) async fn send_media(
+        &self,
+        key: streams::StreamKey,
+        packet: MediaPacket,
+        options: RequestOptions,
+    ) -> Result<LocalMediaSubmission> {
+        options.validate()?;
+        if self.closed.load(Ordering::Acquire) || options.signal.is_cancelled() {
+            return Err(Error::media(ErrorKind::Cancelled, false));
+        }
+        // Validate all retained packet/report bytes before entering the bounded queue.
+        let binding = native_binding(&self.native, &key)?;
+        media::encode(&binding, &packet)?;
+        let expires = tokio::time::Instant::now() + options.timeout;
+        let permit = tokio::select! {biased;
+            _=options.signal.cancelled()=>return Err(Error::media(ErrorKind::Cancelled,false)),
+            result=tokio::time::timeout_at(expires,self.media_requests.reserve())=>result.map_err(|_|Error::media(ErrorKind::Deadline,false))?.map_err(|_|Error::media(ErrorKind::Cancelled,false))?
+        };
+        let (reply, response) = oneshot::channel();
+        permit.send(MediaCommand {
+            key,
+            packet,
+            expires,
+            signal: options.signal.clone(),
+            reply,
+        });
+        tokio::select! {biased;
+            _=options.signal.cancelled()=>Err(Error::media(ErrorKind::Cancelled,true)),
+            result=tokio::time::timeout_at(expires,response)=>result.map_err(|_|Error::media(ErrorKind::Deadline,true))?.map_err(|_|Error::media(ErrorKind::TransportUncertain,true))?
+        }
     }
     pub(super) fn native_negotiation(
         &self,
@@ -347,4 +455,29 @@ async fn confirm_native(
         .await
         .map_err(|e| Error::transport(e, pending.key.as_ref()))?;
     Ok(selected)
+}
+
+fn native_binding(
+    cache: &std::sync::Mutex<NativeCache>,
+    key: &streams::StreamKey,
+) -> Result<media::Binding> {
+    let cache = cache
+        .lock()
+        .map_err(|_| Error::media(ErrorKind::Protocol, false))?;
+    let (sid, cid, selected) = cache
+        .get(&key.connection_id)
+        .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
+    if sid != &key.session_id || cid != &key.conversation_id {
+        return Err(Error::media(ErrorKind::Validation, false));
+    }
+    let stream = selected
+        .streams
+        .iter()
+        .find(|s| s.id == key.stream_id)
+        .cloned()
+        .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
+    Ok(media::Binding {
+        stream,
+        clock: selected.source_clock,
+    })
 }

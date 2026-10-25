@@ -6,6 +6,7 @@ use crate::sdk::{
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    Media,
     ChangedSetup,
     ForeignScope,
     WrongDirection,
@@ -63,6 +64,7 @@ async fn status(
     write(writer, signer, request, "ack", json!({}), true).await;
 }
 pub(super) async fn emit(
+    connection: &quinn::Connection,
     case: Case,
     first: Envelope,
     writer: &mut quinn::SendStream,
@@ -165,6 +167,9 @@ pub(super) async fn emit(
     let query = read(reader).await;
     assert_eq!(query.kind(), "operation.get");
     status(writer, signer, &query, "completed").await;
+    if matches!(case, Case::Media) {
+        media_wire(connection, writer, reader, signer).await;
+    }
 }
 fn options() -> RequestOptions {
     RequestOptions::new(Duration::from_secs(3)).unwrap()
@@ -295,4 +300,150 @@ async fn native_offer_preserves_explicit_refusal_and_completed_replay_without_bo
     let completed = operation.wait(options()).await.unwrap();
     assert!(completed.value.native_negotiation().unwrap().is_none());
     close(c, host).await;
+}
+
+fn raw_rtp(pt: u8) -> Vec<u8> {
+    let mut raw = vec![0x91, 0x80 | pt, 0x12, 0x34, 1, 2, 3, 4, 0, 0, 0, 9];
+    raw.extend_from_slice(&7u32.to_be_bytes());
+    raw.extend_from_slice(&[0xbe, 0xde, 0, 1, 0x10, 0xab, 0, 0]);
+    raw.extend_from_slice(&[0x10, 0xaa, 0xbb]);
+    raw
+}
+fn datagram(handle: u16, sequence: u32, raw: &[u8]) -> Vec<u8> {
+    let mut wire = vec![1, 0];
+    wire.extend_from_slice(&handle.to_be_bytes());
+    wire.extend_from_slice(&sequence.to_be_bytes());
+    wire.extend_from_slice(raw);
+    wire
+}
+async fn media_wire(
+    connection: &quinn::Connection,
+    writer: &mut quinn::SendStream,
+    reader: &mut quinn::RecvStream,
+    signer: &Sig9421Signer,
+) {
+    let bytes = connection.read_datagram().await.unwrap();
+    assert_eq!(bytes.as_ref(), datagram(7, 40, &raw_rtp(0)));
+    let bytes = connection.read_datagram().await.unwrap();
+    assert!(
+        matches!(observe_native_media_datagram(&bytes).unwrap(),ObservedNativeMediaDatagram::Clock(c) if c.stream_local_id==7 && c.seq==41 && c.report.cname=="sdk-source")
+    );
+    connection
+        .send_datagram(datagram(8, 42, &raw_rtp(96)).into())
+        .unwrap();
+    let report = SenderClockReport {
+        ssrc: 9,
+        ntp: 0x80000000ffffffff,
+        rtp: 0x01020304,
+        packets: 1,
+        octets: 3,
+        cname: "remote-source".into(),
+    };
+    connection
+        .send_datagram(
+            pack_sender_clock_datagram(&SenderClockDatagram {
+                stream_local_id: 8,
+                seq: 43,
+                report,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    connection
+        .send_datagram(datagram(99, 44, &raw_rtp(96)).into())
+        .unwrap();
+    connection
+        .send_datagram(datagram(8, 45, &raw_rtp(0)).into())
+        .unwrap();
+    let query = read(reader).await;
+    assert_eq!(query.kind(), "operation.get");
+    status(writer, signer, &query, "completed").await;
+}
+#[tokio::test]
+async fn owned_sdk_media_preserves_wire_packets_and_clock_identity_with_cancellation_and_live_control(
+) {
+    let (client, session, host) = client(Case::Media).await;
+    let operation = session
+        .offer_connection("connection_one".parse().unwrap(), offered(), mutation())
+        .await
+        .unwrap();
+    assert_eq!(
+        operation.status(options()).await.unwrap().state,
+        sdk::OperationState::Preparing
+    );
+    let connection = operation.wait(options()).await.unwrap().value;
+    let audio = connection.stream_by_id("audio".parse().unwrap());
+    let video = connection.stream_by_id("video".parse().unwrap());
+    let error = video
+        .send_rtp(sdk::RtpPacket::new(39, raw_rtp(96)).unwrap(), options())
+        .await
+        .unwrap_err();
+    assert_eq!(error.certainty, sdk::Certainty::NotSubmitted);
+    assert_eq!(
+        audio
+            .send_rtp(sdk::RtpPacket::new(40, raw_rtp(0)).unwrap(), options())
+            .await
+            .unwrap()
+            .datagram_sequence,
+        40
+    );
+    let report = SenderClockReport {
+        ssrc: 9,
+        ntp: 0x80000000ffffffff,
+        rtp: 0x01020304,
+        packets: 1,
+        octets: 3,
+        cname: "sdk-source".into(),
+    };
+    audio.send_clock(41, report, options()).await.unwrap();
+    let cancelled = options();
+    cancelled.signal.cancel();
+    assert!(
+        matches!(video.receive_packet(cancelled).await,Err(e) if e.kind==sdk::ErrorKind::Cancelled)
+    );
+    let mut got_rtp = false;
+    let mut got_clock = false;
+    for _ in 0..2 {
+        match video.receive_packet(options()).await.unwrap() {
+            sdk::MediaPacket::Rtp(packet) => {
+                assert_eq!(packet.datagram_sequence, 42);
+                assert_eq!(packet.bytes(), raw_rtp(96));
+                assert!(packet.header().marker);
+                assert_eq!(packet.payload(), [0x10, 0xaa, 0xbb]);
+                got_rtp = true;
+            }
+            sdk::MediaPacket::Clock {
+                datagram_sequence,
+                report,
+            } => {
+                assert_eq!(datagram_sequence, 43);
+                assert_eq!(report.cname, "remote-source");
+                assert_eq!(report.ntp, 0x80000000ffffffff);
+                got_clock = true;
+            }
+            _ => panic!("unexpected local gap"),
+        }
+    }
+    assert!(got_rtp && got_clock);
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            let stats = client.media_stats().unwrap();
+            if stats.received_datagrams >= 4 {
+                assert_eq!(stats.unknown_handles, 1);
+                assert_eq!(stats.malformed_datagrams, 1);
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        operation.status(options()).await.unwrap().state,
+        sdk::OperationState::Completed
+    );
+    close(client, host).await;
+    assert!(
+        matches!(audio.send_rtp(sdk::RtpPacket::new(46,raw_rtp(0)).unwrap(),options()).await,Err(e) if e.kind==sdk::ErrorKind::Cancelled && e.certainty==sdk::Certainty::NotSubmitted)
+    );
 }

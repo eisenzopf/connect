@@ -147,6 +147,8 @@ impl Pending {
             return Err(fail());
         }
         self.selected = Some(NativeNegotiation {
+            source_clock: p["capabilities"]["source_clock"] == "rtcp-sr-sdes/1"
+                && self.payload["capabilities"]["source_clock"] == "rtcp-sr-sdes/1",
             stream_revision: StreamRevision::try_from(1)?,
             streams: selected,
         });

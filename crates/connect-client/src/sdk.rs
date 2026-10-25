@@ -30,11 +30,13 @@ mod conversations;
 mod decisions;
 mod error;
 mod ids;
+mod media;
 mod native_negotiation;
 mod operation;
 mod participants;
 mod sessions;
 mod snapshot;
+mod streams;
 mod worker;
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
@@ -48,6 +50,7 @@ pub use conversations::{
 pub use decisions::{DecisionReceipt, ReconcileOutcome};
 pub use error::{CanonicalProblem, Certainty, Error, ErrorKind, Result};
 pub use ids::*;
+pub use media::MediaStats;
 pub use operation::{
     Completion, Operation, OperationKey, OperationKind, OperationKinds, OperationReference,
     OperationScope, OperationSnapshot,
@@ -58,6 +61,10 @@ pub use sessions::{
     Medium, Session, SessionDecision, SessionMedium, SessionSnapshot, SessionUpdate,
 };
 use std::{sync::Arc, time::Duration};
+pub use streams::{
+    LocalMediaSubmission, MediaFormat, MediaOwnership, MediaPacket, RtpHeader, RtpPacket,
+    SenderClockReport, SourceClock, Stream, StreamSnapshot,
+};
 pub use tokio_util::sync::CancellationToken;
 #[derive(Clone)]
 pub struct RequestOptions {
@@ -114,6 +121,9 @@ impl Client {
     }
     pub fn conversation_by_id(&self, id: ConversationId) -> Conversation {
         Conversation::new(self.clone(), id)
+    }
+    pub fn media_stats(&self) -> Result<MediaStats> {
+        self.shared.media_stats()
     }
     pub fn operation_kinds(&self) -> OperationKinds {
         OperationKinds::new()

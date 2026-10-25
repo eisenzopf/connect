@@ -52,6 +52,7 @@ macro_rules! revisions {
     )+};
 }
 revisions!(
+    StreamResourceRevision,
     ConnectionRevision,
     ConversationRevision,
     SessionRevision,

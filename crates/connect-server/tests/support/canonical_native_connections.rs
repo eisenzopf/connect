@@ -1997,7 +1997,7 @@ async fn negotiate_media(
     )
     .await
 }
-async fn negotiate_media_payload(
+pub(super) async fn negotiate_media_payload(
     client: &mut CanonicalClient,
     cid: &str,
     operation: &str,

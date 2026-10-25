@@ -155,6 +155,21 @@ impl CanonicalClient {
             .send_datagram(bytes.to_vec().into())
             .map_err(|_| ClientError::Transport)
     }
+    /// The SDK owns this atomic read alongside its independently owned signed reader.
+    /// Idle media has no frame deadline; current peer authority still gates both ends.
+    pub(crate) async fn receive_owned_native_datagram(&self) -> Result<Vec<u8>> {
+        self.check_current()?;
+        let bytes = self
+            .connection
+            .read_datagram()
+            .await
+            .map_err(|_| ClientError::Transport)?;
+        self.check_current()?;
+        if bytes.len() > MAX_NATIVE_MEDIA_DATAGRAM {
+            return Err(ClientError::Protocol);
+        }
+        Ok(bytes.to_vec())
+    }
     /// Own the client's single RTP/clock datagram read while borrowed. Inspect
     /// the returned original bytes with observe_native_media_datagram; clock-only
     /// reports never count as decoded media or readiness. Atomic timeout or

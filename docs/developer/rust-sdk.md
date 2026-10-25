@@ -114,3 +114,34 @@ Connection receipt without gaining another physical peer's hop-local handles.
 pending status, parameter refusal, replay, shared-peer and fresh-client checks.
 This adds the fourteenth mapped mutation kind. Media I/O, Stream controls,
 Connection update/end/device move and consultation/handoff remain in progress.
+
+`Connection::stream_by_id` returns a scoped Stream handle. For a native RTP
+binding owned by this exact client, `Stream::send_rtp` accepts a validated complete
+`RtpPacket`. Marker, CSRC, extension, padding, sequence, timestamp and payload
+bytes stay intact; the driver supplies the peer-local stream handle. The local
+direction and negotiated payload type are checked before submission. Success
+means admission to the local transport queue, without delivery or consumption
+confirmation. A cancelled or expired queued send may remain uncertain, and the
+SDK does not resend it.
+
+`send_clock` and `receive_packet` keep sender clock reports separate from RTP.
+Clock I/O requires negotiated clock support. Callers supply their actual source
+counters and timestamps; these reports do not establish synchronized playback
+or media readiness. Packet read cancellation leaves queued packets available.
+Cloned Stream handles consume one shared queue for that stream.
+
+One peer owns a 64-packet outgoing queue and receive ceilings of 32 packets per
+stream, 256 packets and 4 MiB overall. A slow stream drains its older packets,
+then receives `MediaPacket::Gap` with the local drop count before new packets
+resume. Other streams and signed control requests continue. Network sequence
+gaps remain distinct from local queue loss. `Client::media_stats` reports queue,
+overflow, malformed packet and unknown-handle counters. Closing the client
+clears queued media and wakes packet readers.
+
+The current server topology snapshot still omits Stream rows. `Stream::refresh`
+therefore returns `ReceiptUnavailable` until its authoritative server projection
+is implemented. The SDK does not substitute its local negotiation cache for
+current stream state. This remains a required G6-060 gap, alongside reliable
+data I/O and the remaining typed controls. Packet-flow evidence and the exact
+producer/receiver qualification scope are recorded in
+`docs/evidence/gate-6/rust-sdk-media.json`.

@@ -3,6 +3,7 @@ use super::*;
 use crate::canonical::{CommandScope, Payload};
 use connect_protocol::events::SnapshotItem;
 pub(super) struct Snapshot {
+    pub streams: std::collections::BTreeMap<StreamId, StreamSnapshot>,
     pub connections: std::collections::BTreeMap<ConnectionId, ConnectionSnapshot>,
     pub conversation: ConversationSnapshot,
     pub sessions: std::collections::BTreeMap<SessionId, SessionSnapshot>,
@@ -20,6 +21,7 @@ pub(super) async fn read(
     let mut state = None;
     let mut participants = std::collections::BTreeMap::new();
     let mut bytes = 0usize;
+    let mut streams = std::collections::BTreeMap::new();
     let mut connections = std::collections::BTreeMap::new();
     let mut sessions = std::collections::BTreeMap::new();
     for _ in 0..256 {
@@ -107,6 +109,13 @@ pub(super) async fn read(
                         return Err(Error::request(ErrorKind::Protocol, None, false));
                     }
                 }
+                SnapshotItem::Stream(v) => {
+                    if let Some(current) = StreamSnapshot::from_wire(v, conversation_id)? {
+                        if streams.insert(current.id.clone(), current).is_some() {
+                            return Err(Error::request(ErrorKind::Protocol, None, false));
+                        }
+                    }
+                }
                 _ => {}
             }
         }
@@ -131,6 +140,7 @@ pub(super) async fn read(
                 },
                 sessions,
                 connections,
+                streams,
             });
         }
         let next = current

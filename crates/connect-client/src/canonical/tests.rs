@@ -134,7 +134,15 @@ pub(super) async fn controlled(
             return;
         }
         if let Fault::SdkNative(case) = fault {
-            sdk_native::emit(case, request, &mut writer, &mut reader, &signer).await;
+            sdk_native::emit(
+                &connection,
+                case,
+                request,
+                &mut writer,
+                &mut reader,
+                &signer,
+            )
+            .await;
             connection.closed().await;
             server.close(0u32.into(), b"SDK native fixture complete");
             return;
