@@ -155,6 +155,52 @@ fn proof(a: &AuthorizedEnvelope) -> Result<&connect_store::PeerAuthorityGuard> {
         .ok_or_else(Error::forbidden)
 }
 impl Runtime {
+    async fn accept_terminal_stream(
+        &self,
+        a: &AuthorizedEnvelope,
+        physical: &Physical,
+        credential: &str,
+    ) -> Result<connect_protocol::transitions::OperationRecord> {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let cancelled = a.invocation_cancellation();
+        loop {
+            if self.stop.is_cancelled()
+                || cancelled.is_cancelled()
+                || physical.lifetime.is_cancelled()
+            {
+                return Err(Error::forbidden());
+            }
+            if Instant::now() >= deadline {
+                return Err(Error::new(
+                    "busy",
+                    "Managed reconciliation has not settled before terminal admission",
+                ));
+            }
+            physical.validate(
+                a,
+                a.authority::<StoreInvocationAuthority>()
+                    .ok_or_else(Error::forbidden)?,
+            )?;
+            // None alone proves that this exact intent has made no ledger or
+            // engine effect. Accepted records and all errors leave the loop;
+            // an uncertain effect is never submitted again here.
+            if let Some(record) = self
+                .media
+                .store
+                .try_accept_native_end_with_peer(credential, proof(a)?)?
+            {
+                return Ok(record);
+            }
+            tokio::select! {
+                biased;
+                _ = self.stop.cancelled() => return Err(Error::forbidden()),
+                _ = cancelled.cancelled() => return Err(Error::forbidden()),
+                _ = physical.lifetime.cancelled() => return Err(Error::forbidden()),
+                _ = tokio::time::sleep_until(deadline) => return Err(Error::new("busy", "Managed reconciliation has not settled before terminal admission")),
+                _ = tokio::time::sleep(Duration::from_millis(5)) => {},
+            }
+        }
+    }
     pub(crate) async fn native_stream(
         self: &Arc<Self>,
         a: Arc<AuthorizedEnvelope>,
@@ -231,14 +277,20 @@ impl Runtime {
             let _ = tx.send(Err(error));
             return;
         }
-        let accepted =
-            match proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p)) {
-                Ok(record) => record,
-                Err(e) => {
-                    let _ = tx.send(Err(e));
-                    return;
-                }
-            };
+        let ending = a.envelope().kind() == "connection.end";
+        let admission = if ending {
+            self.accept_terminal_stream(&a, &physical, &credential)
+                .await
+        } else {
+            proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p))
+        };
+        let accepted = match admission {
+            Ok(record) => record,
+            Err(e) => {
+                let _ = tx.send(Err(e));
+                return;
+            }
+        };
         if accepted.state != OperationState::Accepted {
             let _ = tx.send(Ok(crate::canonical_native::Reply {
                 record: accepted,
@@ -246,7 +298,6 @@ impl Runtime {
             }));
             return;
         }
-        let ending = a.envelope().kind() == "connection.end";
         let quality = intent(a.envelope())
             .ok()
             .and_then(|wire| wire.quality_interval_ms())

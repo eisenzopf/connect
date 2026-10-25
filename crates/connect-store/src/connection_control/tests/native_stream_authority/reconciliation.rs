@@ -42,7 +42,16 @@ fn selected() -> (
     PeerAuthorityRequest,
     std::sync::Arc<crate::NativeMediaOrigin>,
 ) {
-    let (f, request, _, origin) = parent_permissions_origin(true, true, false, false, true);
+    selected_with_end(false)
+}
+fn selected_with_end(
+    end: bool,
+) -> (
+    Fixture,
+    PeerAuthorityRequest,
+    std::sync::Arc<crate::NativeMediaOrigin>,
+) {
+    let (f, request, _, origin) = parent_permissions_origin(true, true, end, false, true);
     assert!(f.store.try_native_reconciliation_read(&origin).is_err());
     let proof = admit(&f, &request).unwrap();
     f.store
@@ -59,6 +68,114 @@ fn selected() -> (
     f.store.complete_native_stream(&receipt).unwrap();
     drop(proof);
     (f, request, origin)
+}
+
+#[test]
+fn terminal_admission_waits_only_for_managed_reconciliation_without_creating_an_effect() {
+    let (f, mut end, origin) = selected_with_end(true);
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let managed = f
+        .store
+        .begin_native_reconciliation(&source, "managed-before-end", json!({"streams":[]}))
+        .unwrap();
+    let PeerCommand::NativeStream(wire) = &mut end.command else {
+        panic!()
+    };
+    wire.operation_id = "same-terminal-intent".into();
+    wire.command = Command::End;
+    wire.expected_revision = None;
+    wire.payload = json!({"reason_code":200,"reason":"normal-clearing"});
+    let proof = admit(&f, &end).unwrap();
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    // The old immediate API reports a conflict for this legitimate race.
+    assert_eq!(
+        f.store
+            .accept_native_stream_with_peer(&f.keys[0], &proof)
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    for _ in 0..3 {
+        assert!(f
+            .store
+            .try_accept_native_end_with_peer(&f.keys[0], &proof)
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            (
+                f.count("operations"),
+                f.count("operation_effects"),
+                f.count("journal")
+            ),
+            before
+        );
+        assert!(
+            f.store.try_connection().is_ok(),
+            "No SQL custody across a wait"
+        );
+    }
+    f.store
+        .complete_native_stream(&managed.committed(3, true).unwrap())
+        .unwrap();
+    let accepted = f
+        .store
+        .try_accept_native_end_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    assert_eq!(accepted.state, OperationState::Accepted);
+    assert_eq!(accepted.operation_id, "same-terminal-intent");
+    assert_eq!(f.count("operations"), before.0 + 1);
+    let replay = f
+        .store
+        .try_accept_native_end_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    assert_eq!(replay.record_id, accepted.record_id);
+    assert_eq!(f.count("operations"), before.0 + 1);
+    assert_eq!(
+        f.count("operation_effects"),
+        before.1,
+        "Admission has no engine attempt"
+    );
+}
+
+#[test]
+fn terminal_admission_keeps_competing_peer_controls_and_changed_intents_as_conflicts() {
+    let (f, mut request, _) = selected_with_end(true);
+    let PeerCommand::NativeStream(wire) = &mut request.command else {
+        panic!()
+    };
+    wire.operation_id = "competing-selector".into();
+    wire.expected_revision = Some(2);
+    let competitor = admit(&f, &request).unwrap();
+    f.store
+        .accept_native_stream_with_peer(&f.keys[0], &competitor)
+        .unwrap();
+    let PeerCommand::NativeStream(wire) = &mut request.command else {
+        panic!()
+    };
+    wire.command = Command::End;
+    wire.expected_revision = None;
+    wire.payload = json!({"reason_code":200,"reason":"normal-clearing"});
+    // Reusing the competitor ID with a different exact intent must be a
+    // conflict even while a managed-wait capable terminal caller uses it.
+    assert_eq!(admit(&f, &request).err().unwrap().code, "conflict");
+    let PeerCommand::NativeStream(wire) = &mut request.command else {
+        panic!()
+    };
+    wire.operation_id = "terminal-behind-peer".into();
+    let end = admit(&f, &request).unwrap();
+    assert_eq!(
+        f.store
+            .try_accept_native_end_with_peer(&f.keys[0], &end)
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
 }
 fn status(f: &Fixture, id: &str) -> connect_protocol::transitions::OperationRecord {
     f.store

@@ -5,6 +5,39 @@ mod hints;
 mod owned;
 
 #[test]
+fn fresh_projection_resolves_once_when_sql_and_clock_are_unchanged() {
+    let f = Fixture::new();
+    for _ in 0..8 {
+        let second = crate::now();
+        let mut resolutions = 0;
+        let (value, held) = acquire(&f.store, |c| {
+            resolutions += 1;
+            f.derive(c)
+        })
+        .unwrap();
+        assert_eq!(value, 1);
+        assert!(f.store.try_connection().is_ok(), "SQL ends before delivery");
+        assert_eq!(
+            f.store
+                .try_acquire_authority(&[f.write.clone()])
+                .unwrap_err()
+                .code,
+            "authority-busy",
+            "fresh current file custody survives SQL release"
+        );
+        drop(held);
+        if crate::now() == second {
+            assert_eq!(
+                resolutions, 1,
+                "unchanged complete projection is not repeated"
+            );
+            return;
+        }
+    }
+    panic!("No unchanged policy-clock interval available for the controlled read test");
+}
+
+#[test]
 fn unchanged_packet_projection_copy_does_not_hold_sql_against_other_current_reads() {
     struct Projection {
         store: Arc<Store>,

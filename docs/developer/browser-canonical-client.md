@@ -141,7 +141,13 @@ sender/message/operation attribution. `connection.end` reconciles terminal
 operation status and retires local routes. Normal clearing names the exact
 Connection and original operation ID without conditioning terminal intent on a
 stream revision that server reconciliation may advance. Current credential,
-Connection generation and physical ownership checks still apply.
+Connection generation and physical ownership checks still apply. Before admitting
+a new terminal operation, the service may wait up to one second for an
+internal managed reconciliation to settle. Each wait releases SQL custody and
+rechecks the original authority and physical lifetime. No terminal ledger or
+engine effect exists during that wait. Competing client controls remain
+conflicts; a bounded wait that does not settle returns `busy`. Accepted or
+uncertain terminal effects are never resubmitted by this wait.
 Physical client closure retires all
 owned media codecs, readers, writers, timers and queued datagrams.
 

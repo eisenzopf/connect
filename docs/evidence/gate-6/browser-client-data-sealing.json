@@ -1,0 +1,71 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; controlled Store proofs pass, connected runtime building",
+  "scope": "Fresh queued-data version sealing and bounded terminal admission during internal managed reconciliation. This is not media/performance or full task qualification.",
+  "changes": [
+    "Queued-data message/audience facts derive once under SQL, then SQL is released for a fresh complete file interval. Exact current SQL/schema/connection/clock version sealing is required. Clock edges rederive under owned current coverage; a changed SQL version refuses stale delivery. No facts or grant are cached between data messages.",
+    "Terminal admission may return no record only while internal stream.reconcile occupies the exact original connection, before any ledger/effect/event write. The service waits at most one second, releases SQL between attempts, retains the original signed logical intent and rechecks physical/current authority. Cancellation, stop and physical closure terminate the wait. Accepted records and every error leave this mechanism without resubmission.",
+    "Competing client controls and changed original mutation intents remain conflicts; reconciliation results retain their original journal identity."
+  ],
+  "controlled_store": {
+    "report": ".local/gate-6/browser-sdk-data-seal-store/summary.json",
+    "sha256": "912fcdd1cdfb410839065b0b2f1e69dad11d4d96656e5292885376ce2f68c294",
+    "passed_default_methods": 73,
+    "ignored_process_helpers": 1,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "groups": [
+      {
+        "name": "message-authority",
+        "selection": "native_data_read",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-sdk-data-seal-store/message-authority.log",
+        "sha256": "7caf24f3ec5869c2fd9286fa7da6dea5666fe792b0cdeb59de253544629c213d",
+        "passed_methods": 6,
+        "ignored_helpers": 0
+      },
+      {
+        "name": "snapshot",
+        "selection": "peer_authority::connection_media::snapshot::tests::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-sdk-data-seal-store/snapshot.log",
+        "sha256": "acf7ea0fbff8c4836b26c8b78371dbd8b9aa7a2347557e82eac462f7a3789f2e",
+        "passed_methods": 17,
+        "ignored_helpers": 0
+      },
+      {
+        "name": "reconciliation",
+        "selection": "native_stream_authority::reconciliation::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-sdk-data-seal-store/reconciliation.log",
+        "sha256": "7ac976077521c12b95288e983db56270535826e141455431a47f71172382b4bf",
+        "passed_methods": 8,
+        "ignored_helpers": 0
+      },
+      {
+        "name": "file-fences",
+        "selection": "authority_fences::tests::",
+        "exit_code": 0,
+        "log": ".local/gate-6/browser-sdk-data-seal-store/file-fences.log",
+        "sha256": "21c96fd2896e59117e3b24729c7e87f2701196ccf68ef0853bb7b1b4f327cf3a",
+        "passed_methods": 42,
+        "ignored_helpers": 1
+      }
+    ],
+    "note": "The ignored process_worker helper is invoked by selected cross-process parent cases; it is not an independent passing method."
+  },
+  "source_sha256": {
+    "crates/connect-store/src/peer_authority/connection_media/data_reads.rs": "2da5158849b551bccabf6fa87690af3d6eeefbe165e08b5e4295c66c839f8599",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "e1662e77a32c0f86ce54e775ad8dfbc33f0e9f0fb899fa9733d95eed39a257f9",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "9c8ec8b390f9433b2c7dd10639d60ccec364a6011886e62301de4feda6742144",
+    "crates/connect-store/src/transitions/native_streams.rs": "6a021f9e4665603ac3bea7a4df98927fff720e004b2da053fee98dcb3860d681",
+    "crates/connect-store/src/connection_control/tests/native_stream_authority/reconciliation.rs": "5a1d795dfcd8675323419738561a7a9d9050ea9ce58bc511ab66ee32bcd247de",
+    "crates/connect-service/src/canonical_native_streams.rs": "7e7d238e87303b6a29281329ddd27cb3164a4531963073611b6ec76f122024ef"
+  },
+  "runtime": {
+    "report": ".local/gate-6/browser-sdk/data-seal036/summary.json",
+    "status": "optimized build active; no pass claimed"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Complete connected8-case matrix and28 transport regressions; frozen60second, browser/native, failure/impairment and wider operating profiles remain unqualified."
+}

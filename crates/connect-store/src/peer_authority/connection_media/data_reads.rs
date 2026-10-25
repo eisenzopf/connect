@@ -196,15 +196,16 @@ impl Store {
         source: Option<&NativeMediaOrigin>,
         wire: &Intent,
     ) -> Result<NativeDataRead> {
-        let scopes = {
-            let c = self.try_connection()?;
-            prepared(self, &c, target, source, wire)?.2
-        };
-        let held = self.try_acquire_authority(&scopes)?;
-        let c = self.try_connection()?;
-        let (target_view, source_view, current_scopes, expires_at) =
-            prepared(self, &c, target, source, wire)?;
-        if !self.authority_covers(&held, &current_scopes) || crate::now() >= expires_at {
+        // Complete message/audience projections are expensive. Capture once,
+        // release SQL for fresh file admission, then seal the exact SQL/clock
+        // version under that interval. A changed version refuses rather than
+        // lending historical message facts to a queued delivery. Clock edges
+        // rederive with the already-owned complete interval.
+        let ((target_view, source_view, expires_at), held) = snapshot::acquire(self, |c| {
+            let (target, source, scopes, expires) = prepared(self, c, target, source, wire)?;
+            Ok(((target, source, expires), scopes))
+        })?;
+        if crate::now() >= expires_at {
             return Err(Error::forbidden());
         }
         let owner = current_owner(self, target)?;

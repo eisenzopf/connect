@@ -207,7 +207,6 @@ fn cached_with<T: Clone>(
 /// Capture under short immediate SQL custody, release SQL for all file admission,
 /// then reacquire SQL and seal the exact unchanged version under the new reader.
 /// No caller waits with SQL or retains a partial reader while retrying.
-#[cfg(test)]
 pub(super) fn acquire<T>(
     store: &Store,
     mut derive: impl FnMut(&Connection) -> Result<(T, Vec<AuthorityScope>)>,
@@ -215,7 +214,6 @@ pub(super) fn acquire<T>(
     acquire_at(store, |c, _| derive(c), |_| Ok(()))
 }
 
-#[cfg(test)]
 fn acquire_at<T>(
     store: &Store,
     derive: impl FnMut(&Connection, Version) -> Result<(T, Vec<AuthorityScope>)>,

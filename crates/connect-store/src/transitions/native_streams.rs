@@ -324,6 +324,29 @@ impl Store {
         credential: &str,
         proof: &PeerAuthorityGuard,
     ) -> Result<OperationRecord> {
+        self.accept_native_stream_at(credential, proof, false)?
+            .ok_or_else(conflict)
+    }
+    /// None is a read-only refusal before admission: only an internal managed
+    /// reconciliation occupies the original connection. The caller may wait
+    /// within its original deadline, retaining this exact terminal intent.
+    /// Errors and accepted operations must never be retried by this mechanism.
+    pub fn try_accept_native_end_with_peer(
+        &self,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+    ) -> Result<Option<OperationRecord>> {
+        if intent(proof)?.command != Command::End {
+            return Err(Error::forbidden());
+        }
+        self.accept_native_stream_at(credential, proof, true)
+    }
+    fn accept_native_stream_at(
+        &self,
+        credential: &str,
+        proof: &PeerAuthorityGuard,
+        wait_managed: bool,
+    ) -> Result<Option<OperationRecord>> {
         let wire = intent(proof)?;
         let (hash, json) = digest(&serde_json::to_value(wire).map_err(|_| Error::storage())?)?;
         let mut c = self.connection()?;
@@ -339,12 +362,20 @@ impl Store {
             let result = rows::view(&tx, &actor, rows::by_record(&tx, &row.record.record_id)?)?;
             self.require_peer_source(&tx, proof, credential)?;
             tx.commit().map_err(|_| Error::storage())?;
-            return Ok(result);
+            return Ok(Some(result));
         }
         crate::operations::reject_control_id(&tx, &actor, &wire.operation_id)?;
         let source = self.native_stream_projection_at(&tx, &actor, proof)?;
         let occupied:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM native_stream_operations WHERE parent_record_id=?1 AND closed=0)",[&source.parent_record_id],|r|r.get(0)).map_err(|_|Error::storage())?;
         if occupied {
+            if wait_managed {
+                let competing: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.parent_record_id=?1 AND n.closed=0 AND o.command_type!='stream.reconcile')", [&source.parent_record_id], |r|r.get(0)).map_err(|_|Error::storage())?;
+                if !competing {
+                    // No ledger/effect/event has been written. Drop this SQL
+                    // transaction before the caller waits for reconciliation.
+                    return Ok(None);
+                }
+            }
             return Err(conflict());
         }
         let (resources,parent_expiry):(String,i64)=tx.query_row("SELECT resources_json,source_expires_at FROM native_admission_sources WHERE operation_record_id=?1",[&source.parent_record_id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|Error::storage())?;
@@ -386,7 +417,7 @@ impl Store {
         self.require_peer_source(&tx, proof, credential)?;
         let result = rows::view(&tx, &actor, rows::by_record(&tx, &record)?)?;
         tx.commit().map_err(|_| Error::storage())?;
-        Ok(result)
+        Ok(Some(result))
     }
     /// Mark the one local attempt before calling Core. Only the same current
     /// native owner can execute; a metadata retry under another key cannot.
