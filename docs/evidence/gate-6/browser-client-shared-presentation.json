@@ -1,0 +1,49 @@
+{
+  "schema": "connect-gate6-shared-presentation/1",
+  "task": "G6-050",
+  "status": "Shared renderer clock implemented; installed-browser operating qualification pending",
+  "source": {
+    "sdk/typescript/src/browser_media_renderer.ts": "6637d7d8a22b30a62e195a38bdf9f5444224acb47dc3133d7c2505cb7edf5da2",
+    "sdk/typescript/dist/browser_media_renderer.js": "1d620d3033c8e611f3815a3d2c594ee87c748c4650b72eb1f13b02b1ae834583",
+    "sdk/typescript/dist/browser_media_renderer.d.ts": "df3c0a2be7f6ee9f89a4fba1bca406f8061266e3b72276029b25f9b7ddbb96ed",
+    "sdk/tests/browser_presentation_clock.test.mjs": "927003a27fcf59a56eed84c3637b76c490073c63a010b9e797d9d198b48fc11c",
+    "sdk/tests/browser_renderer.test.mjs": "94f0969fea05907907be83da935d8bb278621e1355cf82d697a9679e3a7805ec"
+  },
+  "sdk": {
+    "report": ".local/gate-6/presentation-clock/sdk-guard001/summary.json",
+    "sha256": "c14e4e662ab3acef68d7e965dd3d6412a1b2ab8a7db13eaf937289305148b65a",
+    "passed": true,
+    "methods": 236,
+    "new_methods": 8,
+    "inputs_unchanged": true,
+    "modules_unchanged": true,
+    "scope": "236 actual production SDK methods with source and generated JS/declaration guards. Eight new controlled presentation/ownership/recovery methods; mock audio/canvas/clock behavior only. Actual installed browser/Connect host/full operating profile remains separate."
+  },
+  "controlled_negative": {
+    "report": ".local/gate-6/presentation-clock/negative001/summary.json",
+    "sha256": "0ad3fcb8dd6763a4980c58ca2cc1fc4163f4c35e9ebd914f61857db17e85ce38",
+    "verified_expected_failure": true,
+    "methods": 8,
+    "failures": 8,
+    "inputs_unchanged": true,
+    "module_sha256": "9899e1e7ecb86801b3022c475575fb938a55855582932a929b22b608fd080f3d",
+    "scope": "Eight same presentation/ownership/recovery methods against byte-exact previously committed renderer JS. Only the test import path changes. No production module mutation, actual browser or AV operating qualification."
+  },
+  "behavior": [
+    "Preserve original capture gaps when audio arrives in one tick. Audio and video use one timestamp-to-presentation origin; late audio moves that common origin so already queued video follows the actual audio schedule. No stream-specific AV offset.",
+    "Own copied audio PCM and at most10scheduled20ms sources/200ms. Retain only VideoFrame clones, at most8per negotiated canvas and8canvases, each for at most200ms; never retain or close a decoder original.",
+    "One owned timer exists only while output is queued. Recheck current binding and original queued age; stop/close stale sources, pause/close/expiry work, and preserve fresh recovery. A delayed pump draws only the newest due frame per stream.",
+    "Close owned clones on successful draw, drop and failure. Asynchronous canvas errors retire the graph and reject finished after owned graph closure. No idle permission or media grant is introduced."
+  ],
+  "attempts": [
+    {
+      "report": ".local/gate-6/presentation-clock/sdk001.log",
+      "scope": "227/228 before updating the old mock to supply real video timestamps/cloning; no complete pass."
+    },
+    {
+      "report": ".local/gate-6/presentation-clock/sdk002.log",
+      "scope": "234/235; delayed canvas failure closed the graph but finished incorrectly resolved. Corrected failure propagation and added burst catch-up regression."
+    }
+  ],
+  "remaining": "Rebuild the actual Connect host and rerun the unchanged installed-Chrome capture profile, including actual rendered frame rates and all retained paired markers. Native clock consumers, impairment, permissions/background/owned teardown and other operating profiles remain required. No whole task or acceptance qualification."
+}

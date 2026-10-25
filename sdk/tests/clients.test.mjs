@@ -137,3 +137,5 @@ import "./browser_opus_clock.test.mjs";
 import "./browser_rtcp.test.mjs";
 
 import "./browser_source_clock.test.mjs";
+
+import "./browser_presentation_clock.test.mjs";

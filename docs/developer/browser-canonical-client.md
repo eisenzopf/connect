@@ -148,15 +148,26 @@ interoperation still require their own evidence.
 
 `BrowserMediaRenderer.open(connection, { video: { [streamId]: canvas } })`
 creates a Connection-owned Web Audio graph and uses application canvases for
-named receive Streams. Forward decoded callbacks to `renderer.audio(binding,
-frame)` and `renderer.video(binding, frame)`. Both borrow synchronously; the
-renderer copies PCM and never retains decoded frames. Playback holds at most
-ten 20 ms sources and 200 ms of scheduled audio. Hidden pages pause and discard
-pending output; call `resume()` from a visible page. `close()` stops buffers and
-closes the graph; await `finished` to observe completion or graph-close failure.
-Diagnostics expose bounded counts, audio graph state and aggregate RMS, without
-raw samples. This checkpoint verifies actual canvas/audio-graph rendering;
-full cross-stream synchronization remains unqualified.
+named receive Streams. Forward borrowed decoded callbacks to
+`renderer.audio(binding, frame)` and `renderer.video(binding, frame)`. A true
+return value means accepted for presentation. Audio copies PCM; video retains
+only owned `VideoFrame` clones. The decoder keeps ownership of its originals.
+
+One presentation origin maps shared decoded timestamps to the playback clock.
+Capture gaps remain gaps. If late audio changes its actual scheduling time,
+queued video follows that same origin. Audio holds at most ten20ms sources and
+200ms of work. Each of at most eight canvases holds at most eight owned frames,
+also bounded to200ms. A late pump displays only the newest due frame per stream.
+Current bindings and original queued age are rechecked before output. No idle
+timer or permission is retained when the queues empty.
+
+Hidden pages pause and discard pending output; call `resume()` from a visible
+page. `close()` stops buffers, closes clones and retires the graph; await
+`finished` to observe completion, presentation errors or graph-close failure.
+Diagnostics expose bounded counts, audio graph state and aggregate RMS without
+raw samples. The236-method SDK proof is scoped in
+`docs/evidence/gate-6/browser-client-shared-presentation.json`. Actual installed
+browser synchronization and the full operating profile still require measurement.
 
 `connection.sendData(operationId, messageId, streamId, body)` uses signed,
 reliable ordered canonical publication with original logical IDs and at most

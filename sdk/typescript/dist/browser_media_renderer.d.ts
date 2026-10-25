@@ -8,7 +8,7 @@ export interface BrowserMediaRendererOptions {
     timeoutMs?: number;
     signal?: AbortSignal;
 }
-/** Synchronous borrowed-frame sinks; protocol and capture ownership remain separate. */
+/** Borrowed-frame entry points with bounded owned presentation queues. */
 export declare class BrowserMediaRenderer {
     private readonly connection;
     private readonly options;
@@ -16,6 +16,10 @@ export declare class BrowserMediaRenderer {
     private gain?;
     private analyser?;
     private readonly sources;
+    private readonly videos;
+    private readonly lastVideo;
+    private clock?;
+    private presentationTimer?;
     private readonly canvases;
     private readonly abort;
     private stopOwner?;
@@ -38,8 +42,14 @@ export declare class BrowserMediaRenderer {
     private current;
     /** Copy synchronously; the decoder retains ownership of this AudioData. */
     audio(binding: Readonly<MediaBinding>, frame: AudioData): boolean;
-    /** Draw synchronously without retaining or closing the decoder's borrowed frame. */
+    private now;
+    private presentationTime;
+    /** Copy borrowed frames into a bounded owned presentation queue. */
     video(binding: Readonly<MediaBinding>, frame: VideoFrame): boolean;
+    private discardVideo;
+    private pumpPresentation;
+    private schedulePresentation;
+    private clearPresentation;
     private clearAudio;
     pause(): void;
     resume(): Promise<void>;
@@ -47,6 +57,7 @@ export declare class BrowserMediaRenderer {
         closed: boolean;
         paused: boolean;
         pendingAudio: number;
+        pendingVideo: number;
         queuedAudioSeconds: number;
         audioState?: AudioContextState;
         audioRms: number;
