@@ -25,6 +25,10 @@ async fn page(sdk: bool, media: bool) -> Page {
         [
             "browser_client.js",
             "browser_media.js",
+            "browser_media_capture.js",
+            "browser_capture.js",
+            "browser_audio_worklet.js",
+            "browser_media_renderer.js",
             "browser_codecs.js",
             "browser_rtp.js",
             "uctp_json.js",
@@ -187,6 +191,9 @@ fn capture(f: &Fixture, algorithm: &str) {
     }
 }
 async fn browser(algorithm: &str, sdk: bool, media: bool) {
+    browser_profile(algorithm, sdk, media, false).await;
+}
+async fn browser_profile(algorithm: &str, sdk: bool, media: bool, capture_media: bool) {
     if media && std::env::var_os("CONNECT_GATE6_PACKET_TRACE").is_some() {
         let _ = tracing_subscriber::fmt()
             .with_env_filter("connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug")
@@ -280,7 +287,7 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
     std::fs::create_dir(&profile).unwrap();
     let mut chrome = launch(&profile, &f.temp.path().join("chrome-stderr.log"));
     let port = debug_port(&mut chrome, &profile).await;
-    let config = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"run":{"media_cid":cid,"participants":[initiator,recipient],"actors":[actor(&f,&f.client,&hash),actor(&f,&other,&hash)]}});
+    let config = json!({"debug_port":port,"page_url":format!("http://{}/",page.address),"user_gesture":capture_media,"run":{"capture":capture_media,"media_cid":cid,"participants":[initiator,recipient],"actors":[actor(&f,&f.client,&hash),actor(&f,&other,&hash)]}});
     let path = f.temp.path().join("browser-private-config.json");
     std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -316,6 +323,9 @@ async fn browser(algorithm: &str, sdk: bool, media: bool) {
     assert_eq!(result["result"]["passed"], true);
     if media {
         assert_eq!(result["result"]["production_sdk_media"], true);
+        if capture_media {
+            assert_eq!(result["result"]["actual_capture_render"], true);
+        }
         for field in [
             "decoded_forward",
             "decoded_reverse",
@@ -445,4 +455,15 @@ async fn installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable
 #[ignore = "Explicit production SDK Opus/VP8/data on actual WebTransport in owned Chrome"]
 async fn installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256() {
     browser("ES256", true, true).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit production SDK captured Opus/VP8/data and playback on actual WebTransport"]
+async fn installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa() {
+    browser_profile("EdDSA", true, true, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit production SDK captured Opus/VP8/data and playback on actual WebTransport"]
+async fn installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256() {
+    browser_profile("ES256", true, true, true).await;
 }

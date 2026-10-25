@@ -182,6 +182,14 @@ offer or subscription ACK cannot begin a media-ready measurement. Raw results
 retain failed and unresolved checks explicitly. This lane does not substitute
 for capture/playback, browser/native or the full frozen operating measurements.
 
+Add `--capture` to also exercise supplied MediaStream capture, AudioWorklet,
+production codecs, real WT routing and the production renderer together.
+Independent decoded PCM and rendered pixels identify both directions; measured
+playback counts, signal power and bounded audio queues are checked. No personal
+devices are opened. Current full connected capture results remain intermittent
+on the unchanged audio threshold; separate individually successful methods
+do not qualify the whole matrix. See the linked Gate 6 evidence.
+
 The full G6-050 completion still requires identified duplex Opus/VP8/data
 between browser/browser and browser/native, capture/permission and unsupported
 API/codec refusals, background/resume, impairment recovery, and owned teardown.

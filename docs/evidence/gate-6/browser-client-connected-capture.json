@@ -1,0 +1,363 @@
+{
+  "task": "G6-050",
+  "status": "in-progress; connected audio qualification intermittent",
+  "scope": "Actual supplied-stream capture/worklet/production browser SDK/WT/Store/Core/decoded canvas and Web Audio duplex plus original reliable data and teardown. Each algorithm has an individually successful method; complete current8-method matrix is7/8 and is NOT qualified.",
+  "sdk_tests": 189,
+  "matrix": {
+    "summary": ".local/gate-6/browser-sdk/connected-capture028/summary.json",
+    "sha256": "d5ff492ea4e120a5a3dfd1ab08e8e2b2cfd2cfd126e9f65d9c2274ff1ec3cabe",
+    "passed": false,
+    "case_count": 8,
+    "passed_count": 7,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 1.0445236251689494,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-0.log",
+        "log_sha256": "528844e7124effa212a047142063badc4eee70207c0ad44872b5ea4223d1821c"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 0.852434332948178,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-1.log",
+        "log_sha256": "fce07d6002e25537b962ce6925ebc3d3ecacf0fef671421b68f4cf41e39438c3"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.406288750004023,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-2.log",
+        "log_sha256": "ca6af6e5864d176486767f09e222d5e50bb035a845270d0d0289c7569c493719"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 4.439456624910235,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-3.log",
+        "log_sha256": "163033e429d6cde2fc2e95ae6305768584fe20ee84f376943918ba80240ccf49"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.5948620000854135,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-4.log",
+        "log_sha256": "230063b7695163a4e159e706ad3a22c7d1bbd8fb46f5af03b42a8fd5a02d324d"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.824681208003312,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-5.log",
+        "log_sha256": "ab5d89cef8aa758dab82ec5c18522159f3015f0f2628751956e68b0c4d1e7ac5"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": false,
+        "exit_code": 101,
+        "elapsed_seconds": 5.718114792136475,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-6.log",
+        "log_sha256": "ee4a8622b930dfb2451469cfc2f71e3564063fc0e25e989d906c522a64456df5"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "elapsed_seconds": 5.748195207910612,
+        "log": ".local/gate-6/browser-sdk/connected-capture028/case-7.log",
+        "log_sha256": "8436b2fddbbbdbb80de8ee9c806723650618325b23397d2f1e9800dc974e646e"
+      }
+    ]
+  },
+  "individual_successes": [
+    {
+      "log": ".local/gate-6/browser-sdk/connected-capture027/case-0.log",
+      "sha256": "ba8388a3881481fe89974c93d537f2459a11e7dadb3eefd6b718c1857065bac4",
+      "observation": {
+        "accepted": {
+          "audio": [
+            227,
+            226
+          ],
+          "video": [
+            131,
+            130
+          ]
+        },
+        "actual_capture_render": true,
+        "algorithm": "EdDSA",
+        "created_cid": "conv_7faa93bb4f994340a3c164a3815536bf",
+        "decoded_forward": true,
+        "decoded_reverse": true,
+        "duration_ms": 4000,
+        "metrics": [
+          {
+            "activeBindings": 3,
+            "decodedAudio": 181,
+            "decodedVideo": 110,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 291,
+            "rejected": 0,
+            "sent": 359
+          },
+          {
+            "activeBindings": 3,
+            "decodedAudio": 174,
+            "decodedVideo": 114,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 289,
+            "rejected": 0,
+            "sent": 356
+          }
+        ],
+        "opus": [
+          {
+            "decoded": 172,
+            "identified": 172
+          },
+          {
+            "decoded": 166,
+            "identified": 166
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "passed": true,
+        "playback": [
+          {
+            "audio": 170,
+            "maxPending": 3,
+            "maxQueuedSeconds": 0.04200000000000004,
+            "peakRms": 0.17985109479794417,
+            "video": 105
+          },
+          {
+            "audio": 164,
+            "maxPending": 3,
+            "maxQueuedSeconds": 0.04066666666666663,
+            "peakRms": 0.17609444830296553,
+            "video": 108
+          }
+        ],
+        "production_sdk_media": true,
+        "readiness_ms": 191.59999990463257,
+        "reliable_data_duplex": true,
+        "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+        "teardown_ms": 52.5,
+        "vp8": [
+          {
+            "decoded": 106,
+            "identified": 106,
+            "motion": 84
+          },
+          {
+            "decoded": 109,
+            "identified": 109,
+            "motion": 78
+          }
+        ]
+      }
+    },
+    {
+      "log": ".local/gate-6/browser-sdk/connected-capture028/case-7.log",
+      "sha256": "8436b2fddbbbdbb80de8ee9c806723650618325b23397d2f1e9800dc974e646e",
+      "observation": {
+        "accepted": {
+          "audio": [
+            223,
+            223
+          ],
+          "video": [
+            129,
+            128
+          ]
+        },
+        "actual_capture_render": true,
+        "algorithm": "ES256",
+        "created_cid": "conv_a4dee3cfd19846499531cf0be3095e7e",
+        "decoded_forward": true,
+        "decoded_reverse": true,
+        "duration_ms": 4000,
+        "metrics": [
+          {
+            "activeBindings": 3,
+            "decodedAudio": 183,
+            "decodedVideo": 113,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 297,
+            "rejected": 0,
+            "sent": 353
+          },
+          {
+            "activeBindings": 3,
+            "decodedAudio": 198,
+            "decodedVideo": 116,
+            "droppedPackets": 0,
+            "queuedBytes": 0,
+            "queuedPackets": 0,
+            "received": 315,
+            "rejected": 0,
+            "sent": 352
+          }
+        ],
+        "opus": [
+          {
+            "decoded": 175,
+            "identified": 175
+          },
+          {
+            "decoded": 189,
+            "identified": 189
+          }
+        ],
+        "owned_cleanup": true,
+        "owned_graph_states": [
+          "closed",
+          "closed",
+          "closed",
+          "closed"
+        ],
+        "owned_track_states": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          },
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "passed": true,
+        "playback": [
+          {
+            "audio": 174,
+            "maxPending": 3,
+            "maxQueuedSeconds": 0.05800000000000005,
+            "peakRms": 0.177898121198751,
+            "video": 109
+          },
+          {
+            "audio": 188,
+            "maxPending": 3,
+            "maxQueuedSeconds": 0.04866666666666308,
+            "peakRms": 0.1772701768541438,
+            "video": 112
+          }
+        ],
+        "production_sdk_media": true,
+        "readiness_ms": 180,
+        "reliable_data_duplex": true,
+        "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+        "teardown_ms": 86.09999990463257,
+        "vp8": [
+          {
+            "decoded": 110,
+            "identified": 98,
+            "motion": 98
+          },
+          {
+            "decoded": 112,
+            "identified": 98,
+            "motion": 98
+          }
+        ]
+      }
+    }
+  ],
+  "diagnostic": {
+    "summary": ".local/gate-6/browser-sdk/connected-capture029-trace/summary.json",
+    "summary_sha256": "66f945b969bbb21bc90fbaf5d0d6364d489d6644e713349f7e11bfb03ae24921",
+    "callbacks": 3515,
+    "busy_callbacks": 110,
+    "busy_details": {
+      "Current state is busy": 110
+    },
+    "scope": "Per-policy callback counts, not datagram counts. All110busy callbacks exhaust the current2ms budget on fresh Store SQL-state contention. Trace overhead is diagnostic, not performance qualification.",
+    "sample": {
+      "metadata": ".local/gate-6/browser-sdk-sql-sample031.json",
+      "metadata_sha256": "35ab6ee3d4e8f95801e8796719d33c4231095c1a45dcf9595d71c098a51be4c1",
+      "report": ".local/gate-6/browser-sdk-sql-sample031.txt",
+      "report_sha256": "bfda3d4a46583761e4258fb12632edc9ac2fa7cdfea929ccfc960c3a8b02664f",
+      "scope": "Exact owned media test process, sampled after packet traces began; diagnostic overhead. Call graph shows fresh native metadata reads, reconnect/lifecycle background snapshots and schema preparation. Does not by itself prove which thread owns the SQL mutex."
+    }
+  },
+  "retained_runs": [
+    {
+      "summary": ".local/gate-6/browser-sdk/connected-capture026/summary.json",
+      "sha256": "84f78ede344606279a7fbccb0b08b7dc6915a0e832ad46ae03096df1e4967310",
+      "passed": false,
+      "observation": "5/8. Both capture starts deadlock waiting video.play before canvas initial paint. Direct EdDSA audio also107/130under unchanged150threshold. All retained."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/connected-capture027/summary.json",
+      "sha256": "2531b963403534251eaafdc67c44b5ecc332a8ec239dd256bd2bb67f03933966",
+      "passed": true,
+      "observation": "Single captured EdDSA passes after initial paint; qualified scope only one exact method."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/connected-capture030-profile/summary.json",
+      "sha256": "861fd378340df3f4147bbb78a6fcf65c7f0d6012dcca284f07ea39eeb3a9dd4f",
+      "passed": true,
+      "observation": "Single traced case passes; sampling mistakenly selected executable listing/startup, so sample030 is not media profiling evidence."
+    },
+    {
+      "summary": ".local/gate-6/browser-sdk/connected-capture031-profile/summary.json",
+      "sha256": "ae9c2a01424b618e56642e394fb3c18302c751e3289969eee6801713e1942ad9",
+      "passed": false,
+      "observation": "Exact media sampling works; case stillfails under unchanged audio threshold. No performance pass."
+    }
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "3a845428df4e30898bd6111023a5e4897dbe03584943cad5e4cfa8f623effd81",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "f300c09b86fe1bf320a91c60220d3402bc4e307476bb4577e208ed384e52f63f",
+    "scripts/rehearse-gate6-browser-sdk.py": "b5ae08bc9c90158c1c29068900794f1e3b14d5e91569d98bf61360259eb03781"
+  },
+  "acceptance_qualified": false,
+  "remaining": "Resolve fresh Store contention without weakening current authority/expiry/scene fences; repeat complete connected matrix, browser/native interoperation, full60s fps/A-V alignment, impairment and remaining failure/permission paths."
+}

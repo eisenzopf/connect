@@ -1,6 +1,8 @@
 // Production SDK on the actual signed listener. Witnesses inspect decoded PCM/pixels.
 import {BrowserClient} from '/sdk/browser_client.js';
 import {BrowserMediaPeer} from '/sdk/browser_media.js';
+import {BrowserMediaCapture} from '/sdk/browser_media_capture.js';
+import {BrowserMediaRenderer} from '/sdk/browser_media_renderer.js';
 import {unbase64url} from '/sdk/uctp_signing.js';
 const check=(ok,message)=>{if(!ok)throw Error(message);};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -21,16 +23,19 @@ export async function run(config){
   const clients=[],peers=[],connections=[],errors=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}],data=[[],[]];
   const source=[document.createElement('canvas'),document.createElement('canvas')],render=[document.createElement('canvas'),document.createElement('canvas')];
   for(const c of [...source,...render]){c.width=640;c.height=360;}
+  const paint=(i,n)=>{const c=source[i].getContext('2d');c.fillStyle=i===0?'rgb(220,20,20)':'rgb(20,20,220)';c.fillRect(0,0,640,360);c.fillStyle='rgb(10,230,10)';c.fillRect((n*(i===0?7:11))%608,80,32,200);};
+  const captures=[],renderers=[],streams=[],oscillators=[],contexts=[],sourceContexts=new Set(),OriginalAudioContext=globalThis.AudioContext;
+  if(config.capture)globalThis.AudioContext=class extends OriginalAudioContext{constructor(options){super(options);contexts.push(this);}};
   let created;
   try{
     for(let i=0;i<2;i++){
       const client=await BrowserClient.open(await options(config.actors[i]));clients.push(client);
       if(i===0)created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
       const peer=new BrowserMediaPeer(client,{
-        audio:(_binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;},
-        video:(_binding,frame)=>{
-          const out=render[i].getContext('2d',{willReadFrequently:true});out.drawImage(frame,0,0,640,360);const pixel=out.getImageData(0,0,1,1).data;
-          video[i].decoded++;if(i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80)video[i].identified++;
+        audio:(binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;renderers[i]?.audio(binding,frame);},
+        video:(binding,frame)=>{
+          video[i].decoded++;const out=render[i].getContext('2d',{willReadFrequently:true});if(config.capture){if(!renderers[i]?.video(binding,frame))return;}else out.drawImage(frame,0,0,640,360);const pixel=out.getImageData(0,0,1,1).data;
+          if(i===0?pixel[2]>150&&pixel[0]<80:pixel[0]>150&&pixel[2]<80)video[i].identified++;
           const row=out.getImageData(0,180,640,1).data;let sum=0,count=0;
           for(let x=0;x<640;x++)if(row[x*4+1]>120&&row[x*4+1]>row[x*4]*1.5&&row[x*4+1]>row[x*4+2]*1.5){sum+=x;count++;}
           if(count>8)video[i].motion.add(Math.round(sum/count));
@@ -40,19 +45,28 @@ export async function run(config){
         data:['text','json','binary'].map(protocol=>({id:'browser-'+protocol+'-'+i,protocol}))}));
     }
     for(let i=0;i<2;i++)await connections[i].subscribe('browser-subscribe-'+i,config.participants[1-i],['audio','video','data']);
+    if(config.capture){
+      for(let i=0;i<2;i++)renderers.push(await BrowserMediaRenderer.open(connections[i],{video:{['browser-video-'+(1-i)]:render[i]},volume:0,timeoutMs:3000}));
+      for(let i=0;i<2;i++){
+        const context=new AudioContext({sampleRate:48000});sourceContexts.add(context);const oscillator=context.createOscillator();oscillator.frequency.value=i===0?500:250;oscillators.push(oscillator);
+        const gain=context.createGain();gain.gain.value=.25;const destination=context.createMediaStreamDestination();oscillator.connect(gain);gain.connect(destination);oscillator.start();await context.resume();
+        paint(i,0);const stream=new MediaStream([...destination.stream.getAudioTracks(),...source[i].captureStream(30).getVideoTracks()]);streams.push(stream);
+        captures.push(await BrowserMediaCapture.open(connections[i],{audioStreamId:'browser-audio-'+i,videoStreamId:'browser-video-'+i,stream,timeoutMs:3000,state:(_state,error)=>{if(error)errors.push(String(error));}}));
+      }
+    }
     const start=performance.now(),duration=4000;let stop=false;
     const accepted={audio:[0,0],video:[0,0]};
     const pumping=Promise.all([
-      (async()=>{for(let n=0;!stop;n++){
+      (async()=>{if(config.capture)return;for(let n=0;!stop;n++){
         for(let i=0;i<2;i++)if(connections[i].encodeAudio('browser-audio-'+i,Float32Array.from({length:960},(_,j)=>0.25*Math.sin(2*Math.PI*(i===0?500:250)*(n*960+j)/48000)),n*20000))accepted.audio[i]++;
         await wait(Math.max(0,start+(n+1)*20-performance.now()));
       }})(),
       (async()=>{for(let n=0;!stop;n++){
-        for(let i=0;i<2;i++){const c=source[i].getContext('2d');c.fillStyle=i===0?'rgb(220,20,20)':'rgb(20,20,220)';c.fillRect(0,0,640,360);c.fillStyle='rgb(10,230,10)';c.fillRect((n*(i===0?7:11))%608,80,32,200);if(connections[i].encodeVideo('browser-video-'+i,new VideoFrame(source[i],{timestamp:Math.round(n*1000000/30)})))accepted.video[i]++;}
+        for(let i=0;i<2;i++){paint(i,n);if(!config.capture&&connections[i].encodeVideo('browser-video-'+i,new VideoFrame(source[i],{timestamp:Math.round(n*1000000/30)})))accepted.video[i]++;}
         await wait(Math.max(0,start+(n+1)*1000/30-performance.now()));
       }})(),
     ]);void pumping.catch(()=>{});
-    let readiness_ms;
+    let readiness_ms;const playback=renderers.map(()=>({peakRms:0,maxPending:0,maxQueuedSeconds:0}));
     try{
       const readyUntil=performance.now()+5000;
       while(!audio.every(a=>a.identified>=5)||!video.every(v=>v.identified>=3)){
@@ -65,7 +79,9 @@ export async function run(config){
     }
 
       for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
-      const measured=performance.now();while(performance.now()-measured<duration)await wait(20);
+      const before=renderers.map(r=>r.diagnostics);
+      const measured=performance.now();while(performance.now()-measured<duration){for(let i=0;i<renderers.length;i++){const d=renderers[i].diagnostics,p=playback[i];p.peakRms=Math.max(p.peakRms,d.audioRms);p.maxPending=Math.max(p.maxPending,d.pendingAudio);p.maxQueuedSeconds=Math.max(p.maxQueuedSeconds,d.queuedAudioSeconds);}await wait(20);}
+      for(let i=0;i<renderers.length;i++){const after=renderers[i].diagnostics;playback[i].audio=after.audio-before[i].audio;playback[i].video=after.video-before[i].video;}
     }finally{stop=true;await pumping;}
     check(errors.length===0,'actual SDK media failure: '+errors.join('; '));
     for(let i=0;i<2;i++){
@@ -80,6 +96,11 @@ export async function run(config){
       }
     }
     const metrics=peers.map(p=>p.diagnostics);
+    if(config.capture)for(let i=0;i<2;i++){
+      check(playback[i].audio>=150&&playback[i].video>=90&&playback[i].peakRms>.02&&playback[i].maxPending<=10&&playback[i].maxQueuedSeconds<=.2,'actual bounded connected audio/video playback '+JSON.stringify(playback));
+      for(const kind of ['audio','video'])accepted[kind][i]=peers[i].routeDiagnostics.find(r=>r.streamId==='browser-'+kind+'-'+i).counters.encoded;
+    }
+    const retiring=performance.now();
     for(let i=0;i<2;i++){
       const operation='browser-end-'+i,revision=connections[i].revision;
       try{await connections[i].end(operation);}catch(error){
@@ -87,8 +108,13 @@ export async function run(config){
         throw Error('original media end refused '+JSON.stringify({index:i,revision,operation,error:String(error),status,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size}))}));
       }
     }
+    if(config.capture){
+      await Promise.all(renderers.map(r=>r.finished));
+      while(contexts.some(c=>!sourceContexts.has(c)&&c.state!=='closed')){check(performance.now()-retiring<5000,'actual connected graph teardown deadline');await wait(10);}
+      check(captures.every(c=>c.closed)&&streams.every(s=>s.getTracks().every(t=>t.readyState==='ended'))&&renderers.every(r=>r.diagnostics.closed&&r.diagnostics.pendingAudio===0),'actual connected capture/playback ownership');
+    }
     for(const peer of peers)peer.close();
     check(clients.every(c=>c.closed)&&peers.every(p=>p.diagnostics.activeBindings===0&&p.diagnostics.queuedBytes===0),'owned media cleanup');
-    return{passed:true,production_sdk_media:true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),metrics,accepted,readiness_ms,duration_ms:duration,scope:'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
-  }finally{for(const peer of peers)peer.close();for(const client of clients)client.close();}
+    return{passed:true,production_sdk_media:true,actual_capture_render:config.capture===true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:audio,vp8:video.map(v=>({...v,motion:v.motion.size})),metrics,accepted,playback,owned_graph_states:contexts.filter(c=>!sourceContexts.has(c)).map(c=>c.state),owned_track_states:streams.flatMap(s=>s.getTracks().map(t=>({kind:t.kind,state:t.readyState}))),teardown_ms:performance.now()-retiring,readiness_ms,duration_ms:duration,scope:config.capture?'short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open':'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};
+  }finally{for(const c of captures)c.close();for(const r of renderers)r.close();for(const o of oscillators)o.stop();for(const stream of streams)for(const t of stream.getTracks())t.stop();for(const peer of peers)peer.close();for(const client of clients)client.close();await Promise.all(contexts.filter(c=>c.state!=='closed').map(c=>c.close().catch(()=>{})));globalThis.AudioContext=OriginalAudioContext;}
 }
