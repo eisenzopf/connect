@@ -1,0 +1,47 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native.rs b/crates/uctp/rvoip-uctp/src/v2/native.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -1405,7 +1405,7 @@
+                 expected,
+                 &rvoip_core::staged_streams::subscription_plan::MediaSelectionChange::Reconcile,
+             )
+-            .map_err(core_error)?;
++            .map_err(catalog_error)?;
+         if !selection.requires_reconciliation() {
+             return Ok(None);
+         }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_subscriptions/runtime.rs
+@@ -86,6 +86,9 @@
+             let policy_changed = policy_changes.notified();
+             tokio::pin!(policy_changed);
+             policy_changed.as_mut().enable();
++            // A failed read schedules another fresh catalog read. It cannot
++            // force an engine effect when the recovered catalog is unchanged.
++            let mut catalog_retry = false;
+             let plan =
+                 adapter.plan_native_reconciliation(&core, &runtime.connection, &runtime.origin);
+             let wanted = match plan {
+@@ -105,8 +108,10 @@
+                     Some(plan)
+                 }
+                 Ok(Some(_)) | Ok(None) => None,
+-                Err(NativeOfferError::Conflict) | Err(NativeOfferError::Capacity) => {
+-                    retry = true;
++                Err(NativeOfferError::Conflict)
++                | Err(NativeOfferError::Capacity)
++                | Err(NativeOfferError::Dispatch(DispatchError::StorageUnavailable)) => {
++                    catalog_retry = true;
+                     None
+                 }
+                 Err(_) => None,
+@@ -218,7 +223,7 @@
+                 _=runtime.cancel.cancelled()=>return,
+                 _=&mut changed=>{},
+                 _=&mut policy_changed=>{last=None;},
+-                _=tokio::time::sleep(if retry || !runtime.origin.ready(){Duration::from_millis(25)}else{Duration::from_millis(500)})=>{},
++                _=tokio::time::sleep(if retry || catalog_retry || !runtime.origin.ready(){Duration::from_millis(25)}else{Duration::from_millis(500)})=>{},
+             }
+         }
+     }

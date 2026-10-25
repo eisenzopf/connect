@@ -1048,6 +1048,11 @@
       "path": "patches/rvoip/gate6-catalog-read-retry-regression.patch",
       "sha256": "e91e7c4a7af4c6c1e93cecc99d79890dc9a76f77ecdfae84c5cc8a0e9fc7b311",
       "source": "G6-050 controlled real source-controller catalog contention regression: identical authoritative catalog recovery must not create another reconciliation; genuine later screen publication still acquires fresh authority, negotiates and delivers camera/screen on QUIC and WT. Test-only bounded packet callback pause; no runtime effect fix in this patch."
+    },
+    {
+      "path": "patches/rvoip/gate6-reconcile-catalog-read-retries.patch",
+      "sha256": "d197741f98a74e0f77f9d4a00aa6d678f70fd77ec375c9f6f7668faf09fda835",
+      "source": "G6-050 current catalog read retry is metadata scheduling, not a pending engine-effect retry. Preserve unchanged full catalog suppression after real controller contention, classify catalog Backpressure as StorageUnavailable, retain current authorization retries and exact captured pending outcome replay, and process real later source/capability changes."
     }
   ]
 }

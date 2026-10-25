@@ -1,6 +1,6 @@
 {
   "task": "G6-050",
-  "status": "in-progress; controlled negative-before regression reproduced",
+  "status": "in-progress; controlled negative-before and five focused positive methods verified",
   "scope": "Actual locked upstream QUIC source/catalog/runtime scheduling regression. The test loops QUIC/WT, but the negative case stops on the initial QUIC assertion; WT recovery remains for positive verification. No Connect host/browser throughput or full task qualification.",
   "source_lock": {
     "patches": 187,
@@ -27,6 +27,75 @@
     "sha256": "fdf28a1e6f77e87539e94dcd0d7041bb7e88b425dbc358b4d8536f5a7182cafc",
     "profiles": "Explicit locked upstream workspace release with LTO=false,codegen16,debug0,panicunwind. Raw logs/private fixture state under ignored output. No performance claim."
   },
-  "next": "Record and prepare a separate production fix patch: classify catalog Backpressure as transient read unavailability and schedule fresh reads without setting the pending-effect retry flag. Retain authorization retries and exact captured pending outcomes. Then verify all5 selected methods, including QUIC/WT recovery and genuine current source changes, and repeat actual8/28 host checks.",
-  "acceptance_qualified": false
+  "next": "Repeat current Connect-host browser8 andtransport28 checks; resolve any failures, then frozen60, public native SDK interoperability, impairment/failure and remaining approved profiles.",
+  "acceptance_qualified": false,
+  "production_fix": {
+    "patch": "patches/rvoip/gate6-reconcile-catalog-read-retries.patch",
+    "sha256": "d197741f98a74e0f77f9d4a00aa6d678f70fd77ec375c9f6f7668faf09fda835",
+    "source_lock_patches": 188,
+    "source_lock_sha256": "54836e2aa88359ad25b27bf93c4ac0dce84e3df4faadd6e17067b274e3ea3038",
+    "changes": [
+      "Reconciliation catalog Backpressure uses the existing transient StorageUnavailable classification, preserving other missing/stale/quota distinctions.",
+      "Catalog Conflict/Capacity/StorageUnavailable schedule another fresh read with the existing25ms prompt delay. They do not set the separate pending-effect retry flag or force work when the recovered full catalog is unchanged.",
+      "Current authorization retry state, genuine source/capability comparisons and the exact captured pending operation/outcome replay remain intact. No metadata snapshot becomes an IO grant and no original permission reader is retained while idle."
+    ]
+  },
+  "positive_after": {
+    "report": ".local/gate-6/catalog-retry/positive001/summary.json",
+    "sha256": "7fb731afbee0cb786aeabd6ad731bd532c7eb5ecc64554ea7992df9add1c4953",
+    "passed_methods": 5,
+    "source_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "cases": [
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_catalog_contention_rereads_unchanged_sources_without_a_new_reconciliation",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/catalog-retry/positive001/case-0.log",
+        "log_sha256": "a6e84ae6bae45d2e65043d206fa62c437c359484855801cf3daddaca2f28342d",
+        "elapsed_seconds": 9.533199291210622
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_participant_video_and_screen_reconcile_after_original_command_grant_releases",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/catalog-retry/positive001/case-1.log",
+        "log_sha256": "0df76a8d3ff73616ec31cbdef00619dd171e52b4742351c9c4d23a65e192cc8a",
+        "elapsed_seconds": 0.35979754105210304
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_selection_rechecks_denial_then_reuses_operation_after_bad_confirmation_and_queued_writer",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/catalog-retry/positive001/case-2.log",
+        "log_sha256": "af28b3bf217f9ad551a5c7104d400c60367fb8738499e84f0caebf3727c97699",
+        "elapsed_seconds": 0.609034082852304
+      },
+      {
+        "case": "peer_native::canonical_media::native_offers::future_subscriptions::actual_future_data_receiver_negotiates_only_with_supported_physical_profile",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/catalog-retry/positive001/case-3.log",
+        "log_sha256": "7a1a7ede28abe26bff64f486a43f5b217dc6e509b2b19d18552e3fcf9ad79eed",
+        "elapsed_seconds": 0.05557275004684925
+      },
+      {
+        "case": "v2::native_subscriptions::catalog_tests::catalog_contention_does_not_reclassify_missing_stale_or_resource_capacity",
+        "exit_code": 0,
+        "passed": true,
+        "expected_failure": false,
+        "log": ".local/gate-6/catalog-retry/positive001/case-4.log",
+        "log_sha256": "b795af1d477d02454223d9a7c4c25fc9ddd2b771b44e5fc83dad6726e9d333c8",
+        "elapsed_seconds": 0.31271508405916393
+      }
+    ],
+    "scope": "The new controlled method completes both QUIC/WT branches, including same catalog/no new reconciliation, metadata-only reader release, same-port fresh camera forwarding and genuine later camera/screen negotiation/delivery. Other methods retain missed authorization-hint recovery, denial, bad confirmation/queued-writer identity and supported physical data profiles. Unit classifier preserves unavailable versus absent/stale/quota distinctions. This is not full host/media qualification."
+  },
+  "host_runtime": {
+    "status": "not yet verified on source188; full8 browser and28transport checks next"
+  }
 }

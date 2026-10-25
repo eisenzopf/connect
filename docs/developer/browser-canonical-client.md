@@ -242,3 +242,11 @@ frozen marker and queue measurements.
 epochs, complete-frame sequence gaps, late frames, assembly losses, decoder
 queue drops and whether a keyframe is required. These counters support
 troubleshooting and grant no authority; they contain no media bytes.
+
+Server-side retained subscription reconciliation treats a transient catalog
+read failure as a request to read the current catalog again. An unchanged
+recovered catalog does not create another reconciliation operation. Current
+authorization retries and exact captured-outcome recovery keep their own
+state; genuine source or capability changes still require fresh authorization
+and negotiation. Packet publication and delivery continue to check current
+authority independently.
