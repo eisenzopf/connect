@@ -20,6 +20,8 @@ CADENCE_REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_missed
 CADENCE_ASSERTION = 'missed mixer ticks left original PCM behind the current quantum'
 BURST_REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_initial_burst_does_not_delay_fresh_originals_under_steady_ticks'
 BURST_ASSERTION = 'steady mixer retained old burst PCM ahead of fresh originals'
+CLOCK_REGRESSION = 'staged_streams::tests::guarded_mixer::guarded_mixer_preserves_single_source_clock_across_partial_original_quanta'
+CLOCK_ASSERTION = 'guarded mixer discarded original source clock'
 GROUPS = ('staged_streams::tests::guarded_mixer::', 'staged_streams::tests::media_scene::', 'staged_streams::guarded_audio::cadence_tests::')
 
 
@@ -40,7 +42,7 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--target-dir', required=True, type=Path)
     parser.add_argument('--expect-regression', action='store_true')
-    parser.add_argument('--regression', choices=('contiguous', 'cadence', 'burst'), default='contiguous', help='Exact expected-failure witness; positive runs still select both complete groups.')
+    parser.add_argument('--regression', choices=('contiguous', 'cadence', 'burst', 'clock'), default='contiguous', help='Exact expected-failure witness; positive runs still select both complete groups.')
     args = parser.parse_args()
     directory = args.output.resolve()
     if not directory.is_relative_to((ROOT / '.local').resolve()):
@@ -90,8 +92,8 @@ def main():
         report['executable'] = executable
         available = subprocess.check_output([str(sealed), '--list'], env=env, text=True)
         names = [line.removesuffix(': test') for line in available.splitlines() if line.endswith(': test')]
-        regression = {'contiguous': REGRESSION, 'cadence': CADENCE_REGRESSION, 'burst': BURST_REGRESSION}[args.regression]
-        assertion = {'contiguous': ASSERTION, 'cadence': CADENCE_ASSERTION, 'burst': BURST_ASSERTION}[args.regression]
+        regression = {'contiguous': REGRESSION, 'cadence': CADENCE_REGRESSION, 'burst': BURST_REGRESSION, 'clock': CLOCK_REGRESSION}[args.regression]
+        assertion = {'contiguous': ASSERTION, 'cadence': CADENCE_ASSERTION, 'burst': BURST_ASSERTION, 'clock': CLOCK_ASSERTION}[args.regression]
         assert regression in names
         selections = [(regression, True)] if args.expect_regression else [(group, False) for group in GROUPS]
         for index, (selection, exact) in enumerate(selections):

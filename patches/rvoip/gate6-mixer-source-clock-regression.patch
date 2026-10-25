@@ -1,0 +1,329 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -169,6 +169,16 @@
+         self.publish_duration(index, value, timestamp, 1);
+     }
+     fn publish_duration(&self, index: usize, value: i16, timestamp: u32, frames: u32) {
++        self.publish_clocked_ms(index, value, timestamp, frames * 20, None);
++    }
++    fn publish_clocked_ms(
++        &self,
++        index: usize,
++        value: i16,
++        timestamp: u32,
++        milliseconds: u32,
++        clock: Option<crate::stream::MediaSourceClock>,
++    ) {
+         let port = self.port(index);
+         let MediaFormat::Encoded {
+             name,
+@@ -196,13 +206,13 @@
+             .encode(&rvoip_media_core::AudioFrame {
+                 samples: vec![
+                     value;
+-                    (*clock_rate_hz / 50) as usize
++                    (*clock_rate_hz / 1000) as usize
+                         * usize::from(*channels)
+-                        * frames as usize
++                        * milliseconds as usize
+                 ],
+                 sample_rate: *clock_rate_hz,
+                 channels: *channels,
+-                duration: Duration::from_millis(20 * u64::from(frames)),
++                duration: Duration::from_millis(u64::from(milliseconds)),
+                 timestamp,
+             })
+             .unwrap();
+@@ -212,7 +222,7 @@
+             kind: StreamKind::Audio,
+             payload: payload.into(),
+             timestamp_rtp: timestamp,
+-            source_clock: None,
++            source_clock: clock,
+             captured_at: chrono::Utc::now(),
+             payload_type,
+         })
+@@ -1069,3 +1079,283 @@
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
++
++fn source_clock(
++    id: u128,
++    rate: u32,
++    rtp: u32,
++    ntp: u64,
++    live: Arc<std::sync::atomic::AtomicBool>,
++) -> crate::stream::MediaSourceClock {
++    crate::stream::MediaSourceClock {
++        source_id: id,
++        generation: 7,
++        anchor: Some(crate::stream::MediaClockAnchor {
++            ntp_time: ntp,
++            rtp_time: rtp,
++            clock_rate: rate,
++        }),
++        supported: true,
++        rtp_offset: 0,
++        is_current: Arc::new(move || live.load(Ordering::Acquire)),
++    }
++}
++fn ntp_ms(base: u64, milliseconds: u64) -> u64 {
++    base.wrapping_add(((u128::from(milliseconds) << 32) / 1000) as u64)
++}
++async fn mixed_frame(queue: QueuedMedia) -> MediaFrame {
++    let result = Arc::new(std::sync::Mutex::new(None));
++    let output = result.clone();
++    queue
++        .deliver(move |frame| async move {
++            *output.lock().unwrap() = Some(frame);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    let frame = result.lock().unwrap().take().unwrap();
++    frame
++}
++fn same_ntp(actual: u64, expected: u64) {
++    assert!(
++        (actual.wrapping_sub(expected) as i64).unsigned_abs() <= 2,
++        "capture clock changed: actual {actual}, expected {expected}"
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_preserves_single_source_clock_across_partial_original_quanta() {
++    for rate in [8000, 48000] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++        let wire = u32::MAX - 79;
++        let mut clock = source_clock(17, 8000, wire.wrapping_sub(640), 100u64 << 32, live);
++        clock.rtp_offset = 480;
++        s.publish_clocked_ms(0, 1000, wire, 100, Some(clock));
++        for n in 0..5 {
++            s.mixer.tick();
++            let frame = mixed_frame(out.try_recv().unwrap()).await;
++            let clock = frame
++                .source_clock
++                .expect("guarded mixer discarded original source clock");
++            assert!(clock.supported && (clock.is_current)());
++            assert_eq!((clock.source_id, clock.generation), (17, 7));
++            let anchor = clock.anchor.unwrap();
++            assert_eq!(anchor.clock_rate, 8000);
++            assert_eq!(anchor.rtp_time, frame.timestamp_rtp);
++            assert_eq!(clock.rtp_offset, 0);
++            same_ntp(anchor.ntp_time, ntp_ms(100u64 << 32, 20 + n * 20));
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("clock metadata retained idle authority"),
++            );
++        }
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_reclocks_original_capture_time_across_codec_rate_conversion() {
++    let opus = MediaFormat::Encoded {
++        name: "opus".into(),
++        clock_rate_hz: 48000,
++        channels: 1,
++        fmtp: None,
++    };
++    let people = vec![
++        ("source", "alice", audio(), 0),
++        ("target", "bob", opus, 111),
++    ];
++    let s = Scene::new(&people, 48000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++    s.publish_clocked_ms(
++        0,
++        1000,
++        800,
++        100,
++        Some(source_clock(18, 8000, 0, 100u64 << 32, live)),
++    );
++    for n in 0..5 {
++        s.mixer.tick();
++        let frame = mixed_frame(out.try_recv().unwrap()).await;
++        let clock = frame.source_clock.unwrap();
++        assert!(clock.supported);
++        let a = clock.anchor.unwrap();
++        assert_eq!(a.clock_rate, 48000);
++        assert_eq!(a.rtp_time, frame.timestamp_rtp);
++        same_ntp(a.ntp_time, ntp_ms(100u64 << 32, 100 + n * 20));
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_clock_tracks_discarded_initial_pcm_and_missed_quanta() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++    s.publish_clocked_ms(
++        0,
++        1000,
++        0,
++        300,
++        Some(source_clock(19, 8000, 0, 100u64 << 32, live)),
++    );
++    s.mixer.tick();
++    let first = mixed_frame(out.try_recv().unwrap()).await;
++    let a = first.source_clock.unwrap().anchor.unwrap();
++    same_ntp(a.ntp_time, ntp_ms(100u64 << 32, 100));
++    tokio::time::sleep(Duration::from_millis(65)).await;
++    s.mixer.tick();
++    let next = mixed_frame(out.try_recv().unwrap()).await;
++    let b = next.source_clock.unwrap().anchor.unwrap();
++    let output_quanta = next.timestamp_rtp.wrapping_sub(first.timestamp_rtp) / 160;
++    assert!(output_quanta >= 3, "stall did not skip nominal quanta");
++    same_ntp(
++        b.ntp_time,
++        ntp_ms(100u64 << 32, 100 + u64::from(output_quanta) * 20),
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_aligned_multiple_sources_keep_one_mix_clock_and_all_lifetimes() {
++    let s = Scene::new(&four()[..3], 8000).await;
++    for i in 0..3 {
++        s.bind(i, true).await;
++    }
++    let mut out = s.port(2).take_egress().unwrap();
++    let a = Arc::new(std::sync::atomic::AtomicBool::new(true));
++    let b = Arc::new(std::sync::atomic::AtomicBool::new(true));
++    s.publish_clocked_ms(
++        0,
++        1000,
++        0,
++        100,
++        Some(source_clock(20, 8000, 0, 100u64 << 32, a.clone())),
++    );
++    s.publish_clocked_ms(
++        1,
++        2000,
++        0,
++        100,
++        Some(source_clock(21, 8000, 0, 100u64 << 32, b.clone())),
++    );
++    s.mixer.tick();
++    let first = mixed_frame(out.try_recv().unwrap()).await;
++    let clock = first.source_clock.unwrap();
++    assert!(clock.supported && (clock.is_current)());
++    assert_ne!(clock.source_id, 20);
++    assert_ne!(clock.source_id, 21);
++    same_ntp(clock.anchor.unwrap().ntp_time, 100u64 << 32);
++    s.mixer.tick();
++    let second = mixed_frame(out.try_recv().unwrap()).await;
++    let next = second.source_clock.unwrap();
++    assert_eq!(clock.source_id, next.source_id);
++    same_ntp(next.anchor.unwrap().ntp_time, ntp_ms(100u64 << 32, 20));
++    b.store(false, Ordering::Release);
++    assert!(!(clock.is_current)());
++    assert!(!(next.is_current)());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("mixed clock retained an idle grant"),
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_unaligned_or_unknown_contributors_never_fabricate_a_capture_anchor() {
++    for unknown in [false, true] {
++        let s = Scene::new(&four()[..3], 8000).await;
++        for i in 0..3 {
++            s.bind(i, true).await;
++        }
++        let mut out = s.port(2).take_egress().unwrap();
++        let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++        s.publish_clocked_ms(
++            0,
++            1000,
++            0,
++            20,
++            Some(source_clock(22, 8000, 0, 100u64 << 32, live.clone())),
++        );
++        s.publish_clocked_ms(
++            1,
++            2000,
++            0,
++            20,
++            if unknown {
++                None
++            } else {
++                Some(source_clock(23, 8000, 0, ntp_ms(100u64 << 32, 40), live))
++            },
++        );
++        s.mixer.tick();
++        let frame = mixed_frame(out.try_recv().unwrap()).await;
++        let clock = frame
++            .source_clock
++            .expect("mixed clock provenance disappeared");
++        assert!(!clock.supported);
++        assert!(clock.anchor.is_none());
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_waiting_clock_and_discontinuous_segments_remain_explicit() {
++    for discontinuous in [false, true] {
++        let s = Scene::new(&four()[..2], 8000).await;
++        s.bind(0, true).await;
++        s.bind(1, false).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++        let mut clock = source_clock(24, 8000, 0, 100u64 << 32, live.clone());
++        if discontinuous {
++            s.publish_clocked_ms(0, 1000, 0, 10, Some(clock));
++            s.publish_clocked_ms(
++                0,
++                1000,
++                80,
++                10,
++                Some(source_clock(24, 8000, 80, ntp_ms(100u64 << 32, 20), live)),
++            );
++        } else {
++            clock.anchor = None;
++            s.publish_clocked_ms(0, 1000, 0, 20, Some(clock));
++        }
++        s.mixer.tick();
++        let frame = mixed_frame(out.try_recv().unwrap()).await;
++        let clock = frame.source_clock.unwrap();
++        assert_eq!(clock.supported, !discontinuous);
++        assert!(clock.anchor.is_none());
++    }
++}
++#[tokio::test]
++async fn guarded_mixer_retired_target_never_revives_queued_clock_on_rebind() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let mut out = s.port(1).take_egress().unwrap();
++    let live = Arc::new(std::sync::atomic::AtomicBool::new(true));
++    s.publish_clocked_ms(
++        0,
++        1000,
++        0,
++        20,
++        Some(source_clock(25, 8000, 0, 100u64 << 32, live)),
++    );
++    s.mixer.tick();
++    let frame = mixed_frame(out.try_recv().unwrap()).await;
++    let clock = frame.source_clock.unwrap();
++    assert!((clock.is_current)());
++    s.mixer.remove(&s.controllers[1].connection);
++    assert!(!(clock.is_current)());
++    s.bind(1, false).await;
++    assert!(!(clock.is_current)());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("retired clock retained source authority"),
++    );
++}

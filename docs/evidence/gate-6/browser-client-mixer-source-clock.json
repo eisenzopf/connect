@@ -1,0 +1,32 @@
+{
+  "schema": "connect-gate6-mixer-source-clock/1",
+  "task": "G6-050",
+  "status": "Verified original source clock is lost by guarded audio mixing; correction pending",
+  "test_patch": {
+    "path": "patches/rvoip/gate6-mixer-source-clock-regression.patch",
+    "sha256": "aee95bd1a288102a315fb389b8d6e1e9e6d3886edc0ee4a6dbd086f96c1e7db2"
+  },
+  "source_lock_sha256": "36fdbeb32c7496c7e0d09ad730ce03ad32d3cff989f77c5951fd8e6526ea6d1e",
+  "patch_count": 198,
+  "negative": {
+    "report": ".local/gate-6/mixer-clock/negative002/summary.json",
+    "sha256": "271401597fe06d1e751d38ffd4eaffa753ece27c1f31fcbf25ec4568fabe8a3e",
+    "verified_expected_failure": true,
+    "source_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "selection": "staged_streams::tests::guarded_mixer::guarded_mixer_preserves_single_source_clock_across_partial_original_quanta",
+    "counts": [
+      0,
+      1,
+      0
+    ],
+    "log_sha256": "5ff33a74b59302feb9c7346c1080fcc5008402d5445ce0902f8f4c71eb9f3764"
+  },
+  "observed": "A live explicit source RTP/NTP clock is injected through normal guarded PCMU ingress. The actual first8kHz mixed output has no source_clock and fails guarded mixer discarded original source clock. Execution stops before later48kHz/partial/wrap assertions; those are not passes.",
+  "correction_plan": "Retain source timeline offsets through PCM slicing/trimming and map truthful timing into the destination RTP clock. Preserve provenance and liveness for all contributors; waiting, unknown or unaligned timing cannot fabricate an anchor. Current per-packet age, source/target/scene/consumer/route authority and original mutation identity remain independent.",
+  "unqualified_attempt": {
+    "report": ".local/gate-6/mixer-clock/negative001/summary.json",
+    "scope": "Zero runtime cases; new fixture called nonexistent detach instead of scene remove. Corrected fixture is prepared separately; invalid source/patch/lock snapshots and build logs remain private."
+  },
+  "scope": "One expected Core behavior failure only. No browser/native clock transport, common AVclock, throughput, operating/task/acceptance or publication qualification."
+}
