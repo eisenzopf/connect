@@ -1,19 +1,27 @@
-//! One bounded owner finishes each submitted exchange despite caller cancellation.
+//! One bounded owner multiplexes signed exchanges despite caller cancellation.
 use super::*;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 const REQUEST_CAPACITY: usize = 16;
 pub(super) struct Shared {
     requests: mpsc::Sender<Command>,
     stop: CancellationToken,
-    pub(super) closed: AtomicBool,
+    pub(super) closed: Arc<AtomicBool>,
+    slots: Arc<Semaphore>,
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
 }
+struct InFlight {
+    exchange: crate::canonical::exchange::Exchange,
+    key: Option<OperationKey>,
+    reply: oneshot::Sender<Result<ReplyBatch>>,
+    _slot: OwnedSemaphorePermit,
+}
 struct Command {
+    slot: OwnedSemaphorePermit,
     kind: String,
     payload: Value,
     scope: CommandScope,
@@ -34,41 +42,96 @@ impl Shared {
         let (requests, mut receiver) = mpsc::channel::<Command>(REQUEST_CAPACITY);
         let stop = CancellationToken::new();
         let stopping = stop.clone();
+        let slots = Arc::new(Semaphore::new(REQUEST_CAPACITY));
+        let owned_slots = slots.clone();
+        let closed = Arc::new(AtomicBool::new(false));
+        let owned_closed = closed.clone();
         let task = tokio::spawn(async move {
-            loop {
-                let command = tokio::select! { biased; _=stopping.cancelled()=>break, command=receiver.recv()=>match command {Some(c)=>c,None=>break} };
-                // Cancellation/deadline while queued never becomes a write.
-                if command.reply.is_closed()
-                    || command.signal.is_cancelled()
-                    || tokio::time::Instant::now() >= command.expires
-                {
-                    let _ = command.reply.send(Err(Error::request(
-                        ErrorKind::Cancelled,
-                        command.key.as_ref(),
-                        false,
-                    )));
-                    continue;
+            let mut active: Vec<InFlight> = Vec::new();
+            let failure = loop {
+                let next_deadline = active
+                    .iter()
+                    .map(|pending| pending.exchange.deadline)
+                    .min()
+                    .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(60));
+                tokio::select! { biased;
+                    _=stopping.cancelled()=>break ErrorKind::Cancelled,
+                    _=tokio::time::sleep_until(next_deadline), if !active.is_empty()=>break ErrorKind::Deadline,
+                    frame=peer.receive_owned_frame()=> {
+                        let frame = match frame { Ok(frame)=>frame, Err(error)=>break Error::transport(error,None).kind };
+                        if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
+                            break ErrorKind::Authentication;
+                        }
+                        let index = active.iter().position(|pending| frame.scope(crate::canonical::Scope::Reply) == Some(pending.exchange.id.as_str()));
+                        if let Some(index) = index {
+                            match peer.accept_exchange_frame(&mut active[index].exchange,frame) {
+                                Ok(true)=> {
+                                    let pending=active.swap_remove(index);
+                                    let _=pending.reply.send(Ok(pending.exchange.finish()));
+                                }
+                                Ok(false)=>{},
+                                Err(error)=>break Error::transport(error,None).kind,
+                            }
+                        } else if let Err(error)=peer.retain_unmatched_frame(frame) {
+                            break Error::transport(error,None).kind;
+                        }
+                    }
+                    command=receiver.recv()=> {
+                        let command=match command {Some(command)=>command,None=>break ErrorKind::Cancelled};
+                        // Cancellation/deadline while queued never becomes a write.
+                        if command.reply.is_closed() || command.signal.is_cancelled()
+                            || tokio::time::Instant::now() >= command.expires {
+                            let kind=if tokio::time::Instant::now() >= command.expires {ErrorKind::Deadline}else{ErrorKind::Cancelled};
+                            let _=command.reply.send(Err(Error::request(kind,command.key.as_ref(),false)));
+                            continue;
+                        }
+                        // Only explicit close may interrupt a started write. Local caller
+                        // cancellation leaves its correlation/limits/deadline owned here.
+                        let result=tokio::select! { biased;
+                            _=stopping.cancelled()=> {
+                                let _=command.reply.send(Err(Error::request(ErrorKind::Cancelled,command.key.as_ref(),true)));
+                                break ErrorKind::Cancelled;
+                            },
+                            result=peer.begin_exchange(&command.kind,command.payload,command.scope)=>result
+                        };
+                        match result {
+                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:command.reply,_slot:command.slot}),
+                            Err(error)=> {
+                                let error=Error::transport(error,command.key.as_ref());
+                                let kind=error.kind;
+                                let _=command.reply.send(Err(error));
+                                break kind;
+                            }
+                        }
+                    }
                 }
-                // Once started, only explicit client close may interrupt the exchange.
-                // Dropping/cancelling the caller's response waiter is deliberately absent.
-                let result = tokio::select! { biased; _=stopping.cancelled()=>break, result=peer.request_value(&command.kind,command.payload,command.scope)=>result };
-                let result = result.map_err(|e| Error::transport(e, command.key.as_ref()));
-                let _ = command.reply.send(result);
+                tokio::task::consume_budget().await;
+            };
+            owned_closed.store(true, Ordering::Release);
+            owned_slots.close();
+            // Retire the physical peer on an incomplete exchange, preserving all
+            // submitted logical IDs. Unwritten queued commands remain unsubmitted.
+            peer.close();
+            for pending in active {
+                let _ =
+                    pending
+                        .reply
+                        .send(Err(Error::request(failure, pending.key.as_ref(), true)));
             }
             receiver.close();
             while let Some(command) = receiver.recv().await {
-                let _ = command.reply.send(Err(Error::request(
-                    ErrorKind::Cancelled,
-                    command.key.as_ref(),
-                    false,
-                )));
+                let _ =
+                    command
+                        .reply
+                        .send(Err(Error::request(failure, command.key.as_ref(), false)));
             }
             peer.shutdown().await
         });
         Ok(Arc::new(Self {
             requests,
             stop,
-            closed: AtomicBool::new(false),
+            closed,
+            slots,
             task: Mutex::new(Some(task)),
         }))
     }
@@ -105,12 +168,17 @@ impl Shared {
         crate::canonical::Envelope::from_value(envelope)
             .map_err(|_| Error::request(ErrorKind::Validation, key, false))?;
         let expires = tokio::time::Instant::now() + options.timeout;
+        let slot = tokio::select! {biased;
+            _=options.signal.cancelled()=>return Err(Error::request(ErrorKind::Cancelled,key,false)),
+            result=tokio::time::timeout_at(expires,self.slots.clone().acquire_owned())=>result.map_err(|_|Error::request(ErrorKind::Deadline,key,false))?.map_err(|_|Error::request(ErrorKind::Cancelled,key,false))?
+        };
         let permit = tokio::select! {biased;
             _=options.signal.cancelled()=>return Err(Error::request(ErrorKind::Cancelled,key,false)),
             result=tokio::time::timeout_at(expires,self.requests.reserve())=>result.map_err(|_|Error::request(ErrorKind::Deadline,key,false))?.map_err(|_|Error::request(ErrorKind::TransportUncertain,key,false))?
         };
         let (reply, response) = oneshot::channel();
         permit.send(Command {
+            slot,
             kind: kind.to_owned(),
             payload,
             scope,

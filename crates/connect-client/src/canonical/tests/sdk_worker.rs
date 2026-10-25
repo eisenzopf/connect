@@ -6,7 +6,7 @@ pub(in crate::canonical) enum Traffic {
     Query,
     Mutation,
 }
-async fn write(
+pub(super) async fn write(
     writer: &mut quinn::SendStream,
     signer: &Sig9421Signer,
     request: &Envelope,
@@ -151,7 +151,7 @@ async fn cancelling_a_started_mutation_keeps_original_reference_and_finishes_rec
         .unwrap();
 }
 #[tokio::test]
-async fn local_query_cancellation_and_queued_mutation_cancellation_leave_peer_usable() {
+async fn local_query_cancellation_and_presubmit_mutation_cancellation_leave_peer_usable() {
     let (peer, host, ready) = controlled(Fault::SdkWorker(Traffic::Query)).await;
     let client = Client::from_authenticated_peer(peer, "tenant".parse().unwrap()).unwrap();
     let original = client
@@ -172,7 +172,7 @@ async fn local_query_cancellation_and_queued_mutation_cancellation_leave_peer_us
         .await
         .unwrap();
     let queued_signal = sdk::CancellationToken::new();
-    let stop_queued = queued_signal.clone();
+    queued_signal.cancel(); // Deterministically cancelled before submission, independent of scheduling.
     let room = client.conversation_by_id("conv_one".parse().unwrap());
     let queued = tokio::spawn(async move {
         room.send(
@@ -193,8 +193,6 @@ async fn local_query_cancellation_and_queued_mutation_cancellation_leave_peer_us
         )
         .await
     });
-    tokio::task::yield_now().await;
-    stop_queued.cancel();
     cancel.cancel();
     let error = first.await.unwrap().unwrap_err();
     assert_eq!(error.kind, sdk::ErrorKind::Cancelled);

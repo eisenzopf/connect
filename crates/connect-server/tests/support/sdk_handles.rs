@@ -14,6 +14,150 @@ fn mutation(id: &str) -> MutationOptions {
     }
 }
 #[tokio::test]
+async fn public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_membership_scope(algorithm, 8, true).await;
+        let client = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+            .await
+            .unwrap();
+        let creating = client
+            .create_conversation(
+                vec![f.peer.identity_id.parse().unwrap()],
+                ConversationPolicy::Persistent,
+                mutation("sdk-pipelined-create"),
+            )
+            .await
+            .unwrap();
+        let room = creating.wait(options()).await.unwrap().value;
+        let current = room.refresh(options()).await.unwrap();
+        let recipient = current
+            .participants
+            .iter()
+            .find(|p| p.identity_id.as_str() == f.peer.identity_id)
+            .unwrap()
+            .id
+            .clone();
+        enum WorkResult {
+            Send(usize, sdk::Result<sdk::Operation<sdk::MessageAcceptance>>),
+            Query(sdk::Result<sdk::OperationSnapshot>),
+        }
+        let mut work = tokio::task::JoinSet::new();
+        // The SDK capacity is 16; this listener deliberately keeps its pending
+        // capacity of 8. Applications receive explicit refusals, never hidden retries.
+        for index in 0..24 {
+            let room = room.clone();
+            let recipient = recipient.clone();
+            work.spawn(async move {
+                let result = room
+                    .send(
+                        format!("sdk-pipelined-message-{index}").parse().unwrap(),
+                        NonEmpty {
+                            first: recipient,
+                            rest: vec![],
+                        },
+                        format!("Private concurrent fixture {index}"),
+                        mutation(&format!("sdk-pipelined-send-{index}")),
+                    )
+                    .await;
+                WorkResult::Send(index, result)
+            });
+        }
+        for _ in 0..8 {
+            let creating = creating.clone();
+            work.spawn(async move { WorkResult::Query(creating.status(options()).await) });
+        }
+        let capacity_refusal = |error: &sdk::Error| {
+            assert_eq!(error.kind, sdk::ErrorKind::Application);
+            assert_eq!(error.certainty, sdk::Certainty::Refused);
+            assert_eq!(
+                error.problem.as_ref().unwrap().code,
+                429,
+                "{:?}",
+                error.problem
+            );
+        };
+        let mut sends = Vec::new();
+        let mut refused_queries = 0;
+        while let Some(result) = work.join_next().await {
+            match result.unwrap() {
+                WorkResult::Send(index, result) => sends.push((index, result)),
+                WorkResult::Query(Ok(snapshot)) => {
+                    assert_eq!(snapshot.state, sdk::OperationState::Completed)
+                }
+                WorkResult::Query(Err(error)) => {
+                    capacity_refusal(&error);
+                    refused_queries += 1;
+                }
+            }
+        }
+        let mut refused_sends = 0;
+        for (index, result) in sends {
+            let id = format!("sdk-pipelined-message-{index}");
+            let operation_id = format!("sdk-pipelined-send-{index}");
+            let sending = match result {
+                Ok(sending) => sending,
+                Err(error) => {
+                    capacity_refusal(&error);
+                    assert_eq!(
+                        error.operation.as_ref().unwrap().operation_id.as_str(),
+                        operation_id
+                    );
+                    refused_sends += 1;
+                    // Explicit application retry uses the saved ID and identical
+                    // intent after all burst requests have settled.
+                    room.send(
+                        id.parse().unwrap(),
+                        NonEmpty {
+                            first: recipient.clone(),
+                            rest: vec![],
+                        },
+                        format!("Private concurrent fixture {index}"),
+                        mutation(&operation_id),
+                    )
+                    .await
+                    .unwrap()
+                }
+            };
+            let completion = sending.wait(options()).await.unwrap();
+            assert_eq!(completion.value.message_id.as_str(), id);
+            assert_eq!(
+                completion.value.operation.operation_id.as_str(),
+                operation_id
+            );
+            assert_eq!(completion.snapshot.state, sdk::OperationState::Completed);
+        }
+        for _ in 0..refused_queries {
+            assert_eq!(
+                creating.status(options()).await.unwrap().state,
+                sdk::OperationState::Completed
+            );
+        }
+        println!("SDK concurrency {algorithm}: 24 sends, 8 status reads, {refused_sends} explicit send capacity refusals, {refused_queries} explicit read capacity refusals; original-ID recovery");
+        let mut inspection = CanonicalClient::open(f.client.clone()).await.unwrap();
+        let history = inspection
+            .history(
+                room.id().as_str(),
+                serde_json::from_value(json!({"limit":100})).unwrap(),
+            )
+            .await
+            .unwrap();
+        let ids: std::collections::BTreeSet<_> = history
+            .messages
+            .iter()
+            .map(|m| m.msg_id.as_str().to_owned())
+            .collect();
+        assert_eq!(history.messages.len(), 24);
+        assert_eq!(ids.len(), 24);
+        for index in 0..24 {
+            assert!(ids.contains(&format!("sdk-pipelined-message-{index}")));
+        }
+        inspection.shutdown().await.unwrap();
+        client.close(options()).await.unwrap();
+        client.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+    }
+}
+#[tokio::test]
 async fn public_sdk_conversation_private_send_recovery_and_owned_shutdown() {
     for algorithm in ["EdDSA", "ES256"] {
         let f = Fixture::with_membership_scope(algorithm, 8, true).await;

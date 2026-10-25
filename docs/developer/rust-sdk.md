@@ -49,6 +49,22 @@ cancellation leaves an already started exchange owned until it settles, while
 cancelled queued work stays unwritten. Explicit close retains its join handle
 across timeout/cancellation so cleanup can be awaited again.
 
+The owned driver multiplexes command exchanges on one signed peer. Status and
+durable decisions can complete while an earlier command still awaits its reply;
+each reply binds its envelope ID and exact resource scope. One shared limit of
+16 covers queued and active exchanges. Waiting for that capacity is bounded by
+the caller's deadline and cancellation. Each active reply batch retains the
+canonical 128-frame/2 MiB limits and its original transport/authority deadline.
+An incomplete exchange deadline or invalid correlated frame retires the peer
+and returns the original logical IDs for all affected mutations. Local caller
+cancellation keeps a submitted exchange owned until it settles or the peer
+retires. This control driver is a prerequisite for native negotiation; native
+offer/answer and media I/O are still being implemented.
+
+`docs/evidence/gate-6/rust-sdk-multiplex.json` records signed interleaving,
+capacity, failure and cleanup checks, plus production listener concurrency with
+24 distinct messages and interleaved status reads under EdDSA and ES256.
+
 Current local verification is recorded in
 `docs/evidence/gate-6/rust-sdk-participants-sessions.json`: three production test
 functions, each covering EdDSA and ES256, plus the client library suite and

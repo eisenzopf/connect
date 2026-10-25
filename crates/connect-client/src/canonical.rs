@@ -680,36 +680,15 @@ impl CanonicalClient {
         cancellation: tokio_util::sync::CancellationToken,
         invitation_reference: Option<&str>,
     ) -> Result<ReplyBatch> {
-        if self.step_up.is_some() {
-            return Err(ClientError::Protocol);
-        }
-        let create_scope = matches!(kind, "conversation.create" | "conversation.list");
-        let mut value = command_value(kind, payload, scope.clone())?;
-        if let Some(reference) = invitation_reference {
-            if kind != "session.cancel"
-                || rvoip_uctp::v2::Identifier::try_from(reference.to_owned()).is_err()
-            {
-                return Err(ClientError::Protocol);
-            }
-            value["in_reply_to"] = json!(reference);
-        }
+        let (value, mut exchange) =
+            self.prepare_exchange(kind, payload, scope, invitation_reference)?;
         if cancellation.is_cancelled() {
             return Err(ClientError::Cancelled);
         }
-        let id = value["id"]
-            .as_str()
-            .ok_or(ClientError::Protocol)?
-            .to_owned();
         let mut pending = self.pending()?;
-        let remaining = (self.authenticated_until.min(self.server_key_expires_at)
-            - chrono::Utc::now())
-        .to_std()
-        .unwrap_or_default();
-        let deadline = tokio::time::Instant::now() + self.deadline.min(remaining);
+        let deadline = exchange.deadline;
         let work = async {
             self.write(value, true).await?;
-            let mut frames = Vec::new();
-            let mut bytes = 0usize;
             loop {
                 if cancellation.is_cancelled() {
                     return Err(ClientError::Cancelled);
@@ -729,36 +708,12 @@ impl CanonicalClient {
                     self.queue_event(frame)?;
                     return Err(ClientError::Transport);
                 }
-                if frame.scope(Scope::Reply) != Some(id.as_str()) {
+                if frame.scope(Scope::Reply) != Some(exchange.id.as_str()) {
                     self.queue_event(frame)?;
                     continue;
                 }
-                check_reply_scope(&frame, &scope, create_scope)?;
-                if frame.kind() == "identity.step-up-request" {
-                    if self.step_up.is_some() {
-                        return Err(ClientError::Protocol);
-                    }
-                    self.step_up = Some(step_up::Challenge::new(
-                        &frame,
-                        &id,
-                        scope.clone(),
-                        deadline,
-                        create_scope,
-                    )?);
-                }
-                bytes = bytes
-                    .checked_add(encoded_size(&frame)?)
-                    .ok_or(ClientError::Protocol)?;
-                if frames.len() >= MAX_BATCH_FRAMES || bytes > MAX_BATCH_BYTES {
-                    return Err(ClientError::Protocol);
-                }
-                let end = matches!(frame.kind(), "ack" | "error" | "identity.step-up-request");
-                frames.push(frame);
-                if end {
-                    return Ok(ReplyBatch {
-                        request_id: id,
-                        frames,
-                    });
+                if self.accept_exchange_frame(&mut exchange, frame)? {
+                    return Ok(exchange.finish());
                 }
             }
         };
@@ -1058,3 +1013,5 @@ pub use public_audio::PublicNativeAudio;
 
 mod session_invitations;
 pub use session_invitations::SessionInvitationAnswer;
+
+pub(crate) mod exchange;

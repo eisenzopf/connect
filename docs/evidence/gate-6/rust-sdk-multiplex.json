@@ -1,0 +1,189 @@
+{
+  "schema": "connect-gate6-rust-sdk-multiplex/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-25T22:26:20.883379+00:00",
+  "base_revision": "0144d19c06fc5afb08f1e2907f9cdcaf9a8b8710",
+  "scope": "Local macOS arm64 signed control multiplexing and owned cleanup. Native offer/answer and media remain open. No external crate, package, remote/Linux, performance, whole-task or acceptance qualification.",
+  "implementation": [
+    "One owned SDK driver correlates interleaved signed reply batches by envelope ID and exact scope. It reuses canonical correlation, step-up, frame/byte and absolute authority/deadline checks.",
+    "One shared bound of16 covers queued and active exchanges. Callers waiting for capacity can cancel or expire without submission. Per-exchange batch bounds remain128frames/2MiB; owned signaling and unmatched event inboxes retain their existing bounds.",
+    "Submitted exchanges remain owned after local caller cancellation. Status and durable decisions can complete while another reply is pending. There are no automatic mutation retries.",
+    "Explicit close, invalid correlation/scope or incomplete exchange deadline retires the peer, preserves submitted mutation keys and drains unwritten commands. Reader shutdown is joined; close retains timeout/cancellation joinability."
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-multiplex/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "client_library": {
+      "command": "CARGO_INCREMENTAL=0 cargo test -p connect-client --lib --locked --offline -j2 --release --target-dir <private shared cache>",
+      "tests_passed": 98,
+      "tests_failed": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-multiplex/client-suite-02.log",
+        "sha256": "937c392c1f7d44e066bfda1a14290fb986574353fc318509ec6deb50f62c7021"
+      },
+      "new_signed_stream_functions": 5,
+      "behaviors": [
+        "Interleaved partial/complete batches; status and durable cancellation complete before the locally cancelled original submission receives its final ACK.",
+        "16 active status requests; seventeenth mutation expires before write; reverse-order replies and a subsequent status remain distinct.",
+        "Joined close with multiple active requests preserves original mutation identity.",
+        "Signed foreign scope retires all pending exchanges.",
+        "An incomplete exchange deadline retires all pending exchanges."
+      ]
+    },
+    "rustdoc": {
+      "tests_passed": 5,
+      "tests_failed": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-multiplex/rustdoc-01.log",
+        "sha256": "45f2575fae7e7e0397aa27b70a5d8eb6a262a3761b64ace160699ddfef756bd3"
+      }
+    },
+    "production": {
+      "exit_code": 0,
+      "elapsed_seconds": 12.385128834052011,
+      "binary_sha256": "38d0d0d10615adb4e8f8ad2562a2195eb3f9484ff0355ccc7e16d1e57c0b9c3f",
+      "sealed_binary_sha256": "38d0d0d10615adb4e8f8ad2562a2195eb3f9484ff0355ccc7e16d1e57c0b9c3f",
+      "build_log_sha256": "aa4ff3d0e35284a2aca319d3fccfac2dff8e7f1f26b7154ade087ac99bf9c7af",
+      "build_jsonl_sha256": "6e2648005e43bc873e15f552039f01070db3ef9b1f065b94edb241907ee2cbfb",
+      "profile": "release with connect-server opt-level=0; other packages use release defaults. Functional behavior only; no performance claim.",
+      "log_sha256": "87391fe322e65ae7f6afdf063e62fde36c9d02092dc9175fce044af375dd3b4d",
+      "inputs_unchanged": true,
+      "driver_sha256": "bef6ce9ec6a9d2f71c5353dd86d3ba906bfaf17c7acdc114c0ec579042cea9c6",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-multiplex/production-02-summary.json",
+        "sha256": "2cec4065e13ac495507ebdac3a6072935a09fcba3e2465bb5357446d3566165d"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-multiplex/inputs-02.json",
+        "sha256": "e48062a222f189e2532e1928e16e9df92850a0004bb4938adeb6c649f31d3a6d"
+      },
+      "guarded_source_inputs": 1293,
+      "functions_passed": 5,
+      "scenes_passed": 10,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "concurrency_scenes": [
+        {
+          "algorithm": "EdDSA",
+          "concurrent_send_intents": 24,
+          "interleaved_status_reads": 8,
+          "send_429_refusals": 14,
+          "read_429_refusals": 8,
+          "original_ids_preserved": true,
+          "public_history_unique_messages": 24
+        },
+        {
+          "algorithm": "ES256",
+          "concurrent_send_intents": 24,
+          "interleaved_status_reads": 8,
+          "send_429_refusals": 14,
+          "read_429_refusals": 8,
+          "original_ids_preserved": true,
+          "public_history_unique_messages": 24
+        }
+      ],
+      "server_pending_capacity": 8,
+      "sdk_shared_capacity": 16,
+      "recovery": "Application explicitly retries only verified capacity refusals after the burst settles, with identical saved operation/message IDs and original intent. Subsequent public status and canonical history prove completed distinct receipts and exactly24unique messages per algorithm. Four existing control/authorization/recovery test functions also pass."
+    },
+    "earlier_probes": [
+      {
+        "log": {
+          "path": ".local/gate-6/rust-sdk-multiplex/client-suite-01.log",
+          "sha256": "88efdf9d09ade4d8e8cbde3c73c3e937d2359afa37ca426361f191001a917e0e"
+        },
+        "result": "92passed/1failed: the former serial-worker test assumed a newly scheduled mutation remained queued while a query was pending. Cancellation is now asserted deterministically before submission; the new signed capacity test independently proves an expired capacity waiter stays unwritten."
+      },
+      {
+        "report": {
+          "path": ".local/gate-6/rust-sdk-multiplex/production-01-summary.json",
+          "sha256": "6e53b5a33c9c98c321109aa16715a0a4706d381951b826ecb03b5b4c633b7939"
+        },
+        "result": "4passed/1failed: the first burst fixture incorrectly unwrapped all sends despite the existing server pending limit8. The qualifying fixture keeps that limit, asserts structured429/refused errors and original IDs, explicitly recovers identical intent and proves all24unique public history messages."
+      }
+    ]
+  },
+  "source_sha256": {
+    "crates/connect-client/Cargo.toml": "8cea60288f3cea0cc9378f4d0f43b036f41b9ef439ca734c9e07207906ddfd9d",
+    "crates/connect-client/examples/native_remote_probe.rs": "1b811e979f9d14a3881ba010ec3c6039029c58d22befbceaec2f3607ea2be60b",
+    "crates/connect-client/src/application.rs": "48eef7131b36a9721c3376434eabd682e13b7d8a20d3634efb5b0b7e876b2ad5",
+    "crates/connect-client/src/application/administration.rs": "63e32a694b28f8341e09ff718f26149c7f434de7be5abeb5dc43eaba2c2fee10",
+    "crates/connect-client/src/application/incoming_routing.rs": "d3a6c680ba9a9f156c32c016f8e7e84c2f74bdba265e920ddee6bf8d56fe089e",
+    "crates/connect-client/src/application/records.rs": "e5bfc98b18a7b7e789de7483c9a165bc1004fe9955792df15637ac80a0874af5",
+    "crates/connect-client/src/application/tests.rs": "2d83f2a7a230c44b8d198c15b36252f8a39fc38e1bbcaa9955b88ef7a6484516",
+    "crates/connect-client/src/application/tests/incoming_contacts.rs": "1605d092d39db7863a09a058e209ac821e9af9d27a121559c2e6ecf062c8ad81",
+    "crates/connect-client/src/application/tests/user_delegation.rs": "488c88a3df6de157d24cbe72b72dce6d6ba7994a522da16e27a1b46bfd59b229",
+    "crates/connect-client/src/application/user_delegation.rs": "273ecccde50c42a1d5916973b30b037eb82ebdf116b890d17c62e0ef88a62976",
+    "crates/connect-client/src/canonical.rs": "3af5b124bd11602afdff7b919eef78c72c8b0feccdf00d0b013d0a8857a9b1b3",
+    "crates/connect-client/src/canonical/calls.rs": "3ddcf1d6f6105da09bad41e6b27f903168f32b48d4625977893af492de009755",
+    "crates/connect-client/src/canonical/capabilities.rs": "133b9efe28858072d5511ce2e8cfae829efccb10277f3af8736a7a4d64e12f91",
+    "crates/connect-client/src/canonical/dtmf.rs": "2bcd6f8dd4d0f315537aeecf3d037f31415ba67b08400aac92c01012b5cc53ab",
+    "crates/connect-client/src/canonical/exchange.rs": "f03ee01cebe56288b346d85bf17d1ca9ce1c0580a5472833860dd6df072ca36d",
+    "crates/connect-client/src/canonical/handoff_audio.rs": "95b2c3e6d691b46b7d6804888f9c16ace51169216f38f8259170e1bcd3e183d0",
+    "crates/connect-client/src/canonical/http.rs": "5cb2f62a68333f312e9226d5619f957adae247d21d49f5a41fd1314c66d4c0aa",
+    "crates/connect-client/src/canonical/native.rs": "f6317390ba7286da79a08d3aa6de656b8248d4dac84c38c39cad6dbb38722b52",
+    "crates/connect-client/src/canonical/owned_signaling.rs": "dbfc67a3eb014b0ea0866506df5a2cc68c3be23f7796987aeb44319d773eec57",
+    "crates/connect-client/src/canonical/private_audio.rs": "c917d5d3769a7cbb1bc1608b497bc13463af03c7e9b779d2e8368688295f134c",
+    "crates/connect-client/src/canonical/public_audio.rs": "5c851b02d0e62c0a806d095a9eb9245a2c774df959745543a7707a4eedb35b31",
+    "crates/connect-client/src/canonical/quality.rs": "b4610407c3075a8c78dca3b46d5bfad7c0dd3d88601590f1469573b1a46e0543",
+    "crates/connect-client/src/canonical/records.rs": "2bbd63553b93872d448094353aca3f04b83ad75a9438ba9359abc0e2f03b0bcd",
+    "crates/connect-client/src/canonical/session_invitations.rs": "b776a5e813a912475b5cdeca099bf2c2a54b222d2a31e62f94479af393433d76",
+    "crates/connect-client/src/canonical/step_up.rs": "53d0bc93c4d5c0761c8db855f410a610e16d7d70577354324c8e864ffdbcf7d6",
+    "crates/connect-client/src/canonical/tests.rs": "4593461a57897826aaab737d0f0aaf2b300d6d0dd946ba08b084a3c68bb3053d",
+    "crates/connect-client/src/canonical/tests/auth_refresh.rs": "4c1353e302e440b72abfb0c330d6e48b652542e9a3684b67da90813c9eaf1cef",
+    "crates/connect-client/src/canonical/tests/native_media.rs": "7e88085a4ead0b8a511396e4bd8ef48e3743e25deca9aedf5d7798703249142a",
+    "crates/connect-client/src/canonical/tests/owned_signaling.rs": "8dd59dd5315a8b4fbfe0961304c8bc98ebc589cbffde254b37ac604617d7024e",
+    "crates/connect-client/src/canonical/tests/sdk_decisions.rs": "52c20c8777d9e941b95b5b26f82144b923ee6ccb902dc97203353bf8a9eb628e",
+    "crates/connect-client/src/canonical/tests/sdk_multiplex.rs": "7e2f16a5d373d11d8bfbec6f4488b10a23588ed8c779372ea880105850a730a6",
+    "crates/connect-client/src/canonical/tests/sdk_worker.rs": "1bace2c83c13859b30a1124b567ad80113e6752bd65f9f1e2f92d83192855a39",
+    "crates/connect-client/src/canonical/tests/step_up.rs": "0d22f09e8173c170f9bff9d7b48c9c23831ba563349e1a6676b922710f4b9cd4",
+    "crates/connect-client/src/canonical/trust.rs": "687e85adf1f4fd26b0c813696ef97239ef6e22342ed203bfe64028f28620a9d0",
+    "crates/connect-client/src/client.rs": "af8c1bb4bdb33b851fb9e81aaac57de9028feb9b298fba2d59064b8811acf2a3",
+    "crates/connect-client/src/config.rs": "5e823a8d092495a1251d1ec7aa5ff354787e4f9ca778392ff70ec168fae2da8a",
+    "crates/connect-client/src/contacts.rs": "3146934d58589376ac0df206febf4e960ff79e42a77f30b4e5d7773fd3f29890",
+    "crates/connect-client/src/discovery.rs": "38ab1e180c0c575f240fadded972e99a8432f98f181a310a8bc34849d12953a7",
+    "crates/connect-client/src/error.rs": "b9800fd98df4d4e456de9a860806045fbd8a5a8986e3f18c33388b68747e539a",
+    "crates/connect-client/src/event_operations.rs": "f25487b2494fde79e13e9e9d4a109780388fde45999843b8ae4ca4118fce648c",
+    "crates/connect-client/src/lib.rs": "9fda47983d48bff235d99b03f25c1092a28de5219557f86db569905ada8efac8",
+    "crates/connect-client/src/media.rs": "abc1c11886435454709e7af7a69405a057c4d71d95ce5bda52abbee9d2db632a",
+    "crates/connect-client/src/media_end.rs": "a695b23728d33e34aba323682d6df70a0867f6a96ee2faba5e97bc17aab663bf",
+    "crates/connect-client/src/operations.rs": "91dc9ee9c4a06548a265a9bce0b0726b75c1244c6fb9ec07f16c3a2bc92ba2d8",
+    "crates/connect-client/src/receipt_operations.rs": "84c51c55467a6019d08ea8a7326d4da1a1495e5152beeffa502ce15b2dd87adc",
+    "crates/connect-client/src/sdk.rs": "ebd0592e4c7614e041cafae0ff055e8756c643eace5327ac8a37411220876ef3",
+    "crates/connect-client/src/sdk/control.rs": "08eafa6f8a9725336cb758c1f80e3ee01fd3cc3b3119f401cf8f830f07b68983",
+    "crates/connect-client/src/sdk/conversations.rs": "b97baa823fee8974c8fbdf39272e9ee4e357629d567ee9c24a05c160db05a5af",
+    "crates/connect-client/src/sdk/decisions.rs": "02aecb5724724dac3db612c8cf0f3f9ca0b69c3b2cfc25514cecfb08dd3b48f1",
+    "crates/connect-client/src/sdk/error.rs": "ec8fc693232b1e6d2a6f2a5847f98153885aa8f82b1e2f6140ba9dd932787b67",
+    "crates/connect-client/src/sdk/ids.rs": "9a897154866022564521915ae315f204ce8979f4f40fd3350759863f623087a1",
+    "crates/connect-client/src/sdk/operation.rs": "8bf1265035867e9d7b125cfc746436fc22b6900620f3211a7aeccf8de5890310",
+    "crates/connect-client/src/sdk/participants.rs": "8794506171ac462b725a936b5fd6f4923bad8b93a9b68e47f899a7a6ad62b1ed",
+    "crates/connect-client/src/sdk/sessions.rs": "e3d3c6bf368e4f67c49187967ea10cfe49d8c38985a454fcbabba3fd104b3c10",
+    "crates/connect-client/src/sdk/snapshot.rs": "1c88dfae3ba9caf20e78b7a375e47853f98e36dda092976cecdb784b560d94e3",
+    "crates/connect-client/src/sdk/worker.rs": "f3e2e3d839a59b198c3e19c6554aaff2368b7e76317eef759e5310e77a906ac7",
+    "crates/connect-client/src/task_diagnostics/mod.rs": "ee2d0aa6ece5e2e6a1cda5497da7f9f776b2ab4d0ae1f151154f32bdcdb07f24",
+    "crates/connect-client/src/task_diagnostics/models.rs": "9171e6d158c51e2144bdecedbe9bac714fbc9e8a47da71e1e90fabbd4990bff4",
+    "crates/connect-client/src/task_diagnostics/projection.rs": "0da6efb2c3f595f90d324c6824032eeb0c47bd6bc48e44f01c3ef46d10102b8d",
+    "crates/connect-client/src/task_diagnostics/readiness.rs": "af22b3be677baacd02f280dc8e109a0736591894c4755ebb47485685d246f494",
+    "crates/connect-client/src/task_diagnostics/readiness_tests.rs": "52ebb02378b6124cd07a36ac58e3fd21b87b2ba02f0f0b9f5df1978ef4cde1ec",
+    "crates/connect-client/src/task_diagnostics/tests.rs": "a52f1f2f3d28202687c38ae1890ef1dd4d6f97979d416eb0ed809c02d563bf6b",
+    "crates/connect-client/src/task_operations.rs": "64e50e08ffd07d5f41e2e64fbdbf991e8342739e35fdb3766b6752675a9710a4",
+    "crates/connect-client/src/transition_operations.rs": "7bbd972cace2bfa9b585ee05037c35c5f58e0d0cc70af27605270dcd4e5fdd23",
+    "crates/connect-client/src/video/assembly.rs": "ef1fa67eb672b55c8fae33481574c55f47c172250175b9cd35d787af613259ec",
+    "crates/connect-client/src/video/diagnostics.rs": "be5d900deef0632b5cd0374fd1007ce5762819450457159acb7ccbf9dab56097",
+    "crates/connect-client/src/video/lifecycle.rs": "f32a8802e44d746ed49c29498a1c174229f904dcb633ab60a68f1f6fe8fa6359",
+    "crates/connect-client/src/video/mod.rs": "c17859523f61986f8b417c714803eba95276481d94ac1fd5d97896e4f12ec8b9",
+    "crates/connect-client/src/video/packet.rs": "82c0c437e4c14f601f9c0a0bd016e82399479158d1c3643a021e3d97a3ccf123",
+    "crates/connect-client/src/video/signaling.rs": "cb4a8072fe492db329c840bb2c799c8ddad8bc8d38d9abf450f31ffb3b1da608",
+    "crates/connect-client/src/video/timebase.rs": "2461df433a830f51d677e86b6a840916e3629d681a6617257dec73ce65861dfa",
+    "crates/connect-server/tests/support/sdk_handles.rs": "210cdd05ad1e4101ba784053a1aa01dc0536d13efb667351dcf4fb357d4dc019"
+  },
+  "remaining": [
+    "Native Connection offer/answer, shared audio/video/data I/O, Connection/Stream and consultation/return/handoff APIs.",
+    "Event/capability/raw/admin/config APIs and all required external-crate, restart/incompatible-version, packaging, remote/Linux and acceptance qualification."
+  ]
+}
