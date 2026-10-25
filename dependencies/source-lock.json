@@ -1119,6 +1119,11 @@
       "path": "patches/rvoip/gate6-preserve-rtp-on-initial-clock-acquisition.patch",
       "sha256": "8781ea76452902333654c55e9dfcb2d07f07ffed61df81c34b771abcdbb26625",
       "source": "G6-050 initial source-clock anchor acquisition preserves an in-progress VP8 SSRC/sequence and accumulated sender counts. Identity/generation/support changes and loss of a published anchor still retire old mappings. Adds split-frame regression with a report acquired between actual RTP fragments."
+    },
+    {
+      "path": "patches/rvoip/gate6-public-native-source-clock-api.patch",
+      "sha256": "7c09be061b78afbd7edbb37d947b61d5e8ed0856d7c25820da427be43bade936",
+      "source": "G6-050 public native RTP/clock datagram observation and SR/SDES builder reusing the canonical host parser. Preserve original handle/physical sequence/exact NTP/RTP/counters/CNAME and RTP marker; claimed malformed clocks never fall back to RTP or imply readiness. Five wire regressions. Public SDK integration and network qualification remain separate."
     }
   ]
 }

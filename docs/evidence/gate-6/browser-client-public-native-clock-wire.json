@@ -1,0 +1,81 @@
+{
+  "schema": "connect-gate6-public-native-clock-wire/1",
+  "task": "G6-050",
+  "status": "Prepared protocol wire API verified; Connect SDK integration and actual browser/native qualification pending",
+  "source_lock_sha256": "19646f387c6c652fa7959604bcf01301308aae4576ab15aeab283b7e678d2377",
+  "patch_count": 203,
+  "patch": {
+    "path": "patches/rvoip/gate6-public-native-source-clock-api.patch",
+    "sha256": "7c09be061b78afbd7edbb37d947b61d5e8ed0856d7c25820da427be43bade936",
+    "source": "G6-050 public native RTP/clock datagram observation and SR/SDES builder reusing the canonical host parser. Preserve original handle/physical sequence/exact NTP/RTP/counters/CNAME and RTP marker; claimed malformed clocks never fall back to RTP or imply readiness. Five wire regressions. Public SDK integration and network qualification remain separate."
+  },
+  "prepared_source": {
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs": "6cbd2378517edee1c1026e3dfb73a79a3b336335b3882fb3db81ea58edce7b0f",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/substrate/mod.rs": "992b86c263bdff4ba58b9a3df626f0e294176fdad4591d8abfc1044daeac62fc",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs": "ba938f813bc9cf3c329bc721d4c2a09e897d5a01b8a5893d8fa3253cae1230fa"
+  },
+  "verification": {
+    "report": ".local/gate-6/native-sdk-clock203/positive001/summary.json",
+    "sha256": "6cac4beb3d5cbc4c4f6a1565748b8469cbe61d0a6ea5160f2fd44c0c1ddff954",
+    "passed": true,
+    "methods": 109,
+    "counts": {
+      "core": 85,
+      "uctp": 22,
+      "actual_signed_driver_methods": 2
+    },
+    "new_public_wire_methods": 5,
+    "inputs_unchanged": true,
+    "original_and_sealed_executables_unchanged": true,
+    "scope": "Prepared203 public native wire helpers plus retained Core admission/mixer/UCTP and controlled actual signed QUIC/WT clock transmission. Expected109methods (85Core/22UCTP/2signed network). This does not qualify Connect public SDK integration, Store/browser capture/render/native AV or operating profiles.",
+    "cases": [
+      {
+        "selection": "staged_streams::tests::guarded_mixer::",
+        "methods": 54,
+        "passed": true
+      },
+      {
+        "selection": "staged_streams::tests::media_scene::",
+        "methods": 29,
+        "passed": true
+      },
+      {
+        "selection": "staged_streams::guarded_audio::cadence_tests::",
+        "methods": 2,
+        "passed": true
+      },
+      {
+        "selection": "staged_media::",
+        "methods": 17,
+        "passed": true
+      },
+      {
+        "selection": "substrate::source_clock::tests::",
+        "methods": 5,
+        "passed": true
+      },
+      {
+        "selection": "actual_signed_native_clock_reports_cross_current_ingress_and_egress_without_readiness_or_idle_grants",
+        "methods": 1,
+        "passed": true
+      },
+      {
+        "selection": "actual_signed_native_three_audio_codecs_decode_across_unequal_mtu_peers_and_sequence_wrap",
+        "methods": 1,
+        "passed": true
+      }
+    ]
+  },
+  "behavior": [
+    "Public typed observations distinguish native RTP from bounded clock-only SR/SDES compounds. A report preserves physical stream handle/sequence and exact source SSRC,NTP/RTP,successful sender counters and matching CNAME. The shared canonical host parser remains authoritative.",
+    "The native-wire demultiplexer retains complete RTP marker/sequence/payload. Claimed RTCP parsing refusal is never retried as RTP. Zero handles,bad versions/flags/truncations/identities/BYE/unbounded names and wire-size violations refuse. No media/readiness/authorization grant comes from parsing timing metadata.",
+    "Five added public helper methods supplement the17retained media tests. The85Core and2actual signed driver methods retain their source/route/consumer/current-authority/queue and no-idle-clock-grant behavior. Actual network methods cover signed QUIC/WT clock admission/reporting and PCMU/PCMA/Opus across unequalMTUs/sequence wrap."
+  ],
+  "preparation": {
+    "report": ".local/gate-6/native-sdk-clock203/prepare203b.log",
+    "mtime_report": ".local/gate-6/native-sdk-clock203/mtime203b.json",
+    "scope": "Official preparation from pinned source revisions and all203recorded patches;4067byte-identical source mtimes preserved to reuse compiled dependencies. Existing prepared202 remains unchanged.",
+    "attempt": "Initial new-file patch omitted Git new-file mode metadata; preparation refuses dev/null before applying patch203. Failed patch/source-lock and partial cache remain preserved privately. Corrected header/digest prepares new203b successfully; no .deps source edits."
+  },
+  "remaining": "Connect CanonicalClient clock-aware API, all callers and the native fixture are candidates under current unit/consumer compilation; not yet a verified SDK or runtime claim. Current browser/browser8/8SDK244 proof remains source202. Full current browser/native live presentation, independent source phases, impairment, permission/background, other profiles and all105tasks remain required. No G6-050/acceptance completion."
+}

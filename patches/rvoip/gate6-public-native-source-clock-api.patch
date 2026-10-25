@@ -1,0 +1,193 @@
+diff --git a/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs b/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
+--- a/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
+@@ -2,7 +2,9 @@
+ use bytes::{BufMut, Bytes, BytesMut};
+ use rvoip_rtp_core::packet::rtcp::{RtcpCompoundMember, RtcpPacket, RtcpTolerantCompoundPacket};
+ #[derive(Clone, Debug, PartialEq, Eq)]
+-pub(crate) struct Report {
++/// Exact RFC3550 sender report and the matching bounded source CNAME.
++/// A report supplies clock metadata; it never authorizes media or readiness.
++pub struct Report {
+     pub ssrc: u32,
+     pub ntp: u64,
+     pub rtp: u32,
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/mod.rs b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+--- a/crates/uctp/rvoip-uctp/src/substrate/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/mod.rs
+@@ -9,6 +9,7 @@
+ pub mod framing;
+ pub mod peer_media_router;
+ pub mod quinn;
++pub mod source_clock;
+ pub mod tls;
+ 
+ pub use correlation::{send_and_wait, Pending};
+@@ -16,6 +17,10 @@
+     observe_rtp, observe_rtp_datagram, pack_observed_rtp_datagram, pack_rtp_datagram,
+     unpack_rtp_datagram, ObservedRtpDatagram, ObservedRtpPayload, RtpDatagram,
+     RtpIngressObservation, RtpMediaPayload,
++};
++pub use source_clock::{
++    observe_native_media_datagram, observe_sender_clock_datagram, pack_sender_clock_datagram,
++    ObservedNativeMediaDatagram, SenderClockDatagram, SenderClockReport,
+ };
+ // Alpha compatibility only: these helpers do not validate the opaque payload.
+ #[doc(hidden)]
+diff --git a/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs b/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/substrate/source_clock.rs
+@@ -0,0 +1,152 @@
++//! Clock-aware native datagram observations for the canonical fixed RTP profile.
++//! The caller still checks negotiated clock support and the current stream binding.
++use super::{observe_rtp_datagram, ObservedRtpDatagram};
++use crate::{errors::SubstrateError, staged_media::rtcp};
++use bytes::Bytes;
++
++pub use crate::staged_media::rtcp::Report as SenderClockReport;
++
++/// One validated SR/SDES clock compound on its original physical stream handle.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct SenderClockDatagram {
++    pub stream_local_id: u16,
++    pub seq: u32,
++    pub report: SenderClockReport,
++}
++
++/// Media and clock metadata remain distinct. A clock alone is never readiness.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum ObservedNativeMediaDatagram {
++    Rtp(ObservedRtpDatagram),
++    Clock(SenderClockDatagram),
++}
++
++/// Validate a bounded, non-reduced SR compound using the canonical host parser.
++/// Reject malformed/missing identities, BYE, zero handles and nonzero flags.
++pub fn observe_sender_clock_datagram(input: &[u8]) -> Result<SenderClockDatagram, SubstrateError> {
++    let (stream_local_id, report) = rtcp::parse(input).ok_or(SubstrateError::InvalidDatagram(
++        "invalid sender clock compound",
++    ))?;
++    Ok(SenderClockDatagram {
++        stream_local_id,
++        seq: u32::from_be_bytes(input[4..8].try_into().expect("validated clock header")),
++        report,
++    })
++}
++
++/// Encode one clock-only compound. Counters and sampled RTP/NTP belong to the
++/// caller's actual successful media submissions; this helper does not infer them.
++pub fn pack_sender_clock_datagram(datagram: &SenderClockDatagram) -> Result<Bytes, SubstrateError> {
++    rtcp::encode(datagram.stream_local_id, datagram.seq, &datagram.report).ok_or(
++        SubstrateError::InvalidDatagram("invalid sender clock identity"),
++    )
++}
++
++/// Lossless RTP or clock-only SR/SDES, with bounded wire size. The canonical
++/// fixed codec profile uses disjoint RTP/RTCP payload allocations. A packet
++/// claiming RTCP is never retried as RTP after a clock parsing refusal.
++pub fn observe_native_media_datagram(
++    input: &[u8],
++) -> Result<ObservedNativeMediaDatagram, SubstrateError> {
++    if input.len() > 16 * 1024 + 20 {
++        return Err(SubstrateError::InvalidDatagram(
++            "native media datagram too large",
++        ));
++    }
++    if input.get(9).is_some_and(|kind| (192..=223).contains(kind)) {
++        observe_sender_clock_datagram(input).map(ObservedNativeMediaDatagram::Clock)
++    } else {
++        observe_rtp_datagram(input).map(ObservedNativeMediaDatagram::Rtp)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn report() -> SenderClockDatagram {
++        SenderClockDatagram {
++            stream_local_id: 7,
++            seq: u32::MAX,
++            report: SenderClockReport {
++                ssrc: 41,
++                ntp: 0x80000000ffffffff,
++                rtp: u32::MAX - 10,
++                packets: 9,
++                octets: 321,
++                cname: "common-π".into(),
++            },
++        }
++    }
++    #[test]
++    fn public_clock_roundtrip_preserves_original_wire_identity_and_exact_ntp() {
++        let d = report();
++        let wire = pack_sender_clock_datagram(&d).unwrap();
++        assert_eq!(observe_sender_clock_datagram(&wire).unwrap(), d);
++        assert_eq!(
++            observe_native_media_datagram(&wire).unwrap(),
++            ObservedNativeMediaDatagram::Clock(d)
++        );
++    }
++    #[test]
++    fn claimed_clock_never_falls_back_to_rtp_on_truncation_or_header_refusal() {
++        let wire = pack_sender_clock_datagram(&report()).unwrap();
++        for n in 0..wire.len() {
++            assert!(
++                observe_native_media_datagram(&wire[..n]).is_err(),
++                "truncation {n}"
++            );
++        }
++        for (index, value) in [(0, 2), (1, 1), (2, 0), (8, 0x40)] {
++            let mut bad = wire.to_vec();
++            bad[index] = value;
++            if index == 2 {
++                bad[3] = 0;
++            }
++            assert!(observe_native_media_datagram(&bad).is_err());
++        }
++    }
++    #[test]
++    fn public_clock_refuses_missing_foreign_duplicate_identity_and_bye() {
++        let wire = pack_sender_clock_datagram(&report()).unwrap();
++        let mut bad = wire[..36].to_vec();
++        assert!(observe_native_media_datagram(&bad).is_err());
++        bad = wire.to_vec();
++        bad[40..44].copy_from_slice(&42u32.to_be_bytes());
++        assert!(observe_native_media_datagram(&bad).is_err());
++        bad = wire.to_vec();
++        bad.extend_from_slice(&wire[36..]);
++        assert!(observe_native_media_datagram(&bad).is_err());
++        bad = wire.to_vec();
++        bad.extend_from_slice(&[0x81, 203, 0, 1, 0, 0, 0, 41]);
++        assert!(observe_native_media_datagram(&bad).is_err());
++    }
++    #[test]
++    fn public_clock_builder_refuses_zero_handle_and_unbounded_names() {
++        let mut d = report();
++        d.stream_local_id = 0;
++        assert!(pack_sender_clock_datagram(&d).is_err());
++        d.stream_local_id = 7;
++        for name in ["".into(), "bad\nname".into(), "x".repeat(256)] {
++            d.report.cname = name;
++            assert!(pack_sender_clock_datagram(&d).is_err());
++        }
++        assert!(observe_native_media_datagram(&vec![0; 16 * 1024 + 21]).is_err());
++    }
++    #[test]
++    fn clock_aware_demux_retains_rtp_marker_sequence_and_payload() {
++        let mut wire = vec![
++            1, 0, 0, 7, 0xff, 0xff, 0xff, 0xff, 0x80, 0xe0, 0x12, 0x34, 0, 0, 0, 9, 0, 0, 0, 41,
++            0x10, 0xab,
++        ];
++        let ObservedNativeMediaDatagram::Rtp(d) = observe_native_media_datagram(&wire).unwrap()
++        else {
++            panic!("RTP became clock");
++        };
++        assert_eq!(d.seq, u32::MAX);
++        assert!(d.rtp.packet().header.marker);
++        assert_eq!(d.rtp.packet().header.sequence_number, 0x1234);
++        assert_eq!(d.rtp.packet().payload.as_ref(), &[0x10, 0xab]);
++        wire[9] = 200;
++        assert!(observe_native_media_datagram(&wire).is_err());
++    }
++}
