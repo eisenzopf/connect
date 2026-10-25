@@ -276,7 +276,7 @@ impl NativeSubscriptionPolicy for Policy {
                     Captured::NoEffect(
                         Arc::new(lease.without_effect(connect_protocol::Error::new(
                             "native-reconciliation-no-effect",
-                            error.to_string(),
+                            &error.to_string(),
                         ))),
                         *error,
                     )
