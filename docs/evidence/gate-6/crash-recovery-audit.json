@@ -1,0 +1,127 @@
+{
+  "task": "G6-047",
+  "status": "requirement-audit-public-operator-wire-check-pending",
+  "full_task_complete": false,
+  "full_goal_complete": false,
+  "recorded_at": "2026-10-25T02:06:29.089447+00:00",
+  "scope": "Current schema110 macOS arm64 isolated recovery evidence. No Linux/distinct-host/named provider or full acceptance claim.",
+  "proofs": {
+    "schema110-native012-runtime-012": {
+      "summary": ".local/gate-6/crash-recovery/schema110-native012-runtime-012/summary.json",
+      "summary_sha256": "dec368a6d55f5fa590ad4a7129790815b20e51b900563527964d1390eed87801",
+      "source_revision": "a068a96bf39fb0141f14438609443698fc41685a",
+      "executable_sha256": "2214892f74b6eca86f5e8285f4bb4ed7ca66885b5fafa4039d67d9a276119e82",
+      "all_current_source_inputs_match": true,
+      "cases": [
+        "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_eddsa",
+        "canonical_native_connections::crash_recovery::production_sigkill_native_ready_bridge_recovers_without_resurrection_es256",
+        "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_eddsa",
+        "canonical_native_connections::crash_recovery::production_sigkill_native_answer_before_confirmation_never_becomes_ready_es256",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_eddsa",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::crash::production_sigkill_sip_submission_keeps_external_uncertainty_without_redial_es256",
+        "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_eddsa",
+        "canonical_native_connections::crash_recovery::production_sigkill_native_during_metadata_retirement_cannot_resurrect_bridge_es256",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
+        "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence"
+      ]
+    },
+    "schema110-provider011-runtime-011": {
+      "summary": ".local/gate-6/crash-recovery/schema110-provider011-runtime-011/summary.json",
+      "summary_sha256": "5e29de6412e8921072fed000e4e6a9f13ad7defb2d04395f024f8e323056476b",
+      "source_revision": "abf49d5a4e187942169dc32c378278be04092f74",
+      "executable_sha256": "d08e181a8fd6d6ba0c1f7740db42de70ac66f7d6d880bdcba613f4082e2f5c6f",
+      "all_current_source_inputs_match": true,
+      "cases": [
+        "canonical_provider_voice::crash::production_sigkill_provider_create_reconciles_original_external_call_once_eddsa",
+        "canonical_provider_voice::crash::production_sigkill_provider_create_reconciles_original_external_call_once_es256",
+        "canonical_provider_voice::actual_vapi_sdk_reconciles_lost_creation_after_restart_without_another_post_or_invented_session_acceptance",
+        "canonical_provider_voice::actual_vapi_correlated_quarantine_resolution_preserves_the_foreign_call_and_original_receipt",
+        "canonical_provider_voice::quic_http_replay_starts_once_and_end_reaches_journal"
+      ]
+    },
+    "schema110-owned-recovery015": {
+      "summary": ".local/gate-6/crash-recovery/schema110-owned-recovery015/summary.json",
+      "summary_sha256": "a8475302044fddac0e4bf274dd971e0b2b7814d7152b217f54ed49fbec5af90c",
+      "source_revision": "a5222ca2db3ab0a964b925689df0cbd2f9bb0489",
+      "executable_sha256": "2214892f74b6eca86f5e8285f4bb4ed7ca66885b5fafa4039d67d9a276119e82",
+      "all_current_source_inputs_match": true,
+      "cases": [
+        "canonical_native_connections::consultation::groups::replacement::telephone::production_telephone_configured_shutdown_cancels_the_actual_ringing_callback",
+        "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_restart_private_owner_drop_preserves_captures_and_refuses_old_io",
+        "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_restart_completed_owner_drop_fences_ready_claim_under_successor_epoch",
+        "canonical_native_connections::consultation::groups::replacement::telephone::restart::production_telephone_lost_command_reply_recovers_same_attempt_and_never_redials_unknown_submission"
+      ]
+    },
+    "schema110-store-remainder016": {
+      "summary": ".local/gate-6/crash-recovery/schema110-store-remainder016/summary.json",
+      "summary_sha256": "af95af4e9d14b50de2af71925e8e91afe0a0542b8d6a7861a90a5215a8bd3b06",
+      "source_revision": "1ac70a6dacc8dc8955b569ded1f8d659b5046de9",
+      "executable_sha256": "ac884878685b7227dfae5a3db7cc6a2292f56c3b92a76fe6b589ed65e1f3b486",
+      "all_current_source_inputs_match": true,
+      "cases": []
+    }
+  },
+  "store_recovery_authority_methods": [
+    "transitions::provider_sessions::tests::typed_quarantine_resolution_after_restart_retains_original_conflict_and_owns_only_the_distinct_resource",
+    "transitions::provider_sessions::tests::unknown_creation_survives_worker_restart_and_cannot_redial_or_guess_cleanup",
+    "transitions::tests::authority_tests::bounded_worker_batches_drain_large_valid_state_on_open_and_preserve_unknown_effects",
+    "transitions::tests::authority_tests::operation_admission_leases_effects_cancel_and_reconcile_wait_for_delivery",
+    "transitions::tests::backup_after_submit_is_unknown_reserved_and_never_automatically_submitted_again",
+    "transitions::tests::full_journal_cannot_keep_an_old_worker_authorized_and_explicit_repair_uses_terminal_room",
+    "transitions::tests::peer_operations::canonical_operation_cancel_replay_and_attributed_reconciliation_share_current_durable_receipts",
+    "transitions::tests::peer_operations::canonical_operation_get_requires_both_recovery_permission_and_current_original_command_scope",
+    "transitions::tests::peer_operations::canonical_operation_proof_is_not_substitutable_for_another_action_target_credential_or_root",
+    "transitions::tests::peer_operations::canonical_operation_source_expiry_during_sql_wait_rolls_back_lazy_recovery_and_decision",
+    "transitions::tests::process_crashes_cover_durable_boundaries_without_duplicate_callbacks_or_partial_local_commit",
+    "transitions::tests::process_crashes_keep_cancellation_evidence_reconciliation_and_cleanup_atomic",
+    "transitions::tests::revoked_owner_does_not_make_uncertainty_unrepairable_or_grant_a_new_operator_live_commit"
+  ],
+  "requirement_map": [
+    {
+      "requirement": "Accepted operations, original IDs, effect attempts, transaction atomicity",
+      "proof": [
+        "schema110-store-remainder016"
+      ],
+      "observed": "All1193 default-feature methods covered; selected13 recovery/authority methods explicitly enumerated.27 controlled process boundaries are local transaction/synthetic-effect evidence, not physical media."
+    },
+    {
+      "requirement": "Actual kill/restart around submit, answer, ready, commit and retirement",
+      "proof": [
+        "schema110-native012-runtime-012",
+        "schema110-provider011-runtime-011"
+      ],
+      "observed": "Both algorithms: surviving SIP submission and actual SDK provider creation; native answered-before-confirmation; decoded ready/committed bridge; physical close with blocked metadata retirement. Distinct phases are explicit, not an unexecuted every-operation cross product."
+    },
+    {
+      "requirement": "Honest journal/provider/media state and no duplicate redial or stale bridge resurrection",
+      "proof": [
+        "schema110-native012-runtime-012",
+        "schema110-provider011-runtime-011"
+      ],
+      "observed": "Old readiness and observation fences, successor ownership and lifetimes; immutable receipt/attempt1; supported authenticated original-call queries; unknown surviving SIP; conflicting invitation/replay never redials; no database-only Session start."
+    },
+    {
+      "requirement": "Bounded current-authority operator reconciliation",
+      "proof": [
+        "schema110-store-remainder016"
+      ],
+      "observed": "Current permission/original scopes, attributed evidence, revision/generation, separate stable decisions and replay, bounded recovery/source traversal and protected cleanup after original-owner revocation. Public HTTP refusal after actual SIP SIGKILL is building separately and is not yet passed.",
+      "pending": true
+    },
+    {
+      "requirement": "Drain or terminate owned resources on shutdown",
+      "proof": [
+        "schema110-owned-recovery015"
+      ],
+      "observed": "Actual ringing CANCEL on configured shutdown, private and completed owner Drop with captured media/custody, and lost reply reusing original attempt. These are explicitly orderly/Drop/reply-loss methods, not SIGKILL."
+    }
+  ],
+  "pending": [
+    "Complete public HTTP operator uncertainty test after actual SIP process death.",
+    "Check current owned record/HTTP shutdown cases before closure; preserve the distinction between resource drains and protocol-close waits."
+  ],
+  "unqualified_variants": [
+    "No claim of a separately executed SIP answered/committed SIGKILL matrix. The approved phase coverage above identifies its actual adapters and boundaries.",
+    "No named provider account, Linux x86_64, remote/native distinct-host or browser qualification."
+  ]
+}

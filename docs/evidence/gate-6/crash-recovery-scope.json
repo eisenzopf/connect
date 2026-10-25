@@ -1417,5 +1417,7 @@
     "compile_correction": "voice_flow now uses recursion_limit256, matching the native runtime test target; first build failure retained in provider-submitted005.",
     "fix_scope": "Schema110 two-order host guard and four schema checks pass; all five actual provider crash/regression methods now pass with stable source/executable guards.",
     "fix_report": "docs/evidence/gate-6/provider-host-guard-repair.json"
-  }
+  },
+  "requirement_audit": "docs/evidence/gate-6/crash-recovery-audit.json",
+  "operator_reference": "docs/developer/crash-recovery.md"
 }
