@@ -1,0 +1,206 @@
+{
+  "schema": "connect-gate6-shared-presentation-host/1",
+  "task": "G6-050",
+  "status": "Failed actual installed-Chrome frozen capture profile; 6/8 methods pass",
+  "source_revision": "067027f556be53e3f56d901a53cf4d71fb0bdf7b",
+  "source_patch_count": 202,
+  "sdk_methods": 236,
+  "report": ".local/gate-6/browser-sdk/clean60-shared069/summary.json",
+  "report_sha256": "14a7354c6ba81c65c13d28288d2c45dd9c79e2862a28cb6f37587a706f4dea63",
+  "passed": false,
+  "methods": 8,
+  "passed_methods": 6,
+  "source_inputs_unchanged": true,
+  "executable_unchanged": true,
+  "scope": "Actual production TypeScript canonical control in owned Chrome. Exact selected methods are recorded; a single diagnostic method does not qualify the omitted matrix. Optional media selects short synthetic source over SDK/WT/Store/Core with identified Opus/VP8/data and durable teardown. Optional capture selects supplied-stream capture/worklet and decoded audio/canvas rendering. Explicit clean60 applies frozen fps/paired graph-canvas marker limits and resource observations only to capture methods. Packet tracing and diagnostic60 are diagnostic only and never qualify the frozen clean profile. Optional native cases use public CanonicalClient QUIC and independently decode actual native received packets. No native live encoder/realtime presenter/full60second-native/impairment/remote/provider/complete G6-050/acceptance/publication claim.",
+  "cases": [
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 1.5220770000014454,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-0.log",
+      "log_sha256": "eda95645fba71cbe0991c1e5a83e71c7e5483dae4411beebe9a9bdc2913443ff"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 0.8396472500171512,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-1.log",
+      "log_sha256": "9c12a8e2c89b115a9cdbba11d4b28e4f737eb9ae8f2a2aae0b36c82b530e9225"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 4.3999650839250535,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-2.log",
+      "log_sha256": "9c4a0e709bb0cbc0afade8c366b12d68e004a932793dd0f94bfba8fa0e0d3766"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 4.386913707945496,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-3.log",
+      "log_sha256": "734f5a163347ff32b24f796b8cab8017ef21cf4c6eb9497ca963676a0e2d519c"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 5.958502833032981,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-4.log",
+      "log_sha256": "ebb528618681096f594c2ff7b5df69505d17139c6db9d387550883de738173cb"
+    },
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+      "passed": true,
+      "exit_code": 0,
+      "elapsed_seconds": 6.061217500129715,
+      "log": ".local/gate-6/browser-sdk/clean60-shared069/case-5.log",
+      "log_sha256": "4a5d9e74b9adfad98c4ae57908a5cc06a62f0aab9259e5241ab6a2636b68ad37"
+    }
+  ],
+  "capture_failures": [
+    {
+      "algorithm": "EdDSA",
+      "failure": "actual rendered VP8 motion insufficient",
+      "observed_video": [
+        {
+          "decoded": 1742,
+          "identified": 55,
+          "motion": 26
+        },
+        {
+          "decoded": 1743,
+          "identified": 0,
+          "motion": 0
+        }
+      ],
+      "decoded_readiness_ms": 253.59999990463257,
+      "aggregate_media": [
+        {
+          "sent": 4826,
+          "received": 4474,
+          "rejected": 0,
+          "decodedAudio": 2707,
+          "decodedVideo": 1764,
+          "queuedPackets": 0,
+          "queuedBytes": 0,
+          "droppedPackets": 0,
+          "activeBindings": 3
+        },
+        {
+          "sent": 4818,
+          "received": 4747,
+          "rejected": 0,
+          "decodedAudio": 2972,
+          "decodedVideo": 1750,
+          "queuedPackets": 0,
+          "queuedBytes": 0,
+          "droppedPackets": 0,
+          "activeBindings": 3
+        }
+      ],
+      "resources": {
+        "valid": true,
+        "sample_count": 61,
+        "groups": {
+          "server_test_host": {
+            "observed_cumulative_cpu_seconds": 33.75,
+            "peak_observed_rss_bytes": 72876032,
+            "observed_process_count": 1
+          },
+          "browser": {
+            "observed_cumulative_cpu_seconds": 17.990000000000002,
+            "peak_observed_rss_bytes": 1821327360,
+            "observed_process_count": 15
+          },
+          "control_driver_or_other_owned_child": {
+            "observed_cumulative_cpu_seconds": 0.08,
+            "peak_observed_rss_bytes": 90832896,
+            "observed_process_count": 3
+          }
+        },
+        "errors": [],
+        "log": ".local/gate-6/browser-sdk/clean60-shared069/case-6-resources.json",
+        "log_sha256": "13d062cb7a15d5735b3d50b7a406c9b29fc6390b5d8d7b93af9e494796e96f74"
+      },
+      "actual_rendered_frame_count": "Not serialized before this earlier assertion; no rendered-fps pass is inferred from decoder callbacks.",
+      "alignment": "Not reached",
+      "original_terminal_intent_and_owned_teardown": "Not reached; finally cleanup is not qualification."
+    },
+    {
+      "algorithm": "ES256",
+      "failure": "actual rendered VP8 motion insufficient",
+      "observed_video": [
+        {
+          "decoded": 1711,
+          "identified": 407,
+          "motion": 260
+        },
+        {
+          "decoded": 1740,
+          "identified": 8,
+          "motion": 3
+        }
+      ],
+      "decoded_readiness_ms": 1246.1000001430511,
+      "aggregate_media": [
+        {
+          "sent": 4907,
+          "received": 4822,
+          "rejected": 0,
+          "decodedAudio": 3035,
+          "decodedVideo": 1735,
+          "queuedPackets": 0,
+          "queuedBytes": 0,
+          "droppedPackets": 0,
+          "activeBindings": 3
+        },
+        {
+          "sent": 4892,
+          "received": 4392,
+          "rejected": 0,
+          "decodedAudio": 2588,
+          "decodedVideo": 1793,
+          "queuedPackets": 0,
+          "queuedBytes": 0,
+          "droppedPackets": 0,
+          "activeBindings": 3
+        }
+      ],
+      "resources": {
+        "valid": true,
+        "sample_count": 62,
+        "groups": {
+          "server_test_host": {
+            "observed_cumulative_cpu_seconds": 37.72,
+            "peak_observed_rss_bytes": 74268672,
+            "observed_process_count": 1
+          },
+          "browser": {
+            "observed_cumulative_cpu_seconds": 18.41,
+            "peak_observed_rss_bytes": 1886994432,
+            "observed_process_count": 14
+          },
+          "control_driver_or_other_owned_child": {
+            "observed_cumulative_cpu_seconds": 0.08,
+            "peak_observed_rss_bytes": 91258880,
+            "observed_process_count": 3
+          }
+        },
+        "errors": [],
+        "log": ".local/gate-6/browser-sdk/clean60-shared069/case-7-resources.json",
+        "log_sha256": "572b8766e3a73b50a861f78019b5f7986a3bcb4c2f74b9bf97cbe88ec79729c6"
+      },
+      "actual_rendered_frame_count": "Not serialized before this earlier assertion; no rendered-fps pass is inferred from decoder callbacks.",
+      "alignment": "Not reached",
+      "original_terminal_intent_and_owned_teardown": "Not reached; finally cleanup is not qualification."
+    }
+  ],
+  "interpretation": "Both long cases receive/decode video, but the unchanged pixel observer finds far fewer identified moving frames than required. Readiness and transport/decoder counts do not qualify sustained presentation. This failed run does not yet contain the capture metadata correction9e65d128. No source, observer or quality limits changed. All failures and unexecuted assertions remain explicit.",
+  "next": "Rerun unchanged installed-Chrome clean profile with pushed SDK240 capture metadata correction; current clean60-frame070 is running in the isolated worktree. Inspect actual rendered rates and all retained marker pairs; native clock consumption and other profiles remain required. G6-050 stays in progress."
+}

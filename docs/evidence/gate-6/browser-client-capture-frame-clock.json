@@ -44,5 +44,5 @@
     "Four public capture cases cover late first/later callbacks, direct captureTime including zero, eleven unavailable/malformed/unsafe timings with ownership cleanup, and paused callback discard/resume retaining the epoch. No source, observer, AV offset or quality threshold changes."
   ],
   "specification": "https://wicg.github.io/video-rvfc/",
-  "remaining": "The unchanged clean60-shared069 run continues in its original worktree on SDK236/source202. It does not contain this fix. After its terminal outcome, rerun the current SDK240 with the same frozen source, observer and limits; require actual rendered fps as well as all paired markers. Browser/native, independently phased sources, impairment, permissions/background and complete owned teardown remain required. G6-050 and acceptance remain open."
+  "remaining": "The unchanged clean60-shared069 run on SDK236/source202 finished6/8, failing both long cases on identified rendered motion; see browser-client-shared-presentation-host.json. It does not contain this capture fix. The unchanged current SDK240 clean60-frame070 is now running; actual rendered fps/all paired markers, browser/native, independent sources, impairment, permissions/background and complete owned teardown remain required. G6-050 and acceptance remain open."
 }
