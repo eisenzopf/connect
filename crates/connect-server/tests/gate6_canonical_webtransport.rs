@@ -401,3 +401,7 @@ async fn wrong_missing_duplicate_origin_and_wrong_mount_refuse_before_authority(
 
 #[path = "support/canonical_webtransport_media.rs"]
 mod canonical_webtransport_media;
+
+#[cfg(unix)]
+#[path = "support/canonical_webtransport_browser.rs"]
+mod canonical_webtransport_browser;

@@ -6,7 +6,7 @@ use connect_client::{
 };
 use rvoip_uctp::substrate::{pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload};
 
-fn endpoint(f: &Fixture, config: &CanonicalClientConfig, index: usize) {
+pub(super) fn endpoint(f: &Fixture, config: &CanonicalClientConfig, index: usize) {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
         .server
@@ -49,7 +49,7 @@ fn endpoint(f: &Fixture, config: &CanonicalClientConfig, index: usize) {
         )
         .unwrap();
 }
-fn other(f: &Fixture) -> CanonicalClientConfig {
+pub(super) fn other(f: &Fixture) -> CanonicalClientConfig {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope
@@ -96,7 +96,10 @@ fn other(f: &Fixture) -> CanonicalClientConfig {
         .unwrap();
     config
 }
-async fn accepted(f: &Fixture, peer: &CanonicalClientConfig) -> (String, String, String) {
+pub(super) async fn accepted(
+    f: &Fixture,
+    peer: &CanonicalClientConfig,
+) -> (String, String, String) {
     let mut client = CanonicalClient::open(f.client.clone()).await.unwrap();
     let mut input =
         connect_client::conversations::CreateRequest::persistent(vec![peer.identity_id.clone()]);
