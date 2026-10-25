@@ -255,7 +255,7 @@ The explicit `--native` option adds four short browser/public `CanonicalClient` 
 
 Retained-selector reconciliation preserves the exact engine error as well as success while journal recording retries. A metadata-only observer cannot reenter the engine. For an unchanged-resource atomic routing failure, the adapter can issue an opaque proof of no graph commit, bound to the original scope, operation and error. The host records that original failed attempt before freeing its pending parent; later work requires fresh current authority. Possible native-resource IO failures retain uncertainty and their original logical identity. Operation status, including the canonical HTTP operation query, reports the captured failed/unknown outcome; neither status nor this historical proof authorizes media. The isolated six-method/239-Store evidence is in `docs/evidence/gate-6/browser-client-reconciliation-outcomes.json`; current host checks pass all eight short browser baseline, four native and 28 transport methods. Sustained audio delivery, A/V alignment and impairment remain unresolved.
 
-Managed audio mixes at 48 kHz and preserves consecutive original RTP intervals when packets arrive together. Its decoded PCM queue holds at most 200 ms in ten chunks. Each output still checks current source permission and the original packet age and route; pauses and expired inputs cannot become delayed playback. Overlapping replacement packets keep the existing newest-input behavior. Evidence from the 71 focused mixer and scene tests is in `docs/evidence/gate-6/browser-client-original-pcm.json`; current host delivery and A/V alignment require their separate runtime checks.
+Managed audio mixes at 48 kHz and decodes consecutive original RTP intervals in order. After each output it retains the newest waiting original plus any remainder of the packet currently being played, preventing an initial burst from creating permanent queue delay. Its decoded PCM queue still holds at most 200 ms in ten chunks before insertion. Each output still checks current source permission and the original packet age and route; pauses and expired inputs cannot become delayed playback. Overlapping replacement packets keep the existing newest-input behavior. Evidence from the 71 focused mixer and scene tests is in `docs/evidence/gate-6/browser-client-original-pcm.json`; current host delivery and A/V alignment require their separate runtime checks.
 
 For bounded server packet-age diagnostics, select one capture method with
 `--diagnostic60 --packet-trace summary --case <capture-method>`. This uses the
@@ -280,3 +280,9 @@ under ignored `.local/gate-6/sealed-executables/`. Runs link only independently
 copied, verified sealed bytes. Cargo outputs remain separate so a later build
 cannot rewrite the sealed executable. Corrupt entries refuse admission; source
 and executable digest checks still cover each run.
+
+The waiting-packet policy passes 76 focused Core mixer/scene/cadence checks,
+including ordered two-packet bursts, long packet remainders, fresh recovery and
+current authorization. These component results do not qualify sustained browser
+audio or A/V alignment. See
+`docs/evidence/gate-6/browser-client-audio-backlog.json`.

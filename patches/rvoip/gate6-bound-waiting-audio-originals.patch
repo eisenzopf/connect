@@ -1,0 +1,95 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -163,6 +163,7 @@
+ }
+ struct Chunk {
+     packet: MediaPacket,
++    started: bool,
+     samples: VecDeque<i16>,
+ }
+ struct Segment {
+@@ -356,8 +357,27 @@
+             // packet age, scene, consumer and route stamps before every output.
+             self.pending.push_back(Chunk {
+                 packet,
++                started: false,
+                 samples: samples.into(),
+             });
++        }
++    }
++    fn keep_next_original(&mut self) {
++        // Once one quantum has played, a burst must not become permanent FIFO
++        // latency. Retain the newest not-yet-started original, plus the remainder
++        // of an original packet already being played (which may exceed20ms).
++        // The separate ten-chunk/200ms insertion bound and original age/current
++        // authority checks remain in force. No authority is retained by trimming.
++        let partial = self.pending.front().is_some_and(|chunk| chunk.started);
++        let keep = if partial { 2 } else { 1 };
++        let mut discarded = 0u64;
++        while self.pending.len() > keep {
++            self.pending.remove(if partial { 1 } else { 0 });
++            discarded += 1;
++        }
++        if discarded > 0 {
++            tracing::trace!(target: "rvoip_core::audio_path", source = %self.controller.connection,
++                discarded_chunks = discarded, "Guarded audio pending burst trimmed");
+         }
+     }
+     fn skip_missed_quanta(&mut self, quanta: u64, size: usize) {
+@@ -443,6 +463,7 @@
+                 stream_generation: chunk.packet.source.binding.generation,
+             };
+             let amount = (size - offset).min(chunk.samples.len());
++            chunk.started = true;
+             let samples = chunk.samples.drain(..amount).collect();
+             segments.push(Segment {
+                 lease_index: leases.len(),
+@@ -596,6 +617,9 @@
+             member.collect();
+             member.skip_missed_quanta(quanta, size);
+             let segments = member.take(size, &mut leases, &mut admissions);
++            if !segments.is_empty() {
++                member.keep_next_original();
++            }
+             inputs.insert(id.clone(), (member.participant.clone(), segments));
+         }
+         let mut subscription_guards = Vec::new();
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1036,3 +1036,36 @@
+         assert_eq!(budget, s.controllers[0].stream_open_budget());
+     }
+ }
++
++#[tokio::test]
++async fn guarded_mixer_playing_long_original_keeps_its_remainder_and_latest_future_packet() {
++    for rate in [8000, 48000] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, true).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        s.publish_duration(0, 1000, 0, 5);
++        s.publish_at(0, 3000, 800);
++        s.publish_at(0, 5000, 960);
++        s.publish_at(0, 7000, 1120);
++        for _ in 0..5 {
++            s.mixer.tick();
++            heard(out.try_recv().unwrap(), 1000).await;
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("pending original retained idle authority"),
++            );
++        }
++        s.mixer.tick();
++        heard(out.try_recv().unwrap(), 7000).await;
++        s.mixer.tick();
++        assert!(
++            out.try_recv().is_err(),
++            "trimmed future originals replayed later"
++        );
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}
