@@ -96,7 +96,8 @@ again, so a later denial takes effect even after successful negotiation.
 ## Checked datagram framing
 
 QUIC and WebTransport media use the same eight-byte UCTP header and one complete
-RTP v2 packet, as specified in protocol section 10.1. The physical stream handle
+RTP v2 packet. The selected source-clock profile below additionally carries
+bounded complete RTCP compounds in that wrapper. The physical stream handle
 is nonzero; its authenticated route binding and lifetime are checked separately
 from byte parsing. The outer 32-bit datagram sequence and inner 16-bit RTP
 sequence are distinct. Both use network byte order and retain their full ranges.
@@ -117,6 +118,43 @@ identity boundaries, CSRCs, extensions, padding, truncation and invalid handles
 or versions. Payload bytes are test markers; these checks do not establish
 codec decoding, live browser/WebTransport networking, datagram MTU or media
 fragmentation behavior. Those require their separate runtime profiles.
+
+## Source-clock transport
+
+The signed parameter capabilities advertise `source_clock: "rtcp-sr-sdes/1"`.
+A browser only emits or consumes clock reports after that profile is selected;
+unknown selections and changes to an installed route refuse explicitly. Timing
+availability is independent of codec/transport availability and media authority.
+
+Clock datagrams retain version1, zero flags, the current nonzero allocated handle
+and the outer datagram sequence. Their body is one SR-first RTCP compound with
+one matching SDES CNAME. The body is at most1180bytes and16members, fits the
+actual negotiated datagram MTU, and uses the frozen payload profile's RTP/RTCP
+packet-type discriminator. Missing/duplicate/malformed identities and BYE as a
+live clock sample refuse. Unknown bounded members invoke no feedback or control.
+
+Current ingress direction, binding, policy and scene/consumer guards precede
+clock-state mutation. A report cannot enqueue media, imply readiness or hold idle
+authority. One Connection normalizes a common CNAME/NTP reference; individual
+stream/SSRC incarnations retain distinct source IDs and weak liveness. Original
+packet admission age and current authorization remain separate from capture time.
+
+Sender reports sample send time and the corresponding RTP clock value, with
+packet/octet counts from actual successful RTP submissions. Destination streams
+share one CNAME; report writes do not count as RTP or media flow. The native
+packetizer emits reports only during an actual guarded media send, at most once
+per second. No idle reporting task exists. Clock identity, support or anchor
+availability changes retire the old egress SSRC, so an unavailable mapping cannot
+inherit its receiver's earlier anchor. Frame slicing and nominal resampling
+preserve truthful source timing; unknown or unaligned mixes stay explicit.
+
+The timing correspondence and CNAME roles follow
+[RFC3550 sender reports](https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1)
+and [CNAME](https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1).
+Current component evidence is in
+`docs/evidence/gate-6/browser-client-source-clock.json`. It does not qualify
+physical audio/video synchronization, codec filter delay, a live native SDK
+renderer or the full operating profile. Shared receiver scheduling remains open.
 
 ## Feedback belongs to the registered payload
 

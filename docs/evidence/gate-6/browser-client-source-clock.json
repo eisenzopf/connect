@@ -1,7 +1,7 @@
 {
   "schema": "connect-gate6-browser-source-clock/1",
   "task": "G6-050",
-  "status": "SDK shared source-clock transport integrated; native and shared presentation qualification pending",
+  "status": "Browser SDK and canonical native source-clock transport implemented; shared presentation and connected operating qualification remain open",
   "source": {
     "sdk/typescript/src/browser_rtcp.ts": "6fe02225cac0970c5eb83d89c8880000f6aa58ae71d4c35dc445c886029cf942",
     "sdk/typescript/src/browser_rtp.ts": "54e68c5869a88f64da0f0237cd25d23960c1f8babdc59916636c6024e3b73898",
@@ -32,9 +32,70 @@
   ],
   "peer_wiring": "One production BrowserMediaPeer method uses controlled WebCodecs and datagram streams: incoming RTCP maps audio without increasing RTP counts; outgoing report follows the actual media write and contains its SSRC/packet/octet counts; retired handle rejects; no idle metadata write; unknown source-clock profile refuses. This is in-process wiring, not a network/browser/Core/Store qualification.",
   "host_fixture": "Browser fixture allowlist serves browser_rtcp.js; Root host compilation and actual browser profile have not been rerun.",
-  "remaining": "Verify native checked ingress/egress and scoped clock lifetimes over actual signed QUIC/WT, then implement bounded shared receiver presentation and rerun the unchanged full capture/native/impairment/teardown profiles. G6-050 stays in progress.",
+  "remaining": "Implement bounded shared receiver presentation, update public native consumers for the RTP/RTCP clock profile, compile/rehearse the actual Connect host and installed browser/native clients, and rerun unchanged full capture/impairment/permission/background/owned teardown profiles. Independently phased multiple mixer contributors still require alignment. No whole G6-050, operating, acceptance or publication qualification.",
   "standards": [
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.4.1",
     "https://www.rfc-editor.org/rfc/rfc3550.html#section-6.5.1"
+  ],
+  "native": {
+    "report": ".local/gate-6/native-clock/positive004/summary.json",
+    "sha256": "a32473f36714289b08b0ddd1952e172778de859d6d022d1dc23a63c08aae2fcf",
+    "passed": true,
+    "methods": 103,
+    "core_methods": 85,
+    "media_unit_methods": 16,
+    "actual_network_methods": 2,
+    "scope": "Focused Core admission/mixer and UCTP unit plus controlled actual signed QUIC/WT source-clock transmission. No production Connect Store/browser capture/render/full synchronization or operating profile qualification.",
+    "inputs_unchanged": true,
+    "executables_unchanged": true,
+    "source_lock_sha256": "81a89bb76ec3b1648e878874c8af98d7632397c0f530dd6e9f53f63d6f931845",
+    "patch_count": 201,
+    "patch": {
+      "path": "patches/rvoip/gate6-canonical-source-clock-transport.patch",
+      "sha256": "738ae88aaf48fef386d805bc130c79fa1fb3a682722d54be58781a9af4da550a"
+    },
+    "case_log_sha256": [
+      "95dfc564345fc512f5314a14c763ba414fd8eec825a9ac1142494ddf88535d9f",
+      "62aa9a80b2a035537a26d275783b2ce0ee7e899785492ff2be0973e9e20b93b1",
+      "1c880380b37d34bc970b552dbc4ee5d5a9c488aeeafc5d6bce573c3c6ddf3190",
+      "efb061987e0326f47132d6b9a973f4497eef50a4d160274fd7502f1f534bd7ca",
+      "ec14507ccbf262b5734f2e9463aa15bb67a60f449fd727596793d6ec5e04b836",
+      "260463201ab1058a80d9261368aba87f6b5f0df8f1d22f06f34626a91c9caee0"
+    ],
+    "executable_sha256": {
+      "rvoip_core": "b7dec3dca93c89747c1786049ac328767f45208264304e23cb65ed22681a530c",
+      "rvoip_uctp": "966cd7cae511870855bf8cc9053b1f7688dc6a9a09b551c1c2a31d493ca68516",
+      "v2_peer_admission": "4e65779484e15939f4e365f499caf09ee496e7d3a98aa93a4df38124b2e58fc9"
+    }
+  },
+  "native_behavior": [
+    "Core observes timing under exact current ingress authority and route/scene/consumer guards; the returned liveness predicates are weak metadata. Clocked RTP attaches its snapshot under the same original packet admission. No separate media packet, readiness or idle reader is introduced.",
+    "One bounded Connection clock group normalizes its common CNAME/NTP offset once. Each stream/SSRC incarnation has a distinct source identity and current report/route predicates. Waiting, conflicting, zero or unavailable timing remains explicit.",
+    "Owned packetizers report current send time with the corresponding destination RTP sample value, after actual successful RTP submissions. All destination streams share one CNAME/clock domain. Reports never count as RTP or establish flow; no detached report timer exists.",
+    "A clock incarnation/support/anchor-availability transition retires its prior egress SSRC. Lost mappings cannot reuse a receiver's old clock. Current packet permission, original admission age and bounded queues remain independent of timing metadata."
+  ],
+  "actual_network_witness": "One EdDSA signed local canonical-driver method runs QUIC and WT: accept an authorized sender report before actual PCMU, count no RTP/readiness or queued packet from that report, preserve a deliberate100ms capture phase through actual checked ingress/guarded forwarding/egress, compare its normalized sample mapping with measured before-send/after-admission timestamps within one8kHz sample, then refuse a report after current authorization denial with no media output or idle lease. A separate retained method decodes PCMU/PCMA/Opus over both actual transports with unequal MTUs and sequence wrap. These are controlled relationship-policy fixtures, not Connect Store or installed browser/native live playout qualification.",
+  "attempts": [
+    {
+      "report": ".local/gate-6/native-clock/positive001/summary.json",
+      "sha256": "683cb3d9c3634bc693275fbb2e80dab87308fa24e7afd37179db6398b3c92890",
+      "passed": false,
+      "runtime_cases": 0,
+      "reason": "New packetizer unit test lacked a qualified observer import; corrected in separately prepared source."
+    },
+    {
+      "report": ".local/gate-6/native-clock/positive002/summary.json",
+      "sha256": "fbc6b6d56273f80453e7c2727a89be629e5945feacf9b2d138c24a1b081c2685",
+      "passed": false,
+      "runtime_passes": 101,
+      "reason": "85Core and16media units pass, but runner chose a transport executable that did not contain the new peer-admission network case. No network pass claimed."
+    },
+    {
+      "report": ".local/gate-6/native-clock/positive003/summary.json",
+      "sha256": "d2727042e47a9d5f6ab62945d040951ffe163e35b5f96818ac41ced9b6ebe614",
+      "passed": true,
+      "runtime_passes": 103,
+      "reason": "Initial actual network assertion had a broad timestamp bound; final fixture preserves an intentional100ms phase and asserts the measured report-admission interval. Production source bytes unchanged."
+    }
   ]
 }

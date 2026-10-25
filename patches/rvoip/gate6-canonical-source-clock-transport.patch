@@ -1,0 +1,1401 @@
+--- a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+@@ -77,7 +77,7 @@
+             captured_at: chrono::Utc::now(),
+             payload_type: None,
+         };
+-        self.publish_data_frame(&frame, Some(data), held)
++        self.publish_data_frame(&frame, Some(data), held, None)
+     }
+ }
+ struct OwnedGuards {
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1404,3 +1404,104 @@
+             .expect("retired clock retained source authority"),
+     );
+ }
++
++#[tokio::test]
++async fn guarded_mixer_clock_metadata_owns_current_ingress_only_during_observation() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let port = s.port(0);
++    let capacity = port.ingress_capacity();
++    let revision = s.controllers[0].revision();
++    let current = port
++        .with_current_ingress_clock(|current| {
++            assert!(
++                s.policy.0.try_write().is_err(),
++                "clock observer lacked current authority"
++            );
++            current
++        })
++        .unwrap();
++    assert!(current());
++    assert_eq!(capacity, port.ingress_capacity());
++    assert_eq!(revision, s.controllers[0].revision());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("clock metadata retained idle authority"),
++    );
++    let consumer = s
++        .mixer
++        .role_targets(&[s.controllers[0].connection.clone()])
++        .pop()
++        .unwrap();
++    consumer
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(false);
++    assert!(!current());
++    assert!(port
++        .with_current_ingress_clock(|_| panic!("clock report admitted from listening-only source"))
++        .is_err());
++    consumer
++        .prepare_role(deadline(), CancellationToken::new())
++        .await
++        .unwrap()
++        .commit(true);
++    assert!(!current(), "old clock revived after role recovery");
++    assert!(port.with_current_ingress_clock(|c| c()).unwrap());
++    s.policy.0.write().await.revoked.insert("alice".into());
++    assert!(port
++        .with_current_ingress_clock(|_| panic!("revoked clock report admitted"))
++        .is_err());
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("refused clock observation retained authority"),
++    );
++}
++#[tokio::test]
++async fn guarded_mixer_clocked_ingress_attaches_after_authorization_without_separate_packet() {
++    let s = Scene::new(&four()[..2], 8000).await;
++    s.bind(0, true).await;
++    s.bind(1, false).await;
++    let port = s.port(0);
++    let mut out = s.port(1).take_egress().unwrap();
++    let frame = frame(&port, 0);
++    let before = port.ingress_capacity();
++    port.try_publish_clocked(&frame, |current| {
++        assert!(s.policy.0.try_write().is_err());
++        Some(crate::stream::MediaSourceClock {
++            source_id: 42,
++            generation: 1,
++            anchor: Some(crate::stream::MediaClockAnchor {
++                ntp_time: 100u64 << 32,
++                rtp_time: 0,
++                clock_rate: 8000,
++            }),
++            supported: true,
++            rtp_offset: 0,
++            is_current: current,
++        })
++    })
++    .unwrap();
++    assert_eq!(before.1 - 1, port.ingress_capacity().1);
++    drop(
++        s.policy
++            .0
++            .try_write()
++            .expect("clocked packet queued an idle reader"),
++    );
++    s.mixer.tick();
++    let mixed = mixed_frame(out.try_recv().unwrap()).await;
++    assert_eq!(mixed.source_clock.unwrap().source_id, 42);
++    s.policy.0.write().await.revoked.insert("alice".into());
++    assert!(port
++        .try_publish_clocked(&frame, |_| panic!(
++            "clock attached before current authorization"
++        ))
++        .is_err());
++}
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -670,13 +670,89 @@
+     /// A full queue is explicit backpressure. Reliable data adapters must stop
+     /// reading/retry the same message; they must never acknowledge a drop.
+     pub fn try_publish(&self, frame: &MediaFrame) -> ControlResult<()> {
+-        self.publish_data_frame(frame, None, None)
++        self.publish_data_frame(frame, None, None, None)
++    }
++    /// Observe timing only while the exact current ingress gates are held.
++    /// The callback cannot establish media readiness, enqueue a packet or keep
++    /// permission alive. Its returned predicate is weak lifecycle metadata.
++    pub fn with_current_ingress_clock<T>(
++        &self,
++        observe: impl FnOnce(Arc<dyn Fn() -> bool + Send + Sync>) -> T,
++    ) -> ControlResult<T> {
++        if self.0.kind() == StreamKind::Data {
++            return Err(StreamControlError::Unsupported);
++        }
++        let owner = self
++            .0
++            .owner
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let ticket = self.0.ticket();
++        let (_lease, admission, deadline) = owner.admit_with_data(
++            &self.0,
++            &ticket,
++            false,
++            None,
++            audio_consumer::ConsumerCheck::Current,
++            None,
++            scene_consumer::SceneCheck::publish(),
++            None,
++            None,
++            None,
++        )?;
++        if tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(observe(self.clock_liveness(ticket, &admission)))
++    }
++    /// Attach a source-clock snapshot after normal packet admission and before
++    /// queueing, under the same current authority as this original packet.
++    pub fn try_publish_clocked(
++        &self,
++        frame: &MediaFrame,
++        observe: impl FnOnce(
++            Arc<dyn Fn() -> bool + Send + Sync>,
++        ) -> Option<crate::stream::MediaSourceClock>,
++    ) -> ControlResult<()> {
++        if self.0.kind() == StreamKind::Data {
++            return Err(StreamControlError::Unsupported);
++        }
++        self.publish_data_frame(frame, None, None, Some(Box::new(observe)))
++    }
++    fn clock_liveness(
++        &self,
++        ticket: PeerRouteTicket,
++        admission: &audio_consumer::MediaAdmission,
++    ) -> Arc<dyn Fn() -> bool + Send + Sync> {
++        let port = Arc::downgrade(&self.0);
++        let consumer = admission.consumer.clone();
++        let scene = admission.scene.clone();
++        Arc::new(move || {
++            port.upgrade().is_some_and(|p| {
++                p.owner
++                    .upgrade()
++                    .is_some_and(|o| !o.shutdown.is_cancelled())
++                    && ticket.is_current()
++                    && consumer
++                        .as_ref()
++                        .is_none_or(audio_consumer::ConsumerStamp::is_current)
++                    && scene.as_ref().is_none_or(|s| !s.cancel.is_cancelled())
++            })
++        })
+     }
+     fn publish_data_frame(
+         &self,
+         frame: &MediaFrame,
+         data: Option<&reliable_data::StagedData>,
+         held: Option<&(dyn Any + Send + Sync)>,
++        clock: Option<
++            Box<
++                dyn FnOnce(
++                        Arc<dyn Fn() -> bool + Send + Sync>,
++                    ) -> Option<crate::stream::MediaSourceClock>
++                    + '_,
++            >,
++        >,
+     ) -> ControlResult<()> {
+         self.0.validate(frame)?;
+         if self
+@@ -696,7 +772,13 @@
+             .ok_or(StreamControlError::Cancelled)?;
+         if data.is_none() && held.is_none() && self.0.kind() == StreamKind::Audio {
+             if tracing::enabled!(target: "rvoip_core::guarded_frame", tracing::Level::TRACE) {
+-                let muted = owner.state.try_lock().ok().and_then(|state| state.model.streams().get(&self.0.binding.negotiated.requested.logical_id).map(|stream| stream.source_muted));
++                let muted = owner.state.try_lock().ok().and_then(|state| {
++                    state
++                        .model
++                        .streams()
++                        .get(&self.0.binding.negotiated.requested.logical_id)
++                        .map(|stream| stream.source_muted)
++                });
+                 tracing::trace!(target: "rvoip_core::guarded_frame", connection=%owner.connection, source_muted=?muted, "Owned audio ingress gate");
+             }
+             let probe = owner
+@@ -725,10 +807,14 @@
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
++        let mut observed_frame = frame.clone();
++        if let Some(observe) = clock {
++            observed_frame.source_clock = observe(self.clock_liveness(ticket.clone(), &admission));
++        }
+         self.0
+             .ingress
+             .try_send(MediaPacket {
+-                frame: frame.clone(),
++                frame: observed_frame,
+                 data: data.cloned(),
+                 source: self.0.clone(),
+                 ticket,
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/rtcp.rs
+@@ -0,0 +1,197 @@
++//! Bounded clock-only RFC3550 compounds on the canonical RTP datagram profile.
++use bytes::{BufMut, Bytes, BytesMut};
++use rvoip_rtp_core::packet::rtcp::{RtcpCompoundMember, RtcpPacket, RtcpTolerantCompoundPacket};
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub(crate) struct Report {
++    pub ssrc: u32,
++    pub ntp: u64,
++    pub rtp: u32,
++    pub packets: u32,
++    pub octets: u32,
++    pub cname: String,
++}
++fn valid_name(s: &str) -> bool {
++    !s.is_empty() && s.len() <= 255 && !s.chars().any(|c| c.is_ascii_control())
++}
++pub(crate) fn is_rtcp(bytes: &[u8]) -> bool {
++    bytes.len() >= 12
++        && bytes.len() <= 1188
++        && bytes[0] == 1
++        && bytes[2..4] != [0, 0]
++        && bytes[8] >> 6 == 2
++        && (192..=223).contains(&bytes[9])
++}
++pub(crate) fn parse(bytes: &[u8]) -> Option<(u16, Report)> {
++    if !is_rtcp(bytes) || bytes.len() < 48 || bytes[1] != 0 {
++        return None;
++    }
++    let data = &bytes[8..];
++    let mut offset = 0;
++    let mut count = 0;
++    while offset < data.len() {
++        if offset + 4 > data.len() || !(192..=223).contains(&data[offset + 1]) {
++            return None;
++        }
++        let len = (usize::from(u16::from_be_bytes([data[offset + 2], data[offset + 3]])) + 1) * 4;
++        offset = offset.checked_add(len)?;
++        count += 1;
++        if offset > data.len() || count > 16 {
++            return None;
++        }
++    }
++    let compound = RtcpTolerantCompoundPacket::parse(data).ok()?;
++    let RtcpCompoundMember::Known(RtcpPacket::SenderReport(sr)) = compound.packets.first()? else {
++        return None;
++    };
++    let mut cname = None;
++    let mut names = std::collections::BTreeSet::new();
++    for (index, member) in compound.packets.iter().enumerate() {
++        match member {
++            RtcpCompoundMember::Known(RtcpPacket::SenderReport(_)) if index != 0 => return None,
++            RtcpCompoundMember::Known(RtcpPacket::Goodbye(_)) => return None,
++            RtcpCompoundMember::Known(RtcpPacket::SourceDescription(sdes)) => {
++                for chunk in &sdes.chunks {
++                    for item in &chunk.items {
++                        if item.item_type == rvoip_rtp_core::packet::rtcp::RtcpSdesItemType::CName {
++                            if !valid_name(&item.value) || !names.insert(chunk.ssrc) {
++                                return None;
++                            }
++                            if chunk.ssrc == sr.ssrc {
++                                cname = Some(item.value.clone());
++                            }
++                        }
++                    }
++                }
++            }
++            _ => {}
++        }
++    }
++    Some((
++        u16::from_be_bytes([bytes[2], bytes[3]]),
++        Report {
++            ssrc: sr.ssrc,
++            ntp: sr.ntp_timestamp.to_u64(),
++            rtp: sr.rtp_timestamp,
++            packets: sr.sender_packet_count,
++            octets: sr.sender_octet_count,
++            cname: cname?,
++        },
++    ))
++}
++pub(crate) fn encode(handle: u16, seq: u32, report: &Report) -> Option<Bytes> {
++    if handle == 0 || !valid_name(&report.cname) {
++        return None;
++    }
++    let name = report.cname.as_bytes();
++    let sdes = (11 + name.len()).div_ceil(4) * 4;
++    let mut b = BytesMut::with_capacity(8 + 28 + sdes);
++    b.put_u8(1);
++    b.put_u8(0);
++    b.put_u16(handle);
++    b.put_u32(seq);
++    b.extend_from_slice(&[0x80, 200, 0, 6]);
++    b.put_u32(report.ssrc);
++    b.put_u64(report.ntp);
++    b.put_u32(report.rtp);
++    b.put_u32(report.packets);
++    b.put_u32(report.octets);
++    b.put_u8(0x81);
++    b.put_u8(202);
++    b.put_u16((sdes / 4 - 1) as u16);
++    b.put_u32(report.ssrc);
++    b.put_u8(1);
++    b.put_u8(name.len() as u8);
++    b.extend_from_slice(name);
++    b.resize(8 + 28 + sdes, 0);
++    Some(b.freeze())
++}
++pub(crate) fn now_ntp() -> u64 {
++    rvoip_rtp_core::packet::rtcp::NtpTimestamp::now().to_u64()
++}
++pub(crate) fn rtp_at(
++    ntp: u64,
++    anchor: rvoip_core::stream::MediaClockAnchor,
++    offset: u32,
++) -> Option<u32> {
++    if anchor.clock_rate == 0 {
++        return None;
++    }
++    let delta = ntp.wrapping_sub(anchor.ntp_time) as i64;
++    // Metadata outside a media lifetime is not a usable sampling clock.
++    if delta.unsigned_abs() > (10u64 << 32) {
++        return None;
++    }
++    let ticks = (i128::from(delta) * i128::from(anchor.clock_rate)).div_euclid(1i128 << 32);
++    Some(
++        anchor
++            .rtp_time
++            .wrapping_add(offset)
++            .wrapping_add(ticks as u32),
++    )
++}
++pub(crate) fn payload_octets(packet: &[u8]) -> Option<u32> {
++    if packet.len() < 20 {
++        return None;
++    }
++    let mut start = 20 + usize::from(packet[8] & 15) * 4;
++    if packet[8] & 16 != 0 {
++        let n = packet.get(start + 2..start + 4)?;
++        start += 4 + usize::from(u16::from_be_bytes([n[0], n[1]])) * 4;
++    }
++    let end = packet.len().checked_sub(if packet[8] & 32 != 0 {
++        usize::from(*packet.last()?)
++    } else {
++        0
++    })?;
++    u32::try_from(end.checked_sub(start)?).ok()
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn report() -> Report {
++        Report {
++            ssrc: u32::MAX,
++            ntp: 0x80000000ffffffff,
++            rtp: u32::MAX - 10,
++            packets: 4,
++            octets: 99,
++            cname: "shared-π".into(),
++        }
++    }
++    #[test]
++    fn clock_compound_roundtrip_and_all_truncations() {
++        let r = report();
++        let b = encode(7, 9, &r).unwrap();
++        assert_eq!(parse(&b), Some((7, r)));
++        for n in 0..b.len() {
++            assert!(parse(&b[..n]).is_none(), "accepted truncation {n}");
++        }
++        let mut b = b.to_vec();
++        b[39] = 255;
++        assert!(parse(&b).is_none());
++    }
++    #[test]
++    fn clock_compound_requires_one_matching_identity_and_no_bye() {
++        let b = encode(7, 9, &report()).unwrap();
++        let mut foreign = b.to_vec();
++        foreign[40..44].copy_from_slice(&1u32.to_be_bytes());
++        assert!(parse(&foreign).is_none());
++        let mut duplicate = b.to_vec();
++        duplicate.extend_from_slice(&b[8..36]);
++        assert!(parse(&duplicate).is_none());
++        let mut bye = b.to_vec();
++        bye.extend_from_slice(&[0x81, 203, 0, 1, 0, 0, 0, 1]);
++        assert!(parse(&bye).is_none());
++        assert!(encode(0, 0, &report()).is_none());
++    }
++    #[test]
++    fn outgoing_sample_clock_preserves_wrap_and_refuses_distant_time() {
++        let a = rvoip_core::stream::MediaClockAnchor {
++            ntp_time: 100u64 << 32,
++            rtp_time: u32::MAX - 479,
++            clock_rate: 48000,
++        };
++        assert_eq!(rtp_at((100u64 << 32) + (1u64 << 32) / 50, a, 0), Some(479));
++        assert!(rtp_at(120u64 << 32, a, 0).is_none());
++    }
++}
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/staged_media/source_clock.rs
+@@ -0,0 +1,302 @@
++//! One canonical Connection's bounded sender clock. No queued grants or IO.
++use super::rtcp::Report;
++use rvoip_core::stream::{MediaClockAnchor, MediaSourceClock};
++use std::{
++    collections::BTreeMap,
++    sync::{Arc, Mutex},
++};
++type Current = Arc<dyn Fn() -> bool + Send + Sync>;
++struct Entry {
++    id: u128,
++    rate: u32,
++    ssrc: Option<u32>,
++    revision: u64,
++    alive: Current,
++    anchor: Option<MediaClockAnchor>,
++    report_current: Option<Current>,
++    last_ntp: Option<u64>,
++    pending: Option<(Report, Current, u64)>,
++}
++struct State {
++    entries: BTreeMap<u16, Entry>,
++    cname: Option<String>,
++    offset: Option<u64>,
++    generation: u64,
++    unsupported: bool,
++}
++pub(crate) struct Group {
++    state: Mutex<State>,
++    pub cname: String,
++}
++pub(crate) struct Track {
++    group: Arc<Group>,
++    handle: u16,
++}
++impl Group {
++    pub fn new() -> Arc<Self> {
++        let id = uuid::Uuid::new_v4();
++        Arc::new(Self {
++            cname: format!("connect-{id}"),
++            state: Mutex::new(State {
++                entries: BTreeMap::new(),
++                cname: None,
++                offset: None,
++                generation: 1,
++                unsupported: false,
++            }),
++        })
++    }
++    pub fn track(self: &Arc<Self>, handle: u16, rate: u32, alive: Current) -> Option<Track> {
++        let mut s = self.state.lock().unwrap_or_else(|p| p.into_inner());
++        s.entries.retain(|_, e| (e.alive)());
++        if handle == 0 || rate == 0 || s.entries.len() >= 256 || s.entries.contains_key(&handle) {
++            return None;
++        }
++        if s.entries.is_empty() {
++            s.generation = s.generation.checked_add(1)?;
++            s.cname = None;
++            s.offset = None;
++            s.unsupported = false;
++        }
++        s.entries.insert(
++            handle,
++            Entry {
++                id: uuid::Uuid::new_v4().as_u128(),
++                rate,
++                ssrc: None,
++                revision: 1,
++                alive,
++                anchor: None,
++                report_current: None,
++                last_ntp: None,
++                pending: None,
++            },
++        );
++        Some(Track {
++            group: self.clone(),
++            handle,
++        })
++    }
++}
++fn apply(s: &mut State, e: &mut Entry, r: Report, current: Current, receipt: u64) -> bool {
++    if !(current)() || !(e.alive)() {
++        return false;
++    }
++    if e.ssrc != Some(r.ssrc) {
++        e.pending = Some((r, current, receipt));
++        return true;
++    }
++    if r.ntp == 0 {
++        e.revision = e.revision.saturating_add(1);
++        e.anchor = None;
++        e.last_ntp = None;
++        e.report_current = Some(current);
++        return true;
++    }
++    if r.packets == 0
++        || e.last_ntp
++            .is_some_and(|old| (r.ntp.wrapping_sub(old) as i64) <= 0)
++    {
++        return false;
++    }
++    if s.cname.as_ref().is_some_and(|c| c != &r.cname) {
++        s.unsupported = true;
++        s.generation = s.generation.saturating_add(1);
++        for t in s.entries.values_mut() {
++            t.anchor = None;
++            t.pending = None;
++        }
++        e.anchor = None;
++        e.pending = None;
++        return false;
++    }
++    if s.unsupported {
++        return false;
++    }
++    s.cname.get_or_insert(r.cname);
++    let offset = *s.offset.get_or_insert_with(|| receipt.wrapping_sub(r.ntp));
++    e.anchor = Some(MediaClockAnchor {
++        ntp_time: r.ntp.wrapping_add(offset),
++        rtp_time: r.rtp,
++        clock_rate: e.rate,
++    });
++    e.last_ntp = Some(r.ntp);
++    e.report_current = Some(current);
++    true
++}
++impl Track {
++    pub fn report(&self, r: Report, current: Current, receipt: u64) -> bool {
++        let mut s = self.group.state.lock().unwrap_or_else(|p| p.into_inner());
++        let Some(mut e) = s.entries.remove(&self.handle) else {
++            return false;
++        };
++        let result = apply(&mut s, &mut e, r, current, receipt);
++        s.entries.insert(self.handle, e);
++        result
++    }
++    pub fn snapshot(&self, ssrc: u32, current: Current) -> Option<MediaSourceClock> {
++        if !(current)() {
++            return None;
++        }
++        let mut s = self.group.state.lock().unwrap_or_else(|p| p.into_inner());
++        let mut e = s.entries.remove(&self.handle)?;
++        if !(e.alive)() {
++            s.entries.insert(self.handle, e);
++            return None;
++        }
++        if e.ssrc != Some(ssrc) {
++            if e.ssrc.is_some() {
++                e.id = uuid::Uuid::new_v4().as_u128();
++            }
++            e.ssrc = Some(ssrc);
++            e.revision = e.revision.checked_add(1)?;
++            e.anchor = None;
++            e.report_current = None;
++            e.last_ntp = None;
++            if let Some((report, report_current, receipt)) = e.pending.take() {
++                if report.ssrc == ssrc {
++                    apply(&mut s, &mut e, report, report_current, receipt);
++                }
++            }
++        }
++        let source_id = e.id;
++        let revision = e.revision;
++        let generation = s.generation;
++        let supported = !s.unsupported;
++        let anchor = e
++            .anchor
++            .filter(|_| e.report_current.as_ref().is_some_and(|c| c()));
++        let report_current = if anchor.is_some() {
++            e.report_current.clone()
++        } else {
++            None
++        };
++        s.entries.insert(self.handle, e);
++        let weak = Arc::downgrade(&self.group);
++        let handle = self.handle;
++        Some(MediaSourceClock {
++            source_id,
++            generation,
++            anchor,
++            supported,
++            rtp_offset: 0,
++            is_current: Arc::new(move || {
++                current()
++                    && report_current.as_ref().is_none_or(|c| c())
++                    && weak.upgrade().is_some_and(|g| {
++                        let s = g.state.lock().unwrap_or_else(|p| p.into_inner());
++                        s.generation == generation
++                            && s.entries.get(&handle).is_some_and(|e| {
++                                e.revision == revision
++                                    && (e.alive)()
++                                    && (anchor.is_none()
++                                        || e.report_current.as_ref().is_some_and(|c| c()))
++                            })
++                    })
++            }),
++        })
++    }
++}
++impl Drop for Track {
++    fn drop(&mut self) {
++        self.group
++            .state
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .entries
++            .remove(&self.handle);
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::atomic::{AtomicBool, Ordering};
++    fn yes() -> Current {
++        Arc::new(|| true)
++    }
++    fn report(ssrc: u32, ntp: u64, rtp: u32) -> Report {
++        Report {
++            ssrc,
++            ntp,
++            rtp,
++            packets: 1,
++            octets: 160,
++            cname: "same".into(),
++        }
++    }
++    #[test]
++    fn canonical_clock_binds_ssrc_and_one_common_offset_across_rates() {
++        let g = Group::new();
++        let a = g.track(1, 48000, yes()).unwrap();
++        let v = g.track(2, 90000, yes()).unwrap();
++        assert!(a.snapshot(10, yes()).unwrap().anchor.is_none());
++        assert!(a.report(report(10, 100u64 << 32, 48000), yes(), 200u64 << 32));
++        assert!(v.report(report(20, 101u64 << 32, 180000), yes(), 205u64 << 32));
++        let a = a.snapshot(10, yes()).unwrap();
++        let v = v.snapshot(20, yes()).unwrap();
++        assert_ne!(a.source_id, v.source_id);
++        assert_eq!(a.generation, v.generation);
++        assert_eq!(a.anchor.unwrap().ntp_time, 200u64 << 32);
++        assert_eq!(v.anchor.unwrap().ntp_time, 201u64 << 32);
++        assert!((a.is_current)());
++        assert!((v.is_current)());
++    }
++    #[test]
++    fn canonical_clock_never_revives_report_after_pause_or_old_ssrc() {
++        let g = Group::new();
++        let a = g.track(1, 8000, yes()).unwrap();
++        let live = Arc::new(AtomicBool::new(true));
++        let p: Current = {
++            let l = live.clone();
++            Arc::new(move || l.load(Ordering::Acquire))
++        };
++        a.snapshot(10, yes());
++        a.report(report(10, 100u64 << 32, 0), p, 200u64 << 32);
++        let held = a.snapshot(10, yes()).unwrap();
++        assert!((held.is_current)());
++        live.store(false, Ordering::Release);
++        assert!(!(held.is_current)());
++        assert!(a.snapshot(10, yes()).unwrap().anchor.is_none());
++        a.report(report(10, 101u64 << 32, 8000), yes(), 201u64 << 32);
++        let current = a.snapshot(10, yes()).unwrap();
++        assert!(current.anchor.is_some());
++        assert!(!(held.is_current)());
++        let changed = a.snapshot(11, yes()).unwrap();
++        assert!(changed.anchor.is_none());
++        assert_ne!(
++            changed.source_id, current.source_id,
++            "SSRC restart reused source incarnation"
++        );
++        assert!(!(current.is_current)());
++        drop(a);
++        assert!(!(changed.is_current)());
++    }
++    #[test]
++    fn canonical_clock_conflicting_identity_is_explicit_and_fences_all_tracks() {
++        let g = Group::new();
++        let a = g.track(1, 8000, yes()).unwrap();
++        let v = g.track(2, 90000, yes()).unwrap();
++        a.snapshot(10, yes());
++        v.snapshot(20, yes());
++        a.report(report(10, 100u64 << 32, 0), yes(), 200u64 << 32);
++        let old = a.snapshot(10, yes()).unwrap();
++        let mut conflict = report(20, 100u64 << 32, 0);
++        conflict.cname = "other".into();
++        assert!(!v.report(conflict, yes(), 200u64 << 32));
++        assert!(!(old.is_current)());
++        assert!(!a.snapshot(10, yes()).unwrap().supported);
++        assert!(v.snapshot(20, yes()).unwrap().anchor.is_none());
++    }
++    #[test]
++    fn canonical_clock_does_not_accept_duplicate_old_or_missing_reports_as_new_anchor() {
++        let g = Group::new();
++        let a = g.track(1, 8000, yes()).unwrap();
++        a.snapshot(10, yes());
++        assert!(a.report(report(10, 100u64 << 32, 0), yes(), 200u64 << 32));
++        assert!(!a.report(report(10, 100u64 << 32, 999), yes(), 201u64 << 32));
++        assert!(!a.report(report(10, 99u64 << 32, 999), yes(), 201u64 << 32));
++        assert_eq!(a.snapshot(10, yes()).unwrap().anchor.unwrap().rtp_time, 0);
++        assert!(a.report(report(10, 0, 0), yes(), 201u64 << 32));
++        assert!(a.snapshot(10, yes()).unwrap().anchor.is_none());
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/staged_media.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_media.rs
+@@ -34,6 +34,8 @@
+ use tokio_util::sync::CancellationToken;
+ 
+ mod ready_audio;
++pub(crate) mod rtcp;
++mod source_clock;
+ pub(crate) use ready_audio::ReadyAudioEgress;
+ 
+ #[derive(Clone)]
+@@ -223,6 +225,7 @@
+     }
+ }
+ struct PortIngress {
++    clock: source_clock::Track,
+     flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     port: WeakAdapterMediaPort,
+     counters: Arc<StagedRtpCounters>,
+@@ -263,6 +266,53 @@
+         }
+         Ok(())
+     }
++    fn try_send_rtp_source(
++        &self,
++        frame: MediaFrame,
++        ssrc: u32,
++        datagram_bytes: usize,
++    ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        let result = self
++            .port
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)
++            .and_then(|p| {
++                p.try_publish_clocked(&frame, |current| self.clock.snapshot(ssrc, current))
++            });
++        match result {
++            Ok(()) => {
++                self.counters.accepted.fetch_add(1, Ordering::AcqRel);
++                if let (Some(flow), Some(port)) = (&self.flow, self.port.upgrade()) {
++                    flow.received(&port);
++                    flow.record_rtp(&port, true, datagram_bytes);
++                }
++                Ok(())
++            }
++            Err(e) => {
++                self.counters.rejected.fetch_add(1, Ordering::AcqRel);
++                if matches!(e, StreamControlError::Backpressure) {
++                    Err(mpsc::error::TrySendError::Full(frame))
++                } else {
++                    Err(mpsc::error::TrySendError::Closed(frame))
++                }
++            }
++        }
++    }
++    fn try_clock(&self, bytes: &[u8]) -> bool {
++        let Some((handle, report)) = rtcp::parse(bytes) else {
++            return false;
++        };
++        let Some(port) = self.port.upgrade() else {
++            return false;
++        };
++        if handle != port.binding().stream_local_id {
++            return false;
++        }
++        port.with_current_ingress_clock(|current| {
++            self.clock.report(report, current, rtcp::now_ntp())
++        })
++        .unwrap_or(false)
++    }
+     fn capacity(&self) -> usize {
+         self.port.upgrade().map_or(0, |p| p.ingress_capacity().1)
+     }
+@@ -374,6 +424,7 @@
+ }
+ 
+ pub struct StagedRtpMedia {
++    clocks: Arc<source_clock::Group>,
+     flow: Option<Arc<crate::native_flow::NativeFlow>>,
+     scope: StagedRtpScope,
+     router: Arc<PeerMediaRouter>,
+@@ -422,6 +473,7 @@
+             transport,
+             lifetime,
+             counters: Arc::new(StagedRtpCounters::default()),
++            clocks: source_clock::Group::new(),
+             ready_audio: ready_audio.unwrap_or_else(ReadyAudioEgress::new),
+         })
+     }
+@@ -489,6 +541,11 @@
+     ssrc: u32,
+     video: rvoip_core::video_packetizer::Vp8Packetizer,
+     previous_video: Option<VideoOrigin>,
++    clock_origin: Option<(u128, u64, bool, bool)>,
++    cname: String,
++    packets: u32,
++    octets: u32,
++    last_report: Option<std::time::Instant>,
+ }
+ impl Packetizer {
+     fn send(
+@@ -506,6 +563,19 @@
+             .is_some_and(|clock| !(clock.is_current)())
+         {
+             return Err(StreamControlError::NotReady);
++        }
++        let clock = frame.source_clock.clone();
++        let clock_origin = clock
++            .as_ref()
++            .map(|c| (c.source_id, c.generation, c.supported, c.anchor.is_some()));
++        if self.clock_origin != clock_origin {
++            self.ssrc = self.ssrc.wrapping_add(1);
++            self.video = Default::default();
++            self.previous_video = None;
++            self.packets = 0;
++            self.octets = 0;
++            self.last_report = None;
++            self.clock_origin = clock_origin;
+         }
+         let maximum = transport
+             .maximum_datagram_bytes()
+@@ -531,6 +601,9 @@
+                 // input in the preceding source's fragmentation sequence map.
+                 self.video = Default::default();
+                 self.ssrc = self.ssrc.wrapping_add(1);
++                self.packets = 0;
++                self.octets = 0;
++                self.last_report = None;
+             }
+             self.previous_video = Some(source);
+ 
+@@ -582,8 +655,43 @@
+                 return Err(StreamControlError::NotReady);
+             }
+             let bytes = packet.len();
++            let octets = rtcp::payload_octets(&packet).ok_or(StreamControlError::NotReady)?;
+             transport.send_datagram(packet)?;
++            self.packets = self.packets.wrapping_add(1);
++            self.octets = self.octets.wrapping_add(octets);
+             submitted(bytes);
++        }
++        // This synchronous clock submission shares the actual packet's current
++        // delivery guards. It creates no detached timer, readiness or media IO.
++        if self
++            .last_report
++            .is_none_or(|last| last.elapsed() >= std::time::Duration::from_secs(1))
++        {
++            if let Some(clock) = clock.filter(|c| c.supported && (c.is_current)()) {
++                if let Some(anchor) = clock.anchor {
++                    let ntp = rtcp::now_ntp();
++                    if let Some(rtp) = rtcp::rtp_at(ntp, anchor, clock.rtp_offset) {
++                        let report = rtcp::Report {
++                            ssrc: self.ssrc,
++                            ntp,
++                            rtp,
++                            packets: self.packets,
++                            octets: self.octets,
++                            cname: self.cname.clone(),
++                        };
++                        if let Some(bytes) =
++                            rtcp::encode(binding.stream_local_id, self.outer, &report)
++                        {
++                            if bytes.len() <= maximum {
++                                self.outer = self.outer.wrapping_add(1);
++                                self.last_report = Some(std::time::Instant::now());
++                                // Best effort clock metadata never retries original RTP.
++                                let _ = transport.send_datagram(bytes);
++                            }
++                        }
++                    }
++                }
++            }
+         }
+         Ok(count)
+     }
+@@ -701,6 +809,23 @@
+                 ),
+                 stream.clone(),
+                 Arc::new(PortIngress {
++                    clock: self
++                        .clocks
++                        .track(
++                            port.binding().stream_local_id,
++                            stream.codec().clock_rate_hz,
++                            {
++                                let cancel = resources.cancel.clone();
++                                let lifetime = self.lifetime.clone();
++                                let port = port.downgrade();
++                                Arc::new(move || {
++                                    !cancel.is_cancelled()
++                                        && !lifetime.is_cancelled()
++                                        && port.upgrade().is_some()
++                                })
++                            },
++                        )
++                        .ok_or(StreamControlError::Backpressure)?,
+                     flow: self.flow.clone(),
+                     port: port.downgrade(),
+                     counters: self.counters.clone(),
+@@ -737,6 +862,7 @@
+                 cancel: cancel.clone(),
+                 lifetime: lifetime.clone(),
+             });
++            let cname = self.clocks.cname.clone();
+             let task = tokio::spawn(async move {
+                 let mut packetizer = Some(Packetizer {
+                     outer: 0,
+@@ -746,6 +872,11 @@
+                     ),
+                     video: Default::default(),
+                     previous_video: None,
++                    clock_origin: None,
++                    cname,
++                    packets: 0,
++                    octets: 0,
++                    last_report: None,
+                 });
+                 let mut incomplete = false;
+                 loop {
+@@ -919,6 +1050,11 @@
+             ssrc: 1,
+             video: Default::default(),
+             previous_video: None,
++            clock_origin: None,
++            cname: "clock-test".into(),
++            packets: 0,
++            octets: 0,
++            last_report: None,
+         };
+         assert!(packetizer
+             .send(frame, None, &binding, 0, &NoSend, |_| {})
+@@ -987,6 +1123,11 @@
+             ssrc: 1,
+             video: Default::default(),
+             previous_video: None,
++            clock_origin: None,
++            cname: "clock-test".into(),
++            packets: 0,
++            octets: 0,
++            last_report: None,
+         };
+         let mut observed = Vec::new();
+         assert!(packetizer
+@@ -1011,4 +1152,146 @@
+             1
+         );
+     }
+-}
++    #[test]
++    fn sender_clock_reports_actual_submissions_and_never_counts_metadata_as_rtp() {
++        struct Wire(Mutex<Vec<Bytes>>);
++        impl StagedDatagramTransport for Wire {
++            fn maximum_datagram_bytes(&self) -> Option<usize> {
++                Some(1200)
++            }
++            fn is_closed(&self) -> bool {
++                false
++            }
++            fn send_datagram(&self, b: Bytes) -> ControlResult<()> {
++                self.0.lock().unwrap().push(b);
++                Ok(())
++            }
++        }
++        let binding = ReadyMediaBinding {
++            negotiated: rvoip_core::stream_lifecycle::NegotiatedStream {
++                requested: rvoip_core::stream_lifecycle::DesiredStream {
++                    logical_id: StreamId::new(),
++                    medium: Medium::Audio,
++                    direction: StreamDirection::Both,
++                },
++                format: MediaFormat::Encoded {
++                    name: "pcmu".into(),
++                    clock_rate_hz: 8000,
++                    channels: 1,
++                    fmtp: None,
++                },
++            },
++            transport_id: StreamId::new(),
++            stream_local_id: 1,
++            generation: 1,
++            connection_generation: 1,
++            source_ready: true,
++            sink_ready: true,
++        };
++        let mut packetizer = Packetizer {
++            outer: 0,
++            rtp: 0,
++            ssrc: 1,
++            video: Default::default(),
++            previous_video: None,
++            clock_origin: None,
++            cname: "clock-test".into(),
++            packets: 0,
++            octets: 0,
++            last_report: None,
++        };
++
++        let now = rtcp::now_ntp();
++        let make = |supported| MediaFrame {
++            stream_id: binding.transport_id.clone(),
++            kind: StreamKind::Audio,
++            payload: Bytes::from_static(b"encoded"),
++            timestamp_rtp: 8000,
++            captured_at: chrono::Utc::now(),
++            payload_type: Some(0),
++            source_clock: Some(rvoip_core::stream::MediaSourceClock {
++                source_id: 42,
++                generation: 1,
++                anchor: Some(rvoip_core::stream::MediaClockAnchor {
++                    ntp_time: now,
++                    rtp_time: 8000,
++                    clock_rate: 8000,
++                }),
++                supported,
++                rtp_offset: 0,
++                is_current: Arc::new(|| true),
++            }),
++        };
++        let wire = Wire(Mutex::new(Vec::new()));
++        let mut observed = 0;
++        assert_eq!(
++            packetizer
++                .send(make(true), None, &binding, 0, &wire, |_| observed += 1)
++                .unwrap(),
++            1
++        );
++        assert_eq!(observed, 1);
++        let packets = wire.0.lock().unwrap();
++        assert_eq!(packets.len(), 2);
++        let rtp = crate::substrate::observe_rtp_datagram(&packets[0]).unwrap();
++        let (handle, report) = rtcp::parse(&packets[1]).unwrap();
++        assert_eq!(handle, binding.stream_local_id);
++        assert_eq!(report.ssrc, rtp.rtp.packet().header.ssrc);
++        assert_eq!(report.packets, 1);
++        assert_eq!(report.octets, 7);
++        assert_eq!(report.cname, "clock-test");
++        let first_ssrc = report.ssrc;
++        drop(packets);
++        packetizer
++            .send(make(true), None, &binding, 0, &wire, |_| observed += 1)
++            .unwrap();
++        assert_eq!(
++            wire.0.lock().unwrap().len(),
++            3,
++            "report timer escaped current packet send"
++        );
++        packetizer
++            .send(make(false), None, &binding, 0, &wire, |_| observed += 1)
++            .unwrap();
++        let packets = wire.0.lock().unwrap();
++        assert_eq!(packets.len(), 4);
++        assert_ne!(
++            crate::substrate::observe_rtp_datagram(&packets[3])
++                .unwrap()
++                .rtp
++                .packet()
++                .header
++                .ssrc,
++            first_ssrc
++        );
++        assert!(
++            !rtcp::is_rtcp(&packets[3]),
++            "unsupported timeline fabricated a report"
++        );
++        assert_eq!(observed, 3);
++        let prior = crate::substrate::observe_rtp_datagram(&packets[3])
++            .unwrap()
++            .rtp
++            .packet()
++            .header
++            .ssrc;
++        drop(packets);
++        let mut waiting = make(true);
++        waiting.source_clock.as_mut().unwrap().anchor = None;
++        packetizer
++            .send(waiting, None, &binding, 0, &wire, |_| observed += 1)
++            .unwrap();
++        let packets = wire.0.lock().unwrap();
++        assert_eq!(packets.len(), 5);
++        assert_ne!(
++            crate::substrate::observe_rtp_datagram(&packets[4])
++                .unwrap()
++                .rtp
++                .packet()
++                .header
++                .ssrc,
++            prior
++        );
++        assert_eq!(observed, 4);
++    }
++}
+--- a/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
++++ b/crates/uctp/rvoip-uctp/src/substrate/peer_media_router.rs
+@@ -30,6 +30,19 @@
+         _datagram_bytes: usize,
+     ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
+         self.try_send(frame)
++    }
++    /// Current canonical source identity is observed only by checked adapters.
++    fn try_send_rtp_source(
++        &self,
++        frame: MediaFrame,
++        _ssrc: u32,
++        datagram_bytes: usize,
++    ) -> Result<(), mpsc::error::TrySendError<MediaFrame>> {
++        self.try_send_rtp(frame, datagram_bytes)
++    }
++    /// Clock-only RTCP cannot imply readiness or enqueue a media packet.
++    fn try_clock(&self, _bytes: &[u8]) -> bool {
++        false
+     }
+     fn capacity(&self) -> usize;
+     fn max_capacity(&self) -> usize;
+--- a/crates/uctp/rvoip-uctp/src/v2/native_media.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_media.rs
+@@ -32,6 +32,8 @@
+ struct Counters {
+     accepted: AtomicU64,
+     rejected: AtomicU64,
++    clock_accepted: AtomicU64,
++    clock_rejected: AtomicU64,
+ }
+ #[derive(Clone, Copy, Debug)]
+ pub struct NativeMediaSnapshot {
+@@ -39,6 +41,8 @@
+     pub reader_running: bool,
+     pub ingress_accepted: u64,
+     pub ingress_rejected: u64,
++    pub clock_accepted: u64,
++    pub clock_rejected: u64,
+ }
+ 
+ /// Trusted transport resource, not an authorization or readiness grant. Every
+@@ -107,6 +111,8 @@
+             reader_running: self.running.load(Ordering::Acquire),
+             ingress_accepted: self.counters.accepted.load(Ordering::Acquire),
+             ingress_rejected: self.counters.rejected.load(Ordering::Acquire),
++            clock_accepted: self.counters.clock_accepted.load(Ordering::Acquire),
++            clock_rejected: self.counters.clock_rejected.load(Ordering::Acquire),
+         }
+     }
+     /// Claim once, before passing the physical context to a handler. Dropping
+@@ -133,11 +139,15 @@
+                     result=owner.0.io.read_datagram()=>result?,
+                 };
+                 tokio::task::consume_budget().await;
+-                if owner.0.route(&bytes) {
+-                    owner.0.counters.accepted.fetch_add(1, Ordering::AcqRel);
+-                } else {
+-                    owner.0.counters.rejected.fetch_add(1, Ordering::AcqRel);
+-                }
++                let clock = crate::staged_media::rtcp::is_rtcp(&bytes);
++                let accepted = owner.0.route(&bytes);
++                let counter = match (clock, accepted) {
++                    (false, true) => &owner.0.counters.accepted,
++                    (false, false) => &owner.0.counters.rejected,
++                    (true, true) => &owner.0.counters.clock_accepted,
++                    (true, false) => &owner.0.counters.clock_rejected,
++                };
++                counter.fetch_add(1, Ordering::AcqRel);
+             }
+         }
+         .boxed())
+@@ -147,6 +157,21 @@
+         // are bounded again by the staged engine; video has its tighter cap.
+         if bytes.len() > 16 * 1024 + 20 || self.lifetime.is_cancelled() {
+             return false;
++        }
++        if crate::staged_media::rtcp::is_rtcp(bytes) {
++            let Some(local) = NonZeroU16::new(u16::from_be_bytes([bytes[2], bytes[3]])) else {
++                return false;
++            };
++            let Some(binding) = self.router.lookup(local) else {
++                return false;
++            };
++            if binding.is_cancelled() || binding.stream().direction() != Direction::Inbound {
++                return false;
++            }
++            return match binding.ingress() {
++                PeerMediaIngress::Checked(ingress) => ingress.try_clock(bytes),
++                PeerMediaIngress::Channel(_) => false,
++            };
+         }
+         let Ok(datagram) = observe_rtp_datagram(bytes) else {
+             return false;
+@@ -190,7 +215,9 @@
+         // Checked staged ingress rejects prepared/paused/revoked generations
+         // before any queue buffering. There is no unguarded fanout fallback.
+         match binding.ingress() {
+-            PeerMediaIngress::Checked(ingress) => ingress.try_send_rtp(frame, bytes.len()).is_ok(),
++            PeerMediaIngress::Checked(ingress) => ingress
++                .try_send_rtp_source(frame, payload.ssrc, bytes.len())
++                .is_ok(),
+             PeerMediaIngress::Channel(_) => false,
+         }
+     }
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/catalog.rs
+@@ -102,7 +102,7 @@
+         };
+         let mut wire = json!({"audio_codecs":encoded(Medium::Audio),"video_codecs":video,"data_protocols":data,"max_streams_per_connection":local.max_streams,
+             "identity_assurance_offered":server_assurance,"identity_assurance_required":required_peer,
+-            "native_media":{"version":1,"send":direction(&local.send),"receive":direction(&local.receive)}});
++            "source_clock":"rtcp-sr-sdes/1","native_media":{"version":1,"send":direction(&local.send),"receive":direction(&local.receive)}});
+         if required_peer == AssuranceLevel::Anonymous {
+             wire.as_object_mut()
+                 .unwrap()
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/media_profiles.rs
+@@ -581,3 +581,144 @@
+         p.stop().await;
+     }
+ }
++
++fn source_clock_wire(handle: u16, ntp: u64, rtp: u32) -> Bytes {
++    use bytes::BufMut;
++    use rvoip_rtp_core::packet::rtcp::*;
++    let mut sr = RtcpSenderReport::new(17);
++    sr.ntp_timestamp = NtpTimestamp::from_u64(ntp);
++    sr.rtp_timestamp = rtp;
++    sr.sender_packet_count = 1;
++    sr.sender_octet_count = 160;
++    let mut c = RtcpCompoundPacket::new_with_sr(sr);
++    let mut chunk = RtcpSdesChunk::new(17);
++    chunk.add_item(RtcpSdesItem::cname("source-capture-clock".into()));
++    let mut sdes = RtcpSourceDescription::new();
++    sdes.add_chunk(chunk);
++    c.add_sdes(sdes);
++    let mut b = bytes::BytesMut::new();
++    b.put_u8(1);
++    b.put_u8(0);
++    b.put_u16(handle);
++    b.put_u32(7);
++    b.extend_from_slice(&c.serialize().unwrap());
++    b.freeze()
++}
++async fn raw_clock_output(w: &Wire) -> Bytes {
++    tokio::time::timeout(Duration::from_secs(2), async {
++        if let Some(wt) = &w.wt {
++            wt.read_datagram().await.unwrap()
++        } else {
++            w.quic.as_ref().unwrap().2.read_datagram().await.unwrap()
++        }
++    })
++    .await
++    .unwrap()
++}
++#[tokio::test]
++async fn actual_signed_native_clock_reports_cross_current_ingress_and_egress_without_readiness_or_idle_grants(
++) {
++    use rvoip_rtp_core::packet::rtcp::{
++        NtpTimestamp, RtcpCompoundMember, RtcpPacket, RtcpTolerantCompoundPacket,
++    };
++    for kind in ["quic", "wt"] {
++        let p=Pair::new(kind,json!([{"id":"sound","kind":"audio","direction":"sendrecv","codec_preferences":["pcmu"]}])).await;
++        let (ah, ap) = p.binding(true, "sound");
++        let (bh, _) = p.binding(false, "sound");
++        let logical = StreamId::from_string("sound");
++        let mut input = p.scene.controller().take_ingress(&logical).unwrap();
++        let before = p.source_peer.snapshot();
++        let ntp = NtpTimestamp::now().to_u64();
++        send(&p.scene.wire, source_clock_wire(ah, ntp, 800));
++        tokio::time::timeout(Duration::from_secs(2), async {
++            while p.source_peer.snapshot().clock_accepted == before.clock_accepted {
++                tokio::time::sleep(Duration::from_millis(1)).await;
++            }
++        })
++        .await
++        .unwrap();
++        let admitted_before = NtpTimestamp::now().to_u64();
++        assert_eq!(
++            p.source_peer.snapshot().ingress_accepted,
++            before.ingress_accepted,
++            "report counted as RTP"
++        );
++        assert!(
++            input.try_recv().is_err(),
++            "clock report enqueued media or fabricated readiness"
++        );
++        assert!(
++            p.scene.grants.0.try_write().is_ok(),
++            "clock metadata retained idle authority"
++        );
++        let body = Bytes::from(vec![0xff; 160]);
++        send(&p.scene.wire, audio_wire(ah, ap, 1, 0, body.clone()));
++        packet(&mut input)
++            .await
++            .try_forward_to(&p.target, &logical)
++            .unwrap();
++        let mut media = None;
++        let mut report = None;
++        for _ in 0..2 {
++            let b = raw_clock_output(&p.other).await;
++            assert_eq!(u16::from_be_bytes([b[2], b[3]]), bh);
++            if (192..=223).contains(&b[9]) {
++                let compound = RtcpTolerantCompoundPacket::parse(&b[8..]).unwrap();
++                let RtcpCompoundMember::Known(RtcpPacket::SenderReport(sr)) = &compound.packets[0]
++                else {
++                    panic!("missing SR");
++                };
++                assert_eq!((sr.sender_packet_count, sr.sender_octet_count), (1, 160));
++                assert_ne!(sr.ntp_timestamp.to_u64(), 0);
++                report = Some(sr.clone());
++            } else {
++                media = Some(observe_rtp_datagram(&b).unwrap());
++            }
++        }
++        let media = media.unwrap();
++        let report = report.unwrap();
++        assert_eq!(media.rtp.packet().payload, body);
++        assert_eq!(report.ssrc, media.rtp.packet().header.ssrc);
++        let capture = report.ntp_timestamp.to_u64().wrapping_sub(
++            ((u64::from(
++                report
++                    .rtp_timestamp
++                    .wrapping_sub(media.rtp.packet().header.timestamp),
++            )) << 32)
++                / 8000,
++        );
++        // The source SR samples RTP800 while this actual payload is RTP0.
++        // Preserve that100ms capture phase, independent of IO/admission age.
++        // The normalized report-time mapping must lie inside the observed
++        // before-send/after-admission interval, within one8kHz sample.
++        let report_time = capture.wrapping_add((800u64 << 32) / 8000);
++        let tolerance = ((1u64 << 32) / 8000 + 1) as i64;
++        assert!(
++            (report_time.wrapping_sub(ntp) as i64) >= -tolerance,
++            "capture phase precedes the actual report send interval"
++        );
++        assert!(
++            (admitted_before.wrapping_sub(report_time) as i64) >= -tolerance,
++            "capture phase was replaced by RTP delivery time"
++        );
++        assert!(p.scene.grants.0.try_write().is_ok());
++        let rejected = p.source_peer.snapshot().clock_rejected;
++        p.scene.grants.0.write().await.denied = true;
++        send(
++            &p.scene.wire,
++            source_clock_wire(ah, NtpTimestamp::now().to_u64(), 160),
++        );
++        tokio::time::timeout(Duration::from_secs(2), async {
++            while p.source_peer.snapshot().clock_rejected == rejected {
++                tokio::time::sleep(Duration::from_millis(1)).await;
++            }
++        })
++        .await
++        .unwrap();
++        assert!(input.try_recv().is_err());
++        p.no_output().await;
++        p.scene.grants.0.write().await.denied = false;
++        assert!(p.scene.grants.0.try_write().is_ok());
++        p.stop().await;
++    }
++}

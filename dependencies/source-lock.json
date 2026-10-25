@@ -1109,6 +1109,11 @@
       "path": "patches/rvoip/gate6-mixer-clock-rebind-fixture.patch",
       "sha256": "28549e6d13b08923a84c8d454f0e009244de1c20028d3e27fb7fa3d70e6278e5",
       "source": "G6-050 correct retired-target regression fixture: departure permanently retires its controller. Rebind a fresh controller with the same public IDs and non-reusing physical allocator, verify fresh clock delivery and nonrevival of held old metadata."
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-source-clock-transport.patch",
+      "sha256": "738ae88aaf48fef386d805bc130c79fa1fb3a682722d54be58781a9af4da550a",
+      "source": "G6-050 canonical bounded RTCP SR/SDES ingress and guarded actual-RTP sender reporting. Per-Connection CNAME/SSRC/rate/lifetime clock groups, weak source provenance, current ingress metadata admission with no readiness/idle grants, exact original packet clock attachment, RTP-only flow counters and explicit unsupported mappings. Includes focused Core/unit and actual signed QUIC/WT regressions; qualification pending."
     }
   ]
 }
