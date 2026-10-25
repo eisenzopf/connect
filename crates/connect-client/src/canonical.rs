@@ -1,5 +1,6 @@
 //! Signed canonical connect/2 on one TLS-authenticated physical QUIC peer.
 //! Callers retain logical operation IDs and correlate verified replies/events.
+pub use crate::NativeNetworkProfile;
 use crate::{ClientError, Result};
 use rvoip_auth_core::sig9421::{
     ResolvedVerificationKey, Sig9421Signer, Sig9421Verifier, SignatureVerificationContext,
@@ -23,6 +24,8 @@ use std::{
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CanonicalClientConfig {
+    #[serde(default)]
+    pub network_profile: NativeNetworkProfile,
     pub endpoint: SocketAddr,
     pub server_name: String,
     pub trust_certificate: PathBuf,
@@ -60,7 +63,7 @@ impl CanonicalClientConfig {
     }
     pub fn validate(&self) -> Result<()> {
         let now = chrono::Utc::now();
-        if !self.endpoint.ip().is_loopback()
+        if !self.network_profile.permits_endpoint(self.endpoint)
             || self.server_name.is_empty()
             || self.server_name.len() > 253
             || self.timeout_ms == 0
@@ -80,6 +83,8 @@ impl CanonicalClientConfig {
         {
             return Err(ClientError::Configuration);
         }
+        rustls::pki_types::ServerName::try_from(self.server_name.clone())
+            .map_err(|_| ClientError::Configuration)?;
         for id in [
             &self.identity_id,
             &self.device_id,
@@ -120,6 +125,8 @@ pub struct CanonicalAuthentication {
     pub application_profile: String,
 }
 pub struct CanonicalClient {
+    network_profile: NativeNetworkProfile,
+    server_address: SocketAddr,
     endpoint: quinn::Endpoint,
     connection: quinn::Connection,
     writer: quinn::SendStream,
@@ -157,6 +164,16 @@ impl Drop for Pending {
 impl CanonicalClient {
     pub async fn open(config: CanonicalClientConfig) -> Result<Self> {
         config.validate()?;
+        if config.endpoint.port() == 0 {
+            return Err(ClientError::Configuration);
+        }
+        let deadline = Duration::from_millis(config.timeout_ms);
+        tokio::time::timeout(deadline, Self::open_inner(config))
+            .await
+            .map_err(|_| ClientError::Timeout)?
+    }
+    async fn open_inner(mut config: CanonicalClientConfig) -> Result<Self> {
+        config.endpoint = NativeNetworkProfile::canonical_address(config.endpoint);
         let _ = rustls::crypto::ring::default_provider().install_default();
         let secret = bounded_file(&config.signing_private_key, 16_384)?;
         let signer = match config.signing_algorithm.as_str() {
@@ -188,21 +205,13 @@ impl CanonicalClient {
             },
         );
         let verifier = Arc::new(Sig9421Verifier::new(Arc::new(keys)));
-        let cert = rustls::pki_types::CertificateDer::from(bounded_file(
-            &config.trust_certificate,
-            65_536,
-        )?);
-        let mut tls = rvoip_uctp::substrate::dev_client_config_trusting(&cert)
-            .map_err(|_| ClientError::Configuration)?;
+        let trust_bytes = bounded_file(&config.trust_certificate, trust::MAX_TRUST_BYTES)?;
+        let mut tls = trust::client_config(&trust_bytes)?;
         tls.alpn_protocols = vec![RAW_QUIC_ALPN.to_vec()];
         let mut endpoint = quinn::Endpoint::client(
-            if config.endpoint.is_ipv6() {
-                "[::1]:0"
-            } else {
-                "127.0.0.1:0"
-            }
-            .parse()
-            .map_err(|_| ClientError::Configuration)?,
+            config
+                .network_profile
+                .client_bind(config.endpoint.is_ipv6()),
         )
         .map_err(|_| ClientError::Transport)?;
         let mut transport = quinn::TransportConfig::default();
@@ -242,6 +251,8 @@ impl CanonicalClient {
             .map_err(|_| ClientError::Timeout)?
             .map_err(|_| ClientError::Transport)?;
         let mut client = Self {
+            network_profile: config.network_profile,
+            server_address: config.endpoint,
             endpoint,
             connection: connected,
             writer,
@@ -256,8 +267,9 @@ impl CanonicalClient {
             record_download: records::RecordDownload::new(
                 config.endpoint.ip(),
                 &config.server_name,
-                cert.as_ref(),
+                &trust_bytes,
                 config.credential.clone(),
+                config.network_profile,
             )?,
             identity_id: config.identity_id.clone(),
             assurance: "identified".into(),
@@ -330,7 +342,7 @@ impl CanonicalClient {
         opening.complete = true;
         Ok(client)
     }
-    fn pending(&self) -> Result<Pending> {
+    fn check_current(&self) -> Result<()> {
         if self.closed.load(Ordering::Acquire) || self.connection.close_reason().is_some() {
             return Err(ClientError::Transport);
         }
@@ -342,6 +354,10 @@ impl CanonicalClient {
             self.closed.store(true, Ordering::Release);
             return Err(ClientError::Authentication);
         }
+        Ok(())
+    }
+    fn pending(&self) -> Result<Pending> {
+        self.check_current()?;
         Ok(Pending {
             connection: self.connection.clone(),
             closed: self.closed.clone(),
@@ -758,6 +774,25 @@ impl CanonicalClient {
         self.events.push_back(frame);
         Ok(())
     }
+    /// Move the same authenticated QUIC peer to a new local UDP socket. QUIC
+    /// validates the path; logical operation and native Connection IDs persist.
+    /// This does not reconnect or renew application/credential authority.
+    pub fn rebind_network(&mut self, bind: SocketAddr) -> Result<SocketAddr> {
+        self.check_current()?;
+        let bind = NativeNetworkProfile::canonical_address(bind);
+        if bind.is_ipv6() != self.server_address.is_ipv6()
+            || !self.network_profile.permits_listener(bind)
+        {
+            return Err(ClientError::Configuration);
+        }
+        let socket = std::net::UdpSocket::bind(bind).map_err(|_| ClientError::Transport)?;
+        self.endpoint
+            .rebind(socket)
+            .map_err(|_| ClientError::Transport)?;
+        self.endpoint
+            .local_addr()
+            .map_err(|_| ClientError::Transport)
+    }
     pub fn close(&self) {
         self.closed.store(true, Ordering::Release);
         self.connection
@@ -793,6 +828,10 @@ fn envelope(kind: &str, payload: Value) -> Value {
 }
 fn bounded_file(path: &Path, maximum: usize) -> Result<Vec<u8>> {
     use std::io::Read;
+    let metadata = std::fs::metadata(path).map_err(|_| ClientError::Configuration)?;
+    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > maximum as u64 {
+        return Err(ClientError::Configuration);
+    }
     let file = std::fs::File::open(path).map_err(|_| ClientError::Configuration)?;
     let mut bytes = Vec::new();
     file.take((maximum + 1) as u64)
@@ -985,6 +1024,7 @@ fn check_reply_scope(
 }
 mod calls;
 mod records;
+mod trust;
 pub use records::{CanonicalRecord, CanonicalRecordPage, CanonicalRecordSelector, RecordTlsConfig};
 mod capabilities;
 mod dtmf;

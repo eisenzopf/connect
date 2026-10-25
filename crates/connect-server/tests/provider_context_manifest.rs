@@ -45,6 +45,7 @@ impl Harness {
         let signing = temp.path().join("canonical-server.der");
         std::fs::write(&signing, key.serialize_der()).unwrap();
         let server = RunningCanonicalServer::start(CanonicalServerConfig {
+            network_profile: Default::default(),
             session_reconnect_grace_seconds: 30,
             bind: old.bind,
             database: old.database,

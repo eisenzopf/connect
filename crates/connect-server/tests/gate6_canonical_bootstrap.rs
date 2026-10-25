@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 //! Installed default init/serve and public signed client, with no test enrollment.
 #![cfg(unix)]
 #![allow(clippy::unwrap_used)]

@@ -146,3 +146,8 @@ HTTP 409 with category `state` and reason `reconciliation_required`. Preserve th
 original target and decision IDs, inspect the retained evidence and obtain
 attributed settlement. This is distinct from an invalid command or permission
 denial; declared completion cannot create physical evidence.
+
+Native QUIC listeners and clients use the explicit
+[local/remote network profile](native-network.md), configured TLS trust and
+verified server identity. The plaintext application HTTP listener remains
+loopback; native Remote configuration does not expose it.

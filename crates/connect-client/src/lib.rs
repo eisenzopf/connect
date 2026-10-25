@@ -45,7 +45,7 @@ pub use video::{
 };
 
 pub use client::ConnectClient;
-pub use config::ClientConfig;
+pub use config::{ClientConfig, NativeNetworkProfile};
 pub use connect_protocol::attachments::{ArtifactLink, LinkPurpose};
 pub use connect_protocol::conversations;
 pub use connect_protocol::events;

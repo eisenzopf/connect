@@ -147,3 +147,8 @@ signed-peer behavior evidence. The bounded audio-only [native consultation
 coordinator](native-consultation.md) now applies actual private audiences; whole
 consultation completion/provider/return work remains open. Admission-only dispatch
 fixtures do not substitute for those physical media cases.
+
+The [native network profile reference](native-network.md) describes explicit
+Local/Remote address policy, configured TLS roots/chains, the complete opening
+deadline and same-peer QUIC UDP rebinding. Qualification scope remains in its
+source-bound evidence report.

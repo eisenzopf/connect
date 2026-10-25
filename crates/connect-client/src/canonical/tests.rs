@@ -210,6 +210,8 @@ async fn controlled(fault: Fault) -> (CanonicalClient, tokio::task::JoinHandle<(
     let (writer, reader) = connection.open_bi().await.unwrap();
     let signing = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519).unwrap();
     let client = CanonicalClient {
+        network_profile: NativeNetworkProfile::Local,
+        server_address: address,
         endpoint,
         connection,
         writer,
@@ -230,6 +232,7 @@ async fn controlled(fault: Fault) -> (CanonicalClient, tokio::task::JoinHandle<(
             "localhost",
             cert.as_ref(),
             "controlled-credential".into(),
+            NativeNetworkProfile::Local,
         )
         .unwrap(),
         identity_id: "id_one".into(),

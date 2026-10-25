@@ -1,18 +1,63 @@
 use anyhow::{Context, Result};
-use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
+use rustls::pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer};
 use std::{path::Path, sync::Arc};
 
+fn bounded(path: &Path, maximum: usize) -> Result<Vec<u8>> {
+    use std::io::Read;
+    let metadata = std::fs::metadata(path).context("Read configured TLS asset metadata")?;
+    anyhow::ensure!(
+        metadata.is_file() && metadata.len() > 0 && metadata.len() <= maximum as u64,
+        "Configured TLS asset must be a bounded regular file"
+    );
+    let file = std::fs::File::open(path).context("Read configured TLS asset")?;
+    let mut bytes = Vec::new();
+    file.take((maximum + 1) as u64)
+        .read_to_end(&mut bytes)
+        .context("Read configured TLS asset")?;
+    anyhow::ensure!(
+        !bytes.is_empty() && bytes.len() <= maximum,
+        "Configured TLS asset exceeds its bounds"
+    );
+    Ok(bytes)
+}
+fn certificates(bytes: Vec<u8>) -> Result<Vec<CertificateDer<'static>>> {
+    let chain = if bytes.trim_ascii_start().starts_with(b"-----BEGIN") {
+        CertificateDer::pem_slice_iter(&bytes)
+            .take(9)
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|_| anyhow::anyhow!("Invalid TLS certificate chain"))?
+    } else {
+        vec![CertificateDer::from(bytes)]
+    };
+    anyhow::ensure!(
+        !chain.is_empty() && chain.len() <= 8,
+        "Invalid TLS certificate chain bounds"
+    );
+    for cert in &chain {
+        anyhow::ensure!(cert.len() <= 65_536, "TLS certificate exceeds its bounds");
+        let (remaining, parsed) = x509_parser::parse_x509_certificate(cert.as_ref())
+            .map_err(|_| anyhow::anyhow!("Invalid TLS certificate DER"))?;
+        anyhow::ensure!(
+            remaining.is_empty(),
+            "Unexpected trailing TLS certificate data"
+        );
+        anyhow::ensure!(parsed.validity().is_valid(), "Server certificate is expired or not yet valid; refresh server TLS and configured client trust");
+    }
+    Ok(chain)
+}
 pub fn server_config(cert: &Path, key: &Path) -> Result<Arc<rustls::ServerConfig>> {
     let _ = rustls::crypto::ring::default_provider().install_default();
-    let bytes = std::fs::read(cert).context("Read server certificate")?;
-    let (_, parsed) = x509_parser::parse_x509_certificate(&bytes)
-        .map_err(|_| anyhow::anyhow!("Server certificate is invalid DER"))?;
-    anyhow::ensure!(parsed.validity().is_valid(), "Server certificate is expired or not yet valid; stop the server and run rotate-tls, then refresh client trust");
-    let cert = CertificateDer::from(bytes);
-    let key = PrivatePkcs8KeyDer::from(std::fs::read(key).context("Read private key")?);
+    let chain = certificates(bounded(cert, 256 * 1024)?)?;
+    let key = bounded(key, 16_384)?;
+    let key = if key.trim_ascii_start().starts_with(b"-----BEGIN") {
+        PrivateKeyDer::from_pem_slice(&key)
+            .map_err(|_| anyhow::anyhow!("Invalid TLS private key"))?
+    } else {
+        PrivateKeyDer::try_from(key).map_err(|_| anyhow::anyhow!("Invalid TLS private key"))?
+    };
     let mut config = rustls::ServerConfig::builder()
         .with_no_client_auth()
-        .with_single_cert(vec![cert], key.into())
+        .with_single_cert(chain, key)
         .context("Certificate and key must match")?;
     config.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
     Ok(Arc::new(config))

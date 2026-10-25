@@ -82,6 +82,7 @@ impl Fixture {
         let mut limits = old.limits;
         limits.connections = connections;
         let config = CanonicalServerConfig {
+            network_profile: Default::default(),
             session_reconnect_grace_seconds: 30,
             bind: old.bind,
             database: old.database,
@@ -182,6 +183,7 @@ impl Fixture {
             panic!("signing enrollment")
         };
         let client = CanonicalClientConfig {
+            network_profile: Default::default(),
             endpoint: server.address,
             server_name: "localhost".into(),
             trust_certificate: old.certificate,
