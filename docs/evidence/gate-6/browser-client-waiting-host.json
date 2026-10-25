@@ -1379,8 +1379,13 @@
     "The waiting-original correction has actual sustained throughput evidence in both frozen capture methods. It does not qualify synchronization or the overall profile.",
     "A duplicate short synthetic ES256 method passes in the clean60 cohort but fails with140identifiedaudio frames in the later11/12cohort. Keep both results; do not combine passing duplicates into a12/12claim.",
     "All observed60pairedmarkers perreceiver are retained; medianabsolute skew110.25\u2013124ms andp95131.9\u2013167.7ms still fail80/120ms. Signed medians are positive: audio later than matching video.",
-    "Current196serverpacketages have not yet been measured. Historical194ages cannot be substituted. Next use the bounded diagnostic, then address shared clock/presentation timing without a constant offset or changed observer.",
-    "Four short publicnativeQUIC/browserWT cases independently decode actualreceived Opus/VP8/data; preencoded/offline-native scope does not qualify a live native encoder/presenter or full native operating/sync profile."
+    "Four short publicnativeQUIC/browserWT cases independently decode actualreceived Opus/VP8/data; preencoded/offline-native scope does not qualify a live native encoder/presenter or full native operating/sync profile.",
+    "Source196 diagnostic067 now measures batched IO mean original ages 26.031/32.233ms; alignment still fails. See current_audio_age for its separate diagnostic scope."
   ],
-  "scope": "Actual local macOS arm64/Chrome155.0.8059.85/productionSDK+Store+Core. No clean-sync, actual network impairment, WSS/WebRTC fallback, Linux/remote/provider, complete task/acceptance or publication qualification."
+  "scope": "Actual local macOS arm64/Chrome155.0.8059.85/productionSDK+Store+Core. No clean-sync, actual network impairment, WSS/WebRTC fallback, Linux/remote/provider, complete task/acceptance or publication qualification.",
+  "current_audio_age": {
+    "evidence": "docs/evidence/gate-6/browser-client-audio-age196.json",
+    "sha256": "c43013a755dc9d2faa4d5911bfa7d170012cc8b26401ef903ab81cd471419e72",
+    "scope": "Source196 reduces measured original audio age and passes diagnostic throughput; alignment still fails"
+  }
 }

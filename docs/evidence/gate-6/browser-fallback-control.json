@@ -40,7 +40,7 @@
   "scope": "SDK control-boundary component only. No real network/listener/TLS/WebRTC/Chrome/Firefox fallback, complete task, acceptance or publication qualification.",
   "wt_runtime": {
     "evidence": "docs/evidence/gate-6/browser-client-waiting-host.json",
-    "sha256": "eb152474c70a15eff5e4f5db7191cececbeeea55071d5d388e7967c2406a255f",
+    "sha256": "bb634c9e2e1d1b999817c74f65c76da3b43a6eafab797fcea380a6d6f9d491c2",
     "browser_native": "11/12; all4nativepass, syntheticES256audiofailed",
     "transport": "28/28pass",
     "clean60": "Bothcapturethroughputs pass; bothalignmentfail. Wholecohort6/8.",
