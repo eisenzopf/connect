@@ -1,0 +1,198 @@
+{
+  "schema": "connect-gate6-subscription-reconciliation-journal/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T03:52:11.594316+00:00",
+  "base_revision": "9e8bbca2fee1b874b36e78009f11f0b382a9c09d",
+  "scope": "Stable original subscription identity in current-authorized server reconciliation status. Local macOS arm64 signed listener, Store and SDK regression scope; automatic SDK callback confirmation is still unimplemented.",
+  "implementation": [
+    "OperationRecord optionally carries subscription_record_id for server-created stream.reconcile. It is derived from validated original intent and exact journal operation/scope/revision identity, before a completed result exists. Private engine plans stay in the journal.",
+    "Current-authorized signed operation.get and HTTP record serialization expose that same identity. Native wire schema and generated HTTP/OpenAPI reference describe the bounded parent identity; no new peer mutation command or media grant is introduced.",
+    "Production future-publication fixtures read the original explicit selector and server-created operation before answering its signed callback. They verify stable parent/host record identity through captured completion, with no plan or intent in status. Ordinary explicit selectors omit the optional parent field."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 150,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/client-protocol-04.log",
+        "sha256": "9b464ff44462cfdbbee298d45b35b2d2a1bcecf49c725bddfc67891ed8fa2be5"
+      }
+    },
+    "protocol": {
+      "passed_functions": 40,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/client-protocol-04.log",
+        "sha256": "9b464ff44462cfdbbee298d45b35b2d2a1bcecf49c725bddfc67891ed8fa2be5"
+      }
+    },
+    "store": {
+      "passed_functions": 178,
+      "failed_functions": 0,
+      "filtered_functions": 1035,
+      "scope": "Targeted native_stream_authority group only. Includes Preparing parent identity, completed replay and successor Unknown recovery.",
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/store-02.log",
+        "sha256": "04cc3a49d4c2f0b557ab2c1679015e10cce01dfc2e1f506af94249b7f9963166"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 244,
+      "added_vectors": 7,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/contracts-04.log",
+        "sha256": "81b241fe7689d1e04658607f7d30ca8973efb161c0cd68965c80e1a764a3fe3f"
+      }
+    },
+    "production": {
+      "passed_functions": 17,
+      "failed_functions": 0,
+      "modified_future_reconciliation_functions": 4,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/production-01-summary.json",
+        "sha256": "8c8f6652f91effbe8252b6d9d64f7696de0f36c46969fdfae071fa2ea9e0f428"
+      },
+      "results": [
+        {
+          "filter": "sdk_handles::selections::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 32.81836970895529,
+          "log": ".local/gate-6/rust-sdk-reconciliation/production-01-00.log",
+          "log_sha256": "e48d6bc0a5490d4caa2e2a49d9aa8a4bb304e698e0f4933d314a6dbd05f930d3"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::selections::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 8,
+          "failed_functions": 0,
+          "elapsed_seconds": 33.819756041048095,
+          "log": ".local/gate-6/rust-sdk-reconciliation/production-01-01.log",
+          "log_sha256": "d5643d1ac1706db5a5647f72f4a8fba48153d47b3261291a98ec912bcfe40f3d"
+        },
+        {
+          "filter": "canonical_native_connections::future::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 4,
+          "failed_functions": 0,
+          "elapsed_seconds": 36.243126375135034,
+          "log": ".local/gate-6/rust-sdk-reconciliation/production-01-02.log",
+          "log_sha256": "1c30ea1698013eefc1f87aebad97fa239e26519d4ddf1e462954593e8de52253"
+        },
+        {
+          "filter": "canonical_native_connections::handles::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 9.012393916025758,
+          "log": ".local/gate-6/rust-sdk-reconciliation/production-01-03.log",
+          "log_sha256": "04725e65bd2e92922a1685a82074d6182125c7af307b855bd38352d0623b5e58"
+        },
+        {
+          "filter": "canonical_native_connections::selector_policy::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 10.794069624971598,
+          "log": ".local/gate-6/rust-sdk-reconciliation/production-01-04.log",
+          "log_sha256": "77f8bf871eed8519e5a511575cbb0cc829caed0d7cd285f9ca5cbb708f58c039"
+        }
+      ],
+      "sealed_binary_sha256": "9b3495e1d860736c134b1ccec7e138eb05a1ad466e1025f967af37e913d7ad89",
+      "scope": "Four existing future-selector functions with added journal-before-confirmation checks (three EdDSA and one ES256), two both-ends SDK selection functions across EdDSA/ES256, eight other SDK functions, native-handle custody and two selector-policy/data refusals. Includes real audio/video and captured recording recovery; no whole default suite or automatic SDK reconciliation claim."
+    },
+    "public_consumer_snippet": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/example-summary.json",
+        "sha256": "822d2710a3ee3582f0c375c796f2911cc7ebbf8bc14f2325de2bf49e188f39c4"
+      },
+      "scope": "Separate public SDK snippet compilation; full packaged/external-crate runtime journey remains open."
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/inputs-01.json",
+        "sha256": "46e0f169638b60bc46306f7803c0e325d373e7bd52415fc31b8270616f76b149"
+      },
+      "guarded_inputs": 1327,
+      "unchanged": true
+    },
+    "checks": {
+      "format-04.log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/format-04.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "schema-check.log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/schema-check.log",
+        "sha256": "e091dab1dfa37630599eaf5338746e022572ee0ea7abc96f1f610de93f19debc"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "dependencies.log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/dependencies.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      }
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/contracts-03.log",
+        "sha256": "33b40fe9a4aca8bd7f38470d19cfd8915fa3317e4bd74a60aaa5690f7a749039"
+      },
+      "observation": "A negative vector incorrectly assumed all optional payload extensions were forbidden. Removed that incorrect vector; actual server fixtures independently assert private plan/intent are absent. No runtime policy relaxation."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/store-01.log",
+        "sha256": "5ca5d6adf9a8b6305af4f622bf4deb375d2d6d262ed9c57693d983f2809910cf"
+      },
+      "observation": "Disk exhaustion in rust-objcopy left unusable 2384-byte test output; Cargo could not execute it. Invalid bytes are preserved and not counted as a test pass. Relinked after removing only this run incomplete debug cache.",
+      "audit": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/invalid-store-test-01.json",
+        "sha256": "cff5d7458f83c082b002558dc36a05ff8e19b2095a7507da8be678c85cbedc2a"
+      }
+    },
+    {
+      "logs": [
+        {
+          "path": ".local/gate-6/rust-sdk-reconciliation/contracts.log",
+          "sha256": "2ebdeb5e5e97dbe03289add51ea5efec357d4aa6a2dbb9e5e82a979c70594dcc"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-reconciliation/contracts-02.log",
+          "sha256": "2ebdeb5e5e97dbe03289add51ea5efec357d4aa6a2dbb9e5e82a979c70594dcc"
+        }
+      ],
+      "observation": "System interpreters lacked jsonschema; final contract validation uses the existing pinned sdk-contract/typecheck-venv environment."
+    }
+  ],
+  "scratch_preservation": [
+    {
+      "path": ".local/gate-6/rust-sdk-reconciliation/qualified-binary-compression.json",
+      "sha256": "b1d283c29ccdb55e5af92e19e666839c3f0d507a019e416af886b5ee512e0ab3"
+    },
+    {
+      "path": ".local/gate-6/rust-sdk-reconciliation/interrupted-debug-cache-removal.json",
+      "sha256": "2d8c302f5c37b094617dc2d7c9064b7b1ccb955cebe6722f1bbf2a55c2fc1f12"
+    }
+  ],
+  "remaining": [
+    "G6-060 remains in progress. Owned SDK automatic server-initiated confirmation, bounded original-selector tracking and captured completion adoption are next; this journal change is a prerequisite only.",
+    "Unavailable capture adoption, reliable data/event/capability/config/raw/admin surfaces, full packaged external/both-ends journeys and version/crash/approved Linux/remote qualification remain.",
+    "All105 Gate6 tasks remain the objective; no task/acceptance, full SDK, performance, remote-provider or publication completion."
+  ]
+}

@@ -4819,6 +4819,164 @@
       }
     },
     {
+      "id": "operation-reconciliation-original-subscription",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 0,
+          "subscription_record_id": "opr_explicit_subscription"
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-missing-parent",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 0
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-invalid-parent",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 0,
+          "subscription_record_id": "invalid/record"
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-missing-record",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "command_type": "stream.reconcile",
+          "expected_revision": 0,
+          "subscription_record_id": "opr_explicit_subscription"
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-missing-revision",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "subscription_record_id": "opr_explicit_subscription"
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-null-revision",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": null,
+          "subscription_record_id": "opr_explicit_subscription"
+        }
+      }
+    },
+    {
+      "id": "operation-reconciliation-foreign-command",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.subscribe",
+          "expected_revision": 0,
+          "subscription_record_id": "opr_explicit_subscription"
+        }
+      }
+    },
+    {
       "id": "handoff-target-owned-preparation",
       "scope": "schema-only",
       "valid": true,

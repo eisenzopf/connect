@@ -61,6 +61,33 @@ async fn reoffer(client: &mut CanonicalClient) -> Envelope {
         .starts_with("reconcile_"));
     offer
 }
+async fn journal_status(client: &mut CanonicalClient, cid: &str, operation: &str) -> Value {
+    let batch = client
+        .request_value(
+            "operation.get",
+            json!({"operation_id":operation}),
+            CommandScope {
+                conversation_id: Some(cid.into()),
+                session_id: Some("native-session".into()),
+                connection_id: Some("future-target".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    batch.ack().unwrap();
+    let payload = batch
+        .frames
+        .iter()
+        .find(|f| f.kind() == "operation.updated")
+        .unwrap()
+        .original()["payload"]
+        .clone();
+    assert_eq!(payload["operation_id"], operation);
+    assert!(payload.get("intent").is_none());
+    assert!(payload.get("plan").is_none());
+    payload
+}
 async fn future_camera(recording_failure: bool, all_streams: bool, algorithm: &str) {
     let f = Fixture::with_native_stream_scope(algorithm, 12).await;
     ready_endpoint(&f).await;
@@ -170,6 +197,15 @@ async fn future_camera(recording_failure: bool, all_streams: bool, algorithm: &s
         .unwrap()
         .to_owned();
     let expected = offer.expected_revision().unwrap();
+    let selector = journal_status(&mut clients[1], &cid, "future-select-participant-video").await;
+    assert_eq!(selector["state"], "completed");
+    assert!(selector.get("subscription_record_id").is_none());
+    let preparing = journal_status(&mut clients[1], &cid, &operation).await;
+    assert_eq!(preparing["state"], "preparing");
+    assert_eq!(preparing["command_type"], "stream.reconcile");
+    assert_eq!(preparing["expected_revision"], expected);
+    assert_eq!(preparing["subscription_record_id"], selector["record_id"]);
+    assert!(preparing.get("result").is_none());
     let setup = &offer.original()["payload"]["substrate_setup"];
     let stream = setup["streams"]
         .as_array()
@@ -282,6 +318,17 @@ async fn future_camera(recording_failure: bool, all_streams: bool, algorithm: &s
             .unwrap();
     }
     wait_native_operation(&f, &f.client.credential, &cid, &operation).await;
+    let completed = journal_status(&mut clients[1], &cid, &operation).await;
+    assert_eq!(completed["state"], "completed");
+    assert_eq!(completed["record_id"], preparing["record_id"]);
+    assert_eq!(
+        completed["subscription_record_id"],
+        preparing["subscription_record_id"]
+    );
+    assert_eq!(
+        completed["result"]["subscription_record_id"],
+        preparing["subscription_record_id"]
+    );
     let (effects,revision):(u64,u64)=c.query_row("SELECT (SELECT COUNT(*) FROM operation_effects e WHERE e.operation_record_id=o.record_id),json_extract(o.result_json,'$.stream_revision') FROM operations o WHERE o.operation_id=?1",[&operation],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
     assert_eq!(effects, 1);
     assert_eq!(revision, expected + 1);

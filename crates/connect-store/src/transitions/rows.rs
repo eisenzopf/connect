@@ -57,6 +57,31 @@ pub(super) fn by_record(c: &Connection, id: &str) -> Result<Saved> {
         result,
         problem,
     ) = row;
+    // Expose only the original selector's stable record identity. The private
+    // engine plan stays in the journal and never becomes a client authority.
+    let subscription_record_id = if command_type == "stream.reconcile" {
+        let wire: connect_protocol::native_streams::Intent =
+            serde_json::from_str(intent.as_deref().ok_or_else(Error::storage)?)
+                .map_err(|_| Error::storage())?;
+        wire.validate().map_err(|_| Error::storage())?;
+        if wire.command != connect_protocol::native_streams::Command::Reconcile
+            || wire.operation_id != operation_id
+            || Some(&wire.conversation_id) != conversation_id.as_ref()
+            || Some(&wire.session_id) != session_id.as_ref()
+            || Some(&wire.connection_id) != connection_id.as_ref()
+            || wire.expected_revision != expected_revision
+        {
+            return Err(Error::storage());
+        }
+        Some(
+            wire.payload["subscription_record_id"]
+                .as_str()
+                .ok_or_else(Error::storage)?
+                .to_owned(),
+        )
+    } else {
+        None
+    };
     let state =
         serde_json::from_value(serde_json::Value::String(state)).map_err(|_| Error::storage())?;
     let result = result
@@ -133,6 +158,7 @@ pub(super) fn by_record(c: &Connection, id: &str) -> Result<Saved> {
             session_id,
             connection_id,
             expected_revision,
+            subscription_record_id,
             state,
             revision,
             expires_at,

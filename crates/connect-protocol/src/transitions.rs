@@ -352,6 +352,10 @@ pub struct OperationRecord {
     pub session_id: Option<String>,
     pub connection_id: Option<String>,
     pub expected_revision: Option<u64>,
+    /// Original explicit subscription that authorized a server reconciliation.
+    /// This is journal identity, not permission to access its media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_record_id: Option<String>,
     pub state: OperationState,
     pub revision: u64,
     pub expires_at: Option<i64>,

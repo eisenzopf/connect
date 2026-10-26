@@ -122,9 +122,13 @@ def build():
   definitions[name]['properties']['direction']={'enum':['sendrecv','sendonly','recvonly','inactive']}
  definitions['StreamActiveSpeaker']['required']=['active_participant','strm_id','changed_at']
  definitions['OperationState']={'enum':STATES}
- definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'command_type':{'type':'string','minLength':1,'maxLength':128},'expected_revision':{'anyOf':[{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},{'type':'null'}]},'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
+ definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'subscription_record_id':ref('Identifier'),'command_type':{'type':'string','minLength':1,'maxLength':128},'expected_revision':{'anyOf':[{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},{'type':'null'}]},'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
  definitions['OperationUpdated']['allOf']=[{'if':{'properties':{'state':{'not':{'const':'completed'}}}},'then':{'not':{'required':['result']}}}]
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'enum':['session.consult','session.consult.return','session.handoff','connection.replace']}}},'then':{'required':['record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
+ # A current-authorized server reconciliation status binds the callback to
+ # its original explicit subscription without exposing the private engine plan.
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}},'then':{'required':['record_id','subscription_record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['subscription_record_id']},'then':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}}})
  definitions['MemberAdd']=obj({'identity_id':ref('Identifier'),'kind':{'enum':['human','ai','system','external']},'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberUpdate']=obj({'participant_id':ref('Identifier'),'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberRemove']=obj({'participant_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['participant_id'])
@@ -314,6 +318,18 @@ def main():
   if value is None:invalid['payload'].pop(field)
   else:invalid['payload'][field]=None if value=='null' else value
   vectors.append(dict(id='operation-transition-identity-'+label,scope='schema-only',valid=False,envelope=invalid))
+
+ reconciliation=copy.deepcopy(identity);reconciliation['payload'].update(command_type='stream.reconcile',subscription_record_id='opr_explicit_subscription',state='preparing')
+ vectors.append(dict(id='operation-reconciliation-original-subscription',scope='schema-only',valid=True,envelope=copy.deepcopy(reconciliation)))
+ for label in ['missing-parent','invalid-parent','missing-record','missing-revision','null-revision','foreign-command']:
+  invalid=copy.deepcopy(reconciliation);payload=invalid['payload']
+  if label=='missing-parent':payload.pop('subscription_record_id')
+  elif label=='invalid-parent':payload['subscription_record_id']='invalid/record'
+  elif label=='missing-record':payload.pop('record_id')
+  elif label=='missing-revision':payload.pop('expected_revision')
+  elif label=='null-revision':payload['expected_revision']=None
+  else:payload['command_type']='stream.subscribe'
+  vectors.append(dict(id='operation-reconciliation-'+label,scope='schema-only',valid=False,envelope=invalid))
 
  prepared=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.offer')
  prepared['payload']['handoff_preparation']={'profile':'connect-handoff-preparation-v1'}

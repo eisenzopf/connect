@@ -30,6 +30,7 @@ fn native_reconciliation_successor_keeps_unknown_custody_and_refuses_old_origins
         .unwrap();
     assert_eq!(status.record_id, record);
     assert_eq!(status.state, OperationState::Unknown);
+    assert!(status.subscription_record_id.is_some());
     assert!(status.result.is_none());
     assert_eq!(status.effects.len(), 1);
     assert_eq!(
@@ -219,6 +220,21 @@ fn native_reconciliation_requires_completed_selector_and_current_exact_original_
     let row = status(&f, "server-reconcile-1");
     assert_eq!(row.command_type, "stream.reconcile");
     assert_eq!(row.state, OperationState::Preparing);
+    assert_eq!(
+        row.subscription_record_id.as_deref(),
+        Some(source.subscription_record_id())
+    );
+    assert!(
+        row.result.is_none(),
+        "Parent identity is available before confirmation"
+    );
+    let public = serde_json::to_value(&row).unwrap();
+    assert_eq!(
+        public["subscription_record_id"],
+        source.subscription_record_id()
+    );
+    assert!(public.get("plan").is_none());
+    assert!(public.get("intent").is_none());
     assert_eq!(row.effects.len(), 1);
     assert_eq!(row.effects[0].correlation_key, row.record_id);
     assert!(f
@@ -232,6 +248,7 @@ fn native_reconciliation_requires_completed_selector_and_current_exact_original_
     let receipt = lease.committed(3, true, None).unwrap();
     let first = f.store.complete_native_stream(&receipt).unwrap();
     assert_eq!(first.state, OperationState::Completed);
+    assert_eq!(first.subscription_record_id, row.subscription_record_id);
     assert_eq!(
         first.result.as_ref().unwrap()["server_reconciliation"],
         true
