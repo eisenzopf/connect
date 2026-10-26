@@ -432,7 +432,40 @@ pub(super) async fn handoff_case_with_sdk(
     } else {
         vec![RA]
     };
-    probe(&mut peers, RA, &remote_receivers, "handoff-retained-remote").await;
+    {
+        use futures_util::FutureExt;
+        let checked = std::panic::AssertUnwindSafe(probe(
+            &mut peers,
+            RA,
+            &remote_receivers,
+            "handoff-retained-remote",
+        ))
+        .catch_unwind()
+        .await;
+        if let Err(panic) = checked {
+            // Preserve a consistent private snapshot before TempDir cleanup.
+            // Do not retry the handoff or weaken the strict audio assertions.
+            let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../.local/gate-6/sdk-external")
+                .join(format!("handoff-failure-{}", uuid::Uuid::new_v4()));
+            std::fs::create_dir_all(&directory).unwrap();
+            let source = rusqlite::Connection::open(&f.config.database).unwrap();
+            let mut destination =
+                rusqlite::Connection::open(directory.join("state.sqlite3")).unwrap();
+            rusqlite::backup::Backup::new(&source, &mut destination)
+                .unwrap()
+                .run_to_completion(128, Duration::from_millis(1), None)
+                .unwrap();
+            let scope = json!({"algorithm":f.client.signing_algorithm,"command":command,"source":peers[RA].id,"incoming":peers[CA].id,"outgoing":peers[PA].id,"allowed":remote_receivers});
+            std::fs::write(
+                directory.join("case.json"),
+                serde_json::to_vec_pretty(&scope).unwrap(),
+            )
+            .unwrap();
+            eprintln!("Handoff failure private snapshot: {}", directory.display());
+            std::panic::resume_unwind(panic);
+        }
+    }
     probe(
         &mut peers,
         CA,
@@ -484,6 +517,8 @@ pub(super) async fn handoff_case_with_sdk(
         1
     );
     for p in peers {
-        p.client.close();
+        p.client.shutdown().await.unwrap();
     }
+    wait_slots(&f, 0).await;
+    f.server.shutdown().await.unwrap();
 }

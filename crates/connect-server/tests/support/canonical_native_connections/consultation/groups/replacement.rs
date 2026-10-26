@@ -597,7 +597,13 @@ pub(super) async fn exercise_replacement_with_sdk(
                     .authenticate(&target.credential)
                     .unwrap()
                     .credential_id;
-                f.server.store.revoke(&admin, &credential).unwrap();
+                // This synchronous authority wait must not park the Tokio
+                // thread whose pending native IO owns the reader being drained.
+                let store = f.server.store.clone();
+                tokio::task::spawn_blocking(move || store.revoke(&admin, &credential))
+                    .await
+                    .unwrap()
+                    .unwrap();
                 rusqlite::Connection::open(&f.config.database)
                     .unwrap()
                     .execute_batch("DROP TRIGGER fixture_projection_block")

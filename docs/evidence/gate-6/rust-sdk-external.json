@@ -1,7 +1,7 @@
 {
   "task": "G6-060",
-  "status": "independent consumer and fixture checkpoint; runtime qualification pending",
-  "checked_at": "2026-10-26T08:53:29.932339+00:00",
+  "status": "external consumer runtime passes; broader transition repair qualification in progress",
+  "checked_at": "2026-10-26T09:19:23.959855+00:00",
   "scope": "Fresh independent public source-consumer workspace outside the repository. Local functional fixture lane only; not published-package or operating-profile acceptance.",
   "verification": {
     "external_build": {
@@ -29,22 +29,146 @@
       "build_jsonl_sha256": "d44ab1f54b197d2cb83f894b401f5b4bca9579b965cdf7a3f7571482cf8ef077"
     },
     "production": {
-      "status": "running; no aggregate pass claimed",
-      "planned_functions": 3,
-      "planned_prior_functions": 30,
-      "driver": ".local/gate-6/sdk-external/run-production.py",
-      "report": ".local/gate-6/sdk-external/production-01-summary.json"
+      "status": "three external and26 earlier SDK functions passed; two broader transition regressions failed before fixture repairs",
+      "report": ".local/gate-6/sdk-external/production-01-summary.json",
+      "report_sha256": "acc62c0b2955b279d51f57a7acc78420e19c949f2271c58d3b31e7a0516e39dc",
+      "results": [
+        {
+          "filter": "external_public_crate_",
+          "external_process_enabled": true,
+          "exit_code": 0,
+          "passed_functions": 3,
+          "failed_functions": 0,
+          "elapsed_seconds": 293.6063884170726,
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_device_move_retains_actual_generation_two_audio_and_recovers",
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+            "external_sdk_consumer::external_public_crate_message_session_invitation_and_independently_decoded_media"
+          ],
+          "actual_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_device_move_retains_actual_generation_two_audio_and_recovers",
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+            "external_sdk_consumer::external_public_crate_message_session_invitation_and_independently_decoded_media"
+          ],
+          "log": ".local/gate-6/sdk-external/production-01-00.log",
+          "log_sha256": "4117c6ce515d338460f809ae9805c4443654624f2c1aefb5e6d41c2ec96d85ff"
+        },
+        {
+          "filter": "sdk_handles::",
+          "external_process_enabled": false,
+          "exit_code": 0,
+          "passed_functions": 26,
+          "failed_functions": 0,
+          "elapsed_seconds": 189.30224229209125,
+          "expected_test_names": [
+            "sdk_handles::administration::public_sdk_administration_requires_current_administrator_for_submission_status_and_replay",
+            "sdk_handles::administration::public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect",
+            "sdk_handles::administration::public_sdk_trusted_administration_covers_every_command_and_recovers_original_receipts_after_restart",
+            "sdk_handles::data::public_sdk_both_ends_reliable_json_binary_data_keeps_decoded_audio_and_original_recovery",
+            "sdk_handles::data::public_sdk_native_data_journal_failure_preserves_one_publication_and_live_media",
+            "sdk_handles::events::public_sdk_durable_event_cursor_survives_restart_without_reusing_the_old_live_lease",
+            "sdk_handles::events::public_sdk_live_event_renewal_keeps_mutations_and_decoded_native_audio_running",
+            "sdk_handles::events::public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolate_current_authority",
+            "sdk_handles::invitations::public_sdk_incoming_invitations_keep_original_metadata_and_decide_without_copied_callee_ids",
+            "sdk_handles::invitations::public_sdk_stale_invitation_hint_grants_no_acceptance_after_cancel_or_membership_removal",
+            "sdk_handles::media::public_sdk_native_rtp_publisher_routes_independently_decoded_audio_video_and_keeps_control_live",
+            "sdk_handles::public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct",
+            "sdk_handles::public_sdk_conversation_private_send_recovery_and_owned_shutdown",
+            "sdk_handles::public_sdk_durable_decisions_keep_target_identity_and_require_real_evidence",
+            "sdk_handles::public_sdk_native_multistream_offers_share_peer_keep_status_recovery_and_own_only_local_parameters",
+            "sdk_handles::public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope",
+            "sdk_handles::public_sdk_session_controls_use_topology_revision_and_current_scoped_results",
+            "sdk_handles::raw::public_sdk_raw_current_membership_is_required_for_mutation_status_and_events",
+            "sdk_handles::raw::public_sdk_raw_original_intent_status_and_finite_journal_survive_restart",
+            "sdk_handles::receipts::public_sdk_configured_receipts_preserve_original_channel_facts_and_survive_restart",
+            "sdk_handles::receipts::public_sdk_receipts_follow_current_preferences_and_membership_epochs",
+            "sdk_handles::reconciliations::public_sdk_automatic_reconciliation_waits_for_durable_capture_and_recovers_one_effect",
+            "sdk_handles::reconciliations::public_sdk_future_publication_automatically_checks_journal_and_decodes_both_ends_media",
+            "sdk_handles::selections::public_sdk_selection_recording_failure_keeps_old_parameters_and_recovers_one_commit",
+            "sdk_handles::selections::public_sdk_selections_both_ends_decode_audio_video_and_preserve_route_only_recovery",
+            "sdk_handles::stream_metadata::public_sdk_stream_metadata_tracks_controls_scoped_ids_authorization_and_normal_restart"
+          ],
+          "actual_test_names": [
+            "sdk_handles::administration::public_sdk_administration_requires_current_administrator_for_submission_status_and_replay",
+            "sdk_handles::administration::public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect",
+            "sdk_handles::administration::public_sdk_trusted_administration_covers_every_command_and_recovers_original_receipts_after_restart",
+            "sdk_handles::data::public_sdk_both_ends_reliable_json_binary_data_keeps_decoded_audio_and_original_recovery",
+            "sdk_handles::data::public_sdk_native_data_journal_failure_preserves_one_publication_and_live_media",
+            "sdk_handles::events::public_sdk_durable_event_cursor_survives_restart_without_reusing_the_old_live_lease",
+            "sdk_handles::events::public_sdk_live_event_renewal_keeps_mutations_and_decoded_native_audio_running",
+            "sdk_handles::events::public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolate_current_authority",
+            "sdk_handles::invitations::public_sdk_incoming_invitations_keep_original_metadata_and_decide_without_copied_callee_ids",
+            "sdk_handles::invitations::public_sdk_stale_invitation_hint_grants_no_acceptance_after_cancel_or_membership_removal",
+            "sdk_handles::media::public_sdk_native_rtp_publisher_routes_independently_decoded_audio_video_and_keeps_control_live",
+            "sdk_handles::public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct",
+            "sdk_handles::public_sdk_conversation_private_send_recovery_and_owned_shutdown",
+            "sdk_handles::public_sdk_durable_decisions_keep_target_identity_and_require_real_evidence",
+            "sdk_handles::public_sdk_native_multistream_offers_share_peer_keep_status_recovery_and_own_only_local_parameters",
+            "sdk_handles::public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope",
+            "sdk_handles::public_sdk_session_controls_use_topology_revision_and_current_scoped_results",
+            "sdk_handles::raw::public_sdk_raw_current_membership_is_required_for_mutation_status_and_events",
+            "sdk_handles::raw::public_sdk_raw_original_intent_status_and_finite_journal_survive_restart",
+            "sdk_handles::receipts::public_sdk_configured_receipts_preserve_original_channel_facts_and_survive_restart",
+            "sdk_handles::receipts::public_sdk_receipts_follow_current_preferences_and_membership_epochs",
+            "sdk_handles::reconciliations::public_sdk_automatic_reconciliation_waits_for_durable_capture_and_recovers_one_effect",
+            "sdk_handles::reconciliations::public_sdk_future_publication_automatically_checks_journal_and_decodes_both_ends_media",
+            "sdk_handles::selections::public_sdk_selection_recording_failure_keeps_old_parameters_and_recovers_one_commit",
+            "sdk_handles::selections::public_sdk_selections_both_ends_decode_audio_video_and_preserve_route_only_recovery",
+            "sdk_handles::stream_metadata::public_sdk_stream_metadata_tracks_controls_scoped_ids_authorization_and_normal_restart"
+          ],
+          "log": ".local/gate-6/sdk-external/production-01-01.log",
+          "log_sha256": "7e2f814434a867fed04acb8ccd378821f90934c6ad6d5796904615cbe0474d24"
+        },
+        {
+          "filter": "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_",
+          "external_process_enabled": false,
+          "exit_code": 101,
+          "passed_functions": 2,
+          "failed_functions": 2,
+          "elapsed_seconds": 435.9126190841198,
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_preparation_cancellation_never_invents_completion",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_movement_retains_generation_two_audio_and_recovers",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio"
+          ],
+          "actual_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_preparation_cancellation_never_invents_completion",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_movement_retains_generation_two_audio_and_recovers",
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio"
+          ],
+          "log": ".local/gate-6/sdk-external/production-01-02.log",
+          "log_sha256": "25d7adcf72f9a7d7a90d75bf6ac93dfa338394d9566e071e8f2fbf11be0b38e5"
+        }
+      ],
+      "current_targeted_report": ".local/gate-6/sdk-external/targeted-01-summary.json",
+      "scope": "No overall33-function pass or task closure claimed while targeted verification is incomplete."
     }
   },
   "failed_candidates": [
     {
       "build_jsonl": ".local/gate-6/sdk-external/build-server-01.jsonl",
       "reason": "External stopped-operation recovery fixture referenced a command outside its scope. The bounded Consumer now retains the saved original command for that recovery; corrected fixture compiles."
+    },
+    {
+      "report": ".local/gate-6/sdk-external/production-01-summary.json",
+      "failed_functions": 2,
+      "failures": [
+        "Recording-failure fixture called synchronous Store.revoke on the current Tokio thread while native IO needed that thread to release authority custody; it returned authority-busy. The same bounded write now runs on spawn_blocking.",
+        "One ES256 observe handoff retained audio at the outgoing observer but not at the incoming target during the strict probe. No assertion was weakened. Handoff fixtures now explicitly join all public native clients, verify zero slots and shut down the server between scenes, and preserve a consistent private SQLite/case snapshot on recurrence. Attribution of the observed missing audio to the old incomplete fixture teardown is not yet independently proven."
+      ],
+      "current_build": ".local/gate-6/sdk-external/build-server-04.jsonl",
+      "current_targeted": ".local/gate-6/sdk-external/targeted-01-summary.json"
     }
   ],
   "boundaries": [
     "The media case uses both owned typed SDK peers and independent FFmpeg decode. Transition cases use external typed SDK controllers while independent public native media owners perform physical preparation and forwarding; observation never transfers custody.",
     "All original case inputs exist before IO. Fresh status reconstruction does not resubmit. Explicit ignored fixtures require the built consumer rather than silently substituting an in-process client.",
     "Remaining native lifecycle/recovery, incompatible-server, package and required remote/Linux/provider qualification remain open. G6-060 and the full Gate6 objective remain open. Publication is separate."
-  ]
+  ],
+  "orchestration": {
+    "batch_budget": ".local/gate-6/sdk-external/batch-budget-extension.json",
+    "scope": "The aggregate four-function legacy transition batch exceeded its copied360-second budget. A900-second independent watchdog retained the exact same unmodified physical test process and actual exit status; operation deadlines were unchanged. The actual two runtime failures were retained. Current targeted functions each have separate360-second guards."
+  }
 }
