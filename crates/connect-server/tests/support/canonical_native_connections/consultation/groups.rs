@@ -266,20 +266,31 @@ async fn select(f: &Fixture, peers: &mut [Peer], cid: &str, target: usize, sourc
     .await;
 }
 async fn status(f: &Fixture, key: &str, operation: &str) -> OperationRecord {
-    let store = f.server.store.clone();
-    let key = key.to_owned();
-    let operation = operation.to_owned();
-    tokio::task::spawn_blocking(move || {
-        store.execute_operation_action(
-            &key,
-            OperationAction::Get {
-                operation_id: operation,
-            },
-        )
-    })
-    .await
-    .unwrap()
-    .unwrap()
+    let until = tokio::time::Instant::now() + Duration::from_secs(3);
+    loop {
+        let store = f.server.store.clone();
+        let key = key.to_owned();
+        let operation = operation.to_owned();
+        let result = tokio::task::spawn_blocking(move || {
+            store.execute_operation_action(
+                &key,
+                OperationAction::Get {
+                    operation_id: operation,
+                },
+            )
+        })
+        .await
+        .unwrap();
+        match result {
+            Ok(record) => return record,
+            // A current role write may briefly fence this read. Poll the same
+            // original record under fresh current authority; never replay an effect.
+            Err(error) if error.code == "authority-busy" && tokio::time::Instant::now() < until => {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            Err(error) => panic!("original operation observation refused: {error:?}"),
+        }
+    }
 }
 async fn wait_state(f: &Fixture, key: &str, operation: &str, complete: bool) -> OperationRecord {
     let until = tokio::time::Instant::now() + Duration::from_secs(15);
@@ -307,6 +318,32 @@ async fn wait_state(f: &Fixture, key: &str, operation: &str, complete: bool) -> 
             "{record:?}"
         );
         tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+// A running call continues real authenticated input while its independent
+// controller awaits metadata. Silence cannot satisfy any marked-audio probe.
+async fn with_live_media<F: std::future::Future>(
+    peers: &mut [Peer],
+    may_retire: Option<usize>,
+    work: F,
+) -> F::Output {
+    use rvoip_uctp::substrate::{pack_rtp_datagram, RtpDatagram, RtpMediaPayload};
+    tokio::pin!(work);
+    let mut tick = tokio::time::interval(Duration::from_millis(20));
+    tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        tokio::select! {biased;
+            result=&mut work=>return result,
+            _=tick.tick()=>{
+                for (index,peer) in peers.iter_mut().enumerate().filter(|(_,p)|p.live && p.handle!=0) {
+                    peer.sequence+=1;
+                    let packet=pack_rtp_datagram(&RtpDatagram {flags:0,stream_local_id:peer.handle,seq:peer.sequence,rtp:RtpMediaPayload {payload:vec![0xff;160].into(),payload_type:0,sequence_number:peer.sequence as u16,timestamp:(peer.clock.elapsed().as_micros()*8/1000)as u32,ssrc:0x4736_8000+index as u32}}).unwrap();
+                    if let Err(error)=peer.client.send_native_media_datagram(&packet) {
+                        if may_retire==Some(index) {peer.live=false;}else{panic!("live media input failed before transition completion: {error:?}");}
+                    }
+                }
+            }
+        }
     }
 }
 async fn begin(

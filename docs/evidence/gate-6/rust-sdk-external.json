@@ -1,7 +1,7 @@
 {
   "task": "G6-060",
-  "status": "external consumer runtime passes; broader transition repair qualification in progress",
-  "checked_at": "2026-10-26T09:19:23.959855+00:00",
+  "status": "passed selected external source-consumer and SDK functional checkpoint; G6-060 remains in progress",
+  "checked_at": "2026-10-26T09:52:21.007756+00:00",
   "scope": "Fresh independent public source-consumer workspace outside the repository. Local functional fixture lane only; not published-package or operating-profile acceptance.",
   "verification": {
     "external_build": {
@@ -143,7 +143,168 @@
         }
       ],
       "current_targeted_report": ".local/gate-6/sdk-external/targeted-01-summary.json",
-      "scope": "No overall33-function pass or task closure claimed while targeted verification is incomplete."
+      "scope": "Original batch retains its two failures. Positive union of34 selected functions spans three sealed binaries, with identical SDK/service/protocol/dependency sources and external consumer bytes. Only fixture files differ; this is not one all-pass suite."
+    },
+    "qualification": {
+      "status": "passed selected functional union; full G6-060 remains open",
+      "unique_passing_functions": 34,
+      "external_functions": 3,
+      "sdk_handle_regression_functions": 26,
+      "transition_regression_functions": 4,
+      "historical_flow_activation_function": 1,
+      "test_names": [
+        "canonical_native_connections::consultation::groups::handoff::production_initial_activation_after_public_handoff_uses_observed_private_flow_without_new_packets",
+        "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_device_move_retains_actual_generation_two_audio_and_recovers",
+        "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+        "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_preparation_cancellation_never_invents_completion",
+        "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit",
+        "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_movement_retains_generation_two_audio_and_recovers",
+        "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio",
+        "external_sdk_consumer::external_public_crate_message_session_invitation_and_independently_decoded_media",
+        "sdk_handles::administration::public_sdk_administration_requires_current_administrator_for_submission_status_and_replay",
+        "sdk_handles::administration::public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect",
+        "sdk_handles::administration::public_sdk_trusted_administration_covers_every_command_and_recovers_original_receipts_after_restart",
+        "sdk_handles::data::public_sdk_both_ends_reliable_json_binary_data_keeps_decoded_audio_and_original_recovery",
+        "sdk_handles::data::public_sdk_native_data_journal_failure_preserves_one_publication_and_live_media",
+        "sdk_handles::events::public_sdk_durable_event_cursor_survives_restart_without_reusing_the_old_live_lease",
+        "sdk_handles::events::public_sdk_live_event_renewal_keeps_mutations_and_decoded_native_audio_running",
+        "sdk_handles::events::public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolate_current_authority",
+        "sdk_handles::invitations::public_sdk_incoming_invitations_keep_original_metadata_and_decide_without_copied_callee_ids",
+        "sdk_handles::invitations::public_sdk_stale_invitation_hint_grants_no_acceptance_after_cancel_or_membership_removal",
+        "sdk_handles::media::public_sdk_native_rtp_publisher_routes_independently_decoded_audio_video_and_keeps_control_live",
+        "sdk_handles::public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct",
+        "sdk_handles::public_sdk_conversation_private_send_recovery_and_owned_shutdown",
+        "sdk_handles::public_sdk_durable_decisions_keep_target_identity_and_require_real_evidence",
+        "sdk_handles::public_sdk_native_multistream_offers_share_peer_keep_status_recovery_and_own_only_local_parameters",
+        "sdk_handles::public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope",
+        "sdk_handles::public_sdk_session_controls_use_topology_revision_and_current_scoped_results",
+        "sdk_handles::raw::public_sdk_raw_current_membership_is_required_for_mutation_status_and_events",
+        "sdk_handles::raw::public_sdk_raw_original_intent_status_and_finite_journal_survive_restart",
+        "sdk_handles::receipts::public_sdk_configured_receipts_preserve_original_channel_facts_and_survive_restart",
+        "sdk_handles::receipts::public_sdk_receipts_follow_current_preferences_and_membership_epochs",
+        "sdk_handles::reconciliations::public_sdk_automatic_reconciliation_waits_for_durable_capture_and_recovers_one_effect",
+        "sdk_handles::reconciliations::public_sdk_future_publication_automatically_checks_journal_and_decodes_both_ends_media",
+        "sdk_handles::selections::public_sdk_selection_recording_failure_keeps_old_parameters_and_recovers_one_commit",
+        "sdk_handles::selections::public_sdk_selections_both_ends_decode_audio_video_and_preserve_route_only_recovery",
+        "sdk_handles::stream_metadata::public_sdk_stream_metadata_tracks_controls_scoped_ids_authorization_and_normal_restart"
+      ],
+      "newest_server_binary_sha256": "f26d3d4fc5e469f50ce4a8b318a0665004b033bd4c415f2565e7f882d9778da2",
+      "external_binary_sha256": "645436ac6ba5dc577123e696a2af8d09ddb55acb413a7ada06bb8cbb3223d1c5",
+      "source_manifest": ".local/gate-6/sdk-external/inputs-05.json",
+      "source_guard_count": 1375,
+      "source_guards_unchanged": true,
+      "changed_from_prior_builds_only_fixture_files": [
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs",
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs"
+      ],
+      "scope": "Selected passing functions span three sealed server executables. All SDK/service/protocol/dependency sources and the independently built external consumer bytes are identical across them. Newest source changes only bounded fixture status polling, real silent media input during normal handoff control, blocking fixture revocation and explicit client/server cleanup/diagnostics. The failing runs remain failures; this is not one all-pass default suite.",
+      "earlier_report": ".local/gate-6/sdk-external/production-01-summary.json",
+      "repair_report": ".local/gate-6/sdk-external/targeted-01-summary.json",
+      "current_report": ".local/gate-6/sdk-external/live-input-04-summary.json",
+      "build_and_artifact_rejections": [
+        "build-server-01 fixture compilation error",
+        "build-server-05/07/09 LLVM strip ENOSPC rejected before runtime",
+        "build-server-08 experimental unstripped package link ENOSPC; generated unqualified cache removed with audit, original profile restored"
+      ],
+      "audit_script_sha256": "b1c7a1f94ec9c7fea23ea56e7743e04167a10f675da229fcfa35a5a0b277611c",
+      "audit_sha256": "4714e49f37cc7a39f7e85992e173d507c1906939c3c0944aed7d45b95f2498d0"
+    },
+    "latest_fixture_build": {
+      "status": "passed",
+      "build_log": ".local/gate-6/sdk-external/build-server-10.log",
+      "build_jsonl_sha256": "2c958b0b50143dec096fbc04ff0960de84d879260a968659e778e78f1f96dbd4",
+      "sealed_server_sha256": "f26d3d4fc5e469f50ce4a8b318a0665004b033bd4c415f2565e7f882d9778da2"
+    },
+    "targeted_repair": {
+      "report": ".local/gate-6/sdk-external/targeted-01-summary.json",
+      "sha256": "1735bf28eb504bdfc57f1d74a4781c68e01b8bb95342d0daa314af0bd491c254",
+      "results": [
+        {
+          "filter": "production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit",
+          "external_process_enabled": false,
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 27.576850374927744,
+          "log": ".local/gate-6/sdk-external/targeted-01-00.log",
+          "log_sha256": "92dd96ed28750f1959abe34511f37858cbd86f98cbdc5186c155f9445a0d13f3",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit"
+          ]
+        },
+        {
+          "filter": "production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio",
+          "external_process_enabled": false,
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 178.70931945787743,
+          "log": ".local/gate-6/sdk-external/targeted-01-01.log",
+          "log_sha256": "2ff4a9ff80864313babf0d635030aaba3fd67b351f6358d7b93b263a17b44be9",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio"
+          ]
+        },
+        {
+          "filter": "external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+          "external_process_enabled": true,
+          "exit_code": 101,
+          "passed_functions": 0,
+          "failed_functions": 1,
+          "elapsed_seconds": 14.725979207782075,
+          "log": ".local/gate-6/sdk-external/targeted-01-02.log",
+          "log_sha256": "1e4f05ccab9b66822614093ddc3424cedd859c4533cf48513ef92d84e6d65375",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery"
+          ]
+        }
+      ]
+    },
+    "final_live_input": {
+      "report": ".local/gate-6/sdk-external/live-input-04-summary.json",
+      "sha256": "c2883b4201cb8d2f632b3e7e09d941b1ecd31803cf89dc64d70bb333267745e5",
+      "results": [
+        {
+          "filter": "external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+          "external_process_enabled": true,
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 61.28664775006473,
+          "log": ".local/gate-6/sdk-external/live-input-04-00.log",
+          "log_sha256": "2fdb329220f108e13353360ff56d2266cd777417af947006c0584fa8c773541a",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery"
+          ]
+        },
+        {
+          "filter": "production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio",
+          "external_process_enabled": false,
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 181.40271041705273,
+          "log": ".local/gate-6/sdk-external/live-input-04-01.log",
+          "log_sha256": "b0a0156fc7ef25fa59c28afeb459e1676a4a0888b0f3c4d4a80e977b50c73b65",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio"
+          ]
+        },
+        {
+          "filter": "production_initial_activation_after_public_handoff_uses_observed_private_flow_without_new_packets",
+          "external_process_enabled": false,
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 22.596282332902774,
+          "log": ".local/gate-6/sdk-external/live-input-04-02.log",
+          "log_sha256": "f9d05680c9181ae5c1c6c237f8d2e318b0e4c10575c3cf37d5f10eee5a006262",
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::handoff::production_initial_activation_after_public_handoff_uses_observed_private_flow_without_new_packets"
+          ]
+        }
+      ]
     }
   },
   "failed_candidates": [
@@ -160,15 +321,42 @@
       ],
       "current_build": ".local/gate-6/sdk-external/build-server-04.jsonl",
       "current_targeted": ".local/gate-6/sdk-external/targeted-01-summary.json"
+    },
+    {
+      "report": ".local/gate-6/sdk-external/targeted-01-summary.json",
+      "reason": "Recording failure and eight in-process handoff scenes pass after joined cleanup/blocking-write repair. External handoff observation encountered transient authority-busy; bounded original-record read polling now retries only that refusal under current authority."
+    },
+    {
+      "report": ".local/gate-6/sdk-external/final-handoff-02-summary.json",
+      "reason": "External handoff stayed Accepted with no effects while fixture stopped live media during controller IPC. Ordinary call fixtures now send actual silent authenticated RTP while metadata waits; marked-audio assertions and operation deadlines are unchanged. Historical observed-flow/no-new-packet activation keeps its original path and passes separately."
+    },
+    {
+      "builds": [
+        "build-server-05",
+        "build-server-07",
+        "build-server-09"
+      ],
+      "reason": "Disk exhaustion caused LLVM stripping to truncate candidate executables. Artifact validation rejected them before any runtime invocation. Build08 experimental strip=none also failed linking and was never executed; original profile restored for successful build10."
     }
   ],
   "boundaries": [
     "The media case uses both owned typed SDK peers and independent FFmpeg decode. Transition cases use external typed SDK controllers while independent public native media owners perform physical preparation and forwarding; observation never transfers custody.",
     "All original case inputs exist before IO. Fresh status reconstruction does not resubmit. Explicit ignored fixtures require the built consumer rather than silently substituting an in-process client.",
-    "Remaining native lifecycle/recovery, incompatible-server, package and required remote/Linux/provider qualification remain open. G6-060 and the full Gate6 objective remain open. Publication is separate."
+    "Incompatible-server and any remaining native lifecycle/recovery requirements remain open for G6-060 review. Installed-package and required remote/Linux/provider qualification remain open in their assigned scopes. Full Gate6 and publication remain separate."
   ],
   "orchestration": {
     "batch_budget": ".local/gate-6/sdk-external/batch-budget-extension.json",
     "scope": "The aggregate four-function legacy transition batch exceeded its copied360-second budget. A900-second independent watchdog retained the exact same unmodified physical test process and actual exit status; operation deadlines were unchanged. The actual two runtime failures were retained. Current targeted functions each have separate360-second guards."
+  },
+  "artifact_preservation": {
+    "audits": [
+      "scratch-compression.json",
+      "preserved-build05.json",
+      "preserved-build07.json",
+      "rejected-build09.json",
+      "removed-unqualified-build08.json",
+      "stopped-cache-archives.json"
+    ],
+    "scope": "Private sdk-external audits retain exact hashes/modes and lossless verified gzip archives before unlinking stopped owned task binaries. Only explicitly identified unqualified build08 generated cache was removed; source, dependency locks and user state were preserved."
   }
 }

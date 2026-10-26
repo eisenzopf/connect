@@ -296,13 +296,28 @@ pub(super) async fn handoff_case_with_sdk(
         ))
         .unwrap();
     }
-    let sdk_probe = if sdk_algorithm.is_some() {
-        Some(super::sdk_movements::handoff(&f, &command, &key.token, &group).await)
-    } else {
-        controller.transition(command.clone()).await.unwrap();
-        None
+    let control = async {
+        let sdk_probe = if sdk_algorithm.is_some() {
+            Some(super::sdk_movements::handoff(&f, &command, &key.token, &group).await)
+        } else {
+            controller.transition(command.clone()).await.unwrap();
+            None
+        };
+        let record = wait_state(&f, &key.id, &command.operation_id, true).await;
+        (sdk_probe, record)
     };
-    let record = wait_state(&f, &key.id, &command.operation_id, true).await;
+    let (sdk_probe, record) = if initial_activation {
+        // This separate contract intentionally proves historical observed flow
+        // without sending another packet before public activation.
+        control.await
+    } else {
+        with_live_media(
+            &mut peers,
+            (disposition == OutgoingDisposition::Leave).then_some(PA),
+            control,
+        )
+        .await
+    };
     let wire = controller
         .operation_get(
             &command.operation_id,

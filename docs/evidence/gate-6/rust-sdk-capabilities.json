@@ -1,6 +1,6 @@
 {
   "task": "G6-060",
-  "status": "component checkpoint; external runtime remains open",
+  "status": "component and independent native source-consumer checkpoint; G6-060 remains open",
   "checked_at": "2026-10-26T08:36:25.929441+00:00",
   "scope": "Local Rust/QUIC interface manifest and structured requirement refusal; not server route discovery, policy refresh or decoded-media qualification.",
   "verification": {
@@ -14,6 +14,10 @@
       "passed_functions": 12,
       "log": ".local/gate-6/sdk-capabilities/rustdoc-01.log",
       "sha256": "60976fe7a19930c84bbbeb22fbe5728cbd90baafc04584aef8ad967c9379d844"
+    },
+    "external_runtime": {
+      "evidence": "docs/evidence/gate-6/rust-sdk-external.json",
+      "scope": "Independent public source-consumer exercises real native packet IO and independently decoded PCMU/VP8. Local capability snapshot still does not assert current server policy, route availability or flow readiness."
     }
   },
   "failed_candidates": [
@@ -25,7 +29,7 @@
     }
   ],
   "remaining": [
-    "Fresh external public-crate message/Session/handoff/device-move and decoded-media journey, remaining native lifecycle/recovery, incompatible-server and required Linux/remote/package qualification remain.",
+    "Incompatible-server and remaining task-level lifecycle review, installed-package and required Linux/remote qualification remain in their assigned scopes.",
     "Local interface support is not current server permission or media readiness. Publication remains separate."
   ]
 }

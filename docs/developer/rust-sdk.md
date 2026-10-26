@@ -719,7 +719,8 @@ do not turn this client into an HTTP media role. Every actual command and media
 flow still requires current authorization and its own behavior evidence.
 
 The component checkpoint passes 211 client functions and 12 Rustdoc checks.
-External runtime qualification remains open in G6-060; evidence is recorded in
+Independent native source-consumer qualification is recorded separately below;
+evidence for the local interface boundary is recorded in
 `docs/evidence/gate-6/rust-sdk-capabilities.json`.
 
 
@@ -739,5 +740,13 @@ against actual local production listeners. The test subprocess protocol owns its
 stdin/stdout, deadlines and child lifetime. Default test runs explicitly ignore
 these cases until a built binary is supplied. This source-consumer lane does not
 qualify published installation, remote/Linux/provider profiles or desktop
-capture. The current external runtime run is pending; evidence is recorded in
+capture. All three external functions pass with EdDSA and ES256, including
+original-ID recovery, real handoff/device-move audio and both-end PCMU/VP8 decode.
+A positive union of 34 selected functional checks spans three sealed server
+executables with identical SDK/runtime/dependency sources and external consumer
+bytes; fixture-only repairs and earlier failed runs are retained. The latest
+external handoff, eight in-process handoff scenes and historical activation
+without new packets pass. This is a selected functional checkpoint, not one
+all-pass default suite. Incompatible-server qualification and final G6-060
+requirements review remain open. Evidence and exact scope are recorded in
 `docs/evidence/gate-6/rust-sdk-external.json`.
