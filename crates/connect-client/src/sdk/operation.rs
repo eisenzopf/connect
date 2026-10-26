@@ -482,6 +482,9 @@ impl<T> Operation<T> {
         .await;
         result.map_err(|mut error: Error| {
             error.operation = Some(key.clone());
+            if error.certainty == Certainty::NotSubmitted {
+                error.certainty = Certainty::ReadOnly;
+            }
             error
         })
     }
@@ -490,10 +493,25 @@ impl<T> Operation<T> {
     }
     pub async fn wait(&self, options: RequestOptions) -> Result<Completion<T>> {
         let observed = self.wait_observation(options, false).await?;
-        let value = observed
-            .result
-            .ok_or_else(|| Error::request(ErrorKind::Protocol, Some(&self.reference.key), false))?;
-        let value = (self.reference.kind.decode)(value, &self.client, &self.reference.key)?;
+        let value = match observed.result {
+            Some(value) => value,
+            None => {
+                let mut error = self.wait_error(ErrorKind::Protocol);
+                error.observation = Some(observed.snapshot);
+                return Err(error);
+            }
+        };
+        let value = (self.reference.kind.decode)(value, &self.client, &self.reference.key)
+            .map_err(|mut error| {
+                error.operation = Some(self.reference.key.clone());
+                if error.certainty == Certainty::NotSubmitted {
+                    error.certainty = Certainty::ReadOnly;
+                }
+                if error.observation.is_none() {
+                    error.observation = Some(observed.snapshot.clone());
+                }
+                error
+            })?;
         Ok(Completion {
             snapshot: observed.snapshot,
             value,
@@ -503,7 +521,9 @@ impl<T> Operation<T> {
         Ok(self.wait_observation(options, true).await?.snapshot)
     }
     async fn wait_observation(&self, options: RequestOptions, ready: bool) -> Result<Observation> {
-        options.validate()?;
+        options
+            .validate()
+            .map_err(|error| self.wait_error(error.kind))?;
         let deadline = tokio::time::Instant::now() + options.timeout;
         loop {
             if options.signal.is_cancelled() {

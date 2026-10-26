@@ -2,14 +2,15 @@
   "schema": "connect-gate6-rust-sdk-administration/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T07:40:37.243082+00:00",
+  "checked_at": "2026-10-26T07:53:20.490909+00:00",
   "base_revision": "69871f25",
   "scope": "Owned trusted administrative SDK facade over explicit existing local HTTP provisioning and signed native original-ID status. Component checkpoint; current production fixtures are building.",
   "implementation": [
     "Separate AdministrativeClient requires explicit native/application configurations with the same supplied credential, and exposes no ordinary Conversation/media mutation facade. Host current administrator and target permissions remain authoritative.",
     "TrustedProvisioningCommand validates/normalizes/bounds the complete current closed schema. The original command ID must match MutationOptions. Export full intent and unscoped status reference before IO. All11 existing provisioning command families map to original named HTTP routes; nonempty canonical extensions refuse locally.",
     "Bounded16-request owned HTTP worker skips unwritten cancelled/expired work and owns started IO through caller cancellation/deadline. Independent signed status remains usable. Error context preserves original keys, refusal versus uncertainty and safe diagnostics. Explicit close stops/joins both owners and retains joins after cleanup cancellation/timeouts.",
-    "Operation<Value> restores only known administrative commands, checks exact recorded command_type on known status and verifies provisioning outcome family/IDs/safe counters. Status/recovery never resubmits. Current authorized metadata may reflect later verification or revocation."
+    "Operation<Value> restores only known administrative commands, checks exact recorded command_type on known status and verifies provisioning outcome family/IDs/safe counters. Status/recovery never resubmits. Current authorized metadata may reflect later verification or revocation.",
+    "Operation observation/completion decode failures cannot establish that the original mutation was unsubmitted. They retain its key, report ReadOnly instead of NotSubmitted, and keep any validated completed snapshot. Absent/inaccessible unscoped status may be refused and is not an absence proof."
   ],
   "verification": {
     "client": {
@@ -17,15 +18,20 @@
       "new_functions": 7,
       "failed_functions": 0,
       "log": {
-        "path": ".local/gate-6/sdk-administration/client-05.log",
-        "sha256": "760b01d3eb02de1157463333fa9584b0c58b6524771c1dcde62c1770485c2cbb"
+        "path": ".local/gate-6/sdk-administration/client-08.log",
+        "sha256": "7c4f652864312081e8d25d04cc25f03aa63603b347ad0b79871693d6915ee52e"
       },
-      "scope": "Real bounded HTTP and signed independent native status: original intent/ID guards, started caller cancellation, continued status, wrong result/kind, current-shaped refusal/server failure, cancelled cleanup joins and16-slot saturation with one actual HTTP write and unwritten close refusal. Final pre-IO reference-export/Rustdoc source run is queued."
+      "scope": "All196 client functions pass on current sources, including seven administrative functions. Expanded signed cases require ReadOnly and original key for wrong command/outcome, missing completed result and invalid wait options; validated completed records remain attached instead of claiming NotSubmitted. Queue16, one actual HTTP write, independent status, cancellation/refusal/uncertainty and retained cleanup joins also pass."
     },
     "production": {
-      "status": "pending",
-      "new_functions": 3,
-      "scope": "Implemented both-algorithm fixtures for all11 command families, restart/exact replay/changed-intent refusal, ordinary/current-revoked authority, and actual backend commit with deliberately held HTTP response plus cancelled queued work. No production pass claimed."
+      "status": "candidate04-new-administrative-functions-passed; prior19-SDK-regressions-running",
+      "passed_functions": 3,
+      "failed_functions": 0,
+      "report": {
+        "path": ".local/gate-6/sdk-administration/production-04-00.log",
+        "sha256": "3f5d82e949c546f38bffc155bdae34cb6455b5648ca207df669636082a2d1945"
+      },
+      "scope": "All three new both-algorithm functions pass, including all11 command families, current ordinary/revoked authority, restart/replay and actual held-response committed uncertainty with zero queued effect. Full current22-function aggregate remains pending."
     },
     "dependencies": {
       "path": ".local/gate-6/sdk-administration/dependencies-01.log",
@@ -33,10 +39,18 @@
     },
     "inputs": {
       "manifest": {
-        "path": ".local/gate-6/sdk-administration/inputs-01.json",
-        "sha256": "dd27eba829406b258dd0f7da66cc1a73b685819e4b0319d15ea925ecd23ffe14"
+        "path": ".local/gate-6/sdk-administration/inputs-04.json",
+        "sha256": "85a4a06a481570c96f345d87175343a3647507ac8d69ac395a9bcdf40afec11f"
       },
       "guarded_inputs": 1357
+    },
+    "rustdoc": {
+      "passed_functions": 8,
+      "log": {
+        "path": ".local/gate-6/sdk-administration/rustdoc.log",
+        "sha256": "c3f2515e2c6c4708065e67dcc66dba0f91978755dfa58c7f98ad10cc49eb2fa5"
+      },
+      "scope": "Public examples compiled before the final internal observation-certainty correction; final current-source Rustdoc rerun queued."
     }
   },
   "failed_or_superseded_runs": [
@@ -53,11 +67,47 @@
         "sha256": "e1cfdce44fe6261b5458729e364e523af14962045f85e46e31ceeef4ddb6fa27"
       },
       "observation": "Expanded HTTP fixture changed refusal to Option<status> but one formatted response branch still used it as bool. Corrected that branch; all196 tests pass in05."
+    },
+    {
+      "build": {
+        "path": ".local/gate-6/sdk-administration/build-01.jsonl",
+        "sha256": "c7fb89edeeb917fdd89fb5af9a3f4dfec5c81f9a1d47ef6bd26b2cacdb684c55"
+      },
+      "observation": "Cargo completed but rust-objcopy stripping the connect CLI failed ENOSPC. The production runner rejected all candidate01 runtime before execution. Older stopped test binaries were preserved as lossless verified archives; the rejected CLI bytes/mode/digest were preserved. A source-mtime-only rebuild produced a clean candidate02; all1357 source bytes were unchanged by that repair.",
+      "rejected_artifact": {
+        "path": ".local/gate-6/sdk-administration/rejected-artifact-01.json",
+        "sha256": "65b808cd3cb85f8885102f17ba8718a5c3677c30223a0eed241aaf5bf9245af4"
+      }
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-administration/production-02-summary.json",
+        "sha256": "88d7453b86e60c52b5d9f408dbaa0b97113885aa2d6ed6c1cf46cfd8742338a1"
+      },
+      "observation": "Two functions passed both algorithms. The held-response fixture wrongly expected Unknown for a nonexistent unscoped administrative source. Current policy correctly refuses that read. Corrected only the fixture expectation; independent SQL still proves zero queued effect. Refusal is not absence."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-administration/production-03-summary.json",
+        "sha256": "2a51f9ff81f5f16ae088450bf8ace7dbf8f6b169f02612277d434761c853571a"
+      },
+      "observation": "All22 selected functions passed on sealed pre-certainty-correction bytes. Source guards changed while the runner finished, so03 does not qualify current sources. A newly identified malformed-read NotSubmitted classification required the final observation-certainty correction and current04 rerun."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-administration/client-07.log",
+        "sha256": "ff70b051c74b3d96e354135e4140adc37b17ce17b2d43596f0afca8773a049b4"
+      },
+      "observation": "New invalid-wait-options regression expected Validation, while the established RequestOptions contract returns Configuration. Corrected that test expectation; ReadOnly/original-key/observed-record assertions then pass in08."
     }
   ],
   "remaining": [
     "Current production, final source-bound196 client/eight Rustdoc, independently compiled example and contract/reference checks are pending.",
     "G6-060 receipt/capability/config/raw surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain. Explicit application HTTP currently requires the protected loopback profile; no remote HTTP trust inference.",
     "All105 tasks remain the objective. No whole-task, gate, acceptance, operating-profile, performance or publication closure."
-  ]
+  ],
+  "scratch_preservation": {
+    "path": ".local/gate-6/sdk-administration/scratch-compression.json",
+    "sha256": "3a7966593bf96f145d85dea3e11cc795493127402d8a3e4ba0f04bb1b4d416e6"
+  }
 }

@@ -12,6 +12,7 @@ pub(in crate::canonical) enum Case {
     UnknownFirst,
     WrongCommand,
     WrongOutcome,
+    MissingResult,
 }
 fn outcome() -> ProvisioningOutcome {
     ProvisioningOutcome::Identity {
@@ -70,6 +71,9 @@ async fn status(
         } else {
             serde_json::to_value(outcome()).unwrap()
         };
+    }
+    if matches!(case, Case::MissingResult) {
+        p.as_object_mut().unwrap().remove("result");
     }
     for (kind, payload) in [("operation.updated", p), ("ack", json!({}))] {
         let mut v = envelope(kind, payload);
@@ -354,14 +358,37 @@ async fn administrative_wrong_http_result_and_business_refusal_keep_original_err
 }
 #[tokio::test]
 async fn administrative_status_checks_original_command_type_and_outcome_kind() {
-    for case in [Case::WrongCommand, Case::WrongOutcome] {
+    for case in [Case::WrongCommand, Case::WrongOutcome, Case::MissingResult] {
         let http = http(false, false, None).await;
         let (admin, host) = setup(case, &http).await;
         let operation = admin
             .provision(admin.validate_provisioning(command()).unwrap(), mutation())
             .await
             .unwrap();
-        assert!(matches!(operation.wait(options()).await,Err(e) if e.kind==ErrorKind::Protocol));
+        let error = operation.wait(options()).await.err().unwrap();
+        assert_eq!(error.kind, ErrorKind::Protocol);
+        assert_eq!(error.certainty, Certainty::ReadOnly);
+        assert_eq!(
+            error.operation.unwrap().operation_id.as_str(),
+            "original-admin"
+        );
+        if !matches!(case, Case::WrongCommand) {
+            assert_eq!(
+                error.observation.unwrap().state,
+                sdk::OperationState::Completed
+            );
+        }
+        let invalid = RequestOptions {
+            timeout: Duration::ZERO,
+            signal: sdk::CancellationToken::new(),
+        };
+        let error = operation.wait(invalid).await.err().unwrap();
+        assert_eq!(error.kind, ErrorKind::Configuration);
+        assert_eq!(error.certainty, Certainty::ReadOnly);
+        assert_eq!(
+            error.operation.unwrap().operation_id.as_str(),
+            "original-admin"
+        );
         finish(&admin, host, http).await;
     }
 }

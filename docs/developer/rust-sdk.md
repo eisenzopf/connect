@@ -585,7 +585,11 @@ returning JSON. Current authorized metadata may reflect later verification or
 revocation. A saved reference performs a read; it never resubmits provisioning.
 To retry uncertain submission, reuse the separately persisted full original
 command, logical ID and intent. Changed original intent remains a server conflict.
-Administrative clients expose no ordinary Conversation or media mutation facade.
+An inaccessible or absent unscoped receipt may be refused; that refusal is not
+proof that a mutation never happened. Malformed or incomplete completion reads
+retain the original key, report `ReadOnly` and preserve any validated observed
+record; they cannot claim `NotSubmitted`. Keep the full original intent and recovery
+key. Administrative clients expose no ordinary Conversation or media mutation facade.
 
 The application worker owns at most 16 active/queued submissions and serializes
 its bounded HTTP transactions. Cancelling or timing out before queue admission

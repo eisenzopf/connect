@@ -531,15 +531,11 @@ async fn public_sdk_cancelled_administrative_http_wait_keeps_real_committed_oper
         assert_eq!(recovered.value["alias"], "sdk-admin-uncertain-target");
         release.notify_one();
         proxy.await.unwrap();
-        assert_eq!(
-            admin
-                .restore(saved("sdk-admin-never-written"))
-                .unwrap()
-                .status(options())
-                .await
-                .unwrap()
-                .state,
-            sdk::OperationState::Unknown
+        // A missing unscoped record has no original source to authorize. Its
+        // refusal is not a fabricated unknown/absent observation; independent
+        // evidence below proves that this fixture's queued work never wrote.
+        assert!(
+            matches!(admin.restore(saved("sdk-admin-never-written")).unwrap().status(options()).await,Err(e) if e.kind==sdk::ErrorKind::Authentication && e.certainty==sdk::Certainty::Refused)
         );
         let db = rusqlite::Connection::open_with_flags(
             &f.config.database,
