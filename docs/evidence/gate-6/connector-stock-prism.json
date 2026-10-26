@@ -1,11 +1,11 @@
 {
   "task": "G6-068",
   "status": "in-progress; independent Prism current stock messaging journey qualified in this scope",
-  "checked_at": "2026-10-26T19:26:14.329853+00:00",
-  "base_revision": "af1bf5dbafb84a4d187ca80fd87938dec2b39b67",
+  "checked_at": "2026-10-26T19:29:00.254123+00:00",
+  "base_revision": "a11c0183a956a80d1549effe13411b35dba07a58",
   "scope": "Local Darwin arm64 isolated public HTTP SDK provisioning, scoped credentials and canonical communication with protected stock startup/ingress. Prism remains the independent authored adapter; a wrapper counts actual submission method calls before backend idempotency, without changing service dispatch. No application database access.",
   "source_inputs": {
-    "crates/connect-server/tests/connector_prism_stock.rs": "317a4606c05d2efa68aca016fbdb6318af8651c473d4b0780a3094484f8338dc",
+    "crates/connect-server/tests/connector_prism_stock.rs": "94b9f24ef3b4651f0c6b6ffe037aa77a28d7f91b83ddd0885277b847bd218006",
     "crates/connect-server/tests/support/connector_stock_setup.rs": "2545f20bd7228919e17f54c2bbe7c6dc388ea1a6a698fbe1cfef7bba41f6aec5",
     "examples/connector-contribution/src/lib.rs": "d381528b1bfcb4335d78d593cedc9ab4360c5ed4e8499b46c5dbce42be436649",
     "crates/connect-server/src/providers.rs": "bd30997a2895d4a5cd0425cd3d1ffe668a57c934860afca485176345055aab61",
@@ -14,32 +14,49 @@
   "verification": {
     "production_build": {
       "exit_code": 0,
-      "seconds": 2.90066562499851,
+      "seconds": 2.100893124938011,
       "source_unchanged": true,
-      "binary_sha256": "e24aa494ee7211ca2d81cdcc5a592359237c639301febece9d5c17a709fbbea5",
-      "bytes": 194709264,
+      "binary_sha256": "52fde4ba0c6289e63aedca032470d84e914c82df608ee18274610009720975ac",
+      "bytes": 194752720,
       "source_count": 1450,
-      "log_sha256": "44e7c78c065a421dd74c2327905caf35267ba2032c6adaaa64dcf17f9f98ae82",
+      "log_sha256": "b58b76b8f2958525c96f6ebe9da8224b4bd8e33a70411fb7a98e1c03cf9f801f",
       "seal": "independent APFS clone; distinct inode, full decoded hash verified",
-      "stock-cli-16": {
+      "stock-cli-18": {
         "sha256": "ab8a79a9a5a2d353f921d0dd20237e39e9e2d1348f827b2b4a50ea46e6b6aa14",
         "bytes": 232507520
       }
     },
     "runtime": {
-      "passed": 1,
+      "passed": 2,
       "exit_code": 0,
-      "seconds": 2.358771000057459,
-      "binary_sha256": "e24aa494ee7211ca2d81cdcc5a592359237c639301febece9d5c17a709fbbea5",
+      "seconds": 2.5031344171147794,
+      "binary_sha256": "52fde4ba0c6289e63aedca032470d84e914c82df608ee18274610009720975ac",
       "source_unchanged": true,
       "source_count": 1450,
-      "log_sha256": "ce3762f77cced3e8b46f368bb64d9c9fad22615c23737921195c7392a0e59a1d",
+      "log_sha256": "f5f7f0edde0b626d6c6031f5a0f36d9129f0419a6a0da1a07c8ea3232c51ac91",
       "default_thread_stack": true
     },
     "build_input_count": 1450,
-    "build_inputs_sha256": "2da6130544a7dae3d720d1beb684726c6a4b9206fc5a2c033e7c827f0f2a896c",
+    "build_inputs_sha256": "79cd9dda343ccb34d1ed4e224d626bb75c78d722385e801b2c260628c71e070f",
     "production_cli_note": "Same exact CLI SHA256 as the independently sealed stock checkpoint that passed280 HTTP/schema exchanges; these new files are integration-test targets only.",
-    "full_store_suite": "Still running on unchanged existing inputs; no broad pass is inferred."
+    "full_store_suite": {
+      "name": "store",
+      "exit_code": 0,
+      "seconds": 1040.2286149580032,
+      "passed": 1222,
+      "results": [
+        "test result: ok. 1222 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 1040.09s"
+      ],
+      "log_sha256": "1da166397abd8f9c4744e8098f9f09d512515ac3344df910eb045dd51bdc3505",
+      "source_unchanged": true,
+      "ignored": 3,
+      "ignored_entrypoints": [
+        "authority_fences::tests::process_worker",
+        "installation_ownership::tests::process_worker",
+        "transitions::tests::crash_worker"
+      ],
+      "ignored_note": "Top-level ignored subprocess fixture entrypoints. Their process parent tests execute explicit subprocess cases; the top-level ignored count remains3."
+    }
   },
   "behaviors": [
     "The original uncertain effect and exact parent receipt survive host/provider restart; the adapter submission counter remains1 even though backend idempotency could hide retries.",
@@ -49,7 +66,8 @@
     "A subsequent verified callback applies once and replays as Duplicate. Public context-delivery state confirms the original delivery.",
     "Independent Prism reply receives the public primer and excludes peer-private content. A scoped positive-control peer sees public content and cannot see private questions/replies.",
     "Independent inbound contact replays the same ID and commits one private-audience message.",
-    "Public Endpoint withdrawal refuses both identical verified callback replay and read-only reconciliation; owned stock shutdown completes."
+    "Public Endpoint withdrawal refuses both identical verified callback replay and read-only reconciliation; owned stock shutdown completes.",
+    "A real Prism effect is committed before the fixture holds its acknowledgement. Stock shutdown cancels and drains the actual outstanding response future, proven by an active-future counter returning0 before shutdown returns. Host/provider restart retains the same unknown operation and parent receipt; original read-only reconciliation commits exactly one reply with one adapter submission and one backend effect."
   ],
   "retained_failures": [
     "Initial new helper omitted Operation/Outcome imports; current compile corrects them.",
@@ -58,9 +76,8 @@
     "An inbound history assertion used the old message id field; current canonical msg_id is used."
   ],
   "remaining": [
-    "In-flight cancellation/teardown with a held adapter acknowledgement.",
     "Actual live-media public stock application journey.",
-    "Full Store terminal regression result, remaining068 requirement audit and independent acceptance.",
+    "Remaining068 requirement audit and independent acceptance.",
     "No real provider/model, Linux/remote/browser, capacity/latency/package/publication qualification."
   ]
 }

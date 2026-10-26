@@ -58,5 +58,8 @@ account/Endpoint/route composition. See
 [bounded stock evidence](../../docs/evidence/gate-6/connector-stock-prism.json).
 It counts adapter submissions across uncertain restart, verifies blocked turns,
 read-only reconciliation, exact callback-byte authentication and current replay,
-private context, independent inbound routing and owned shutdown. The earlier
+private context, independent inbound routing and owned shutdown. A second
+current journey holds a real submission acknowledgement, proves stock shutdown
+cancels and drains its response future, and recovers the same effect after restart
+through read-only reconciliation without another submission. The earlier
 Gate5 ordinary API integration is historical; no compatibility path is restored.

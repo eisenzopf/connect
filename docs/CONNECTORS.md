@@ -446,8 +446,7 @@ canonical communication, and supplies the protected startup composition. Remote
 fixture ledger instrumentation is separate from the application journal. The
 two current local journeys pass private context, parent/inbound replay, restart,
 uncertainty reconciliation and current Endpoint withdrawal. Read the bounded
-[stock workflow evidence](evidence/gate-6/connector-stock.json). Callback, Prism,
-in-flight cancellation and the actual media public application journey remain
+[stock workflow evidence](evidence/gate-6/connector-stock.json). The actual media public application journey remains
 G6-068 work; the implementation plan retains those requirements.
 
 The independent Prism adapter also passes its current public SDK stock journey
@@ -455,5 +454,8 @@ in `crates/connect-server/tests/connector_prism_stock.rs`. It verifies original
 uncertainty across restart with actual adapter-call counts, blocking and later
 resumption, exact-byte callback authentication, required read-only reconciliation,
 callback replay/current withdrawal, private context and inbound routing. See
-[Prism stock evidence](evidence/gate-6/connector-stock-prism.json). In-flight
-cancellation and the actual media public application journey remain open.
+[Prism stock evidence](evidence/gate-6/connector-stock-prism.json). The held-acknowledgement fixture also proves stock shutdown cancels and drains an
+outstanding real submission response, and restart/reconciliation recovers its
+original effect without resubmission. The full Store regression passes1222 tests
+with3 top-level ignored subprocess fixture entrypoints. The actual media public
+application journey remains open.

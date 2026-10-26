@@ -354,3 +354,168 @@ async fn provider_job(
     .await
     .unwrap_or_else(|_| panic!("Provider job for {message} did not reach {state}"))
 }
+
+/// Model a provider acknowledgement lost after the real fixture submission.
+/// The stock worker owns cancellation; this adapter holds only its response.
+struct HeldAcknowledgement {
+    inner: Arc<Counted>,
+    submitted: Arc<tokio::sync::Notify>,
+    release: Arc<tokio::sync::Notify>,
+    active: Arc<AtomicUsize>,
+}
+struct ActiveDelivery(Arc<AtomicUsize>);
+impl Drop for ActiveDelivery {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+#[async_trait::async_trait]
+impl Connector for HeldAcknowledgement {
+    fn name(&self) -> &'static str {
+        self.inner.name()
+    }
+    fn descriptor(&self) -> Descriptor {
+        self.inner.descriptor()
+    }
+    fn manifest(&self) -> Manifest {
+        self.inner.manifest()
+    }
+    fn configuration(&self) -> BTreeMap<String, String> {
+        self.inner.configuration()
+    }
+    fn readiness(&self) -> Readiness {
+        self.inner.readiness()
+    }
+    fn message_extension(&self) -> Option<&dyn MessageExtension> {
+        self.inner.message_extension()
+    }
+    async fn deliver_observed(
+        &self,
+        id: &str,
+        request: &DeliveryRequest,
+        permit: DispatchPermit,
+    ) -> Result<MessageReceipt, Failure> {
+        self.active.fetch_add(1, Ordering::SeqCst);
+        let _active = ActiveDelivery(self.active.clone());
+        let result = self.inner.deliver_observed(id, request, permit).await;
+        self.submitted.notify_one();
+        self.release.notified().await;
+        result
+    }
+    async fn deliver(
+        &self,
+        request: &DeliveryRequest,
+        permit: DispatchPermit,
+    ) -> Result<Completion, Failure> {
+        self.inner.deliver(request, permit).await
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn stock_shutdown_cancels_held_ack_and_reconciles_original_after_restart_without_resubmit() {
+    let f = setup::setup("prism-fixture", "prism-offline-key").await;
+    let prism = Arc::new(Prism::open_file(f.remote.clone()).unwrap());
+    let count = Arc::new(AtomicUsize::new(0));
+    let active = Arc::new(AtomicUsize::new(0));
+    let submitted = Arc::new(tokio::sync::Notify::new());
+    let driver = Arc::new(HeldAcknowledgement {
+        inner: Arc::new(Counted {
+            inner: prism.clone(),
+            submissions: count.clone(),
+        }),
+        submitted: submitted.clone(),
+        release: Arc::new(tokio::sync::Notify::new()),
+        active: active.clone(),
+    });
+    let server = f.start(driver.clone()).await;
+    let mut client = CanonicalHttpClient::open(http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    let mut app = ApplicationClient::open(http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    let draft = MessageDraft::text(
+        MessageAudience::Participants(vec![f.ai_pid.clone()]),
+        "held private acknowledgement",
+    );
+    let accepted = client
+        .send_message(
+            "held-ack-original",
+            &f.cid,
+            "held-ack-message",
+            draft.clone(),
+        )
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(5), submitted.notified())
+        .await
+        .unwrap();
+    let job = provider_job(&mut app, &f.cid, "held-ack-message", "sending").await;
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert_eq!(prism.effects(&job), 1);
+    assert_eq!(active.load(Ordering::SeqCst), 1);
+    drop(client);
+    drop(app);
+    server.shutdown().await.unwrap();
+    assert_eq!(
+        active.load(Ordering::SeqCst),
+        0,
+        "stock shutdown must cancel and drain the outstanding response future"
+    );
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert_eq!(prism.effects(&job), 1);
+    drop(driver);
+    drop(prism);
+
+    let prism = Arc::new(Prism::open_file(f.remote.clone()).unwrap());
+    let driver = Arc::new(Counted {
+        inner: prism.clone(),
+        submissions: count.clone(),
+    });
+    let server = f.start(driver.clone()).await;
+    let mut client = CanonicalHttpClient::open(http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    let mut app = ApplicationClient::open(http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    assert_eq!(
+        provider_job(&mut app, &f.cid, "held-ack-message", "uncertain").await,
+        job
+    );
+    assert_eq!(
+        client
+            .send_message("held-ack-original", &f.cid, "held-ack-message", draft)
+            .await
+            .unwrap(),
+        accepted
+    );
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    Worker::reconcile(server.service.as_ref(), driver.as_ref(), &job)
+        .await
+        .unwrap();
+    assert_eq!(
+        provider_job(&mut app, &f.cid, "held-ack-message", "completed").await,
+        job
+    );
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert_eq!(prism.effects(&job), 1);
+    let page = client
+        .history(
+            &f.cid,
+            serde_json::from_value(serde_json::json!({"limit":100})).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        page.messages
+            .iter()
+            .filter(|m| m.body.starts_with("Historical context:"))
+            .count(),
+        1
+    );
+    drop(client);
+    drop(app);
+    server.shutdown().await.unwrap();
+    assert_eq!(active.load(Ordering::SeqCst), 0);
+}

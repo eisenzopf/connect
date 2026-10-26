@@ -61,7 +61,22 @@
       }
     ],
     "full_store_suite": {
-      "status": "running separately; not yet counted as a pass"
+      "name": "store",
+      "exit_code": 0,
+      "seconds": 1040.2286149580032,
+      "passed": 1222,
+      "results": [
+        "test result: ok. 1222 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 1040.09s"
+      ],
+      "log_sha256": "1da166397abd8f9c4744e8098f9f09d512515ac3344df910eb045dd51bdc3505",
+      "source_unchanged": true,
+      "ignored": 3,
+      "ignored_entrypoints": [
+        "authority_fences::tests::process_worker",
+        "installation_ownership::tests::process_worker",
+        "transitions::tests::crash_worker"
+      ],
+      "ignored_note": "Top-level ignored subprocess fixture entrypoints. Their process parent tests execute explicit subprocess cases; the top-level ignored count remains3."
     },
     "protected_http": {
       "status": "passed local protected HTTP OpenAPI checkpoint",
@@ -79,7 +94,8 @@
     },
     "http_summary_sha256": "83f86cab83d791e8e41cf536cc2d584775df74bdf91af4a7f8cde9e98e22d31f",
     "build_inputs_sha256": "945ecc544a4162a5f8ba2c5d284513f5c7747a3c7486d15e267ac31915287138",
-    "source_guard_count": 1448
+    "source_guard_count": 1448,
+    "store_suite_guard_note": "All1448 original inputs are unchanged. Two subsequently added server-only integration-test files are not inputs to the Store executable. No full server-suite qualification is inferred."
   },
   "behavior_evidence": {
     "deduplication": "Exact parent receipt and one retained logical provider effect before and after canonical host/provider restart; duplicate inbound ID commits one visible message.",
@@ -96,10 +112,10 @@
     "Initial stock runtime:0 passed,2 failed at startup because the historical raw-address trigger rejected decoded connector targets. Schema113 and current matching tests pass."
   ],
   "remaining": [
-    "Full Store terminal regression result.",
-    "Current callback authentication/replay and independent Prism stock public journey.",
-    "Actual in-flight cancellation/teardown and restart during uncertainty with physical dispatch-attempt instrumentation.",
-    "Actual live-media stock public application workflow; component harness and startup registration alone do not satisfy this requirement.",
-    "G6-068 remains in progress and the full105-task objective is unchanged."
-  ]
+    "Actual live-media public stock application workflow; component harness/startup registration alone are insufficient.",
+    "Remaining068 requirement audit and independent acceptance.",
+    "G6-068 remains in progress; the full105-task objective is unchanged."
+  ],
+  "continuation_evidence": "docs/evidence/gate-6/connector-stock-prism.json",
+  "continued_at": "2026-10-26T19:29:00.213301+00:00"
 }
