@@ -140,9 +140,11 @@ async fn exercise(recording_failure: bool) {
         )
         .await;
         let mut scope = Scope::collaboration(vec!["*".into()]);
-        scope
-            .operations
-            .extend(["stream.subscribe".into(), "stream.unsubscribe".into()]);
+        scope.operations.extend([
+            "stream.subscribe".into(),
+            "stream.unsubscribe".into(),
+            "connection.end".into(),
+        ]);
         let receiver_config = super::super::canonical_native_connections::party_with_scope(
             &f,
             &f.peer.identity_id,
@@ -215,7 +217,7 @@ async fn exercise(recording_failure: bool) {
                         "selection-audio",
                         Medium::Audio,
                         Direction::Sendonly,
-                        "pcmu",
+                        "g.711-mu",
                     ),
                     rest: vec![stream(
                         "selection-video",
@@ -227,7 +229,12 @@ async fn exercise(recording_failure: bool) {
                 mutation("selection-source-offer"),
             )
             .await
-            .unwrap()
+            .unwrap_or_else(|e| {
+                panic!(
+                    "SDK source offer: kind={:?},certainty={:?},problem={:?}",
+                    e.kind, e.certainty, e.problem
+                )
+            })
             .wait(options())
             .await
             .unwrap()
@@ -240,7 +247,7 @@ async fn exercise(recording_failure: bool) {
                         "selection-monitor",
                         Medium::Audio,
                         Direction::Recvonly,
-                        "pcmu",
+                        "g.711-mu",
                     ),
                     rest: vec![stream(
                         "selection-monitor-video",
@@ -252,7 +259,12 @@ async fn exercise(recording_failure: bool) {
                 mutation("selection-target-offer"),
             )
             .await
-            .unwrap()
+            .unwrap_or_else(|e| {
+                panic!(
+                    "SDK target offer: kind={:?},certainty={:?},problem={:?}",
+                    e.kind, e.certainty, e.problem
+                )
+            })
             .wait(options())
             .await
             .unwrap()
@@ -462,6 +474,7 @@ async fn exercise(recording_failure: bool) {
         fresh.close(options()).await.unwrap();
         let effect:(u64,u64)=db.query_row("SELECT count(*),max(attempt) FROM operation_effects WHERE operation_record_id=(SELECT record_id FROM operations WHERE operation_id='selection-start')",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
         assert_eq!(effect, (1, 1));
+        println!("SDK selection media {algorithm}: both SDK peers, decoded audio loud={loud},video pixels={pixels},unsubscribe absence,route restoration,noop,replay one effect,recording_failure={recording_failure}");
         source
             .end(
                 1000,

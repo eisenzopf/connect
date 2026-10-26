@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-selections/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T03:13:06.901823+00:00",
+  "checked_at": "2026-10-26T03:24:14.527388+00:00",
   "base_revision": "b1c32a530c7f36509a2d5d47014baade46adffc3",
-  "scope": "Typed public Rust SDK receive selections, captured original native outcomes and owned signed preparation/result pairing. Client, protocol and targeted Store checks pass; actual both-ends SDK media integration is building and has not run. Local macOS arm64 functional scope.",
+  "scope": "Typed public Rust SDK subscribe/unsubscribe and owned signed preparation/result pairing, including actual two-SDK-peer decoded audio/video, routing/no-op/replay and captured recording recovery. Local macOS arm64 functional scope; not full SDK or complete both-ends journey qualification.",
   "implementation": [
     "Connection.subscribe has explicit Stream or Participant/kinds selectors; unsubscribe has explicit Stream IDs. Native revision, original operation ID, opaque extensions and selector order survive uncertainty and recovery. Distinct typed operation kinds preserve historical result identity.",
     "Native stream result records original command, expected/resulting revision, Connection generation, resources_changed and optional captured bindings. A missing concurrent capture is null, never an invented empty set. Shared protocol validation bounds positive counters and native port identities.",
@@ -25,6 +25,10 @@
       "report": {
         "path": ".local/gate-6/rust-sdk-selections/client-final-summary.json",
         "sha256": "3dd3609a9caeaddea94fe5363953d00675a75b763ca4770ea2606ff4782c2fd1"
+      },
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-selections/final-source-equivalence.json",
+        "sha256": "b910396f02de06d5da99546d2ea7659fdb313d8cad07e87f86e0db2e406d2a6a"
       }
     },
     "protocol": {
@@ -45,38 +49,116 @@
         "path": ".local/gate-6/rust-sdk-selections/store-01.log",
         "sha256": "e081ce9af34680939d0d4bbfa6e75393d09d0ce943d606c9cd21a92a66093849"
       },
-      "scope": "Targeted native_stream_authority group; not the whole Store suite."
+      "scope": "Targeted native_stream_authority group; not the whole Store suite.",
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-selections/final-source-equivalence.json",
+        "sha256": "b910396f02de06d5da99546d2ea7659fdb313d8cad07e87f86e0db2e406d2a6a"
+      }
     },
     "inputs": {
       "manifest": {
-        "path": ".local/gate-6/rust-sdk-selections/inputs-03.json",
-        "sha256": "520e535056200e40c7c8e66232c17b9fc96622b3974cfa001864a67c9e05e991"
+        "path": ".local/gate-6/rust-sdk-selections/inputs-05.json",
+        "sha256": "afbd014ce02f85b465cb6352ba21180d1c1a9bba6a6830935424de0b222c08f5"
       },
       "guarded_source_inputs": 1327,
       "unchanged": true,
-      "clock_fixture_audit": {
-        "path": ".local/gate-6/rust-sdk-selections/fixture-clock-correction.json",
-        "sha256": "29713f7e47ca23ae5fa03bf6859471c47d32a09cbbe3c1dfca0f86c9f01c37c3"
-      },
-      "client_correlation_audit": {
-        "path": ".local/gate-6/rust-sdk-selections/payload-correlation-correction.json",
-        "sha256": "62cdb6a234fc879e0c00eb0e474e08d55d94738a03ee6f8426633a9cd2ca16dc"
-      },
-      "store_source_equivalence": {
-        "path": ".local/gate-6/rust-sdk-selections/client-final-summary.json",
-        "sha256": "3dd3609a9caeaddea94fe5363953d00675a75b763ca4770ea2606ff4782c2fd1"
+      "source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-selections/final-source-equivalence.json",
+        "sha256": "b910396f02de06d5da99546d2ea7659fdb313d8cad07e87f86e0db2e406d2a6a"
       }
     },
     "production": {
-      "status": "pending",
-      "detail": "First release no-run integration build compiled successfully. Final client guard now passes the whole unit suite; final source integration build02 is running before actual listener/audio execution."
+      "status": "passed-in-recorded-scope",
+      "passed_functions": 17,
+      "failed_functions": 0,
+      "new_sdk_functions": 2,
+      "new_sdk_algorithm_scenes": 4,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/production-04-summary.json",
+        "sha256": "a514776043d261cbb0330e45ab4a6db1d6e000f681dd983f7abae7c62c98a725"
+      },
+      "sealed_binary_sha256": "5b0f471c1564dfc9dd6715363c469ecbdd287dbc67293f9bcc570d7f57ef3edd",
+      "results": [
+        {
+          "filter": "sdk_handles::selections::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 32.66031654179096,
+          "log": ".local/gate-6/rust-sdk-selections/production-04-00.log",
+          "log_sha256": "740879b7494465ecf86b4c40558815cac758aa7b4adb8aee431984d99f509d21"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::selections::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 8,
+          "failed_functions": 0,
+          "elapsed_seconds": 33.64669816684909,
+          "log": ".local/gate-6/rust-sdk-selections/production-04-01.log",
+          "log_sha256": "84f716fe865fcf978d14aa8670f75a2a71b634ba3d1220c2921ff9d26729f7a7"
+        },
+        {
+          "filter": "canonical_native_connections::future::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 4,
+          "failed_functions": 0,
+          "elapsed_seconds": 36.01278420793824,
+          "log": ".local/gate-6/rust-sdk-selections/production-04-02.log",
+          "log_sha256": "0fda924844eea7f321cd5fadc2dd3ac317b3fa2176ed078326078eec71ab6bf9"
+        },
+        {
+          "filter": "canonical_native_connections::handles::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 9.174349291948602,
+          "log": ".local/gate-6/rust-sdk-selections/production-04-03.log",
+          "log_sha256": "1a8a7091dbb539529cf05c75e181b5fc925ace47008a6e4cf9eb49ac29f0a86a"
+        },
+        {
+          "filter": "canonical_native_connections::selector_policy::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 10.903245582943782,
+          "log": ".local/gate-6/rust-sdk-selections/production-04-04.log",
+          "log_sha256": "056152a4b1220e33fbb7be14ed88e97403a5cc395a7e092c8fc226f04d3a53e9"
+        }
+      ],
+      "scope": "Two new both-ends SDK functions under EdDSA and ES256, eight existing SDK functions selected without repeating the new two, four original canonical future-selector functions, one native handle-custody function and two selector-policy/data refusal functions. No default/full-suite or performance claim.",
+      "behaviors": [
+        "Both source and receiver use owned public Rust SDK Connections. Actual received PCMU and VP8 are independently decoded with FFmpeg; video unsubscribe preserves decoded audio and produces no video while the source keeps sending. Resubscription restores video without new native resources, and repeated unsubscribe is a no-op with the original revision.",
+        "Original selection adds receive resources only after signed same-root preparation and matching captured completion. Historical saved-reference reads and original-ID replay return revision2 after current local routing advances4, without rewinding parameters or repeating the one native effect. Fresh-client recovery observes the same receipt without physical media custody.",
+        "A controlled completion-journal failure leaves original local parameters in place after confirmation. Another unsettled selection refuses locally with zero operation rows. Removing the trigger records the captured original commit; actual decoded media and one effect/attempt prove no repeated native mutation.",
+        "Existing SDK lifecycle/membership/Session/metadata/native controls and codec media regression functions pass. Original future-publication/reconciliation, native handle isolation and heterogeneous selector/disjoint-data refusal functions pass against the new captured Store result shape."
+      ],
+      "observations": [
+        "SDK selection media EdDSA: both SDK peers, decoded audio loud=1598,video pixels=691200,unsubscribe absence,route restoration,noop,replay one effect,recording_failure=true",
+        "SDK selection EdDSA: both SDK peers, decoded audio loud=1598,video pixels=691200,resource and routing commits,unsubscribe silence,noop,restoration,replay one effect,recording_failure=true",
+        "SDK selection media ES256: both SDK peers, decoded audio loud=1598,video pixels=691200,unsubscribe absence,route restoration,noop,replay one effect,recording_failure=true",
+        "SDK selection ES256: both SDK peers, decoded audio loud=1598,video pixels=691200,resource and routing commits,unsubscribe silence,noop,restoration,replay one effect,recording_failure=true",
+        "SDK selection media EdDSA: both SDK peers, decoded audio loud=1598,video pixels=691200,unsubscribe absence,route restoration,noop,replay one effect,recording_failure=false",
+        "SDK selection EdDSA: both SDK peers, decoded audio loud=1598,video pixels=691200,resource and routing commits,unsubscribe silence,noop,restoration,replay one effect,recording_failure=false",
+        "SDK selection media ES256: both SDK peers, decoded audio loud=1598,video pixels=691200,unsubscribe absence,route restoration,noop,replay one effect,recording_failure=false",
+        "SDK selection ES256: both SDK peers, decoded audio loud=1598,video pixels=691200,resource and routing commits,unsubscribe silence,noop,restoration,replay one effect,recording_failure=false"
+      ]
     },
     "dependencies": {
       "path": ".local/gate-6/rust-sdk-selections/dependencies.log",
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "format": {
-      "path": ".local/gate-6/rust-sdk-selections/format-06.log",
+      "path": ".local/gate-6/rust-sdk-selections/format-09.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "rustdoc": {
@@ -98,6 +180,31 @@
         "sha256": "7f76a3e39114b8b1a5e9d5c9d1815b8d1977f36332d97b1ef76089673f0f79ce"
       },
       "schema_sample_count": 15
+    },
+    "public_consumer_snippet": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/example-summary.json",
+        "sha256": "346cd980412691e16cac79aaac0c5ec88987d5d0395dcccf829a3a5af52fed94"
+      },
+      "scope": "Separate public SDK snippet compilation; full packaged/external-crate runtime journey remains open."
+    },
+    "checks": {
+      "schema-generation-check.log": {
+        "path": ".local/gate-6/rust-sdk-selections/schema-generation-check.log",
+        "sha256": "1497795f452ca20872630ced63c26934eb9c7ecd72994496ca39267db67c90ff"
+      },
+      "event-reference-check.log": {
+        "path": ".local/gate-6/rust-sdk-selections/event-reference-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/rust-sdk-selections/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "format-final.log": {
+        "path": ".local/gate-6/rust-sdk-selections/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   },
   "failed_or_superseded_runs": [
@@ -107,15 +214,44 @@
         "sha256": "9a5095357c86458ee8e311863e96512bae70d995055240478fc7150c77c2134d"
       },
       "result": "New fixture called receive instead of the public receive_packet method; compile-only failure corrected before passing 149/40 suites."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/production-02-summary.json",
+        "sha256": "26abd0ad64705aca3ffb5ed76bb6c855c5b83a7e983ad96af2f320ebebb154e4"
+      },
+      "result": "0/2 new functions failed before selections: offered pcmu did not match the explicitly agreed Session label g.711-mu. Corrected only fixture offers; actual native codec stays PCMU.",
+      "correction": {
+        "path": ".local/gate-6/rust-sdk-selections/agreed-codec-fixture-correction.json",
+        "sha256": "c33099ee3c37ca74982167978dd325921093cbf942054295085ad78adeb3b909"
+      }
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/production-03-summary.json",
+        "sha256": "86ee73158347cc48a8ba2e4dd5f9934645de531ba5a93bef3d427654001ae0f3"
+      },
+      "result": "Both EdDSA scenes reached final receiver cleanup after decoded media/routing/replay assertions. Receiver credential correctly refused connection.end because fixture omitted that named permission; added it explicitly. No SDK or backend authorization check changed.",
+      "correction": {
+        "path": ".local/gate-6/rust-sdk-selections/receiver-end-permission-correction.json",
+        "sha256": "3bd34aaf8410aae965707ae0e9c77c3fb6f84ee492099bb689e4d506e22c8367"
+      }
     }
   ],
   "remaining": [
-    "Execute actual signed both-ends SDK selection/media and recording-failure rehearsals; compile public consumer example and Rustdoc, verify generated contracts and final source/binary evidence.",
-    "Unavailable capture adoption, server-initiated subscription reconciliation, complete data/event/capability/config/raw/admin APIs, packaged external consumer and complete both-ends journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain G6-060 work.",
-    "G6-060 remains in progress; no full SDK/task, whole Store, acceptance, performance, remote-provider or publication claim."
+    "G6-060 remains in progress. All22 direct mapped mutation kinds now have public SDK APIs, but that is only a subset of the complete task.",
+    "Unavailable capture adoption and server-initiated subscription/media reconciliation remain open. Retain retired per-Stream generation history when implementing removal/reintroduction reconciliation; current added receive captures assume first creation where no selected predecessor exists.",
+    "Complete reliable data/event/capability/config/raw/admin surfaces, packaged external-crate/full both-ends journeys (including handoff/move), incompatible-server/abrupt-crash and approved remote/Linux profiles remain unqualified.",
+    "No full SDK/task, whole Store/default suite, acceptance, performance, remote-provider or publication claim."
   ],
-  "scratch_preservation": {
-    "path": ".local/gate-6/rust-sdk-selections/qualified-binary-compression.json",
-    "sha256": "d922b55e7014a342e0987cc833cac4b1dbd5ae7dda9b7dc27d7fdcf54900d258"
-  }
+  "scratch_preservation": [
+    {
+      "path": ".local/gate-6/rust-sdk-selections/qualified-binary-compression.json",
+      "sha256": "d922b55e7014a342e0987cc833cac4b1dbd5ae7dda9b7dc27d7fdcf54900d258"
+    },
+    {
+      "path": ".local/gate-6/rust-sdk-selections/superseded-binary-compression.json",
+      "sha256": "11726ff255559a582eec5f8b3b76a7c5261862a10c1e0d7d08c29171beba87e7"
+    }
+  ]
 }
