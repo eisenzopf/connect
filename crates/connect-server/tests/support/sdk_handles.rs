@@ -1,4 +1,6 @@
 //! Actual production listener exercises public owned SDK handles and recovery.
+#[path = "sdk_handles/codec_updates.rs"]
+mod codec_updates;
 #[path = "sdk_handles/media.rs"]
 mod media;
 #[path = "sdk_handles/runtime_controls.rs"]
@@ -50,7 +52,7 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
                 vec![],
                 sdk::SessionMedium::Mixed,
                 "native-sdk-solo".into(),
-                json!({"audio":["g.711-mu"],"video":["vp8"],"data":["reliable-ordered"]}),
+                json!({"audio":["g.711-mu","g.711-a"],"video":["vp8"],"data":["reliable-ordered"]}),
                 mutation("native-sdk-invite"),
             )
             .await
@@ -91,6 +93,8 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
                 ),
             ],
         };
+        let mut first = first;
+        first.first.codecs.rest.push("pcma".into());
         let second = NonEmpty {
             first: stream(
                 "native-sdk-audio",
@@ -170,6 +174,75 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
         assert!(
             matches!(result,Err(ref e) if e.certainty==sdk::Certainty::Refused && e.operation.as_ref().unwrap().operation_id.as_str()=="native-sdk-offer-one")
         );
+        let audio = one.stream_by_id("native-sdk-audio".parse().unwrap());
+        let targets = || NonEmpty {
+            first: audio.id().clone(),
+            rest: vec![],
+        };
+        one.update(
+            sdk::ConnectionUpdate::Mute { streams: targets() },
+            sdk::StreamRevision::try_from(1).unwrap(),
+            mutation("sdk-mixed-codec-mute"),
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+        let codec = one
+            .update(
+                sdk::ConnectionUpdate::CodecRenegotiate {
+                    streams: Some(targets()),
+                    codec_preferences: NonEmpty {
+                        first: "pcma".into(),
+                        rest: vec![],
+                    },
+                },
+                sdk::StreamRevision::try_from(2).unwrap(),
+                mutation("sdk-mixed-codec-pcma"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(codec.stream_revision.get(), 3);
+        let sdk::ConnectionUpdateOutcome::Codecs { streams, .. } = codec.outcome else {
+            panic!("mixed codec receipt")
+        };
+        let data = streams
+            .iter()
+            .find(|s| s.parameters.medium == sdk::Medium::Data)
+            .unwrap();
+        assert!(data.parameters.stream_local_id.is_none());
+        assert_eq!(data.stream_generation, 1);
+        let changed = streams
+            .iter()
+            .find(|s| s.parameters.id == *audio.id())
+            .unwrap();
+        assert_eq!(changed.parameters.codec["name"], "pcma");
+        assert_eq!(changed.stream_generation, 2);
+        let mut packet = vec![0x80, 8, 0, 1, 0, 0, 0, 160, 0, 0, 0, 1];
+        packet.extend_from_slice(&[0xaa; 160]);
+        assert!(
+            matches!(audio.send_rtp(sdk::RtpPacket::new(1,packet.clone()).unwrap(),options()).await,Err(e) if e.kind==sdk::ErrorKind::Validation),
+            "mute must survive codec replacement"
+        );
+        one.update(
+            sdk::ConnectionUpdate::Unmute { streams: targets() },
+            sdk::StreamRevision::try_from(3).unwrap(),
+            mutation("sdk-mixed-codec-unmute"),
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+        audio
+            .send_rtp(sdk::RtpPacket::new(1, packet).unwrap(), options())
+            .await
+            .unwrap();
         let fresh = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
             .await
             .unwrap();

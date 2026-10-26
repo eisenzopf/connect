@@ -54,5 +54,5 @@
       "sha256": "12f72377029a0bed6d572c6de9c1a921fe3d892308158be0894b930cd223188e"
     }
   },
-  "remaining": "Corrected SDK data port ownership/reoffer lifecycle, final Store and production verification, reliable data I/O, the rest of G6-060, remote/Linux and Gate6 acceptance remain open. Publication is separate."
+  "remaining": "The corrected public SDK mixed-data production lifecycle now passes under both signing algorithms; see docs/evidence/gate-6/rust-sdk-codec-updates.json. Reliable data I/O, the rest of G6-060, approved remote/Linux profiles and Gate6 acceptance remain open. Publication is separate."
 }

@@ -2,15 +2,26 @@
   "schema": "connect-gate6-rust-sdk-codec-updates/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T01:01:40.343197+00:00",
-  "base_revision": "f1569d674784065a220e9a4651d149b3c2a0fa65",
-  "scope": "Typed direct codec replacement and owned lifecycle checkpoint. Controlled signed QUIC and targeted local checks pass; final actual production mixed-data rerun remains pending.",
+  "checked_at": "2026-10-26T01:11:47.198392+00:00",
+  "base_revision": "22eb8c689e7ecc15300d5a70783aa7375b9d00dd",
+  "scope": "Direct typed native Connection codec replacement over the public Rust SDK; signed preparation paired with original captured completion, exact parameter/identity validation, bounded unresolved proof, per-stream control ordering and local media queue replacement. Local macOS arm64 functional scope only.",
   "implementation": [
-    "Ordered codec preferences and exact optional targets retain original intent and logical operation identity. Signed reoffers validate request/scope/Participant/revision, original capability declarations, full unchanged stream set and directions, and unique private native port identity including data.",
-    "One unsettled codec preparation per Connection stays bounded. Confirmation alone leaves old local parameters; matching original captured completion installs exact new parameters. Unknown/dropped waits retain original recovery; definitive failure clears preparation but reserves used handles. Historical/fresh receipts alone grant no media ownership.",
-    "Atomic local binding replacement preserves unrelated queues, reports obsolete packets as Gap and binding_change_drops, and retains latest per-stream control facts despite out-of-order receipts. Public data parameters expose no RTP handle while private positive native data handles remain pinned and reserved."
+    "ConnectionUpdate::CodecRenegotiate preserves ordered preferences, optional exact RTP targets and the original logical operation identity. CodecObservation exposes historical selected parameters and separate native/resource/generation facts without granting media custody.",
+    "The owned driver validates scope, original wire request and operation, Participant, revision, pinned endpoint capabilities, complete unchanged stream set/directions, original preference selection and declared codec parameters. Peer hop handles remain reserved across failures and retirement.",
+    "At most one unsettled replacement per Connection is retained. Signed confirmation alone never changes local parameters; exact captured Completed binding/generation evidence must pair with the retained preparation and unchanged base. Unknown/dropped waits preserve original recovery; Failed/Cancelled releases preparation, without reusing reserved handles.",
+    "Atomic local replacement keeps unrelated queues, drops only obsolete packets with explicit Gap and binding_change_drops, and preserves the newest per-stream logical mute/hold observations even when receipt order differs across streams.",
+    "Captured native ports require distinct positive handles, including reliable data. The SDK privately retains data port identity for exact unchanged binding checks and reserves it against RTP aliases; public data observations still expose no RTP handle. Initial and replacement zero/changed/aliased data ports refuse before signing. This adds no reliable-data I/O.",
+    "Generated HTTP/OpenAPI reference includes NativeCodecBinding and NativeCodecResult, positive native port shape bounds and optional Session reconciliation batch; receipt metadata grants no media authority."
   ],
   "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/dependencies-final.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/format-09.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
     "client": {
       "binary_sha256": "da917edd7f98cc97960c1cd73d5debb44a75847ea9fa757d7de33229735d1910",
       "inputs_manifest_sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66",
@@ -47,44 +58,216 @@
         "path": ".local/gate-6/rust-sdk-codec-updates/client-07.log",
         "sha256": "dc4766cc61f88853a7a75b6dd699d985b52232450cf9b826801234d80d261ca7"
       },
-      "new_functions": 6
+      "new_functions": 6,
+      "behaviors": [
+        "Paired confirmation/completion replaces audio while preserving video/data; old binding stays usable before completion and queued old audio becomes explicit Gap.",
+        "Unknown and cancelled waiting recover with the original operation; a newer video hold arriving before audio mute is retained together with pending codec state.",
+        "Malformed signed revision/direction/codec/Participant/reserved-hop reoffers are refused before signing. Unsupported local preferences write no mutation. A mismatched captured completion cannot activate a hop.",
+        "Recorded failure releases preparation and preserves the old binding; an explicit new intent uses a fresh hop."
+      ]
     },
     "rustdoc": {
-      "passed_functions": 5,
       "log": {
         "path": ".local/gate-6/rust-sdk-codec-updates/rustdoc-03.log",
         "sha256": "7c248912078cfec9d41003a7fce6faa6a00b9cd5021a267c6634fbcb8c05706e"
-      }
+      },
+      "passed_functions": 5,
+      "failed_functions": 0
     },
     "protocol": {
-      "passed_functions": 38,
       "log": {
         "path": ".local/gate-6/rust-sdk-codec-updates/protocol-02.log",
         "sha256": "7b9a94fb4b967830210d363bec337473c7e983e8b027c887f98230535160c3fc"
-      }
+      },
+      "passed_functions": 38,
+      "failed_functions": 0,
+      "scope": "Includes expanded captured-binding positive/negative data-port checks; final protocol source checked."
     },
     "store": {
-      "passed_functions": 236,
       "report": {
         "path": ".local/gate-6/rust-sdk-codec-updates/store-02-summary.json",
         "sha256": "2caf4f4d2bf41261145d11c3036b9354a4dc4b2eceaacd8e7b1f221b47548fac"
       },
-      "scope": "Five targeted groups, two threads, Store opt-level0 functional profile; no whole Store or performance claim."
+      "results": {
+        "binary_sha256": "af4e4109669d4248012fa58c17df8cb9f7a9eff68e1dd555c6f820fcd5bac2bd",
+        "inputs_manifest_sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66",
+        "inputs_unchanged": true,
+        "groups": [
+          {
+            "group": "native_stream_projection::tests::",
+            "exit_code": 0,
+            "passed_functions": 3,
+            "elapsed_seconds": 0.6310630838852376,
+            "log": ".local/gate-6/rust-sdk-codec-updates/store-02-00.log",
+            "log_sha256": "7a045fe4eb83f81fcfa3a9a54b1705c77dead9107f27e04f651b9c4b9f1d4476"
+          },
+          {
+            "group": "connection_control::tests::native_stream_authority::",
+            "exit_code": 0,
+            "passed_functions": 178,
+            "elapsed_seconds": 52.61231820913963,
+            "log": ".local/gate-6/rust-sdk-codec-updates/store-02-01.log",
+            "log_sha256": "9159cbb2acbadc17bc3cc9c640320af97d6e50d82fa6eac2d9569a81012a5186"
+          },
+          {
+            "group": "connection_control::tests::native_wire::",
+            "exit_code": 0,
+            "passed_functions": 14,
+            "elapsed_seconds": 4.972263709176332,
+            "log": ".local/gate-6/rust-sdk-codec-updates/store-02-02.log",
+            "log_sha256": "59ad3a87be7731db9b44504069e2e7c68f782ff5c567f9e1a3863e2ba00750ee"
+          },
+          {
+            "group": "peer_authority::connection_media::snapshot::tests::",
+            "exit_code": 0,
+            "passed_functions": 19,
+            "elapsed_seconds": 3.2631382499821484,
+            "log": ".local/gate-6/rust-sdk-codec-updates/store-02-03.log",
+            "log_sha256": "32d25738834c1d809dffa51fabb2c0f5343229027141b33e71f6204b9f35307a"
+          },
+          {
+            "group": "events::tests::",
+            "exit_code": 0,
+            "passed_functions": 22,
+            "elapsed_seconds": 4.930235374951735,
+            "log": ".local/gate-6/rust-sdk-codec-updates/store-02-04.log",
+            "log_sha256": "34888356d383a1f87ac1e9749496472e80a238467b7d69599892592aa5ba1393"
+          }
+        ],
+        "scope": "Five targeted Store groups after restoring positive unique handles for every actual native port, including data. Store opt-level0 functional profile, two threads; no whole Store/default-parallel/performance claim."
+      },
+      "passed_functions": 236,
+      "failed_functions": 0,
+      "scope": "Five targeted groups, two test threads, Store opt-level0 functional scope. No whole Store, default-parallel or performance claim."
     },
-    "manifest": {
-      "path": ".local/gate-6/rust-sdk-codec-updates/inputs-03.json",
-      "sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66"
+    "production": {
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-codec-updates/production-test-03",
+        "sdk_handles::",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 34.87060245894827,
+      "binary_sha256": "499adac438141626a6ce706367a07a67e08c2fc7823e6d23869ec153486cb177",
+      "sealed_binary_sha256": "499adac438141626a6ce706367a07a67e08c2fc7823e6d23869ec153486cb177",
+      "build_log_sha256": "5327858585fdc32dbf01731c652af1a8430ff2687aeb03594014d1e01dc261ad",
+      "build_jsonl_sha256": "5cff6489f5bb8e451cd3b8c6e67afd1b68c1d3e11948411ae0217e7f0e885491",
+      "profile": "release with connect-store, connect-service and connect-server opt-level=0; other packages use release defaults. Functional behavior only; no performance claim.",
+      "log_sha256": "d5faf3c901ef231cb3d0f55679ef0599f2ce51c8d42a7e46d59b39224749f597",
+      "inputs_unchanged": true,
+      "driver_sha256": "4e71b8a23e0a25106f3a41bc9a034998f9e5ed3829426f55564ea7924cf7b265",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/production-03-summary.json",
+        "sha256": "6d104a6fc22886d7de86dc2352f8173be2d8a58cf49b1999120ac4ff58ad43be"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/inputs-03.json",
+        "sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66"
+      },
+      "guarded_source_inputs": 1312,
+      "passed_functions": 8,
+      "failed_functions": 0,
+      "algorithm_scenes": 16,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "behaviors": [
+        "Mixed audio/video/data actual Connection replaces targeted PCMU with PCMA, preserves distinct positive data port identity and unchanged video, retains source mute until explicit unmute, and leaves a second Connection unchanged.",
+        "A deliberately failed completed-journal insert leaves the original operation Preparing after signed confirmation and Core commit. Old local parameters remain; another codec operation returns Conflict/NotSubmitted with no durable row. A public SDK Session role writer completes within its 3s bound while recording is retryable.",
+        "After the isolated recording failure is removed, original-ID recovery adopts revision8 and new audio generation2; video resource revision is unchanged. Same-intent replay has one durable effect and a fresh-client historical receipt acquires no physical ownership.",
+        "Following codec replacement and ending a spare Connection, the SDK sends distinct fresh PCMA audio; the independent Canonical PCMU receiver and FFmpeg decode the transcoded tone under each algorithm. Baseline PCMU/VP8 decoding and all other SDK production functions pass."
+      ],
+      "codec_recovery_observations": [
+        "EdDSA:one_effect,recording_failure_role_writer,recovered_revision=8,new_audio_generation=2,unchanged_video;fresh_receipt_has_no_ownership",
+        "ES256:one_effect,recording_failure_role_writer,recovered_revision=8,new_audio_generation=2,unchanged_video;fresh_receipt_has_no_ownership"
+      ],
+      "decoded_after_codec_and_other_connection_end": [
+        {
+          "algorithm": "EdDSA",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1598
+        },
+        {
+          "algorithm": "ES256",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1599
+        }
+      ]
     },
-    "dependencies": {
-      "path": ".local/gate-6/rust-sdk-codec-updates/dependencies-final.log",
-      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    "http_schema": {
+      "schema_sha256": "63f486ac18123d78e67a3c8b239c9a5c9b24b315360fc73c3a1373f4655c09a5",
+      "valid_mixed_rtp_and_two_distinct_positive_data_observations": true,
+      "optional_session_codec_batch": true,
+      "refused_rtp_zero_data_zero_and_zero_generation": true,
+      "scope": "Generated NativeCodecResult JSON Schema shape only; logical ID and all native port handle uniqueness and the 32KiB bound are additionally enforced by Rust captured-binding validation.",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/http-reference-validation.json",
+        "sha256": "e316e89dc579b7b313a5295ebdadefb65159a39162a2999cf476e8b0eb876d0b"
+      },
+      "driver": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/check-http.py",
+        "sha256": "633d585de1bc6b1aa48ea445af2c2dedef1d6ae8f41fea5a91480ca0af42466e"
+      }
     },
-    "format": {
-      "path": ".local/gate-6/rust-sdk-codec-updates/format-09.log",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "checks": {
+      "openapi_event_reference": "passed",
+      "plan_integrity": "passed;50 done /3 in progress /52 not started;no acceptance promotion",
+      "diff": "passed",
+      "plan_integrity_report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/plan-integrity-final.json",
+        "sha256": "939066bf65b51c29861b6ec4a1e6a161673af20e52c5d628618024dd6b970d8c"
+      },
+      "final_format": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/format-final-02.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "final_inputs_unchanged": true
     }
   },
   "failed_or_superseded_runs": [
+    {
+      "logs": [
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-02.log",
+          "sha256": "966b3fba4a777ca62f376b37105ffc3e76b7f50396e6848fd40815845074cdcf"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-03.log",
+          "sha256": "966b3fba4a777ca62f376b37105ffc3e76b7f50396e6848fd40815845074cdcf"
+        }
+      ],
+      "result": "New fixture compile errors E0716 from temporary Operation values borrowed across wait; corrected with named operations. No runtime result from these builds."
+    },
+    {
+      "logs": [
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-01.log",
+          "sha256": "aaf2b8b87226744f68d1016e32276ef8b2f04a33e6798a6c4cf949072ac4b4b4"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-04.log",
+          "sha256": "6b3953d53c370c8c96489e39422f11a78353e4121a663c7507eeb8f38886d70a"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-05.log",
+          "sha256": "1197f01adcc84670b945f68a5d95a557e6c320e5c6a80f82d0c6240841ee9e3d"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-codec-updates/client-06.log",
+          "sha256": "58a91a456578c284636cc09c366c074dde7367557927871b915b6a26777fdb64"
+        }
+      ],
+      "result": "Passing intermediate client runs superseded by final base-parameter seal, known-revision audit and positive data-port correction; final124/client07 is qualified."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/superseded-inputs-01.json",
+        "sha256": "097115a9bac264d86c798ae7b199953710803da340fd392bd1d4b73e4e4fa114"
+      },
+      "result": "Initial input manifest superseded by the final SDK codec worker audit before production build. No production run uses input01."
+    },
     {
       "report": {
         "path": ".local/gate-6/rust-sdk-codec-updates/production-02-summary.json",
@@ -94,12 +277,23 @@
         "path": ".local/gate-6/rust-sdk-codec-updates/production-02.log",
         "sha256": "12f72377029a0bed6d572c6de9c1a921fe3d892308158be0894b930cd223188e"
       },
-      "result": "First actual production run passed7/8; both algorithms proved codec recording-failure recovery and independently decoded audio. Mixed-data test exposed a mistaken zero-data-port assumption shared by controlled fixtures and b89dee01. Corrected captured positive handles in f1569d67 and added private SDK data identity checks plus zero/changed/aliased reoffer negatives. Final production rerun is still building."
+      "result": "7 passed/1 failed. The mixed production fixture exposed an incorrect SDK assumption that data ports use zero. Core uses positive unique native port handles for data too. Earlier controlled fixtures incorrectly used zero, and the b89dee01 captured-validation checkpoint adopted that same mistaken assumption. Restored positive unique capture validation, privately retained actual data port identity in SDK state, and expanded zero/changed/aliased data refusals. Full final suite and production rerun supersede the earlier passing lower-level fixture evidence."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/correction-inputs-03.json",
+        "sha256": "df78e777744df487deaa065e3ffff8451acf0a7dcffadc95d0f830c6bddd5496"
+      },
+      "result": "Final input03 records the data-port correction; final client07, Store02, protocol02 and production03 use these sources."
     }
   ],
+  "scratch_cleanup": {
+    "path": ".local/gate-6/rust-sdk-codec-updates/failed-binary-scratch-cleanup.json",
+    "sha256": "808dd2aa3db0b9f207e143a1bdab6a9159478ad153827e0c014c7ead7f7def4a"
+  },
   "remaining": [
-    "Final actual production verification and evidence update are pending; SDK integration fixture edits are not claimed as qualified by this checkpoint.",
-    "G6-060 remains in progress. Consult/return/handoff, Connection replacement, Stream subscribe/unsubscribe, server-initiated reconciliation, reliable data I/O, complete event/capability/config/raw/admin APIs, external crate/package, both-ends SDK decoded media, incompatible-server/abrupt-crash and approved remote/Linux qualification remain.",
-    "No task/acceptance/performance/publication completion claim."
+    "G6-060 remains in progress:16 of22 directly mapped mutation kinds implemented. Consult/return/handoff, Connection replacement and Stream subscribe/unsubscribe remain.",
+    "Server-initiated reconciliation, reliable data I/O/data controls, event/capability/config/raw/admin APIs, external-crate/package journeys, both-ends SDK decoded media, incompatible-server/abrupt-crash and approved remote/Linux profiles remain unqualified.",
+    "No whole-task, full Gate6 acceptance, whole Store, default-parallel, performance or publication claim."
   ]
 }

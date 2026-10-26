@@ -154,7 +154,7 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
             .unwrap()
             .id
             .clone();
-        let caps = json!({"audio":["g.711-mu"],"video":["vp8"]});
+        let caps = json!({"audio":["g.711-mu","g.711-a"],"video":["vp8"]});
         let session = room
             .invite(
                 "native-session".parse().unwrap(),
@@ -191,16 +191,18 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
                 rest: vec![],
             },
         };
+        let mut offered_audio = stream(
+            "sdk-publish-audio",
+            sdk::Medium::Audio,
+            sdk::Direction::Sendrecv,
+            "g.711-mu",
+        );
+        offered_audio.codecs.rest.push("pcma".into());
         let offer = session
             .offer_connection(
                 "sdk-media-source".parse().unwrap(),
                 NonEmpty {
-                    first: stream(
-                        "sdk-publish-audio",
-                        sdk::Medium::Audio,
-                        sdk::Direction::Sendrecv,
-                        "g.711-mu",
-                    ),
+                    first: offered_audio,
                     rest: vec![stream(
                         "sdk-publish-video",
                         sdk::Medium::Video,
@@ -345,6 +347,8 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
         println!("SDK RTP {algorithm}: decoded_audio_bytes={}, loud_samples={loud}, decoded_rgb_bytes={pixels}, source_media_queued={}",received_audio.len()*2,stats.queued_packets);
         let next_audio =
             super::runtime_controls::exercise(&f, &client, &connection, &audio, &video).await;
+        super::codec_updates::replace(&f, &client, &room, &session, &connection, &audio, &video)
+            .await;
         let spare = session
             .offer_connection(
                 "sdk-spare-connection".parse().unwrap(),
@@ -391,13 +395,13 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
         let sending = async {
             for index in next_audio..next_audio + 40 {
                 let pcmu = (0..160)
-                    .map(|i| if i % 8 < 4 { 0x80 } else { 0x00 })
+                    .map(|i| if i % 8 < 4 { 0xaa } else { 0x2a })
                     .collect::<Vec<_>>();
                 audio
                     .send_rtp(
                         sdk::RtpPacket::new(
                             u32::from(index),
-                            rtp(0, index, u32::from(index) * 160, 0x735f6101, false, &pcmu),
+                            rtp(8, index, u32::from(index) * 160, 0x735f6101, false, &pcmu),
                         )
                         .unwrap(),
                         options(),
