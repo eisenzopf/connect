@@ -750,3 +750,28 @@ without new packets pass. This is a selected functional checkpoint, not one
 all-pass default suite. Incompatible-server qualification and final G6-060
 requirements review remain open. Evidence and exact scope are recorded in
 `docs/evidence/gate-6/rust-sdk-external.json`.
+
+
+## Incompatible server refusal
+
+The native connection offers only the current QUIC ALPN and `connect/2`
+application profile. It refuses an older or newer envelope version, a missing or
+incompatible advertised profile, an incompatible selected session profile,
+unverified signatures and mismatched reply/Identity bindings. It closes the
+physical peer before creating an SDK owner. An invalid challenge receives no
+credential response. Explicit application HTTP configuration never substitutes
+for refused native control.
+
+The current transport layer maps incompatible ALPN to `TransportUncertain`,
+invalid wire versions/selected profile to `Protocol`, and signed challenge
+capability/correlation or session binding refusal to `Authentication`.
+Connection failures carry `ReadOnly` certainty and no Operation identity; they
+do not describe a submitted mutation. Error text omits received private data.
+
+Two real TLS/QUIC test functions cover 24 refusal scenes and four valid current
+connections under EdDSA and ES256, including both public connection entry points.
+The full client suite passes 213 functions and all 12 Rustdoc checks pass. These
+checks change test sources only; previously qualified product bytes remain
+unchanged. Exact evidence is in
+`docs/evidence/gate-6/rust-sdk-compatibility.json`. G6-060 remains in progress for
+final contract and lifecycle requirements review.

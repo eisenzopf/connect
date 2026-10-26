@@ -1,0 +1,75 @@
+{
+  "task": "G6-060",
+  "status": "incompatible-server connection boundary verified; task remains in progress",
+  "checked_at": "2026-10-26T09:55:48.438691+00:00",
+  "scope": "Local macOS arm64 public SDK connection-entry tests against controlled real TLS/QUIC endpoints with signed server frames. No product/protocol/dependency behavior changed. This does not replace full operating-profile or installed-package qualification.",
+  "verification": {
+    "client": {
+      "passed_functions": 213,
+      "failed_functions": 0,
+      "ignored_functions": 0,
+      "new_functions": 2,
+      "log": ".local/gate-6/sdk-compatibility/client-build-01.jsonl",
+      "sha256": "13676e8ec832e0eec4fafa895625250243194b483a32c1421b72abdfad5e5549",
+      "executable_sha256": "b3af231902bd408818b430c11355f2323f4b1edf82c14be97dedb77e466c1b41",
+      "executable_bytes": 24299376
+    },
+    "rustdoc": {
+      "passed_functions": 12,
+      "log": ".local/gate-6/sdk-compatibility/rustdoc-01.log",
+      "sha256": "8b5638e36a33ff77d7abc2879b8ce0f4ccbe69d648f5f610ff5d520feb8a50e8"
+    },
+    "preparation": {
+      "status": "passed",
+      "log": ".local/gate-6/sdk-compatibility/prepare.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format_and_diff": "passed"
+  },
+  "scenes": {
+    "incompatible": 24,
+    "current": 4,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "incompatible_cases": [
+      "older-only ALPN",
+      "future-only ALPN",
+      "older challenge envelope version",
+      "future challenge envelope version",
+      "foreign advertised application profile",
+      "missing advertised application profile",
+      "foreign challenge correlation",
+      "tampered signed challenge",
+      "foreign selected session profile",
+      "future session envelope version",
+      "foreign session Identity",
+      "foreign session correlation"
+    ],
+    "current_cases": [
+      "Client::connect",
+      "Client::connect_configured with explicit application endpoint"
+    ]
+  },
+  "assertions": [
+    "Initial hello offers only the current application profile and bearer authentication, without a credential. An invalid challenge receives no credential response.",
+    "An incompatible handshake creates no SDK owner, application command, retry/downgrade connection or application HTTP connection. Refusal closes the physical connection and the host joins.",
+    "Transport-only ALPN refusal returns TransportUncertain; invalid wire versions/selected profile return Protocol; signed challenge capability/correlation/signature or session owner/correlation refusal returns Authentication. These connection failures have ReadOnly certainty, no Operation identity and no echoed private credentials or session token.",
+    "Both current signed profile/Identity bindings connect under each public entry point; capability read is local and close joins the owned worker/reader."
+  ],
+  "source_identity": {
+    "manifest": ".local/gate-6/sdk-compatibility/inputs-current.json",
+    "sha256": "70c00fb124a4ffdfdb2b310191a23a443d125cb346b0ff40de92044cde9ef4e0",
+    "inputs": 1376,
+    "changes_since_external_qualification": [
+      "crates/connect-client/src/canonical/tests.rs",
+      "crates/connect-client/src/canonical/tests/sdk_compatibility.rs"
+    ],
+    "unchanged_product_sources": "All SDK/runtime/protocol/dependency implementation bytes match the external consumer qualification; only tests.rs registration and the new compatibility test module differ."
+  },
+  "boundaries": [
+    "G6-060 final contract and native lifecycle requirements review remains open. Existing recorded component limitations are not silently promoted.",
+    "Installed package parity and required Linux/remote/provider profiles remain in their assigned Gate6 tasks. All105 tasks remain the goal; publication remains separate."
+  ]
+}
