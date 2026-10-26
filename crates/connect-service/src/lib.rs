@@ -38,6 +38,7 @@ mod canonical_operations;
 mod canonical_preparation;
 mod canonical_receipts;
 mod canonical_received_dtmf;
+mod canonical_reconciliation_delivery;
 mod canonical_records;
 mod canonical_runtime;
 mod canonical_session_codecs;

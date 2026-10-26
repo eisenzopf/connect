@@ -50,6 +50,39 @@ impl NativeReconciliationRead {
     }
 }
 impl Store {
+    /// Fresh original-owner permission for a small recorded-operation hint.
+    /// The returned read exists only during actual reliable metadata output.
+    pub fn try_native_reconciliation_hint_read(
+        &self,
+        origin: &NativeMediaOrigin,
+        record: &str,
+    ) -> Result<(
+        NativeReconciliationRead,
+        connect_protocol::native_streams::ReconciliationHint,
+    )> {
+        let read = self.try_native_reconciliation_read(origin)?;
+        let c = self.try_connection()?;
+        let (operation_id,expected_revision,revision,stream_revision): (String,u64,u64,u64)=c.query_row(
+            "SELECT o.operation_id,o.expected_revision,o.revision,json_extract(o.result_json,'$.stream_revision') FROM operations o JOIN native_stream_operations n ON n.operation_record_id=o.record_id JOIN operation_effects e ON e.id=n.effect_id AND e.operation_record_id=o.record_id WHERE o.record_id=?1 AND o.command_type='stream.reconcile' AND o.state='completed' AND o.conversation_id=?2 AND o.session_id=?3 AND o.connection_id=?4 AND n.parent_record_id=?5 AND n.credential_id=?6 AND n.key_id=?7 AND n.device_id=?8 AND n.closed=1 AND e.state='confirmed' AND json_extract(o.result_json,'$.server_reconciliation')=1 AND json_extract(o.result_json,'$.resources_changed')=0 AND json_extract(o.result_json,'$.subscription_record_id')=?9 AND json_extract(o.intent_json,'$.payload.subscription_record_id')=?9 AND n.generation=?10 AND json_extract(o.result_json,'$.connection_generation')=?10 AND json_extract(o.result_json,'$.command_type')='stream.reconcile' AND json_extract(o.result_json,'$.expected_revision')=o.expected_revision",
+            params![record,origin.conversation_id(),origin.session_id(),origin.connection_id(),read.parent,read.credential,read.key,read.device,read.subscription,read.media.target().connection.generation],
+            |r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)),
+        ).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let hint = connect_protocol::native_streams::ReconciliationHint {
+            operation_id,
+            record_id: record.into(),
+            command_type: connect_protocol::native_streams::Command::Reconcile,
+            expected_revision,
+            state: connect_protocol::transitions::OperationState::Completed,
+            revision,
+            subscription_record_id: read.subscription.clone(),
+            stream_revision,
+            journal_hint: true,
+            resources_changed: false,
+        };
+        hint.validate()?;
+        read.require(self)?;
+        Ok((read, hint))
+    }
     pub fn try_native_reconciliation_read(
         &self,
         origin: &NativeMediaOrigin,

@@ -34,6 +34,7 @@ struct Policy {
     entry: Arc<Connection>,
     domain: Arc<()>,
     attempt: Mutex<Option<Attempt>>,
+    listener: Arc<crate::canonical_reconciliation_delivery::Listener>,
 }
 struct Attempt {
     operation: String,
@@ -59,12 +60,16 @@ impl Runtime {
         self: &Arc<Self>,
         id: &ConnectionId,
         result: &rvoip_uctp::v2::native::RefreshedNativeMedia,
+        physical: &crate::canonical_runtime::Physical,
     ) -> Result<(), DispatchError> {
         let entry = self.media.entry(id).map_err(|_| DispatchError::Authority)?;
         let native = self
             .connection_native_adapter(id)
             .map_err(|_| DispatchError::Authority)?;
         let origin = result.request_origin(&native)?;
+        let listener = self
+            .install_reconciliation_delivery(entry.clone(), origin.clone(), physical)
+            .map_err(|_| DispatchError::Authority)?;
         self.codec_origins
             .lock()
             .map_err(|_| DispatchError::Capacity)?
@@ -77,6 +82,7 @@ impl Runtime {
                 entry,
                 domain: Arc::new(()),
                 attempt: Mutex::new(None),
+                listener,
             }),
         )
     }
@@ -84,6 +90,7 @@ impl Runtime {
         self: &Arc<Self>,
         id: &ConnectionId,
         a: &AuthorizedEnvelope,
+        physical: &crate::canonical_runtime::Physical,
     ) -> connect_protocol::Result<()> {
         let entry = self
             .media
@@ -93,6 +100,8 @@ impl Runtime {
             .connection_native_adapter(id)?
             .native_request_origin(id, a)
             .map_err(crate::canonical_native::registration_error)?;
+        let listener =
+            self.install_reconciliation_delivery(entry.clone(), origin.clone(), physical)?;
         self.codec_origins
             .lock()
             .map_err(|_| connect_protocol::Error::storage())?
@@ -103,6 +112,7 @@ impl Runtime {
             entry,
             domain: Arc::new(()),
             attempt: Mutex::new(None),
+            listener,
         });
         self.connection_native_adapter(id)?
             .enable_native_subscriptions(&self.core, id, a, policy)
@@ -303,9 +313,10 @@ impl NativeSubscriptionPolicy for Policy {
         attempt.captured = Some(recording.clone());
         let store = runtime.media.store.clone();
         let stop = runtime.stop.clone();
+        let listener = self.listener.clone();
         let mut work = runtime.work.lock().map_err(|_| DispatchError::Authority)?;
         while work.try_join_next().is_some() {}
-        // Retain only the captured outcome and kernel-bound Store. Permission,
+        // Retain the captured outcome, Store and metadata-only listener. Permission,
         // signed exchange, proposal and original readers are not in this job.
         work.spawn(async move {
             loop {
@@ -314,7 +325,7 @@ impl NativeSubscriptionPolicy for Policy {
                     Captured::Unknown(lease,_)=>store.native_stream_attempt_uncertain(lease),
                     Captured::NoEffect(receipt,_)=>store.record_native_stream_without_effect(receipt),
                 };
-                if saved.is_ok(){recording.done.store(true,Ordering::Release);return;}
+                if let Ok(saved)=saved {recording.done.store(true,Ordering::Release);listener.recorded(&saved);return;}
                 tokio::select!{biased;_=stop.cancelled()=>return,_=tokio::time::sleep(Duration::from_millis(100))=>{}}
             }
         });

@@ -1,0 +1,413 @@
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/capabilities.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/capabilities.rs
+index 859689db..71906b30 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/capabilities.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/capabilities.rs
+@@ -102,6 +102,7 @@ impl HandlerDelivery {
+             data: None,
+             native: None,
+             capability: Some(pending),
++            journal: None,
+             deadline,
+         })
+     }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+index 5ab90263..c3fd65ec 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/data.rs
+@@ -360,6 +360,7 @@ impl DataOrigin {
+ pub(in crate::v2) enum DeliveryOrigin {
+     Subscription(SubscriptionOrigin),
+     Data(DataOrigin),
++    NativeJournal(DataOrigin),
+     NativeLifecycle(super::lifecycle::NativeLifecycleOrigin),
+     Capability(Arc<crate::v2::native_capability_delivery::NativeCapabilityRegistration>),
+ }
+@@ -367,7 +368,7 @@ impl DeliveryOrigin {
+     pub(in crate::v2) fn current(&self) -> bool {
+         match self {
+             Self::Subscription(s) => s.current(),
+-            Self::Data(s) => s.current(),
++            Self::Data(s) | Self::NativeJournal(s) => s.current(),
+             Self::NativeLifecycle(s) => s.current(),
+             Self::Capability(s) => s.current(),
+         }
+@@ -375,7 +376,7 @@ impl DeliveryOrigin {
+     pub(in crate::v2) fn incarnation(&self) -> uuid::Uuid {
+         match self {
+             Self::Subscription(s) => s.incarnation(),
+-            Self::Data(s) => s.origin.incarnation,
++            Self::Data(s) | Self::NativeJournal(s) => s.origin.incarnation,
+             Self::NativeLifecycle(s) => s.incarnation(),
+             Self::Capability(s) => s.incarnation(),
+         }
+@@ -383,7 +384,7 @@ impl DeliveryOrigin {
+     pub(in crate::v2) fn cancellation(&self) -> CancellationToken {
+         match self {
+             Self::Subscription(s) => s.cancellation(),
+-            Self::Data(s) => s.origin.lifetime.clone(),
++            Self::Data(s) | Self::NativeJournal(s) => s.origin.lifetime.clone(),
+             Self::NativeLifecycle(s) => s.cancellation(),
+             Self::Capability(s) => s.cancellation(),
+         }
+@@ -495,6 +496,7 @@ impl HandlerDelivery {
+                 completion: Some(sender),
+                 native: None,
+                 capability: None,
++                journal: None,
+                 data: Some(DataPending {
+                     admission,
+                     started,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+index bf0b998d..dd442fd4 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/lifecycle.rs
+@@ -83,6 +83,7 @@ impl HandlerDelivery {
+             completion: None,
+             data: None,
+             capability: None,
++            journal: None,
+             native: Some(NativePending {
+                 write: NativeWrite::Signal(pending),
+                 origin,
+@@ -128,6 +129,7 @@ impl HandlerDelivery {
+             completion: None,
+             data: None,
+             capability: None,
++            journal: None,
+             native: Some(NativePending {
+                 write: NativeWrite::Lifecycle(PendingAnswer {
+                     cancel_on_drop: true,
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+index 04daa9b9..4d8dfb3d 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch/subscriptions.rs
+@@ -111,9 +111,31 @@ pub struct HandlerDelivery {
+     pub(super) data: Option<DataPending>,
+     pub(super) native: Option<super::lifecycle::NativePending>,
+     pub(super) capability: Option<crate::v2::native_capability_delivery::PendingCapability>,
++    pub(super) journal: Option<crate::v2::native_journal_delivery::PendingJournal>,
+     pub(super) deadline: Instant,
+ }
+ impl HandlerDelivery {
++    pub(in crate::v2) fn native_journal(
++        origin: &DataOrigin,
++        frame: Envelope,
++        pending: crate::v2::native_journal_delivery::PendingJournal,
++        deadline: Instant,
++    ) -> Result<Self, DispatchError> {
++        if !origin.current() || !origin.is_ready() || Instant::now() >= deadline {
++            return Err(DispatchError::Authority);
++        }
++        Ok(Self {
++            origin: DeliveryOrigin::NativeJournal(origin.clone()),
++            frames: Some(HandlerReplies::new(vec![frame])?),
++            authority: None,
++            completion: None,
++            data: None,
++            native: None,
++            capability: None,
++            journal: Some(pending),
++            deadline,
++        })
++    }
+     pub fn new(
+         origin: &SubscriptionOrigin,
+         frames: HandlerReplies,
+@@ -175,6 +197,7 @@ impl HandlerDelivery {
+                 data: None,
+                 native: None,
+                 capability: None,
++                journal: None,
+                 deadline,
+             },
+             receiver,
+@@ -191,10 +214,12 @@ impl HandlerDelivery {
+         Option<DataPending>,
+         Option<super::lifecycle::NativePending>,
+         Option<crate::v2::native_capability_delivery::PendingCapability>,
++        Option<crate::v2::native_journal_delivery::PendingJournal>,
+     ) {
+         let origin = match &self.origin {
+             DeliveryOrigin::Subscription(s) => DeliveryOrigin::Subscription(s.clone()),
+             DeliveryOrigin::Data(s) => DeliveryOrigin::Data(s.clone()),
++            DeliveryOrigin::NativeJournal(s) => DeliveryOrigin::NativeJournal(s.clone()),
+             DeliveryOrigin::NativeLifecycle(s) => DeliveryOrigin::NativeLifecycle(s.clone()),
+             DeliveryOrigin::Capability(s) => DeliveryOrigin::Capability(s.clone()),
+         };
+@@ -207,6 +232,7 @@ impl HandlerDelivery {
+             self.data.take(),
+             self.native.take(),
+             self.capability.take(),
++            self.journal.take(),
+         )
+     }
+ }
+diff --git a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+index 7ad44663..c87778e0 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/exchange.rs
+@@ -384,6 +384,7 @@ struct WriteJob {
+     answer: Option<PendingAnswer>,
+     native_fence: Option<Arc<dyn super::super::auth_dispatch::lifecycle::NativeLifecycleFence>>,
+     capability: Option<crate::v2::native_capability_delivery::PendingCapability>,
++    journal: Option<crate::v2::native_journal_delivery::PendingJournal>,
+     native_signal: Option<(
+         crate::v2::native_dtmf_writer::PendingSignal,
+         crate::v2::auth_dispatch::lifecycle::NativeLifecycleOrigin,
+@@ -407,6 +408,22 @@ async fn writes<W: Sink<Bytes, Error = DispatchError> + Send + Unpin>(
+ ) -> Result<(), DispatchError> {
+     let mut writer = Some(writer);
+     while let Some(mut job) = incoming.recv().await {
++        if let Some(journal) = job.journal.take() {
++            crate::v2::native_journal_delivery::write(
++                &mut writer,
++                job.output
++                    .envelopes()
++                    .first()
++                    .ok_or(DispatchError::ReplyMismatch)?,
++                journal,
++                &job.lifetime,
++                job.authority.as_ref(),
++                &stop,
++                job.deadline,
++            )
++            .await?;
++            continue;
++        }
+         if let Some(capability) = job.capability.take() {
+             if job.output.envelopes().len() != 1 {
+                 return Err(DispatchError::Authority);
+@@ -780,6 +797,7 @@ fn job(
+         native_fence: None,
+         native_signal: None,
+         capability: None,
++        journal: None,
+     }
+ }
+ struct RetainedOutbound {
+@@ -979,16 +997,16 @@ where
+               result=&mut writing=>{writer_done=true;break result;},
+               result=&mut delivery,if view.authenticated && !defer_delivery=>{
+                 delivery=Box::pin(handler.next_delivery());
+-                let (origin,frames,lease,done,submission_deadline,data,native,capability)=result?.into_parts();
+-                let unsolicited=data.is_some()||native.is_some()||capability.is_some();defer_delivery=unsolicited;
+-                if capability.is_some() {if data.is_some()||native.is_some()||lease.is_some(){return Err(DispatchError::Authority);}} else if (native.is_some() && (data.is_some()||lease.is_some())) || (native.is_none()&&lease.is_none()) {return Err(DispatchError::Authority);}
++                let (origin,frames,lease,done,submission_deadline,data,native,capability,journal)=result?.into_parts();
++                let unsolicited=data.is_some()||native.is_some()||capability.is_some()||matches!(&origin,super::super::auth_dispatch::DeliveryOrigin::NativeJournal(_));defer_delivery=unsolicited;
++                if journal.is_some() {if data.is_some()||native.is_some()||capability.is_some()||lease.is_some(){return Err(DispatchError::Authority);}} else if capability.is_some() {if data.is_some()||native.is_some()||lease.is_some(){return Err(DispatchError::Authority);}} else if (native.is_some() && (data.is_some()||lease.is_some())) || (native.is_none()&&lease.is_none()) {return Err(DispatchError::Authority);}
+                 if !origin.current() || view.incarnation!=Some(origin.incarnation()) {if let Some(done)=done{let _=done.send(Err(DispatchError::Closed));}continue;}
+                 // Leave a slot for control under sustained data/event load.
+                 if unsolicited && slots.available_permits()<=1 {if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;}
+                 let slot=match slots.clone().try_acquire_owned(){Ok(slot)=>slot,Err(_) if unsolicited=>{if let Some(done)=done{let _=done.send(Err(DispatchError::Capacity));}continue;},Err(_)=>return Err(DispatchError::Capacity)};
+                 let frames=frames.into_envelopes().into_iter().map(|frame|signed(&config,frame.original().clone())).collect::<Result<Vec<_>,_>>()?;
+                 let mut send=job(output(frames,lease),submission_deadline.min(view.deadline),&physical,view.authority.clone(),Some(slot));
+-                send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;send.capability=capability;
++                send.cancel=Some(origin.cancellation());send.delivery=done;send.data=data;send.capability=capability;send.journal=journal;
+                 if let Some(native)=native{match native.write {crate::v2::auth_dispatch::lifecycle::NativeWrite::Lifecycle(answer)=>{send.native_fence=Some(Arc::new(native.origin));send.answer=Some(answer);},crate::v2::auth_dispatch::lifecycle::NativeWrite::Signal(signal)=>send.native_signal=Some((signal,native.origin))}}
+                 if let Err(error)=write_tx.try_send(send) {
+                     let mut send=error.into_inner();
+diff --git a/crates/uctp/rvoip-uctp/src/v2/mod.rs b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+index 6b07db75..087af144 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/mod.rs
+@@ -15,6 +15,7 @@ pub mod native_control;
+ pub mod native_dtmf;
+ pub mod native_dtmf_egress;
+ mod native_dtmf_writer;
++pub mod native_journal_delivery;
+ pub mod native_lifecycle;
+ pub mod native_media;
+ pub mod native_negotiation;
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_journal_delivery.rs b/crates/uctp/rvoip-uctp/src/v2/native_journal_delivery.rs
+new file mode 100644
+index 00000000..0211de49
+--- /dev/null
++++ b/crates/uctp/rvoip-uctp/src/v2/native_journal_delivery.rs
+@@ -0,0 +1,97 @@
++//! Metadata-only journal hints acquire current domain readers at actual IO.
++use super::{
++    auth_dispatch::{AuthorityLease, DispatchError},
++    native_requests::NativeRequestOrigin,
++    Envelope, Scope,
++};
++use std::sync::Arc;
++use tokio::{sync::oneshot, time::Instant};
++use tokio_util::sync::CancellationToken;
++#[async_trait::async_trait]
++pub trait NativeJournalWritePolicy: Send + Sync {
++    async fn acquire(
++        &self,
++        origin: &NativeRequestOrigin,
++        payload: &serde_json::Value,
++    ) -> Result<AuthorityLease, DispatchError>;
++}
++pub(in crate::v2) struct PendingJournal {
++    pub origin: Arc<NativeRequestOrigin>,
++    pub payload: serde_json::Value,
++    pub frame: Envelope,
++    pub policy: Arc<dyn NativeJournalWritePolicy>,
++    pub completion: Option<oneshot::Sender<Result<(), DispatchError>>>,
++    pub cancel: CancellationToken,
++}
++impl Drop for PendingJournal {
++    fn drop(&mut self) {
++        if let Some(done) = self.completion.take() {
++            let _ = done.send(Err(DispatchError::Closed));
++        }
++    }
++}
++struct Custody<W> {
++    writer: Option<W>,
++    lease: AuthorityLease,
++}
++impl<W> Drop for Custody<W> {
++    fn drop(&mut self) {
++        drop(self.writer.take());
++    }
++}
++pub(in crate::v2) async fn write<
++    W: futures::Sink<bytes::Bytes, Error = DispatchError> + Send + Unpin,
++>(
++    writer: &mut Option<W>,
++    frame: &Envelope,
++    mut pending: PendingJournal,
++    physical: &CancellationToken,
++    authority: Option<&CancellationToken>,
++    stop: &CancellationToken,
++    deadline: Instant,
++) -> Result<(), DispatchError> {
++    use futures::{Future, SinkExt};
++    let ready = || {
++        pending.origin.current()
++            && pending.origin.ready()
++            && !pending.cancel.is_cancelled()
++            && !physical.is_cancelled()
++            && !stop.is_cancelled()
++            && !authority.is_some_and(CancellationToken::is_cancelled)
++            && Instant::now() < deadline
++    };
++    let mut touched = false;
++    let result=async {
++        if !ready() || frame.kind()!="operation.updated" || frame.id()!=pending.frame.id() || frame.original()["payload"]!=pending.payload
++            || [Scope::Conversation,Scope::Session,Scope::Connection,Scope::Operation,Scope::Reply].into_iter().any(|s|frame.scope(s)!=pending.frame.scope(s)) {return Err(DispatchError::Authority);}
++        let lease=tokio::time::timeout_at(deadline,pending.policy.acquire(&pending.origin,&pending.payload)).await.map_err(|_|DispatchError::Closed)??;
++        let bound=deadline.min(lease.deadline().unwrap_or(deadline));
++        if !ready() || !lease.current() {return Err(DispatchError::Authority);}
++        let bytes=bytes::Bytes::from(serde_json::to_vec(frame).map_err(|_|DispatchError::Unsupported)?);
++        let mut custody=Custody{writer:None,lease};
++        let result={
++            let sending=async {
++                custody.writer=Some(writer.take().ok_or(DispatchError::Closed)?);touched=true;
++                custody.writer.as_mut().ok_or(DispatchError::Closed)?.send(bytes).await
++            };tokio::pin!(sending);
++            let guarded=std::future::poll_fn(|cx| {if !ready() || !custody.lease.current(){return std::task::Poll::Ready(Err(DispatchError::Authority));}sending.as_mut().poll(cx)});
++            tokio::select!{biased;
++                _=physical.cancelled()=>Err(DispatchError::Closed),_=stop.cancelled()=>Err(DispatchError::Closed),_=pending.cancel.cancelled()=>Err(DispatchError::Closed),
++                _=async{match authority{Some(token)=>token.cancelled().await,None=>std::future::pending().await}}=>Err(DispatchError::Authority),
++                _=tokio::time::sleep_until(bound)=>Err(DispatchError::Closed),result=guarded=>result,
++            }
++        };
++        if result.is_ok(){*writer=custody.writer.take();}else if touched{physical.cancel();}
++        // An unfinished sink dies before the independently acquired read does.
++        drop(custody);result
++    }.await;
++    if let Some(done) = pending.completion.take() {
++        let _ = done.send(result);
++    }
++    if result.is_err() && touched {
++        physical.cancel();
++        Err(DispatchError::SubmissionUnknown)
++    } else {
++        Ok(())
++    }
++}
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_requests.rs b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+index 344c52ad..2925e486 100644
+--- a/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_requests.rs
+@@ -178,6 +178,85 @@ impl NativeRequestReply {
+     }
+ }
+ impl NativeRequestOrigin {
++    /// Submit a metadata hint on this exact already-confirmed physical writer.
++    /// The caller supplies fresh current domain authority, never an idle grant.
++    /// This cannot carry bindings, complete an operation, or authorize media.
++    pub fn journal_delivery(
++        self: &Arc<Self>,
++        payload: serde_json::Value,
++        policy: Arc<dyn super::native_journal_delivery::NativeJournalWritePolicy>,
++    ) -> Result<
++        (
++            HandlerDelivery,
++            tokio::sync::oneshot::Receiver<Result<(), DispatchError>>,
++        ),
++        DispatchError,
++    > {
++        let object = payload.as_object().ok_or(DispatchError::ReplyMismatch)?;
++        let fields = [
++            "operation_id",
++            "record_id",
++            "command_type",
++            "expected_revision",
++            "state",
++            "revision",
++            "subscription_record_id",
++            "stream_revision",
++            "journal_hint",
++            "resources_changed",
++        ];
++        if object.len() != fields.len()
++            || fields.iter().any(|f| !object.contains_key(*f))
++            || payload["command_type"] != "stream.reconcile"
++            || payload["state"] != "completed"
++            || payload["journal_hint"] != true
++            || payload["resources_changed"] != false
++            || payload["revision"]
++                .as_u64()
++                .is_none_or(|n| n > 9_007_199_254_740_991)
++        {
++            return Err(DispatchError::ReplyMismatch);
++        }
++        for field in ["operation_id", "record_id", "subscription_record_id"] {
++            super::Identifier::try_from(
++                payload[field]
++                    .as_str()
++                    .ok_or(DispatchError::ReplyMismatch)?
++                    .to_owned(),
++            )?;
++        }
++        let expected = payload["expected_revision"]
++            .as_u64()
++            .filter(|n| *n > 0 && *n < 9_007_199_254_740_991)
++            .ok_or(DispatchError::ReplyMismatch)?;
++        let resulting = payload["stream_revision"]
++            .as_u64()
++            .ok_or(DispatchError::ReplyMismatch)?;
++        if !(expected..=expected + 1).contains(&resulting) || !self.current() || !self.ready() {
++            return Err(DispatchError::Authority);
++        }
++        let frame = Envelope::from_value(serde_json::json!({
++            "v":2,"type":"operation.updated","id":format!("journal_{}",uuid::Uuid::new_v4().simple()),"ts":chrono::Utc::now(),
++            "cid":self.scope.media.wire_conversation,"sid":self.scope.media.wire_session,"connid":self.scope.media.wire_connection,
++            "operation_id":payload["operation_id"],"payload":payload,
++        }))?;
++        let (done, receipt) = tokio::sync::oneshot::channel();
++        let pending = super::native_journal_delivery::PendingJournal {
++            origin: self.clone(),
++            payload,
++            frame: frame.clone(),
++            policy,
++            completion: Some(done),
++            cancel: self.origin.cancellation(),
++        };
++        let delivery = HandlerDelivery::native_journal(
++            &self.origin,
++            frame,
++            pending,
++            (Instant::now() + Duration::from_secs(1)).min(self.origin.deadline()),
++        )?;
++        Ok((delivery, receipt))
++    }
+     pub(crate) fn new(
+         a: &AuthorizedEnvelope,
+         controller: &Arc<StreamController>,

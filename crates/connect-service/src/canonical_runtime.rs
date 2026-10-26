@@ -218,6 +218,7 @@ impl Runtime {
 pub(crate) struct Physical {
     pub(crate) lifecycle: rvoip_uctp::v2::native_lifecycle::NativeLifecycleMux,
     pub(crate) capabilities: Arc<crate::canonical_capability_delivery::Queue>,
+    pub(crate) reconciliations: Arc<crate::canonical_reconciliation_delivery::Queue>,
     pub(crate) dtmf: rvoip_uctp::v2::native_dtmf_egress::NativeDtmfMux,
     pub(crate) dtmf_listeners:
         Mutex<std::collections::BTreeMap<String, Arc<crate::canonical_native_dtmf::Listener>>>,
@@ -233,6 +234,7 @@ impl Physical {
             peer: Mutex::new(None),
             lifecycle: Default::default(),
             capabilities: Default::default(),
+            reconciliations: Default::default(),
             dtmf: Default::default(),
             dtmf_listeners: Mutex::new(Default::default()),
         })

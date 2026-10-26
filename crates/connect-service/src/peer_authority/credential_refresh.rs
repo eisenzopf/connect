@@ -89,7 +89,7 @@ pub(super) async fn refresh(
             runtime.refresh_native_lifecycle(&id, &result, &physical)?;
             runtime.refresh_native_dtmf(&id, &result, &physical)?;
             runtime.refresh_capability_delivery(&id, &result, &physical)?;
-            runtime.refresh_native_reconciliation(&id, &result)?;
+            runtime.refresh_native_reconciliation(&id, &result, &physical)?;
         }
         if !held.current() || !refresh.current() {
             return Err(DispatchError::Authority);
@@ -367,7 +367,7 @@ async fn worker(
         runtime.refresh_native_lifecycle(&id, &result, &physical)?;
         runtime.refresh_native_dtmf(&id, &result, &physical)?;
         runtime.refresh_capability_delivery(&id, &result, &physical)?;
-        runtime.refresh_native_reconciliation(&id, &result)?;
+        runtime.refresh_native_reconciliation(&id, &result, &physical)?;
     }
     if !lease.current() {
         return Err(DispatchError::Authority);

@@ -244,6 +244,34 @@ pub(super) fn record(
 ) -> Result<()> {
     let bad = || fail(key);
     let Some(bindings) = &out.stream_bindings else {
+        // A recorded routing-only commit changes no physical parameters. If
+        // its exact predecessor is still installed, its counter is sufficient;
+        // this neither invents a binding set nor settles any preparation.
+        if !out.resources_changed && out.connection_generation == 1 {
+            let mut cache = cache.lock().map_err(|_| bad())?;
+            if let Some(entry) = key
+                .scope
+                .connection_id
+                .as_ref()
+                .and_then(|id| cache.get_mut(id))
+            {
+                if Some(&entry.conversation) != key.scope.conversation_id.as_ref()
+                    || Some(&entry.session) != key.scope.session_id.as_ref()
+                {
+                    return Err(bad());
+                }
+                if !entry.ended
+                    && entry.prepared.is_none()
+                    && entry.selected.stream_revision.get() == out.expected_revision
+                {
+                    entry.known_revision = StreamRevision::try_from(
+                        entry.known_revision.get().max(out.stream_revision),
+                    )
+                    .map_err(|_| bad())?;
+                    entry.selected.stream_revision = entry.known_revision;
+                }
+            }
+        }
         return Ok(());
     };
     if out.resources_changed {

@@ -4,6 +4,47 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeSet;
 
+/// A signed hint about a recorded routing-only operation. Read the journal
+/// under current authority before applying any observation from that operation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReconciliationHint {
+    pub operation_id: String,
+    pub record_id: String,
+    pub command_type: Command,
+    pub expected_revision: u64,
+    pub state: crate::transitions::OperationState,
+    pub revision: u64,
+    pub subscription_record_id: String,
+    pub stream_revision: u64,
+    pub journal_hint: bool,
+    pub resources_changed: bool,
+}
+impl ReconciliationHint {
+    pub fn validate(&self) -> Result<()> {
+        for value in [
+            &self.operation_id,
+            &self.record_id,
+            &self.subscription_record_id,
+        ] {
+            id(value)?;
+        }
+        if self.command_type != Command::Reconcile
+            || self.state != crate::transitions::OperationState::Completed
+            || !self.journal_hint
+            || self.resources_changed
+            || self.expected_revision == 0
+            || self.expected_revision >= 9_007_199_254_740_991
+            || self.revision > 9_007_199_254_740_991
+            || !(self.expected_revision..=self.expected_revision + 1)
+                .contains(&self.stream_revision)
+        {
+            return Err(invalid());
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Command {
     #[serde(rename = "stream.subscribe")]
@@ -628,6 +669,63 @@ mod tests {
         ] {
             end.payload = payload;
             assert!(end.validate().is_err());
+        }
+    }
+}
+
+#[cfg(test)]
+mod routing_hint_tests {
+    use super::*;
+    fn hint() -> ReconciliationHint {
+        ReconciliationHint {
+            operation_id: "reconcile_one".into(),
+            record_id: "opr_one".into(),
+            command_type: Command::Reconcile,
+            expected_revision: 2,
+            state: crate::transitions::OperationState::Completed,
+            revision: 2,
+            subscription_record_id: "opr_selector".into(),
+            stream_revision: 3,
+            journal_hint: true,
+            resources_changed: false,
+        }
+    }
+    #[test]
+    fn routing_hint_roundtrips_original_identity_without_result_or_binding_grant() {
+        let h = hint();
+        h.validate().unwrap();
+        let value = serde_json::to_value(&h).unwrap();
+        assert!(value.get("result").is_none());
+        assert!(value.get("stream_bindings").is_none());
+        assert_eq!(
+            serde_json::from_value::<ReconciliationHint>(value).unwrap(),
+            h
+        );
+    }
+    #[test]
+    fn routing_hint_rejects_private_plan_and_capture_fields() {
+        for field in ["result", "stream_bindings", "plan", "intent"] {
+            let mut value = serde_json::to_value(hint()).unwrap();
+            value[field] = serde_json::json!({});
+            assert!(serde_json::from_value::<ReconciliationHint>(value).is_err());
+        }
+    }
+    #[test]
+    fn routing_hint_rejects_noncommitted_nonrouting_foreign_or_unsafe_identity() {
+        for field in 0..9 {
+            let mut h = hint();
+            match field {
+                0 => h.command_type = Command::Subscribe,
+                1 => h.state = crate::transitions::OperationState::Unknown,
+                2 => h.expected_revision = 0,
+                3 => h.expected_revision = 9_007_199_254_740_991,
+                4 => h.stream_revision = 4,
+                5 => h.revision = 9_007_199_254_740_992,
+                6 => h.resources_changed = true,
+                7 => h.journal_hint = false,
+                _ => h.subscription_record_id = "foreign/record".into(),
+            };
+            assert!(h.validate().is_err(), "case {field}");
         }
     }
 }

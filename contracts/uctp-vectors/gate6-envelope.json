@@ -4977,6 +4977,282 @@
       }
     },
     {
+      "id": "routing-journal-hint-shape",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-missing-parent",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-missing-root-operation",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        }
+      }
+    },
+    {
+      "id": "routing-journal-hint-reply-header",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        },
+        "operation_id": "example",
+        "in_reply_to": "invented-request"
+      }
+    },
+    {
+      "id": "routing-journal-hint-assertion-header",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        },
+        "operation_id": "example",
+        "expected_revision": 2
+      }
+    },
+    {
+      "id": "routing-journal-hint-result",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3,
+          "result": {
+            "unproven": "capture"
+          }
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-plan",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3,
+          "plan": {
+            "private": "descriptor"
+          }
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-resources",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": true,
+          "stream_revision": 3
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-state",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "preparing",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 3
+        },
+        "operation_id": "example"
+      }
+    },
+    {
+      "id": "routing-journal-hint-unsafe-counter",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "completed",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "stream.reconcile",
+          "expected_revision": 2,
+          "subscription_record_id": "opr_explicit_subscription",
+          "journal_hint": true,
+          "resources_changed": false,
+          "stream_revision": 9007199254740992
+        },
+        "operation_id": "example"
+      }
+    },
+    {
       "id": "handoff-target-owned-preparation",
       "scope": "schema-only",
       "valid": true,

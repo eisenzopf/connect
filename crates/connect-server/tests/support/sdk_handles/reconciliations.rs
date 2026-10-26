@@ -202,7 +202,7 @@ async fn exercise(recording_failure: bool) {
             .subscribe(
                 NonEmpty {
                     first: StreamSelector::Participant {
-                        participant_id: participant,
+                        participant_id: participant.clone(),
                         kinds: None,
                     },
                     rest: vec![],
@@ -383,9 +383,171 @@ async fn exercise(recording_failure: bool) {
             .unwrap()
             .is_none());
         assert_eq!(recovered.stream_revision, receipt.stream_revision);
-        // Routing-only source removal keeps already negotiated parameters;
-        // the fuller event/revision synchronization surface remains separate.
+        if recording_failure {
+            db.execute_batch("CREATE TRIGGER isolated_sdk_route_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.state')='completed' AND EXISTS(SELECT 1 FROM operations o WHERE o.operation_id=json_extract(NEW.data_json,'$.operation_id') AND o.command_type='stream.reconcile' AND o.connection_id='selection-target') BEGIN SELECT RAISE(ABORT,'isolated SDK route-only recording failure'); END;").unwrap();
+        }
+        camera
+            .end(
+                200,
+                "normal-clearing".into(),
+                Some(revision(1)),
+                mutation("future-sdk-camera-end"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        if recording_failure {
+            let limit = tokio::time::Instant::now() + Duration::from_secs(5);
+            loop {
+                let pending:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM operations WHERE command_type='stream.reconcile' AND connection_id='selection-target' AND expected_revision=?1 AND state='preparing')",[receipt.stream_revision.get()],|r|r.get(0)).unwrap();
+                if pending {
+                    break;
+                }
+                assert!(
+                    tokio::time::Instant::now() < limit,
+                    "routing-only recording did not start"
+                );
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            assert_eq!(
+                target
+                    .native_negotiation()
+                    .unwrap()
+                    .unwrap()
+                    .stream_revision,
+                receipt.stream_revision
+            );
+            audio_only(
+                source.stream_by_id("selection-audio".parse().unwrap()),
+                audio.clone(),
+                400,
+                clock,
+                f.temp.path(),
+            )
+            .await;
+            assert_eq!(
+                target
+                    .native_negotiation()
+                    .unwrap()
+                    .unwrap()
+                    .stream_revision,
+                receipt.stream_revision,
+                "hint must not outrun durable completion"
+            );
+            db.execute_batch("DROP TRIGGER isolated_sdk_route_record_failure")
+                .unwrap();
+        }
+        let limit = tokio::time::Instant::now() + Duration::from_secs(8);
+        let route = loop {
+            if let Some(progress) = target.native_reconciliation().unwrap() {
+                if progress.phase == Phase::Recorded
+                    && progress.key != status.key
+                    && target
+                        .native_negotiation()
+                        .unwrap()
+                        .unwrap()
+                        .stream_revision
+                        .get()
+                        == receipt.stream_revision.get() + 1
+                {
+                    break progress;
+                }
+            }
+            if tokio::time::Instant::now() >= limit {
+                let mut statement=db.prepare("SELECT operation_id,state,expected_revision,result_json FROM operations WHERE command_type='stream.reconcile' AND connection_id='selection-target' ORDER BY rowid").unwrap();
+                let rows = statement
+                    .query_map([], |r| {
+                        Ok((
+                            r.get::<_, String>(0)?,
+                            r.get::<_, String>(1)?,
+                            r.get::<_, Option<u64>>(2)?,
+                            r.get::<_, Option<String>>(3)?,
+                        ))
+                    })
+                    .unwrap()
+                    .collect::<rusqlite::Result<Vec<_>>>()
+                    .unwrap();
+                eprintln!("Controlled routing journal state: {rows:?}");
+            }
+            assert!(
+                tokio::time::Instant::now() < limit,
+                "routing-only SDK journal sync missing: {:?}",
+                target.native_reconciliation().unwrap()
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        };
+        let routed = route
+            .operation(&subscriber)
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert!(!routed.resources_changed);
+        assert_eq!(
+            routed.stream_revision.get(),
+            receipt.stream_revision.get() + 1
+        );
+        operation.wait(options()).await.unwrap();
+        assert_eq!(
+            target
+                .native_negotiation()
+                .unwrap()
+                .unwrap()
+                .stream_revision,
+            routed.stream_revision,
+            "historical resource receipt must not rewind route-only counter"
+        );
+        let after = target
+            .subscribe(
+                NonEmpty {
+                    first: StreamSelector::Participant {
+                        participant_id: participant,
+                        kinds: None,
+                    },
+                    rest: vec![],
+                },
+                routed.stream_revision,
+                mutation("after-route-journal-sync"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert!(!after.resources_changed);
+        assert_eq!(
+            target
+                .native_negotiation()
+                .unwrap()
+                .unwrap()
+                .stream_revision,
+            after.stream_revision
+        );
         drain(&audio).await;
+        drain(&camera_receive).await;
+        let (_, absent) = tokio::join!(
+            audio_only(
+                source.stream_by_id("selection-audio".parse().unwrap()),
+                audio.clone(),
+                600,
+                clock,
+                f.temp.path()
+            ),
+            camera_receive.receive_packet(RequestOptions::new(Duration::from_millis(450)).unwrap())
+        );
+        assert!(matches!(absent,Err(e) if e.kind==sdk::ErrorKind::Deadline));
+        let effects: u64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=?1",
+                [route.record_id.as_ref().unwrap().as_str()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(effects, 1);
+        eprintln!("SDK route-only journal hint {algorithm}, recording_failure={recording_failure}, old={}, new={}, no new parameters, continued decoded audio, no camera, one effect",receipt.stream_revision.get(),routed.stream_revision.get());
         eprintln!("SDK automatic reconciliation {algorithm}, recording_failure={recording_failure}, generation={}, revision={}, one effect, decoded audio/video",receipt.connection_generation,receipt.stream_revision.get());
         fresh.close(options()).await.unwrap();
         subscriber.close(options()).await.unwrap();

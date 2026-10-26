@@ -275,7 +275,16 @@
             "subscription_record_id"
           ],
           "subscription_record_id": "Stable original explicit stream.subscribe or stream.unsubscribe record that authorized this server-created operation; available while Preparing and preserved through completion or uncertain recovery. Private engine plans are never exposed.",
-          "authority": "Current-authorized operation.get only. Parent record identity is not a permission or physical media grant. An owned SDK must verify its original selector, exact current scope, signed preparation and captured completion before adopting new bindings. Owned SDK callbacks use bounded current-journal reads, original selector identity and matching captured completion. Local progress distinguishes Recorded from bindings_adopted; the read-only stream_reconcile operation kind preserves original recovery. Routing-only synchronization and unavailable capture reconciliation remain separate SDK work."
+          "authority": "Current-authorized operation.get only. Parent record identity is not a permission or physical media grant. An owned SDK must verify its original selector, exact current scope, signed preparation and captured completion before adopting new bindings. Owned SDK callbacks use bounded current-journal reads, original selector identity and matching captured completion. Local progress distinguishes Recorded from bindings_adopted; the read-only stream_reconcile operation kind preserves original recovery. Routing-only journal hints trigger fresh authorized reads before counter synchronization. Exact predecessor counters can advance without optional binding capture when the recorded operation proves no physical change; unavailable resource-replacement capture still requires explicit physical reconciliation."
+        },
+        "x-native-routing-journal-hints": {
+          "schema": {
+            "$ref": "#/components/schemas/WireReconciliationHint"
+          },
+          "transport": "Unsolicited signed operation.updated on the original confirmed native physical writer, exact cid/sid/connid/operation_id and no in_reply_to or expected_revision header. Metadata only; never result or bindings. HTTP cannot request this delivery or acquire native ownership.",
+          "ordering": "Only after durable completed routing-only stream.reconcile. Per-writer metadata coalesces the latest native revision with at most64 queued Connections. Pending IO reacquires exact current owner, selector, generation, Device, Endpoint, key and membership permission at the actual writer; no idle reader is queued. Incomplete reliable output retires before its reader releases.",
+          "client": "A hint is never authorization or completion evidence. The owned SDK verifies its original selector, performs current operation.get and matches announced immutable IDs/counters before applying a captured observation. Unsettled preparation recovery cannot be overwritten. Null captures only advance an exact installed predecessor when the journal proves no physical resources changed.",
+          "recovery": "One bounded observation job per owned Connection shares explicit command capacity and original deadlines. Stale/foreign/unissued/malformed hints cannot acquire custody. Hint delivery is advisory; durable journal/cursor catch-up and wider backpressure profiles remain separate qualification."
         },
         "x-native-runtime-controls": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",
@@ -3161,8 +3170,77 @@
                 }
               }
             }
+          },
+          {
+            "if": {
+              "required": [
+                "journal_hint"
+              ],
+              "properties": {
+                "journal_hint": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/components/schemas/WireReconciliationHint"
+            }
           }
         ]
+      },
+      "WireReconciliationHint": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "command_type": {
+            "const": "stream.reconcile"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740990
+          },
+          "state": {
+            "const": "completed"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "subscription_record_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "journal_hint": {
+            "const": true
+          },
+          "resources_changed": {
+            "const": false
+          }
+        },
+        "required": [
+          "operation_id",
+          "record_id",
+          "command_type",
+          "expected_revision",
+          "state",
+          "revision",
+          "subscription_record_id",
+          "stream_revision",
+          "journal_hint",
+          "resources_changed"
+        ],
+        "additionalProperties": false
       },
       "WireMemberAdd": {
         "type": "object",
@@ -5350,6 +5428,51 @@
                   ]
                 }
               ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "type",
+                "payload"
+              ],
+              "properties": {
+                "type": {
+                  "const": "operation.updated"
+                },
+                "payload": {
+                  "required": [
+                    "journal_hint"
+                  ],
+                  "properties": {
+                    "journal_hint": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "cid",
+                "sid",
+                "connid",
+                "operation_id"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "in_reply_to"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "expected_revision"
+                    ]
+                  }
+                ]
+              }
             }
           }
         ]

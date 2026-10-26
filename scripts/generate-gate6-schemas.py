@@ -129,6 +129,9 @@ def build():
  # its original explicit subscription without exposing the private engine plan.
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}},'then':{'required':['record_id','subscription_record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
  definitions['OperationUpdated']['allOf'].append({'if':{'required':['subscription_record_id']},'then':{'required':['command_type'],'properties':{'command_type':{'const':'stream.reconcile'}}}})
+ definitions['ReconciliationHint']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'command_type':{'const':'stream.reconcile'},'expected_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER-1},'state':{'const':'completed'},'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'subscription_record_id':ref('Identifier'),'stream_revision':{'type':'integer','minimum':1,'maximum':SAFE_INTEGER},'journal_hint':{'const':True},'resources_changed':{'const':False}})
+ definitions['ReconciliationHint']['additionalProperties']=False
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['journal_hint'],'properties':{'journal_hint':{'const':True}}},'then':ref('ReconciliationHint')})
  definitions['MemberAdd']=obj({'identity_id':ref('Identifier'),'kind':{'enum':['human','ai','system','external']},'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberUpdate']=obj({'participant_id':ref('Identifier'),'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberRemove']=obj({'participant_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['participant_id'])
@@ -169,6 +172,7 @@ def build():
   if name=='auth.session':
    then['allOf']=[{'if':{'properties':{'payload':{'required':['participant_id']}}},'then':{'required':['cid']}}]
   schema['allOf'].append({'if':{'properties':{'type':{'const':name}}},'then':then})
+ schema['allOf'].append({'if':{'required':['type','payload'],'properties':{'type':{'const':'operation.updated'},'payload':{'required':['journal_hint'],'properties':{'journal_hint':{'const':True}}}}},'then':{'required':['cid','sid','connid','operation_id'],'not':{'anyOf':[{'required':['in_reply_to']},{'required':['expected_revision']}]}}})
  # All referenced definitions must be known before vectors can be produced.
  def check_refs(node):
   if isinstance(node,dict):
@@ -330,6 +334,22 @@ def main():
   elif label=='null-revision':payload['expected_revision']=None
   else:payload['command_type']='stream.subscribe'
   vectors.append(dict(id='operation-reconciliation-'+label,scope='schema-only',valid=False,envelope=invalid))
+
+ hint=copy.deepcopy(reconciliation);hint['operation_id']=hint['payload']['operation_id'];hint.pop('in_reply_to',None);hint.pop('expected_revision',None)
+ hint['payload'].update(journal_hint=True,resources_changed=False,stream_revision=3,expected_revision=2,state='completed')
+ vectors.append(dict(id='routing-journal-hint-shape',scope='schema-only',valid=True,envelope=copy.deepcopy(hint)))
+ for label in ['missing-parent','missing-root-operation','reply-header','assertion-header','result','plan','resources','state','unsafe-counter']:
+  invalid=copy.deepcopy(hint)
+  if label=='missing-parent':invalid['payload'].pop('subscription_record_id')
+  elif label=='missing-root-operation':invalid.pop('operation_id')
+  elif label=='reply-header':invalid['in_reply_to']='invented-request'
+  elif label=='assertion-header':invalid['expected_revision']=2
+  elif label=='result':invalid['payload']['result']={'unproven':'capture'}
+  elif label=='plan':invalid['payload']['plan']={'private':'descriptor'}
+  elif label=='resources':invalid['payload']['resources_changed']=True
+  elif label=='state':invalid['payload']['state']='preparing'
+  else:invalid['payload']['stream_revision']=SAFE_INTEGER+1
+  vectors.append(dict(id='routing-journal-hint-'+label,scope='schema-only',valid=False,envelope=invalid))
 
  prepared=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.offer')
  prepared['payload']['handoff_preparation']={'profile':'connect-handoff-preparation-v1'}

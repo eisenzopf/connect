@@ -2,7 +2,7 @@
 use super::*;
 use crate::canonical::{Envelope, Scope};
 use serde_json::json;
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use tokio::time::Instant;
 const ORIGIN_CAPACITY: usize = 64;
 const RETIRED_QUERIES: usize = 64;
@@ -236,7 +236,8 @@ pub(super) fn observe(
 }
 struct Job {
     key: OperationKey,
-    offer: Envelope,
+    offer: Option<Envelope>,
+    announced: Option<connect_protocol::native_streams::ReconciliationHint>,
     expected: u64,
     deadline: Instant,
     due: Instant,
@@ -244,10 +245,16 @@ struct Job {
     confirmed: bool,
     _slot: OwnedSemaphorePermit,
 }
+struct Hint {
+    key: OperationKey,
+    value: connect_protocol::native_streams::ReconciliationHint,
+    at: Instant,
+}
 #[derive(Default)]
 pub(super) struct Driver {
     jobs: Vec<Job>,
     retired: VecDeque<String>,
+    hints: BTreeMap<ConnectionId, Hint>,
 }
 impl Driver {
     pub(super) fn busy(&self, key: &OperationKey) -> bool {
@@ -260,6 +267,7 @@ impl Driver {
                 j.deadline
                     .min(j.query.as_ref().map_or(j.due, |q| q.deadline))
             })
+            .chain((!self.hints.is_empty()).then(|| Instant::now() + POLL))
             .min()
     }
     fn retire(
@@ -288,6 +296,7 @@ impl Driver {
         &mut self,
         peer: &mut CanonicalClient,
         cache: &std::sync::Mutex<NativeCache>,
+        slots: &Arc<Semaphore>,
     ) -> Result<()> {
         let now = Instant::now();
         for index in (0..self.jobs.len()).rev() {
@@ -298,6 +307,54 @@ impl Driver {
                     .is_some_and(|q| now >= q.deadline)
             {
                 self.retire(index, cache, Some(ErrorKind::Deadline));
+            }
+        }
+        self.hints
+            .retain(|_, hint| now.saturating_duration_since(hint.at) < Duration::from_secs(30));
+        let ready = {
+            let mut cache = cache
+                .lock()
+                .map_err(|_| Error::local(ErrorKind::Protocol))?;
+            self.hints.iter().find_map(|(id, hint)| {
+                let entry = exact(&mut cache, &hint.key).ok().flatten()?;
+                (entry.prepared.is_none()
+                    && !self.busy(&hint.key)
+                    && entry.selectors.iter().any(|o| {
+                        o.completed
+                            && o.record.as_ref().map(OperationRecordId::as_str)
+                                == Some(hint.value.subscription_record_id.as_str())
+                    }))
+                .then(|| id.clone())
+            })
+        };
+        if let Some(id) = ready {
+            if let Ok(slot) = slots.clone().try_acquire_owned() {
+                let hint = self.hints.remove(&id).expect("pending hint");
+                let mut cache = cache.lock().map_err(|_| bad(&hint.key))?;
+                if let Some(entry) = exact(&mut cache, &hint.key)? {
+                    if hint.value.stream_revision > entry.selected.stream_revision.get() {
+                        entry.reconciliation = Some(NativeReconciliation {
+                            key: hint.key.clone(),
+                            expected_revision: hint.value.expected_revision,
+                            record_id: None,
+                            subscription_record_id: None,
+                            phase: NativeReconciliationPhase::Authorizing,
+                            bindings_adopted: false,
+                            error: None,
+                        });
+                        self.jobs.push(Job {
+                            key: hint.key,
+                            expected: hint.value.expected_revision,
+                            offer: None,
+                            announced: Some(hint.value),
+                            deadline: hint.at + Duration::from_secs(30),
+                            due: now,
+                            query: None,
+                            confirmed: true,
+                            _slot: slot,
+                        });
+                    }
+                }
             }
         }
         if let Some(job) = self
@@ -320,6 +377,94 @@ impl Driver {
             job.query = Some(query);
         }
         Ok(())
+    }
+    pub(super) fn hint(
+        &mut self,
+        cache: &std::sync::Mutex<NativeCache>,
+        frame: &Envelope,
+    ) -> Result<bool> {
+        if frame.kind() != "operation.updated"
+            || frame.scope(Scope::Reply).is_some()
+            || frame.original()["payload"]["journal_hint"] != true
+        {
+            return Ok(false);
+        }
+        let value = match serde_json::from_value::<
+            connect_protocol::native_streams::ReconciliationHint,
+        >(frame.original()["payload"].clone())
+        {
+            Ok(value) if value.validate().is_ok() => value,
+            _ => return Ok(true),
+        };
+        if frame.scope(Scope::Operation) != Some(value.operation_id.as_str())
+            || frame.expected_revision().is_some()
+        {
+            return Ok(true);
+        }
+        let parse = || {
+            Some(OperationKey {
+                operation_id: value.operation_id.parse().ok()?,
+                command: "stream.reconcile".into(),
+                scope: OperationScope {
+                    conversation_id: Some(frame.scope(Scope::Conversation)?.parse().ok()?),
+                    session_id: Some(frame.scope(Scope::Session)?.parse().ok()?),
+                    connection_id: Some(frame.scope(Scope::Connection)?.parse().ok()?),
+                },
+            })
+        };
+        let Some(key) = parse() else { return Ok(true) };
+        let mut cache = cache.lock().map_err(|_| bad(&key))?;
+        let Some(entry) = key
+            .scope
+            .connection_id
+            .as_ref()
+            .and_then(|id| cache.get_mut(id))
+            .filter(|e| {
+                !e.ended
+                    && Some(&e.session) == key.scope.session_id.as_ref()
+                    && Some(&e.conversation) == key.scope.conversation_id.as_ref()
+            })
+        else {
+            return Ok(false);
+        };
+        if value.stream_revision <= entry.selected.stream_revision.get()
+            || self.jobs.iter().any(|job| job.key == key)
+        {
+            return Ok(true);
+        }
+        if !entry.selectors.iter().any(|o| {
+            o.completed
+                && o.record.as_ref().map(OperationRecordId::as_str)
+                    == Some(value.subscription_record_id.as_str())
+        }) && !entry.selectors.iter().any(|o| !o.completed)
+        {
+            return Ok(true);
+        }
+        let id = key
+            .scope
+            .connection_id
+            .as_ref()
+            .expect("hint connection")
+            .clone();
+        if self
+            .hints
+            .get(&id)
+            .is_some_and(|h| h.value.stream_revision >= value.stream_revision)
+        {
+            return Ok(true);
+        }
+        if self.hints.len() >= NATIVE_CONNECTION_CAPACITY && !self.hints.contains_key(&id) {
+            return Ok(true);
+        }
+        self.hints.insert(
+            id,
+            Hint {
+                key,
+                value,
+                at: Instant::now(),
+            },
+        );
+        Ok(true)
     }
     pub(super) async fn offer(
         &mut self,
@@ -404,7 +549,8 @@ impl Driver {
         }
         self.jobs.push(Job {
             key,
-            offer: frame.clone(),
+            offer: Some(frame.clone()),
+            announced: None,
             expected,
             deadline: now + Duration::from_secs(30),
             due: now,
@@ -481,6 +627,18 @@ impl Driver {
         if j.expected != job.expected {
             return Err(bad(&job.key));
         }
+        if let Some(hint) = &job.announced {
+            if j.record.as_str() != hint.record_id
+                || j.parent.as_str() != hint.subscription_record_id
+                || j.state != OperationState::Completed
+                || p["revision"].as_u64().is_none_or(|n| n < hint.revision)
+                || p["result"]["stream_revision"].as_u64() != Some(hint.stream_revision)
+                || p["result"]["resources_changed"] != false
+            {
+                return Err(bad(&job.key));
+            }
+        }
+
         let known = {
             let mut cache = cache.lock().map_err(|_| bad(&job.key))?;
             let entry = exact(&mut cache, &job.key)?.ok_or_else(|| bad(&job.key))?;
@@ -509,7 +667,8 @@ impl Driver {
             return Ok(());
         }
         if known && !job.confirmed && j.state == OperationState::Preparing {
-            let request_id = job.offer.original()["payload"]["substrate_setup"]["offer_id"]
+            let offer = job.offer.as_ref().ok_or_else(|| bad(&job.key))?;
+            let request_id = offer.original()["payload"]["substrate_setup"]["offer_id"]
                 .as_str()
                 .filter(|s| s.parse::<OperationId>().is_ok())
                 .ok_or_else(|| bad(&job.key))?;
@@ -519,14 +678,14 @@ impl Driver {
                 &Value::Null,
                 job.expected,
                 request_id,
-                &job.offer,
+                offer,
             );
             let root = job.key.scope.command(Some(&job.key.operation_id));
             match answer {
                 Ok(answer) => {
                     tokio::time::timeout_at(
                         job.deadline,
-                        peer.answer_connection_offer(&job.offer, answer, &root),
+                        peer.answer_connection_offer(offer, answer, &root),
                     )
                     .await
                     .map_err(|_| Error::request(ErrorKind::Deadline, Some(&job.key), true))?
@@ -542,7 +701,7 @@ impl Driver {
                 Err(error) => {
                     tokio::time::timeout_at(
                         job.deadline,
-                        peer.decline_connection_offer(&job.offer, &root, 488),
+                        peer.decline_connection_offer(offer, &root, 488),
                     )
                     .await
                     .map_err(|_| bad(&job.key))?

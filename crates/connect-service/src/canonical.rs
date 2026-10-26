@@ -408,13 +408,19 @@ impl AuthenticatedHandler for CanonicalHandler {
                 _ => std::future::pending().await,
             }
         };
+        let reconciliations = async {
+            match (&self.physical, self.service.canonical_runtime.get()) {
+                (Some(physical), Some(runtime)) => physical.reconciliations.next(runtime).await,
+                _ => std::future::pending().await,
+            }
+        };
         let dtmf = async {
             match &self.physical {
                 Some(physical) => physical.dtmf.next_delivery().await,
                 None => std::future::pending().await,
             }
         };
-        tokio::select! { result=subscription=>result, result=lifecycle=>result, result=capabilities=>result, result=dtmf=>result }
+        tokio::select! { result=subscription=>result, result=lifecycle=>result, result=capabilities=>result, result=reconciliations=>result, result=dtmf=>result }
     }
 
     async fn handle(&self, authorized: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {

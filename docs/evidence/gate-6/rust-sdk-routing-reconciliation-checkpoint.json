@@ -1,0 +1,93 @@
+{
+  "schema": "connect-gate6-rust-sdk-routing-reconciliation-checkpoint/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T05:10:55.485553+00:00",
+  "base_revision": "e07477151769040be7250d8c60e61858bd921e95",
+  "scope": "Implementation checkpoint; end-to-end routing-hint delivery is failing and is not qualified.",
+  "implementation": [
+    "Strict metadata-only ReconciliationHint, durable completed original-source Store lookup, bounded original physical-writer delivery with current authorization at IO, and SDK fresh journal validation before owned revision synchronization.",
+    "Routing-only unavailable binding capture may advance only its exact installed predecessor without inventing bindings; resource-replacement unavailable capture remains unresolved.",
+    "Upstream changes are recorded as a patch and source-lock digest; generated dependency sources are verified."
+  ],
+  "verification": {
+    "client_functions_passed": 165,
+    "protocol_functions_passed": 43,
+    "targeted_store_functions_passed": 181,
+    "store_filtered": 1035,
+    "rustdoc_checks_passed": 5,
+    "contract_vectors_passed": 254,
+    "logs": [
+      {
+        "path": ".local/gate-6/sdk-routing-reconciliation/client-protocol-02.log",
+        "sha256": "17dc7cba08bf6963cd62656017d8ba119186c390f9ebfc91cf74f845564b9aba"
+      },
+      {
+        "path": ".local/gate-6/sdk-routing-reconciliation/store-02.log",
+        "sha256": "0d28fd89c785cf067c456f95817c4619cfef61b74a292afc042b2851b07b4129"
+      },
+      {
+        "path": ".local/gate-6/sdk-routing-reconciliation/rustdoc.log",
+        "sha256": "8a24d79a94d5020fd17d524c15fe5f5aa27d5ba25efde89373b3ce980b81f6e6"
+      },
+      {
+        "path": ".local/gate-6/sdk-routing-reconciliation/contracts.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      },
+      {
+        "path": ".local/gate-6/sdk-routing-reconciliation/dependencies-206-verified.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      }
+    ],
+    "production": {
+      "passed": false,
+      "passed_functions": 0,
+      "failed_functions": 2,
+      "observation": "Both SDK reconciliation functions reached camera removal but the receiver retained revision3 rather than synchronizing to4. Missing routing hint is under investigation; subsequent regression groups were not run.",
+      "report": {
+        "results": [
+          {
+            "filter": "sdk_handles::reconciliations::",
+            "skip": null,
+            "exit_code": 101,
+            "timeout": false,
+            "passed_functions": 0,
+            "failed_functions": 2,
+            "elapsed_seconds": 28.13177845790051,
+            "log": ".local/gate-6/sdk-routing-reconciliation/production-02-00.log",
+            "log_sha256": "160a2d9a98fe77ee32754dd1a1e362595ca4f5f7d3a649c33f53a9eb6d34be36"
+          }
+        ],
+        "sealed_binary_sha256": "b0e75f044590aac53fb48aa9c9a5f2d83a7eaabee56884f76a98550dd1d373ee",
+        "original_binary_sha256": "b0e75f044590aac53fb48aa9c9a5f2d83a7eaabee56884f76a98550dd1d373ee",
+        "sealing": "APFS independent copy-on-write clone with mode preserved; bytes/mode checked before execution.",
+        "build_jsonl_sha256": "7621a43044557e134bbc280c128579a0b9e5ac3072be9861a7aed4d7c24addae",
+        "build_log_sha256": "e16b8e49c88c295c277ce0ec8dc9d64eb4306dff01ef6fed27fb790b701d611e",
+        "manifest": ".local/gate-6/sdk-routing-reconciliation/inputs-01.json",
+        "manifest_sha256": "530798c9828a22b659fb19ef23db99f9c30d1e5aa0ef25454e8ff0b7d2edfd1a",
+        "guarded_inputs": 1341,
+        "inputs_unchanged": true,
+        "driver_sha256": "92e472a5262fa36a8914c1a7f05e39620c1a11d1c9fa7f340fbfc91af7319041",
+        "profile": "Release with connect-store,connect-service,connect-server opt-level0; other packages release defaults. Functional scope only.",
+        "passed": false
+      },
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-02-00.log",
+        "sha256": "160a2d9a98fe77ee32754dd1a1e362595ca4f5f7d3a649c33f53a9eb6d34be36"
+      }
+    },
+    "diagnostic_build": "Current service/test diagnostic build03 is running; no runtime result is claimed.",
+    "patch": {
+      "path": "patches/rvoip/gate6-native-journal-delivery.patch",
+      "sha256": "a43057e711a9d7724408008e88c37579f3397a595471471742efcef882e87c05"
+    },
+    "source_lock": {
+      "path": "dependencies/source-lock.json",
+      "sha256": "d403e37996735b33779d6083b31d5a0032cc89f9c191d145c4d2e2816b655cd4"
+    }
+  },
+  "remaining": [
+    "Resolve and rerun routing-hint production delivery, then run selected SDK/native/writer regressions.",
+    "Full G6-060 SDK/package/media/recovery/approved profile scope remains open; all105 tasks remain the objective. No task, acceptance or publication closure."
+  ]
+}

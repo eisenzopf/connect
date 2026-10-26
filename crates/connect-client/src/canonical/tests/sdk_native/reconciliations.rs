@@ -11,6 +11,17 @@ pub(in crate::canonical) enum Case {
     WrongOperation,
     NoCapture,
     Unsettled,
+    Route,
+    RouteDelayed,
+    RouteBadRecord,
+    RouteBadCounter,
+    RouteBadBindings,
+    RouteStale,
+    RouteForeignScope,
+    RouteUnknownParent,
+    RouteMalformed,
+    RouteUnsettled,
+    RouteNoCapture,
     ReadRefused,
     ReadTimeout,
     Unsupported,
@@ -21,8 +32,64 @@ fn selection() -> Value {
     ports.as_array_mut().unwrap().truncate(3);
     json!({"connection_id":"connection_one","command_type":"stream.subscribe","connection_generation":1,"expected_revision":1,"stream_revision":2,"resources_changed":false,"stream_bindings":selections::bindings(&ports)})
 }
+fn routing(case: Case) -> bool {
+    matches!(
+        case,
+        Case::Route
+            | Case::RouteDelayed
+            | Case::RouteBadRecord
+            | Case::RouteBadCounter
+            | Case::RouteBadBindings
+            | Case::RouteStale
+            | Case::RouteForeignScope
+            | Case::RouteUnknownParent
+            | Case::RouteMalformed
+            | Case::RouteNoCapture
+    )
+}
 fn captured(case: Case) -> Value {
-    json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":true,"stream_bindings":if matches!(case,Case::NoCapture|Case::Unsettled) {Value::Null}else{selections::bindings(&selections::streams())},"server_reconciliation":true,"subscription_record_id":"opr_selector"})
+    let mut ports = selections::streams();
+    if routing(case) {
+        ports.as_array_mut().unwrap().truncate(3);
+    }
+    let mut out = json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":!routing(case),"stream_bindings":if matches!(case,Case::NoCapture|Case::Unsettled|Case::RouteUnsettled|Case::RouteNoCapture) {Value::Null}else{selections::bindings(&ports)},"server_reconciliation":true,"subscription_record_id":"opr_selector"});
+    if matches!(case, Case::RouteBadBindings) {
+        out["stream_bindings"][1]["stream_local_id"] = json!(16);
+    }
+    out
+}
+async fn hint(writer: &mut quinn::SendStream, signer: &Sig9421Signer, case: Case) {
+    let later = matches!(case, Case::RouteUnsettled);
+    let mut payload = json!({"operation_id":if later {"route-later"}else{"auto-selection"},"record_id":"opr_auto","command_type":"stream.reconcile","expected_revision":if later {3}else{2},"state":"completed","revision":1,"subscription_record_id":"opr_selector","stream_revision":if later {4}else{3},"journal_hint":true,"resources_changed":false});
+    if matches!(case, Case::RouteUnknownParent) {
+        payload["subscription_record_id"] = json!("opr_not_issued");
+    }
+    if matches!(case, Case::RouteStale) {
+        payload["expected_revision"] = json!(1);
+        payload["stream_revision"] = json!(2);
+    }
+    if matches!(case, Case::RouteMalformed) {
+        payload["resources_changed"] = json!(true);
+    }
+    let mut frame = envelope("operation.updated", payload);
+    for (field, value) in [
+        ("cid", "conv_one"),
+        ("sid", "session_one"),
+        ("connid", "connection_one"),
+    ] {
+        frame[field] = json!(value);
+    }
+    frame["operation_id"] = frame["payload"]["operation_id"].clone();
+    if matches!(case, Case::RouteForeignScope) {
+        frame["sid"] = json!("another-session");
+    }
+    let frame = signer.sign(&frame).unwrap();
+    let bytes = serde_json::to_vec(&frame).unwrap();
+    writer
+        .write_all(&(bytes.len() as u32).to_be_bytes())
+        .await
+        .unwrap();
+    writer.write_all(&bytes).await.unwrap();
 }
 async fn reply(
     writer: &mut quinn::SendStream,
@@ -54,6 +121,12 @@ async fn reply(
             p["operation_id"] = json!("another-logical-operation");
         }
     }
+    if !selector && matches!(case, Case::RouteBadRecord) {
+        p["record_id"] = json!("opr_changed");
+    }
+    if !selector && matches!(case, Case::RouteBadCounter) {
+        p["expected_revision"] = json!(3);
+    }
     if state == "completed" {
         p["result"] = if selector {
             selection()
@@ -62,7 +135,9 @@ async fn reply(
         };
     }
     write(writer, signer, request, "operation.updated", p, true).await;
-    write(writer, signer, request, "ack", json!({}), true).await;
+    if !(matches!(case, Case::RouteDelayed) && !selector && !second) {
+        write(writer, signer, request, "ack", json!({}), true).await;
+    }
 }
 async fn send_callback(
     writer: &mut quinn::SendStream,
@@ -127,6 +202,7 @@ pub(super) async fn emit(
     let mut queries = 0;
     let mut released = false;
     let mut sent_next = false;
+    let mut started = false;
     while let Some(request) = selections::maybe_read(reader).await {
         if request.kind() == "stream.subscribe" {
             assert_eq!(request.scope(Scope::Operation), Some("selector"));
@@ -162,15 +238,24 @@ pub(super) async fn emit(
             .unwrap();
         if id == "selector" {
             if let Some(late) = late_query.take() {
-                reply(writer, signer, &late, false, "completed", case, true).await;
+                if matches!(case, Case::RouteDelayed) {
+                    write(writer, signer, &late, "ack", json!({}), true).await;
+                } else {
+                    reply(writer, signer, &late, false, "completed", case, true).await;
+                }
             }
             reply(writer, signer, &request, true, "completed", case, false).await;
-            if offer.is_none() {
+            if !started && routing(case) {
+                hint(writer, signer, case).await;
+                started = true;
+            }
+            if !started && offer.is_none() {
                 let callback = send_callback(writer, signer, caps, case).await;
                 if matches!(case, Case::Duplicate) {
                     resend(writer, signer, &callback).await;
                 }
                 offer = Some(callback);
+                started = true;
             }
         } else {
             assert_eq!(id, "auto-selection");
@@ -186,7 +271,8 @@ pub(super) async fn emit(
             if matches!(case, Case::Delay) && confirmed > 0 && !released {
                 tokio::select! {biased;_=signal.notified()=>released=true,_=tokio::time::sleep(Duration::from_millis(1))=>()}
             }
-            let completed = confirmed > 0 && (!matches!(case, Case::Delay) || released);
+            let completed =
+                routing(case) || confirmed > 0 && (!matches!(case, Case::Delay) || released);
             reply(
                 writer,
                 signer,
@@ -198,6 +284,15 @@ pub(super) async fn emit(
             )
             .await;
             authorized = true;
+            if matches!(case, Case::RouteDelayed) && queries == 1 {
+                late_query = Some(request.clone());
+                signal.notify_one();
+            }
+            if completed && matches!(case, Case::RouteUnsettled) && !sent_next {
+                hint(writer, signer, case).await;
+                signal.notify_one();
+                sent_next = true;
+            }
             if completed && matches!(case, Case::Unsettled) && !sent_next {
                 let mut next = offer.as_ref().unwrap().original().clone();
                 next.as_object_mut().unwrap().remove("signature");
@@ -417,5 +512,153 @@ async fn another_server_callback_cannot_replace_recovery_identity_for_an_unsettl
     assert!(!original.bindings_adopted);
     original.operation(&client).wait(options()).await.unwrap();
     assert_eq!(count(&c), 3);
+    close(client, host).await;
+}
+
+#[tokio::test]
+async fn routing_hint_reads_current_journal_before_advancing_owned_counter_without_any_parameter_answer(
+) {
+    let (client, c, selector, host, _) = ready(Case::Route).await;
+    let s = phase(&c, Phase::Recorded).await;
+    assert!(s.bindings_adopted);
+    assert_eq!(count(&c), 3);
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        3
+    );
+    selector.wait(options()).await.unwrap();
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        3
+    );
+    close(client, host).await;
+}
+#[tokio::test]
+async fn routing_hint_and_incomplete_current_query_cannot_advance_counter_until_correlated_ack() {
+    let (client, c, selector, host, signal) = ready(Case::RouteDelayed).await;
+    tokio::time::timeout(Duration::from_secs(1), signal.notified())
+        .await
+        .unwrap();
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        2
+    );
+    selector.wait(options()).await.unwrap();
+    phase(&c, Phase::Recorded).await;
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        3
+    );
+    close(client, host).await;
+}
+#[tokio::test]
+async fn routing_hint_mismatched_record_or_counter_refuses_and_unmatched_bindings_never_install() {
+    for case in [
+        Case::RouteBadRecord,
+        Case::RouteBadCounter,
+        Case::RouteBadBindings,
+    ] {
+        let (client, c, selector, host, _) = ready(case).await;
+        let wanted = if matches!(case, Case::RouteBadBindings) {
+            Phase::Recorded
+        } else {
+            Phase::Unresolved
+        };
+        let status = phase(&c, wanted).await;
+        assert!(!status.bindings_adopted);
+        assert_eq!(
+            c.native_negotiation()
+                .unwrap()
+                .unwrap()
+                .stream_revision
+                .get(),
+            2
+        );
+        assert_eq!(count(&c), 3);
+        selector.wait(options()).await.unwrap();
+        close(client, host).await;
+    }
+}
+#[tokio::test]
+async fn stale_foreign_unissued_or_nonrouting_hints_do_not_acquire_custody_or_disturb_control() {
+    for case in [
+        Case::RouteStale,
+        Case::RouteForeignScope,
+        Case::RouteUnknownParent,
+        Case::RouteMalformed,
+    ] {
+        let (client, c, selector, host, _) = ready(case).await;
+        selector.wait(options()).await.unwrap();
+        assert!(c.native_reconciliation().unwrap().is_none());
+        assert_eq!(
+            c.native_negotiation()
+                .unwrap()
+                .unwrap()
+                .stream_revision
+                .get(),
+            2
+        );
+        close(client, host).await;
+    }
+}
+#[tokio::test]
+async fn pending_routing_hint_cannot_replace_identity_or_settle_an_unavailable_resource_capture() {
+    let (client, c, selector, host, signal) = ready(Case::RouteUnsettled).await;
+    tokio::time::timeout(Duration::from_secs(1), signal.notified())
+        .await
+        .unwrap();
+    selector.wait(options()).await.unwrap();
+    let s = phase(&c, Phase::Recorded).await;
+    assert_eq!(s.key.operation_id.as_str(), "auto-selection");
+    assert!(!s.bindings_adopted);
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        2
+    );
+    close(client, host).await;
+}
+#[tokio::test]
+async fn recorded_routing_only_null_capture_advances_exact_predecessor_counter_without_inventing_bindings(
+) {
+    let (client, c, _, host, _) = ready(Case::RouteNoCapture).await;
+    let status = phase(&c, Phase::Recorded).await;
+    assert!(!status.bindings_adopted);
+    assert_eq!(count(&c), 3);
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        3
+    );
+    let receipt = status
+        .operation(&client)
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    assert!(receipt.bindings.is_none());
+    assert!(!receipt.resources_changed);
     close(client, host).await;
 }

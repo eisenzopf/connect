@@ -95,7 +95,7 @@ impl Shared {
             let failure = loop {
                 let tick = tokio::select! {biased;
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
-                    result=reconciliations.tick(&mut peer,&owned_native)=>result,
+                    result=reconciliations.tick(&mut peer,&owned_native,&owned_slots)=>result,
                 };
                 if let Err(error) = tick {
                     break error.kind;
@@ -124,6 +124,7 @@ impl Shared {
                         }
                         let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.frame(&mut peer,&owned_native,&owned_media,&frame)=>result};
                         match reconciliation {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
+                        match reconciliations.hint(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         if frame.kind()=="connection.offer" {
                             if let Some(index)=active.iter().position(|p|p.native.is_some() && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(|v|v.as_str())==frame.scope(crate::canonical::Scope::Connection)) {
                                 let until=active[index].exchange.deadline;

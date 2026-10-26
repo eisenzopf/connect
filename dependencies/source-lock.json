@@ -1124,6 +1124,11 @@
       "path": "patches/rvoip/gate6-public-native-source-clock-api.patch",
       "sha256": "7c09be061b78afbd7edbb37d947b61d5e8ed0856d7c25820da427be43bade936",
       "source": "G6-050 public native RTP/clock datagram observation and SR/SDES builder reusing the canonical host parser. Preserve original handle/physical sequence/exact NTP/RTP/counters/CNAME and RTP marker; claimed malformed clocks never fall back to RTP or imply readiness. Five wire regressions. Public SDK integration and network qualification remain separate."
+    },
+    {
+      "path": "patches/rvoip/gate6-native-journal-delivery.patch",
+      "sha256": "a43057e711a9d7724408008e88c37579f3397a595471471742efcef882e87c05",
+      "source": "G6-060 bounded metadata-only operation.updated hints on the original confirmed native physical writer. Exact original scope and recorded routing-only identity; queue metadata only, acquire fresh current permission at actual IO, reserve control capacity, and retire unfinished reliable IO before releasing readers. No result, binding, readiness or media grant."
     }
   ]
 }

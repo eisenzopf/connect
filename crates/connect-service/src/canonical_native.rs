@@ -713,8 +713,10 @@ impl Runtime {
             self.queue_handoff_preparation(entry.clone(), evidence.physical.lifetime.clone());
         }
         *stage = "subscription-reconciliation";
-        self.native_preflight(&a, deadline, || self.enable_native_reconciliation(&id, &a))
-            .await?;
+        self.native_preflight(&a, deadline, || {
+            self.enable_native_reconciliation(&id, &a, &evidence.physical)
+        })
+        .await?;
         *stage = "lifecycle-registration";
         self.native_preflight(&a, deadline, || {
             self.enable_native_lifecycle(&id, &a, &evidence.physical)

@@ -373,8 +373,23 @@ can settle a retained matching preparation; fresh Clients acquire no transport
 or media custody. A failed internal read or deadline preserves original recovery
 and the old bindings without closing unrelated control work.
 
-Automatic handling currently follows resource-changing signed callbacks. Full
-routing-only event/revision synchronization, unavailable capture reconciliation
-and the remaining SDK/package/profile scope stay open under G6-060. Detailed
-verification is recorded in
+Resource-changing signed callbacks are qualified in
 `docs/evidence/gate-6/rust-sdk-auto-reconciliation.json`.
+
+A completed routing-only reconciliation can emit a signed `operation.updated`
+journal hint on the original physical peer. The hint contains operation IDs and
+counters, with no result or bindings. The SDK verifies the originally issued
+selector and reads that operation under current authority before advancing its
+local native revision. Stale, foreign, malformed or mismatched hints do not adopt
+parameters. Coalesced pending hints cannot overwrite an unsettled preparation's
+original recovery identity.
+
+When a recorded routing-only result has unavailable binding capture, its exact
+installed predecessor can advance to the recorded native counter: that operation
+changed no physical parameters. No binding set is invented and
+`bindings_adopted` remains false. Unavailable resource-replacement captures still
+retain their original preparation pending explicit physical reconciliation.
+Delivery is advisory; durable cursor catch-up, wider backpressure profiles, other
+automatic negotiation families and the remaining SDK/package/profile scope stay
+open under G6-060. Current routing verification is recorded in
+`docs/evidence/gate-6/rust-sdk-routing-reconciliation.json`.

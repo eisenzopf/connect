@@ -601,3 +601,110 @@ fn data_admission_waits_without_a_message_or_effect_then_accepts_the_original_au
     assert_eq!(f.count("operation_effects"), before.1);
     assert_eq!(f.count("native_data_writes"), 0);
 }
+
+#[test]
+fn routing_hint_requires_durable_completed_original_selector_and_exposes_no_capture() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let parent = source.subscription_record_id().to_owned();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "hint-routing", json!({"streams":[]}))
+        .unwrap();
+    let record = lease.record_id().to_owned();
+    assert!(f
+        .store
+        .try_native_reconciliation_hint_read(&origin, &record)
+        .is_err());
+    let completed = f
+        .store
+        .complete_native_stream(&lease.committed(3, false, None).unwrap())
+        .unwrap();
+    drop(source);
+    let before = (
+        f.count("operations"),
+        f.count("operation_effects"),
+        f.count("journal"),
+    );
+    let (read, hint) = f
+        .store
+        .try_native_reconciliation_hint_read(&origin, &record)
+        .unwrap();
+    assert!(read.current());
+    assert_eq!(hint.operation_id, "hint-routing");
+    assert_eq!(hint.record_id, completed.record_id);
+    assert_eq!(hint.subscription_record_id, parent);
+    assert_eq!(hint.expected_revision, 2);
+    assert_eq!(hint.stream_revision, 3);
+    assert!(!hint.resources_changed);
+    let value = serde_json::to_value(hint).unwrap();
+    for key in ["result", "stream_bindings", "plan", "intent"] {
+        assert!(value.get(key).is_none());
+    }
+    assert_eq!(
+        before,
+        (
+            f.count("operations"),
+            f.count("operation_effects"),
+            f.count("journal")
+        )
+    );
+    drop(read);
+    assert!(f
+        .store
+        .try_native_reconciliation_hint_read(&origin, &parent)
+        .is_err());
+    assert!(f
+        .store
+        .try_native_reconciliation_hint_read(&origin, "opr_foreign")
+        .is_err());
+}
+#[test]
+fn routing_hint_does_not_relabel_a_resource_replacement_as_a_metadata_only_change() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "hint-replacement", json!({"streams":[]}))
+        .unwrap();
+    let record = lease.record_id().to_owned();
+    f.store
+        .complete_native_stream(&lease.committed(3, true, None).unwrap())
+        .unwrap();
+    drop(source);
+    assert!(f
+        .store
+        .try_native_reconciliation_hint_read(&origin, &record)
+        .is_err());
+}
+#[test]
+fn routing_hint_cannot_revive_an_old_physical_origin_after_store_succession() {
+    let (f, _, origin) = selected();
+    let source = f.store.try_native_reconciliation_read(&origin).unwrap();
+    let lease = f
+        .store
+        .begin_native_reconciliation(&source, "hint-successor", json!({"streams":[]}))
+        .unwrap();
+    let record = lease.record_id().to_owned();
+    f.store
+        .complete_native_stream(&lease.committed(3, false, None).unwrap())
+        .unwrap();
+    drop(source);
+    let path = f.store.path().to_owned();
+    let key = f.keys[0].clone();
+    drop(f.store);
+    let successor = Store::open(&path, Limits::default()).unwrap();
+    assert!(successor
+        .try_native_reconciliation_hint_read(&origin, &record)
+        .is_err());
+    let status = successor
+        .execute_operation_action(
+            &key,
+            OperationAction::Get {
+                operation_id: "hint-successor".into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(status.state, OperationState::Completed);
+    assert_eq!(status.record_id, record);
+}
