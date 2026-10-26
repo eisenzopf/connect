@@ -311,6 +311,11 @@ pub(super) fn observe(
     let crate::canonical::Payload::OperationUpdated(update) = frame.payload() else {
         return Err(fail(key));
     };
+    if update.operation_id.as_str() != key.operation_id.as_str()
+        || update.revision > 9_007_199_254_740_991
+    {
+        return Err(fail(key));
+    }
     match serde_json::to_value(update.state)
         .map_err(|_| fail(key))?
         .as_str()

@@ -23,6 +23,7 @@ pub(in crate::canonical) enum Case {
     BadResultKind,
     BadResultSource,
     BadResultExpected,
+    BadPayloadOperation,
 }
 fn revision(n: u64) -> sdk::StreamRevision {
     sdk::StreamRevision::try_from(n).unwrap()
@@ -252,6 +253,11 @@ pub(super) async fn emit(
                 );
                 break;
             }
+        }
+        if matches!(case, Case::BadPayloadOperation) {
+            write(writer,signer,&request,"operation.updated",json!({"operation_id":"foreign-operation","state":"completed","revision":1,"result":captured}),true).await;
+            while maybe_read(reader).await.is_some() {}
+            return;
         }
         if matches!(case, Case::Dropped) {
             signal.notify_one();
@@ -492,6 +498,7 @@ async fn malformed_selection_captures_cannot_adopt_unmatched_native_preparation(
         Case::BadResultKind,
         Case::BadResultSource,
         Case::BadResultExpected,
+        Case::BadPayloadOperation,
     ] {
         let (client, c, host, _) = ready(case).await;
         let error = c

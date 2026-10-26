@@ -2,14 +2,15 @@
   "schema": "connect-gate6-rust-sdk-selections/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T03:02:04.864035+00:00",
+  "checked_at": "2026-10-26T03:13:06.901823+00:00",
   "base_revision": "b1c32a530c7f36509a2d5d47014baade46adffc3",
   "scope": "Typed public Rust SDK receive selections, captured original native outcomes and owned signed preparation/result pairing. Client, protocol and targeted Store checks pass; actual both-ends SDK media integration is building and has not run. Local macOS arm64 functional scope.",
   "implementation": [
     "Connection.subscribe has explicit Stream or Participant/kinds selectors; unsubscribe has explicit Stream IDs. Native revision, original operation ID, opaque extensions and selector order survive uncertainty and recovery. Distinct typed operation kinds preserve historical result identity.",
     "Native stream result records original command, expected/resulting revision, Connection generation, resources_changed and optional captured bindings. A missing concurrent capture is null, never an invented empty set. Shared protocol validation bounds positive counters and native port identities.",
     "Owned selection reoffers preserve local publication, restrict new ports to receiving declared formats and reserve positive unique native handles, including private data handles. Matching completed captures adopt local parameters; unknown/failed/interrupted paths preserve identity. Route-only/no-op receipts cannot rewind newer local revisions.",
-    "Native media queues can add/remove selected receive bindings while preserving unrelated queues and exposing discarded packets through counters/gaps. Saved observations never acquire foreign media custody. HTTP/OpenAPI reference documents captured selection outcomes."
+    "Native media queues can add/remove selected receive bindings while preserving unrelated queues and exposing discarded packets through counters/gaps. Saved observations never acquire foreign media custody. HTTP/OpenAPI reference documents captured selection outcomes.",
+    "Worker validates the OperationUpdated payload logical operation ID and bounded operation revision before applying any selection capture, independently of signed envelope/transport correlation. A signed foreign payload ID without ACK must immediately refuse Protocol."
   ],
   "verification": {
     "client": {
@@ -17,18 +18,22 @@
       "failed_functions": 0,
       "new_signed_selection_functions": 9,
       "log": {
-        "path": ".local/gate-6/rust-sdk-selections/client-protocol-05.log",
-        "sha256": "dae2b2a0eef006d4c5e80e4f4856f08defc0343d3340f26e92b07c876234656d"
+        "path": ".local/gate-6/rust-sdk-selections/client-protocol-06.log",
+        "sha256": "5a75b2ebfe0fdd68a0e4b75ce98aec692572deef35e59071e1073a74185ff46a"
       },
-      "scope": "Complete client suite, including malformed signed reoffers/results, added video/data receives, route-only/no-op/stale observations, dropped caller/unknown recovery, explicit extension preservation and failed/unavailable captures."
+      "scope": "Complete client suite, including malformed signed reoffers/results, added video/data receives, route-only/no-op/stale observations, dropped caller/unknown recovery, explicit extension preservation and failed/unavailable captures.",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/client-final-summary.json",
+        "sha256": "3dd3609a9caeaddea94fe5363953d00675a75b763ca4770ea2606ff4782c2fd1"
+      }
     },
     "protocol": {
       "passed_functions": 40,
       "failed_functions": 0,
       "new_functions": 2,
       "log": {
-        "path": ".local/gate-6/rust-sdk-selections/client-protocol-05.log",
-        "sha256": "dae2b2a0eef006d4c5e80e4f4856f08defc0343d3340f26e92b07c876234656d"
+        "path": ".local/gate-6/rust-sdk-selections/client-protocol-06.log",
+        "sha256": "5a75b2ebfe0fdd68a0e4b75ce98aec692572deef35e59071e1073a74185ff46a"
       },
       "scope": "Complete protocol unit suite. New capture checks distinguish empty/null/missing metadata and reject aliased/foreign ports and incompatible counters/kinds."
     },
@@ -44,19 +49,27 @@
     },
     "inputs": {
       "manifest": {
-        "path": ".local/gate-6/rust-sdk-selections/inputs-02.json",
-        "sha256": "98a3fd21a09692dc9a52b73e2279e64bc7b81dbaad81cde5c7b0290d73cba750"
+        "path": ".local/gate-6/rust-sdk-selections/inputs-03.json",
+        "sha256": "520e535056200e40c7c8e66232c17b9fc96622b3974cfa001864a67c9e05e991"
       },
       "guarded_source_inputs": 1327,
       "unchanged": true,
-      "fixture_only_change_after_unit_store_verification": {
+      "clock_fixture_audit": {
         "path": ".local/gate-6/rust-sdk-selections/fixture-clock-correction.json",
         "sha256": "29713f7e47ca23ae5fa03bf6859471c47d32a09cbbe3c1dfca0f86c9f01c37c3"
+      },
+      "client_correlation_audit": {
+        "path": ".local/gate-6/rust-sdk-selections/payload-correlation-correction.json",
+        "sha256": "62cdb6a234fc879e0c00eb0e474e08d55d94738a03ee6f8426633a9cd2ca16dc"
+      },
+      "store_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-selections/client-final-summary.json",
+        "sha256": "3dd3609a9caeaddea94fe5363953d00675a75b763ca4770ea2606ff4782c2fd1"
       }
     },
     "production": {
       "status": "pending",
-      "detail": "Current-source release no-run production build is compiling. Two new public SDK both-ends A/V and recording-failure fixtures have not yet executed."
+      "detail": "First release no-run integration build compiled successfully. Final client guard now passes the whole unit suite; final source integration build02 is running before actual listener/audio execution."
     },
     "dependencies": {
       "path": ".local/gate-6/rust-sdk-selections/dependencies.log",
@@ -65,6 +78,26 @@
     "format": {
       "path": ".local/gate-6/rust-sdk-selections/format-06.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-selections/rustdoc-01.log",
+        "sha256": "53d0f624033e94795994b54afb5089222825973e73c04240e1b820fbd6ab5101"
+      }
+    },
+    "contracts": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-selections/contracts.json",
+        "sha256": "dade08d5313279f7f3a365beba955fc32ec8d6ca22957be6d4c1e8e98a25ca6b"
+      },
+      "schema_vectors": 237,
+      "selection_samples": {
+        "path": ".local/gate-6/rust-sdk-selections/selection-schemas.json",
+        "sha256": "7f76a3e39114b8b1a5e9d5c9d1815b8d1977f36332d97b1ef76089673f0f79ce"
+      },
+      "schema_sample_count": 15
     }
   },
   "failed_or_superseded_runs": [
