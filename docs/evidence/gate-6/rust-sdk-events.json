@@ -2,7 +2,7 @@
   "schema": "connect-gate6-rust-sdk-events/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T06:41:05.982154+00:00",
+  "checked_at": "2026-10-26T06:50:52.022384+00:00",
   "base_revision": "9e6800d9",
   "scope": "Component checkpoint for typed owned native durable event streams; production fixtures are implemented but not yet qualified. G6-060 and all105 tasks remain open.",
   "implementation": [
@@ -59,7 +59,7 @@
       }
     },
     "upstream_regression": {
-      "status": "old-library-fails-two-new-exact-tests; corrected-library-pending",
+      "status": "passed-current-library; old-library-fails-both",
       "before": {
         "path": ".local/gate-6/sdk-events/upstream-before-exact-test.log",
         "sha256": "1be607ea0931f68ea850e413644c977c572aaf883288392614b07b406e21efdd"
@@ -72,7 +72,24 @@
       "patch": {
         "path": "patches/rvoip/gate6-subscription-session-lifecycle.patch",
         "sha256": "e24c71be70041215646a3d2c002266e580d71edaf0966ea350c85b968e7f0e8b"
+      },
+      "passed_functions": 2,
+      "after": {
+        "path": ".local/gate-6/sdk-events/upstream-after-test.log",
+        "sha256": "058af75f1d69bbac24d728974687904c8e050906f29cae4cbec1317de98c7625"
+      },
+      "after_command": {
+        "path": ".local/gate-6/sdk-events/upstream-after-command.json",
+        "sha256": "0e47279806f639f228ec50bcbe48765865af2d1edf1ea935597d3db0e88ca642"
       }
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/sdk-events/inputs-03.json",
+        "sha256": "553882d2a496c63dafbce6bc14c1a68bbc64e817a07bb9658de5deb112625821"
+      },
+      "guarded_inputs": 1351,
+      "unchanged_at_checkpoint": true
     }
   },
   "failed_or_superseded_runs": [
