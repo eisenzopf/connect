@@ -1,0 +1,41 @@
+{
+  "task": "G6-065",
+  "status": "current agent skill/source and CLI shape checkpoint passed",
+  "checked_at": "2026-10-26T11:47:34.352209+00:00",
+  "scope": "Source skill authoring and real CLI pre-connection decoding. This does not qualify a newly exported/installed agent host, actual model turn, live transition or remote/provider profile.",
+  "changes": [
+    "Ordinary communication uses connect_conversation_create/connect_message_send/connect_message_history/connect_operation_get. Exact original logical operation, Message, audience and resource identities survive uncertainty; Task request/step references keep their separate named interface.",
+    "Finite conversation events start with a snapshot/cursor and explicitly resume after it with live:false. Session/Connection transition controls use current schemas/topology and do not claim decoded audio from ACK or completion metadata.",
+    "JSON CLI examples now use actual public Command{command:{type,payload},scope} for canonical sends/status and explicit --application with a separate ApplicationClient config for named Task APIs. Old generic op:send is not advertised as canonical fallback."
+  ],
+  "verification": {
+    "skill_creator": "/Users/jonathaneisenzopf/.codex/skills/.system/skill-creator/SKILL.md",
+    "skill_validator": {
+      "result": "passed",
+      "log": ".local/gate-6/canonical-mcp/skill-validate-01.log",
+      "sha256": "db349825903d66adffea3ecf1bd8e1803043e8a71cf1a051235dabc5371f5bb0",
+      "runtime_dependency": "PyYAML6.0.3 installed only in the existing ignored qualification venv after the initial validator lacked yaml."
+    },
+    "canonical_json_examples": "Both canonical examples map to valid current UCTP envelopes under Draft202012 schema/format validation. Task example is parsed as the named Task shape.",
+    "actual_cli": {
+      "report": ".local/gate-6/canonical-mcp/skill-cli-shapes-01.json",
+      "sha256": "6e624bc0cce471c57d1db835f89962ad934f4f3f5e236d7139e492bfabfa9fcc",
+      "cli_sha256": "d27e6b18318537d536ea30ee3ab884fd785a64d1c9c0397dfa4b4d5e14a9a8b3",
+      "cases": 3,
+      "expected_result": "Each real CLI invocation decoded the documented input and reached intentional missing-config refusal (configuration, exit1) rather than command/application parse rejection. No network access or submitted effect."
+    },
+    "inputs": {
+      "skills/connect/SKILL.md": "44bf3c77f554acaca4bef5231a0679aecc57ce8fa2a5e4bafdf6bb51707659a4",
+      "skills/connect/references/json-cli.md": "54b8cb815e7e2578a348a40270d12a545e5f19b8a2f0d037a7f8d5d3b19a3410",
+      "skills/connect/agents/openai.yaml": "61989897e14019ab24d04cdcec72eafe1bf50f072d78bb37f7dc11e198d1b5f9",
+      "crates/connect-server/src/cli/request.rs": "d152ffb04171efeb2b093490b133fdd84faf959f619f9c87e7b07af6ef34c40c",
+      "crates/connect-client/src/canonical.rs": "a870c7745137c5d4e537b09c4bdbc8e09f1ee3c03098b832de8b4d7c92c82aa2",
+      "contracts/schemas/uctp-envelope-2.schema.json": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39"
+    },
+    "diff": "passed"
+  },
+  "remaining": [
+    "Compile/export the revised embedded skill into a fresh canonical agent installation and execute the supported host transition fixture. Existing sealed server/CLI qualification does not claim its earlier embedded skill bytes changed.",
+    "MCP library test build remains running; canonical server MCP configuration, stdio and broader facade/profile parity remain G6-065 work."
+  ]
+}

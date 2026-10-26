@@ -24,7 +24,7 @@ communicate across the conversations and contacts authorized for that identity;
 there is no per-task credential issuance or five-minute renewal step. Use
 `connect_resolve`, `connect_capabilities`, `connect_history`, `connect_context_view`
 and `connect_inbox` when available. Select an existing `conversation_id`, or
-create a new conversation with `connect_create` when the intended work needs one.
+create a new conversation with `connect_conversation_create` when the intended work needs one.
 The server checks current identity, membership, configured operations and delivery
 rules on every action. Tools never require a model-supplied bearer or provider key.
 
@@ -49,11 +49,12 @@ Discover a requested recipient with `connect_resolve` / `connect_capabilities`
 when available. An unavailable route does not authorize contacting someone else
 or trying another channel after an uncertain send.
 
-Choose a stable `request_id` and keep each logical operation's intended arguments.
-Ordinary communication tools use the native operation fields and explicit
-conversation IDs. Reuse an ID only to reconcile or retry that operation; a new
-intended operation needs a new ID. Task-tracked effects also retain their
-`task_id` and `step_id` when the tool schema requires them.
+Choose a stable logical mutation ID and keep its complete intended arguments.
+Canonical controls use `operation_id`, an explicit `payload` and resource fields
+from the advertised schema. Messages also retain their original `payload.msg_id`
+and audience. Named application/Task commands use their own `request_id`; tracked
+effects retain `task_id` and `step_id` when required. Reuse an ID only for its
+original intent. A new intended action needs a new ID.
 
 In a Connect-generated Codex installation, the runtime durably records MCP call
 input before dispatch, and the launcher retains the exact session for resume.
@@ -62,9 +63,10 @@ tool is needed. On another host, use its supplied recovery mechanism. If that
 host cannot retain call input, report the limitation rather than claiming the
 workflow is restart-safe.
 
-Use ordinary `connect_send` for messages; its native schema has no
-`wait_for_reply` or task `reply_to` argument. Observe its receipt through
-`connect_request_status` and journal/history rather than claiming delivery.
+Use ordinary `connect_message_send` for canonical messages. It has no Task
+`wait_for_reply` or tracked `reply_to` argument. Use `connect_operation_get` on
+the original operation and exact resource scope, and `connect_message_history`
+or the journal, to observe its result. Acceptance does not prove delivery.
 For durable work tracking, use the configured task-create/status tools and
 `connect_task_send` when available. Retain the selected task and question
 references; task IDs track work and do not select a different credential.
@@ -87,8 +89,11 @@ request ID and reply body. Do not substitute a received journal event there.
 Share files with artifact begin, bounded append and finish; preserve the
 upload ID, offset and integrity metadata. Read authorized bytes with artifact
 get. Recall metadata alone neither grants byte access nor proves delivery.
-Use supported session/call/SIP tools for the requested voice path; acceptance
-does not prove connection, successful audio or completion.
+Use advertised canonical Session/Connection tools for the requested voice path.
+Consultation, handoff and device replacement retain the original Session,
+Connection, topology revision and operation ID. Query that same operation after
+uncertainty. ACK or a completed control record does not prove decoded audio,
+provider delivery or human action; report unavailable media evidence explicitly.
 
 ## Wait, resume and recover
 
@@ -117,8 +122,14 @@ the host. The host may resume the same task later using its declared continuatio
 mode. Do not spin indefinitely, claim automatic wake when none is installed, or
 report that the task completed merely because a tool operation completed.
 
-On disconnect, timeout or uncertain effect, inspect request/task/effect status
-under current authority and reconcile the original IDs. Do not issue a replacement
+For durable conversation replay, `connect_conversation_events` returns a finite
+page with `payload.live:false`. Its initial read supplies a snapshot and cursor.
+Resume with `payload.after` set to the last handled cursor; notifications are
+hints, and an initial snapshot is not a replay of older events.
+
+On disconnect, timeout or uncertain effect, inspect canonical operation status
+or the applicable named Task/effect status under current authority and reconcile
+the original IDs. Do not issue a replacement
 mutation to make uncertainty disappear. If a receipt cannot resolve it, leave
 the effect uncertain and report the handle for operator reconciliation.
 

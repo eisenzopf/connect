@@ -1,45 +1,66 @@
-# Native JSON CLI fallback
+# Current canonical JSON CLI
 
-Use the installed protected agent client configuration for ordinary communication.
-The same identity credential covers its authorized conversations and configured
-operations. It needs no per-task grant, and a task ID is a work reference rather
-than a credential. Missing tools do not authorize using an administrator key.
-
-The installed binary accepts one public operation on standard input:
+Use the explicitly installed signed native configuration for canonical control.
+The CLI sends through the public canonical client with its configured Identity,
+Device keys and trust. Missing MCP tools do not authorize an administrator key
+or a different credential. Keep the same access mode during recovery.
 
 ```sh
-connect request --config "$connect_client_config" --envelope < send.json
+connect request --config "$connect_native_config" --envelope < send.json
 ```
 
-For an ordinary message, `send.json` uses native fields:
+`send.json` is a public `Command`, with the canonical payload and separate scope:
 
 ```json
 {
-  "op": "send",
-  "request_id": "saved-logical-message-id",
-  "conversation_id": "EXISTING_CONVERSATION_ID",
-  "message": {
-    "to": "all", "content_type": "text/plain",
-    "body": "Here is the review update.", "body_encoding": "utf8",
-    "label": "connect-messages", "attachments": [],
-    "in_reply_to_msg": null, "msg_id": null
+  "command": {
+    "type": "message.send",
+    "payload": {
+      "msg_id": "saved-message-id",
+      "to": "all",
+      "content_type": "text/plain",
+      "body": "Here is the review update.",
+      "body_encoding": "utf8",
+      "label": "connect-messages",
+      "attachments": [],
+      "in_reply_to_msg": null
+    }
+  },
+  "scope": {
+    "conversation_id": "EXISTING_CONVERSATION_ID",
+    "operation_id": "saved-send-operation"
   }
 }
 ```
 
-Retain the ID and exact inputs before uncertain dispatch. Normal sends have no
-task `reply_to` or `wait_for_reply` field. Source references belong in the body.
-Use request status and history/inbox to inspect receipt, delivery and replies.
-Starting or ending a media leg does not create a replacement conversation.
+Save the entire intent, message audience, logical operation ID and Message ID
+before IO. The client supplies fresh physical envelope IDs/timestamps/signatures.
+A new transport attempt never needs a new logical mutation. After uncertainty,
+query the original operation with its exact scope:
 
-For an optional tracked task, negotiate the same saved task reference:
-
-```sh
-connect request --config "$connect_client_config" \
-  --task-id "$connect_task_id" --envelope < task-get.json
+```json
+{
+  "command": {
+    "type": "operation.get",
+    "payload": { "operation_id": "saved-send-operation" }
+  },
+  "scope": { "conversation_id": "EXISTING_CONVERSATION_ID" }
+}
 ```
 
-`task-get.json` has the public task shape:
+Use original Session/Connection scope when the original operation had it.
+Finite journal reads use `conversation.subscribe` with `payload.live:false`.
+The initial read returns a snapshot/cursor; resume with `payload.after`.
+An ACK is a bounded control reply, not decoded media or external delivery.
+
+Named application APIs, including optional Task workflows, are a separate
+explicit HTTP configuration and command mode. They cannot replace canonical
+communication on failure. For an authorized ordinary Task owner:
+
+```sh
+connect request --application --config "$connect_application_config" \
+  --task-id "$connect_task_id" --envelope < task-get.json
+```
 
 ```json
 {
@@ -51,31 +72,17 @@ connect request --config "$connect_client_config" \
 }
 ```
 
-Task waits retain the returned `next` cursor as `after`, initially null:
+The Task ID is a work reference, not a credential. Use the installed narrow MCP
+adapter for a protected HostSession/provider grant; this example does not turn
+it into a broader native or HTTP identity. Follow the current Task schema for
+wait cursors, attributed replies and explicit consumption. A tracked follow-up
+uses the received journal reply event; the separate Reply command uses the
+original question Message ID.
 
-```json
-{
-  "op": "task",
-  "request": {
-    "task_profile": "connect-task/1",
-    "command": {
-      "action": "wait", "task_id": "SAVED_TASK_ID",
-      "after": null, "limit": 100, "wait_ms": 1000
-    }
-  }
-}
-```
-
-An explicitly installed Native task grant also uses this facade, but its backing
-identity's broader rights are unavailable. HostSession/provider MCP grants cannot
-be used as native credentials. Preserve the access mode of existing installations;
-the CLI never broadens a grant while retrying or resuming.
-
-With `--envelope`, stdout preserves the `connect-control/1` structured response;
-a rejection also exits unsuccessfully. Inspect both. The input is bounded to
-64 KiB. The native helper uses UCTP/QUIC; HTTP control is a separate interface.
-
-MCP and native task commands have distinct argument shapes. Use current schemas
-and SDK types. Task-tracked Invoke follow-ups refer to the received journal event;
-the public Reply command refers to the original question message. Do not substitute
-source IDs or mechanically send tool arguments to the CLI.
+Input is bounded to64KiB. With `--envelope`, stdout preserves the
+`connect-control/1` structured response and a refusal also exits unsuccessfully.
+Check both. A canonical success contains `kind:canonical_reply` with the checked
+current reply frames; retain original logical IDs from the saved intent.
+The MCP tool's root resource fields and the CLI's nested `scope` are different
+shapes. Never mechanically send MCP arguments or the retired generic `op:send`
+shape to the canonical CLI.
