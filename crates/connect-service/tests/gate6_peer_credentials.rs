@@ -9,6 +9,9 @@ use rvoip_auth_core::{sig9421::*, BearerValidator};
 use serde_json::json;
 use std::sync::Arc;
 
+#[path = "support/named_subscription_credentials.rs"]
+mod named_subscription_credentials;
+
 fn device(store: &Store, admin: &str, identity: &str, id: &str) {
     store
         .execute_provisioning(

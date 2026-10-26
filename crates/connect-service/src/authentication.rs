@@ -266,7 +266,17 @@ pub(crate) fn canonical_scopes(actor: &Actor) -> Vec<String> {
     {
         scopes.push(UCTP_DATA_SCOPE.into());
     }
-    if actor.permits("conversation.subscribe") {
+    // Each named subscription command needs the protocol subscription floor.
+    // This does not lend event visibility or media authority: the exact command
+    // and its current resources are still checked by the installed Store policy.
+    if [
+        "conversation.subscribe",
+        "stream.subscribe",
+        "stream.unsubscribe",
+    ]
+    .iter()
+    .any(|op| actor.permits(op))
+    {
         scopes.push(UCTP_SUBSCRIBE_SCOPE.into());
     }
     scopes
