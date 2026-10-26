@@ -1,12 +1,14 @@
 //! Real signed native frames exercise the SDK's two-leg owned negotiation.
 use super::*;
 mod end;
+mod updates;
 use crate::sdk::{
     self, Client, Direction, Medium, MutationOptions, NonEmpty, OfferedStream, RequestOptions,
 };
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    Controls(updates::Case),
     End,
     EndHandleReuse,
     EndCancelled,
@@ -183,7 +185,9 @@ pub(super) async fn emit(
     let query = read(reader).await;
     assert_eq!(query.kind(), "operation.get");
     status(writer, signer, &query, "completed").await;
-    if matches!(case, Case::Media) {
+    if let Case::Controls(case) = case {
+        updates::emit(connection, case, writer, reader, signer, signal).await;
+    } else if matches!(case, Case::Media) {
         media_wire(connection, writer, reader, signer).await;
     } else if matches!(
         case,

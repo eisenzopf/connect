@@ -1,0 +1,318 @@
+//! Typed native runtime controls; codec replacement has a separate negotiation path.
+use super::*;
+use connect_protocol::{
+    native_gates::GateStream,
+    native_streams::{Command, Intent},
+};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum HoldDirection {
+    Inactive,
+    Sendonly,
+    Recvonly,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum GateAction {
+    Hold,
+    Resume,
+    Mute,
+    Unmute,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum GateState {
+    Active,
+    Paused,
+}
+#[derive(Clone, Debug)]
+pub enum ConnectionUpdate {
+    Hold {
+        streams: Option<NonEmpty<StreamId>>,
+        direction: HoldDirection,
+    },
+    Resume {
+        streams: Option<NonEmpty<StreamId>>,
+    },
+    Mute {
+        streams: NonEmpty<StreamId>,
+    },
+    Unmute {
+        streams: NonEmpty<StreamId>,
+    },
+    Quality {
+        interval_ms: u32,
+    },
+}
+impl ConnectionUpdate {
+    fn payload(self) -> Value {
+        let (mut value, streams) = match self {
+            Self::Hold { streams, direction } => (
+                json!({"action":"hold","details":{"direction":direction}}),
+                streams,
+            ),
+            Self::Resume { streams } => (json!({"action":"resume"}), streams),
+            Self::Mute { streams } => (json!({"action":"mute"}), Some(streams)),
+            Self::Unmute { streams } => (json!({"action":"unmute"}), Some(streams)),
+            Self::Quality { interval_ms } => (
+                json!({"action":"quality","quality_interval_ms":interval_ms}),
+                None,
+            ),
+        };
+        if let Some(streams) = streams {
+            value["streams"] = json!(streams.into_vec());
+        }
+        value
+    }
+}
+#[derive(Clone, Debug)]
+pub struct StreamGateObservation {
+    /// Captured parameters at this client, not a new local ownership grant.
+    pub parameters: NegotiatedStream,
+    pub stream_generation: u64,
+    pub connection_generation: u64,
+    pub state: GateState,
+    pub source_muted: bool,
+    /// Hold direction at this client, reversed from the server's captured direction.
+    pub held_direction: Option<Direction>,
+}
+#[derive(Clone, Debug)]
+pub enum ConnectionUpdateOutcome {
+    Gates {
+        action: GateAction,
+        streams: Vec<StreamGateObservation>,
+    },
+    Quality {
+        interval_ms: u32,
+    },
+}
+#[derive(Clone, Debug)]
+pub struct ConnectionUpdateReceipt {
+    pub connection: Connection,
+    pub connection_generation: u64,
+    pub stream_revision: StreamRevision,
+    pub outcome: ConnectionUpdateOutcome,
+}
+impl Connection {
+    /// Apply native hold/resume, source mute/unmute or a bounded quality interval.
+    /// Hold directions describe this client. Assertions use the native model's
+    /// StreamRevision, independently of snapshot resource revisions. A completed
+    /// receipt records the effect; it does not prove current media flow.
+    pub async fn update(
+        &self,
+        update: ConnectionUpdate,
+        expected_revision: StreamRevision,
+        options: MutationOptions,
+    ) -> Result<Operation<ConnectionUpdateReceipt>> {
+        let kind = self.client().operation_kinds().connection_update;
+        let key = OperationKey {
+            operation_id: options.operation_id.clone(),
+            command: kind.command.into(),
+            scope: OperationScope {
+                conversation_id: Some(self.conversation_id().clone()),
+                session_id: Some(self.session_id().clone()),
+                connection_id: Some(self.id().clone()),
+            },
+        };
+        let fail = |kind| Error::request(kind, Some(&key), false);
+        let payload = conversations::extend(update.payload(), options.extensions)
+            .map_err(|e| fail(e.kind))?;
+        let intent = Intent {
+            operation_id: key.operation_id.as_str().into(),
+            conversation_id: self.conversation_id().as_str().into(),
+            session_id: self.session_id().as_str().into(),
+            connection_id: self.id().as_str().into(),
+            expected_revision: Some(expected_revision.get()),
+            by_participant: None,
+            command: Command::Update,
+            payload,
+        };
+        intent.validate().map_err(|_| fail(ErrorKind::Validation))?;
+        let mut scope = key.scope.command(Some(&key.operation_id));
+        scope.expected_revision = intent.expected_revision;
+        let batch = self
+            .client()
+            .request(
+                kind.command,
+                intent.payload.clone(),
+                scope,
+                Some(&key),
+                options.request,
+            )
+            .await?;
+        let fail = || Error::request(ErrorKind::Protocol, Some(&key), true);
+        let Some(crate::canonical::Payload::OperationUpdated(update)) =
+            batch.frames.first().map(|f| f.payload())
+        else {
+            return Err(fail());
+        };
+        if batch.frames.len() != 2 || update.operation_id.as_str() != key.operation_id.as_str() {
+            return Err(fail());
+        }
+        if serde_json::to_value(update.state).map_err(|_| fail())? == json!("completed") {
+            let observed = parse(update.result.as_ref().ok_or_else(fail)?, &key)?;
+            validate_intent(&observed, &intent.payload, expected_revision.get(), &key)?;
+        }
+        Ok(Operation::new(
+            self.client().clone(),
+            OperationReference { key, kind },
+        ))
+    }
+}
+pub(super) struct Observed {
+    pub generation: u64,
+    pub revision: StreamRevision,
+    pub action: Option<GateAction>,
+    pub gates: Vec<GateStream>,
+    pub quality: Option<u32>,
+}
+fn positive(value: &Value) -> Option<u64> {
+    value
+        .as_u64()
+        .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991)
+}
+pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
+    let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    if key.command != "connection.update"
+        || !connections::valid_scope(&key.scope)
+        || value["connection_id"].as_str()
+            != key.scope.connection_id.as_ref().map(ConnectionId::as_str)
+        || value["resources_changed"] != false
+    {
+        return Err(fail());
+    }
+    let generation = positive(&value["connection_generation"]).ok_or_else(fail)?;
+    let revision = StreamRevision::try_from(positive(&value["stream_revision"]).ok_or_else(fail)?)
+        .map_err(|_| fail())?;
+    if let Some(interval) = value.get("quality_interval_ms") {
+        let interval = interval
+            .as_u64()
+            .filter(|n| (100..=60_000).contains(n))
+            .ok_or_else(fail)? as u32;
+        if value.get("gate_streams").is_some() || value.get("action").is_some() {
+            return Err(fail());
+        }
+        return Ok(Observed {
+            generation,
+            revision,
+            action: None,
+            gates: vec![],
+            quality: Some(interval),
+        });
+    }
+    let action: GateAction = serde_json::from_value(value["action"].clone()).map_err(|_| fail())?;
+    let gates: Vec<GateStream> =
+        serde_json::from_value(value["gate_streams"].clone()).map_err(|_| fail())?;
+    let mut payload = json!({"action":action,"streams":gates.iter().map(|s|&s.binding.stream_id).collect::<Vec<_>>()});
+    if action == GateAction::Hold {
+        let first = gates.first().ok_or_else(fail)?;
+        let direction = if first.state == "paused" {
+            Direction::Inactive
+        } else {
+            serde_json::from_value::<Direction>(json!(first
+                .held_direction
+                .as_ref()
+                .ok_or_else(fail)?))
+            .map_err(|_| fail())?
+            .reverse()
+        };
+        payload["details"] = json!({"direction":direction});
+    }
+    connect_protocol::native_gates::validate_observation(&payload, &gates).map_err(|_| fail())?;
+    if gates
+        .iter()
+        .any(|g| g.binding.connection_generation != generation)
+    {
+        return Err(fail());
+    }
+    Ok(Observed {
+        generation,
+        revision,
+        action: Some(action),
+        gates,
+        quality: None,
+    })
+}
+pub(super) fn validate_intent(
+    observed: &Observed,
+    payload: &Value,
+    expected: u64,
+    key: &OperationKey,
+) -> Result<()> {
+    let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    if payload["action"] == "quality" {
+        if observed.quality.map(u64::from) != payload["quality_interval_ms"].as_u64()
+            || observed.revision.get() != expected
+        {
+            return Err(fail());
+        }
+    } else {
+        if observed.quality.is_some()
+            || expected.checked_add(1) != Some(observed.revision.get())
+            || serde_json::to_value(observed.action).map_err(|_| fail())? != payload["action"]
+        {
+            return Err(fail());
+        }
+        connect_protocol::native_gates::validate_observation(payload, &observed.gates)
+            .map_err(|_| fail())?;
+    }
+    Ok(())
+}
+pub(super) fn decode(
+    value: Value,
+    client: &Client,
+    key: &OperationKey,
+) -> Result<ConnectionUpdateReceipt> {
+    let observed = parse(&value, key)?;
+    client.shared.record_connection_update(key, &observed)?;
+    let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    let outcome = if let Some(interval_ms) = observed.quality {
+        ConnectionUpdateOutcome::Quality { interval_ms }
+    } else {
+        let mut streams = Vec::new();
+        for gate in observed.gates {
+            let binding = gate.binding;
+            streams.push(StreamGateObservation {
+                parameters: NegotiatedStream {
+                    id: binding.stream_id.parse().map_err(|_| fail())?,
+                    medium: serde_json::from_value(json!(binding.medium)).map_err(|_| fail())?,
+                    direction: serde_json::from_value::<Direction>(json!(binding.direction))
+                        .map_err(|_| fail())?
+                        .reverse(),
+                    codec: binding.codec,
+                    stream_local_id: Some(binding.stream_local_id),
+                },
+                stream_generation: binding.stream_generation,
+                connection_generation: binding.connection_generation,
+                state: serde_json::from_value(json!(gate.state)).map_err(|_| fail())?,
+                source_muted: gate.source_muted,
+                held_direction: gate
+                    .held_direction
+                    .map(|d| {
+                        serde_json::from_value::<Direction>(json!(d))
+                            .map(Direction::reverse)
+                            .map_err(|_| fail())
+                    })
+                    .transpose()?,
+            });
+        }
+        ConnectionUpdateOutcome::Gates {
+            action: observed.action.ok_or_else(fail)?,
+            streams,
+        }
+    };
+    // Receipt reads can advance matching owned gates, never install bindings or reset newer facts.
+    Ok(ConnectionUpdateReceipt {
+        connection: Connection::new(
+            client.clone(),
+            key.scope.connection_id.clone().ok_or_else(fail)?,
+            key.scope.session_id.clone().ok_or_else(fail)?,
+            key.scope.conversation_id.clone().ok_or_else(fail)?,
+        ),
+        connection_generation: observed.generation,
+        stream_revision: observed.revision,
+        outcome,
+    })
+}

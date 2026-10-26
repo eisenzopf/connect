@@ -18,6 +18,8 @@ pub struct MediaStats {
     pub malformed_datagrams: u64,
     pub unknown_handles: u64,
     pub overflow_drops: u64,
+    /// Known-binding packets discarded by local direction or runtime controls.
+    pub control_drops: u64,
     pub queued_packets: usize,
     pub queued_bytes: usize,
 }
@@ -139,6 +141,15 @@ impl Inbox {
             queue.binding.stream.direction,
             Direction::Recvonly | Direction::Sendrecv
         );
+        if !receiving {
+            let queue = s
+                .queues
+                .get_mut(&key)
+                .ok_or_else(|| Error::local(ErrorKind::Protocol))?;
+            queue.gap = queue.gap.saturating_add(1);
+            s.stats.control_drops = s.stats.control_drops.saturating_add(1);
+            return Ok(());
+        }
         let packet = match parsed {
             Native::Rtp(p)
                 if receiving
@@ -175,6 +186,34 @@ impl Inbox {
             queue.items.push_back((packet, bytes.len()));
             s.packets += 1;
             s.bytes += bytes.len();
+        }
+        drop(s);
+        self.changed.notify_waiters();
+        Ok(())
+    }
+    pub fn apply_directions(&self, updates: &[(StreamKey, Direction)]) -> Result<()> {
+        let mut s = self
+            .state
+            .lock()
+            .map_err(|_| Error::local(ErrorKind::Protocol))?;
+        if updates.iter().any(|(key, _)| !s.queues.contains_key(key)) {
+            return Err(Error::local(ErrorKind::Protocol));
+        }
+        for (key, direction) in updates {
+            let queue = s
+                .queues
+                .get_mut(key)
+                .ok_or_else(|| Error::local(ErrorKind::Protocol))?;
+            queue.binding.stream.direction = *direction;
+            if !matches!(direction, Direction::Recvonly | Direction::Sendrecv) {
+                let packets = queue.items.len();
+                let bytes: usize = queue.items.iter().map(|(_, bytes)| *bytes).sum();
+                queue.items.clear();
+                queue.gap = queue.gap.saturating_add(packets as u64);
+                s.packets = s.packets.saturating_sub(packets);
+                s.bytes = s.bytes.saturating_sub(bytes);
+                s.stats.control_drops = s.stats.control_drops.saturating_add(packets as u64);
+            }
         }
         drop(s);
         self.changed.notify_waiters();
@@ -247,6 +286,12 @@ impl Inbox {
                     .queues
                     .get_mut(key)
                     .ok_or_else(|| Error::request(ErrorKind::Unsupported, None, false))?;
+                if !matches!(
+                    queue.binding.stream.direction,
+                    Direction::Recvonly | Direction::Sendrecv
+                ) {
+                    return Err(Error::request(ErrorKind::Unsupported, None, false));
+                }
                 if let Some((packet, bytes)) = queue.items.pop_front() {
                     s.bytes = s.bytes.saturating_sub(bytes);
                     s.packets = s.packets.saturating_sub(1);

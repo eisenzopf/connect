@@ -1,7 +1,14 @@
 //! Public SDK publisher to an independently controlled/decoded native receiver.
 use super::*;
 const VP8: &[u8] = include_bytes!("../../fixtures/gate6-vp8-black-640x360.vp8");
-fn rtp(pt: u8, sequence: u16, timestamp: u32, ssrc: u32, marker: bool, payload: &[u8]) -> Vec<u8> {
+pub(super) fn rtp(
+    pt: u8,
+    sequence: u16,
+    timestamp: u32,
+    ssrc: u32,
+    marker: bool,
+    payload: &[u8],
+) -> Vec<u8> {
     let mut bytes = vec![0x80, pt | if marker { 0x80 } else { 0 }];
     bytes.extend_from_slice(&sequence.to_be_bytes());
     bytes.extend_from_slice(&timestamp.to_be_bytes());
@@ -336,6 +343,8 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
         let stats = client.media_stats().unwrap();
         assert!(stats.queued_bytes <= 4 * 1024 * 1024 && stats.queued_packets <= 256);
         println!("SDK RTP {algorithm}: decoded_audio_bytes={}, loud_samples={loud}, decoded_rgb_bytes={pixels}, source_media_queued={}",received_audio.len()*2,stats.queued_packets);
+        let next_audio =
+            super::runtime_controls::exercise(&f, &client, &connection, &audio, &video).await;
         let spare = session
             .offer_connection(
                 "sdk-spare-connection".parse().unwrap(),
@@ -380,7 +389,7 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
         // The new 1kHz waveform excludes queued 500Hz packets from the AV scene.
         // Core packetization may assign a new RTP identity to routed audio.
         let sending = async {
-            for index in 120..160u16 {
+            for index in next_audio..next_audio + 40 {
                 let pcmu = (0..160)
                     .map(|i| if i % 8 < 4 { 0x80 } else { 0x00 })
                     .collect::<Vec<_>>();

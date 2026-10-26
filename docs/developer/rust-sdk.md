@@ -24,6 +24,7 @@ recipient consumption or media readiness. The compiled starting example is in
 | `Session::accept`, `reject`, `cancel_invitation`, `update`, `end` | Explicit topology revision |
 | `Session::offer_connection` | Saved new Connection ID and nonempty typed stream offers |
 | `Connection::end` | Saved operation ID, original reason and optional negotiated `StreamRevision` |
+| `Connection::update` runtime variants | Negotiated `StreamRevision`, explicit targets/hold direction or quality interval |
 
 Session updates include role changes, participant leave, additive media upgrades
 and codec preference changes. Codec reconciliation references remain separate
@@ -178,3 +179,31 @@ those handles to interpret an old queued datagram as a new stream. Ending one
 Connection leaves other Connections, media and signed control usable. The exact
 verification scope is recorded in
 `docs/evidence/gate-6/rust-sdk-native-end.json`.
+
+`Connection::update` currently implements typed hold/resume, source mute/unmute
+and quality settings. Codec renegotiation still needs its signed replacement
+workflow, so the complete mapped `connection.update` kind remains in progress.
+`HoldDirection` describes this client: `Sendonly`, `Recvonly` or `Inactive`.
+Mute/unmute require nonempty explicit Stream IDs. Hold/resume can target explicit
+IDs or all current streams. The server still enforces its supported media profile
+and current authority. Quality intervals are integer milliseconds in 100–60,000.
+
+The returned `ConnectionUpdateReceipt` contains the captured native model revision
+and typed gate observations or quality interval. Gate changes advance that native
+revision; quality settings retain it. Snapshot resource revisions remain distinct.
+`GateState::Active` describes captured control state and does not establish flow;
+`source_muted` and the client hold direction remain separate observations.
+
+Newer receipts update only matching locally owned bindings. A saved receipt can
+advance a previously unknown original outcome, but it cannot install a foreign
+hop handle or overwrite a newer known control revision. Original-intent replay
+and fresh-client recovery remain current-authorized server reads. Cancellation
+of the caller leaves a submitted control exchange owned by the driver.
+
+Local send/read direction checks reflect known controls. Pausing receive clears
+queued packets for those streams and wakes their readers; resume exposes the
+local `Gap` before accepting more packets. `MediaStats::control_drops` separates
+known-binding direction/control drops from queue overflow and malformed input.
+Other Stream queues continue. These local facts never replace server admission
+or prove remote playback. Evidence is recorded in
+`docs/evidence/gate-6/rust-sdk-runtime-controls.json`.

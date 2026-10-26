@@ -329,6 +329,24 @@ impl OwnedSignaling {
         self.authority.send_replace(until);
         Ok(())
     }
+    /// The signed reader records its cause before closing the physical peer.
+    /// An atomic datagram read may observe that close before signaling is polled.
+    pub(super) fn terminal_error(&self) -> Option<ClientError> {
+        let inbox = match self.inbox.lock() {
+            Ok(inbox) => inbox,
+            Err(_) => return Some(ClientError::Protocol),
+        };
+        inbox.failure.as_ref().map(|error| match error {
+            ClientError::Configuration => ClientError::Configuration,
+            ClientError::Transport => ClientError::Transport,
+            ClientError::MediaEnded => ClientError::MediaEnded,
+            ClientError::Timeout => ClientError::Timeout,
+            ClientError::Cancelled => ClientError::Cancelled,
+            ClientError::Authentication => ClientError::Authentication,
+            ClientError::Protocol => ClientError::Protocol,
+            ClientError::Application(error) => ClientError::Application(error.clone()),
+        })
+    }
     pub(super) async fn receive(&self) -> Result<Envelope> {
         loop {
             let changed = self.changed.notified();

@@ -55,6 +55,12 @@ impl CanonicalClient {
             },
         ))
     }
+    pub(crate) fn with_owned_signaling_cause(&self, error: ClientError) -> ClientError {
+        self.owned_signaling
+            .as_ref()
+            .and_then(|reader| reader.terminal_error())
+            .unwrap_or(error)
+    }
     /// The SDK owns this peer and the one signature-verifying reader. A dropped
     /// wait cannot consume a partial frame or abandon another request's reply.
     pub(crate) async fn receive_owned_frame(&self) -> Result<Envelope> {

@@ -25,6 +25,7 @@
 //! # Ok(()) }
 //! ```
 mod connection_controls;
+mod connection_updates;
 mod connections;
 mod control;
 mod conversations;
@@ -42,6 +43,10 @@ mod worker;
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
+pub use connection_updates::{
+    ConnectionUpdate, ConnectionUpdateOutcome, ConnectionUpdateReceipt, GateAction, GateState,
+    HoldDirection, StreamGateObservation,
+};
 pub use connections::{
     Connection, ConnectionSnapshot, Direction, NativeNegotiation, NegotiatedStream, OfferedStream,
 };

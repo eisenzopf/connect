@@ -1,6 +1,8 @@
 //! Actual production listener exercises public owned SDK handles and recovery.
 #[path = "sdk_handles/media.rs"]
 mod media;
+#[path = "sdk_handles/runtime_controls.rs"]
+mod runtime_controls;
 #[path = "sdk_handles/stream_metadata.rs"]
 mod stream_metadata;
 use super::*;

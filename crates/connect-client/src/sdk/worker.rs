@@ -1,5 +1,6 @@
 //! One bounded owner multiplexes signed exchanges despite caller cancellation.
 use super::*;
+mod controls;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -13,6 +14,7 @@ struct NativeConnection {
     conversation: ConversationId,
     selected: NativeNegotiation,
     ended: bool,
+    gates: std::collections::BTreeMap<StreamId, controls::LocalGate>,
 }
 // Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
 type NativeCache = std::collections::BTreeMap<ConnectionId, NativeConnection>;
@@ -38,6 +40,7 @@ struct InFlight {
     key: Option<OperationKey>,
     reply: Option<oneshot::Sender<Result<ReplyBatch>>>,
     native: Option<native_negotiation::Pending>,
+    control: Option<(Value, u64)>,
     _slot: OwnedSemaphorePermit,
 }
 struct Command {
@@ -109,7 +112,7 @@ impl Shared {
                                 let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
                                 let cid=key.scope.conversation_id.expect("native conversation");let sid=key.scope.session_id.expect("native session");let conn=key.scope.connection_id.expect("native connection");
                                 if let Err(error)=owned_media.install(&cid,&sid,&conn,&selected){break error.kind;}
-                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false});
+                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false,gates:Default::default()});
                                 continue;
                             }
                         }
@@ -124,10 +127,16 @@ impl Shared {
                             let ending = active[index].key.as_ref()
                                 .filter(|k| k.command=="connection.end" && frame.kind()=="operation.updated")
                                 .map(|k| (k.clone(),frame.clone()));
+                            let updating=active[index].control.as_ref().zip(active[index].key.as_ref())
+                                .filter(|_|frame.kind()=="operation.updated")
+                                .map(|((intent,expected),key)|(key.clone(),intent.clone(),*expected,frame.clone()));
                             let accepted=peer.accept_exchange_frame(&mut active[index].exchange,frame);
                             if accepted.is_ok() {
                                 if let Some((key,frame))=ending {
                                     if let Err(error)=observe_end(&owned_native,&owned_media,&key,&frame){break error.kind;}
+                                }
+                                if let Some((key,intent,expected,frame))=updating {
+                                    if let Err(error)=controls::observe(&owned_native,&owned_media,&key,&intent,expected,&frame){break error.kind;}
                                 }
                             }
                             match accepted {
@@ -151,7 +160,7 @@ impl Shared {
                         match datagram {
                             Ok(bytes)=>if let Err(error)=owned_media.push(bytes){break error.kind;},
                             Err(crate::ClientError::Protocol)=>if let Err(error)=owned_media.malformed(){break error.kind;},
-                            Err(error)=>break Error::transport(error,None).kind,
+                            Err(error)=>break Error::transport(peer.with_owned_signaling_cause(error),None).kind,
                         }
                     }
                     command=media_receiver.recv()=> {
@@ -188,6 +197,9 @@ impl Shared {
                             }
                         }
                         let negotiation=command.native.then(||native_negotiation::Pending::new(command.payload.clone(),command.scope.clone()));
+                        let control=if command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality") {
+                            command.scope.expected_revision.map(|revision|(command.payload.clone(),revision))
+                        } else {None};
                         // Only explicit close may interrupt a started write. Local caller
                         // cancellation leaves its correlation/limits/deadline owned here.
                         let result=tokio::select! { biased;
@@ -198,9 +210,9 @@ impl Shared {
                             result=peer.begin_exchange(&command.kind,command.payload,command.scope)=>result
                         };
                         match result {
-                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,_slot:command.slot}),
+                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,control,_slot:command.slot}),
                             Err(error)=> {
-                                let error=Error::transport(error,command.key.as_ref());
+                                let error=Error::transport(peer.with_owned_signaling_cause(error),command.key.as_ref());
                                 let kind=error.kind;
                                 let _=command.reply.send(Err(error));
                                 break kind;
@@ -323,6 +335,13 @@ impl Shared {
     }
     pub(super) fn retire_connection(&self, key: &OperationKey) -> Result<()> {
         retire_native(&self.native, &self.media, key)
+    }
+    pub(super) fn record_connection_update(
+        &self,
+        key: &OperationKey,
+        observed: &connection_updates::Observed,
+    ) -> Result<()> {
+        controls::record(&self.native, &self.media, key, observed)
     }
     pub(super) async fn request(
         &self,
@@ -491,13 +510,16 @@ fn native_binding(
     if entry.ended {
         return Err(Error::media(ErrorKind::Unsupported, false));
     }
-    let stream = entry
+    let mut stream = entry
         .selected
         .streams
         .iter()
         .find(|s| s.id == key.stream_id)
         .cloned()
         .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
+    if let Some(gate) = entry.gates.get(&key.stream_id) {
+        stream.direction = gate.direction(stream.direction);
+    }
     Ok(media::Binding {
         stream,
         clock: entry.selected.source_clock,

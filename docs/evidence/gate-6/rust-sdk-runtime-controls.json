@@ -1,0 +1,158 @@
+{
+  "schema": "connect-gate6-rust-sdk-runtime-controls/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T00:18:10.634541+00:00",
+  "base_revision": "db219a219c254d8341a5711c7f53289e4e669313",
+  "scope": "Typed native RTP runtime controls and quality settings over the public Rust SDK, exact owned binding observations, local queue policy, original-ID recovery and known signaling-failure reporting. Local macOS arm64 functional proof only; full connection.update codec negotiation and the rest of G6-060 remain open.",
+  "implementation": [
+    "Connection.update exposes explicit typed hold directions, optional hold/resume targets, nonempty mute/unmute targets and bounded quality intervals. All original payloads and extension intent retain the saved operation ID and use the distinct negotiated StreamRevision.",
+    "ConnectionUpdateReceipt separates captured gate state, source mute, client hold direction and resource parameters from media flow. Gate controls advance native revision; quality settings retain it. Fresh receipt reads never install physical ownership.",
+    "The driver validates signed reply scope, original operation, exact targets, action, expected native revision, returned generation and quality interval. It applies only newer matching owned binding observations. Superseded formats and old known revisions cannot overwrite local control state or install hop handles.",
+    "Cancelled callers leave submitted exchanges owned. Unknown is not invented completion. A later original completed receipt can advance matching owned controls; a fresh client receives only observations.",
+    "Local media send/receive direction checks reflect captured controls. Receive pause clears only selected queues, releases accounting and wakes readers; resume reports explicit local Gap before new packets. control_drops remains separate from queue overflow and malformed input. Other queues continue.",
+    "The Canonical signed-reader terminal cause is consulted when media close or exchange startup observes the same physical retirement. A known protocol/authentication failure is not replaced by a racing generic datagram disconnect. The helper lends no authority or lifetime extension."
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-runtime-controls/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-runtime-controls/format-05.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "client": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/client-03-summary.json",
+        "sha256": "ae970971e9e55719c5bf9931c5dec041acf6972683f0d7a942f324234dc13a25"
+      },
+      "log": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/client-03.log",
+        "sha256": "0aa9a22dba23991ab0acf25565fc1d35195ad5a9b5cc0331017b8eab366caa0a"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/inputs-01.json",
+        "sha256": "47fc87f7ce4d05d5976b4d3792a7106bf60a3f66db1cefbac35e0258f1e141a2"
+      },
+      "binary_sha256": "66f3ff799546ba12c16073c001b3cbcd773b62e5cf3dcf2bfdfaa56059b3cd6e",
+      "passed_functions": 118,
+      "failed_functions": 0,
+      "new_functions": 4,
+      "inputs_unchanged": true,
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/client-final-source-equivalence.json",
+        "sha256": "027b6e7cad114651c912ee6bc69af2211310ef23c3869d6c23b80fdbab4cfa76"
+      },
+      "behaviors": [
+        "Signed hold clears one queued video packet, reports its Gap after resume, accepts fresh real QUIC RTP, and leaves audio usable. Source mute refuses local send as NotSubmitted; unmute produces the exact expected real QUIC datagram.",
+        "Quality retains native revision. A valid older hold receipt cannot rewind a newer local revision or pause the resumed video stream.",
+        "Unknown original state preserves parameters until the saved completed receipt arrives; no mutation is resubmitted. Cancelled caller completion remains owned and updates local gating before status returns.",
+        "Invalid local quality and duplicate targets cause no wire mutation and retain their original keys. Signed wrong-target and wrong-quality results retire the peer with protocol uncertainty and the original key.",
+        "All existing SDK/Canonical tests pass with known protocol failure surviving the datagram-close race."
+      ],
+      "repetitions": {
+        "native_runs": 3,
+        "native_functions_per_run": 14,
+        "test_threads": 2,
+        "retirement_cause_function_runs": 10,
+        "scope": "Repeated coverage of the interleaving/retirement race, not additional unique functions or performance proof."
+      }
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/rustdoc-01.log",
+        "sha256": "75b15a8ba5924363e39a59dae0ff2ad11aaae33d8740b289ec1311b67ebac695"
+      }
+    },
+    "production": {
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-runtime-controls/production-test-02",
+        "sdk_handles::",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 32.209371916018426,
+      "binary_sha256": "c797294353b09025761a13587580a6333694937a86c764b288d59dc0aad34b0b",
+      "sealed_binary_sha256": "c797294353b09025761a13587580a6333694937a86c764b288d59dc0aad34b0b",
+      "build_log_sha256": "85219c84925576f2d5f1a80c55f0b80e175b20842f3a6b3eb69006a6f65f7830",
+      "build_jsonl_sha256": "5697d9d0dbc2daf87d311241004122e83800e804ac4eef9361f09c14511c9967",
+      "profile": "release with connect-store, connect-service and connect-server opt-level=0; other packages use release defaults. Functional behavior only; no performance claim.",
+      "log_sha256": "a9965d1d5f47a70579f44642f8146d8d8de36c330e9821e109c0353868b96bc7",
+      "inputs_unchanged": true,
+      "driver_sha256": "de5fa20791ae28f42215bc3b8cb798e72d516dd1736fe18b6452fef1463bf048",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/production-02-summary.json",
+        "sha256": "b288b9f52415390b3156b1aa8cdd7169926921acc8e7bd6346864c32626391ea"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/inputs-02.json",
+        "sha256": "2324a3ba4b7fb8b8541756b8bd163bcddb7d48ab5e0841969abce8c216f906ac"
+      },
+      "guarded_source_inputs": 1309,
+      "passed_functions": 8,
+      "failed_functions": 0,
+      "algorithm_scenes": 16,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "behaviors": [
+        "Actual SDK-owned PCMU/VP8 Connection: quality interval 250 preserves native revision 1; inactive hold advances 2 and wakes pending read; receive-only and send-only holds use client directions; mute/unmute preserve the held direction; resume advances 7.",
+        "Captured audio pause/active state reaches authorized Stream snapshots while the video resource version remains unchanged. Local sends refuse while blocked and succeed when sending is allowed.",
+        "Original hold replay still reports historical revision 2 and paused state while current local revision 7 and receive availability remain unchanged. Changed original intent refuses. Fresh-client restoration reads the old observation without acquiring media.",
+        "Stale quality interval 500 with revision 1 returns a recorded Failed operation, has zero engine effect rows, and leaves the actual 250ms setting unchanged.",
+        "After controls and a separate Connection end, the original SDK media route still delivers a distinct fresh 1kHz tone to an independent Canonical receiver and FFmpeg decodes non-silent PCM under both algorithms.",
+        "Other SDK production functions remain passing, including concurrent control/capacity, private messaging, participants, Sessions, durable decisions, native end and authorized metadata normal restart."
+      ],
+      "decoded_after_controls_and_other_connection_end": [
+        {
+          "algorithm": "EdDSA",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1598
+        },
+        {
+          "algorithm": "ES256",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1599
+        }
+      ]
+    },
+    "checks": {
+      "openapi_event_reference": "passed; existing server wire contract unchanged",
+      "plan_integrity": "passed; 50 done / 3 in progress / 52 not started; no acceptance promotion",
+      "diff": "passed"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/client-01.log",
+        "sha256": "5eeea3c00c9259026b7a47d1e72830f9fae3c38d7b9b27d5a2a5b984d02332d9"
+      },
+      "result": "Intermediate baseline:114 existing functions passed before the new control fixtures and completed-receipt recovery path were qualified; not final coverage."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/client-02.log",
+        "sha256": "c1adef4644c2cc3a284f07c8e0b60641b44cd24da80c31600f6488f40a5441cf"
+      },
+      "result": "117 passed/1 failed. The existing malformed native end regression observed TransportUncertain instead of its known Protocol cause. Signaling reader retirement closed the datagram lane before the SDK polled the recorded failure. Fixed by preferring that already-recorded reader cause; full suite and10 targeted repetitions pass."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-runtime-controls/production-01-summary.json",
+        "sha256": "6b4ab40bddb827130612118bf9f4135d8c8d8384a8fbc826ce62930eeaf23559"
+      },
+      "result": "7 passed/1 failed. New fixture expected immediate Refused for stale quality, but native admission reserves a durable Failed operation before any effect. Final test awaits Recorded failure, verifies zero effect rows and checks that actual quality remains 250. Only production fixture changed; runtime/client sources unchanged."
+    }
+  ],
+  "remaining": [
+    "The complete connection.update mapping remains in progress because codec replacement still needs its signed reoffer, confirmed parameter replacement and recovery lifecycle.15 of 22 mapped mutation kinds are complete; the seven remaining kinds are not promoted by these runtime variants.",
+    "Consult/return/handoff, Connection replacement and Stream subscribe/unsubscribe mutations; reliable data I/O and data-control profile qualification; full event/capability/config/raw/admin APIs; both-ends SDK decoded media; external crate/package; incompatible-server/abrupt-crash and approved remote/Linux qualification remain.",
+    "No full Gate 6 acceptance, whole Store, performance or publication claim."
+  ]
+}
