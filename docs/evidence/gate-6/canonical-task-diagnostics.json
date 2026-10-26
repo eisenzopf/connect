@@ -99,9 +99,111 @@
     "source_unchanged": true,
     "inputs_sha256": "6399ecb896bf94c7d80b6cc20d97c16298b73f338f7eb9db08e2ab6680a41847",
     "consumers": {
-      "status": "compile checks running; not counted as passes",
-      "scope": "Historical server diagnostic and reference-app consumer compile checks only. No runtime qualification inherited.",
-      "private_summary": ".local/gate-6/canonical-diagnostics/consumer-check-03-summary.json"
+      "historical_server": {
+        "target": "historical-server-consumers",
+        "command": [
+          "cargo",
+          "check",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate4_task_diagnostics",
+          "--test",
+          "gate4_agent_diagnostics"
+        ],
+        "exit_code": 0,
+        "seconds": 606.326365040848,
+        "log": ".local/gate-6/canonical-diagnostics/historical-server-consumers-03.log",
+        "sha256": "d9cb18b4906b648fddcf9177a795b0daef255232bbc9bb888eabe57849503f89"
+      },
+      "reference_initial_failure": {
+        "target": "reference-consumers",
+        "command": [
+          "cargo",
+          "check",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-review-loop",
+          "--features",
+          "test-support",
+          "--test",
+          "task_diagnostics",
+          "--test",
+          "task_uncertainty"
+        ],
+        "exit_code": 101,
+        "seconds": 393.4374020418618,
+        "log": ".local/gate-6/canonical-diagnostics/reference-consumers-03.log",
+        "sha256": "4959fc7d29133ffc9f772707a23773db05143593520a57e75ec7cc509d936f07"
+      },
+      "reference_current": {
+        "command": [
+          "cargo",
+          "check",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-review-loop",
+          "--features",
+          "test-support",
+          "--test",
+          "task_diagnostics",
+          "--test",
+          "task_uncertainty"
+        ],
+        "exit_code": 0,
+        "seconds": 0.3746682920027524,
+        "log": ".local/gate-6/canonical-diagnostics/reference-consumers-04.log",
+        "sha256": "76e78e75938dba1101b2611a21d2f887f527c6196ea93b3205b23cf967b70600",
+        "source_unchanged": true,
+        "scope": "Compile checks only, not reference-app runtime qualification."
+      },
+      "current_build": {
+        "exit_code": 0,
+        "seconds": 0.23817366710864007,
+        "source_unchanged": true,
+        "binary_sha256": "397c8279f9d9265dc2ae8d7b22efd9b84e6e78a17d78af28cd241911ecee200e",
+        "bytes": 246952208,
+        "source_count": 1291,
+        "log_sha256": "2efcc1fb53988ec4c8bcc411ae9dbc820f0d09323ba0005ec3fbecbd25631709",
+        "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+        "library-test-04": {
+          "sha256": "8f5c3a8a0b7de2f0dcfa44fbfb9e50f6d325f7226ff135a6d0739bbc44634292",
+          "bytes": 94469216
+        },
+        "canonical-cli-04": {
+          "sha256": "fcd2db5d4e1b04c2adf86eda125c5abe07661ac046e142dd6a46359df5762e6e",
+          "bytes": 230478928
+        }
+      },
+      "scope": "Both historical server diagnostic targets and both reference-app diagnostic/uncertainty targets compile. No historical/reference runtime requalification.",
+      "fix": "Reference test used an unlinked connect_protocol crate; it now uses the public connect_client::MessageAudience re-export. Final sealed production test and CLI bytes remain identical to the preceding11-function runtime checkpoint."
     },
     "static_checks": [
       "prepare-dependencies verified source/patch pins",
@@ -121,7 +223,8 @@
     "scope": "No new production failure in this checkpoint. Prior intermittent Task/provider forbidden failure remains open; current selected provider regression passed without a robustness claim.",
     "prebuild_cache": "Removed1017432760 bytes of closed obsolete regenerable task cache libraries absent from current Cargo graph; source/prepared dependencies/current artifacts/proof seals preserved.",
     "cache_audit_sha256": "b14abc91324cfb6a48fe6639360a8cd437b73d89c54ae171cf45457d94e33989",
-    "builds": "Initial current public/CLI build86.96s, stronger effect assertion fixture build11.47s, final consumer endpoint-only fixture fingerprint build0.22s. Final binary is independently sealed and matches the stronger fixture binary."
+    "builds": "Initial current public/CLI build86.96s, stronger effect assertion fixture build11.47s, final consumer endpoint-only fixture fingerprint build0.22s. Final binary is independently sealed and matches the stronger fixture binary.",
+    "consumer_check": "Server targets passed after a606.3s cold shared metadata check. Reference targets exposed an unlinked protocol-crate reference after393.4s; its public client re-export correction compiles in0.37s. Original failed check is retained, not called a pass."
   },
   "remaining": [
     "Finish canonical CLI credential issuance with durable original-intent recovery and explicit native enrollment; do not reuse the old generic non-idempotent issue path.",

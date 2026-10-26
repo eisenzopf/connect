@@ -90,7 +90,7 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
                 target: "12345678-1234-1234-1234-123456789012".into(),
                 source: None,
                 enabled: true,
-                incoming_to: connect_protocol::messages::MessageAudience::all(),
+                incoming_to: connect_client::MessageAudience::all(),
             },
         )
         .unwrap();
