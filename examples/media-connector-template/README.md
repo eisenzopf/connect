@@ -18,8 +18,10 @@ bash scripts/format.sh --check
 ```
 
 The source dependencies select the repository's pinned public rvoip interfaces.
-Installed kit/export and stock Connect application integration remain separate
-G6-068 work. This standalone component is not qualification of a network
+Installed kit/export and full stock application journeys remain separate
+G6-068 work. The protected server composition uses `LiveTransport::new` with this
+same `Arc<Adapter>` and its `LiveMediaLifecycle` implementation; server-side
+startup/teardown tests qualify that narrow installation path separately. This standalone component is not qualification of a network
 transport, provider, browser, remote host, capacity, latency or crash persistence.
 
 `Adapter::open` owns one fixture backend. The caller retains `Remote` across an

@@ -221,3 +221,20 @@ impl MediaSupport {
         Ok(())
     }
 }
+
+/// Host-owned transport lifecycle. Implement this on the same object as the
+/// public rvoip adapter. This storage-independent contract carries no routing,
+/// credential or conversation authority and performs no provisioning.
+#[async_trait::async_trait]
+pub trait LiveMediaLifecycle: Send + Sync {
+    /// Permanently close admission and synchronously fence every owned route.
+    /// Idempotent; Drop may request this without claiming cleanup completion.
+    fn cancel(&self);
+    /// Observe all original worker handles after cancellation. A cancelled drain
+    /// must retain those handles for retry; the host enforces teardown_ms.
+    async fn drain(&self) -> Result<(), MediaCleanupError>;
+}
+
+#[derive(Clone, Copy, Debug, thiserror::Error, PartialEq, Eq)]
+#[error("live media cleanup is unconfirmed")]
+pub struct MediaCleanupError;

@@ -151,6 +151,13 @@ impl CanonicalServerConfig {
         Ok(())
     }
 }
+/// Trusted process-local adapters; never accepted from public configuration JSON.
+#[derive(Default)]
+pub struct CanonicalConnectors {
+    pub messages: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
+    pub sms_policy: Option<Arc<dyn crate::SmsPolicy>>,
+    pub media: Vec<crate::connector_media::LiveTransport>,
+}
 /// Owns the installation, native intake, authenticated peers, idle policy and
 /// optional HTTP facade. Dropping it fences the installation and every peer.
 pub struct RunningCanonicalServer {
@@ -171,6 +178,7 @@ pub struct RunningCanonicalServer {
     public_assistants: Option<crate::canonical_assistants::Hosting>,
     provider_voice: Option<crate::canonical_provider_voice::Worker>,
     provider_messages: Option<crate::canonical_messages::Host>,
+    contributed_media: Option<crate::connector_media::Host>,
     pub telnyx_callback_address: Option<SocketAddr>,
     pub address: SocketAddr,
     pub http_address: Option<SocketAddr>,
@@ -184,7 +192,11 @@ pub struct RunningCanonicalServer {
 }
 impl RunningCanonicalServer {
     pub async fn start(config: CanonicalServerConfig) -> Result<Self> {
-        Self::start_with_message_drivers(config, None, None).await
+        Box::pin(Self::start_with_connectors(
+            config,
+            CanonicalConnectors::default(),
+        ))
+        .await
     }
     /// Protected adapter composition; public clients cannot inject credentials
     /// or providers. The same exact config/account/Endpoint checks still run.
@@ -192,6 +204,51 @@ impl RunningCanonicalServer {
         config: CanonicalServerConfig,
         drivers: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
         policy: Option<Arc<dyn crate::SmsPolicy>>,
+    ) -> Result<Self> {
+        Box::pin(Self::start_with_connectors(
+            config,
+            CanonicalConnectors {
+                messages: drivers,
+                sms_policy: policy,
+                media: vec![],
+            },
+        ))
+        .await
+    }
+    /// Own contributed transports on the same canonical Core before intake.
+    /// Startup refusal observes bounded cleanup; cancellation requests fencing.
+    pub async fn start_with_connectors(
+        config: CanonicalServerConfig,
+        connectors: CanonicalConnectors,
+    ) -> Result<Self> {
+        let media = crate::connector_media::Host::new(connectors.media);
+        // Startup includes large native/provider futures. Heap-own each async
+        // composition boundary so adding an adapter cannot exhaust peer/test stacks.
+        match Box::pin(Self::start_inner(
+            config,
+            connectors.messages,
+            connectors.sms_policy,
+            &media,
+        ))
+        .await
+        {
+            Ok(mut server) => {
+                server.contributed_media = Some(media);
+                Ok(server)
+            }
+            Err(error) => {
+                media.drain().await.context(
+                    "Canonical startup refused and contributed media cleanup is unconfirmed",
+                )?;
+                Err(error)
+            }
+        }
+    }
+    async fn start_inner(
+        config: CanonicalServerConfig,
+        drivers: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
+        policy: Option<Arc<dyn crate::SmsPolicy>>,
+        contributed_media: &crate::connector_media::Host,
     ) -> Result<Self> {
         anyhow::ensure!(
             drivers.is_none() || config.provider_messages.is_some(),
@@ -258,6 +315,7 @@ impl RunningCanonicalServer {
         let service = Service::with_runtime(store.clone(), runtime);
         service.install_canonical_assurance(config.user_assurance.clone())?;
         service.install_canonical_runtime()?;
+        contributed_media.install(&service)?;
         let record_https = match &config.record_https {
             Some(records) => Some(
                 crate::transports::record_https::RecordHttpsListener::bind(
@@ -556,6 +614,7 @@ impl RunningCanonicalServer {
             public_assistants,
             provider_voice,
             provider_messages,
+            contributed_media: None,
             telnyx_callback_address,
             address,
             http_address,
@@ -589,6 +648,12 @@ impl RunningCanonicalServer {
             wt.begin_drain();
         }
         let mut failures = Vec::new();
+        if let Some(media) = &self.contributed_media {
+            media.cancel();
+            if media.drain().await.is_err() {
+                failures.push("contributed media");
+            }
+        }
         if let Some(mcp) = self.mcp.take() {
             if mcp.shutdown().await.is_err() {
                 failures.push("MCP");
@@ -703,6 +768,9 @@ impl RunningCanonicalServer {
 }
 impl Drop for RunningCanonicalServer {
     fn drop(&mut self) {
+        if let Some(media) = &self.contributed_media {
+            media.cancel();
+        }
         self.service.cancel_session_initialization();
         self.service.cancel_consultation_initialization();
         self.installation.retire();

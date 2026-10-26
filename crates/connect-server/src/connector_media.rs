@@ -72,3 +72,100 @@ pub fn validate_adapter(
 ) -> Result<(), ContractError> {
     manifest.validate_media_runtime(&adapter_runtime(adapter)?)
 }
+
+/// Protected composition binds media and cleanup to the very same typed object.
+/// Intentionally neither serializable nor Debug: configuration contains refs.
+pub struct LiveTransport {
+    manifest: Manifest,
+    adapter: std::sync::Arc<dyn ConnectionAdapter>,
+    lifecycle: std::sync::Arc<dyn connect_connector_api::media::LiveMediaLifecycle>,
+}
+impl LiveTransport {
+    pub fn new<A>(
+        manifest: Manifest,
+        configuration: std::collections::BTreeMap<String, String>,
+        adapter: std::sync::Arc<A>,
+    ) -> Result<Self, ContractError>
+    where
+        A: ConnectionAdapter + connect_connector_api::media::LiveMediaLifecycle + 'static,
+    {
+        // Own cancellation even if declaration/configuration validation refuses.
+        let owned = Self {
+            manifest,
+            adapter: adapter.clone(),
+            lifecycle: adapter,
+        };
+        owned.manifest.validate_configuration(&configuration)?;
+        validate_adapter(&owned.manifest, owned.adapter.as_ref())?;
+        let flags = owned.adapter.lifecycle_capabilities();
+        if !flags.supports_fail_closed_inbound() || !flags.staged_outbound_activation {
+            return Err(ContractError::MediaRuntime);
+        }
+        Ok(owned)
+    }
+}
+impl Drop for LiveTransport {
+    fn drop(&mut self) {
+        self.lifecycle.cancel();
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct Host(Vec<LiveTransport>);
+impl Host {
+    pub fn new(transports: Vec<LiveTransport>) -> Self {
+        Self(transports)
+    }
+    fn validate(&self) -> anyhow::Result<()> {
+        let owned = self;
+        anyhow::ensure!(owned.0.len() <= 16, "Too many contributed media transports");
+        let mut names = BTreeSet::new();
+        let mut bindings = BTreeSet::new();
+        for transport in &owned.0 {
+            anyhow::ensure!(
+                names.insert(&transport.manifest.name)
+                    && bindings.insert(serde_json::to_string(&transport.adapter.transport())?),
+                "Duplicate contributed media registration"
+            );
+        }
+        Ok(())
+    }
+    pub fn install(&self, service: &connect_service::Service) -> anyhow::Result<()> {
+        self.validate()?;
+        for transport in &self.0 {
+            validate_adapter(&transport.manifest, transport.adapter.as_ref())?;
+            // Immutable metadata is not a successful installation/readiness fact.
+            service
+                .store
+                .register_extension_manifest(&transport.manifest)?;
+            service.install_canonical_transport(transport.adapter.clone())?;
+        }
+        Ok(())
+    }
+    pub fn cancel(&self) {
+        for transport in &self.0 {
+            transport.lifecycle.cancel();
+        }
+    }
+    pub async fn drain(&self) -> anyhow::Result<()> {
+        self.cancel();
+        let outcomes = futures_util::future::join_all(self.0.iter().map(|transport| async move {
+            tokio::time::timeout(
+                std::time::Duration::from_millis(u64::from(transport.manifest.limits.teardown_ms)),
+                transport.lifecycle.drain(),
+            )
+            .await
+        }))
+        .await;
+        anyhow::ensure!(
+            outcomes.iter().all(|result| matches!(result, Ok(Ok(())))),
+            "Contributed media cleanup is unconfirmed"
+        );
+        Ok(())
+    }
+}
+impl Drop for Host {
+    fn drop(&mut self) {
+        self.cancel();
+    }
+}

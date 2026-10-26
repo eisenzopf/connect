@@ -439,3 +439,13 @@ impl ConnectionAdapter for Adapter {
         ))
     }
 }
+
+#[async_trait]
+impl LiveMediaLifecycle for Adapter {
+    fn cancel(&self) {
+        Adapter::cancel(self);
+    }
+    async fn drain(&self) -> std::result::Result<(), MediaCleanupError> {
+        Adapter::drain(self).await.map_err(|_| MediaCleanupError)
+    }
+}

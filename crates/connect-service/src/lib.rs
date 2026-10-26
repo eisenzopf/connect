@@ -145,6 +145,30 @@ impl Service {
         }
         Ok(())
     }
+    /// Protected startup composition only. Registration creates no Endpoint,
+    /// principal, route or Session grant. Public commands cannot call this hook.
+    pub fn install_canonical_transport(
+        &self,
+        adapter: Arc<dyn rvoip_core::adapter::ConnectionAdapter>,
+    ) -> Result<()> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        let closed = runtime
+            .host_configuration_closed
+            .lock()
+            .map_err(|_| Error::storage())?;
+        let flags = adapter.lifecycle_capabilities();
+        if *closed
+            || runtime.stop.is_cancelled()
+            || !flags.supports_fail_closed_inbound()
+            || !flags.staged_outbound_activation
+        {
+            return Err(Error::forbidden());
+        }
+        runtime
+            .core
+            .register(adapter)
+            .map_err(|_| Error::new("conflict", "Canonical transport registration refused"))
+    }
     pub fn canonical_runtime_snapshot(&self) -> Option<CanonicalRuntimeSnapshot> {
         self.canonical_runtime
             .get()

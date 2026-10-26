@@ -756,6 +756,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "connect-media-connector-template"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "chrono",
+ "connect-connector-api",
+ "rvoip-codec-core",
+ "rvoip-core",
+ "rvoip-core-traits",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "connect-native-video"
 version = "0.1.0"
 dependencies = [
@@ -827,6 +843,7 @@ dependencies = [
  "connect-connector-template",
  "connect-connectors",
  "connect-mcp",
+ "connect-media-connector-template",
  "connect-native-video",
  "connect-protocol",
  "connect-service",

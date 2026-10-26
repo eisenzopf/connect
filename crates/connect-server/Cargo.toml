@@ -73,6 +73,7 @@ connect-connector-http.workspace = true
 connect-native-video = { path = "../../examples/native-video" }
 prism-fixture = { path = "../../examples/connector-contribution" }
 connect-connector-template = { path = "../../examples/connector-template" }
+connect-media-connector-template = { path = "../../examples/media-connector-template" }
 rmcp = { workspace = true, features = ["client", "transport-streamable-http-client-reqwest"] }
 reqwest-mcp = { package = "reqwest", version = "0.13.2", default-features = false, features = ["json", "stream"] }
 tempfile.workspace = true

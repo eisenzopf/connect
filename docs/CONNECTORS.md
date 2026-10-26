@@ -101,6 +101,46 @@ liveness/inbound/staging/replacement guarantees before registration. This check
 makes no network effect and grants no route or operation. Keep Core registration,
 current Store policy, negotiated media and shutdown with the host.
 
+The independently buildable [live-media template](../examples/media-connector-template/README.md)
+implements actual bounded in-process PCMU source/decoder streams and the public
+rvoip interfaces. It uses neither Store nor service internals. Its generated audio
+is an explicit fixture marker; it is not a model response, provider call or crash
+persistence proof. Run its component tests independently:
+
+```sh
+cargo test --offline --locked --release \
+  --manifest-path examples/media-connector-template/Cargo.toml \
+  --target-dir .local/gate-6/media-connector-template-target \
+  -- --test-threads=1
+```
+
+Implement `connect_connector_api::media::LiveMediaLifecycle` on the same adapter
+object: `cancel` permanently closes admission and fences routes synchronously;
+`drain` observes original workers and retains handles across cancelled cleanup.
+Trusted server composition uses that same typed Arc:
+
+```rust,ignore
+let transport = connect_server::connector_media::LiveTransport::new(
+    manifest, configuration_references, adapter.clone(),
+)?;
+let server = connect_server::canonical::RunningCanonicalServer::start_with_connectors(
+    config,
+    connect_server::canonical::CanonicalConnectors {
+        media: vec![transport],
+        ..Default::default()
+    },
+).await?;
+// Use current host policy and resource custody for every route/control/media IO.
+server.shutdown().await?;
+```
+
+The server validates immutable declarations, rejects duplicate transports, and
+installs before intake on its actual canonical Core. Startup errors cancel and
+observe bounded drains; a cancelled startup or Drop requests fencing. Cleanup
+failure/deadline is reported as unconfirmed. Registration creates no Endpoint,
+principal or Conversation grant. Installed kits and full stock application
+journeys remain assigned to G6-068.
+
 The canonical SIP startup path checks its real adapter and persists its contract.
 Its codecs are negotiated per Connection; registration cannot invent PCMU, Opus
 or video availability. Canonical Vapi hosting instead declares a signed native

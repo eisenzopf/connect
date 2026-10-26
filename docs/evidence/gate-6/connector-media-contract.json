@@ -1,15 +1,17 @@
 {
   "task": "G6-067",
-  "status": "Manifest v2, selected production composition and independent actual media fixture pass; generic owned server installation pending",
-  "checked_at": "2026-10-26T17:11:42.001978+00:00",
+  "status": "G6-067 complete for approved implementation and local fixture scope; independent acceptance remains unqualified",
+  "checked_at": "2026-10-26T17:30:24.806741+00:00",
   "base_revision": "e9a7186d331ab48108006a3cc8c48719697123cf",
-  "scope": "Local Darwin arm64 contract/API/provider mapping, two deterministic PCM lifecycle fixtures, selected actual production adapter/registration/assistant/telephone startup and recovery checks, and current CLI/HTTP. Independent in-process PCMU ConnectionAdapter/MediaStream fixture; no actual provider account/model-host/browser/Linux/remote/package/publication or acceptance claim.",
+  "scope": "Local Darwin arm64 storage-independent v2 contract/API, Vapi/Telnyx/SIP mappings, independent actual in-process PCMU adapter, owned canonical Core installation/failure recovery and current CLI/HTTP. No real account/model-host, process-crash durability, network/browser/Linux/remote/profile/latency/capacity, installed package, full stock application journey, publication or acceptance claim.",
   "implementation": [
     "Replace manifest v1 audio/video fields with a strict v2 union: unsupported, PCM lifecycle fixture or live binding. No version-1 fallback or implicit media capability. Retain normalized message/voice observations, configuration references, immutable registration and protected host responsibilities.",
     "Describe direct rvoip Transport adapters separately from enrolled signed native Endpoint hosts. Bound unique codec-family catalogs; negotiated-only media refuses static readiness claims. Explicit liveness, inbound handoff, terminal fallback, staged origination and replacement guarantees constrain runtime binding. Context and recording remain current host policies.",
     "Trusted server composition derives runtime facts from the existing real ConnectionAdapter interface without provider-name branches. Canonical SIP startup validates its supplied adapter and records its immutable declaration; canonical Vapi native startup records a separate PCMU/native/context profile after existing Endpoint/key/source checks. Telephone API and SMS stay media-unsupported.",
     "Migrate both standalone lifecycle fixtures and the API-only export/checker to v2. A fixture exchange cannot satisfy a live runtime claim. New contract tests cover runtime/binding mismatch, codec refusal, negotiated-only readiness, restart policy drift and closed fields.",
-    "Add the independently buildable public-interface media fixture: bounded actual PCMU source and decoder, staged host effect custody, original full-intent replay, generation guards, explicit unsupported inbound/media controls, atomic Core lifecycle queue and terminal cancellation/drain ownership. No Connect Store/service dependency."
+    "Add the independently buildable public-interface media fixture: bounded actual PCMU source and decoder, staged host effect custody, original full-intent replay, generation guards, explicit unsupported inbound/media controls, atomic Core lifecycle queue and terminal cancellation/drain ownership. No Connect Store/service dependency.",
+    "LiveMediaLifecycle is a storage-independent cancellation/drain contract. LiveTransport binds it to the exact same typed rvoip adapter Arc, validates configuration references and immutable runtime declarations, rejects duplicate names/transports and installs on the actual canonical Core before intake. No provider-name branch or principal/Endpoint/Conversation grant is introduced.",
+    "CanonicalConnectors composes optional message/SMS policy and contributed live transports. Startup refusal observes bounded concurrent drains; cancellation/Drop synchronously request permanent admission fencing. Shutdown reports cleanup deadlines/failure as unconfirmed. Large startup futures are heap-owned to keep the default runtime/test stack bounded."
   ],
   "verification": {
     "api": {
@@ -21,11 +23,11 @@
         "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
         "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
       ],
-      "log_sha256": "65ae4489c3b4dfb7f84b5db21e8f13a6bd8f9bd4a56311829efd5fc6dd179bde"
+      "log_sha256": "12622df85d3a3d8aa1df2973070c9c269dbfbdbd89b529e51ef3b691f68c26a2"
     },
     "provider_mapping": {
       "passed": 5,
-      "log_sha256": "ffd23d7a14aa15a6ece43fe7f0af52f46584120b281dc1fe8ee5e02f927f9459"
+      "log_sha256": "a43db4ed2d13d23982e80bad4d52eab552aaef020577a3a205c833c468133c48"
     },
     "lifecycle_fixtures": [
       {
@@ -225,18 +227,18 @@
           "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
           "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
           "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
-          "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+          "crates/connect-connector-api/src/media.rs": "a3875ea5d3795c29e6fb5ba663b37d80ba2888e306283c2337cb1e1f24dbbd0b",
           "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
-          "docs/CONNECTORS.md": "cc78b969d73dd63688d3e856855298975bf2142c4842f756756887885bb2b04e",
-          "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+          "docs/CONNECTORS.md": "22d1cedc8ff3ef9672c8132cae67356931d53399ed07f33192d9820756e11777",
+          "contracts/connectors/profile-v2.md": "c9a1b320489953a0aefef7d52f32321d7e07b52fa66f50161052503d047c5057",
           "contracts/connectors/host-context-v1.md": "5843fb02d0311b08f9ef739221cc9d913d66f33ff530d4a2aec90a35bc9e97cf",
           "scripts/check-connector-contract.py": "2880e44b3cc43f651759e4078d653928c9cc4e6c2df7d998295d172205546666"
         },
-        "report_sha256": "c651449de20f301e8d0e22365db912b220605d843bd64042293bf074a80fb7d2",
         "unsupported": [
           "video",
           "live-provider"
-        ]
+        ],
+        "report_sha256": "027f6c93253e1c5f4a25fe7ec937a4a26334d3143dd5dbad3685bfa4874bd46c"
       },
       {
         "fixture": "contribution",
@@ -434,18 +436,18 @@
           "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
           "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
           "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
-          "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+          "crates/connect-connector-api/src/media.rs": "a3875ea5d3795c29e6fb5ba663b37d80ba2888e306283c2337cb1e1f24dbbd0b",
           "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
-          "docs/CONNECTORS.md": "cc78b969d73dd63688d3e856855298975bf2142c4842f756756887885bb2b04e",
-          "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+          "docs/CONNECTORS.md": "22d1cedc8ff3ef9672c8132cae67356931d53399ed07f33192d9820756e11777",
+          "contracts/connectors/profile-v2.md": "c9a1b320489953a0aefef7d52f32321d7e07b52fa66f50161052503d047c5057",
           "contracts/connectors/host-context-v1.md": "5843fb02d0311b08f9ef739221cc9d913d66f33ff530d4a2aec90a35bc9e97cf",
           "scripts/check-connector-contract.py": "2880e44b3cc43f651759e4078d653928c9cc4e6c2df7d998295d172205546666"
         },
-        "report_sha256": "f833c55c7b4850ccc292a6045a638be866c0917b0aeca41fb86f819569e6c812",
         "unsupported": [
           "video",
           "live-provider"
-        ]
+        ],
+        "report_sha256": "c88c600732d2d2ab7867d65396a0562d1450030091e4d9d042a5dfcc59b21208"
       }
     ],
     "production_typecheck": {
@@ -464,24 +466,16 @@
     },
     "production_build": {
       "exit_code": 0,
-      "seconds": 638.1354419169948,
+      "seconds": 79.80876512499526,
       "source_unchanged": true,
-      "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
-      "bytes": 250171216,
-      "source_count": 1321,
-      "log_sha256": "dfb788114843aba5d6cb5ee569f95bdc012729f3c1a593d3601ba79ae4001c62",
+      "binary_sha256": "b150ffe9b186dfb5de8f463beaa3aa126719a0053da5a0a7d7a5730b9051cc56",
+      "bytes": 250804800,
+      "source_count": 1325,
+      "log_sha256": "4aceca96cd2fde04b9e0423c89c6f74f4be2ae6762ab7c9d68a31720a64e144d",
       "seal": "independent APFS clone; distinct inode, full decoded hash verified",
-      "library-test-01": {
-        "sha256": "5574d623cab344d9a676d1b240b4c0d7c029550db7ddabd6d87737c3fd29c242",
-        "bytes": 98387072
-      },
-      "client-test-01": {
-        "sha256": "f69e83926d57a709b83e2c5cbb02f0785abdd208f9cef37487d96706003a999f",
-        "bytes": 25177152
-      },
-      "canonical-cli-01": {
-        "sha256": "b40c8e2bbce5641eb6fa806306ec72beb2117afb707e4522740bf497dbd9c4c6",
-        "bytes": 232257392
+      "canonical-cli-05": {
+        "sha256": "ce7475702b909a06b51128f0e23ae6010d986d9921ad3423c1dcef98ed5c9eef",
+        "bytes": 232414800
       }
     },
     "production_runtime": {
@@ -489,49 +483,50 @@
         {
           "name": "adapter-contract",
           "pattern": "connector_media_contract::",
-          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "binary_sha256": "b150ffe9b186dfb5de8f463beaa3aa126719a0053da5a0a7d7a5730b9051cc56",
           "exit_code": 0,
-          "seconds": 2.003986584022641,
-          "log_sha256": "83e1b5b9d9e5da6267f7ce5a9c9cd683e07071fff3f5dee79d90319f10937184",
+          "seconds": 2.614359082886949,
+          "log_sha256": "a818bed1e2ceda53658d72477ed30a36028816a1f041c9267045af373a51474e",
           "result": [
-            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 339 filtered out; finished in 0.22s"
+            "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 339 filtered out; finished in 0.93s"
           ]
         },
         {
           "name": "configured-assistant",
           "pattern": "configured_startup_exposes_only_hosted_endpoint_and_owns_http_accepted_provider_job",
-          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "binary_sha256": "b150ffe9b186dfb5de8f463beaa3aa126719a0053da5a0a7d7a5730b9051cc56",
           "exit_code": 0,
-          "seconds": 0.9478359168861061,
-          "log_sha256": "af91fe9764e23af85721474c9bcc7b92cc494750ae888d5209bf059985b0273a",
+          "seconds": 0.8188014170154929,
+          "log_sha256": "8ec143e06a17f357e932f91ca5350a0d56c0bc0ec0d5070cd61687606430e475",
           "result": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 0.78s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 0.67s"
           ]
         },
         {
           "name": "configured-telephone",
           "pattern": "production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
-          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "binary_sha256": "b150ffe9b186dfb5de8f463beaa3aa126719a0053da5a0a7d7a5730b9051cc56",
           "exit_code": 0,
-          "seconds": 4.254473292035982,
-          "log_sha256": "97b2efa462e94c2e7c8a003225e42c121b503a8c888f990268c300d5f3bfc735",
+          "seconds": 4.1885997909121215,
+          "log_sha256": "42108e2e694e2c4f915dce00893ff2f1b1eb94352a2e8a940d3f0f51d42df547",
           "result": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 4.11s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 4.07s"
           ]
         },
         {
           "name": "startup-failure-drain",
           "pattern": "production_telephone_configured_later_http_bind_failure_drains_started_sip",
-          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "binary_sha256": "b150ffe9b186dfb5de8f463beaa3aa126719a0053da5a0a7d7a5730b9051cc56",
           "exit_code": 0,
-          "seconds": 0.3662612079642713,
-          "log_sha256": "e9db431389af4b47b08df383ba8799f635786005cba82833cbd131feeaa1544e",
+          "seconds": 0.2974095828831196,
+          "log_sha256": "77ebefd91225dd4ed3efb60690f477efbbe3c0cf419f122b18bf6b884f0c8bea",
           "result": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 0.21s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 0.20s"
           ]
         }
       ],
       "source_unchanged_before": true,
+      "test_stack": "default; RUST_MIN_STACK unset",
       "source_unchanged_after": true
     },
     "http_regression": {
@@ -539,18 +534,18 @@
       "schema_checked": 280,
       "setup_only": [],
       "source_unchanged": true,
-      "cli_sha256": "b40c8e2bbce5641eb6fa806306ec72beb2117afb707e4522740bf497dbd9c4c6",
-      "private_summary_sha256": "23836981a806487861cf75b340a94659d0a1a1ddac4f380553f5565a0bb6eb2a",
+      "cli_sha256": "ce7475702b909a06b51128f0e23ae6010d986d9921ad3423c1dcef98ed5c9eef",
+      "private_summary_sha256": "347a354df8a354cc2a9f18b958d04382c4d1e23095b89a6139ad31ec49b1221d",
       "sigterm_exit": 0
     },
     "independent_media_fixture": {
       "build_exit": 0,
-      "seconds": 1.7648272078949958,
+      "seconds": 3.035853625042364,
       "guarded_inputs": 436,
       "test_exit": 0,
-      "binary_sha256": "bf4280366dd441eb67d74c5dc561c540b0624e329b738134eaeda49df05d929a",
+      "binary_sha256": "0bea181c76a77c606f55e054b686ae0622df82098ff653a8586e70f9f2f921a3",
       "log_sha256": "945b204c40a5aadbfd29cf66db60e49f49b0d5a105f5497864d9d0f13c66db6f",
-      "input_manifest_sha256": "8cfa024e74f976cfbd71da914fc795e16466d17deee04d008e8b219f3eebaff6",
+      "input_manifest_sha256": "37f96ab54de4ffe83f7f8a29b93471f90c547e55e0bc9720cb616cf9217957f7",
       "source_unchanged": true,
       "passed": 8,
       "tests": [
@@ -564,13 +559,39 @@
         "stale_buffered_generation_is_discarded_at_the_actual_decode"
       ],
       "profile": "local Darwin arm64, in-process outbound-only PCMU fixture",
-      "limitations": "No process crash persistence, provider or model response, network transport, browser/Linux/remote, latency/capacity, installed kit or stock canonical-host admission qualification. Generic owned host installation remains open.",
-      "prior_attempts": "First compile failed on missing required renegotiate_media, then explicit unsupported implementation passed seven component tests. Final frozen run adds guarded Core registration and permanent host cancellation; prior logs retained privately."
-    }
+      "limitations": "Not a provider/model response, process-crash persistence, network/browser/Linux/remote, latency/capacity, installed-kit or full stock application journey qualification. The protected canonical installation/teardown path is separately verified by six production functions."
+    },
+    "retained_intermediate_failures": [
+      {
+        "attempt": "Initial standalone fixture compile",
+        "result": "Required renegotiate_media hook missing; explicit unsupported implementation added before passing fixture runs."
+      },
+      {
+        "attempt": "Provider mapping library filter",
+        "result": "Zero tests selected. Rejected by runner, corrected to the integration target, five tests pass. Not counted as a pass."
+      },
+      {
+        "attempt": "First owned-host production telephone regression",
+        "exit_code": -6,
+        "result": "Default stack overflow after adding async startup forwarding. Startup composition boundaries now heap-own futures. The final unchanged sealed binary passes the same test with RUST_MIN_STACK explicitly unset, plus all eight other selected production functions. No increased-stack workaround.",
+        "log_sha256": "8b2eaa9ceb8dd1e21f947ce4241818900c1a45d971a3bd4f540e7644676a2c6a"
+      },
+      {
+        "attempt": "Legacy scripts/check-gate6-canonical-http.py default invocation",
+        "result": "Refused before runtime on historical docs/evidence/gate-6/upstream.json source hash for rvoip-vapi agent_observations.rs. Its base runner assumes the historical 103-patch inventory; the prepared current source lock is verified. This older harness is unresolved and is not counted as a pass. The fresh sealed current protected HTTP checker separately passes 280/280 exchanges."
+      }
+    ],
+    "current_static_checks": [
+      "scripts/format.sh --check",
+      "check-gate6-contracts.py: source inventory, 254 schema vectors and semantic boundaries",
+      "check-gate6-http-inventory.py: 24 declarations, 25 explicit HTTP operations, zero uncovered",
+      "git diff --check"
+    ]
   },
   "inputs": {
-    "Cargo.lock": "dc69ee13a8217a9cb2b3661ada17f9d51abce92fc21eb6523e4890fa8785c186",
-    "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+    "Cargo.lock": "9825c753c5996d255d5f0667faf88981acf76d2e51757f7c8b63c85bd9852273",
+    "Cargo.toml": "5049cb6976261bf0bc717090ee03c0864cbba0a75b6dc4bb1d27e3db3dc859b5",
+    "contracts/connectors/profile-v2.md": "c9a1b320489953a0aefef7d52f32321d7e07b52fa66f50161052503d047c5057",
     "crates/connect-connector-api/examples/echo.rs": "048e1ad2371fb488153096c5389593f3f76ff4d7ab8ab201b1e5b9794e86ea7a",
     "crates/connect-connector-api/src/conformance.rs": "74c9c5f5eb093bb4c7e0d01b3d4fc7b0e69e2c4b9035c9d826f7d5e3e0d5a9bb",
     "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
@@ -579,7 +600,7 @@
     "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
     "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
     "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
-    "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+    "crates/connect-connector-api/src/media.rs": "a3875ea5d3795c29e6fb5ba663b37d80ba2888e306283c2337cb1e1f24dbbd0b",
     "crates/connect-connector-api/tests/contracts.rs": "5edc8eb8b4c0bc415e08747248a34a15d1ee33c276253b045ffbf06317189c5f",
     "crates/connect-connector-api/tests/host_context.rs": "7e79afaaf1cb3f428dfbb6c83e85d29063aa20e906e72e3f7f5ace546ff54734",
     "crates/connect-connector-api/tests/media_contract.rs": "a8d8112d289277e614a0ba86ab372d6fe567115512991c5c0cba93f0f3dc9b45",
@@ -593,13 +614,13 @@
     "crates/connect-connectors/src/provisioning/execution.rs": "06aed4445342355c594c2ad9ab47cd9d148d912e44c14d093732b9372f619d2e",
     "crates/connect-connectors/src/provisioning/mod.rs": "25c7ceac3d58e43e2346832eff9e600d12572ac0ccc1ee25d90f1ae040cd1c1f",
     "crates/connect-connectors/src/provisioning/readiness.rs": "33c7aaf434de2fb5ef9edcee4d626a8d19e9955c2c35700cfd3c5d15288fb4ae",
-    "crates/connect-connectors/src/setup/secrets.rs": "74f68f976e9a94c21046c32c653fbd019d55ac53988875fd7abc97bbcccedae1",
     "crates/connect-connectors/src/setup.rs": "4c441775190aab88900e585c54d7cf972a28ff1a665c6f86559adb07d19f2f06",
+    "crates/connect-connectors/src/setup/secrets.rs": "74f68f976e9a94c21046c32c653fbd019d55ac53988875fd7abc97bbcccedae1",
     "crates/connect-connectors/src/vapi_endpoint.rs": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474",
     "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
-    "crates/connect-connectors/src/voice/reconciliation/tests.rs": "aed12ad701431180e90d261e37f61acfe34bfc40ee670cca9074806d8f59f499",
-    "crates/connect-connectors/src/voice/reconciliation.rs": "46e95f57bea435b9b81a6b0ab4054d5e3ffe5aa6c9d8351d3d554d3303347157",
     "crates/connect-connectors/src/voice.rs": "9a33c5c92639c8aaca6187e54b40b99d13f9dd89fd7b13a712bd5818a48e1dec",
+    "crates/connect-connectors/src/voice/reconciliation.rs": "46e95f57bea435b9b81a6b0ab4054d5e3ffe5aa6c9d8351d3d554d3303347157",
+    "crates/connect-connectors/src/voice/reconciliation/tests.rs": "aed12ad701431180e90d261e37f61acfe34bfc40ee670cca9074806d8f59f499",
     "crates/connect-connectors/src/voice_native_setup.rs": "c41d88ea38fdf676b78bcb9f0ada7c9c6395dfe2aa38606d605a9a88d0373238",
     "crates/connect-connectors/src/voice_setup.rs": "1f7af1a38a6a2101b9e5e0c304a3da387772344311af8d7deca0fe74a59b9af0",
     "crates/connect-connectors/tests/adapters.rs": "2b057559287e56cae4c8df6b0c8f68ef727798046ed217736170209502b6abda",
@@ -611,12 +632,16 @@
     "crates/connect-connectors/tests/setup.rs": "57ddd62667f816af47311b44257f8fd0090d9bc33fa3a939baf9da10896661ee",
     "crates/connect-connectors/tests/support/setup_vault.rs": "e746910a510fd94c0bb25a9db31bcd188e2cc5c3b0072ad828ec9448ac3c53d4",
     "crates/connect-connectors/tests/vapi_origin.rs": "36940d944e6cf1f5de6f84befa27c6eb7f795d8ceb14f42b0ff3547a98089611",
+    "crates/connect-server/Cargo.toml": "c0f9a0eacaefc078023a9232e01ae0b5e4e2b7e0c27ab2635f6810010dcb3890",
+    "crates/connect-server/src/canonical.rs": "50791ac7d0aa58bbbd7331c45e52ffb78eac94e4b811339898657380058c83b7",
     "crates/connect-server/src/canonical_assistants.rs": "d4eed1647e091e764107a7b65f743497a266d24d0bf2e1e1c3969757343acf77",
     "crates/connect-server/src/canonical_provider_voice.rs": "c52c053f828cdc57d65b4aba062f696e80f0d3f0e78bfa161f997abd993385cd",
     "crates/connect-server/src/canonical_telephone.rs": "3858105591b602699d3c82bc5e703363043318f2e664cfbfbbb37f1ca3fe8ae3",
-    "crates/connect-server/src/connector_media.rs": "2cd4d72c2fd66aa7fb58cb9d7dc8f0eeebdf32f136f463c70d158ece5c9acd92",
-    "crates/connect-server/tests/support/connector_media_contract.rs": "0193b5406476978a8a61dff8c7cd59f8ddc367460e156931e6fecdc32bea0852",
+    "crates/connect-server/src/connector_media.rs": "8c21efe6c88815ec4989bcf6f772660178cc8e28ba37b571abdf801d89bc053f",
+    "crates/connect-server/tests/support/connector_media_contract.rs": "a40a6e6261247466e889eb926bf2c738be9c851a59feb28c95ea72a868152412",
+    "crates/connect-service/src/lib.rs": "d36a211f3f31529a7a69a67dff2909826b58eb6e1080f480573bc4084e8faf13",
     "dependencies/source-lock.json": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a",
+    "docs/CONNECTORS.md": "22d1cedc8ff3ef9672c8132cae67356931d53399ed07f33192d9820756e11777",
     "examples/connector-contribution/src/lib.rs": "d381528b1bfcb4335d78d593cedc9ab4360c5ed4e8499b46c5dbce42be436649",
     "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
     "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
@@ -625,11 +650,18 @@
     "examples/connector-template/src/lib.rs": "a9a807fb1be6952306d5a00dc12b6d1a73e53dd1606410b2ccf66ac24e8586a5",
     "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
     "examples/connector-template/tests/broken_fixture.rs": "e9fe0edbf392301be492ddfbf1c4b245911b79684674c7fb2e0563d1a1d9e941",
-    "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478"
+    "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478",
+    "examples/media-connector-template/Cargo.lock": "abd88cf88c3db06df3a0ff7ad65e4b44add55a0758b228eb3948bad5dc3004c9",
+    "examples/media-connector-template/Cargo.toml": "b1ddd23cdd55af5bfa77090dab6c247f97adb731f9050dd7adb0691a5e24493a",
+    "examples/media-connector-template/README.md": "8491069fae9bca4fad325cee956a227bda67ec1c93105ce04b3459eb937000c5",
+    "examples/media-connector-template/src/lib.rs": "75c0847d21c3ed2eb24a3370f5c0d0d74c8e8c909a265619c1aeaaf9e21323d8",
+    "examples/media-connector-template/src/stream.rs": "b4a0a3a5a3c45e7b8f88cb1418f5cf32c38c02769716c0384c0a805c387fe9d6",
+    "examples/media-connector-template/tests/contract.rs": "0321eaf7ebcca313dc07212c40d1e535148e7dac64b5291170e2b746e1c84b4e"
   },
   "remaining": [
-    "Complete generic admission/control hook and independent live fixture qualification required by G6-067; the standalone in-process adapter prototype is not yet compiled or qualified.",
-    "The selected production checks establish real SIP/Vapi adapter matching and metadata registration without new credential authority, configured assistant job ownership, original telephone admission, and cleanup after later bind failure. They do not establish every media/profile/control path.",
-    "G6-067 remains in-progress. Its G6-068 external harness/stock-composition delivery remains dependent work. The full 105-task goal and G6-050/G6-051/G6-065 obligations stay active."
-  ]
+    "G6-067 has no remaining work within its approved implementation/local fixture contract. G6-068 owns installed connector kits, reusable external harnesses and full stock application workflows, including assigned inbound routing/callback examples.",
+    "The selected checks do not qualify all media/control/network profiles, real Vapi/Telnyx/PSTN or a supported external model host. Required remote/provider rehearsals need the concrete bounded G6-093 configuration. Browser/native/Linux/remote, capacity/latency, packages, publication and independent acceptance remain assigned later work.",
+    "The full 105-task objective and G6-050/G6-051/G6-065 obligations remain active."
+  ],
+  "owned_host_base_revision": "f9180d61112c5a6953cb16299ec6eff877834d81"
 }

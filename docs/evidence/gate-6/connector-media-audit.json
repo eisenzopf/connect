@@ -1,0 +1,61 @@
+{
+  "task": "G6-067",
+  "status": "done",
+  "scope": "Local Darwin arm64 storage-independent v2 contract/API, Vapi/Telnyx/SIP mappings, independent actual in-process PCMU adapter, owned canonical Core installation/failure recovery and current CLI/HTTP. No real account/model-host, process-crash durability, network/browser/Linux/remote/profile/latency/capacity, installed package, full stock application journey, publication or acceptance claim.",
+  "dependencies": {
+    "G6-028": "done",
+    "G6-044": "done",
+    "G6-046": "done",
+    "G6-059": "done"
+  },
+  "clauses": [
+    {
+      "requirement": "Unify manifests, provisioning and normalized message/outcome events",
+      "evidence": [
+        "crates/connect-connector-api/src/manifest.rs",
+        "crates/connect-connector-api/src/lifecycle.rs",
+        "crates/connect-connectors/src/provider_mapping.rs",
+        "docs/evidence/gate-6/provider-integration-audit.json"
+      ],
+      "verification": "23 API tests; five provider mapping tests; current registration credential/provisioning denial in the production suite. Existing provider policy/context/typed outcome work remains in completed G6-044."
+    },
+    {
+      "requirement": "Actual live-media admission/control and explicit trusted installation",
+      "evidence": [
+        "crates/connect-connector-api/src/media.rs",
+        "crates/connect-server/src/connector_media.rs",
+        "crates/connect-server/src/canonical.rs",
+        "crates/connect-service/src/lib.rs"
+      ],
+      "verification": "Six current production functions prove actual SIP/Vapi matching, independent actual adapter installation, no credential/provisioning grant, closed late registration, duplicate ownership refusal, startup cancellation, late bind failure, normal teardown and cleanup deadline/retry. Three configured assistant/telephone/recovery regressions also pass with default stack."
+    },
+    {
+      "requirement": "Separate real transports from lifecycle fixtures; endpoint/context/record policies",
+      "evidence": [
+        "contracts/connectors/profile-v2.md",
+        "docs/CONNECTORS.md"
+      ],
+      "verification": "Strict v2 union and runtime validation reject mismatched/unsupported media. Native Endpoint hosting is distinct from rvoip Vapi adapter installation; declarations grant no host authority. Eight actual PCMU component tests and both 44-check PCM lifecycle fixtures pass."
+    },
+    {
+      "requirement": "Independent fixture without core provider-name policy branches or storage internals",
+      "evidence": [
+        "examples/media-connector-template/Cargo.toml",
+        "examples/media-connector-template/src/lib.rs",
+        "examples/media-connector-template/src/stream.rs",
+        "examples/media-connector-template/tests/contract.rs"
+      ],
+      "verification": "Standalone frozen source build and eight tests pass across 436 unchanged inputs. Public rvoip interfaces plus storage-independent API; no Connect Store/service/server dependency. The same adapter enters protected stock canonical startup without patched dispatch."
+    }
+  ],
+  "evidence": "docs/evidence/gate-6/connector-media-contract.json",
+  "limitations": [
+    "G6-067 has no remaining work within its approved implementation/local fixture contract. G6-068 owns installed connector kits, reusable external harnesses and full stock application workflows, including assigned inbound routing/callback examples.",
+    "The selected checks do not qualify all media/control/network profiles, real Vapi/Telnyx/PSTN or a supported external model host. Required remote/provider rehearsals need the concrete bounded G6-093 configuration. Browser/native/Linux/remote, capacity/latency, packages, publication and independent acceptance remain assigned later work.",
+    "The full 105-task objective and G6-050/G6-051/G6-065 obligations remain active."
+  ],
+  "acceptance": "Unqualified; no acceptance criterion closed by this implementation checkpoint.",
+  "verification_exclusions": [
+    "Legacy canonical-http runner refuses its historical 103-patch source-hash baseline before runtime; not a pass. Current source-lock preparation and the separately sealed 280-exchange current HTTP suite pass."
+  ]
+}

@@ -83,3 +83,31 @@ exactly-once logical effects, bounded PCM exchange and paired teardown. Its repo
 explicitly excludes live provider, network media and video qualification. A real
 transport additionally needs the existing rvoip adapter interfaces, trusted host
 installation and the assigned current Connect runtime/profile evidence.
+
+## Owned transport composition
+
+A contributed transport implements public rvoip `ConnectionAdapter`/`MediaStream`
+and the storage-independent `LiveMediaLifecycle` on the same object. `cancel`
+permanently closes admission and fences every route synchronously. `drain`
+observes the original worker handles; cancelling a drain retains them for retry.
+The host bounds cleanup by the validated manifest `teardown_ms` (at most 5 s).
+Drop requests cancellation; it does not prove cleanup completion.
+
+Trusted Rust composition constructs `connect_server::connector_media::LiveTransport`
+from the manifest, configuration references and that exact typed adapter Arc, then
+supplies it through `CanonicalConnectors` to
+`RunningCanonicalServer::start_with_connectors`. No public JSON, HTTP or native
+command accepts adapter injection. Immutable metadata is persisted before Core
+registration; metadata alone does not imply a successful installation or media
+readiness. Names and transports must be unique (at most 16 contributions), and
+native/built-in transport collisions refuse. Registration closes once physical
+intake has begun and requires authoritative liveness, atomic fail-closed handoff,
+terminal fallback and staged outbound activation. Outbound-only transports reject
+all inbound creation and do not advertise inbound support.
+
+The canonical server owns contributed adapters through startup, shutdown and
+Drop. Startup errors cancel and observe bounded drains; future cancellation and
+Drop synchronously request fencing. A cleanup deadline is an error, never a clean
+shutdown fact. This installation provisions no Endpoint or principal and grants
+no Conversation, media, context or recording access. Those require the existing
+current host policy and resource custody on every operation.
