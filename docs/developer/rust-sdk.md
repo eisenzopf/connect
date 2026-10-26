@@ -641,6 +641,11 @@ create native media ownership. Mutations require a logical operation ID even
 when a wire family permits untracked advisory use. No fallback or older dialect
 is selected.
 
-The current checkpoint passes 200 client tests, including four new signed raw
-boundary tests. Real-server restart/current-authority/journal qualification is
-pending in `docs/evidence/gate-6/rust-sdk-raw.json`; G6-060 remains in progress.
+The checkpoint passes 200 client tests (four new signed raw boundary functions),
+nine Rustdoc checks, 254 contract vectors and the separately compiled public raw
+example. Two new production functions pass with EdDSA and ES256, covering original
+intent/replay, current membership, immutable journal facts, cursor resumption and
+server restart with one durable Message. Twenty-two prior SDK regression
+functions passed on identical SDK/runtime sources; the corrected new fixture was
+rerun separately. The initial randomized-cursor fixture failure and exact scope
+are retained in `docs/evidence/gate-6/rust-sdk-raw.json`. G6-060 remains in progress.

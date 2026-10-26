@@ -1,8 +1,8 @@
 {
   "task": "G6-060",
-  "checked_at": "2026-10-26T08:05:00.564797+00:00",
-  "status": "implementation checkpoint; production qualification pending",
-  "scope": "Owned finite raw canonical SDK access; local macOS arm64 component evidence only. Full SDK/gate acceptance remains open.",
+  "checked_at": "2026-10-26T08:13:36.847777+00:00",
+  "status": "verified finite raw canonical SDK slice; G6-060 remains in progress",
+  "scope": "Local macOS arm64 functional qualification of owned finite raw canonical SDK access. Current raw tests pass with EdDSA/ES256; prior22 SDK regression functions passed on identical SDK/runtime/dependency source inputs. No whole SDK/gate/profile/package acceptance claim.",
   "verification": {
     "client": {
       "passed_functions": 200,
@@ -12,16 +12,77 @@
       "additional_boundary": "Missing logical mutation ID refuses locally as NotSubmitted; auth lifecycle envelopes never reach the worker."
     },
     "production": {
-      "status": "pending",
-      "planned_functions": 2,
-      "algorithms": [
-        "EdDSA",
-        "ES256"
-      ],
+      "status": "passed corrected raw fixtures; prior regression scope retained separately",
+      "new_functions": 2,
+      "new_algorithm_scenes": 4,
+      "prior_regression_functions": 22,
+      "current_raw_report": {
+        "path": ".local/gate-6/sdk-raw/production-03-summary.json",
+        "sha256": "99f5d3b64777a997a8b760cdce06133432fd72d0dd16b7961013512107aefb1a"
+      },
+      "combined_audit": {
+        "path": ".local/gate-6/sdk-raw/production-03-audit.json",
+        "sha256": "7cea0e7de7345c9bef3453e43878b376d2fe0a0a6923b814a6819855ce5a013b"
+      },
+      "prior_report": {
+        "path": ".local/gate-6/sdk-raw/production-02-summary.json",
+        "sha256": "f989d7048b53dd0664478513d05983cbc6935b544a51fbba0e125ed5996911a2"
+      },
+      "current_sealed_binary_sha256": "3c4ed516bc023fff75e50b792135d9fc21cc2c26a777eda74ba7d39504550db3",
+      "source_guard": {
+        "manifest": {
+          "path": ".local/gate-6/sdk-raw/inputs-03.json",
+          "sha256": "041ade3f93227eadfc83f8797c2f6581fe3242727fb03e8b6c00b8c9bf70f8bf"
+        },
+        "files": 1360,
+        "unchanged": true,
+        "changed_from_prior_candidate": [
+          "crates/connect-server/tests/support/sdk_handles/raw.rs"
+        ]
+      },
+      "scope": "The22 existing SDK functions passed in candidate02 on identical SDK/runtime/dependency sources. Candidate03 changes only the failed new fixture comparison, so only its two new raw functions were rerun. These are two sealed binaries, not one all-pass current24-function invocation.",
       "behaviors": [
-        "Exact original replay, changed intent refusal, original signed journal facts and status across restart with one durable Message.",
-        "Current membership removal refuses raw new/exact mutations, operation reads and finite event catch-up."
+        "Full original raw Message intent survives explicit replay and server restart with exactly one Message row. Changed original body refuses with original logical key/Refused certainty. Each explicit replay uses a fresh signed physical attempt.",
+        "Current operation.get recovers original completed status without submission. Finite conversation.get and conversation.subscribe return complete original signed batches and immutable original journal fields matching a separate authorized Store read. Opaque wire cursor resumes without repeating its fact; restarted catch-up retains original event identity.",
+        "Current membership removal refuses a fresh raw mutation, exact original replay, original status and finite journal catch-up across both algorithms. Read-only SQL verifies zero forbidden Messages.",
+        "Owned clients and actual production servers close and join. The22 earlier SDK functions include independently decoded audio/video, reliable data, controls/codecs, event/invitation streams, selections, reconciliation, administration and restart."
       ]
+    },
+    "rustdoc": {
+      "passed_functions": 9,
+      "log": {
+        "path": ".local/gate-6/sdk-raw/rustdoc-02.log",
+        "sha256": "13f2dd8aa9cd4e31b539a3b9ebe41d1b7069df1930ab67a673d016fd49c43053"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "log": {
+        "path": ".local/gate-6/sdk-raw/contracts-01.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      },
+      "scope": "Source/schema checks only."
+    },
+    "documented_example": {
+      "report": {
+        "path": ".local/gate-6/sdk-raw/example-summary.json",
+        "sha256": "561050bc6060cd82954dd3b3a81d105f7ad016b76b36052b2a31abd252d9227b"
+      },
+      "scope": "Actual raw Rustdoc snippet separately metadata-compiled against public crate. Packaged external runtime remains open."
+    },
+    "checks": {
+      "dependencies-01.log": {
+        "path": ".local/gate-6/sdk-raw/dependencies-01.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-03.log": {
+        "path": ".local/gate-6/sdk-raw/format-check-03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check-03.log": {
+        "path": ".local/gate-6/sdk-raw/openapi-check-03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   },
   "limitations": [
@@ -34,5 +95,40 @@
       "runtime_functions_executed": 0,
       "reason": "Local certainty fix changed guarded SDK source during compile. A fresh guarded build is required; no runtime qualification claimed."
     }
+  ],
+  "failed_candidates": [
+    {
+      "candidate": "02",
+      "passed_functions": 23,
+      "failed_functions": 1,
+      "report": {
+        "path": ".local/gate-6/sdk-raw/production-02-summary.json",
+        "sha256": "f989d7048b53dd0664478513d05983cbc6935b544a51fbba0e125ed5996911a2"
+      },
+      "reason": "One new fixture incorrectly compared randomized opaque cursor tokens across separate reads. SDK behavior was correct; only fixture now compares immutable event fields and exercises actual cursor resumption. All22 prior SDK functions passed; no prior pass is relabeled as a pass of this failed fixture.",
+      "preserved_binary": {
+        "path": ".local/gate-6/sdk-raw/preserved-failed-02.json",
+        "sha256": "459584b945941fbf4accda1b74191a8248498462a77f3a031eeb3cc22788e9fd"
+      }
+    },
+    {
+      "scope": "private verification wrapper",
+      "reason": "Copied wrapper initially retained administrative-first grouping and old expected counts. Final03 explicitly runs2 raw functions; combined audit verifies exact binary test inventory, known prior single failure, unchanged runtime/SDK inputs and final example. The audit parser was corrected to recognize the actual Rust failure-summary delimiter before passing."
+    }
+  ],
+  "scratch_preservation": [
+    {
+      "path": ".local/gate-6/sdk-raw/scratch-compression.json",
+      "sha256": "28157d1991b3e641fd2506f7ed58933af07fbd6c1547e6b2a0978d0700a75820"
+    },
+    {
+      "path": ".local/gate-6/sdk-raw/preserved-failed-02.json",
+      "sha256": "459584b945941fbf4accda1b74191a8248498462a77f3a031eeb3cc22788e9fd"
+    }
+  ],
+  "remaining": [
+    "G6-060 capability/configuration/receipt helpers, remaining native recovery, full packaged external journeys, incompatible-server and required approved Linux/remote profiles remain.",
+    "Finite raw access does not replace owned auth/step-up, native negotiation, binary transfer or live event lifecycle helpers; it preserves payload extensions and explicitly refuses unknown top-level request intent.",
+    "Publication remains separate."
   ]
 }

@@ -141,10 +141,27 @@ async fn public_sdk_raw_original_intent_status_and_finite_journal_survive_restar
             .iter()
             .find(|e| e.event_id == fact["payload"]["event_id"])
             .unwrap();
-        assert_eq!(
-            fact["payload"]["data"],
-            serde_json::to_value(actual).unwrap()
-        );
+        // Cursor tokens are opaque, randomized encodings of a position. Compare
+        // every immutable field, then prove the actual wire cursor resumes.
+        let mut received = fact["payload"]["data"].clone();
+        let mut recorded = serde_json::to_value(actual).unwrap();
+        received.as_object_mut().unwrap().remove("cursor");
+        recorded.as_object_mut().unwrap().remove("cursor");
+        assert_eq!(received, recorded);
+        let after = exchange(
+            &client,
+            envelope(
+                "conversation.subscribe",
+                &cid,
+                json!({"after":fact["payload"]["cursor"],"live":false,"limit":100}),
+                None,
+            ),
+        )
+        .await
+        .unwrap();
+        assert!(after
+            .iter()
+            .all(|v| v["payload"]["event_id"] != fact["payload"]["event_id"]));
         client.close(options()).await.unwrap();
         f.server.shutdown().await.unwrap();
         f.server = RunningCanonicalServer::start(f.config.clone())
