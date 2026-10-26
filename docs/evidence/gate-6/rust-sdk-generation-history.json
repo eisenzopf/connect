@@ -1,0 +1,56 @@
+{
+  "schema": "connect-gate6-rust-sdk-generation-history/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T03:36:16.657247+00:00",
+  "base_revision": "d6dca171f95b70b21b2f2144045487eedeb640ba",
+  "scope": "Owned Rust SDK retired Stream generation history. Signed local macOS arm64 client fixtures; no new real-listener/media qualification.",
+  "implementation": [
+    "Keep the latest generation for each previously adopted logical Stream after receive bindings are removed. Reintroduction under fresh positive native handles advances the retained generation rather than resetting to one.",
+    "Retired native handles remain reserved. Historical completed receipts cannot rewind the current local selection revision. Private data handles retain generation identity without exposing RTP I/O."
+  ],
+  "verification": {
+    "command": "CARGO_TARGET_DIR=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024 cargo test --release -p connect-client --lib",
+    "passed_functions": 150,
+    "failed_functions": 0,
+    "new_functions": 1,
+    "log": {
+      "path": ".local/gate-6/rust-sdk-reconciliation/client-03.log",
+      "sha256": "42eb2f2ce4329f7778583908ef09d5ee392c93032269debc7718280624880714"
+    },
+    "inputs": {
+      "path": ".local/gate-6/rust-sdk-reconciliation/generation-inputs.json",
+      "sha256": "ef20adc65350308d973688673404855699217101ca1f136311f6340a9846f564"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-reconciliation/format-02.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "dependency_preparation": {
+      "path": ".local/gate-6/rust-sdk-reconciliation/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "new_test": "canonical::tests::sdk_native::selections::reintroduced_receive_ids_keep_generation_history_and_cannot_reuse_retired_hop_handles"
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/client-01.log",
+        "sha256": "bbd1b8c28d15418bac9584200d96520f612ce2de7de8d1c9be07cd63abac1664"
+      },
+      "observation": "149 passed, one new fixture failed because its second signed reoffer incorrectly retained revision2; fixture now derives expected_revision+1."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-reconciliation/client-02.log",
+        "sha256": "bf6003b54620a00e43e1074adb372645c150fc70cb7bc2302d20b1e60748bfe1"
+      },
+      "observation": "Unintended debug-profile build stopped before tests; final release-profile suite completed successfully."
+    }
+  ],
+  "remaining": [
+    "Server-initiated subscription/native binding reconciliation, unavailable capture adoption and the rest of G6-060 remain open.",
+    "Prior production selection evidence describes its sealed earlier sources; this increment claims only the current complete client suite.",
+    "All105 Gate6 tasks remain the objective; no task/acceptance, full SDK, remote/Linux, performance or publication completion."
+  ]
+}

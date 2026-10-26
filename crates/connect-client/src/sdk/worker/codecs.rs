@@ -395,9 +395,9 @@ pub(super) fn record(
     )?;
     entry.known_revision = selected.stream_revision;
     entry.selected = selected;
-    entry.generations = prepared.generations.clone();
+    entry.generations.extend(prepared.generations.clone());
     entry.wire_handles = prepared.wire_handles.clone();
-    entry.gates = prepared.gates.clone();
+    entry.gates.extend(prepared.gates.clone());
     entry.prepared = None;
     Ok(())
 }

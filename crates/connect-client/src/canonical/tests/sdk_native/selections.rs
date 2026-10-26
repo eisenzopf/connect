@@ -4,6 +4,7 @@ use crate::sdk::StreamSelector;
 #[derive(Clone, Copy, Debug)]
 pub(in crate::canonical) enum Case {
     Normal,
+    Recycle,
     Unknown,
     Dropped,
     RoutingOnly,
@@ -53,15 +54,33 @@ fn streams() -> Value {
 fn bindings(v: &Value) -> Value {
     json!(v.as_array().unwrap().iter().map(|s|json!({"stream_id":s["strm_id"],"medium":s["kind"],"direction":s["direction"],"codec":s["codec"],"stream_local_id":s["stream_local_id"],"stream_generation":1,"connection_generation":1})).collect::<Vec<_>>())
 }
+fn ports(request: &Envelope, case: Case) -> Value {
+    let mut v = streams();
+    if matches!(case, Case::Recycle) {
+        match request.original()["expected_revision"].as_u64().unwrap() {
+            2 => v.as_array_mut().unwrap().truncate(3),
+            3 => {
+                v[3]["stream_local_id"] = json!(19);
+                v[4]["stream_local_id"] = json!(20);
+            }
+            _ => (),
+        }
+    }
+    v
+}
 fn result(request: &Envelope, case: Case) -> Value {
     let expected = request.original()["expected_revision"].as_u64().unwrap();
     let routing = matches!(case, Case::RoutingOnly);
     let unchanged = routing && request.scope(Scope::Operation) == Some("selection-noop");
-    let mut ports = streams();
+    let mut ports = ports(request, case);
     if routing {
         ports.as_array_mut().unwrap().truncate(3);
     }
     let mut out = json!({"connection_id":"connection_one","command_type":request.kind(),"connection_generation":1,"expected_revision":expected,"stream_revision":expected+u64::from(!unchanged),"resources_changed":!routing,"stream_bindings":if matches!(case,Case::NoCapture){Value::Null}else{bindings(&ports)}});
+    if matches!(case, Case::Recycle) && expected == 3 {
+        out["stream_bindings"][3]["stream_generation"] = json!(2);
+        out["stream_bindings"][4]["stream_generation"] = json!(2);
+    }
     match case {
         Case::BadResultHandle => out["stream_bindings"][3]["stream_local_id"] = json!(19),
         Case::BadResultGeneration => out["stream_bindings"][3]["stream_generation"] = json!(2),
@@ -195,7 +214,7 @@ pub(super) async fn emit(
             "stream.subscribe" | "stream.unsubscribe"
         ));
         requests += 1;
-        if !matches!(case, Case::RoutingOnly) {
+        if !matches!(case, Case::RoutingOnly | Case::Recycle) {
             assert_eq!(requests, 1, "recovery never repeats mutation");
         }
         if request.original()["payload"].get("opaque").is_some() {
@@ -213,7 +232,7 @@ pub(super) async fn emit(
             captured.clone(),
         );
         if !matches!(case, Case::RoutingOnly) {
-            let mut ports = streams();
+            let mut ports = ports(&request, case);
             match case {
                 Case::BadDirection => ports[3]["direction"] = json!("recvonly"),
                 Case::BadCodec => ports[3]["codec"]["name"] = json!("h264"),
@@ -225,10 +244,12 @@ pub(super) async fn emit(
                 }
                 _ => (),
             };
-            let setup = json!({"kind":"native-prepared/1","revision":if matches!(case,Case::BadRevision){99}else{2},"offer_id":request.id(),"streams":ports});
+            let setup = json!({"kind":"native-prepared/1","revision":if matches!(case,Case::BadRevision){99}else{request.original()["expected_revision"].as_u64().unwrap()+1},"offer_id":request.id(),"streams":ports});
             let offered=ports.as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec_preferences":[s["codec"]["name"]]})).collect::<Vec<_>>();
             let callback=write(writer,signer,&request,"connection.offer",json!({"by_participant":if matches!(case,Case::BadParticipant){"foreign"}else{"part_one"},"substrate":"quic","capabilities":if matches!(case,Case::BadCaps){json!({})}else{caps.clone()},"streams_offered":offered,"substrate_setup":setup}),false).await;
-            if malformed(case) {
+            if malformed(case)
+                || matches!(case, Case::Recycle) && request.original()["expected_revision"] == 4
+            {
                 while let Some(reply) = maybe_read(reader).await {
                     assert_ne!(
                         reply.kind(),
@@ -247,10 +268,12 @@ pub(super) async fn emit(
                 assert_eq!(reply.kind(), "connection.answer");
                 assert_eq!(reply.scope(Scope::Reply), Some(callback.id()));
                 assert_eq!(reply.original()["payload"]["substrate_setup"], setup);
-                assert_eq!(
-                    reply.original()["payload"]["streams_answered"][3]["direction"],
-                    "recvonly"
-                );
+                if ports.as_array().unwrap().len() > 3 {
+                    assert_eq!(
+                        reply.original()["payload"]["streams_answered"][3]["direction"],
+                        "recvonly"
+                    );
+                }
                 break;
             }
         }
@@ -583,5 +606,73 @@ async fn selection_selectors_extensions_and_cancelled_preflight_preserve_exact_b
         .wait(super::options())
         .await
         .unwrap();
+    close(client, host).await;
+}
+
+#[tokio::test]
+async fn reintroduced_receive_ids_keep_generation_history_and_cannot_reuse_retired_hop_handles() {
+    let (client, c, host, _) = ready(Case::Recycle).await;
+    let original = c
+        .subscribe(selectors(), revision(1), opts("selection-first"))
+        .await
+        .unwrap();
+    original.wait(options()).await.unwrap();
+    assert_eq!(count(&c), 5);
+    c.subscribe(
+        NonEmpty {
+            first: StreamSelector::Participant {
+                participant_id: "part_remote".parse().unwrap(),
+                kinds: Some(NonEmpty {
+                    first: Medium::Audio,
+                    rest: vec![],
+                }),
+            },
+            rest: vec![],
+        },
+        revision(2),
+        opts("selection-remove"),
+    )
+    .await
+    .unwrap()
+    .wait(options())
+    .await
+    .unwrap();
+    assert_eq!(count(&c), 3);
+    let value = c
+        .subscribe(selectors(), revision(3), opts("selection-reintroduce"))
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    let bindings = value.bindings.unwrap();
+    let video = bindings
+        .iter()
+        .find(|b| b.parameters.id.as_str() == "camera")
+        .unwrap();
+    assert_eq!(video.stream_generation, 2);
+    assert_eq!(video.parameters.stream_local_id, Some(19));
+    let data = bindings
+        .iter()
+        .find(|b| b.parameters.id.as_str() == "remote-data")
+        .unwrap();
+    assert_eq!(data.stream_generation, 2);
+    assert!(data.parameters.stream_local_id.is_none());
+    original.wait(options()).await.unwrap();
+    assert_eq!(
+        c.native_negotiation()
+            .unwrap()
+            .unwrap()
+            .stream_revision
+            .get(),
+        4
+    );
+    let error = c
+        .subscribe(selectors(), revision(4), opts("selection-retired-handle"))
+        .await
+        .err()
+        .expect("retired handle cannot be adopted again");
+    assert_eq!(error.kind, sdk::ErrorKind::Protocol);
     close(client, host).await;
 }

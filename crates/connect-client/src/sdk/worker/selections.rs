@@ -174,11 +174,9 @@ pub(super) fn prepare(
         }
         let generation = if unchanged {
             *entry.generations.get(&id).ok_or_else(bad)?
-        } else if old.is_some() {
-            entry
-                .generations
-                .get(&id)
-                .and_then(|v| v.checked_add(1))
+        } else if let Some(previous) = entry.generations.get(&id) {
+            previous
+                .checked_add(1)
                 .filter(|v| *v <= 9_007_199_254_740_991)
                 .ok_or_else(bad)?
         } else {
