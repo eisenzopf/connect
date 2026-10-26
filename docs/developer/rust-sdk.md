@@ -393,6 +393,6 @@ Delivery is advisory; durable cursor catch-up, wider backpressure profiles, othe
 automatic negotiation families and the remaining SDK/package/profile scope stay
 open under G6-060. Routing-only commits can preserve both native ports and
 revision; the SDK still observes the new journal identity after a current read.
-All166 client and43 protocol tests pass. Corrected production verification is
-pending after an initial fixture incorrectly expected a revision increment. See
-`docs/evidence/gate-6/rust-sdk-routing-reconciliation-checkpoint.json`.
+All 166 client, 43 protocol, 181 targeted Store functions and 23 selected production
+functions pass in the recorded local scope. Verification and earlier failures
+are recorded in `docs/evidence/gate-6/rust-sdk-routing-reconciliation.json`.

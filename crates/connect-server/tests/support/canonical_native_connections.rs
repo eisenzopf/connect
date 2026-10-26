@@ -52,8 +52,8 @@ mod solo;
 mod step_up;
 use super::*;
 
-// Control-focused cases consume legitimate asynchronous lifecycle hints. The
-// lifecycle module uses raw receive() and verifies their contents and authority.
+// Control-focused cases consume validated asynchronous journal/lifecycle hints.
+// SDK reconciliation and lifecycle cases verify those hints and their authority.
 pub(super) trait ControlReception {
     async fn receive_control(&mut self) -> connect_client::Result<Envelope>;
 }
@@ -62,18 +62,38 @@ impl ControlReception for CanonicalClient {
         let until = tokio::time::Instant::now() + Duration::from_secs(8);
         for _ in 0..128 {
             let frame = self.receive().await?;
-            if !matches!(
-                frame.kind(),
-                "session.started"
-                    | "recording.vcon-ready"
-                    | "session.ended"
-                    | "session.participant.joined"
-                    | "session.participant.left"
-                    | "connection.ready"
-                    | "stream.opened"
-                    | "stream.closed"
-                    | "connection.quality"
-            ) {
+            let journal_hint = frame.kind() == "operation.updated"
+                && frame.scope(rvoip_uctp::v2::Scope::Reply).is_none()
+                && frame.expected_revision().is_none()
+                && [
+                    rvoip_uctp::v2::Scope::Conversation,
+                    rvoip_uctp::v2::Scope::Session,
+                    rvoip_uctp::v2::Scope::Connection,
+                ]
+                .into_iter()
+                .all(|scope| frame.scope(scope).is_some())
+                && serde_json::from_value::<connect_protocol::native_streams::ReconciliationHint>(
+                    frame.original()["payload"].clone(),
+                )
+                .is_ok_and(|hint| {
+                    hint.validate().is_ok()
+                        && frame.scope(rvoip_uctp::v2::Scope::Operation)
+                            == Some(hint.operation_id.as_str())
+                });
+            if !journal_hint
+                && !matches!(
+                    frame.kind(),
+                    "session.started"
+                        | "recording.vcon-ready"
+                        | "session.ended"
+                        | "session.participant.joined"
+                        | "session.participant.left"
+                        | "connection.ready"
+                        | "stream.opened"
+                        | "stream.closed"
+                        | "connection.quality"
+                )
+            {
                 return Ok(frame);
             }
             if tokio::time::Instant::now() >= until {

@@ -1,0 +1,281 @@
+{
+  "schema": "connect-gate6-rust-sdk-routing-reconciliation/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T05:27:38.331592+00:00",
+  "base_revision": "6649494f6a5f712120c8b6e7a217bfeafd7f7469",
+  "scope": "Recorded routing-only native subscription changes reach the owned Rust SDK through signed metadata hints and fresh journal reads. Local macOS arm64 functional scope; no full SDK, whole default suite or profile acceptance.",
+  "implementation": [
+    "ReconciliationHint is bounded original operation/record/selector identity plus counters, with no result, binding set, readiness or media grant. Store lookup requires durable completed routing-only stream.reconcile, confirmed effect, exact original scope/credential/key/Device/generation and current selector/native source permission.",
+    "Only after durable completion, the server coalesces latest metadata per original physical writer/Connection (64 queued Connections, one flight, bounded retry age). Credential refresh installs a current listener and retires the old source. Queues and unfinished metadata jobs retain no idle permission reader.",
+    "The recorded upstream patch seals journal output to the original confirmed native writer and current authenticated physical incarnation. Current host permission is reacquired at actual reliable IO. Control capacity stays reserved; an unfinished sink is destroyed before its current reader releases.",
+    "The SDK treats the signed hint only as a trigger. Known originally issued selector, exact owned scope, bounded pending hint, original host/parent/counter identity and current operation.get completion are required before revision observation. One existing bounded worker multiplexes media, control, callbacks and observation-only jobs. No native parameter answer is sent for routing-only changes.",
+    "Stale/foreign/unissued/malformed hints and mismatched current results cannot acquire custody. A pending hint cannot replace an unsettled preparation original recovery identity. Captured matching bindings advance the local counter without new native resources. A null routing-only capture may advance only its exact installed predecessor and no pending preparation, since the journal proves no physical change; it invents no bindings and bindings_adopted stays false. Resource-replacement null captures remain unresolved."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 166,
+      "failed_functions": 0,
+      "new_functions": 7,
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/client-protocol-04.log",
+        "sha256": "84e8c1968180b1ea5d90e2d664e73bdf3b4b0687ace7ff0905c3029187f1fc7c"
+      },
+      "behaviors": [
+        "Fresh current journal and correlated ACK precede route-only observation/counter advancement; old original results never rewind it.",
+        "Changed announced host record/counter refuses, unmatched binding captures never install, and stale/foreign/unissued/nonrouting hints do not disturb other control.",
+        "A routing hint cannot overwrite an unsettled original resource preparation; null route-only capture advances only the exact installed predecessor without fabricating bindings.",
+        "Same-revision routing-only completion is observed with matching or unavailable capture without inventing bindings or changing native ports; older-predecessor and repeated current identities are ignored."
+      ]
+    },
+    "protocol": {
+      "passed_functions": 43,
+      "failed_functions": 0,
+      "new_functions": 3,
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/client-protocol-04.log",
+        "sha256": "84e8c1968180b1ea5d90e2d664e73bdf3b4b0687ace7ff0905c3029187f1fc7c"
+      },
+      "scope": "Includes strict metadata-only roundtrip, private/capture field refusal and counter/identity/mode boundaries."
+    },
+    "store": {
+      "passed_functions": 181,
+      "failed_functions": 0,
+      "new_functions": 3,
+      "filtered_functions": 1035,
+      "scope": "Targeted native_stream_authority only: no pre-completion or resource-change hint, exact original source/record metadata with no extra effect, and old physical origin refusal after Store succession.",
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/store-02.log",
+        "sha256": "0d28fd89c785cf067c456f95817c4619cfef61b74a292afc042b2851b07b4129"
+      }
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/rustdoc.log",
+        "sha256": "a45cc47be36b6f28d5f6f3087491c59e8fd6dfac2e1673ea7a62c7758d53874a"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "added_vectors": 10,
+      "scope": "Source/shape and semantic boundaries only. Hints require full root scope, no reply/assertion header and no result/private plan.",
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/contracts.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      }
+    },
+    "production": {
+      "passed_functions": 23,
+      "failed_functions": 0,
+      "modified_sdk_functions": 2,
+      "new_algorithm_scenes": 4,
+      "report": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-05-summary.json",
+        "sha256": "c967c16b5d7d794c0e832d7b2e619f7deb51c199f9fb0d833b0edeac0b466ecb"
+      },
+      "sealed_binary_sha256": "a0cad02aa0069f0af87b79238729d87aee266411dafd9094184c172c1df9d72e",
+      "results": [
+        {
+          "filter": "sdk_handles::reconciliations::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 30.7093313341029,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-00.log",
+          "log_sha256": "3a848d5413da72ffa03c54908f81e0b2f7c3f3b324924f71d32e674bfca886cc"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::reconciliations::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 10,
+          "failed_functions": 0,
+          "elapsed_seconds": 64.96516870800406,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-01.log",
+          "log_sha256": "27214a8b3c6bef2a574d3bffa734556c204e98d4ddd321817c24e61b808082d2"
+        },
+        {
+          "filter": "canonical_native_connections::future::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 4,
+          "failed_functions": 0,
+          "elapsed_seconds": 36.226942291948944,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-02.log",
+          "log_sha256": "c992a3ca39210586f9c03aadcbb53f24614c46f5e56bcd5d9bd3e9dea6e27f65"
+        },
+        {
+          "filter": "canonical_native_connections::handles::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 8.927354791900143,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-03.log",
+          "log_sha256": "72aede54666089081b6630da525e0a33422aec9754b5b12ea10e3cafacc13137"
+        },
+        {
+          "filter": "canonical_native_connections::selector_policy::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 10.811961875064299,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-04.log",
+          "log_sha256": "83d7b24b8e918dfde63505762b076b3c23a715707dcc5b4368d0c6ff7a45085f"
+        },
+        {
+          "filter": "canonical_native_connections::capability_quic::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 4,
+          "failed_functions": 0,
+          "elapsed_seconds": 26.427012000000104,
+          "log": ".local/gate-6/sdk-routing-reconciliation/production-05-05.log",
+          "log_sha256": "3b409c0ae0b891aef71ca331ee6f8964d4159c68e77b63e54fc342fabcea2d90"
+        }
+      ],
+      "scope": "Two both-ends SDK functions across EdDSA/ES256, ten existing SDK functions, four canonical future-selector functions, native handle custody, two selector-policy/data refusals and four real partial-QUIC capability writer regressions. No whole server/default-suite claim.",
+      "behaviors": [
+        "Real camera publication still negotiates and decodes VP8/PCMU through two owned SDK peers. Closing only the camera leaves original audio active; a completed routing-only journal hint observes the new operation at the unchanged native revision without a parameter offer. A subsequent fresh selector succeeds with that current revision.",
+        "Controlled route-only completion recording failure emits no premature hint/counter advancement. Actual decoded audio and control continue; removing the trigger synchronizes the recorded original result, keeps camera absent and records one effect. Historical resource receipts cannot rewind the newer route-only counter.",
+        "Existing SDK/native selection/custody/policy and actual partial-QUIC capability writer deadline/completion/source-revoke/recipient-revoke regressions pass. Those four exercise the shared writer framework; they are not forced partial-output tests of the new small journal hint itself."
+      ]
+    },
+    "public_consumer_snippet": {
+      "report": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/example-summary.json",
+        "sha256": "d96e4fdba9926f594b4eebf75b71a09e39849519095e8483892c03368224b542"
+      },
+      "scope": "Separate metadata compile of public SDK handles and read-only reconciliation reference; full packaged external-crate runtime remains open."
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/inputs-05.json",
+        "sha256": "7eb0df5d18d6e7ef7ef94843105be273ac14259d25b2c9ad238b665c9b22ac17"
+      },
+      "guarded_inputs": 1341,
+      "unchanged": true
+    },
+    "dependency_pins": {
+      "patch": {
+        "path": "patches/rvoip/gate6-native-journal-delivery.patch",
+        "sha256": "a43057e711a9d7724408008e88c37579f3397a595471471742efcef882e87c05"
+      },
+      "source_lock": {
+        "path": "dependencies/source-lock.json",
+        "sha256": "d403e37996735b33779d6083b31d5a0032cc89f9c191d145c4d2e2816b655cd4"
+      },
+      "preparation": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/dependencies-206-verified.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "cache_metadata_audit": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/prepared-input-mtimes-206.json",
+        "sha256": "3d36d7bddcc3fbabfeeb876673cdb54730d2afed3769de2a69a2cc320d17fccc"
+      }
+    },
+    "checks": {
+      "format-05.log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/format-05.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "dependencies-final-verified.log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/dependencies-final-verified.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "schema-check.log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/schema-check.log",
+        "sha256": "e563ddd90d9b9633d4e10f66843d41630c0299da16abff0b32026ad7ea933a43"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "audit": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/failed-connect-cli-01.json",
+        "sha256": "1c7c824e16995ad588a2b3a09571c13f9ad292ba7dfd44a53885abae94932afc"
+      },
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/build-01.log",
+        "sha256": "1ffdf23dbadde41d5b0712156227f109c1753e4153562522a600a92491694d1f"
+      },
+      "observation": "Cargo reported build success but rust-objcopy exhausted disk stripping the auxiliary connect CLI, leaving a3632-byte non-executable. Valid test bytes were preserved unexecuted because the verifier refused any strip failure. Older owned SDK binaries were losslessly archived and hash-verified, then the preserved invalid CLI cache outputs were relinked; final02 required clean compiler diagnostics."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/store-01.log",
+        "sha256": "4e53f635327a53604296d5fa18e2edf2d9cd1a392990087a4d121cc06d1565ec"
+      },
+      "observation": "New restart fixture passed a PathBuf where Store::open requires &Path. Corrected fixture; final181 pass."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/client-protocol-01.log",
+        "sha256": "495006fcba5200e96624dffa584560d0bd327e2edea83891346152aeab0941ed"
+      },
+      "observation": "Superseded initial writer prototype completed159 client/43 protocol checks before current deferred-write policy and seven new signed hint functions. Not final qualification."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-04-summary.json",
+        "sha256": "9f4715433f9df2ebe3dc7097fad8cda7cd517593448ed901444b0cd4cf82b12c"
+      },
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-04-02.log",
+        "sha256": "66160b92f83779d59f2edc9c19a09b312cdaae03dd843353f6c8a5eff296892a"
+      },
+      "observation": "Corrected SDK functions2 and existing SDK10 pass. Four raw native fixtures expected a connection.offer but correctly received a new unsolicited routing journal hint first. Only the control-focused fixture helper was updated to consume strict valid root-scoped metadata hints, while malformed or correlated operation responses remain visible. Final05 reruns all23 functions with that helper."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-02-summary.json",
+        "sha256": "5a11b290820dd1c6278d998e2be5fc0b0b0243672562560e7fef99878882effc"
+      },
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-02-00.log",
+        "sha256": "160a2d9a98fe77ee32754dd1a1e362595ca4f5f7d3a649c33f53a9eb6d34be36"
+      },
+      "observation": "Both functions failed because the fixture expected revision4 after camera removal. Actual routing-only completion preserves negotiated ports and revision3; SDK also discarded same-revision hints. Final SDK permits a new operation at the installed counter only when its exact predecessor is installed and its fresh journal/capture matches. A new signed function covers both available and unavailable captures."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/production-03-00.log",
+        "sha256": "207996e2df914b87e2dd6bf81b5bd8c5a902a865c890b478ff7dc93793cc0ecd"
+      },
+      "observation": "Overlapping diagnostic runners wrote a shared log and report; aggregate counts are invalid and are discarded. Trace metadata established successful completion/queue/writer delivery at unchanged revision3. Final04 uses one runner with an exclusive candidate claim; no diagnostic03 pass is counted."
+    }
+  ],
+  "scratch_preservation": [
+    {
+      "path": ".local/gate-6/sdk-routing-reconciliation/qualified-binary-compression.json",
+      "sha256": "80ebaea7b3c33817792df9f0dc7ffcd3db080f1c1d309fc553b46dc3b920c1eb"
+    },
+    {
+      "path": ".local/gate-6/sdk-routing-reconciliation/older-sdk-binary-compression.json",
+      "sha256": "1f7e345998029c9cc8752ba54739f444f5153bc14b46e6bcbd7b65aacd61168e"
+    },
+    {
+      "path": ".local/gate-6/sdk-routing-reconciliation/unused-preparation-cleanup.json",
+      "sha256": "1efc3be23ee7cf2ebdc1f45a1b38636575e889e2611388fc2e66838d7b10255a"
+    }
+  ],
+  "remaining": [
+    "G6-060 remains in progress. Lost-hint durable cursor catch-up, forced hint-specific partial-output/saturation and wider scheduling/performance profiles remain unqualified.",
+    "Explicit physical reconciliation for unavailable resource-replacement capture, other server negotiation families, reliable data/event/capability/config/raw/admin APIs, full packaged external/both-ends journeys, incompatible-server/abrupt-crash and approved Linux/remote profiles remain.",
+    "All105 Gate6 tasks remain the objective; no task or acceptance closure, whole default suite, performance, remote-provider or publication claim."
+  ]
+}
