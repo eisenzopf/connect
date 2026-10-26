@@ -987,7 +987,14 @@ pub(super) async fn exercise_replacement_with_sdk(
         }
         let terminal = status(&f, &key.id, &command.operation_id).await;
         if let Some(probe) = sdk_probe {
-            super::sdk_movements::replacement_stopped(probe, terminal.state).await;
+            super::sdk_movements::replacement_stopped(
+                &f,
+                probe,
+                terminal.state,
+                &key.token,
+                observer && !reject_answer && !revoke_endpoint && !revoke_target_key,
+            )
+            .await;
         }
         assert_eq!(
             terminal.effects.len(),

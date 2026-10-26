@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-movements/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T02:32:23.695660+00:00",
+  "checked_at": "2026-10-26T02:36:43.522207+00:00",
   "base_revision": "5d81daf978cec6285f6d9c9b7d4859139b46200d",
-  "scope": "Actual SDK-controlled signed handoff and native device movement pass eight scenes each across EdDSA/ES256. Remaining recovery/cancellation and regression groups are running. Native media owners remain independent Canonical peers; local macOS arm64 scope only.",
+  "scope": "All four new SDK controller functions pass 24 actual signed native algorithm scenes: handoff, device movement, preparation/cancellation and known-commit recording recovery. Existing SDK/native/telephone regression groups remain running. Local macOS arm64; independent Canonical native media owners.",
   "implementation": [
     "Session.handoff preserves explicit Participants, outgoing disposition, separate Session/Conversation revisions, optional candidate and original consultation record. Saved context checks completed topology and role observations without granting foreign media custody.",
     "Connection.replace_device selects an Endpoint or candidate Connection and validates the captured target generation, membership epoch, Device/Endpoint and retained/admitted/retired topology. Both native and telephone Store commit projections now capture topology from the original intent and actual committed source/target.",
@@ -26,13 +26,13 @@
       "final_source_equivalence": "SDK/client/runtime implementation unchanged; only server fixtures changed after unit qualification."
     },
     "inputs": {
-      "path": ".local/gate-6/rust-sdk-movements/inputs-04.json",
-      "sha256": "dc71dc524b90b351ecb05dc889f4160275a38f12f82eedf6aa62bf98c09c2a9c",
+      "path": ".local/gate-6/rust-sdk-movements/inputs-05.json",
+      "sha256": "de9d9aaeff3dc4dfdd8b0f2d42f0a2b4a9b79d8d612e5db58c024884217a4ced",
       "guarded_source_inputs": 1323,
       "unchanged": true
     },
     "production": {
-      "status": "partial",
+      "status": "new-sdk-scenes-passed-regressions-running",
       "handoff": {
         "passed_functions": 1,
         "algorithm_scenes": 8,
@@ -69,7 +69,22 @@
       "source_change_audit": {
         "path": ".local/gate-6/rust-sdk-movements/controller-read-baseline-correction.json",
         "sha256": "64cb4c203f9670c702dc391f99d13263e8ab735694c27ca3b81a96537ac38bf8"
-      }
+      },
+      "recovery": {
+        "passed_functions": 2,
+        "algorithm_scenes": 8,
+        "report": {
+          "path": ".local/gate-6/rust-sdk-movements/production-04-new-sdk-checkpoint.json",
+          "sha256": "dbc38030d15059688c2f58fa3171765e4591b22700dbf3f37b0e6ee3a6f99222"
+        },
+        "scope": "Six preparation/cancellation scenes and two known-commit projection/recording-failure scenes under both algorithms. Revoked original read refuses; fresh authority restores exact recorded Failed/Cancelled state. Same known commit recovers without a second movement effect."
+      },
+      "source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-movements/qualified-source-equivalence.json",
+        "sha256": "de47e3d5b203c19e52bb04db374b8d10577d135f553699915e379bd864d690c9"
+      },
+      "new_sdk_functions": 4,
+      "new_sdk_algorithm_scenes": 24
     },
     "contracts": {
       "report": {
@@ -124,10 +139,21 @@
         "sha256": "0f64779d375e4c3b1147e22f0509c9368475f179499504ac7211dfcbfcf68096"
       },
       "result": "Waiting alone failed because authentication does not bind Physical.peer. Explicit current-authorized conversation.get now establishes the control peer before the no-preparation-allocation baseline. Actual eight-scene replacement matrix subsequently passes."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-movements/production-03-summary.json",
+        "sha256": "0064114a40ee941dd792679f53f548823f54d37803a3b1d62f5a17614f85fbb7"
+      },
+      "result": "Eight movement scenes passed; preparation observer intentionally revoked original controller, whose status read correctly failed ReadOnly/Cancelled. Corrected fixture asserts that refusal and recovers original operation under fresh authority. Six preparation and two recording-failure scenes subsequently pass.",
+      "correction": {
+        "path": ".local/gate-6/rust-sdk-movements/revoked-controller-recovery-correction.json",
+        "sha256": "d0528c76cb48a5d82442cca076c74ad28452d9eb70fc05e2eea7e0b9616d75df"
+      }
     }
   ],
   "remaining": [
-    "Preparation cancellation, recording-failure recovery, existing SDK regressions and telephone captured-topology checks are running; G6-060 remains in progress.",
+    "G6-060 remains in progress with20of22 direct mapped mutation kinds implemented. Subscribe/unsubscribe and full SDK surfaces/custody/reconciliation remain. Existing SDK/native and telephone regressions are running.",
     "Subscribe/unsubscribe and full SDK API/event/configuration, reliable data, transition custody and server-initiated reconciliation, packaged consumers, both-ends SDK and approved remote/Linux profiles remain.",
     "G6-060 remains in progress; no Gate acceptance, performance or publication claim."
   ]

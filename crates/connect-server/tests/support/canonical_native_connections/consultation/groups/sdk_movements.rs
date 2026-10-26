@@ -284,15 +284,58 @@ pub(super) async fn replacement_completed(
     probe.client.close(options()).await.unwrap();
     println!("SDK replacement {}:{} generation={},retained={},retired={},captured_topology,fresh_observation_no_custody",f.client.signing_algorithm,command.operation_id,value.binding.generation,command.intent.retained(),command.connection_id.as_ref().unwrap());
 }
-pub(super) async fn replacement_stopped(probe: ReplacementProbe, state: OperationState) {
-    assert_eq!(
-        probe.operation.status(options()).await.unwrap().state,
-        state
-    );
-    assert!(
-        matches!(probe.operation.wait(options()).await,Err(e) if e.certainty==sdk::Certainty::Recorded)
-    );
+pub(super) async fn replacement_stopped(
+    f: &Fixture,
+    probe: ReplacementProbe,
+    state: OperationState,
+    token: &str,
+    original_revoked: bool,
+) {
+    if original_revoked {
+        let error = probe
+            .operation
+            .status(options())
+            .await
+            .err()
+            .expect("revoked controller cannot recover");
+        assert_eq!(error.certainty, sdk::Certainty::ReadOnly);
+        assert!(matches!(
+            error.kind,
+            sdk::ErrorKind::Cancelled
+                | sdk::ErrorKind::Authentication
+                | sdk::ErrorKind::TransportUncertain
+                | sdk::ErrorKind::Application
+        ));
+    } else {
+        assert_eq!(
+            probe.operation.status(options()).await.unwrap().state,
+            state
+        );
+        assert!(
+            matches!(probe.operation.wait(options()).await,Err(e) if e.certainty==sdk::Certainty::Recorded)
+        );
+    }
+    let config = super::super::sdk_controls::controller_config(f, token, 922);
+    let fresh = Client::connect(config, "tnt_default".parse().unwrap())
+        .await
+        .unwrap();
+    let restored = fresh
+        .restore(
+            probe.operation.reference_json(),
+            fresh.operation_kinds().connection_replace,
+        )
+        .unwrap();
+    assert_eq!(restored.status(options()).await.unwrap().state, state);
+    let error = restored
+        .wait(options())
+        .await
+        .err()
+        .expect("terminal unsuccessful movement remains recorded");
+    assert_eq!(error.certainty, sdk::Certainty::Recorded);
+    assert_eq!(error.observation.unwrap().state, state);
+    fresh.close(options()).await.unwrap();
     probe.client.close(options()).await.unwrap();
+    println!("SDK stopped replacement {}:state={state:?},fresh_authority_original_id,original_revoked={original_revoked}",f.client.signing_algorithm);
 }
 #[tokio::test]
 async fn production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio() {
