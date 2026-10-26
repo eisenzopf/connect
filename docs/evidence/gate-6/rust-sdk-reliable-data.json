@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-reliable-data/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T05:52:31.998075+00:00",
-  "base_revision": "52f08068d3c6befb5da56b5300d2a03aa1603167",
-  "scope": "Typed owned SDK reliable text/JSON/binary implementation checkpoint. Component tests pass; corrected production qualification is running and no runtime pass is claimed yet.",
+  "checked_at": "2026-10-26T05:56:37.409742+00:00",
+  "base_revision": "c5b2d09b36226ccb4e4c26860dcf4141242e4583",
+  "scope": "Typed owned Rust SDK reliable text/JSON/binary with actual both-ends media and journal recovery, in the recorded local macOS arm64 functional profile. G6-060 remains in progress; no whole SDK/default-suite/profile acceptance or publication closure.",
   "implementation": [
     "Stream.send_data preserves explicit original message/operation IDs, exact owned scope/label, negotiated text, JSON or binary format and reliable_ordered delivery. Local preflight and worker dispatch both recheck current owned binding/direction. data_send references are separate from Conversation message_send by their full Connection scope.",
     "Signed incoming message.send is demultiplexed before unmatched control retention. Exact owned Conversation/Session/Connection/Stream, receive direction, addressed local Participant, source attribution, format and bounded payload are required. Fresh status recovery cannot acquire native custody.",
@@ -24,12 +24,58 @@
       "overflow_lifetime": "Six signed functions plus one new local binding-generation regression. Temporary inactive/active direction changes cannot clear a reliable overflow; an actual new generation can."
     },
     "production": {
-      "status": "building",
-      "scope": "All21 selected production functions passed on the preceding candidate. It is superseded by the overflow-lifetime correction; current build05 reruns all21 before qualification.",
-      "superseded_report": {
-        "path": ".local/gate-6/sdk-reliable-data/production-04-summary.json",
-        "sha256": "ec84ce22a428ee9c93b64faf04baed905015adfa198494afcca9a38aff59d4d7"
-      }
+      "status": "passed",
+      "passed_functions": 21,
+      "failed_functions": 0,
+      "new_functions": 2,
+      "new_scenes": 12,
+      "scope": "Two new both-ends SDK functions across EdDSA/ES256 x text/JSON/binary x ordinary/recording-failure. Seven existing raw native data and12 existing SDK regression functions pass. No whole server suite, scheduling/performance or remote-profile qualification.",
+      "report": {
+        "path": ".local/gate-6/sdk-reliable-data/production-05-summary.json",
+        "sha256": "9e7d005ab83477c645461c4f32be9a84a00e655ad58c1dd8eea944aad5c4a920"
+      },
+      "sealed_binary_sha256": "827f666b981b9c3a776ce50522e3ae198d7f6959502e87147e865f997c31fc54",
+      "results": [
+        {
+          "filter": "sdk_handles::data::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 39.839202999835834,
+          "log": ".local/gate-6/sdk-reliable-data/production-05-00.log",
+          "log_sha256": "fc3865645587c5aa21227c1228f8c741fa7f38d3e6fd3edbc3e94df357756ae7"
+        },
+        {
+          "filter": "canonical_native_connections::data::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 7,
+          "failed_functions": 0,
+          "elapsed_seconds": 13.741161542013288,
+          "log": ".local/gate-6/sdk-reliable-data/production-05-01.log",
+          "log_sha256": "8b8c2200f17d74b6c9af44fd4294deab7d8346adecec0b4b3305a2178187a3f6"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::data::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 12,
+          "failed_functions": 0,
+          "elapsed_seconds": 93.79588704113849,
+          "log": ".local/gate-6/sdk-reliable-data/production-05-02.log",
+          "log_sha256": "05198b2a9cab524eddcf493cb8fd71c4097e4c6f7c542a1c4c1130ae6e338777"
+        }
+      ],
+      "behaviors": [
+        "Nine ordered typed payloads per scene preserve Unicode text, JSON values and exact binary bytes with original message and operation identity. Actual PCMU is independently decoded while SDK control and data run.",
+        "Completion-journal failure preserves one published/delivered original message. Competing same-Connection mutation refuses before a journal row; actual audio continues. The original completion records after recovery and subsequent ordered sends proceed.",
+        "Same-intent replay adds no recipient message; changed original intent is refused by current-authority preflight. Fresh authorized status recovery cannot send or receive through the original native Stream and creates no foreign mutation row. One durable message and one effect remain.",
+        "Connection end wakes blocked data receive, refuses stale custody and leaves zero queued bodies. Existing SDK receive selection/automatic reconciliation/codec/media and native data writer/authority/storage/cancellation regressions pass."
+      ]
     },
     "openapi": {
       "path": ".local/gate-6/sdk-reliable-data/openapi-check.log",
@@ -40,8 +86,53 @@
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "inputs": {
-      "path": ".local/gate-6/sdk-reliable-data/inputs-02.json",
-      "sha256": "7f2948cc061433fe513733e92c562ecff5bec4a189e8b53c9253fa89dca9ff80"
+      "manifest": {
+        "path": ".local/gate-6/sdk-reliable-data/inputs-05.json",
+        "sha256": "8d49da3984ec86f08ef12c1f9f907ec964af99414b7bb4d47b1af0e709b37052"
+      },
+      "guarded_inputs": 1345,
+      "unchanged": true
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/rustdoc-final.log",
+        "sha256": "2527917c8cc393a62b873c2204d56ccf12dc42e1979ae9a6fcf3d9d24a6e02bf"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "scope": "Schema/source contract checks; not runtime evidence.",
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/contracts.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      }
+    },
+    "documented_public_example": {
+      "exit_code": 0,
+      "report": {
+        "path": ".local/gate-6/sdk-reliable-data/example-summary.json",
+        "sha256": "af73fd29b32f404c30f8c35613f44fd4c22dce01232daf7be3f20656ab1a12b4"
+      },
+      "source": {
+        "path": ".local/gate-6/sdk-reliable-data/sdk-example.rs",
+        "sha256": "05bf7bbc73aec5bb3892b3c8288d8df93e565320ba946adf35a88af9f21b8729"
+      },
+      "scope": "The actual native-data guide snippet compiles independently against the final public crate plus serde_json. Metadata compilation only; full packaged external-crate runtime remains open."
+    },
+    "checks": {
+      "dependencies-final.log": {
+        "path": ".local/gate-6/sdk-reliable-data/dependencies-final.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-final.log": {
+        "path": ".local/gate-6/sdk-reliable-data/format-check-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/sdk-reliable-data/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   },
   "failed_or_superseded_runs": [
@@ -86,11 +177,22 @@
         "sha256": "cd1c47f4a84ec3b01ded5fd8e730329e3d37dd9794fdafc33b0d0f93026a4984"
       },
       "observation": "Changed original data intent is refused at the existing current-authority gate (403), and an unsettled original native completion serializes subsequent source mutations. Fixture now asserts those exact refusals, no competing row, actual decoded audio during blocked completion and ordered data only after original journal recovery. The backend authorization/serialization behavior was preserved."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-reliable-data/production-04-summary.json",
+        "sha256": "ec84ce22a428ee9c93b64faf04baed905015adfa198494afcca9a38aff59d4d7"
+      },
+      "observation": "All21 selected functions passed before the additional overflow lifetime correction. Its input guard then changed during the finishing run, so it is superseded; final05 alone qualifies the current implementation and all1345 inputs remain unchanged."
     }
   ],
   "remaining": [
-    "Complete actual production checks and public documented snippet compilation.",
-    "G6-060 remains in progress: event/invitation streams, receipts, capability/config/raw/admin surfaces, remaining automatic negotiation/capture recovery, full external package and both-ends journeys, incompatible-server/restart/cleanup and approved Linux/remote profiles.",
-    "All105 Gate6 tasks remain the objective. No task/acceptance, performance, whole default-suite or publication closure."
-  ]
+    "G6-060 remains in progress: typed durable event/invitation streams and receipt surfaces, capability/config/raw/admin APIs, remaining automatic negotiation/unavailable capture recovery, full packaged external/both-ends journeys, incompatible-server/restart and approved Linux/remote profiles.",
+    "Native data overflow/generation behavior is covered by component tests. Production slow-consumer/global-capacity stress, wider scheduling/performance, other runtimes/transports and remote profiles remain unqualified.",
+    "All105 Gate6 tasks remain the objective. No task/acceptance, whole default-suite, performance, remote-provider or publication closure."
+  ],
+  "scratch_preservation": {
+    "path": ".local/gate-6/sdk-reliable-data/diagnostic-binary-archives.json",
+    "sha256": "7b4f29d2603619f2ba5ef2248b5a010350722575a2c131c2b157ffc182cd263e"
+  }
 }

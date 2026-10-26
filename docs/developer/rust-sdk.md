@@ -444,7 +444,8 @@ under the same IDs. Connection end or a changed binding prevents old queued
 bodies from being consumed; Client close wakes receivers and releases queues.
 Debug output redacts message bodies.
 
-The implementation is in progress under G6-060. Signed component and production
-verification is being recorded in
-`docs/evidence/gate-6/rust-sdk-reliable-data.json`; full SDK packaging, event
-streams and operating-profile qualification remain open.
+The local functional checkpoint passes 173 client tests and 21 selected production
+functions, including both owned SDK peers, decoded concurrent audio, journal
+recovery and all three data formats. Verification and earlier failures are in
+`docs/evidence/gate-6/rust-sdk-reliable-data.json`. G6-060 remains in progress;
+full SDK packaging, event streams and operating-profile qualification remain open.
