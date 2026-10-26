@@ -145,6 +145,9 @@ enum Command {
     Stdio {
         #[arg(long)]
         config: PathBuf,
+        /// Select the explicit named application/Task API instead of canonical UCTP.
+        #[arg(long)]
+        application: bool,
     },
     /// Carry native PCMU audio over a bounded binary helper side channel.
     MediaStdio {
@@ -441,7 +444,10 @@ async fn main() -> Result<()> {
             human_number.as_deref(),
             connect_number.as_deref(),
         )?,
-        Command::Stdio { config } => connect_server::cli::stdio::serve(&config).await?,
+        Command::Stdio {
+            config,
+            application,
+        } => connect_server::cli::stdio::serve(&config, application).await?,
         Command::MediaStdio {
             config,
             conversation_id,

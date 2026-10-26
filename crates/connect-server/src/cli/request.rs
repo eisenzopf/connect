@@ -98,12 +98,34 @@ async fn exchange(
         .map_err(|_| Error::new("invalid-request", "Invalid canonical command JSON"))?;
     let config = CanonicalClientConfig::load(path).map_err(client_error)?;
     let mut client = CanonicalClient::open(config).await.map_err(client_error)?;
-    let result=async {
-        let batch=client.request(command.command,command.scope).await.map_err(client_error)?;
-        batch.ack().map_err(client_error)?;
-        Ok(json!({"kind":"canonical_reply","data":{"request_id":batch.request_id,"frames":batch.frames.iter().map(|f|f.original()).collect::<Vec<_>>()}}))
-    }.await;
+    let result = canonical_exchange(&mut client, command).await;
     // Preserve a verified command result even if the protocol drain times out.
     let _ = client.shutdown().await;
     result
+}
+
+/// The same finite, verified reply contract for one-shot and JSON-lines control.
+pub(super) async fn canonical_exchange(
+    client: &mut CanonicalClient,
+    command: Command,
+) -> Result<Value, Error> {
+    if command.command.kind() == "conversation.subscribe"
+        && serde_json::to_value(&command.command)
+            .map_err(|_| Error::new("invalid-request", "Invalid canonical command"))?["payload"]
+            ["live"]
+            != false
+    {
+        return Err(Error::new(
+            "invalid-request",
+            "CLI event reads require explicit live:false",
+        ));
+    }
+    let batch = client
+        .request(command.command, command.scope)
+        .await
+        .map_err(client_error)?;
+    batch.ack().map_err(client_error)?;
+    Ok(
+        json!({"kind":"canonical_reply","data":{"request_id":batch.request_id,"frames":batch.frames.iter().map(|f|f.original()).collect::<Vec<_>>()}}),
+    )
 }

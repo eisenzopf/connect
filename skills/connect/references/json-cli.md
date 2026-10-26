@@ -86,3 +86,31 @@ current reply frames; retain original logical IDs from the saved intent.
 The MCP tool's root resource fields and the CLI's nested `scope` are different
 shapes. Never mechanically send MCP arguments or the retired generic `op:send`
 shape to the canonical CLI.
+
+## Persistent JSON-lines control
+
+Use `connect stdio --config "$connect_native_config"` for sequential canonical
+commands. Each line adds a caller-owned exchange `id` to the same `command` and
+`scope` shape shown above. The exchange ID correlates stdout only; the saved
+logical mutation remains `scope.operation_id`.
+
+```json
+{"id":"observe-original","command":{"type":"operation.get","payload":{"operation_id":"saved-send-operation"}},"scope":{"conversation_id":"EXISTING_CONVERSATION_ID"}}
+```
+
+Each stdout line is `{"id":"observe-original","response":{"profile":"connect-control/1","result":{"Ok":{...}}}}`
+or the correlated `Err`. Canonical success uses `kind:canonical_reply` and checked
+frames. Event reads require explicit `live:false`. Input lines are at most64KiB;
+responses are at most2MiB. Invalid framing/schema closes the helper. EOF drains
+its native peer. A transport/protocol failure fences subsequent exchanges;
+restart explicitly and recover the original operation rather than resubmitting
+a mutation to hide uncertainty.
+
+Named application/Task JSON-lines calls require
+`connect stdio --application --config "$connect_application_config"`. Their
+lines contain `id`, `operation`, and optional `task_binding`. Bootstrap reads the
+exact bound Task with `task_binding` equal to its Get command's Task ID. The
+installed narrow native grant must be in that explicit application configuration;
+it does not inherit an owner's credential. Ordinary communication verbs remain
+canonical. A running helper never rereads an edited configuration or changes its
+selected API after failure.

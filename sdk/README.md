@@ -1,5 +1,22 @@
 # Connect language SDKs
 
+Gate6 migrates the pre-alpha language interfaces to canonical UCTP. The current
+Rust public SDK and finite Node canonical HTTP consumer have their own developer
+contracts under `docs/developer/`. The older Python/TypeScript generic
+`NativeClient` adapters below are historical Gate2 interfaces pending G6-062 and
+G6-063; they do not consume the current canonical JSON-lines command shape.
+They must not be used as a fallback for a failed canonical operation. Their
+Task workflows require the explicit application API during migration.
+
+Current CLI control uses `connect request --config <signed-native.toml>` for one
+canonical `Command`, or `connect stdio --config <signed-native.toml>` for sequential
+JSON lines containing `id`, `command` and `scope`. Named application/Task APIs use
+`--application` and their explicit HTTP configuration; stdio lines then contain
+`id`, `operation`, and optional exact `task_binding`. See
+[canonical CLI shapes](../skills/connect/references/json-cli.md).
+
+## Historical Gate2 interfaces
+
 - Rust: `connect-client`, directly over verified UCTP/QUIC.
 - Python: `sdk/python/connect_sdk`, Python 3.11+ on the qualified macOS host.
 - TypeScript: `sdk/typescript`, Node 22+, build with `npm ci && npm run build`.

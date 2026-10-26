@@ -1,0 +1,272 @@
+{
+  "task": "G6-065",
+  "status": "canonical JSON-lines implementation checkpoint passed; task in progress; one earlier provider regression remains unresolved",
+  "checked_at": "2026-10-26T12:58:36.178991+00:00",
+  "scope": "Local macOS arm64 actual built CLI against production canonical native and explicit named application APIs. No actual supported model-host, Linux/remote/provider-account/package/acceptance qualification or publication.",
+  "implementation": [
+    "Default stdio parses canonical Payload plus CommandScope, sends through public CanonicalClient, and shares verified ACK/reply encoding with one-shot request. Retired generic communication is not dispatched. Both finite CLI paths require explicit conversation.subscribe live:false.",
+    "Explicit --application loads only ApplicationClientConfig and named ApplicationOperation. Task bootstrap requires exact bound Task Get/profile; current native-grant Task/permission ceiling and revocation remain authoritative.",
+    "One selected mode and credential are loaded once. Startup errors stay correlated; editing configuration does not repair or promote a running helper. Transport/protocol failure fences later exchanges. Explicit restart recovers original status without mutation replay. EOF drains the owned canonical peer.",
+    "Closed input schemas, exchange ID bounds,64KiB lines and2MiB encoded output ceiling. Invalid framing/schema fails without reflecting raw input. The2MiB output ceiling is source-implemented; this checkpoint tests ordinary bounded replies, not an injected oversized server reply.",
+    "Embedded CLI reference documents both shapes and recovery; historical generic Python/TypeScript NativeClient wrappers are explicitly pending their dependency-gated migrations, not current canonical consumers."
+  ],
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 11.335793916136026,
+      "source_unchanged": true,
+      "binary_sha256": "2af95d547229355831f1632bc57387994c7d61e1c854cbd123e0106b58349512",
+      "bytes": 246725664,
+      "source_count": 1251,
+      "log_sha256": "d27aed5002e1f7f44ff9ca8d5950d5457e74bc0bc1591be83a0a1bb0f33e1948",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-06": {
+        "sha256": "8f5c3a8a0b7de2f0dcfa44fbfb9e50f6d325f7226ff135a6d0739bbc44634292",
+        "bytes": 94469216
+      },
+      "canonical-cli-06": {
+        "sha256": "25571d2014f297768cc4d571957a8cd725177e202b18b1a7d7518f2e8e7e5caf",
+        "bytes": 230480720
+      }
+    },
+    "runtime": {
+      "rows": [
+        {
+          "filter": "canonical_stdio::",
+          "expected": [
+            "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+            "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration"
+          ],
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.3353739159647375,
+          "log": ".local/gate-6/canonical-agent-export/production-06-00.log",
+          "sha256": "1b9b0f3744335f42fd1540782ae388ff4258c94f13a09ccec99605e9145c510c"
+        },
+        {
+          "filter": "sdk_handles::tasks::",
+          "expected": [
+            "sdk_handles::tasks::canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation",
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.303320167120546,
+          "log": ".local/gate-6/canonical-agent-export/production-06-01.log",
+          "sha256": "d6361b98283c4136f1fcf01f1f7c525166b2844b9fd2e868598e8c7715ec4340"
+        },
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.1686268751509488,
+          "log": ".local/gate-6/canonical-agent-export/production-06-02.log",
+          "sha256": "f3de06f0b8c870e7f012d44fb80bfa1cd9e70801cd7892f0ce73355ae07a309a"
+        },
+        {
+          "filter": "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation",
+          "expected": [
+            "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 0.3287262918893248,
+          "log": ".local/gate-6/canonical-agent-export/production-06-03.log",
+          "sha256": "b2e8fe399ed9172e665616d4d206233ac430a5a33ee9342c7180030bc272d5b6"
+        }
+      ],
+      "binary_sha256": "2af95d547229355831f1632bc57387994c7d61e1c854cbd123e0106b58349512",
+      "guard_count": 1251,
+      "source_unchanged": true,
+      "driver_sha256": "1fd9ed2af81ff2e3a7148223fedd677fc0ff21f232263cf5019ddbf461a2bc5f"
+    },
+    "agent_access_library": {
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 4.3166930000297725,
+      "log_sha256": "0cb8f6537b46ddea029e58252c8bdbde02b1afb3b4b861692bef7ae5ac80b848",
+      "binary_sha256": "8f5c3a8a0b7de2f0dcfa44fbfb9e50f6d325f7226ff135a6d0739bbc44634292",
+      "source_unchanged": true
+    },
+    "fresh_cli_export_and_stdio_restart": {
+      "status": "passed fresh CLI canonical export and actual MCP original recovery across restart",
+      "cli_sha256": "25571d2014f297768cc4d571957a8cd725177e202b18b1a7d7518f2e8e7e5caf",
+      "manifest_sha256": "7864a3ddbdb7356d46f8ad32f6ca2e6ad38e96f504264edd8b95fbec582d1caf",
+      "profile": "connect-codex-agent-install/2",
+      "credential_profile": "connect-agent-credential/2",
+      "exported_files": 6,
+      "native_keys_or_trust_paths_copied": false,
+      "source_credential_unchanged": true,
+      "operator_refused_before_output": true,
+      "repeat_export_preserved_assets": true,
+      "remove_preserved_unrelated_and_server_authority": true,
+      "records": [
+        {
+          "run": 0,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        },
+        {
+          "run": 1,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        }
+      ],
+      "source_unchanged": true,
+      "driver_sha256": "9587cd6aca217be7ffe3ab4618ecd451a741f1b9197fc8b0d1a0437758b29b79",
+      "native_stdio_recovery": [
+        "native shutdown uncertainty fences subsequent calls",
+        "same helper remains fenced after same-endpoint server restart",
+        "fresh helper recovers same completed original without replay"
+      ],
+      "scope": "Local CLI export, embedded skill hash validation and direct MCP protocol client from the exported credential. No actual model invocation, Codex tool transition, media/provider/remote/package qualification or publication."
+    },
+    "inputs_count": 1251,
+    "inputs_sha256": "f0104a391b5c941feed043813815d7f099e8ce5eafe032438c436dac0b96f992",
+    "source_unchanged": true,
+    "embedded_cli_reference_sha256": "fb59240049a31b41e24b95db72035c0bff481dcda01de2aa4051c79340f87b56",
+    "static_checks": [
+      "prepare-dependencies verifies pins/patch digests",
+      "repository format --check",
+      "git diff --check",
+      "OpenAPI generator --check",
+      "Gate6 plan integrity",
+      "skill quick_validate"
+    ]
+  },
+  "cases": [
+    "Both signing algorithms: same Message original replay across helper EOF/restart, completed original record/result recovery, one Message in history, one-shot status agreement, finite snapshot and omitted/live:true refusal, fixed configuration despite edited file, current revocation refuses replay.",
+    "Real process startup configuration refusal persists after a valid configuration is written; fresh helper repairs explicitly. Wrong API shape, unknown authority field and65537-byte line fail with no extra stdout or reflected input.",
+    "Both signing algorithms: narrow native Task grant refuses mismatched bootstrap, another Task, unauthorized Recall and retired generic Send; exact Get remains usable after ordinary refusal. Replacing the file with owner authority cannot bypass current grant revocation; independent owner can still read its own Task.",
+    "Fresh init/serve/export and actual MCP same-original recovery run twice on the same protected endpoint/state. Existing native stdio receives shutdown uncertainty, stays fenced before/after server restart, and fresh native helper observes the identical completed original record without replay. Embedded skill hashes and precise removal remain valid."
+  ],
+  "development_record": [
+    {
+      "status": "unresolved first provider regression",
+      "function": "public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation",
+      "result": "Initial04 Task cohort:2 passed/1 failed, forbidden from Task execution. New Task-stdio test passed in that cohort. Exact same sealed binary diagnostic rerun passed. Test diagnostic now includes the rejected Task command; production CLI/service/Store behavior was unchanged. Current06 full10-function cohort passes, followed by5 bounded diagnostic repeats, all passing. No root cause or robustness fix is claimed.",
+      "first_cohort": {
+        "rows": [
+          {
+            "filter": "canonical_stdio::",
+            "expected": [
+              "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+              "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration"
+            ],
+            "exit_code": 0,
+            "passed": 2,
+            "failed": 0,
+            "ignored": 0,
+            "seconds": 3.3947526668198407,
+            "log": ".local/gate-6/canonical-agent-export/production-04-00.log",
+            "sha256": "cc6da0dab745a46596e0f0443746e173c03e102a378077cbde6861283bffe81a"
+          },
+          {
+            "filter": "sdk_handles::tasks::",
+            "expected": [
+              "sdk_handles::tasks::canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation",
+              "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+              "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+            ],
+            "exit_code": 101,
+            "passed": 2,
+            "failed": 1,
+            "ignored": 0,
+            "seconds": 1.8531617079861462,
+            "log": ".local/gate-6/canonical-agent-export/production-04-01.log",
+            "sha256": "3572d0a7af314bf1751303d57c1b9558176a8067c2a831066b954178811a8ab5"
+          }
+        ],
+        "binary_sha256": "5644ccec2dd72f2dee399d1864c9002c6a964dcdefa643694bcd02449040fce6",
+        "guard_count": 1251,
+        "source_unchanged": true,
+        "driver_sha256": "6256d8e84cf00f9238031c3b6efbc5db78fe8b98cf64354dadd80fd397a6731b"
+      },
+      "diagnostic_log_sha256": "e12f667487cf26a0ed63a7eb7072a3aeb07aa80b97994943a5a0800180ae02f0",
+      "current_bounded_diagnostic": {
+        "bounded_attempts": 5,
+        "rows": [
+          {
+            "index": 0,
+            "exit_code": 0,
+            "seconds": 1.7222299168352038,
+            "log": ".local/gate-6/canonical-agent-export/uncertainty-repeat-06-00.log",
+            "sha256": "3c8aafec762b287f384cc01ebb14723ec51ec6f4a579d38d80502d48644fbc89"
+          },
+          {
+            "index": 1,
+            "exit_code": 0,
+            "seconds": 1.7117556249722838,
+            "log": ".local/gate-6/canonical-agent-export/uncertainty-repeat-06-01.log",
+            "sha256": "95ad6589b111ce9feca742a3d3b18f0c8d2ff495dae39462996d364c6c58c32b"
+          },
+          {
+            "index": 2,
+            "exit_code": 0,
+            "seconds": 1.7562413329724222,
+            "log": ".local/gate-6/canonical-agent-export/uncertainty-repeat-06-02.log",
+            "sha256": "eb7185f3bd772c4c2c340bbc0caec5229ca5fbaf4ed89e889cd08e1bdc775479"
+          },
+          {
+            "index": 3,
+            "exit_code": 0,
+            "seconds": 1.7751795831136405,
+            "log": ".local/gate-6/canonical-agent-export/uncertainty-repeat-06-03.log",
+            "sha256": "46bed9becc0745cf6676e0f199d3a2109774f31c26d471748016dfb16ee1026e"
+          },
+          {
+            "index": 4,
+            "exit_code": 0,
+            "seconds": 1.7749539588112384,
+            "log": ".local/gate-6/canonical-agent-export/uncertainty-repeat-06-04.log",
+            "sha256": "e0c39a3305b5905b08c413e9b09d0b71fb2bd06923299b8e02f6e4c184fa137b"
+          }
+        ],
+        "source_unchanged": true,
+        "binary_sha256": "2af95d547229355831f1632bc57387994c7d61e1c854cbd123e0106b58349512",
+        "scope": "Bounded diagnosis of the retained first Task/provider refusal; no assertions or production behavior changed. Later passes do not resolve the original failure."
+      }
+    },
+    {
+      "status": "rejected build output; never executed",
+      "detail": "Diagnostic fixture build05 returned Cargo success but rust-objcopy stripping failed and left a3104-byte non-executable test output. Strict validation rejected it. Removed only obsolete regenerable task cache libraries absent from the current Cargo artifact graph plus the damaged output,967916256 bytes; proof seals/raw logs/source/prepared dependencies/current graph preserved. Clean06 rebuild passed all strict executable/hash/APFS-seal guards.",
+      "build_outcome": {
+        "exit_code": 0,
+        "seconds": 11.379232541192323,
+        "source_unchanged": true
+      },
+      "build_log_sha256": "f37d5370cabe42f58eff66ae3ec60f708a975394c50efaa5143d1a65f8d636bf",
+      "cleanup_audit_sha256": "741bb9568e54c12a5f64ec1bc77dfc4fc2823cb95c15813821a5848d8c92b103"
+    }
+  ],
+  "remaining": [
+    "Diagnose the retained intermittent provider-uncertainty forbidden regression; later passes do not erase it.",
+    "Complete CLI issuance/retained inspection, full HTTP/OpenAPI/admin/file facade parity and remaining consultation/movement/actual supported agent-host behavior.",
+    "Finish dependency-gated canonical Node/Python SDK migrations and all required profiles. All105 Gate6 tasks remain active; G6-065 stays in progress."
+  ]
+}

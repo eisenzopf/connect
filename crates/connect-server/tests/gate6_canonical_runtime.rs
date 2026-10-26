@@ -27,6 +27,9 @@ mod external_sdk_consumer;
 #[path = "support/canonical_mcp.rs"]
 mod canonical_mcp;
 
+#[path = "support/canonical_stdio.rs"]
+mod canonical_stdio;
+
 fn payload(kind: &str, value: Value) -> Payload {
     serde_json::from_value(json!({"type":kind,"payload":value})).unwrap()
 }

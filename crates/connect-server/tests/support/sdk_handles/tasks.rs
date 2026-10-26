@@ -32,13 +32,13 @@ async fn task(client: &mut ApplicationClient, command: TaskCommand) -> TaskOutco
     match client
         .execute(
             Operation::Task {
-                request: Box::new(TaskRequest::new(command)),
+                request: Box::new(TaskRequest::new(command.clone())),
             }
             .try_into()
             .unwrap(),
         )
         .await
-        .unwrap()
+        .unwrap_or_else(|error| panic!("Task command {command:?} rejected: {error:?}"))
     {
         Outcome::Task(value) => *value,
         _ => panic!("typed Task result"),
@@ -131,6 +131,71 @@ async fn invocation(
     let mut app = application(&setup.application.clone().with_task_grant(grant).unwrap()).await;
     assert_eq!(app.negotiate_task(&record.id).await.unwrap().id, record.id);
     app
+}
+
+#[tokio::test]
+async fn canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        let setup = setup(algorithm).await;
+        let (record, grant) = create_task(&setup, "stdio-task", vec![TaskPermission::Inbox]).await;
+        let (other, _) = create_task(&setup, "stdio-other-task", vec![TaskPermission::Inbox]).await;
+        let config = setup.f.temp.path().join("stdio-application.toml");
+        let installed = setup.application.clone().with_task_grant(&grant).unwrap();
+        init::private_write(&config, toml::to_string(&installed).unwrap().as_bytes()).unwrap();
+        let mut helper = crate::canonical_stdio::Process::start(&config, true);
+        let get = |id: &str, binding: &str| json!({"id":"task-get","operation":{"op":"task","request":{"task_profile":"connect-task/1","command":{"action":"get","task_id":id}}},"task_binding":binding});
+        assert_eq!(
+            helper.exchange(get(&record.id, &other.id)).await["Err"]["code"],
+            "invalid-request"
+        );
+        assert!(helper
+            .exchange(get(&other.id, &other.id))
+            .await
+            .get("Err")
+            .is_some());
+        let read = helper.exchange(get(&record.id, &record.id)).await;
+        assert_eq!(read["Ok"]["kind"], "task");
+        assert_eq!(read["Ok"]["data"]["data"]["id"], record.id);
+        let recall = json!({"id":"task-recall","operation":{"op":"task","request":{"task_profile":"connect-task/1","command":{"action":"recall","task_id":record.id,"after":null,"limit":100}}}});
+        assert_eq!(helper.exchange(recall).await["Err"]["code"], "forbidden");
+        assert_eq!(helper.exchange(json!({"id":"old-send","operation":Operation::Send {
+            request_id:"no-fallback".into(), conversation_id:setup.room.id().as_str().into(),
+            message:connect_client::MessageDraft::text_all("no authority fallback")
+        }})).await["Err"]["code"],"canonical-command-required");
+        assert!(helper
+            .exchange(get(&record.id, &record.id))
+            .await
+            .get("Ok")
+            .is_some());
+        // A later owner configuration cannot replace the installed grant.
+        std::fs::write(&config, toml::to_string(&setup.application).unwrap()).unwrap();
+        access(
+            &setup.application,
+            TaskAccessCommand::Revoke {
+                grant_id: grant.grant.id.clone(),
+            },
+        )
+        .await;
+        assert!(helper
+            .exchange(get(&record.id, &record.id))
+            .await
+            .get("Err")
+            .is_some());
+        helper
+            .finish(
+                true,
+                &[grant.expose_secret(), &setup.application.credential],
+            )
+            .await;
+        let mut owner = application(&setup.application).await;
+        assert_eq!(
+            owner.negotiate_task(&record.id).await.unwrap().id,
+            record.id
+        );
+        setup.client.close(options()).await.unwrap();
+        setup.f.server.shutdown().await.unwrap();
+    }
 }
 fn question(record: &TaskRecord, id: &str, body: &str) -> TaskCommand {
     TaskCommand::Invoke {
