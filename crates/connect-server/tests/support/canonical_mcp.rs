@@ -8,6 +8,8 @@ use rmcp::{
     },
     RoleClient, ServiceExt,
 };
+#[path = "canonical_mcp/application_dispatch.rs"]
+mod application_dispatch;
 type McpClient = RunningService<RoleClient, McpClientConfig>;
 async fn client(address: std::net::SocketAddr, token: &str) -> McpClient {
     let http = tokio::task::spawn_blocking(|| {
@@ -275,6 +277,7 @@ async fn canonical_mcp_public_control_preserves_messages_session_ids_original_st
             "mcp-send"
         );
         success(call(&mcp, "connect_message_send", input).await);
+        application_dispatch::receipt_contract(&f, &cid).await;
         let history = native
             .history(&cid, serde_json::from_value(json!({"limit":100})).unwrap())
             .await

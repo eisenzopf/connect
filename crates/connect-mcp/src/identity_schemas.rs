@@ -74,7 +74,7 @@ pub(crate) fn ordinary(operation: &str) -> Map<String, Value> {
             add(
                 &mut schema,
                 "state",
-                json!({"type":"string","enum":["delivered","read"]}),
+                json!({"type":"string","enum":["delivered"]}),
                 true,
             );
         }

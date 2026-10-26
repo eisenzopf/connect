@@ -30,6 +30,13 @@ After uncertainty, use the original operation and resources with
 `connect_operation_get`. No tool automatically prompts a human, retries a
 mutation or changes transport.
 
+Ordinary identity service dispatch uses the same named-operation partition as
+application HTTP. A sealed identity handle cannot reopen a retired standalone
+operation. `connect_message_receipt` reports `delivered` only; use
+`connect_message_read` for a canonical read report with its saved operation ID.
+Current receipt preferences still apply. A separately authorized Task invocation
+retains its nested operation contract, original IDs and current scope checks.
+
 Older ordinary communication tool paths for create/send/history, Session
 lifecycle, participant add/update/remove, legacy dial/end and request status are
 removed from ordinary discovery. Canonical counterparts use current schemas;
@@ -37,6 +44,13 @@ named application reads, files, receipt preferences and optional Task workflows
 retain their independently scoped interfaces. Full Task composition, file/admin
 facade parity, actual host transitions and required profile qualification remain
 open in G6-065.
+
+The ordinary dispatch/receipt checkpoint has before/after actual CLI probes,
+all 27 retired selector refusals through the identity service, nested Task
+exactly-once replay, both signing algorithms through the official MCP client,
+and 280 current HTTP/schema exchanges. Its
+[recorded evidence](../evidence/gate-6/canonical-mcp-application-dispatch.json)
+keeps these scopes separate from remaining consultation, movement and host work.
 
 ## Canonical server configuration
 

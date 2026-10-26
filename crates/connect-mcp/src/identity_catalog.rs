@@ -164,7 +164,7 @@ pub(crate) fn specs() -> Vec<Spec> {
         tools.push(Spec{name,kind:Kind::Membership(action),schema:identity_schemas::membership(action),description:format!("Explicit conversation membership action {action} under your current named capability. Persist operation_id and original expected_revision for exact retry/status recovery. Role labels grant no credentials or old history."),scope,extra_scope:None,read_only:false});
     }
     for (name, operation, scope, read_only, description) in [
-        ("connect_message_receipt", "message_receipt", "history", false, "Report receipt or reading as this authenticated original recipient. A client report never proves human action. Current receipt preferences apply; reading is opt-in and no response Message is created."),
+        ("connect_message_receipt", "message_receipt", "history", false, "Report delivery as this authenticated original recipient. Use connect_message_read for canonical read reporting. A client report never proves human action; current receipt preferences apply."),
         ("connect_receipt_preferences_get", "receipt_preferences_get", "history", true, "Inspect your current membership's optional receipt preferences. Delivery is enabled by default; reading is disabled."),
         ("connect_receipt_preferences_set", "receipt_preferences_set", "history", false, "Set your own optional delivery/read receipt preferences for this membership epoch. Current preferences also filter retained receipt exposure. Persist request_id for retries."),
         ("connect_membership_snapshot", "membership_snapshot", "conversation.get", true, "Read current authorized membership and revision; recipient ceilings apply."),

@@ -113,6 +113,12 @@ impl Service {
         operation: Operation,
     ) -> Result<Outcome> {
         self.identity_access_view(access.clone()).await?;
+        if connect_protocol::application_api::response_kind(&operation).is_none() {
+            return Err(Error::new(
+                "unsupported-command",
+                "Use canonical identity control for ordinary communication",
+            ));
+        }
         self.execute(access.credential_id, operation).await
     }
 

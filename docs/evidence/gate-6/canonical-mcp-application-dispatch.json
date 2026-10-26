@@ -1,0 +1,125 @@
+{
+  "task": "G6-065",
+  "status": "Passed ordinary identity dispatch and canonical MCP receipt checkpoint; task remains in-progress",
+  "checked_at": "2026-10-26T16:09:08.022418+00:00",
+  "base_revision": "053c953667391102fee1e52ae37757d462cf5b2b",
+  "scope": "Local Darwin arm64 isolated current service, actual CLI/MCP and HTTP server. Native handoff is a regression of its recorded decoded PCMU/role scopes. No actual model-host, provider account, browser, Linux, remote, package, publication or acceptance qualification.",
+  "implementation": [
+    "Ordinary sealed identity access now uses the same current named-operation partition as application HTTP, after checking current identity and installation. Retired standalone commands cannot reach generic Store execution through MCP or a direct identity handle.",
+    "MCP connect_message_receipt advertises and accepts delivery only. Read reporting uses canonical connect_message_read, preserving original operation identity and current recipient/preferences policy.",
+    "The check applies to the outer operation. Separately authorized nested Task operations retain their original dispatch, immutable scope, replay and journal behavior."
+  ],
+  "verification": {
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 630.3921340419911,
+      "source_unchanged": true,
+      "binary_sha256": "ed510284c630474198c0cf876cc6c0d1476b10158087ebd2aa66c00abed985ac",
+      "bytes": 248072864,
+      "source_count": 1304,
+      "log_sha256": "50190432f4ede36f7810ddfd195b37d05e16f6d7327af99e125b33ca864b702a",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-01": {
+        "sha256": "297c760d35bcba756366c568c504b9e4a9825d60f3294df946ab183090e8b657",
+        "bytes": 98348208
+      },
+      "client-test-01": {
+        "sha256": "f69e83926d57a709b83e2c5cbb02f0785abdd208f9cef37487d96706003a999f",
+        "bytes": 25177152
+      },
+      "canonical-cli-01": {
+        "sha256": "a62cd9515ee3b25474fa0b8b07204075a0163a36107ef393cbe445c482c4f6fe",
+        "bytes": 231420688
+      }
+    },
+    "build_inputs_sha256": "86b943ec21acda9f557efb5bf7420b42be6cb6ae89a9756e3fd32f4992a901e4",
+    "supplemental_embedded_catalog": {
+      "checked_at": "2026-10-26T15:55:43.862833+00:00",
+      "reason": "New production test embeds the synthetic catalog; captured before that test target compiles.",
+      "inputs": {
+        "contracts/application-http-dispatch.json": "081f8c8743f4aec39d8d245b17e10b733315c331ac25c2b53a45ee2ae7f3471f"
+      }
+    },
+    "runtime": {
+      "runs": [
+        {
+          "name": "identity-and-mcp",
+          "pattern": "canonical_mcp::",
+          "binary_sha256": "ed510284c630474198c0cf876cc6c0d1476b10158087ebd2aa66c00abed985ac",
+          "exit_code": 0,
+          "seconds": 4.675347415963188,
+          "log_sha256": "54de68a437632fb91584cdc2145726477b666a7227293db5912d89ee635ac1dd",
+          "result": [
+            "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 334 filtered out; finished in 1.49s"
+          ]
+        },
+        {
+          "name": "native-handoff-regression",
+          "pattern": "production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect",
+          "binary_sha256": "ed510284c630474198c0cf876cc6c0d1476b10158087ebd2aa66c00abed985ac",
+          "exit_code": 0,
+          "seconds": 177.78335058293305,
+          "log_sha256": "84022f2a4e9ca5247480fe4ba8aafd636b0236b470185d6fba670d6fdcf51f05",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 338 filtered out; finished in 177.63s"
+          ]
+        }
+      ],
+      "source_unchanged_before": true,
+      "supplemental_embedded_input_sha256": "907f12c3e0c96ca7e402cbd27bd90cd218bbe4707c70d80d81af7cbf359048c1",
+      "source_unchanged_after": true
+    },
+    "before_after_cli": {
+      "baseline": {
+        "status": "passed isolated before/after MCP dispatch probe",
+        "expected": "accepted",
+        "read_accepted": true,
+        "advertised_states": [
+          "delivered",
+          "read"
+        ],
+        "cli_sha256": "64141e37fdf43d229d3c24f04d3e61a014becf33469a075962d583963c59a9a0",
+        "sigterm_exit": 0,
+        "scope": "Actual isolated CLI/MCP receipt behavior only; no provider/model/media/remote qualification"
+      },
+      "current": {
+        "status": "passed isolated before/after MCP dispatch probe",
+        "expected": "refused",
+        "read_accepted": false,
+        "canonical_read_original_replay": true,
+        "advertised_states": [
+          "delivered"
+        ],
+        "cli_sha256": "a62cd9515ee3b25474fa0b8b07204075a0163a36107ef393cbe445c482c4f6fe",
+        "sigterm_exit": 0,
+        "scope": "Actual isolated CLI/MCP receipt behavior only; no provider/model/media/remote qualification"
+      },
+      "baseline_summary_sha256": "36df26f3c659702d2a8eff88e47740e66fad19c1d55bdabc4147c8933114085d",
+      "current_summary_sha256": "23c1ba302a7ecb2f0ba3a0a52f5be15577e7434801a885e6791c17c8bc25ebfd"
+    },
+    "http_regression": {
+      "exchanges": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "source_unchanged": true,
+      "cli_sha256": "a62cd9515ee3b25474fa0b8b07204075a0163a36107ef393cbe445c482c4f6fe",
+      "summary_sha256": "4a6b872e43b76cd02529787c50671d6b84cfa9737e33fe2471e17c984cfa83a8",
+      "sigterm_exit": 0
+    },
+    "static": "Application/canonical/protected/family generation, HTTP inventory, format --check, plan integrity and diff check passed."
+  },
+  "behavior": [
+    "The previous sealed CLI advertises delivered/read and accepts a real read receipt. The current sealed CLI advertises delivered only and rejects that raw MCP action with invalid params; the same refused logical ID then completes and replays through canonical read reporting. Both fixture servers join cleanly.",
+    "A valid retired create and send refuse without reserving their IDs or making effects. All 27 retired selector DTOs refuse through ordinary identity service access. A separately scoped Task sends/replays its original message exactly once. A foreign-installation handle refuses; current revocation precedes retired dispatch, Task replay and health reads.",
+    "The official RMCP client tests both EdDSA and ES256: current delivery receipt/replay, retired read schema/refusal, canonical read/replay and exactly one original Message, alongside existing current scope, listener lifecycle, agent export and revocation checks.",
+    "The native MCP handoff regression exercises both signing algorithms and four role/disposition combinations, preserving independent decoded native audio, original status/recovery, one effect and owned teardown."
+  ],
+  "development_record": [
+    "The first private baseline probe stopped before its first wire exchange because its helper name shadowed the http module. The corrected probe reproduced the old behavior; raw logs and the failure record remain private.",
+    "The first frozen-source production build and all current behavior checks passed. The newly embedded synthetic test catalog has an additional fingerprint captured before compilation of that test target and verified after runtime."
+  ],
+  "remaining": [
+    "G6-065 remains in-progress: remaining MCP consultation/movement and actual supported model-host/profile work are not inferred from this dispatch repair or the native handoff regression.",
+    "The previously recorded intermittent provider uncertainty failure and the remaining Gate6 browser/hosting/transport/application/qualification tasks remain open. The full 105-task goal remains active."
+  ]
+}
