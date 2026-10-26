@@ -1134,6 +1134,11 @@
       "path": "patches/rvoip/gate6-subscription-session-lifecycle.patch",
       "sha256": "e24c71be70041215646a3d2c002266e580d71edaf0966ea350c85b968e7f0e8b",
       "source": "G6-060 live Session started/joined/left hints use the existing exact Conversation/request correlation and fresh delivery authority. Apply the live lease deadline, including blocked IO, rather than terminal grace. Two upstream scope/deadline/guard regression functions."
+    },
+    {
+      "path": "patches/rvoip/gate6-webrtc-driver-close-join.patch",
+      "sha256": "463180b3e3eb7f45c031b8bb75e7cffaef855222ec046ab37c5990254d396419",
+      "source": "G6-051 RTC close retains and observes the original aborted Tokio UDP driver through actual task/resource destruction. Cancellation of a close wait preserves owner-held handle custody; event-queue failure cannot skip drain. A runtime regression forces pending UDP destruction, cancels one wait, then reclaims the exact port after the original task completes."
     }
   ]
 }

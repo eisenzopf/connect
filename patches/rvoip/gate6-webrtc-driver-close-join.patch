@@ -1,0 +1,143 @@
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
+@@ -16,6 +16,16 @@
+     /// Abort the spawned task
+     pub fn abort(&self) {
+         self.inner.abort();
++    }
++
++    /// Abort and observe destruction of the original task, including its IO.
++    /// The owner retains this handle: cancelling a wait does not detach it or
++    /// let another observer mistake an abort request for completed cleanup.
++    pub async fn abort_and_wait(&self) {
++        self.abort();
++        while !self.is_finished() {
++            sleep(Duration::from_millis(1)).await;
++        }
+     }
+ 
+     /// Check if the task is finished
+@@ -208,3 +218,80 @@
+ pub type Receiver<T> = tokio::TokioReceiver<T>;
+ pub type BroadcastSender<T> = tokio::TokioBroadcastSender<T>;
+ pub type BroadcastReceiver<T> = tokio::TokioBroadcastReceiver<T>;
++
++#[cfg(test)]
++mod owned_close_tests {
++    use super::*;
++    use ::tokio as runtime_tokio;
++    use std::sync::{
++        Condvar, Mutex as StdMutex,
++        atomic::{AtomicBool, Ordering},
++    };
++    #[derive(Default)]
++    struct Gate {
++        entered: AtomicBool,
++        released: StdMutex<bool>,
++        changed: Condvar,
++    }
++    struct Release(Arc<Gate>);
++    impl Drop for Release {
++        fn drop(&mut self) {
++            *self.0.released.lock().unwrap() = true;
++            self.0.changed.notify_all();
++        }
++    }
++    struct HeldIo {
++        socket: Option<std::net::UdpSocket>,
++        gate: Arc<Gate>,
++    }
++    impl Drop for HeldIo {
++        fn drop(&mut self) {
++            self.gate.entered.store(true, Ordering::Release);
++            let mut released = self.gate.released.lock().unwrap();
++            while !*released {
++                released = self.gate.changed.wait(released).unwrap();
++            }
++            drop(self.socket.take());
++        }
++    }
++    #[runtime_tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    async fn cancelled_abort_wait_retains_original_task_until_actual_udp_drop() {
++        let gate = Arc::new(Gate::default());
++        // Always release the blocking destructor, including on assertion failure.
++        let release = Release(gate.clone());
++        let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
++        let address = socket.local_addr().unwrap();
++        let io = HeldIo {
++            socket: Some(socket),
++            gate: gate.clone(),
++        };
++        let handle = TokioRuntime.spawn(Box::pin(async move {
++            let _io = io;
++            std::future::pending::<()>().await;
++        }));
++        let mut wait = Box::pin(handle.abort_and_wait());
++        std::future::poll_fn(|cx| {
++            assert!(wait.as_mut().poll(cx).is_pending());
++            std::task::Poll::Ready(())
++        })
++        .await;
++        timeout(Duration::from_secs(2), async {
++            while !gate.entered.load(Ordering::Acquire) {
++                sleep(Duration::from_millis(1)).await;
++            }
++        })
++        .await
++        .unwrap();
++        drop(wait);
++        assert!(!handle.is_finished());
++        assert!(std::net::UdpSocket::bind(address).is_err());
++        drop(release);
++        timeout(Duration::from_secs(2), handle.abort_and_wait())
++            .await
++            .unwrap();
++        assert!(handle.is_finished());
++        let rebound = std::net::UdpSocket::bind(address).unwrap();
++        drop(rebound);
++        handle.abort_and_wait().await;
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -624,23 +624,23 @@
+     I: Interceptor + 'static,
+ {
+     async fn close(&self) -> Result<()> {
+-        {
++        let closed = {
+             let mut core = self.inner.core.lock().await;
+-            core.close()?;
+-        }
+-        self.inner
++            core.close()
++        };
++        // A full/disconnected event queue cannot skip actual driver cleanup.
++        let _ = self
++            .inner
+             .driver_event_tx
+-            .try_send(PeerConnectionDriverEvent::Close)
+-            .map_err(|e| Error::Other(format!("{:?}", e)))?;
+-
+-        {
+-            let mut driver_handle = self.driver_handle.lock().await;
+-            if let Some(driver_handle) = driver_handle.take() {
+-                driver_handle.abort();
+-            }
+-        }
+-
+-        Ok(())
++            .try_send(PeerConnectionDriverEvent::Close);
++        let mut original = self.driver_handle.lock().await;
++        if let Some(handle) = original.as_ref() {
++            // Keep custody in the owner while awaiting destruction. If this
++            // close observation is cancelled, the next one joins this task.
++            handle.abort_and_wait().await;
++        }
++        original.take();
++        closed
+     }
+ 
+     async fn create_offer(

@@ -1,0 +1,79 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T23:18:47.903153+00:00",
+  "base_revision": "ea3e4105",
+  "scope": "Local macOS arm64 dependency runtime/RTC close. No browser, canonical WSS dispatch, Core media or Gate 6 acceptance qualification.",
+  "source_inputs": {
+    "patches/rvoip/gate6-webrtc-driver-close-join.patch": "463180b3e3eb7f45c031b8bb75e7cffaef855222ec046ab37c5990254d396419",
+    "dependencies/source-lock.json": "3c00cf8b79c88c78edf74862b8c9e29371aadf428bfff98f04f867f32bdb495b",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs": "2b60b08a90c18cd7c85ed92724b5000e8dee03d9459d36b51ef8e27d5d334d5c",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs": "063f7baa067790fc3eae8317eb3f7309f2afe3d2f980f25685c5ad7168c9ad6d",
+    ".local/gate-6/webrtc-wss-dispatch/upstream-harness.rs": "c321a0e7b209acb0a22a421eefcbe4b0fd2235aa90fe90caecd29db77ac60770"
+  },
+  "dependency_preparation": {
+    "unchanged_file_timestamps_restored": 4065,
+    "changed_files": [
+      "rvoip/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs",
+      "rvoip/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs"
+    ],
+    "seconds": 0.5851924170274287,
+    "new_root": "/Users/jonathaneisenzopf/.local/share/connect/deps-canonical-webrtc-close-20261026-v2"
+  },
+  "verification": {
+    "exit_code": 0,
+    "seconds": 0.48208233318291605,
+    "source_unchanged": true,
+    "command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/upstream-harness.rs",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/libwebrtc.rlib",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/upstream-close-harness"
+    ],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/libwebrtc.rlib",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/upstream-normal-webrtc.rlib",
+      "sha256": "a687e6af76e3eb68b4689a4f6e5d4091535817c27bbef164755b4f677ba86a1f",
+      "cfg_test": false,
+      "features": [
+        "default",
+        "runtime-tokio"
+      ]
+    },
+    "harness_sha256": "4cefc21331550e2a1cc8bed9e0317c031f08b3e0844f534e8d961b8994643769",
+    "log_sha256": "22e8f6da26ca5c80f5b071262c34e62d5b280dee66e68b8de76018af85f05cf7"
+  },
+  "checks": [
+    {
+      "case": "original aborted task custody",
+      "result": "pass",
+      "observation": "Exact upstream runtime regression body executed against the ordinary cfg(test)=false production rlib. Forced pending destruction retains an actual bound UDP socket after one close wait is dropped; the original retained task wait finishes after release and that same address can be rebound."
+    },
+    {
+      "case": "actual RTC close",
+      "result": "pass",
+      "iterations": 64,
+      "observation": "Public PeerConnectionBuilder owns a configured loopback UDP port. close() returns only after that same port can be immediately rebound. Repeated close succeeds."
+    }
+  ],
+  "historical_failure": {
+    "scope": "Pre-patch Connect peer component runtime05, ordinary existing UDP reclaim assertion",
+    "result": "3/4 methods passed; actual UDP reclaim still returned AddrInUse after reported close. Not a pass.",
+    "cause": "RTC close requested driver abort then dropped/detached its handle without waiting for task/future destruction.",
+    "log_sha256": "bd43356d3c90a4d568b08b52b3ccc1b01d22df4816bd5d966919a0c3d66e7647"
+  },
+  "runner_limit": "cargo test cannot select dependency dev-tests from this workspace; it rejected the invocation before running a test. An extracted exact runtime test body plus an independent public RTC close loop were compiled with rustc against the sealed production rlib instead.",
+  "pending": [
+    "Rebuild and rerun the Connect peer/WSS integration against this dependency patch.",
+    "Complete canonical Core media adapter, outgoing ICE authority, browser media profiles and fallback qualification."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-wss-dispatch/"
+}
