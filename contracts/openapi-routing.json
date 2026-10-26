@@ -3,7 +3,7 @@
   "info": {
     "title": "Connect participant endpoint routing",
     "version": "gate6-routing-1",
-    "description": "Implemented participant_route subset of the current shared control facade. Selection is read-only and does not authorize allocation or prove physical media. Other operations and later canonical Gate 6 routes are separate references."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "servers": [
     {
@@ -21,7 +21,7 @@
             "bearer": []
           }
         ],
-        "description": "Requires current resolve, availability_get and the requested communication permission; outgoing telephone/SIP additionally require their origination permissions. Incoming requests may select only the caller identity. Explicit transport and failover choices never silently widen identity, channel or requested media. Addresses, provider route IDs and secret references are not returned. Missing or expired observation is unknown. Freshness is bounded to 60 seconds. Selection must be revalidated before use. No body-selected observation or approval is accepted.",
+        "description": "Shared family wire models. Current named selectors: participant_route. Retired selectors: none. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
         "requestBody": {
           "required": true,
           "content": {
@@ -74,7 +74,47 @@
             }
           },
           "422": {
-            "description": "Malformed JSON or unknown routing request fields; framework rejection.",
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Framework malformed JSON rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
             "content": {
               "text/plain": {
                 "schema": {
@@ -83,7 +123,13 @@
               }
             }
           }
-        }
+        },
+        "x-connect-family-policy-notes": "Requires current resolve, availability_get and the requested communication permission; outgoing telephone/SIP additionally require their origination permissions. Incoming requests may select only the caller identity. Explicit transport and failover choices never silently widen identity, channel or requested media. Addresses, provider route IDs and secret references are not returned. Missing or expired observation is unknown. Freshness is bounded to 60 seconds. Selection must be revalidated before use. No body-selected observation or approval is accepted.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [
+          "participant_route"
+        ],
+        "x-connect-retired-selectors": []
       }
     }
   },
@@ -487,5 +533,6 @@
         "additionalProperties": false
       }
     }
-  }
+  },
+  "x-connect-original-description": "Implemented participant_route subset of the current shared control facade. Selection is read-only and does not authorize allocation or prove physical media. Other operations and later canonical Gate 6 routes are separate references."
 }

@@ -60,6 +60,16 @@ dependencies after verifying prepared sources. The checker needs Python
 These source/codec checks do not establish service authorization, media or remote
 qualification.
 
+The eight family references record current and retired selectors from this
+consolidated dispatch table. Families with no current named selectors retain
+their former success model as historical metadata, and advertise HTTP501 for
+recognized retired calls. Original domain-policy notes and shared DTO components
+remain available. Check their reconciliation with:
+
+```sh
+python3 scripts/generate-application-family-references.py --check
+```
+
 ## Scoped credential issuance
 
 `POST /v2/credentials` accepts a typed `CredentialIssueRequest` with the original

@@ -1,0 +1,80 @@
+{
+  "task": "G6-065",
+  "status": "Family reference metadata reconciled; runtime qualification pending",
+  "checked_at": "2026-10-26T15:44:42.303335+00:00",
+  "base_revision": "cf80ad178dafadf1bd38279faa478d535fe65334",
+  "scope": "Source/reference metadata only. No fresh service, provider, host, media, Linux, remote or acceptance qualification.",
+  "families": [
+    {
+      "document": "openapi-attachments.json",
+      "supported": 14,
+      "retired": 1
+    },
+    {
+      "document": "openapi-context.json",
+      "supported": 2,
+      "retired": 0
+    },
+    {
+      "document": "openapi-conversations.json",
+      "supported": 0,
+      "retired": 3
+    },
+    {
+      "document": "openapi-events.json",
+      "supported": 1,
+      "retired": 2
+    },
+    {
+      "document": "openapi-membership.json",
+      "supported": 9,
+      "retired": 3
+    },
+    {
+      "document": "openapi-messages.json",
+      "supported": 0,
+      "retired": 2
+    },
+    {
+      "document": "openapi-operations.json",
+      "supported": 0,
+      "retired": 2
+    },
+    {
+      "document": "openapi-routing.json",
+      "supported": 1,
+      "retired": 0
+    }
+  ],
+  "implementation": [
+    "Derive current and retired selectors from the consolidated executable-dispatch reference for all eight historical HTTP family documents.",
+    "Preserve original domain-policy notes and shared DTO components; explicitly retire top-level success responses for families with no current named selectors.",
+    "Record framework text refusals and their parsing-before-authentication order; link each family to the current application body/result contract."
+  ],
+  "verification": {
+    "family_generator_check": "passed",
+    "canonical_generator_check": "passed",
+    "protected_generator_check": "passed",
+    "endpoint_inventory": {
+      "declarations": 24,
+      "explicit_http_operations": 25,
+      "uncovered": 0
+    },
+    "plan_integrity": "passed: 51 done, 3 in-progress, 51 not-started; acyclic dependencies",
+    "diff_check": "passed"
+  },
+  "inputs": {
+    "scripts/generate-application-family-references.py": "c12cc297872a585bdf032d5e3662a00aa634e8ab3bddfa737570a35048632852",
+    "contracts/openapi-application-http.json": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
+    "contracts/http-endpoints.json": "0409168979f1d603cf72e6ef6010f4a34ea287c70ac1dea5c3fdee0ac9b67a79",
+    "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
+    "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
+    "contracts/openapi-conversations.json": "91c85900303ff4dca6cc41941dc7366fc06284af8f134057dba4b93fcb032d0c",
+    "contracts/openapi-events.json": "7e1c48e8541a86b9bbb2b55117672bf94c08e5928011a5f16bd291ef613ff404",
+    "contracts/openapi-membership.json": "e1666be68b0043bd57b83dda1d7034f2c96d9e78e5eee36f060cf0f54c5d38e8",
+    "contracts/openapi-messages.json": "4225442b07fe26eec866cb21381cc3d9bd181c29527e06e4c193108e3c91f5f9",
+    "contracts/openapi-operations.json": "cd2c402032ffbc43d1863da18136d12359a4dba5b64b613cd5be46221b08c9e8",
+    "contracts/openapi-routing.json": "f2330d6f25029d9cc0af98ce5bbef81922389680b9c78b8f152a6a0a9f0e4de3"
+  },
+  "remaining": "Fresh application wire/body/auth/resource/replay qualification, remaining MCP and actual supported host/profile work; G6-065 remains in-progress."
+}

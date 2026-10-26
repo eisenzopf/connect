@@ -3,13 +3,13 @@
   "info": {
     "title": "Connect Gate 6 shared durable operations",
     "version": "0.1.0",
-    "description": "Durable admission/status/cancel/reconcile on fresh schema32. Actor and tenant come only from current credentials. Ordinary local mutation receipts and signed canonical operation recovery share this ledger with current HTTP/SDK control. Task internal wire receipts remain private to their task/grant. Production canonical listener/full command coverage, live transition coordinators, providers and Gate6 acceptance remain separate."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "paths": {
     "/v1/operations": {
       "post": {
         "operationId": "sharedOperationControl",
-        "description": "Current typed control facade. Explicit canonical operation.get/cancel/reconcile uses the same current ledger and decision IDs; production listener/full dispatch remains G6-037. The canonical payload ID names the target; cancel/reconcile top-level envelope operation_id names the separate decision. Optional CID/SID/Connection assertions must match stored targets; unsupported expected-revision assertions are refused explicitly. Admission normalizes typed business intent and reserves source epochs/resources before any provider call. Matching stable principal/ID returns the existing authorized record; changed intent conflicts. Cancels/reconciliations use separate operation IDs. Worker/observer/cleanup capabilities are protected backend composition, never accepted as body fields. Reconciliation references attributed existing evidence; it cannot fabricate local commit or provider termination. Readiness stage metadata is not physical-media qualification.",
+        "description": "Shared family wire models. Current named selectors: none. Retired selectors: transition, durable_operation. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
         "security": [
           {
             "bearerAuth": []
@@ -26,16 +26,6 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Authorized current operation, decision receipt, or typed business rejection. Inspect result.Ok/result.Err; acceptance is not route/media completion.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Response"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Current authentication required.",
             "content": {
@@ -47,10 +37,24 @@
             }
           },
           "413": {
-            "description": "Operation body exceeds configured 64KiB bound"
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Invalid JSON operation shape, unknown/authority selector field, or enum"
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "503": {
             "description": "Bounded HTTP capacity, current authority busy/unavailable, or durable storage unavailability. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
@@ -69,6 +73,54 @@
                 "schema": {
                   "$ref": "#/components/schemas/Response"
                 }
+              }
+            }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Framework malformed JSON rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-connect-family-policy-notes": "Current typed control facade. Explicit canonical operation.get/cancel/reconcile uses the same current ledger and decision IDs; production listener/full dispatch remains G6-037. The canonical payload ID names the target; cancel/reconcile top-level envelope operation_id names the separate decision. Optional CID/SID/Connection assertions must match stored targets; unsupported expected-revision assertions are refused explicitly. Admission normalizes typed business intent and reserves source epochs/resources before any provider call. Matching stable principal/ID returns the existing authorized record; changed intent conflicts. Cancels/reconciliations use separate operation IDs. Worker/observer/cleanup capabilities are protected backend composition, never accepted as body fields. Reconciliation references attributed existing evidence; it cannot fabricate local commit or provider termination. Readiness stage metadata is not physical-media qualification.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [],
+        "x-connect-retired-selectors": [
+          "transition",
+          "durable_operation"
+        ],
+        "deprecated": true,
+        "x-connect-former-success-response": {
+          "description": "Authorized current operation, decision receipt, or typed business rejection. Inspect result.Ok/result.Err; acceptance is not route/media completion.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Response"
               }
             }
           }
@@ -1300,5 +1352,6 @@
         ]
       }
     }
-  }
+  },
+  "x-connect-original-description": "Durable admission/status/cancel/reconcile on fresh schema32. Actor and tenant come only from current credentials. Ordinary local mutation receipts and signed canonical operation recovery share this ledger with current HTTP/SDK control. Task internal wire receipts remain private to their task/grant. Production canonical listener/full command coverage, live transition coordinators, providers and Gate6 acceptance remain separate."
 }

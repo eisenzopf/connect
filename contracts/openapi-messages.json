@@ -3,7 +3,7 @@
   "info": {
     "title": "Connect addressed messages \u2014 G6-033 current HTTP facade",
     "version": "schema-22",
-    "description": "Current control route. Canonical service payload conversion is qualified separately; canonical transport dispatch is G6-037. Acceptance is not delivery or read."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "paths": {
     "/v1/operations": {
@@ -25,18 +25,15 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Durable acceptance or authorized history",
+          "400": {
+            "description": "Framework malformed JSON rejection before authentication.",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/Response"
+                  "type": "string"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid typed draft"
           },
           "403": {
             "description": "Current authority or reference denied"
@@ -51,6 +48,65 @@
                 "schema": {
                   "$ref": "#/components/schemas/Response"
                 }
+              }
+            }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-connect-family-policy-notes": "Current control route. Canonical service payload conversion is qualified separately; canonical transport dispatch is G6-037. Acceptance is not delivery or read.",
+        "description": "Shared family wire models. Current named selectors: none. Retired selectors: send, history. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [],
+        "x-connect-retired-selectors": [
+          "send",
+          "history"
+        ],
+        "deprecated": true,
+        "x-connect-former-success-response": {
+          "description": "Durable acceptance or authorized history",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Response"
               }
             }
           }
@@ -502,5 +558,6 @@
         ]
       }
     }
-  }
+  },
+  "x-connect-original-description": "Current control route. Canonical service payload conversion is qualified separately; canonical transport dispatch is G6-037. Acceptance is not delivery or read."
 }

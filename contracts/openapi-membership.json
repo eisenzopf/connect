@@ -3,13 +3,13 @@
   "info": {
     "title": "Connect membership control",
     "version": "schema-34",
-    "description": "Fresh candidate state only. All ten explicit membership actions use the ordinary durable control ledger and current authority. Add is explicit admission, separate from invitation target acceptance. Role labels grant no capabilities. Readmission increments membership epoch. Outcomes include local-mutation receipts, never media completion. Wire string byte limits and safe integers are checked by the protocol; JSON Schema maxLength counts characters."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "paths": {
     "/v1/operations": {
       "post": {
         "operationId": "membershipControl",
-        "description": "Membership requires the action-specific named scope, current manager/member or invitation-target authority, same tenant and recipient ceilings. Preserve operation_id, expected_revision and normalized action for identical replay. A changed intent conflicts. Original member epoch is immutable; current authorization is required for status and replay. Only the original same-epoch self-removal receipt is readable while inactive. Query snapshots require current membership. Personal invitations are pending/live/unexpired only, count <=100 and encoded page <=384KiB, using a 30-second identity/credential/tenant/scope-bound opaque fixed-high-water cursor. New inserts require a fresh query; it is not a retained immutable snapshot.",
+        "description": "Shared family wire models. Current named selectors: membership.invite, membership.join, membership.decline, membership.cancel_invitation, membership.leave, membership.share_history, membership.revoke_history_share, membership_snapshot, membership_invitations. Retired selectors: membership.add, membership.remove, membership.update_role. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
         "security": [
           {
             "bearerAuth": []
@@ -47,10 +47,24 @@
             }
           },
           "413": {
-            "description": "Encoded request exceeds configured body budget."
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Malformed JSON or unknown closed typed field is refused before service execution."
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "503": {
             "description": "Bounded HTTP capacity, current authority busy/unavailable, or durable storage unavailability. For an authority refusal retry the same logical mutation ID after delivery owners settle.",
@@ -71,8 +85,56 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Framework malformed JSON rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-connect-family-policy-notes": "Membership requires the action-specific named scope, current manager/member or invitation-target authority, same tenant and recipient ceilings. Preserve operation_id, expected_revision and normalized action for identical replay. A changed intent conflicts. Original member epoch is immutable; current authorization is required for status and replay. Only the original same-epoch self-removal receipt is readable while inactive. Query snapshots require current membership. Personal invitations are pending/live/unexpired only, count <=100 and encoded page <=384KiB, using a 30-second identity/credential/tenant/scope-bound opaque fixed-high-water cursor. New inserts require a fresh query; it is not a retained immutable snapshot.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [
+          "membership.invite",
+          "membership.join",
+          "membership.decline",
+          "membership.cancel_invitation",
+          "membership.leave",
+          "membership.share_history",
+          "membership.revoke_history_share",
+          "membership_snapshot",
+          "membership_invitations"
+        ],
+        "x-connect-retired-selectors": [
+          "membership.add",
+          "membership.remove",
+          "membership.update_role"
+        ]
       }
     }
   },
@@ -907,5 +969,6 @@
         ]
       }
     }
-  }
+  },
+  "x-connect-original-description": "Fresh candidate state only. All ten explicit membership actions use the ordinary durable control ledger and current authority. Add is explicit admission, separate from invitation target acceptance. Role labels grant no capabilities. Readmission increments membership epoch. Outcomes include local-mutation receipts, never media completion. Wire string byte limits and safe integers are checked by the protocol; JSON Schema maxLength counts characters."
 }

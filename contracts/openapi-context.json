@@ -3,13 +3,13 @@
   "info": {
     "title": "Connect audience-scoped context and captured provider receipts",
     "version": "schema-81",
-    "description": "Named HTTP application reads, independently scoped from canonical communication. The native destination is the captured Connection/generation, including after its retirement. Private generations come from the original saved private snapshot. Lifecycle facts describe provider control observations, not audio readiness. Null metadata means this lane has no such captured native observation; it is never evidence of success. A receipt, destination ID or provider reference is not authority to export, attach media, reopen memory or clean up a call. Authorized record projections require independent record_get permission; broader tenant roles do not supply context membership or listener source rights. The record reference contains only the caller-authorized projection digest. Raw whole-record and manifest fingerprints are private. Retention deadlines are data; actual IO and opaque-memory reuse require fresh owned authority."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "paths": {
     "/v1/operations": {
       "post": {
         "operationId": "readContextOrDeliveries",
-        "description": "Requires current context_view, active membership/resource audience at its original epoch, and recipient ceilings. Pages use immutable insertion order, newest first, and an identity/Conversation-bound cursor. A read reports current receipt state without rewriting saved selected history. Responses include no selection_json, credentials, secret references or runtime transport identities. Model-facing recipient projections omit receipt lists. The original private audience controls private receipts; current whole-Conversation membership is insufficient. cleanup_admitted/cleanup_uncertain are null where that lane records no independent cleanup admission. They do not claim that a packet was sent. Exact ACK, truncation/refusal, uncertainty and terminal-before-ACK remain distinguishable. Actual public provider forwarding, voice initialization/update, restart journeys and remote profiles retain their separate qualification.",
+        "description": "Shared family wire models. Current named selectors: context_deliveries, context_view. Retired selectors: none. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
         "security": [
           {
             "bearerAuth": []
@@ -37,7 +37,14 @@
             }
           },
           "400": {
-            "description": "Malformed JSON request (transport rejection; no application Response envelope)."
+            "description": "Framework malformed JSON rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid, revoked or expired bearer.",
@@ -60,7 +67,14 @@
             }
           },
           "413": {
-            "description": "Encoded request exceeds the HTTP body limit (transport rejection; no application Response envelope)."
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "503": {
             "description": "Authority/storage unavailable; retry the same cursor.",
@@ -73,12 +87,46 @@
             }
           },
           "422": {
-            "description": "JSON does not decode as an operation (transport rejection; no application Response envelope)."
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "x-max-encoded-request-bytes": 65536,
         "x-max-encoded-response-bytes": 2097152,
-        "x-response-limit-owner": "ApplicationClient decode limit; not a server response cap"
+        "x-response-limit-owner": "ApplicationClient decode limit; not a server response cap",
+        "x-connect-family-policy-notes": "Requires current context_view, active membership/resource audience at its original epoch, and recipient ceilings. Pages use immutable insertion order, newest first, and an identity/Conversation-bound cursor. A read reports current receipt state without rewriting saved selected history. Responses include no selection_json, credentials, secret references or runtime transport identities. Model-facing recipient projections omit receipt lists. The original private audience controls private receipts; current whole-Conversation membership is insufficient. cleanup_admitted/cleanup_uncertain are null where that lane records no independent cleanup admission. They do not claim that a packet was sent. Exact ACK, truncation/refusal, uncertainty and terminal-before-ACK remain distinguishable. Actual public provider forwarding, voice initialization/update, restart journeys and remote profiles retain their separate qualification.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [
+          "context_deliveries",
+          "context_view"
+        ],
+        "x-connect-retired-selectors": []
       }
     }
   },
@@ -630,5 +678,6 @@
         ]
       }
     }
-  }
+  },
+  "x-connect-original-description": "Named HTTP application reads, independently scoped from canonical communication. The native destination is the captured Connection/generation, including after its retirement. Private generations come from the original saved private snapshot. Lifecycle facts describe provider control observations, not audio readiness. Null metadata means this lane has no such captured native observation; it is never evidence of success. A receipt, destination ID or provider reference is not authority to export, attach media, reopen memory or clean up a call. Authorized record projections require independent record_get permission; broader tenant roles do not supply context membership or listener source rights. The record reference contains only the caller-authorized projection digest. Raw whole-record and manifest fingerprints are private. Retention deadlines are data; actual IO and opaque-memory reuse require fresh owned authority."
 }

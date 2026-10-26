@@ -3,13 +3,13 @@
   "info": {
     "title": "Connect authorized snapshots, events and observations",
     "version": "schema-88",
-    "description": "Current typed control facade. Canonical physical conversation.subscribe uses the same Store pages through explicit per-peer composition (63 facts with optional typed Conversation closure, Session termination, receipt and record readiness hints before cursor events and final ACK, eight live Conversations, fixed at-most-30-second lease); native QUIC confirmation and managed admission emit typed ready/retired facts; explicit native audio and VP8 resource subscriptions now retain one effect and record actual outcomes; additive live upgrades preserve old audio while new Connections negotiate media; owned connection.end records actual termination without closing other Connections; explicit screen VP8 upgrades and subscriptions preserve audio; native data admission freezes one durable message and original audience; exact signed physical publication and current queued-message authorization are installed; attributed local queue receipts grant no physical-write or delivery claim; native writer observations reserve capacity before IO and distinguish local writes, refusals and uncertainty, with separate runtime recovery provenance; complete media-profile qualification remains open. Canonical GET route dispatch is G6-037; physical/provider normalization is G6-038/G6-043/G6-044. Fresh candidate state only."
+    "description": "Shared DTO/policy family. Current server HTTP body/dispatch authority is openapi-application-http.json. Historical top-level success claims are retired explicitly; original domain-policy notes remain in x-connect-original-description and x-connect-family-policy-notes."
   },
   "paths": {
     "/v1/operations": {
       "post": {
         "operationId": "conversationEventControl",
-        "description": "One service authority. Snapshots capture a consistent watermark; drain pages before acting. Current credentials/member epochs/recipient ceilings and selected source owners are checked under owned reader fences on pages and events; changing read sources refuse the page for bounded retry of the same cursor. Leases end within 30 seconds/credential expiry; event catch-up holds at most256 references and512KiB encoded. Retention/expiry/eviction/restart is explicit resync, never an empty proof of catch-up. Source handles, provider publishing and maintenance are not public operation verbs. Missing speech is not silence, and an action proposal does not execute an operation.",
+        "description": "Shared family wire models. Current named selectors: session_observations. Retired selectors: conversation_snapshot, conversation_events. Recognized retired top-level calls return HTTP501 after current authentication, without compatibility/fallback dispatch. Use /v2/commands for canonical communication. Current named calls retain service authorization and business-state checks. See openapi-application-http.json for the consolidated body/result/profile/framework contract; these DTOs may also be used inside separately authorized Task workflows.",
         "security": [
           {
             "bearerAuth": []
@@ -40,10 +40,24 @@
             "description": "Missing/invalid current bearer credential"
           },
           "413": {
-            "description": "Request exceeds encoded budget"
+            "description": "Framework aggregate body limit before authentication: max(configured artifact_chunk_bytes,65536), default65536.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
-            "description": "Malformed or unknown closed typed operation/query fields"
+            "description": "Framework serde shape/type/enum/duplicate-field rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "503": {
             "description": "Bounded HTTP capacity or current authority busy/unavailable; retry the same logical mutation ID after delivery owners settle.",
@@ -54,8 +68,47 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "Recognized retired top-level family command/action, or an explicitly unsupported named capability; no fallback dispatch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Framework malformed JSON rejection before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required before authentication.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
-        }
+        },
+        "x-connect-family-policy-notes": "One service authority. Snapshots capture a consistent watermark; drain pages before acting. Current credentials/member epochs/recipient ceilings and selected source owners are checked under owned reader fences on pages and events; changing read sources refuse the page for bounded retry of the same cursor. Leases end within 30 seconds/credential expiry; event catch-up holds at most256 references and512KiB encoded. Retention/expiry/eviction/restart is explicit resync, never an empty proof of catch-up. Source handles, provider publishing and maintenance are not public operation verbs. Missing speech is not silence, and an action proposal does not execute an operation.",
+        "x-connect-current-application-reference": "openapi-application-http.json#/paths/~1v1~1operations/post",
+        "x-connect-supported-selectors": [
+          "session_observations"
+        ],
+        "x-connect-retired-selectors": [
+          "conversation_snapshot",
+          "conversation_events"
+        ]
       }
     }
   },
@@ -5371,5 +5424,6 @@
         ]
       }
     }
-  }
+  },
+  "x-connect-original-description": "Current typed control facade. Canonical physical conversation.subscribe uses the same Store pages through explicit per-peer composition (63 facts with optional typed Conversation closure, Session termination, receipt and record readiness hints before cursor events and final ACK, eight live Conversations, fixed at-most-30-second lease); native QUIC confirmation and managed admission emit typed ready/retired facts; explicit native audio and VP8 resource subscriptions now retain one effect and record actual outcomes; additive live upgrades preserve old audio while new Connections negotiate media; owned connection.end records actual termination without closing other Connections; explicit screen VP8 upgrades and subscriptions preserve audio; native data admission freezes one durable message and original audience; exact signed physical publication and current queued-message authorization are installed; attributed local queue receipts grant no physical-write or delivery claim; native writer observations reserve capacity before IO and distinguish local writes, refusals and uncertainty, with separate runtime recovery provenance; complete media-profile qualification remains open. Canonical GET route dispatch is G6-037; physical/provider normalization is G6-038/G6-043/G6-044. Fresh candidate state only."
 }
