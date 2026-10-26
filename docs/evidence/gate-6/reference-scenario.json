@@ -1,0 +1,51 @@
+{
+  "task": "G6-071",
+  "status": "in-progress",
+  "scope": "Definition and scripted assistant only; transport fixtures and installed application journey remain unqualified.",
+  "source_inputs": {
+    "examples/parley-on-connect/scenario.json": "0a3fdced5dbede21fd529e930ed5c4622b965c1ae72be9a93eee70134d750861",
+    "examples/parley-on-connect/scenario.mjs": "dd8f75224b33b0f29c86b3bb5c9a74ea973da9be7f8d064232d8325ae3d806db",
+    "examples/parley-on-connect/package.json": "c22934fd218b8161670fc9ebbb3035c8951c44ac4b6321707275cd1276fe0b1f",
+    "examples/parley-on-connect/README.md": "a97042c47227bfb48c6910ab8c9b04842f5bf450d1c5496fa0920e15dfb2694e",
+    "examples/parley-on-connect/fixtures/model.mjs": "42695cb1cecd01b11e160a1a21066060b62a78a827ef6a84d90df5510092e781",
+    "examples/parley-on-connect/fixtures/model-script.json": "4366777cb34c178e8e7a25a485007d6f0055d97d210a5b3d45f2609cdd87ce34",
+    "examples/parley-on-connect/fixtures/travel.json": "94a7f9d11e1c8c04a853b6b0035b5a2f5f5f89285ab209262d4995fecddba118",
+    "examples/parley-on-connect/tests/scenario.test.mjs": "9fdc3916a78f8cf2c256b7a31b74c50991d41c7c97f3e3b13b8924a1bbd2c3ee"
+  },
+  "upstream_sources": [
+    {
+      "url": "https://github.com/eisenzopf/parley/blob/b2984928916a3b6ccca5c501457e509cd7a50df7/docs/CONFERENCE_IMPLEMENTATION_STATUS.md",
+      "git_blob_sha": "ed275185836e2e7d5a30d8a5558406f0a4cbeee8",
+      "fetched_content_sha256": "12bcff6dbb323141da7fe2e7d2f50420d4bd0e6d963e065c0f62f15cfbbba6b4",
+      "line_range": [
+        1,
+        108
+      ]
+    },
+    {
+      "url": "https://github.com/eisenzopf/parley/blob/b2984928916a3b6ccca5c501457e509cd7a50df7/docs/UCTP_CONFERENCE_PROFILE.md",
+      "git_blob_sha": "0c7a559854f2cd685063eb23f3b7854eb5eeaa30",
+      "fetched_content_sha256": "701fd79fbf3852176aefc06eb1735a068bb3826ec005482dc208bde62360de4b",
+      "line_range": [
+        210,
+        224
+      ]
+    }
+  ],
+  "verification": {
+    "command": "node --test examples/parley-on-connect/tests/scenario.test.mjs",
+    "tests_passed": 4,
+    "node": "v26.7.0",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "stages": 17,
+    "fixture_and_live_definition_identical": true,
+    "actual_model_turn": false,
+    "actual_provider_contact": false,
+    "sdk_runtime_executed": false
+  },
+  "remaining": [
+    "Verify loopback SIP/RTP and SMS fixtures including refusal and cleanup",
+    "Installed SDK application path is later G6-072 through G6-080; G6-071 does not claim that journey",
+    "Acceptance remains unqualified"
+  ]
+}

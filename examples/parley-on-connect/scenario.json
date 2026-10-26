@@ -1,0 +1,740 @@
+{
+  "profile": "connect-parley-reference-scenario/1",
+  "task": "G6-071",
+  "description": "Reusable synthetic travel coordination; no real booking or contact is authorized by this file.",
+  "actors": {
+    "owner": {
+      "label": "Casey",
+      "kind": "human",
+      "required": true,
+      "marker_hz": 300,
+      "contacts": [
+        "browser",
+        "phone",
+        "sms"
+      ]
+    },
+    "assistant": {
+      "label": "Atlas",
+      "kind": "ai",
+      "required": true,
+      "marker_hz": 500,
+      "contacts": [
+        "voice",
+        "chat"
+      ]
+    },
+    "booker": {
+      "label": "Booking desk",
+      "kind": "human",
+      "required": true,
+      "marker_hz": 700,
+      "contacts": [
+        "phone",
+        "chat"
+      ]
+    },
+    "organizer": {
+      "label": "Jordan",
+      "kind": "human",
+      "required": true,
+      "marker_hz": 900,
+      "contacts": [
+        "phone",
+        "sms"
+      ]
+    },
+    "observer": {
+      "label": "Riley",
+      "kind": "human",
+      "required": false,
+      "marker_hz": 1100,
+      "contacts": [
+        "chat"
+      ]
+    }
+  },
+  "start": "conversation",
+  "stages": [
+    {
+      "id": "conversation",
+      "label": "Select people and retain one Conversation",
+      "calls": [
+        {
+          "method": "conversation.create",
+          "actor": "owner",
+          "audience": [
+            "assistant",
+            "booker",
+            "organizer",
+            "observer?"
+          ]
+        }
+      ],
+      "gates": [
+        "explicit owner Start; trusted backend has provisioned selected contacts and scoped credentials"
+      ],
+      "observations": [
+        "one persistent Conversation; identities/participants distinct; no provider call on setup"
+      ],
+      "acceptance": [
+        "A6-03",
+        "A6-20",
+        "A6-21"
+      ],
+      "next": [
+        "task-context"
+      ]
+    },
+    {
+      "id": "task-context",
+      "label": "Send the task and explicitly select context",
+      "calls": [
+        {
+          "method": "message.private",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "raw:message.history",
+          "actor": "assistant",
+          "audience": [
+            "owner",
+            "assistant"
+          ]
+        }
+      ],
+      "gates": [
+        "attributed owner task; bounded authorized history only"
+      ],
+      "observations": [
+        "task and selected historical source IDs retained; excluded participant content omitted; business data is not a system instruction"
+      ],
+      "acceptance": [
+        "A6-04",
+        "A6-05",
+        "A6-11",
+        "A6-21"
+      ],
+      "next": [
+        "opening"
+      ]
+    },
+    {
+      "id": "opening",
+      "label": "Owner talks to the AI in the browser",
+      "calls": [
+        {
+          "method": "session.invite",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "session.accept",
+          "actor": "assistant",
+          "audience": [
+            "owner"
+          ]
+        },
+        {
+          "method": "connection.offer",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "stream.subscribe",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        }
+      ],
+      "gates": [
+        "explicit capture permission; actual compatible media; attributed owner missed-flight reply"
+      ],
+      "observations": [
+        "SIMULATED fixture speaker markers identify both directions; ACK is not usable media"
+      ],
+      "acceptance": [
+        "A6-06",
+        "A6-13",
+        "A6-14",
+        "A6-20"
+      ],
+      "next": [
+        "opening-end"
+      ]
+    },
+    {
+      "id": "opening-end",
+      "label": "Finish the AI closing before further contact",
+      "calls": [
+        {
+          "method": "session.end",
+          "actor": "assistant",
+          "audience": [
+            "owner"
+          ]
+        }
+      ],
+      "gates": [
+        "application-owned speech/source completion plus authoritative Session ending; abandoned/failed opening does not initiate dialing"
+      ],
+      "observations": [
+        "opening Session ended; Conversation persists; no booker call on failure"
+      ],
+      "acceptance": [
+        "A6-10",
+        "A6-11",
+        "A6-21"
+      ],
+      "next": [
+        "booker"
+      ]
+    },
+    {
+      "id": "booker",
+      "label": "Get an attributed sandbox itinerary",
+      "calls": [
+        {
+          "method": "session.invite",
+          "actor": "assistant",
+          "audience": [
+            "booker"
+          ]
+        },
+        {
+          "method": "connection.offer",
+          "actor": "assistant",
+          "audience": [
+            "booker"
+          ]
+        },
+        {
+          "method": "message.private",
+          "actor": "booker",
+          "audience": [
+            "assistant"
+          ]
+        }
+      ],
+      "gates": [
+        "current verified telephone endpoint; actual answer/media; complete attributed airline/flight/departure/arrival facts"
+      ],
+      "observations": [
+        "new booker Session in original Conversation; no purchase or pickup request; missing facts stop advancement"
+      ],
+      "acceptance": [
+        "A6-04",
+        "A6-12",
+        "A6-21",
+        "A6-28"
+      ],
+      "next": [
+        "booker-end"
+      ]
+    },
+    {
+      "id": "booker-end",
+      "label": "Respect the booker goodbye",
+      "calls": [
+        {
+          "method": "session.end",
+          "actor": "assistant",
+          "audience": [
+            "booker"
+          ]
+        }
+      ],
+      "gates": [
+        "closing source completed; authoritative booker Session end"
+      ],
+      "observations": [
+        "no organizer invitation until booker Session has ended"
+      ],
+      "acceptance": [
+        "A6-10",
+        "A6-11",
+        "A6-21"
+      ],
+      "next": [
+        "organizer-permission"
+      ]
+    },
+    {
+      "id": "organizer-permission",
+      "label": "Privately ask whether the organizer can take a call",
+      "calls": [
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "raw:message.history",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "operation.status",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "current reviewed SMS enrollment/preferences; current attributed affirmative reply to this exact ask"
+      ],
+      "observations": [
+        "acceptance, provider queued/sent, delivered and actual reply stay distinct; ambiguous inbound is not assigned by text; uncertainty does not authorize another channel"
+      ],
+      "acceptance": [
+        "A6-03",
+        "A6-04",
+        "A6-05",
+        "A6-10",
+        "A6-12",
+        "A6-21"
+      ],
+      "next": [
+        "organizer-call"
+      ]
+    },
+    {
+      "id": "organizer-call",
+      "label": "Speak with the organizer and retain this remote leg",
+      "calls": [
+        {
+          "method": "session.invite",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "connection.offer",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "permitted current telephone contact; actual answer and decoded media"
+      ],
+      "observations": [
+        "record main Session and organizer Connection public handles for every later stage"
+      ],
+      "acceptance": [
+        "A6-06",
+        "A6-12",
+        "A6-21",
+        "A6-28"
+      ],
+      "next": [
+        "private-consultation"
+      ]
+    },
+    {
+      "id": "private-consultation",
+      "label": "Consult the owner privately while the organizer stays connected",
+      "calls": [
+        {
+          "method": "session.consult",
+          "actor": "assistant",
+          "audience": [
+            "owner",
+            "assistant"
+          ]
+        },
+        {
+          "method": "session.accept",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        }
+      ],
+      "gates": [
+        "explicit current private audience; owner invitation accepted; no automatic takeover from answer"
+      ],
+      "observations": [
+        "organizer gets silence/held treatment and no private context; owner/assistant actual marked duplex; original organizer Connection and main Session retained"
+      ],
+      "acceptance": [
+        "A6-05",
+        "A6-07",
+        "A6-11",
+        "A6-20",
+        "A6-21"
+      ],
+      "next": [
+        "takeover",
+        "decline-return"
+      ]
+    },
+    {
+      "id": "decline-return",
+      "label": "Return from a declined or cancelled consultation",
+      "calls": [
+        {
+          "method": "session.consult.return",
+          "actor": "owner",
+          "audience": [
+            "assistant",
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "current owner declines or application cancels; no handoff approval"
+      ],
+      "observations": [
+        "public audio restored with same retained remote; no new dial or speaking-role transfer"
+      ],
+      "acceptance": [
+        "A6-07",
+        "A6-10",
+        "A6-21"
+      ],
+      "next": [
+        "voice-end"
+      ]
+    },
+    {
+      "id": "takeover",
+      "label": "Transfer the speaking role after explicit consent",
+      "calls": [
+        {
+          "method": "session.handoff",
+          "actor": "assistant",
+          "audience": [
+            "owner",
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "fresh final owner affirmative transcript/explicit accessibility consent AND current assistant connect_organizer intent; exact consultation reference; speech no longer in progress"
+      ],
+      "observations": [
+        "outgoing assistant leaves; owner speaks to organizer; actual duplex and current roles observed; retained organizer Connection/main Session unchanged"
+      ],
+      "acceptance": [
+        "A6-05",
+        "A6-07",
+        "A6-08",
+        "A6-11",
+        "A6-20",
+        "A6-21"
+      ],
+      "next": [
+        "move"
+      ]
+    },
+    {
+      "id": "move",
+      "label": "Move the owner to the selected phone",
+      "calls": [
+        {
+          "method": "connection.replace",
+          "actor": "owner",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "operation.status",
+          "actor": "owner",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "operation.cancel",
+          "actor": "owner",
+          "audience": [
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "selected current verified owner endpoint; configured DTMF1 confirmation from that candidate; actual ready media before commit"
+      ],
+      "observations": [
+        "original browser remains usable while ringing; wrong/no digit, voicemail, no-answer, cancel and stale generation cannot switch; after commit same organizer Connection/main Session; target70s independent duplex hold"
+      ],
+      "acceptance": [
+        "A6-09",
+        "A6-10",
+        "A6-20",
+        "A6-21",
+        "A6-28"
+      ],
+      "next": [
+        "voice-end"
+      ]
+    },
+    {
+      "id": "voice-end",
+      "label": "End voice and keep messaging",
+      "calls": [
+        {
+          "method": "session.end",
+          "actor": "owner",
+          "audience": [
+            "assistant",
+            "organizer"
+          ]
+        }
+      ],
+      "gates": [
+        "explicit owner End voice; reconcile original ending if uncertain"
+      ],
+      "observations": [
+        "native/SIP streams and owned clients drain; Conversation and history remain"
+      ],
+      "acceptance": [
+        "A6-10",
+        "A6-21"
+      ],
+      "next": [
+        "proposal"
+      ]
+    },
+    {
+      "id": "proposal",
+      "label": "Present a sandbox proposal with source attribution",
+      "calls": [
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "owner"
+          ]
+        }
+      ],
+      "gates": [
+        "complete attributed itinerary and organizer outcome; explicit omissions for missing data"
+      ],
+      "observations": [
+        "immutable proposal ID/digest/source IDs; sandbox:true; no booking or approval claim"
+      ],
+      "acceptance": [
+        "A6-04",
+        "A6-11",
+        "A6-20",
+        "A6-21"
+      ],
+      "next": [
+        "approval"
+      ]
+    },
+    {
+      "id": "approval",
+      "label": "Wait for the owner decision",
+      "calls": [
+        {
+          "method": "message.private",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "raw:message.history",
+          "actor": "assistant",
+          "audience": [
+            "owner"
+          ]
+        }
+      ],
+      "gates": [
+        "authenticated current owner; exact current proposal ID/digest/version; explicit affirmative decision; model output/receipt cannot approve"
+      ],
+      "observations": [
+        "decline produces no final updates; repeated decision keeps original step and IDs"
+      ],
+      "acceptance": [
+        "A6-10",
+        "A6-11",
+        "A6-20",
+        "A6-21"
+      ],
+      "next": [
+        "follow-up"
+      ]
+    },
+    {
+      "id": "follow-up",
+      "label": "Send separate final updates to the intended people",
+      "calls": [
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "owner"
+          ]
+        },
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "organizer"
+          ]
+        },
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "booker"
+          ]
+        },
+        {
+          "method": "message.private",
+          "actor": "assistant",
+          "audience": [
+            "observer?"
+          ]
+        }
+      ],
+      "gates": [
+        "owner approved exact proposal; current reviewed SMS routes for owner/organizer; chat for booker/optional observer"
+      ],
+      "observations": [
+        "four individual updates when observer enabled; no group MMS; simulated carrier receipts labeled; queued/sent/delivered/reply are separate; current suppression/uncertainty visible"
+      ],
+      "acceptance": [
+        "A6-03",
+        "A6-04",
+        "A6-05",
+        "A6-10",
+        "A6-12",
+        "A6-21",
+        "A6-28"
+      ],
+      "next": [
+        "recover-and-audit"
+      ]
+    },
+    {
+      "id": "recover-and-audit",
+      "label": "Recover saved work and inspect source-backed outcomes",
+      "calls": [
+        {
+          "method": "operation.status",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "events",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        },
+        {
+          "method": "raw:message.history",
+          "actor": "owner",
+          "audience": [
+            "assistant"
+          ]
+        }
+      ],
+      "gates": [
+        "load original saved operation references and journal cursor; current authority rechecked"
+      ],
+      "observations": [
+        "same Conversation and stable original logical IDs; unknown remains unknown; no blind replan/redial/send; actual media evidence separate from outcomes"
+      ],
+      "acceptance": [
+        "A6-10",
+        "A6-11",
+        "A6-21",
+        "A6-28"
+      ],
+      "next": []
+    }
+  ],
+  "business_policy": {
+    "sandbox": true,
+    "travel_data": "fixtures/travel.json",
+    "proposal_approval": "exact current attributed owner decision; never model/receipt authority",
+    "takeover": "current owner consent AND assistant action; invitation acceptance alone is insufficient",
+    "phone_confirmation": {
+      "method": "rfc4733",
+      "digit": "1",
+      "timeout_ms": 30000
+    },
+    "outgoing_assistant": "leave",
+    "organizer_hold": "silence",
+    "private_hold_probe_ms": 23000,
+    "after_move_duplex_probe_ms": 70000,
+    "observer_default": true,
+    "final_updates": {
+      "owner": "sms",
+      "organizer": "sms",
+      "booker": "chat",
+      "observer": "chat"
+    }
+  },
+  "binding_contract": {
+    "allowed_keys": [
+      "model",
+      "telephone",
+      "sms",
+      "contacts",
+      "authorization_reference"
+    ],
+    "fixture_live_share": "this exact stage graph, public SDK operation mapping, business policy and saved intent/recovery path",
+    "fixture": "SIMULATED model, loopback SIP/RTP and SMS backend/signatures",
+    "live": "protected backend configured models/providers/verified contacts; G6-093 authorization required before activation"
+  },
+  "recovery": {
+    "save_before_io": [
+      "logical operation ID",
+      "complete original intent",
+      "scope",
+      "revision family/value",
+      "message ID and audience",
+      "operation reference",
+      "journal cursor"
+    ],
+    "unknown": "recover original status; remain unresolved without authoritative evidence; no new mutation ID, redial, resend or substrate switch",
+    "cancel": "local wait cancellation differs from explicit durable original-target cancellation"
+  },
+  "source_basis": [
+    {
+      "repository": "eisenzopf/parley",
+      "revision": "b2984928916a3b6ccca5c501457e509cd7a50df7",
+      "path": "docs/CONFERENCE_IMPLEMENTATION_STATUS.md",
+      "lines": [
+        1,
+        108
+      ]
+    },
+    {
+      "repository": "eisenzopf/parley",
+      "revision": "b2984928916a3b6ccca5c501457e509cd7a50df7",
+      "path": "docs/UCTP_CONFERENCE_PROFILE.md",
+      "lines": [
+        210,
+        224
+      ]
+    }
+  ],
+  "policy_difference": "The later Parley demo automatically moved on answer/readiness. This example selects the approved Gate6 configured DTMF1 profile to exercise wrong/no-confirmation failures. Fixture and live bindings use this same application-owned policy."
+}

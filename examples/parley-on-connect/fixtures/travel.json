@@ -1,0 +1,20 @@
+{
+  "simulated": true,
+  "airline": "Example Air",
+  "flight": "EA2263",
+  "departure": {
+    "airport": "RNO",
+    "local_time": "11:00"
+  },
+  "arrival": {
+    "airport": "ATL",
+    "local_time": "16:00",
+    "terminal": "2"
+  },
+  "travelers": [
+    "Casey",
+    "Riley"
+  ],
+  "pickup_question": "Venue or hotel first?",
+  "purchase_authorized": false
+}

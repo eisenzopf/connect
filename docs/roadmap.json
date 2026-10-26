@@ -457,7 +457,7 @@
           "depends_on": [
             "G6-E"
           ],
-          "status": "not-started"
+          "status": "in-progress"
         },
         {
           "id": "G6-G",
@@ -481,7 +481,7 @@
         }
       ],
       "authorization": "evidence/gate-6/authorization.json",
-      "completed_task_count": 52,
+      "completed_task_count": 53,
       "in_progress_task_count": 4
     }
   ],

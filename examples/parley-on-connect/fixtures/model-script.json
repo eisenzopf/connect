@@ -1,0 +1,34 @@
+{
+  "opening": {
+    "text": "[SIMULATED Atlas] Did you make your flight?",
+    "intent": "ask-owner"
+  },
+  "opening-end": {
+    "text": "[SIMULATED Atlas] I will find an option and call you back.",
+    "intent": "finish-speech"
+  },
+  "booker": {
+    "text": "[SIMULATED Atlas] What airline, flight number, departure and arrival are available?",
+    "intent": "collect-itinerary"
+  },
+  "organizer-permission": {
+    "text": "[SIMULATED Atlas] Can I call you about Casey and Riley\u2019s sandbox arrival?",
+    "intent": "ask-call-permission"
+  },
+  "private-consultation": {
+    "text": "[SIMULATED Atlas] The organizer asks whether to go to the venue or hotel. Shall I connect you?",
+    "intent": "ask-owner-consent"
+  },
+  "takeover": {
+    "text": "[SIMULATED Atlas] I can connect you after your current affirmative decision.",
+    "intent": "connect_organizer"
+  },
+  "proposal": {
+    "text": "[SIMULATED Atlas] Review the sandbox arrangements and approve or decline this proposal.",
+    "intent": "propose-only"
+  },
+  "follow-up": {
+    "text": "[SIMULATED Atlas] Sandbox arrangements confirmed by the owner. No real purchase was made.",
+    "intent": "summarize-approved-proposal"
+  }
+}
