@@ -1,0 +1,88 @@
+{
+  "schema": "connect-gate6-rust-sdk-selections/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T03:02:04.864035+00:00",
+  "base_revision": "b1c32a530c7f36509a2d5d47014baade46adffc3",
+  "scope": "Typed public Rust SDK receive selections, captured original native outcomes and owned signed preparation/result pairing. Client, protocol and targeted Store checks pass; actual both-ends SDK media integration is building and has not run. Local macOS arm64 functional scope.",
+  "implementation": [
+    "Connection.subscribe has explicit Stream or Participant/kinds selectors; unsubscribe has explicit Stream IDs. Native revision, original operation ID, opaque extensions and selector order survive uncertainty and recovery. Distinct typed operation kinds preserve historical result identity.",
+    "Native stream result records original command, expected/resulting revision, Connection generation, resources_changed and optional captured bindings. A missing concurrent capture is null, never an invented empty set. Shared protocol validation bounds positive counters and native port identities.",
+    "Owned selection reoffers preserve local publication, restrict new ports to receiving declared formats and reserve positive unique native handles, including private data handles. Matching completed captures adopt local parameters; unknown/failed/interrupted paths preserve identity. Route-only/no-op receipts cannot rewind newer local revisions.",
+    "Native media queues can add/remove selected receive bindings while preserving unrelated queues and exposing discarded packets through counters/gaps. Saved observations never acquire foreign media custody. HTTP/OpenAPI reference documents captured selection outcomes."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 149,
+      "failed_functions": 0,
+      "new_signed_selection_functions": 9,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-selections/client-protocol-05.log",
+        "sha256": "dae2b2a0eef006d4c5e80e4f4856f08defc0343d3340f26e92b07c876234656d"
+      },
+      "scope": "Complete client suite, including malformed signed reoffers/results, added video/data receives, route-only/no-op/stale observations, dropped caller/unknown recovery, explicit extension preservation and failed/unavailable captures."
+    },
+    "protocol": {
+      "passed_functions": 40,
+      "failed_functions": 0,
+      "new_functions": 2,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-selections/client-protocol-05.log",
+        "sha256": "dae2b2a0eef006d4c5e80e4f4856f08defc0343d3340f26e92b07c876234656d"
+      },
+      "scope": "Complete protocol unit suite. New capture checks distinguish empty/null/missing metadata and reject aliased/foreign ports and incompatible counters/kinds."
+    },
+    "store": {
+      "passed_functions": 178,
+      "failed_functions": 0,
+      "filtered_functions": 1035,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-selections/store-01.log",
+        "sha256": "e081ce9af34680939d0d4bbfa6e75393d09d0ce943d606c9cd21a92a66093849"
+      },
+      "scope": "Targeted native_stream_authority group; not the whole Store suite."
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-selections/inputs-02.json",
+        "sha256": "98a3fd21a09692dc9a52b73e2279e64bc7b81dbaad81cde5c7b0290d73cba750"
+      },
+      "guarded_source_inputs": 1327,
+      "unchanged": true,
+      "fixture_only_change_after_unit_store_verification": {
+        "path": ".local/gate-6/rust-sdk-selections/fixture-clock-correction.json",
+        "sha256": "29713f7e47ca23ae5fa03bf6859471c47d32a09cbbe3c1dfca0f86c9f01c37c3"
+      }
+    },
+    "production": {
+      "status": "pending",
+      "detail": "Current-source release no-run production build is compiling. Two new public SDK both-ends A/V and recording-failure fixtures have not yet executed."
+    },
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-selections/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-selections/format-06.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-selections/client-02.log",
+        "sha256": "9a5095357c86458ee8e311863e96512bae70d995055240478fc7150c77c2134d"
+      },
+      "result": "New fixture called receive instead of the public receive_packet method; compile-only failure corrected before passing 149/40 suites."
+    }
+  ],
+  "remaining": [
+    "Execute actual signed both-ends SDK selection/media and recording-failure rehearsals; compile public consumer example and Rustdoc, verify generated contracts and final source/binary evidence.",
+    "Unavailable capture adoption, server-initiated subscription reconciliation, complete data/event/capability/config/raw/admin APIs, packaged external consumer and complete both-ends journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain G6-060 work.",
+    "G6-060 remains in progress; no full SDK/task, whole Store, acceptance, performance, remote-provider or publication claim."
+  ],
+  "scratch_preservation": {
+    "path": ".local/gate-6/rust-sdk-selections/qualified-binary-compression.json",
+    "sha256": "d922b55e7014a342e0987cc833cac4b1dbd5ae7dda9b7dc27d7fdcf54900d258"
+  }
+}

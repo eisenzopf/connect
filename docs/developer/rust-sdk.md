@@ -322,3 +322,33 @@ The movement qualification uses SDK controllers with independent public Canonica
 native media owners. Restoring a controller operation does not grant the target
 Device's transport custody. Complete transition reconciliation, both-ends SDK
 media and external-package/remote profiles remain separate G6-060 work.
+
+`Connection::subscribe` accepts nonempty `StreamSelector` values: an explicit
+logical Stream ID, or a Participant with optional nonempty media kinds.
+`Connection::unsubscribe` accepts nonempty explicit Stream IDs. Both take a native
+`StreamRevision` and a stable `MutationOptions.operation_id`; a snapshot resource
+revision or a topology revision cannot replace that assertion. Selector order,
+extensions and explicit null values remain part of the original request.
+
+These calls return `Operation<StreamSelectionReceipt>`, including when the
+original result is pending, unknown or failed. Saved references use the distinct
+`stream_subscribe` and `stream_unsubscribe` operation kinds. The receipt records
+the original Connection generation, resulting native revision and whether actual
+resources changed. A routing change may advance the revision without a reoffer;
+a no-op can retain it. Replaying a historical result does not reset newer local
+parameters or repeat the selection.
+
+A resource change requires a same-root signed preparation and matching captured
+completion before this peer installs its receive bindings. Local publications
+are preserved, new bindings are receive-only, and native hop handles remain
+positive, unique and reserved across uncertain or retired preparations. Opaque
+data ports remain private; their observations expose no RTP I/O. Removing a local
+binding drops its queued packets; unrelated queues stay bounded and available.
+
+`bindings: None` explicitly records unavailable concurrent capture metadata;
+`Some(vec![])` records a known empty set. An unavailable capture never installs
+unproven local parameters, and its preparation remains reserved pending explicit
+reconciliation. This is a remaining reconciliation limit, not a claim that the
+recorded effect failed. Fresh-client recovery can inspect captured parameters
+without taking the original physical peer's media custody. Current qualification
+and unresolved scope are recorded in `docs/evidence/gate-6/rust-sdk-selections.json`.

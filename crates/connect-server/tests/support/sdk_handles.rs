@@ -5,6 +5,8 @@ mod codec_updates;
 mod media;
 #[path = "sdk_handles/runtime_controls.rs"]
 mod runtime_controls;
+#[path = "sdk_handles/selections.rs"]
+mod selections;
 #[path = "sdk_handles/stream_metadata.rs"]
 mod stream_metadata;
 use super::*;

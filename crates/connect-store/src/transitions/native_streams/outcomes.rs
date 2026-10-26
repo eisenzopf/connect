@@ -180,6 +180,7 @@ impl NativeStreamLease {
         }
         if let Some(bindings) = &projection {
             crate::native_stream_projection::validate(bindings, self.generation)?;
+            connect_protocol::native_streams::validate_stream_bindings(bindings)?;
         }
         Ok(NativeStreamCommitted {
             lease: self,
@@ -299,9 +300,19 @@ impl Store {
             CommittedOutcome::Streams {
                 revision,
                 resources_changed,
-                ..
+                projection,
             } => {
-                serde_json::json!({"connection_id":lease.connection,"stream_revision":revision,"resources_changed":resources_changed})
+                let observed = connect_protocol::native_streams::SelectionObservation {
+                    connection_id: lease.connection.clone(),
+                    command_type: lease.command,
+                    connection_generation: lease.generation,
+                    expected_revision: lease.expected_revision,
+                    stream_revision: *revision,
+                    resources_changed: *resources_changed,
+                    stream_bindings: projection.clone(),
+                };
+                observed.validate()?;
+                serde_json::to_value(observed).map_err(|_| Error::storage())?
             }
             CommittedOutcome::Quality { interval_ms } => {
                 serde_json::json!({"connection_id":lease.connection,"connection_generation":lease.generation,"stream_revision":lease.expected_revision,"resources_changed":false,"quality_interval_ms":interval_ms})

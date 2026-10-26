@@ -278,6 +278,62 @@ pub struct CodecBinding {
     pub stream_generation: u64,
     pub connection_generation: u64,
 }
+/// Captured native selection result. Optional bindings distinguish unavailable
+/// concurrent metadata from a known empty set; neither observation grants I/O.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelectionObservation {
+    pub connection_id: String,
+    pub command_type: Command,
+    pub connection_generation: u64,
+    pub expected_revision: u64,
+    pub stream_revision: u64,
+    pub resources_changed: bool,
+    #[serde(deserialize_with = "required_capture")]
+    pub stream_bindings: Option<Vec<CodecBinding>>,
+}
+fn required_capture<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> std::result::Result<Option<Vec<CodecBinding>>, D::Error> {
+    Option::deserialize(d)
+}
+impl SelectionObservation {
+    pub fn validate(&self) -> Result<()> {
+        id(&self.connection_id)?;
+        let safe = |n| n > 0 && n <= 9_007_199_254_740_991;
+        if !matches!(
+            self.command_type,
+            Command::Subscribe | Command::Unsubscribe | Command::Reconcile
+        ) || !safe(self.connection_generation)
+            || !safe(self.expected_revision)
+            || !safe(self.stream_revision)
+            || self.stream_revision < self.expected_revision
+            || self.stream_revision > self.expected_revision.saturating_add(1)
+            || (self.resources_changed
+                && self.expected_revision.checked_add(1) != Some(self.stream_revision))
+        {
+            return Err(invalid());
+        }
+        if let Some(bindings) = &self.stream_bindings {
+            validate_stream_bindings(bindings)?;
+            if bindings
+                .iter()
+                .any(|b| b.connection_generation != self.connection_generation)
+            {
+                return Err(invalid());
+            }
+        }
+        Ok(())
+    }
+}
+/// A complete captured set may be empty after retiring receive resources.
+pub fn validate_stream_bindings(bindings: &[CodecBinding]) -> Result<()> {
+    if bindings.is_empty() {
+        return Ok(());
+    }
+    validate_codec_bindings(bindings)
+}
+
 pub fn validate_codec_bindings(bindings: &[CodecBinding]) -> Result<()> {
     if bindings.is_empty()
         || bindings.len() > 32
@@ -418,6 +474,58 @@ mod tests {
         let mut bad = b;
         bad.codec["params"] = json!("not parameters");
         assert!(validate_codec_bindings(&[bad]).is_err());
+    }
+    #[test]
+    fn selection_capture_distinguishes_known_empty_unavailable_and_missing() {
+        let raw = json!({"connection_id":"receiver","command_type":"stream.unsubscribe","connection_generation":2,"expected_revision":7,"stream_revision":8,"resources_changed":false,"stream_bindings":[]});
+        let known: SelectionObservation = serde_json::from_value(raw.clone()).unwrap();
+        known.validate().unwrap();
+        assert_eq!(known.stream_bindings.unwrap().len(), 0);
+        let mut unavailable = raw.clone();
+        unavailable["stream_bindings"] = Value::Null;
+        let v: SelectionObservation = serde_json::from_value(unavailable).unwrap();
+        v.validate().unwrap();
+        assert!(v.stream_bindings.is_none());
+        let mut missing = raw;
+        missing.as_object_mut().unwrap().remove("stream_bindings");
+        assert!(serde_json::from_value::<SelectionObservation>(missing).is_err());
+    }
+    #[test]
+    fn selection_capture_rejects_wrong_counter_kind_and_foreign_or_aliased_ports() {
+        let b = json!({"stream_id":"camera","medium":"video","direction":"sendonly","codec":{"name":"vp8","params":{}},"stream_local_id":17,"stream_generation":1,"connection_generation":2});
+        let base = json!({"connection_id":"receiver","command_type":"stream.subscribe","connection_generation":2,"expected_revision":7,"stream_revision":8,"resources_changed":true,"stream_bindings":[b.clone()]});
+        serde_json::from_value::<SelectionObservation>(base.clone())
+            .unwrap()
+            .validate()
+            .unwrap();
+        for (field, value) in [
+            ("command_type", json!("connection.update")),
+            ("expected_revision", json!(0)),
+            ("stream_revision", json!(7)),
+            ("connection_generation", json!(3)),
+        ] {
+            let mut v = base.clone();
+            v[field] = value;
+            assert!(
+                serde_json::from_value::<SelectionObservation>(v)
+                    .unwrap()
+                    .validate()
+                    .is_err(),
+                "{field}"
+            );
+        }
+        let mut v = base.clone();
+        v["stream_bindings"] = json!([b.clone(), b]);
+        assert!(serde_json::from_value::<SelectionObservation>(v)
+            .unwrap()
+            .validate()
+            .is_err());
+        let mut v = base;
+        v["stream_bindings"][0]["stream_local_id"] = json!(0);
+        assert!(serde_json::from_value::<SelectionObservation>(v)
+            .unwrap()
+            .validate()
+            .is_err());
     }
     fn intent(payload: Value) -> Intent {
         Intent {

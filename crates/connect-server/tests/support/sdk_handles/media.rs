@@ -1,6 +1,6 @@
 //! Public SDK publisher to an independently controlled/decoded native receiver.
 use super::*;
-const VP8: &[u8] = include_bytes!("../../fixtures/gate6-vp8-black-640x360.vp8");
+pub(super) const VP8: &[u8] = include_bytes!("../../fixtures/gate6-vp8-black-640x360.vp8");
 pub(super) fn rtp(
     pt: u8,
     sequence: u16,
@@ -47,7 +47,7 @@ async fn subscribe(target: &mut CanonicalClient, cid: &str) -> Value {
         }
     }
 }
-fn decoded_audio(directory: &std::path::Path, encoded: &[u8]) -> usize {
+pub(super) fn decoded_audio(directory: &std::path::Path, encoded: &[u8]) -> usize {
     let path = directory.join("sdk-received.mulaw");
     std::fs::write(&path, encoded).unwrap();
     let output = std::process::Command::new("ffmpeg")
@@ -72,7 +72,7 @@ fn decoded_audio(directory: &std::path::Path, encoded: &[u8]) -> usize {
     assert!(loud > 500);
     loud
 }
-fn decoded_video(directory: &std::path::Path, encoded: &[u8]) -> usize {
+pub(super) fn decoded_video(directory: &std::path::Path, encoded: &[u8]) -> usize {
     let mut ivf = b"DKIF".to_vec();
     ivf.extend_from_slice(&0u16.to_le_bytes());
     ivf.extend_from_slice(&32u16.to_le_bytes());

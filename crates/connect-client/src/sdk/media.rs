@@ -212,11 +212,43 @@ impl Inbox {
         for stream in &selected.streams {
             if let Some(handle) = stream.stream_local_id {
                 let key = key(&stream.id);
-                if !s.queues.contains_key(&key)
+                if !directions.contains_key(&stream.id)
                     || s.handles.get(&handle).is_some_and(|old| old != &key)
                 {
                     return Err(bad());
                 }
+            }
+        }
+        let retained: std::collections::BTreeSet<_> = selected
+            .streams
+            .iter()
+            .filter(|s| s.stream_local_id.is_some())
+            .map(|s| s.id.clone())
+            .collect();
+        let removed: Vec<_> = s
+            .queues
+            .keys()
+            .filter(|k| {
+                &k.conversation_id == cid
+                    && &k.session_id == sid
+                    && &k.connection_id == conn
+                    && !retained.contains(&k.stream_id)
+            })
+            .cloned()
+            .collect();
+        for key in removed {
+            if let Some(queue) = s.queues.remove(&key) {
+                if let Some(handle) = queue.binding.stream.stream_local_id {
+                    s.handles.remove(&handle);
+                }
+                s.packets = s.packets.saturating_sub(queue.items.len());
+                s.bytes = s
+                    .bytes
+                    .saturating_sub(queue.items.iter().map(|(_, n)| *n).sum::<usize>());
+                s.stats.binding_change_drops = s
+                    .stats
+                    .binding_change_drops
+                    .saturating_add(queue.items.len() as u64);
             }
         }
         for stream in &selected.streams {
@@ -224,7 +256,14 @@ impl Inbox {
                 continue;
             };
             let key = key(&stream.id);
-            let queue = s.queues.get_mut(&key).ok_or_else(bad)?;
+            let queue = s.queues.entry(key.clone()).or_insert_with(|| Queue {
+                binding: Binding {
+                    stream: stream.clone(),
+                    clock: selected.source_clock,
+                },
+                items: VecDeque::new(),
+                gap: 0,
+            });
             let changed = queue.binding.stream.stream_local_id != Some(handle)
                 || queue.binding.stream.codec != stream.codec
                 || queue.binding.clock != selected.source_clock;

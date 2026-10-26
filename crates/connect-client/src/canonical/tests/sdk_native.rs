@@ -2,6 +2,7 @@
 use super::*;
 mod codecs;
 mod end;
+mod selections;
 mod updates;
 use crate::sdk::{
     self, Client, Direction, Medium, MutationOptions, NonEmpty, OfferedStream, RequestOptions,
@@ -9,6 +10,7 @@ use crate::sdk::{
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    Selection(selections::Case),
     Codec(codecs::Case),
     Controls(updates::Case),
     End,
@@ -198,6 +200,17 @@ pub(super) async fn emit(
     status(writer, signer, &query, "completed").await;
     if let Case::Codec(case) = case {
         codecs::emit(
+            connection,
+            case,
+            reader,
+            writer,
+            signer,
+            signal,
+            &capabilities,
+        )
+        .await;
+    } else if let Case::Selection(case) = case {
+        selections::emit(
             connection,
             case,
             reader,

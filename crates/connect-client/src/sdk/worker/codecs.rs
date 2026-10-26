@@ -5,19 +5,19 @@ use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone)]
 pub(super) struct Prepared {
-    key: OperationKey,
-    expected: u64,
-    selected: NativeNegotiation,
-    base: Vec<NegotiatedStream>,
-    wire_handles: BTreeMap<StreamId, u16>,
-    generations: BTreeMap<StreamId, u64>,
+    pub(super) key: OperationKey,
+    pub(super) expected: u64,
+    pub(super) selected: NativeNegotiation,
+    pub(super) base: Vec<NegotiatedStream>,
+    pub(super) wire_handles: BTreeMap<StreamId, u16>,
+    pub(super) generations: BTreeMap<StreamId, u64>,
     pub gates: BTreeMap<StreamId, controls::LocalGate>,
     pub observed_revision: StreamRevision,
 }
 fn fail(key: &OperationKey) -> Error {
     Error::request(ErrorKind::Protocol, Some(key), true)
 }
-fn same_stream(a: &NegotiatedStream, b: &NegotiatedStream) -> bool {
+pub(super) fn same_stream(a: &NegotiatedStream, b: &NegotiatedStream) -> bool {
     a.id == b.id
         && a.medium == b.medium
         && a.direction == b.direction

@@ -74,6 +74,8 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    pub stream_subscribe: OperationKind<StreamSelectionReceipt>,
+    pub stream_unsubscribe: OperationKind<StreamSelectionReceipt>,
     pub session_handoff: OperationKind<HandoffResult>,
     pub connection_replace: OperationKind<MoveResult>,
     pub session_consult: OperationKind<ConsultationResult>,
@@ -98,6 +100,16 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            stream_subscribe: OperationKind::new(
+                "stream.subscribe",
+                selections::decode,
+                connections::valid_scope,
+            ),
+            stream_unsubscribe: OperationKind::new(
+                "stream.unsubscribe",
+                selections::decode,
+                connections::valid_scope,
+            ),
             session_handoff: OperationKind::new(
                 "session.handoff",
                 movements::decode_handoff,
@@ -386,6 +398,23 @@ impl<T> Operation<T> {
                     return Err(Error::request(ErrorKind::Protocol, None, false));
                 }
                 *known = Some(record.clone());
+            }
+            if selections::is_command(&key.command) {
+                match state {
+                    OperationState::Completed => self.client.shared.record_selection(
+                        key,
+                        &selections::parse(
+                            update.result.as_ref().ok_or_else(|| {
+                                Error::request(ErrorKind::Protocol, Some(key), false)
+                            })?,
+                            key,
+                        )?,
+                    )?,
+                    OperationState::Failed | OperationState::Cancelled => {
+                        self.client.shared.fail_connection_update(key)?
+                    }
+                    _ => (),
+                }
             }
             if key.command == "connection.update" {
                 match state {

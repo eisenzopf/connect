@@ -259,6 +259,13 @@
             "replay": "Original policy and reference stay immutable. Superseded unstarted targets perform no IO; submitted effects retain uncertainty and never resubmit. Captured actual successes may record after cancellation without restoring an old policy."
           }
         },
+        "x-native-selection-result": {
+          "schema": {
+            "$ref": "#/components/schemas/NativeSelectionResult"
+          },
+          "transport": "Native receive routing is applied only by the current signed physical owner; HTTP may inspect the original operation.",
+          "recovery": "Preserve original command, logical ID, scope and native revision. Match signed preparation and recorded completion before adopting local receive bindings; unavailable capture never invents an empty set or a binding grant."
+        },
         "x-native-runtime-controls": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",
           "command": "connection.update",
@@ -5688,6 +5695,63 @@
         ],
         "additionalProperties": false,
         "description": "Historical direct codec completion or captured Session-policy reconciliation. Binding directions describe the server; SDK parameter observations reverse them for the client. All bindings share one Connection generation. The optional batch reference does not grant physical custody."
+      },
+      "NativeSelectionResult": {
+        "type": "object",
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "command_type": {
+            "enum": [
+              "stream.subscribe",
+              "stream.unsubscribe"
+            ]
+          },
+          "connection_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "stream_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "resources_changed": {
+            "type": "boolean"
+          },
+          "stream_bindings": {
+            "anyOf": [
+              {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "$ref": "#/components/schemas/NativeCodecBinding"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "connection_id",
+          "command_type",
+          "connection_generation",
+          "expected_revision",
+          "stream_revision",
+          "resources_changed",
+          "stream_bindings"
+        ],
+        "additionalProperties": false,
+        "description": "Captured original native receive selection. Actual stream revision equals expected or expected+1; a resource change requires expected+1. Bindings are the fenced actual commit observation, null if a concurrent capture was unavailable, and [] only for a known empty set. Positive unique native handles, including data, are private observations. Historical recovery never grants foreign media custody."
       },
       "HttpEnvelope": {
         "allOf": [

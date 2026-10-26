@@ -2,6 +2,7 @@
 use super::*;
 mod codecs;
 mod controls;
+mod selections;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -129,12 +130,12 @@ impl Shared {
                             }
                         }
                         if frame.kind()=="connection.offer" {
-                            let is_codec=|p:&InFlight|p.control.as_ref().is_some_and(|(intent,_)|intent["action"]=="codec-renegotiate") && p.key.as_ref().is_some_and(|k|frame.scope(crate::canonical::Scope::Operation)==Some(k.operation_id.as_str()));
-                            let exact=active.iter().position(|p|is_codec(p) && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(ConnectionId::as_str)==frame.scope(crate::canonical::Scope::Connection));
-                            let index=exact.or_else(||{let mut ids=active.iter().enumerate().filter(|(_,p)|is_codec(p));let first=ids.next().map(|(i,_)|i);if ids.next().is_none(){first}else{None}});
+                            let is_reconfiguration=|p:&InFlight|p.control.as_ref().is_some_and(|(intent,_)|intent["action"]=="codec-renegotiate" || p.key.as_ref().is_some_and(|k|super::selections::is_command(&k.command))) && p.key.as_ref().is_some_and(|k|frame.scope(crate::canonical::Scope::Operation)==Some(k.operation_id.as_str()));
+                            let exact=active.iter().position(|p|is_reconfiguration(p) && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(ConnectionId::as_str)==frame.scope(crate::canonical::Scope::Connection));
+                            let index=exact.or_else(||{let mut ids=active.iter().enumerate().filter(|(_,p)|is_reconfiguration(p));let first=ids.next().map(|(i,_)|i);if ids.next().is_none(){first}else{None}});
                             if let Some(index)=index {
                                 let pending=&active[index];let key=pending.key.as_ref().expect("codec key");let (intent,expected)=pending.control.as_ref().expect("codec intent");
-                                let answer=match codecs::prepare(&owned_native,key,intent,*expected,&pending.exchange.id,&frame){Ok(v)=>v,Err(e)=>break e.kind};
+                                let answer=match if super::selections::is_command(&key.command) {selections::prepare(&owned_native,key,intent,*expected,&pending.exchange.id,&frame)}else{codecs::prepare(&owned_native,key,intent,*expected,&pending.exchange.id,&frame)}{Ok(v)=>v,Err(e)=>break e.kind};
                                 let root=key.scope.command(Some(&key.operation_id));let until=pending.exchange.deadline;
                                 let result=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,r=tokio::time::timeout_at(until,peer.answer_connection_offer(&frame,answer,&root))=>r};
                                 match result {Ok(Ok(_))=>(),Ok(Err(error))=>break Error::transport(error,Some(key)).kind,Err(_)=>break ErrorKind::Deadline};
@@ -161,7 +162,7 @@ impl Shared {
                                     if let Err(error)=observe_end(&owned_native,&owned_media,&key,&frame){break error.kind;}
                                 }
                                 if let Some((key,intent,expected,frame))=updating {
-                                    if let Err(error)=controls::observe(&owned_native,&owned_media,&key,&intent,expected,&frame){break error.kind;}
+                                    if let Err(error)=if super::selections::is_command(&key.command) {selections::observe(&owned_native,&owned_media,&key,expected,&frame)}else{controls::observe(&owned_native,&owned_media,&key,&intent,expected,&frame)}{break error.kind;}
                                 }
                             }
                             match accepted {
@@ -214,7 +215,7 @@ impl Shared {
                             let _=command.reply.send(Err(Error::request(kind,command.key.as_ref(),false)));
                             continue;
                         }
-                        if command.kind=="connection.update" && command.payload["action"]=="codec-renegotiate" {
+                        if (command.kind=="connection.update" && command.payload["action"]=="codec-renegotiate") || super::selections::is_command(&command.kind) {
                             let busy=match owned_native.lock(){Ok(cache)=>command.key.as_ref().is_some_and(|key|key.scope.connection_id.as_ref().and_then(|id|cache.get(id)).and_then(|entry|entry.prepared.as_ref()).is_some_and(|p|!p.belongs_to(key))),Err(_)=>break ErrorKind::Protocol};
                             if busy {let _=command.reply.send(Err(Error::request(ErrorKind::Conflict,command.key.as_ref(),false)));continue;}
                         }
@@ -226,7 +227,7 @@ impl Shared {
                             }
                         }
                         let negotiation=command.native.then(||native_negotiation::Pending::new(command.payload.clone(),command.scope.clone()));
-                        let control=if command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality" || command.payload["action"]=="codec-renegotiate") {
+                        let control=if super::selections::is_command(&command.kind) || command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality" || command.payload["action"]=="codec-renegotiate") {
                             command.scope.expected_revision.map(|revision|(command.payload.clone(),revision))
                         } else {None};
                         // Only explicit close may interrupt a started write. Local caller
@@ -364,6 +365,13 @@ impl Shared {
     }
     pub(super) fn retire_connection(&self, key: &OperationKey) -> Result<()> {
         retire_native(&self.native, &self.media, key)
+    }
+    pub(super) fn record_selection(
+        &self,
+        key: &OperationKey,
+        out: &connect_protocol::native_streams::SelectionObservation,
+    ) -> Result<()> {
+        selections::record(&self.native, &self.media, key, out)
     }
     pub(super) fn record_connection_update(
         &self,
