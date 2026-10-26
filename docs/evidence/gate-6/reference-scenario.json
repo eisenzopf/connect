@@ -1,16 +1,23 @@
 {
   "task": "G6-071",
   "status": "in-progress",
-  "scope": "Definition and scripted assistant only; transport fixtures and installed application journey remain unqualified.",
+  "scope": "Local macOS arm64 definition, scripted assistant, loopback HTTP SMS and UDP SIP/RTP fixtures. No installed SDK application journey or Core/provider interoperability qualification.",
   "source_inputs": {
+    "examples/parley-on-connect/README.md": "c3282fa9d53b78e7edf36fcaeed44c1dbf141279fe4df1f357727a5eb791709b",
+    "examples/parley-on-connect/fixtures/index.mjs": "770ed1d5a96fe09957f0f5051624ad3c40dc87fcb0da97891d5644a7c52a56b4",
+    "examples/parley-on-connect/fixtures/model-script.json": "4366777cb34c178e8e7a25a485007d6f0055d97d210a5b3d45f2609cdd87ce34",
+    "examples/parley-on-connect/fixtures/model.mjs": "42695cb1cecd01b11e160a1a21066060b62a78a827ef6a84d90df5510092e781",
+    "examples/parley-on-connect/fixtures/pcm.mjs": "db930f0f961bf885995349d96ee4947f5784305bd83fddb7cfcac99f69d93a82",
+    "examples/parley-on-connect/fixtures/sip.mjs": "7da17776de45aeffecac60c4810accbc259dd4b19cfc61c6145b5d3cbe619f9c",
+    "examples/parley-on-connect/fixtures/sms.mjs": "3982d719a1111f95eac26ff0ed44f7035dada5c70b681c7a93a0a9e65b5b5625",
+    "examples/parley-on-connect/fixtures/travel.json": "94a7f9d11e1c8c04a853b6b0035b5a2f5f5f89285ab209262d4995fecddba118",
+    "examples/parley-on-connect/package.json": "c22934fd218b8161670fc9ebbb3035c8951c44ac4b6321707275cd1276fe0b1f",
     "examples/parley-on-connect/scenario.json": "0a3fdced5dbede21fd529e930ed5c4622b965c1ae72be9a93eee70134d750861",
     "examples/parley-on-connect/scenario.mjs": "dd8f75224b33b0f29c86b3bb5c9a74ea973da9be7f8d064232d8325ae3d806db",
-    "examples/parley-on-connect/package.json": "c22934fd218b8161670fc9ebbb3035c8951c44ac4b6321707275cd1276fe0b1f",
-    "examples/parley-on-connect/README.md": "a97042c47227bfb48c6910ab8c9b04842f5bf450d1c5496fa0920e15dfb2694e",
-    "examples/parley-on-connect/fixtures/model.mjs": "42695cb1cecd01b11e160a1a21066060b62a78a827ef6a84d90df5510092e781",
-    "examples/parley-on-connect/fixtures/model-script.json": "4366777cb34c178e8e7a25a485007d6f0055d97d210a5b3d45f2609cdd87ce34",
-    "examples/parley-on-connect/fixtures/travel.json": "94a7f9d11e1c8c04a853b6b0035b5a2f5f5f89285ab209262d4995fecddba118",
-    "examples/parley-on-connect/tests/scenario.test.mjs": "9fdc3916a78f8cf2c256b7a31b74c50991d41c7c97f3e3b13b8924a1bbd2c3ee"
+    "examples/parley-on-connect/tests/fixtures.test.mjs": "110e2aacb7188902a2b13da16783d7a9323037a249d992f8e70b1993421fd342",
+    "examples/parley-on-connect/tests/scenario.test.mjs": "9fdc3916a78f8cf2c256b7a31b74c50991d41c7c97f3e3b13b8924a1bbd2c3ee",
+    "examples/parley-on-connect/tests/sip.test.mjs": "ea7a3b23e2058c2ca54f09ba9f650c6d500a85b0e6f13b413f09601954110f27",
+    "examples/parley-on-connect/tests/sms.test.mjs": "f56eea19cd8e6991010204456e99a0968a2fd7d22ee48e0676f7a56fe43cf3ea"
   },
   "upstream_sources": [
     {
@@ -33,19 +40,42 @@
     }
   ],
   "verification": {
-    "command": "node --test examples/parley-on-connect/tests/scenario.test.mjs",
-    "tests_passed": 4,
+    "command": "node --test examples/parley-on-connect/tests/*.test.mjs; npm test from example directory",
+    "tests_passed": 17,
     "node": "v26.7.0",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
     "stages": 17,
     "fixture_and_live_definition_identical": true,
     "actual_model_turn": false,
     "actual_provider_contact": false,
-    "sdk_runtime_executed": false
+    "sdk_runtime_executed": false,
+    "real_loopback_fixture_transports": [
+      "HTTP",
+      "SIP/UDP",
+      "RTP/UDP"
+    ],
+    "actual_core_interoperability": false,
+    "minimum_node_22_qualified": false,
+    "linux_qualified": false,
+    "rust_format_check": "passed: bash scripts/format.sh --check",
+    "exit_code": 0,
+    "raw_output_sha256": "5e6f77e767c366f54857c29790e8360529130a292c6e6f37152045565450b406",
+    "private_log": ".local/gate-6/reference-scenario/tests-01.log"
   },
   "remaining": [
-    "Verify loopback SIP/RTP and SMS fixtures including refusal and cleanup",
-    "Installed SDK application path is later G6-072 through G6-080; G6-071 does not claim that journey",
-    "Acceptance remains unqualified"
+    "Common fixture/live application rehearsal path has not been executed; G6-071 remains in progress.",
+    "Installed SDK application work is G6-069 and G6-072 through G6-080; no full journey pass is claimed.",
+    "Real provider/model, Linux and minimum Node version are not run. Acceptance remains unqualified."
+  ],
+  "checked_at": "2026-10-26T21:29:57.247135+00:00",
+  "behavior_evidence": [
+    "Public SDK target mappings cover all 17 reachable stages; malformed graph, actor, method and A6 identifiers refuse. Fixture/live bindings share the immutable definition and policy.",
+    "Scripted assistant output stays labeled simulated/assistant and cannot provide a scripted owner-approval stage.",
+    "Five independent PCMU speaker markers decode distinctly. Duplicate INVITE while socket binding allocates one leg, incompatible codec refuses, RTP pause preserves elapsed clock, BYE stops frames, terminal replay does not restart.",
+    "Configured digit 1 follows three actual prompt packets; wrong peer packets cannot trigger it. Wrong digit and absent confirmation remain distinct. No-answer CANCEL terminates original invitation; foreign SIP peer cannot control it.",
+    "SMS rejects wrong bearer, non-fixture contacts, oversized/MMS/forged fields. Twelve concurrent equal bodies become twelve distinct durable accepted effects. Restart retains them and advances the receipt sequence.",
+    "Exact timestamp and raw callback bytes verify with Ed25519; tampering refuses. Queued acceptance and explicit delivered/failure events remain separate.",
+    "Withheld SMS acknowledgement retains one accepted effect and no retry; close drains sockets and responses. Initial test caught premature cleanup return; explicit close-event futures fixed it.",
+    "Composed fixture startup failure closes already-started resources; successful composition drains all three SIP peers and SMS listener."
   ]
 }

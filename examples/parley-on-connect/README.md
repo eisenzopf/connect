@@ -27,10 +27,10 @@ and stage graph are identical in fixture and live modes; only model, telephone,
 SMS and contact bindings change. Binding a live definition does not activate a
 provider. Named live rehearsals require their G6-093 configuration.
 
-Run definition checks with:
+Run the isolated definition and transport fixture checks from the repository root:
 
 ```sh
-node --test examples/parley-on-connect/tests/scenario.test.mjs
+node --test examples/parley-on-connect/tests/*.test.mjs
 ```
 
 The checks validate every stage against `contracts/sdk-gate-6-api.json` and the
@@ -38,7 +38,37 @@ canonical envelope schema. Historical context uses the public validated raw
 `message.history` interface. The scripted assistant always labels its output
 `SIMULATED`; its output cannot become an owner decision.
 
-This checkpoint verifies a definition and model double. It does not execute an
-installed SDK application, launch a model, contact a provider, or qualify the
-full browser/telephone journey. Transport fixture verification and the later
-G6-072–G6-080 application work remain explicit follow-up work.
+`fixtures/index.mjs` composes the scripted model, three UDP SIP/RTP participants
+and a Telnyx-style SMS HTTP fixture. Supply an absolute isolated state directory
+under the repository's ignored `.local/`. The fixtures bind only `127.0.0.1` and
+use reserved synthetic `+12025550100` through `+12025550104` addresses. Each
+speaker has a distinct G.711 mu-law tone; tests independently decode the samples.
+The owner phone waits for three actual prompt frames before returning its
+configured RFC 4733 digit. Wrong-digit and no-confirmation profiles are available.
+
+SIP is a deliberately small PCMU/UDP fixture profile: INVITE, ACK, CANCEL, BYE
+and OPTIONS, eight retained dialogs, explicit refusal of unsupported codecs and
+re-INVITEs. It does not implement carrier routing, TLS, SRTP, registration or
+crash recovery. Media timestamps preserve elapsed time through a pause. Exact
+duplicate invitations share one leg; ended dialogs cannot restart media. SIP
+and RTP sources are bound to the original loopback peer ports. `close()` fences
+new work and drains owned timers and sockets.
+
+The SMS fixture uses a public test signing seed and bearer. Its HTTP acceptance
+response says `queued`, not delivered. Delivery/failure callbacks are explicit
+fixture actions, signed over the timestamp and exact raw bytes. A serialized
+ledger retains up to 256 accepted effects, refuses corrupt state, and survives
+restart. Equal bodies are separate intended messages: the fixture does not invent
+a provider idempotency key. Withheld acknowledgement tests retain the original
+accepted effect without retrying. This ledger models fixture acceptance only;
+Connect's journal and current authorization remain responsible for recovery.
+
+Tests retain synthetic state under `.local/gate-6/reference-scenario/` regardless
+of the caller's working directory. They passed on Node 26.7.0/macOS arm64; the
+declared Node 22 minimum and Linux lane have not been qualified here.
+
+This checkpoint verifies a definition and simulated peers over real loopback
+HTTP and UDP. It does not execute an installed SDK application, launch a model,
+contact a provider, or qualify the full browser/telephone journey. G6-071 remains
+in progress pending the common application rehearsal path. Installed SDK and
+application work in G6-069 and G6-072–G6-080 remains separate.
