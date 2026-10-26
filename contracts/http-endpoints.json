@@ -1,0 +1,550 @@
+{
+  "status": "Source route/reference inventory only; runtime schemas and authorization need separate evidence.",
+  "scope": "All current route/route_service/nest/nest_service declarations in Connect server and MCP source, plus explicit configured canonical transport mounts. Framework-generated methods and all /v1/operations body variants are not independently qualified by path coverage.",
+  "declarations": 23,
+  "explicit_http_operations": 24,
+  "parameter_matching": "Only placeholder names are normalized. Original source path and every referenced path spelling remain recorded.",
+  "routes": [
+    {
+      "source": "crates/connect-mcp/src/listener.rs",
+      "line": 103,
+      "registration": "route_service",
+      "path": "/mcp",
+      "protocol_reference": {
+        "document": "contracts/openapi-canonical-http.json",
+        "pointer": "/x-connect-canonical-mcp",
+        "scope": "Delegated RMCP protocol service; not a REST operation schema."
+      }
+    },
+    {
+      "source": "crates/connect-server/src/transports/canonical_http.rs",
+      "line": 19,
+      "registration": "route",
+      "path": "/v2/commands",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-canonical-http.json",
+              "path": "/v2/commands",
+              "method": "post",
+              "pointer": "/paths/~1v2~1commands/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/canonical_http.rs",
+      "line": 20,
+      "registration": "route",
+      "path": "/v2/discovery",
+      "operations": [
+        {
+          "method": "get",
+          "references": [
+            {
+              "document": "contracts/openapi-canonical-http.json",
+              "path": "/v2/discovery",
+              "method": "get",
+              "pointer": "/paths/~1v2~1discovery/get"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 137,
+      "registration": "route",
+      "path": "/v1/task-access",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-protected-http.json",
+              "path": "/v1/task-access",
+              "method": "post",
+              "pointer": "/paths/~1v1~1task-access/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 144,
+      "registration": "route",
+      "path": "/v2/incoming-contacts",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-incoming-contacts.json",
+              "path": "/v2/incoming-contacts",
+              "method": "post",
+              "pointer": "/paths/~1v2~1incoming-contacts/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 148,
+      "registration": "route",
+      "path": "/v2/identities",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/identities",
+              "method": "post",
+              "pointer": "/paths/~1v2~1identities/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 149,
+      "registration": "route",
+      "path": "/v2/credentials/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/credentials/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1credentials~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 153,
+      "registration": "route",
+      "path": "/v2/identities/{id}/record-read-role",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/identities/{id}/record-read-role",
+              "method": "post",
+              "pointer": "/paths/~1v2~1identities~1{id}~1record-read-role/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 157,
+      "registration": "route",
+      "path": "/v2/identities/{id}/signing-keys",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/identities/{id}/signing-keys",
+              "method": "post",
+              "pointer": "/paths/~1v2~1identities~1{id}~1signing-keys/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 161,
+      "registration": "route",
+      "path": "/v2/signing-keys/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/signing-keys/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1signing-keys~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 165,
+      "registration": "route",
+      "path": "/v2/devices/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/devices/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1devices~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 166,
+      "registration": "route",
+      "path": "/v2/identities/{id}/endpoints",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/identities/{id}/endpoints",
+              "method": "post",
+              "pointer": "/paths/~1v2~1identities~1{id}~1endpoints/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 170,
+      "registration": "route",
+      "path": "/v2/identities/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/identities/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1identities~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 174,
+      "registration": "route",
+      "path": "/v2/conversations/{id}/participants",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/conversations/{id}/participants",
+              "method": "post",
+              "pointer": "/paths/~1v2~1conversations~1{id}~1participants/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 178,
+      "registration": "route",
+      "path": "/v2/endpoints/{id}/verify",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/endpoints/{id}/verify",
+              "method": "post",
+              "pointer": "/paths/~1v2~1endpoints~1{id}~1verify/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 182,
+      "registration": "route",
+      "path": "/v2/endpoints/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provisioning.json",
+              "path": "/v2/endpoints/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1endpoints~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 191,
+      "registration": "route",
+      "path": "/webhooks/telnyx",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provider-observations.json",
+              "path": "/webhooks/telnyx",
+              "method": "post",
+              "pointer": "/paths/~1webhooks~1telnyx/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 195,
+      "registration": "route",
+      "path": "/v1/operations",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-attachments.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-context.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-conversations.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-events.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-membership.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-messages.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-operations.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
+              "document": "contracts/openapi-routing.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 201,
+      "registration": "route",
+      "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
+      "operations": [
+        {
+          "method": "get",
+          "references": [
+            {
+              "document": "contracts/openapi-protected-http.json",
+              "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
+              "method": "get",
+              "pointer": "/paths/~1v1~1conversations~1{conversation_id}~1artifacts~1{artifact_id}/get"
+            }
+          ]
+        },
+        {
+          "method": "put",
+          "references": [
+            {
+              "document": "contracts/openapi-protected-http.json",
+              "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
+              "method": "put",
+              "pointer": "/paths/~1v1~1conversations~1{conversation_id}~1artifacts~1{artifact_id}/put"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 205,
+      "registration": "route",
+      "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
+      "operations": [
+        {
+          "method": "get",
+          "references": [
+            {
+              "document": "contracts/openapi-attachments.json",
+              "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
+              "method": "get",
+              "pointer": "/paths/~1v1~1conversations~1{conversation_id}~1artifacts~1{artifact_id}~1links~1{token}/get"
+            }
+          ]
+        },
+        {
+          "method": "put",
+          "references": [
+            {
+              "document": "contracts/openapi-attachments.json",
+              "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
+              "method": "put",
+              "pointer": "/paths/~1v1~1conversations~1{conversation_id}~1artifacts~1{artifact_id}~1links~1{token}/put"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/record_https.rs",
+      "line": 122,
+      "registration": "route",
+      "path": "/v2/record-references/{token}",
+      "operations": [
+        {
+          "method": "get",
+          "references": [
+            {
+              "document": "contracts/openapi-canonical-http.json",
+              "path": "/v2/record-references/{token}",
+              "method": "get",
+              "pointer": "/paths/~1v2~1record-references~1{token}/get"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/record_mutations.rs",
+      "line": 17,
+      "registration": "route",
+      "path": "/v2/records/{id}/mutations",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-record-mutations.json",
+              "path": "/v2/records/{uuid}/mutations",
+              "method": "post",
+              "pointer": "/paths/~1v2~1records~1{uuid}~1mutations/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/user_delegation.rs",
+      "line": 16,
+      "registration": "route",
+      "path": "/v2/user-delegations",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-canonical-http.json",
+              "path": "/v2/user-delegations",
+              "method": "post",
+              "pointer": "/paths/~1v2~1user-delegations/post"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "configured_transports": [
+    {
+      "transport": "WebSocket",
+      "source": "crates/connect-server/src/canonical_websocket.rs",
+      "path": "Explicit runtime-configured mount_path",
+      "reference": {
+        "document": "contracts/openapi-canonical-http.json",
+        "pointer": "/x-connect-canonical-websocket"
+      },
+      "scope": "Configuration/protocol metadata only; no browser/media/remote qualification inferred."
+    },
+    {
+      "transport": "WebTransport",
+      "source": "crates/connect-server/src/canonical_webtransport.rs",
+      "path": "Explicit runtime-configured mount_path",
+      "reference": {
+        "document": "contracts/openapi-canonical-http.json",
+        "pointer": "/x-connect-canonical-webtransport"
+      },
+      "scope": "Configuration/protocol metadata only; no browser/media/remote qualification inferred."
+    }
+  ],
+  "inputs": {
+    "contracts/openapi-attachments.json": "ff6dde35bcfe748e737ad0228f8aaf315d47844fe0bc60f16f75c6c45cae1cc9",
+    "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
+    "contracts/openapi-context.json": "ae3643c5c1bfbebf9ae2d1c21790cd1ff419697e324478f837a76a38f0a44f40",
+    "contracts/openapi-conversations.json": "e0d626f5236bc1dbfac79bb314ac6906d7793b400e7032dc67e5d9b8291d1e68",
+    "contracts/openapi-events.json": "e63a499ea09a129b580131ff7015e3f3eacbe8c723edaf5da6bb3e8505881411",
+    "contracts/openapi-incoming-contacts.json": "a741e7059fca8a00803a10e8f3b09a77d4361dff7a9ee56c840a4fcde773eb64",
+    "contracts/openapi-membership.json": "1e9419b22f0f071854e2b9214ffc82e94f92e058c96a079d6adde6dffb2f0de0",
+    "contracts/openapi-messages.json": "ca02f82ec9ab04a8173dfac1cc752802d2b7d8647562079738c8b507beef0b8a",
+    "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
+    "contracts/openapi-protected-http.json": "628dcdae5989e76a73ecf4b6cfcd6b277eeb407d4dbdf280735bbaad8974c861",
+    "contracts/openapi-provider-observations.json": "0f8a9ca465126bb7da41c325b385e69ee9709b4a77fbe1b38796a8bbd78a73b1",
+    "contracts/openapi-provisioning.json": "a68fedffed7bf0fa949ec383651c2a2ad9cb6093e035e24477b86307c2446bb0",
+    "contracts/openapi-record-mutations.json": "31e79a18676ac0a0f54cf53b5d8ca293b3def6d1826964f5e5b29e251f0b1809",
+    "contracts/openapi-routing.json": "ae937ea405c82cce0c543b151d39dbd071837610aad9ef911f76f1a1d6aa1afa",
+    "contracts/openapi-session-decisions.json": "ceaaf8c6023ad04f3a121008f3212a47f7708f1eec07004f9054bd49348f3acb",
+    "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
+    "crates/connect-protocol/src/canonical_discovery.rs": "8783337d703cd47288d0d14f96872204b799e0d3f488fc640ac14fa51c00b0c8",
+    "crates/connect-server/src/canonical_websocket.rs": "d27445f3986dc4f0f5911f5999001848bd39d9c18a4b2e637464fc436fca8873",
+    "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
+    "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
+    "crates/connect-server/src/transports/http.rs": "9c78d1f2e0540436d81562dc1701f7a634f3cf10d508335a7173eb35e4547076",
+    "crates/connect-server/src/transports/record_https.rs": "99fe394b55ca31712ee293d6f752e25c4840c98c31253e3d341e69c842ca00e5",
+    "crates/connect-server/src/transports/record_mutations.rs": "49a9ccc35833669aa405ea105d2c0126173c5937055f5bb849f25ee416cc1113",
+    "crates/connect-server/src/transports/user_delegation.rs": "de833cdafbb9dbed59c21a5d0f8d482b991eeade37b56b55fe516259be957a66"
+  }
+}

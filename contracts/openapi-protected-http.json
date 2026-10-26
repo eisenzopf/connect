@@ -1,0 +1,899 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect protected Task access and raw artifact HTTP",
+    "version": "connect/2",
+    "description": "Current local application listener extensions. Task-access wire profile is connect-task-access/1; artifact control rejections/metadata use connect-control/1 and downloads use raw bytes. Separate canonical/provisioning/attachment-link/record references retain their own contracts. Generation is not runtime/profile qualification."
+  },
+  "paths": {
+    "/v1/task-access": {
+      "post": {
+        "operationId": "protectedTaskAccess",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Protected loopback developer exchange, absent from webhook-only hosting. Shared capacity is reserved before Host/current ordinary bearer admission and JSON parsing. Host must match the concrete listener or localhost:port; Origin, X-Call-ID and X-Chat-ID refuse. Current task_grant, owner/membership/lifecycle and immutable subset/expiry checks apply inside issuance/replay. Same current issuer/request ID and unchanged intent recover the identical grant/secret/expiry; changed inputs conflict and revocation never refreshes authority. Local Native/HostSession binding registration and new grant commit atomically. Revoke retires only that grant. Authentication and admitted handler each have a five-second deadline; dropped IO does not roll back an already-running transaction. No automatic retry, renewal or model exposure.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAccessRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Issued/revoked result, or typed business rejection including invalid profile/intent/conflict. Inspect result, not only status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired, revoked, malformed or model-grant bearer. Current ordinary backing credential required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccessResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Host/origin/provider-header or current Task/grant/permission authority denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Capacity/storage unavailable or interrupted acceptance. Preserve the complete original issuance request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Framework JSON syntax rejection after admission.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Framework body limit exceeds65536 bytes after admission.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Framework JSON content type required after admission.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Framework closed JSON shape/type/enum rejection after admission.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-auth-deadline-seconds": 5,
+        "x-handler-deadline-seconds": 5,
+        "x-cache-control": "no-store",
+        "x-automatic-retries": 0
+      }
+    },
+    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}": {
+      "get": {
+        "operationId": "downloadArtifactBytes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Ordinary current artifact_get and original source/recipient authorization. Artifact must be ready/current; offset cannot exceed size. No new visibility, delegation, reference or custody is created.",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4294967295,
+              "description": "Must also be no larger than configured limits.artifact_chunk_bytes (default32768)."
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Current ordinary bearer required; Task grants use their explicit Task API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current source/recipient/owner authority, readiness or artifact lifetime denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Current authority, storage or capacity unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Exact bounded byte window; headers retain offset and EOF, not JSON/base64.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                }
+              },
+              "X-Connect-Offset": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                }
+              },
+              "X-Connect-Eof": {
+                "schema": {
+                  "enum": [
+                    "true",
+                    "false"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid configured range or framework query parsing; inspect content type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-closed-query": true
+      },
+      "put": {
+        "operationId": "appendArtifactBytes",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Ordinary current original owner and artifact_append authority. The body is opaque bytes; query parsing/body collection and configured byte-size checks precede bearer authentication. Save request_id, offset and exact bytes before IO; exact replay appends once and changed intent refuses. A successful metadata result is not final artifact readiness; finalize with the separate named ArtifactFinish API.",
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          {
+            "name": "artifact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Current ordinary bearer required; Task grants use their explicit Task API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current source/recipient/owner authority, readiness or artifact lifetime denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Current authority, storage or capacity unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Artifact metadata or typed business rejection. Some late authority/storage rejections retain HTTP200; always inspect result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactWriteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty/oversized configured chunk, invalid range, changed original intent or framework query rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControlRejection"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Framework aggregate body limit: max(configured artifact chunk bytes,65536).",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-closed-query": true
+      },
+      "x-configured-chunk-limit": "limits.artifact_chunk_bytes; default32768",
+      "x-automatic-retries": 0
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "InvocationBinding": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "native",
+              "provider_chat",
+              "provider_call",
+              "host_session"
+            ]
+          },
+          "adapter": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "external_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          }
+        },
+        "required": [
+          "kind",
+          "adapter",
+          "external_id"
+        ],
+        "additionalProperties": false
+      },
+      "GrantDefinition": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/InvocationBinding"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "resolve",
+                "capabilities",
+                "send",
+                "history",
+                "context_view",
+                "record_get",
+                "context_deliveries",
+                "inbox",
+                "request_status",
+                "artifact_begin",
+                "artifact_append",
+                "artifact_finish",
+                "artifact_get",
+                "artifact_delete",
+                "session_invite",
+                "session_accept",
+                "session_reject",
+                "session_cancel",
+                "session_end",
+                "session_get",
+                "call_start",
+                "call_status",
+                "call_end",
+                "sip_dial",
+                "sip_status",
+                "sip_end",
+                "task_cancel"
+              ]
+            }
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        },
+        "required": [
+          "task_id",
+          "binding",
+          "operations",
+          "expires_at"
+        ],
+        "additionalProperties": false,
+        "description": "Current immutable Task/binding permission subset; expiry must be later than server now and no more than 300 seconds away, within current parent/Task expiry. Only native/host_session bindings may be registered by this local exchange. Provider kinds are parsed but refused without their verified adapters.",
+        "x-max-ttl-seconds": 300
+      },
+      "InvocationGrant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "task_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/InvocationBinding"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "resolve",
+                "capabilities",
+                "send",
+                "history",
+                "context_view",
+                "record_get",
+                "context_deliveries",
+                "inbox",
+                "request_status",
+                "artifact_begin",
+                "artifact_append",
+                "artifact_finish",
+                "artifact_get",
+                "artifact_delete",
+                "session_invite",
+                "session_accept",
+                "session_reject",
+                "session_cancel",
+                "session_end",
+                "session_get",
+                "call_start",
+                "call_status",
+                "call_end",
+                "sip_dial",
+                "sip_status",
+                "sip_end",
+                "task_cancel"
+              ]
+            }
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "binding",
+          "operations",
+          "expires_at",
+          "revoked"
+        ],
+        "additionalProperties": false
+      },
+      "ProtectedTaskGrant": {
+        "type": "object",
+        "properties": {
+          "grant": {
+            "$ref": "#/components/schemas/InvocationGrant"
+          },
+          "bearer": {
+            "type": "string",
+            "maxLength": 256,
+            "pattern": "^ctg1\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.[0-9a-f]{64}$",
+            "description": "Protected intended credential exchange only; never log, cache or place in model input."
+          }
+        },
+        "required": [
+          "grant",
+          "bearer"
+        ],
+        "additionalProperties": false
+      },
+      "TaskAccessOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "issued"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ProtectedTaskGrant"
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "revoked"
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "grant_id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                  }
+                },
+                "required": [
+                  "grant_id"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "kind",
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TaskAccessRequest": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-task-access/1"
+          },
+          "command": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "issue"
+                  },
+                  "request_id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                  },
+                  "definition": {
+                    "$ref": "#/components/schemas/GrantDefinition"
+                  }
+                },
+                "required": [
+                  "action",
+                  "request_id",
+                  "definition"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "const": "revoke"
+                  },
+                  "grant_id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                  }
+                },
+                "required": [
+                  "action",
+                  "grant_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "command"
+        ],
+        "additionalProperties": false
+      },
+      "TaskAccessResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-task-access/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/TaskAccessOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "ControlRejection": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "Artifact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "conversation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "owner_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "UTF-8 encoded length is at most255 bytes; slash, backslash and NUL are refused.",
+            "x-max-utf8-bytes": 255
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 127,
+            "pattern": "^[A-Za-z0-9/+._-]+$"
+          },
+          "sha256": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "received": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "created_at": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "owner_id",
+          "name",
+          "media_type",
+          "sha256",
+          "state",
+          "size",
+          "received",
+          "created_at",
+          "expires_at"
+        ]
+      },
+      "ArtifactOutcome": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "artifact"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Artifact"
+          }
+        },
+        "required": [
+          "kind",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "ArtifactWriteResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-control/1"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/ArtifactOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

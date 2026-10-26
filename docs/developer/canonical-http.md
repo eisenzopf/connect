@@ -177,3 +177,11 @@ IPv4 or bracketed IPv6 address. Fresh Local certificates cover localhost and bot
 loopback IP identities. Remote mode still requires an explicit HTTPS contact.
 See [WebTransport composition and rehearsal](canonical-webtransport.md) and
 [WSS control hosting](canonical-websocket.md).
+
+## Other server HTTP routes
+
+The [server HTTP reference index](server-http.md) links trusted provisioning,
+protected Task access, artifact bytes/links and record mutation contracts.
+`contracts/http-endpoints.json` checks current source declarations against those
+references. Route coverage is separate from actual request/response and
+current-authorization evidence, including all named `/v1/operations` variants.

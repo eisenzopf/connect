@@ -350,17 +350,21 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 128
+            "maxLength": 255,
+            "description": "UTF-8 encoded length is at most255 bytes; slash, backslash and NUL are refused.",
+            "x-max-utf8-bytes": 255
           },
           "media_type": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 128
+            "maxLength": 127,
+            "pattern": "^[A-Za-z0-9/+._-]+$"
           },
           "sha256": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 128
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "^[0-9a-f]{64}$"
           },
           "state": {
             "type": "string",
@@ -785,16 +789,19 @@
               "name": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 256
+                "maxLength": 255,
+                "description": "At most255 UTF-8 bytes; slash, backslash and NUL refuse.",
+                "x-max-utf8-bytes": 255
               },
               "media_type": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 128
+                "maxLength": 127,
+                "pattern": "^[A-Za-z0-9/+._-]+$"
               },
               "size": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "maximum": 9007199254740991
               },
               "sha256": {

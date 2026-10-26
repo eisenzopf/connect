@@ -1,0 +1,561 @@
+{
+  "task": "G6-065",
+  "status": "protected HTTP reference/runtime and source inventory checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T13:44:53.759023+00:00",
+  "base_revision": "b6ff05cf54112fbb2775329c8d3b586c4f72bf28",
+  "scope": "Local Darwin arm64 isolated actual sealed CLI/production server. Default EdDSA bootstrap; unsigned HTTP and MCP metadata are not physical signing, media or actual model proof. No Linux/remote/provider-account/package/acceptance qualification or publication.",
+  "implementation": [
+    "New OpenAPI reference documents protected Task access and base raw-artifact GET/PUT, including separate wire profiles, intended secret exchange, ordinary backing credential/Host/origin floors, current Task/operation subset/TTL authority, original replay, business errors under200 and framework text rejections.",
+    "Raw bytes remain distinct from JSON metadata. GET describes exact offset/EOF/no-store/nosniff headers; PUT keeps the original request ID/offset/bytes, current ordinary owner ceiling, configured size/range checks and separate Finish readiness.",
+    "Existing attachment metadata/ArtifactBegin reference now matches source name255-byte bound, media type127 ASCII bound, lowercase64-hex stored digest and nonempty artifact size. The actual255-character ASCII name is accepted and is rejected by the old128-character metadata schema.",
+    "Generated inventory matches every current server/MCP route declaration:23 declarations,24 explicit HTTP operations; record placeholder spelling normalizes without changing the original source/reference paths. MCP and configured WSS/WT mounts point to protocol metadata. This is source/reference coverage, not complete /v1/operations body-variant or runtime qualification."
+  ],
+  "verification": {
+    "actual_http": {
+      "status": "passed local protected HTTP OpenAPI checkpoint",
+      "cli_sha256": "fcd2db5d4e1b04c2adf86eda125c5abe07661ac046e142dd6a46359df5762e6e",
+      "build_inputs_sha256": "16b735f452885fde20679d1a1fcd8afc5e5c2f5914d922c312c850d771a0e745",
+      "jsonschema_version": "4.26.0",
+      "platform": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "python": "3.14.7"
+      },
+      "bootstrap_signing_algorithm": "EdDSA; unsigned HTTP is not physical signing proof",
+      "cases": [
+        {
+          "case": "canonical-room",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/000-canonical-room.json",
+          "sha256": "9936ef601d26f8a002a417dceb407f3837a102ddcd8ab34b028b09bb224492fa",
+          "schema_checked": true
+        },
+        {
+          "case": "task-create",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/001-task-create.json",
+          "sha256": "9cd0c0da85400edc26275a6aa11718733955d69479a06d2bf0bfdfafe3c768b2",
+          "schema_checked": false
+        },
+        {
+          "case": "grant-issue",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/002-grant-issue.json",
+          "sha256": "29b1ec36da6fc47b07520581fb72cfba3f5c3e8be6134574956928819d280acb",
+          "schema_checked": true
+        },
+        {
+          "case": "grant-original-replay",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/003-grant-original-replay.json",
+          "sha256": "37d2fab70825b4ca1a7c52e12667bc748cc36094ac7d01f1503755ef92e5f61d",
+          "schema_checked": true
+        },
+        {
+          "case": "grant-changed-intent",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/004-grant-changed-intent.json",
+          "sha256": "11599624590d00b222e5ef4723e7556854a3bd86632bcaa74683f6f2a55a68c2",
+          "schema_checked": true
+        },
+        {
+          "case": "ordinary-no-task-grant-scope",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/005-ordinary-no-task-grant-scope.json",
+          "sha256": "50c5f353dc51bf392c5b67aa792d4698d74c387cc3c9747538cc6361995d67d5",
+          "schema_checked": true
+        },
+        {
+          "case": "model-grant-cannot-issue",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/006-model-grant-cannot-issue.json",
+          "sha256": "9e6b332215e6b36f060568848a7ac01d2e30f968c3ac98cc5cc89e74977f0564",
+          "schema_checked": true
+        },
+        {
+          "case": "task-duplicate-authorization",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/007-task-duplicate-authorization.json",
+          "sha256": "e2c60d588a6294e7789fc49e68cd70fd8267a236c761c1d7818b5da09da7cbbc",
+          "schema_checked": true
+        },
+        {
+          "case": "task-no-authorization",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/008-task-no-authorization.json",
+          "sha256": "5316809d3eb7938b490453e8f7a75b2aaab5fbe5243f68446fbe0f854a267f12",
+          "schema_checked": true
+        },
+        {
+          "case": "task-header-origin",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/009-task-header-origin.json",
+          "sha256": "eab728f3047c3dc719caa59d205298a163f3c286a89bd52e1e7d0ef748474902",
+          "schema_checked": true
+        },
+        {
+          "case": "task-header-x-call-id",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/010-task-header-x-call-id.json",
+          "sha256": "416e1563b8654fed8c8f5378e2456aaf67fc5f0542b240ff08e77c1f1692bcfd",
+          "schema_checked": true
+        },
+        {
+          "case": "task-header-x-chat-id",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/011-task-header-x-chat-id.json",
+          "sha256": "27667c40f783c6a0f04eac9c48485b83d15bdcfdd92ede0e03b83b3c9f671588",
+          "schema_checked": true
+        },
+        {
+          "case": "task-header-host",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/012-task-header-host.json",
+          "sha256": "caf3d1a45863c55dc220787bbed40652ca2902c1f699879efe64a65355ee6d9c",
+          "schema_checked": true
+        },
+        {
+          "case": "provider-binding-refused",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/013-provider-binding-refused.json",
+          "sha256": "9b9220e713aec5deaa91397afa67580258032c074b41ee49bd7145bdee81dc16",
+          "schema_checked": true
+        },
+        {
+          "case": "task-unknown-permission",
+          "status": 422,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/014-task-unknown-permission.json",
+          "sha256": "5a387c77845f089e134815a9f787b7d32b274a90bbfa903087e9c74688426eae",
+          "schema_checked": true
+        },
+        {
+          "case": "task-duplicate-permission",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/015-task-duplicate-permission.json",
+          "sha256": "35515ebc419395263a3a9dba6b705296ff5741b559257a061f0c286d52d6b909",
+          "schema_checked": true
+        },
+        {
+          "case": "task-caller-authority-field-refused",
+          "status": 422,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/016-task-caller-authority-field-refused.json",
+          "sha256": "a0fad27dcf94bfeb47b3343a51ce18693be9625694a29bd74272c971397f5537",
+          "schema_checked": true
+        },
+        {
+          "case": "task-relative-ttl-refused",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/017-task-relative-ttl-refused.json",
+          "sha256": "c0da992cbdc49e1f238bd452f04976f5516b5e7f599bc759c7386ac4ee528e59",
+          "schema_checked": true
+        },
+        {
+          "case": "task-profile-separated",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/018-task-profile-separated.json",
+          "sha256": "c2793b0072ce1548fc407a3ba42ef448138febefe6b6efc91662dde2f1a6b6bf",
+          "schema_checked": true
+        },
+        {
+          "case": "task-malformed-json",
+          "status": 400,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/019-task-malformed-json.json",
+          "sha256": "74d57958e69472fb51c7a36b54e10f20577e11a15f9e19709319067a4a45fddf",
+          "schema_checked": true
+        },
+        {
+          "case": "task-no-json-type",
+          "status": 415,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/020-task-no-json-type.json",
+          "sha256": "ee56434be859a3401a00426869b7377f5491934fafe3ab06fa60fc769249d088",
+          "schema_checked": true
+        },
+        {
+          "case": "task-oversized-json",
+          "status": 413,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/021-task-oversized-json.json",
+          "sha256": "3cd9f4e5c3d85baae31a6c23f90b94ae8b749bf40332b9cb021dc235a77696d5",
+          "schema_checked": true
+        },
+        {
+          "case": "task-auth-before-json",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/022-task-auth-before-json.json",
+          "sha256": "49717c0576a6f0eb2ac82e82db2af49acb710e06e4c76e5068167555da75aea9",
+          "schema_checked": true
+        },
+        {
+          "case": "canonical-file-room",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/023-canonical-file-room.json",
+          "sha256": "96601114d274d5882c9afddf4b6123eb7344265ed15543b71b1cf7704d3ea2b3",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-begin-255-name",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/024-artifact-begin-255-name.json",
+          "sha256": "d456b87feaef68d60286c1e6d27107ee1192bd614057478ae658be0e1d639dd6",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-not-ready",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/025-artifact-not-ready.json",
+          "sha256": "b6e8b3720794aee9584625ede74963e8ed5e820d635269b0859064401a3dda6a",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-nonowner-put",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/026-artifact-nonowner-put.json",
+          "sha256": "8a4bb76865301026ea087fb4944f60c48fa5461b016157ad88f33543ce897520",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-empty-chunk",
+          "status": 400,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/027-artifact-empty-chunk.json",
+          "sha256": "0ce92be54a9b54edcc84088ad34c36a4fa376593e3e33c852adb1d1550e8ecfd",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-configured-oversize",
+          "status": 400,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/028-artifact-configured-oversize.json",
+          "sha256": "9156f8cd45d7366277aa0c9da654dcea17ee903a78dd9c20ae4252d363698fab",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-first-chunk",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/029-artifact-first-chunk.json",
+          "sha256": "19e494a22bf1ae9c5a5c36699830c8d290e312b9c20a43f621c5e079797f281a",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-chunk-original-replay",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/030-artifact-chunk-original-replay.json",
+          "sha256": "81fce169011bdaf3d6256e6c59e278cb51367e439af6cf8d3737656414a895f9",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-chunk-changed-intent",
+          "status": 400,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/031-artifact-chunk-changed-intent.json",
+          "sha256": "0ce0010cf90a5c2d1334bb0d807af124fae1478a5efde9673dc816c9369345a5",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-second-chunk",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/032-artifact-second-chunk.json",
+          "sha256": "3598ea7f9509d3d30b5f7c15dd99b15ca8afb9ba3f47382553e81ab60ee45e89",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-finish",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/033-artifact-finish.json",
+          "sha256": "e13deaac87dd49523c8516b0a1cc4dbb04eb5e6b388d735df97ad508d666846e",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-first-window",
+          "status": 200,
+          "content_type": "application/octet-stream",
+          "sample": ".local/gate-6/protected-http/final-02/samples/034-artifact-first-window.json",
+          "sha256": "847efc4c8357ef06ef8f6d8c589b758aa7ce3256be590b3585ffc5e635af8b37",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-second-window",
+          "status": 200,
+          "content_type": "application/octet-stream",
+          "sample": ".local/gate-6/protected-http/final-02/samples/035-artifact-second-window.json",
+          "sha256": "da32f15bfb73614f7653ce3148a1a1d03a6c0b11d300a931e17d536a6e149bd7",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-empty-eof",
+          "status": 200,
+          "content_type": "application/octet-stream",
+          "sample": ".local/gate-6/protected-http/final-02/samples/036-artifact-empty-eof.json",
+          "sha256": "f2de175a19912b31f1b3944ace737ea32705b9f6364164f5e9a488ba45b5f46d",
+          "schema_checked": true
+        },
+        {
+          "case": "canonical-file-message",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/037-canonical-file-message.json",
+          "sha256": "c6991231fae771c7694b57386bd29a66d3074f397381ad6a5be897b59f362df7",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-original-recipient",
+          "status": 200,
+          "content_type": "application/octet-stream",
+          "sample": ".local/gate-6/protected-http/final-02/samples/038-artifact-original-recipient.json",
+          "sha256": "9d2f4e7747d8dc339eeafba5440705c7f379c9993612c493728aa5102a729e7e",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-foreign-identity",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/039-artifact-foreign-identity.json",
+          "sha256": "d3df0536c9a9b87f3e9a38e3b10443e4043f58a6d593311641afe6a2fcf3c091",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-grant-requires-task-api",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/040-artifact-grant-requires-task-api.json",
+          "sha256": "508ac3ea974170f8b6bff4bc419233c798924cb03bf60d54dc6a114c1faa4561",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-beyond-eof",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/041-artifact-beyond-eof.json",
+          "sha256": "429fb19dc342ec3933b3ec7eae1b925b72cc04918f0a25f4dde81b211de28f6c",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-limit-zero",
+          "status": 400,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/042-artifact-limit-zero.json",
+          "sha256": "fb1bdef87cbe5d666f09fd60b693495b5212d59e0abfb5c666055736aa3008b7",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-query-type",
+          "status": 400,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/043-artifact-query-type.json",
+          "sha256": "e0532f1b11998c5d0e7ab3760ebbe7a6c00120799835f8ef718afe15834a4df7",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-query-unknown",
+          "status": 400,
+          "content_type": "text/plain",
+          "sample": ".local/gate-6/protected-http/final-02/samples/044-artifact-query-unknown.json",
+          "sha256": "7a77b134bd9ec1c864a51619a4dc793f91d3e136515a1e4246a7b1c0faf85ffe",
+          "schema_checked": true
+        },
+        {
+          "case": "grant-revoke",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/045-grant-revoke.json",
+          "sha256": "4d3b2238054ecf10cfb75c7bf9e514419ae89dd96fa8b4de6dc7d8a0c696fbdc",
+          "schema_checked": true
+        },
+        {
+          "case": "grant-revocation-refuses-original",
+          "status": 403,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/046-grant-revocation-refuses-original.json",
+          "sha256": "bd6392334f9e10c4d52804e76cd8f6d85fc75c4c514a116e9b35720b8b422bec",
+          "schema_checked": true
+        },
+        {
+          "case": "recipient-credential-revoke",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/047-recipient-credential-revoke.json",
+          "sha256": "9ea2f8129db7f19fa0148bb5cae9b78ce104aa6309ba4b08d406866f699bca07",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-current-recipient-revocation",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/048-artifact-current-recipient-revocation.json",
+          "sha256": "e85eadf18d9f8e9b1f956c1f1f7b8600f8233a1935cc467fe3bdfda026ef20ba",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-owner-remains-current",
+          "status": 200,
+          "content_type": "application/octet-stream",
+          "sample": ".local/gate-6/protected-http/final-02/samples/049-artifact-owner-remains-current.json",
+          "sha256": "416f0ddd9cfb17f64df9b9e6f72824f5a308351d7492be8ab4bf329a98211b57",
+          "schema_checked": true
+        },
+        {
+          "case": "uploader-credential-revoke",
+          "status": 200,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/050-uploader-credential-revoke.json",
+          "sha256": "cf261fb38702c1cf8a5adaf66d5a8be4cc822c5a1547c6938f0d8c3b3c1b1106",
+          "schema_checked": true
+        },
+        {
+          "case": "artifact-current-authority-on-original-replay",
+          "status": 401,
+          "content_type": "application/json",
+          "sample": ".local/gate-6/protected-http/final-02/samples/051-artifact-current-authority-on-original-replay.json",
+          "sha256": "c4247ea780b455d0a7581b399b3df72c9b0a30d09de0312e9944844258b8fba1",
+          "schema_checked": true
+        }
+      ],
+      "source_unchanged": true,
+      "reference_inputs": {
+        "scripts/check-gate6-protected-http.py": "1f3b78483415a56fdb3971a05664c6673db56ef29114e066cdfa8e86e054194d",
+        "scripts/generate-protected-http-openapi.py": "6fb98fb6ad769f2edeaed9b881ed17e5332829f4c59dfae92a2f5a830bd63b73",
+        "contracts/openapi-protected-http.json": "628dcdae5989e76a73ecf4b6cfcd6b277eeb407d4dbdf280735bbaad8974c861",
+        "contracts/openapi-attachments.json": "ff6dde35bcfe748e737ad0228f8aaf315d47844fe0bc60f16f75c6c45cae1cc9",
+        "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
+        "contracts/openapi-provisioning.json": "a68fedffed7bf0fa949ec383651c2a2ad9cb6093e035e24477b86307c2446bb0"
+      },
+      "protected_samples": 52,
+      "schema_checked": 51,
+      "setup_only": [
+        "task-create"
+      ],
+      "sigterm_exit": 0,
+      "scope": "Isolated actual CLI/production loopback HTTP. No model, provider account, remote/Linux/media/package/acceptance qualification or publication."
+    },
+    "private_summary_sha256": "ded192c603dab74cb587ad1a85ee4735c91df0320dc874740f2458eb7d3e5b35",
+    "build": {
+      "exit_code": 0,
+      "seconds": 0.23817366710864007,
+      "source_unchanged": true,
+      "binary_sha256": "397c8279f9d9265dc2ae8d7b22efd9b84e6e78a17d78af28cd241911ecee200e",
+      "bytes": 246952208,
+      "source_count": 1291,
+      "log_sha256": "2efcc1fb53988ec4c8bcc411ae9dbc820f0d09323ba0005ec3fbecbd25631709",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-04": {
+        "sha256": "8f5c3a8a0b7de2f0dcfa44fbfb9e50f6d325f7226ff135a6d0739bbc44634292",
+        "bytes": 94469216
+      },
+      "canonical-cli-04": {
+        "sha256": "fcd2db5d4e1b04c2adf86eda125c5abe07661ac046e142dd6a46359df5762e6e",
+        "bytes": 230478928
+      }
+    },
+    "build_inputs_sha256": "16b735f452885fde20679d1a1fcd8afc5e5c2f5914d922c312c850d771a0e745",
+    "guarded_crate_example_inputs": 1291,
+    "source_unchanged": true,
+    "sensitivity": {
+      "scope": "In-memory reference sensitivity only; no source/contract or runtime mutation.",
+      "rows": [
+        {
+          "case": "missing-task-access",
+          "result": "rejected missing reference"
+        },
+        {
+          "case": "missing-raw-get",
+          "result": "rejected missing reference"
+        },
+        {
+          "case": "record-parameter-name-alias",
+          "result": "accepted same route structure"
+        },
+        {
+          "case": "prior-artifact-name-128",
+          "result": "actual wire sample rejects incorrect schema"
+        },
+        {
+          "case": "wrong-task-response-profile",
+          "result": "actual wire sample rejects incorrect schema"
+        }
+      ],
+      "inventory_script_sha256": "7f190c731181641bf4b7618abafdc0a2721a3f30328f96a8f7998e84939e26f7"
+    },
+    "private_sensitivity_sha256": "8ab3e1f75d520e79d6129540df08bc21c099f2b2a0c4d42a18ff3a6b048a3de1",
+    "inventory": {
+      "declarations": 23,
+      "explicit_http_operations": 24,
+      "uncovered_declared_methods": 0,
+      "scope": "Source route/reference inventory only; runtime schemas and authorization need separate evidence."
+    },
+    "static_checks": [
+      "protected HTTP generator --check",
+      "HTTP inventory --check",
+      "canonical HTTP generator --check",
+      "record mutation generator --check",
+      "Draft202012 schema checks and actual response-reference resolution",
+      "repository format --check",
+      "Gate6 progress/integrity",
+      "git diff --check"
+    ],
+    "sources": {
+      "contracts/openapi-protected-http.json": "628dcdae5989e76a73ecf4b6cfcd6b277eeb407d4dbdf280735bbaad8974c861",
+      "contracts/openapi-attachments.json": "ff6dde35bcfe748e737ad0228f8aaf315d47844fe0bc60f16f75c6c45cae1cc9",
+      "contracts/http-endpoints.json": "1b834d5a05428fbb6f69a504b8d51a20d3af74a3a5e76a87bc80c903b32086ee",
+      "scripts/generate-protected-http-openapi.py": "6fb98fb6ad769f2edeaed9b881ed17e5332829f4c59dfae92a2f5a830bd63b73",
+      "scripts/check-gate6-protected-http.py": "1f3b78483415a56fdb3971a05664c6673db56ef29114e066cdfa8e86e054194d",
+      "scripts/check-gate6-http-inventory.py": "7f190c731181641bf4b7618abafdc0a2721a3f30328f96a8f7998e84939e26f7",
+      "docs/developer/server-http.md": "7d12226415c0f8af3daf096ceac46d491feeb93003eea069ae8936c5382057ae"
+    }
+  },
+  "cases": [
+    "Same current original Task grant issuance returns identical ID/secret/expiry; changed intent conflicts. Narrow model grant/no backing scope/duplicate or missing Authorization, forbidden Host/Origin/provider headers, provider binding, caller-selected authority, unknown/duplicate permissions, TTL and wrong-profile cases refuse with their actual status/profile/content type. Auth precedes malformed JSON on protected Task access.",
+    "Artifact owner uploads two windows. Exact original chunk replay retains one received extent; changed bytes conflict; nonowner, empty/configured-over-budget and not-ready cases refuse. Ready raw windows, zero-byte EOF, original recipient, foreign administrator, Task grant, range/query errors and Content-Type/offset/EOF/cache headers are checked.",
+    "Actual attached Message uses mutually permitted ordinary file participants. Public MCP self-inspection derives current credential IDs without SQL or guessed resource revisions; trusted HTTP credential revocation refuses the recipient read and original uploader chunk replay. Independent current owner remains readable before its own credential is revoked.",
+    "52 actual HTTP exchanges recorded;51 request/query/response/media/header shapes checked against referenced OpenAPI. Task creation is explicitly setup-only, not claimed as full Task-body OpenAPI qualification. HTTP and MCP listeners release on SIGTERM0/stopped. Provider/model credentials and test-control environment prefixes are stripped from CLI child environments."
+  ],
+  "development_record": [
+    {
+      "status": "retained failed fixture attempt",
+      "path": ".local/gate-6/protected-http/20261026T132513753003Z/summary.json",
+      "detail": "Expected recipient200 was actually403 because the fixture authored content as an operator outside the recipient credential ceiling. Corrected by selecting a separate file Conversation with actual mutually permitted ordinary agent/recipient authority; no policy was widened.",
+      "sha256": "66fe679f748d1cb786cd2f4dd5e1308e7654578552b6c35c68d9480ef0c1ad9f"
+    },
+    {
+      "status": "retained failed fixture attempt",
+      "path": ".local/gate-6/protected-http/20261026T132728837377Z/summary.json",
+      "detail": "A guessed Identity revision caused409 on fixture revocation. Final probe uses public MCP self-inspection to derive the actual credential ID and a saved explicit HTTP credential-revocation command, without a guessed revision.",
+      "sha256": "675a5508430dbe712864bbeda9a0e4698da36777bb5bfe1810e8d3be2f5b0e6d"
+    }
+  ],
+  "remaining": [
+    "Complete full named /v1/operations body-variant parity and remaining facade behavior; endpoint source coverage alone does not prove those schemas or authorization matrices.",
+    "Finish canonical CLI credential issuance with durable original intent/replay and native enrollment; do not reuse the old generic non-idempotent issuance path.",
+    "Complete remaining MCP consultation/movement and actual supported agent-host/profile work; retain the intermittent provider-uncertainty forbidden regression until diagnosed.",
+    "All105 Gate6 tasks remain active. G6-065 stays in progress; publication is separate."
+  ]
+}
