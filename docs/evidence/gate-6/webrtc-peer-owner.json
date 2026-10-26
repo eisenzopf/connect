@@ -1,0 +1,95 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T22:38:02.363578+00:00",
+  "base_revision": "1b5fbc0b960b25d94e09b69089a3b4f0de7b9eda",
+  "scope": "Local macOS arm64 server transport-owner component. Controlled trusted Store admission plus actual loopback Rvoip ICE/DTLS and OS UDP socket observation. No canonical WSS dispatch, browser, Core media route or decoded media qualification.",
+  "source_inputs": {
+    "crates/connect-server/Cargo.toml": "48c858c39200abf7b34f22b6f147ceed474c9557542ba029ae0ec44ac97a554c",
+    "crates/connect-server/src/lib.rs": "0f1132a0033c91d7956ea35adb0b872cb2656aa8691f456f21084b70ebb00f31",
+    "crates/connect-server/src/canonical_webrtc.rs": "5f237ee46537c0e028b59ea6b886b3169045834ccddc442dddbb517503f1d6bd",
+    "crates/connect-server/src/canonical_webrtc/tests.rs": "0c75898c37a516c4d4cdf5fd616518aafc7c377d59d98e30ace55cc130b88a6e"
+  },
+  "build": {
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--bin",
+      "connect",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "seconds": 57.895429875003174,
+    "source_count": 1578,
+    "manifest_sha256": "9f7b18ef9b9a963f182f9ed1f929af7399368a93bd6dfc95a5563715a5d27eee",
+    "test_executable": {
+      "sha256": "8f5a3036b0cc9f1a1eb93d7bf27e24b3d43e4a541c4be8480f1635dd5f8530b4",
+      "bytes": 106178480
+    },
+    "normal_library": {
+      "sha256": "d8ea0cad96366bf91b601d1ec0c655173d5b58cc4055f36928da3bd2fc8b5937",
+      "bytes": 179764816,
+      "cfg_test": false,
+      "features": [
+        "test-support"
+      ]
+    }
+  },
+  "guards": {
+    "sources_unchanged": true,
+    "original_and_sealed_test_executable_unchanged": true,
+    "normal_library_independent_seal_matches": true
+  },
+  "verification": {
+    "tests_passed": 4,
+    "command": [
+      ".local/gate-6/webrtc-peer-owner/server-library-test-03",
+      "canonical_webrtc::tests::",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "runtime_seconds": 2.455371707910672,
+    "log_sha256": "d0489bf0b5ab521ae97e501441403eaf1c4ecb0c4abfc4a2dd752343dde2e489",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "actual_loopback_ice_dtls": true,
+    "actual_udp_socket_reclaimed": true,
+    "actual_canonical_wss_dispatch": false,
+    "actual_browser": false,
+    "actual_media_delivery": false,
+    "scope_of_admission": "Isolated trusted Store fixture, not an actual signed UCTP request.",
+    "static_checks": "Rust formatting; application/canonical/protected/record HTTP generation;24route declarations/25operations inventory pass."
+  },
+  "behavior": [
+    "Synchronous start consumes the non-cloneable original Store attempt and host capacity permit. Caller retains original custody outside cancelled/failed asynchronous observations.",
+    "Saved SDP derives from the exact current Store origin; foreign installation and unoffered active media refuse. Expired/over30second supplied deadlines refuse without discarding original custody.",
+    "Actual two-peer loopback ICE/DTLS connects after applying the generated answer. Durable operation remains preparing with one effect and no result: transport success cannot manufacture canonical media readiness.",
+    "Current Endpoint revocation while prepared/idle retires the peer and releases capacity, without an idle domain reader.",
+    "Dropping answer observations/owners and supplied physical lifetime loss drain the original workers. Local peer shutdown does not cancel the independent parent physical token.",
+    "A test-only gate forces close to remain pending after a shutdown wait is dropped. Capacity and the actual configured UDP port remain held. A later shutdown joins the original worker; repeated shutdown is idempotent and the same UDP port can be rebound."
+  ],
+  "attempts": [
+    "Initial715.997second shared-service/library build and four tests passed. A new unused-variable warning exposed deadline validation using a clipped value; corrected validation checks the supplied original bound.",
+    "Second85.189second build also compiles the ordinary library (cfg(test)=false) and CLI test target; all four strengthened tests pass with forced pending-close cancellation.",
+    "Final57.895second build retains those cases and adds independent OS UDP occupancy/rebind assertions. Four final functions pass in the recorded source-frozen artifact."
+  ],
+  "remaining": [
+    "Connect the component to configured canonical WSS SDP/ICE dispatch with exact outgoing/candidate authority and original operation recovery.",
+    "Implement Core adapter/controller codec/direction/MID/SSRC/data routing, current per-packet/subscription policy, transitions and joint cleanup.",
+    "Remove the old offer-ready path after public SDK capture/track/data integration.",
+    "Run actual Chrome/Firefox forced WT/UDP failure and the complete media/permission/background/loss/recovery/teardown profiles. G6-051 and all Gate6 acceptance remain open."
+  ]
+}

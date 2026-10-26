@@ -5,6 +5,7 @@ pub mod canonical_assistants;
 pub mod canonical_messages;
 pub mod canonical_provider_voice;
 pub mod canonical_telephone;
+pub mod canonical_webrtc;
 pub mod canonical_websocket;
 mod canonical_websocket_listener;
 pub mod canonical_webtransport;

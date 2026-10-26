@@ -76,3 +76,38 @@ readiness. Endpoint revocation prevents current selection, projection and new
 attempt issuance. Under current owner authorization, historical receipt reads
 remain possible; those reads do not restore the revoked Endpoint or grant IO.
 The canonical WebRTC engine and physical lifetime integration remain unfinished.
+
+## Owned transport preparation
+
+The internal server component `canonical_webrtc::Peer` starts from a Store-issued
+origin and consumes its non-cloneable original attempt lease. It accepts no caller
+SDP, Device or Endpoint selector. The backend retains the owner outside answer
+and connection waits, so a cancelled wait cannot discard or replace that lease.
+The original attempt remains available by reference for later attributed Core
+readiness or cleanup work.
+
+One worker owns allocation, SDP application, ICE/DTLS observation and actual peer
+close. A host capacity permit belongs to that worker until close completes.
+Explicit shutdown callers share the original completion; dropping one shutdown
+wait cannot take its join. Owner drop or supplied physical cancellation fences
+the worker. Current Store lifetime checks retain no domain reader while idle;
+current answer/connection observations reacquire their own source read.
+
+Before allocation, the worker parses the saved original SDP and checks active
+media kinds/counts against the original logical stream intent. SCTP channels share
+one application m-line. This is transport preparation, not Core stream admission:
+codec, direction, MID/SSRC, subscription, media packet and transition authorization
+still require the canonical adapter/controller integration. The component exposes
+no media frame interface. An SDP answer or ICE/DTLS connection cannot complete the
+durable media operation. The default canonical WSS route remains unconnected to
+this component; no new HTTP endpoint or fallback support is advertised.
+
+Four local server-library tests verify actual loopback ICE/DTLS, current endpoint
+revocation while prepared/idle, original attempt custody, refused foreign origins
+and unoffered media, deadline refusal and owned cleanup. A test-only gate holds
+close pending after a shutdown wait is dropped: both capacity and the actual
+configured UDP port remain occupied. After the original close completes, that
+port can be rebound. The ordinary library also compiles with `cfg(test)` disabled.
+These checks use trusted isolated Store admission; they do not qualify signed
+canonical WSS dispatch, browser interoperability or decoded media. Details are in
+[the peer-owner evidence](../evidence/gate-6/webrtc-peer-owner.json).

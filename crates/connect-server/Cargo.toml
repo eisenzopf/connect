@@ -31,6 +31,7 @@ rvoip-websocket = { workspace = true, features = ["wss"] }
 rvoip-webtransport.workspace = true
 rvoip-sip.workspace = true
 rvoip-webrtc.workspace = true
+rvoip-sip-core.workspace = true
 rvoip-auth-core.workspace = true
 rvoip-core.workspace = true
 tokio.workspace = true
@@ -68,7 +69,6 @@ security-framework.workspace = true
 web-transport-quinn = { version = "0.11.12", default-features = false, features = ["ring"] }
 rvoip-rtp-core = { path = "../../.deps/rvoip/crates/media/rtp-core", default-features = false }
 rvoip-sip-dialog.workspace = true
-rvoip-sip-core.workspace = true
 connect-connector-http.workspace = true
 connect-native-video = { path = "../../examples/native-video" }
 prism-fixture = { path = "../../examples/connector-contribution" }
