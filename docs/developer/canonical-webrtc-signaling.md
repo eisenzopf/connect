@@ -65,8 +65,10 @@ selected media before exposing IO.
 Trusted preparation selects exactly one verified Endpoint for the authenticated
 Device and the intent's technology. A same-Device QUIC Endpoint cannot satisfy a
 WebRTC offer, or vice versa. The original selected Endpoint, exact SDP and all
-other intent fields remain immutable on replay. The public preparation path and
-current Connection projection enforce the same technology binding.
+other intent fields remain immutable on replay. The Store preparation API and
+current Connection projection enforce the same technology binding. These APIs
+are trusted backend operations; this checkpoint adds no browser provisioning or
+new HTTP endpoint.
 
 Preparation creates only a dormant Connection and an accepted original operation.
 It allocates no WebRTC peer, starts no physical effect, and reports no media

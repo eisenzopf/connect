@@ -1,7 +1,7 @@
 {
   "task": "G6-051",
   "status": "in-progress",
-  "checked_at": "2026-10-26T21:48:04.917032+00:00",
+  "checked_at": "2026-10-26T21:57:18.099954+00:00",
   "scope": "Local isolated protocol and Store behavior only; no WebRTC engine, ICE/DTLS, browser or physical media qualification.",
   "source_inputs": {
     "crates/connect-protocol/src/connection_control.rs": "3e98c270693ee04d95cda22199aa00b1f66f3a97774ec3c4e7f5aefe63a3798d",
@@ -39,12 +39,21 @@
       "before": "61c4c96f64dd50258975498a563a5afe9b4f31eeecd8476e0572955ab871c6a0",
       "after": "4918c8e00c2376b048921fdd98eb2eb961afe117a0e204b273ed8adaabbf592d",
       "reason": "Inventory generator refreshed the application reference digest; not consumed by these compiled crates."
-    }
+    },
+    "after_all_selected_methods_compiled_inputs_unchanged": true,
+    "after_all_selected_methods_original_and_sealed_executables_match": true
   },
   "verification": {
     "protocol_tests_passed": 46,
     "store_native_wire_tests_passed": 17,
-    "broader_connection_control": "running; no pass claimed",
+    "broader_connection_control": {
+      "selected_methods": 625,
+      "passed_in_timed_cohort": 570,
+      "remainder_individually_passed": 55,
+      "single_cohort_pass": false,
+      "remainder_manifest_sha256": "a504afee05eb2f657153c33d6aeba6fadcc786d5367c823df348f3c762855b8f",
+      "remainder_summary_sha256": "3c9ef40db2addfc77a6d7fbe0d52a31ba3be980b890870afa2b906b0ad67ffa8"
+    },
     "checks": [
       {
         "name": "protocol",
@@ -74,6 +83,21 @@
           "test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1211 filtered out; finished in 10.02s",
           ""
         ]
+      },
+      {
+        "name": "store-connection-control",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-offer-boundary/connect_store-test-03",
+          "connection_control::tests::",
+          "--test-threads=4"
+        ],
+        "exit_code": "timeout",
+        "seconds": 600.0066052500624,
+        "log_sha256": "2dca3d5831edaa08a003c17649cf34862562e9105b1e6e6d6002a0238863f390",
+        "summary": [
+          "test connection_control::tests::sip_consultation::planning::groups::disjoint_sip_candidates_keep_own_sealed_context_and_only_original_physical_pairs ... ok",
+          "test connection_control::tests::sip_consultation::planning::groups::returning_one_sip_group_keeps_other_sealed_sip_group_without_role_or_recipient_loan ... ok"
+        ]
       }
     ],
     "references": "Application/canonical/protected/record HTTP generation, UCTP66 types/254 vectors,24declarations/25operations inventory and Rust formatting pass."
@@ -87,9 +111,10 @@
   ],
   "failed_or_incomplete_attempts": [
     "Initial historical-read refusal expectation was incorrect; test now requires preserved history plus refusal of current IO preparation. Product recovery semantics unchanged.",
-    "Initial broad cohort timed out at120seconds; no pass claimed and raw child output was not retained. Current run streams logs with4test workers and600second cap.",
+    "Initial broad cohort timed out at120seconds; no pass claimed and raw child output was not retained. The subsequent4-worker streaming run used a600second cap and is recorded separately.",
     "One runner start preceded build-manifest completion and refused before tests.",
-    "The whole1576-input runtime guard sees one generated HTTP inventory digest refresh. All compiled product inputs and original/sealed executable bytes remain unchanged."
+    "The whole1576-input runtime guard sees one generated HTTP inventory digest refresh. All compiled product inputs and original/sealed executable bytes remain unchanged.",
+    "The4-worker full cohort timed out at600seconds after570reported passes and no test failures. The55unreported methods subsequently passed unchanged in individual exact invocations with at most4workers. No single-cohort pass is claimed."
   ],
   "remaining": [
     "Canonical server WebRTC engine/adapter and SDP/ICE dispatch with current authority and owned physical lifetimes.",
