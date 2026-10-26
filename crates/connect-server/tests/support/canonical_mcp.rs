@@ -54,16 +54,9 @@ fn success(result: CallToolResult) -> Value {
 async fn canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation(
 ) {
     for algorithm in ["EdDSA", "ES256"] {
-        let f = Fixture::with_extra_scopes(algorithm, 8, true, false, false, &["session.handoff"])
-            .await;
-        let listener = connect_mcp::RunningMcp::start_local(
-            f.server.service.clone(),
-            std::sync::Arc::new(connect_mcp::LocalAuth::new(f.server.service.clone())),
-            "127.0.0.1:0".parse().unwrap(),
-        )
-        .await
-        .unwrap();
-        let mcp = client(listener.address, &f.client.credential).await;
+        let f = Fixture::with_configured_mcp(algorithm, &["session.handoff"]).await;
+        let address = f.server.mcp_address.unwrap();
+        let mcp = client(address, &f.client.credential).await;
         let tools = mcp.list_all_tools().await.unwrap();
         assert!(tools.iter().any(|t| t.name == "connect_session_handoff"));
         assert!(tools.iter().any(|t| t.name == "connect_operation_get"));
@@ -211,8 +204,79 @@ async fn canonical_mcp_public_control_preserves_messages_session_ids_original_st
         assert!(mcp.call_tool(CallToolRequestParams::new("connect_operation_get").with_arguments(json!({"conversation_id":cid,"session_id":"mcp-session","payload":{"operation_id":"mcp-invite"}}).as_object().unwrap().clone())).await.is_err());
         native.shutdown().await.unwrap();
         mcp.cancel().await.unwrap();
-        listener.shutdown().await.unwrap();
         f.server.shutdown().await.unwrap();
+        assert!(
+            std::net::TcpListener::bind(address).is_ok(),
+            "owned MCP listener not drained"
+        );
         eprintln!("canonical MCP {algorithm}: exact Message once, same HTTP/native history, Session original replay/status, current revocation, official client/listener/server joined; no media readiness inferred");
+    }
+}
+
+#[tokio::test]
+async fn canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup() {
+    let f = Fixture::new("EdDSA", 8).await;
+    assert!(f.server.mcp_address.is_none());
+    let mut public = f.config.clone();
+    public.mcp = Some(connect_server::config::McpConfig {
+        bind: "0.0.0.0:0".parse().unwrap(),
+        binding: None,
+    });
+    assert!(public.validate().is_err());
+    // A public MCP listener is invalid even when the canonical native profile
+    // is Remote. It cannot become public by inheriting a native bind setting.
+    public.network_profile = connect_protocol::native_network::NativeNetworkProfile::Remote;
+    assert!(public.validate().is_err());
+    for kind in [
+        connect_protocol::tasks::InvocationKind::ProviderCall,
+        connect_protocol::tasks::InvocationKind::ProviderChat,
+    ] {
+        let mut provider = f.config.clone();
+        provider.mcp = Some(connect_server::config::McpConfig {
+            bind: "127.0.0.1:0".parse().unwrap(),
+            binding: Some(connect_protocol::tasks::InvocationBinding {
+                kind,
+                adapter: "fixture".into(),
+                external_id: "verified-separately".into(),
+            }),
+        });
+        assert!(provider.validate().is_err());
+    }
+    let mut value = serde_json::to_value(&f.config).unwrap();
+    value["mcp"] = json!({"bind":"127.0.0.1:0","actor":"forged"});
+    assert!(serde_json::from_value::<CanonicalServerConfig>(value).is_err());
+    f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports()
+{
+    let f = Fixture::with_configured_mcp("EdDSA", &[]).await;
+    let config = f.config.clone();
+    f.server.shutdown().await.unwrap();
+    let occupied = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let mut blocked = config.clone();
+    blocked.mcp.as_mut().unwrap().bind = occupied.local_addr().unwrap();
+    assert!(RunningCanonicalServer::start(blocked).await.is_err());
+    drop(occupied);
+    for explicit in [true, false, true] {
+        let server = RunningCanonicalServer::start(config.clone()).await.unwrap();
+        let address = server.mcp_address.unwrap();
+        assert!(std::net::TcpListener::bind(address).is_err());
+        if explicit {
+            server.shutdown().await.unwrap();
+        } else {
+            drop(server);
+        }
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if std::net::TcpListener::bind(address).is_ok() {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
     }
 }

@@ -86,6 +86,7 @@ pub async fn run_canonical(server: crate::canonical::RunningCanonicalServer) -> 
         println!("ready transport=quic alpn={} profile=connect/2 address={} schema={}",
             std::str::from_utf8(rvoip_uctp::v2::RAW_QUIC_ALPN).unwrap_or("invalid"), server.address, connect_store::SCHEMA_VERSION);
         if let Some(address)=server.http_address { println!("http_json={address}"); }
+        if let Some(address)=server.mcp_address { println!("mcp_streamable_http=http://{address}/mcp"); }
         #[cfg(unix)]
         tokio::select! { _=shutdown.interrupt.recv()=>{}, _=shutdown.terminate.recv()=>{}, _=server.service.readiness.failed()=>{} }
         #[cfg(not(unix))]

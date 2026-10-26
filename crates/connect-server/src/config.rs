@@ -45,6 +45,25 @@ pub struct McpConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub binding: Option<connect_protocol::tasks::InvocationBinding>,
 }
+impl McpConfig {
+    pub(crate) fn validate(&self) -> Result<()> {
+        use connect_protocol::tasks::InvocationKind;
+        anyhow::ensure!(
+            self.bind.ip().is_loopback()
+                && self.binding.as_ref().is_none_or(|binding| matches!(
+                    binding.kind,
+                    InvocationKind::Native | InvocationKind::HostSession
+                )),
+            "Local MCP requires a loopback listener and a native or host binding"
+        );
+        if let Some(binding) = &self.binding {
+            binding
+                .validate()
+                .map_err(|_| anyhow::anyhow!("Invalid MCP invocation binding"))?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -133,20 +152,7 @@ impl ServerConfig {
     /// Validate the bounded local profile without opening listeners or files.
     pub fn validate(&self) -> Result<()> {
         if let Some(mcp) = &self.mcp {
-            use connect_protocol::tasks::InvocationKind;
-            anyhow::ensure!(
-                mcp.bind.ip().is_loopback()
-                    && mcp.binding.as_ref().is_none_or(|binding| matches!(
-                        binding.kind,
-                        InvocationKind::Native | InvocationKind::HostSession
-                    )),
-                "Local MCP requires a loopback listener and a native or host binding"
-            );
-            if let Some(binding) = &mcp.binding {
-                binding
-                    .validate()
-                    .map_err(|_| anyhow::anyhow!("Invalid MCP invocation binding"))?;
-            }
+            mcp.validate()?;
         }
         if !self.bind.ip().is_loopback()
             || self

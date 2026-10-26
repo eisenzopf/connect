@@ -42,6 +42,9 @@ pub struct CanonicalServerConfig {
     pub signing_key_not_before: chrono::DateTime<chrono::Utc>,
     pub signing_key_expires_at: chrono::DateTime<chrono::Utc>,
     pub http_bind: Option<SocketAddr>,
+    /// Protected local MCP control; disabled unless explicitly configured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp: Option<crate::config::McpConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub record_https: Option<crate::transports::record_https::RecordHttpsConfig>,
     #[serde(default)]
@@ -86,6 +89,9 @@ impl CanonicalServerConfig {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        if let Some(mcp) = &self.mcp {
+            mcp.validate()?;
+        }
         anyhow::ensure!(
             self.user_assurance.len() <= 64,
             "Assurance policy capacity exceeded"
@@ -157,6 +163,7 @@ pub struct RunningCanonicalServer {
     stop: CancellationToken,
     intake: Option<JoinHandle<Result<()>>>,
     http: Option<crate::HttpListener>,
+    mcp: Option<connect_mcp::RunningMcp>,
     record_https: Option<crate::transports::record_https::RecordHttpsListener>,
     idle: Option<crate::conversation_policy::Worker>,
     records: Option<crate::record_outcomes::Worker>,
@@ -167,6 +174,7 @@ pub struct RunningCanonicalServer {
     pub telnyx_callback_address: Option<SocketAddr>,
     pub address: SocketAddr,
     pub http_address: Option<SocketAddr>,
+    pub mcp_address: Option<SocketAddr>,
     pub webtransport_url: Option<String>,
     pub websocket_address: Option<SocketAddr>,
     pub websocket_url: Option<String>,
@@ -450,6 +458,20 @@ impl RunningCanonicalServer {
             None => None,
         };
         let http_address = http.as_ref().map(|h| h.address);
+        let mcp = if let Some(config) = &config.mcp {
+            let auth: Arc<dyn connect_mcp::McpAuthenticator> = match &config.binding {
+                Some(binding) => Arc::new(connect_mcp::FixedBindingAuth::new(
+                    service.clone(),
+                    binding.clone(),
+                )?),
+                None => Arc::new(connect_mcp::LocalAuth::new(service.clone())),
+            };
+            Some(connect_mcp::RunningMcp::start_local(service.clone(), auth, config.bind).await?)
+        } else {
+            service.readiness.unconfigured("mcp");
+            None
+        };
+        let mcp_address = mcp.as_ref().map(|mcp| mcp.address);
         let maximum_rtt_ms = Arc::new(AtomicU64::new(0));
         let observed_rtt = maximum_rtt_ms.clone();
         let readiness = service.readiness.clone();
@@ -526,6 +548,7 @@ impl RunningCanonicalServer {
             stop,
             intake: Some(intake),
             http,
+            mcp,
             record_https,
             idle,
             records,
@@ -536,6 +559,7 @@ impl RunningCanonicalServer {
             telnyx_callback_address,
             address,
             http_address,
+            mcp_address,
             record_https_address,
             store,
             service,
@@ -565,6 +589,11 @@ impl RunningCanonicalServer {
             wt.begin_drain();
         }
         let mut failures = Vec::new();
+        if let Some(mcp) = self.mcp.take() {
+            if mcp.shutdown().await.is_err() {
+                failures.push("MCP");
+            }
+        }
         if let Some(messages) = self.provider_messages.take() {
             if messages.shutdown().await.is_err() {
                 failures.push("provider messages");

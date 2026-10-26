@@ -66,6 +66,41 @@ impl Fixture {
         native_end: bool,
         extra: &[&str],
     ) -> Self {
+        Self::with_mcp_config(
+            algorithm,
+            connections,
+            all,
+            native_streams,
+            native_end,
+            extra,
+            None,
+        )
+        .await
+    }
+    pub(super) async fn with_configured_mcp(algorithm: &str, extra: &[&str]) -> Self {
+        Self::with_mcp_config(
+            algorithm,
+            8,
+            true,
+            false,
+            false,
+            extra,
+            Some(connect_server::config::McpConfig {
+                bind: "127.0.0.1:0".parse().unwrap(),
+                binding: None,
+            }),
+        )
+        .await
+    }
+    async fn with_mcp_config(
+        algorithm: &str,
+        connections: usize,
+        all: bool,
+        native_streams: bool,
+        native_end: bool,
+        extra: &[&str],
+        mcp: Option<connect_server::config::McpConfig>,
+    ) -> Self {
         let temp = tempfile::tempdir().unwrap();
         let state = temp.path().join("state");
         init::initialize(&state, true, "127.0.0.1:0".parse().unwrap()).unwrap();
@@ -96,6 +131,7 @@ impl Fixture {
             signing_key_not_before: chrono::Utc::now() - chrono::Duration::seconds(1),
             signing_key_expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
             http_bind: Some("127.0.0.1:0".parse().unwrap()),
+            mcp,
             record_https: None,
             record_retention: Default::default(),
             user_assurance: Vec::new(),

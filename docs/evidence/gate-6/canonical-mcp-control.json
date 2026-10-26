@@ -139,8 +139,8 @@
     }
   ],
   "remaining": [
-    "Library schema/parser and existing MCP unit suite now pass9 functions. Canonical configured-server/MCP runtime qualification is the next active component.",
-    "Wire owned MCP configuration into canonical connect serve and update regular-agent export/skills to the current tool contract.",
+    "MCP library tests pass9 functions; canonical configured-server/CLI lifetime now passes in canonical-mcp-hosting.json.",
+    "Canonical MCP configuration is implemented/verified. Regular-agent export and installed skill/host migration remain open.",
     "Qualify actual consultation/handoff/move request/status over MCP while independent native media owners enforce decoded audio. Supported actual agent-host/model lanes retain their explicit bounded configuration requirement.",
     "Finish stdio/CLI control migration and actual OpenAPI endpoint/auth/file/admin parity without compatibility dispatch. Existing one-shot request CLI is already canonical.",
     "Full G6-065, installed/runtime/profile acceptance, broader Gate6 and publication remain open."

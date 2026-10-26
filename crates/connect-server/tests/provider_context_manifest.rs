@@ -59,6 +59,7 @@ impl Harness {
             signing_key_not_before: chrono::Utc::now() - chrono::Duration::seconds(1),
             signing_key_expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
             http_bind: Some("127.0.0.1:0".parse().unwrap()),
+            mcp: None,
             record_https: None,
             record_retention: Default::default(),
             user_assurance: Vec::new(),

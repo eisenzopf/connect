@@ -141,6 +141,7 @@ fn populate(
         signing_key_not_before: now - chrono::Duration::seconds(1),
         signing_key_expires_at: expires,
         http_bind,
+        mcp: None,
         record_https: None,
         record_retention: Default::default(),
         user_assurance: Vec::new(),

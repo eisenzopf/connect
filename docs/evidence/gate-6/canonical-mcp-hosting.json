@@ -1,0 +1,158 @@
+{
+  "task": "G6-065",
+  "status": "canonical configured MCP hosting/lifetime checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T12:03:07.872810+00:00",
+  "scope": "Local macOS arm64 real canonical production server and built CLI. Default-off protected MCP configuration, finite identity control, authentication, current original recovery and owned lifecycle. No actual model/provider/remote/media or installed agent-export qualification.",
+  "implementation": [
+    "CanonicalServerConfig now accepts optional mcp configuration. Shared McpConfig validation requires loopback and only optional Native/HostSession fixed binding; provider origin kinds and unknown fields refuse. Disabled MCP remains unconfigured.",
+    "RunningCanonicalServer owns the optional actual MCP listener/readiness, publishes its address, and drains it before retiring canonical runtime authority. Drop cancels the owned listener; failed bind unwinds startup and allows the same installation to restart.",
+    "connect serve prints the concrete MCP Streamable HTTP URL without credentials. Fresh init stays default-off. Generated OpenAPI hosting metadata and developer configuration guide describe this separately bound protected MCP interface; the canonical HTTP paths/wire schema are unchanged."
+  ],
+  "verification": {
+    "production": {
+      "rows": [
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.0437892500776798,
+          "log": ".local/gate-6/canonical-mcp/production-03-00.log",
+          "sha256": "ddfc8cffcc439e5724de805f500f54765b44b421017941e4d8a2d4e5f4d4fec4"
+        },
+        {
+          "filter": "canonical_http_",
+          "expected": [
+            "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+            "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+            "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+            "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+            "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+            "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts"
+          ],
+          "exit_code": 0,
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.0434000832028687,
+          "log": ".local/gate-6/canonical-mcp/production-03-01.log",
+          "sha256": "40a31899d941c804f07595f0ffbdc52d03a63861a5cc3004d38e933e765acdf5"
+        },
+        {
+          "filter": "sdk_handles::tasks::",
+          "expected": [
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 2.673887833021581,
+          "log": ".local/gate-6/canonical-mcp/production-03-02.log",
+          "sha256": "6f0ca66a7a3cea3cac168288aca98c1f8f3f045823c2d1a00c9ca223681264db"
+        },
+        {
+          "filter": "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation",
+          "expected": [
+            "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.2605957079213113,
+          "log": ".local/gate-6/canonical-mcp/production-03-03.log",
+          "sha256": "e22a0b7798b957517c5236ed02b5fa2106ed487b609a555af5f99c7c9d5d6400"
+        }
+      ],
+      "binary_sha256": "70469287f760c86d9d2b73b75f3456909b170764793bbee00afcd460774c0037",
+      "guard_count": 1250,
+      "source_unchanged": true,
+      "driver_sha256": "0a7a9320bbb74ee355b6d057071b991b6bd1a42c31d71c8116c45651c8e17f8c"
+    },
+    "production_summary_sha256": "6d22341319dc1047b670e1ade72186b18602fb68ee653354524f01a362945c17",
+    "new_config_functions": 2,
+    "mcp_control": "Configured listener now runs the existing official RMCP-client control function under both signing algorithms, preserving one Message, actual native/HTTP history, resumed journal facts, original Session status and current revocation.",
+    "configuration_lifetime": "Actual functions check no listener by default; validation refuses Local/Remote public MCP bind, provider call/chat fixed bindings and unknown actor settings. Occupied MCP bind fails, then the same installation starts. Explicit shutdown/drop/explicit shutdown cycles release their ports.",
+    "cli": {
+      "status": "passed actual CLI init/serve/MCP/restart/SIGTERM local fixture",
+      "cli_sha256": "c072a7a95dbcaf7f62e20df51399fc77ff6c0a400cb2e7129adff63bf2c0a3f4",
+      "config_sha256": "d1e9606a2e9a51263d32f6cc7cf5abe3d5b48d4219a8d10dd2cf055e372f8ce2",
+      "source_guard": "inputs-06.json",
+      "records": [
+        {
+          "run": 0,
+          "ready_profile": "connect/2",
+          "mcp_url": "http://127.0.0.1:65239/mcp",
+          "unauthenticated_status": 401,
+          "tool_count": 60,
+          "current_identity": true,
+          "legacy_send_absent": true,
+          "sigterm_exit": 0,
+          "stopped": true,
+          "port_rebound": true,
+          "logs": [
+            ".local/gate-6/canonical-mcp/cli-mcp-02/serve-00.log",
+            ".local/gate-6/canonical-mcp/cli-mcp-02/serve-00.err"
+          ]
+        },
+        {
+          "run": 1,
+          "ready_profile": "connect/2",
+          "mcp_url": "http://127.0.0.1:65246/mcp",
+          "unauthenticated_status": 401,
+          "tool_count": 60,
+          "current_identity": true,
+          "legacy_send_absent": true,
+          "sigterm_exit": 0,
+          "stopped": true,
+          "port_rebound": true,
+          "logs": [
+            ".local/gate-6/canonical-mcp/cli-mcp-02/serve-01.log",
+            ".local/gate-6/canonical-mcp/cli-mcp-02/serve-01.err"
+          ]
+        }
+      ],
+      "scope": "Fresh private local bootstrap; ordinary scoped bearer; actual MCP protocol discovery/inspect and current identity after same-config restart. No actual model/provider/remote/media or installed agent-export claim."
+    },
+    "cli_summary_sha256": "6c83722e3512f3793500058ff2db58b19dca4db57554a2432a1108f4a17fd452",
+    "cli_driver_sha256": "ac69af7ebe18e27b3e7b0f796c27e010faf4026143581b10325c5b0ab404d907",
+    "cli_logs": {
+      ".local/gate-6/canonical-mcp/cli-mcp-02/serve-00.log": "d29aad8808bdb373455dacec8f50eacc5320965f557466000211b06aed34a46c",
+      ".local/gate-6/canonical-mcp/cli-mcp-02/serve-00.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      ".local/gate-6/canonical-mcp/cli-mcp-02/serve-01.log": "1db17fd551e5997082d5c6e8f74590ebb7201192187e0bb5c471a9abd2b3b2fb",
+      ".local/gate-6/canonical-mcp/cli-mcp-02/serve-01.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cli_details": "Fresh private connect init with review-loop identities, configured connect serve MCP, unauthenticated401, real MCP initialize/list60 scoped tools/identity inspect, no retired connect_send, same configuration/state/credential restart, SIGTERM0/stopped, no listener and framework-equivalent SO_REUSEADDR rebind. Two actual runs; no Message/provider/model effect submitted.",
+    "build": {
+      "exit_code": 0,
+      "seconds": 78.34759737504646,
+      "source_unchanged": true,
+      "binary_sha256": "70469287f760c86d9d2b73b75f3456909b170764793bbee00afcd460774c0037",
+      "bytes": 246112432,
+      "source_count": 1250,
+      "log_sha256": "0f8608e824c7ffa18ef4cacb36cb0973a68c6f81788146e2356e77733c55a501",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified"
+    },
+    "library": "Previously recorded9 MCP library tests remain source-current; no MCP/service/Store/protocol source changed in this hosting component.",
+    "format_openapi_diff": "passed; generated canonical reference matches its source"
+  },
+  "failed_candidates": [
+    {
+      "record": ".local/gate-6/canonical-mcp/cli-lifecycle-01-failure.json",
+      "reason": "The first CLI fixture passed discovery/inspect and SIGTERM exit0/stopped, then plain non-reuse TCP bind failed on TIME_WAIT. Corrected the fixture to assert refused connect (no listener) and rebind with the same SO_REUSEADDR policy as the actual Tokio listener. No production lifetime rule or assertion of listener closure was weakened."
+    }
+  ],
+  "remaining": [
+    "Migrate regular-agent export from generic ServerConfig assumptions to the canonical configuration and qualify a fresh installed skill/host.",
+    "Qualify MCP consultation/handoff/move controls with independent decoded native media and the required supported host; actual-model/provider lanes need their bounded designated configuration.",
+    "Finish stdio and complete OpenAPI facade endpoint/auth/admin/file parity. G6-065 and the full105-task goal remain active; broader profiles/acceptance and publication stay separate."
+  ]
+}

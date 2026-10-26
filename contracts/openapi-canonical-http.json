@@ -6428,5 +6428,14 @@
     "media": "The actual authenticated physical transport and current verified Device Endpoint select the registered WebTransport adapter. Offer/reply/reoffer substrate stays bound to that transport. Media resources require actual negotiation; control-only peers cannot allocate new media.",
     "replay": "Same owner-scoped logical mutation IDs and current authorization. A new transport cannot relabel a retained Endpoint or repeat an uncertain media effect.",
     "qualification": "G6-049 is in progress. See docs/evidence/gate-6/webtransport-composition.json for scoped results and scoped runtime results and remaining qualification."
+  },
+  "x-connect-canonical-mcp": {
+    "configuration": "Optional protected [mcp] configuration on the canonical server; disabled by default. bind must be loopback even for the Remote native profile. Port zero is allowed for isolated fixtures; use a concrete protected address for an installed host.",
+    "transport": "Owned separate MCP Streamable HTTP listener at /mcp, using the official RMCP server and MCP 2025-11-25. The CLI reports mcp_streamable_http without secrets. This is not a route on the canonical HTTP/JSON listener.",
+    "authority": "Default admission accepts current ordinary Identity credentials and separately registered protected native/host Task grants. Optional binding fixes one registered Native/HostSession origin; provider origins require their verified adapters. Each request reauthorizes. Model arguments never select a credential, actor, signature or physical peer.",
+    "control": "Ordinary discovery exposes current finite canonical controls with explicit payload/resource scope and original operation IDs. Typed envelope validation and the shared canonical HTTP service executor enforce protocol floor, assurance, granular resource policy and current response authorization. Named application and Task interfaces keep their own ceilings.",
+    "observations": "Canonical reply status/envelopes are retained; a canonical refusal is an MCP structured error. Finite journal reads require live:false and resume after the returned cursor. ACK or completed metadata never proves decoded audio, provider delivery or human action. No live media frames or native offer/answer are tool responses.",
+    "lifetime": "The canonical server owns listener startup, readiness and drain/drop. Failed MCP bind unwinds startup and permits installation recovery. Disabled MCP has an explicit unconfigured readiness component.",
+    "qualification": "See docs/evidence/gate-6/canonical-mcp-control.json and canonical-mcp-hosting.json for exact local functional scope. Installed actual-model agent-host, live transition/media and remote/provider profiles are separate qualification work."
   }
 }
