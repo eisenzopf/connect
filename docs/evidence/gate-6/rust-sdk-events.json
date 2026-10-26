@@ -1,0 +1,75 @@
+{
+  "schema": "connect-gate6-rust-sdk-events/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T06:34:48.760703+00:00",
+  "base_revision": "9e6800d9",
+  "scope": "Component checkpoint for typed owned native durable event streams; production fixtures are implemented but not yet qualified. G6-060 and all105 tasks remain open.",
+  "implementation": [
+    "Typed Cursor, JournalEvent, EventSnapshot and EventStream preserve original authoritative journal facts and complete paginated snapshot bootstrap.",
+    "Owned lazy initialization survives dropped waits. Events become visible only after correlated ACK; application-returned cursor remains separate from renewal watermark. Current-authorized10-second leases share the owned worker, with8 source and64 correlation limits.",
+    "Per-reader256-event/2MiB bounds, immutable replay checks, explicit resync and isolated cancellation/semantic failures preserve ordinary control. Local close detaches and leaves bounded server lease expiry."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 182,
+      "new_signed_functions": 9,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/sdk-events/client-06.log",
+        "sha256": "639b1ffc6e208833df6794f15fc76365b5392f193a2ad67c2133cea20d815089"
+      },
+      "scope": "Signed bootstrap, dropped waits, ACK boundaries, deadlines, renewal, cursor replay, malformed/scope/auth refusal, count/byte overflow, cancellation and capacity."
+    },
+    "production": {
+      "status": "pending",
+      "scope": "Three implemented both-algorithm fixtures for live originals/current authority, renewal with decoded audio, and durable cursor after server restart; no runtime pass claimed."
+    },
+    "dependencies": {
+      "path": ".local/gate-6/sdk-events/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/sdk-events/format-08.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openapi": {
+      "path": ".local/gate-6/sdk-events/openapi-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-events/client-01.log",
+        "sha256": "85d8535d9f33a548eb4006497de6206e86825d4f1999195d587565cf961d48b5"
+      },
+      "observation": "Initial partial-move compiler error corrected by taking the completed page events."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-events/client-03.log",
+        "sha256": "6168bc3f14ced576cfbaf4943c1ec0cb09a87032d5f98104b7f948990b26fe3a"
+      },
+      "observation": "Duplicate fixture changed both original and repeated body; corrected fixture setup."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-events/client-04.log",
+        "sha256": "923e61c6a8a5f45ec2d90674ab1abadfc03dc597c803bcb95ebfe14670be83d2"
+      },
+      "observation": "Duplicate fixture correction targeted the wrong branch; corrected original branch and retained legitimate first fact."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-events/build-01.log",
+        "sha256": "12969cf7d897effb340fc1fd5b466c72866ad572cac9e9a4550a94b9e2eecc06"
+      },
+      "observation": "Production fixture helper shadowed by room handle; helper renamed. Corrected production build is pending."
+    }
+  ],
+  "remaining": [
+    "Production validation and independent documented example compilation are pending.",
+    "Invitation/receipt, capability/config/raw/admin surfaces, remaining native recovery, full external package journeys, incompatible versions and approved Linux/remote profiles remain open. No task/acceptance/publication closure."
+  ]
+}

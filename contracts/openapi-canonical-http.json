@@ -259,6 +259,15 @@
             "replay": "Original policy and reference stay immutable. Superseded unstarted targets perform no IO; submitted effects retain uncertainty and never resubmit. Captured actual successes may record after cancellation without restoring an old policy."
           }
         },
+        "x-owned-sdk-live-events": {
+          "transport": "The owned Rust SDK uses actual native conversation.subscribe live sources; HTTP live submission remains explicitly unsupported (501), with finite catch-up available by live:false.",
+          "bootstrap": "Without an explicit cursor, completely drain one pinned conversation.get snapshot (same revision/watermark) before opening live after that watermark. Bootstrap facts are metadata and cannot acquire native ownership.",
+          "source": "One source per Conversation and at most8 per physical Client. Requests have cid only, no logical operation ID or expected_revision. A10-second source lease renews through fresh current-authorized subscribe exchanges after the last complete ACK watermark. The application cursor advances only for facts returned to the caller, who persists it after actual processing.",
+          "bounds": "At most256 queued events and2MiB encoded journal payload per reader;256 immutable event identities deduplicate replay independently of opaque cursor token changes. Active/retired correlation tags are bounded to64. Capacity or retention loss never fabricates a successful catch-up.",
+          "recovery": "Full correlated ACK and matching outer/inner event identity, scope, kind and revision precede queue adoption. Failed/expired/resync sources clear unreturned facts and retain the last application boundary; create an explicit resumed/fresh reader. Malformed or refused source batches do not close unrelated healthy control. Physical signature/framing failures remain terminal.",
+          "cancellation": "Dropping a next wait preserves owned initialization and in-flight framing. Per-next timeout consumes no queued fact. Reader close/cancel stops local delivery and renewal; the existing bounded server lease expires without an invented unsubscribe command. Client close wakes all readers.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-native-reliable-data-sdk": {
           "command": "message.send",
           "scope": [

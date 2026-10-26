@@ -8,6 +8,7 @@ pub(super) mod native_media;
 mod owned_signaling;
 mod sdk_consultations;
 mod sdk_decisions;
+mod sdk_events;
 mod sdk_movements;
 mod sdk_multiplex;
 mod sdk_native;
@@ -66,6 +67,7 @@ fn canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_even
 #[derive(Clone, Copy)]
 pub(super) enum Fault {
     SdkWorker(sdk_worker::Traffic),
+    SdkEvents(sdk_events::Case),
     SdkMultiplex(sdk_multiplex::Case),
     SdkNative(sdk_native::Case),
     SdkDecision(sdk_decisions::Case),
@@ -169,6 +171,12 @@ pub(super) async fn controlled(
             sdk_multiplex::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
             connection.closed().await;
             server.close(0u32.into(), b"SDK multiplex fixture complete");
+            return;
+        }
+        if let Fault::SdkEvents(case) = fault {
+            sdk_events::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
+            connection.closed().await;
+            server.close(0u32.into(), b"SDK event fixture complete");
             return;
         }
         if let Fault::SdkWorker(traffic) = fault {

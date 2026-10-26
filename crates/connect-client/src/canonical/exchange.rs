@@ -10,6 +10,19 @@ pub(crate) struct Exchange {
     bytes: usize,
 }
 impl Exchange {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.frames.is_empty()
+    }
+    pub(crate) fn continuation(&self, deadline: tokio::time::Instant) -> Self {
+        Self {
+            id: self.id.clone(),
+            deadline,
+            scope: self.scope.clone(),
+            assigned_conversation: self.assigned_conversation,
+            frames: Vec::new(),
+            bytes: 0,
+        }
+    }
     pub(crate) fn finish(self) -> ReplyBatch {
         ReplyBatch {
             request_id: self.id,

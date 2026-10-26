@@ -3,6 +3,7 @@ use super::*;
 use crate::canonical::{CommandScope, Payload};
 use connect_protocol::events::SnapshotItem;
 pub(super) struct Snapshot {
+    pub facts: Vec<SnapshotItem>,
     pub streams: std::collections::BTreeMap<(ConnectionId, StreamId), StreamSnapshot>,
     pub connections: std::collections::BTreeMap<ConnectionId, ConnectionSnapshot>,
     pub conversation: ConversationSnapshot,
@@ -21,6 +22,7 @@ pub(super) async fn read(
     let mut state = None;
     let mut participants = std::collections::BTreeMap::new();
     let mut bytes = 0usize;
+    let mut facts = Vec::new();
     let mut streams = std::collections::BTreeMap::new();
     let mut connections = std::collections::BTreeMap::new();
     let mut sessions = std::collections::BTreeMap::new();
@@ -79,6 +81,7 @@ pub(super) async fn read(
             }
             let item: SnapshotItem = serde_json::from_value(item.clone())
                 .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+            facts.push(item.clone());
             match item {
                 SnapshotItem::Conversation(v) => {
                     if v.conversation_id != conversation_id.as_str() || state.is_some() {
@@ -131,6 +134,7 @@ pub(super) async fn read(
                 return Err(Error::request(ErrorKind::Protocol, None, false));
             }
             return Ok(Snapshot {
+                facts,
                 conversation: ConversationSnapshot {
                     id: conversation_id.clone(),
                     revision: ConversationRevision::try_from(current.revision)?,

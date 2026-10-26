@@ -3,6 +3,7 @@ use super::*;
 mod codecs;
 mod controls;
 mod data;
+mod events;
 mod reconciliations;
 mod selections;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
@@ -59,6 +60,7 @@ struct InFlight {
     _slot: OwnedSemaphorePermit,
 }
 struct Command {
+    events: Option<Arc<super::events::Inbox>>,
     slot: OwnedSemaphorePermit,
     native: bool,
     kind: String,
@@ -96,6 +98,7 @@ impl Shared {
         let task = tokio::spawn(async move {
             let mut active: Vec<InFlight> = Vec::new();
             let mut reconciliations = reconciliations::Driver::default();
+            let mut events = events::Driver::default();
             let failure = loop {
                 let tick = tokio::select! {biased;
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
@@ -104,6 +107,11 @@ impl Shared {
                 if let Err(error) = tick {
                     break error.kind;
                 }
+                let tick = tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=events.tick(&mut peer,&owned_slots)=>result};
+                if let Err(error) = tick {
+                    break error.kind;
+                }
+                let event_wakeup = events.wakeup();
                 let reconciliation_wakeup = reconciliations.wakeup();
                 let next_deadline = active
                     .iter()
@@ -121,11 +129,13 @@ impl Shared {
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
                     _=tokio::time::sleep_until(next_deadline), if !active.is_empty()=>break ErrorKind::Deadline,
                     _=tokio::time::sleep_until(reconciliation_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))), if reconciliation_wakeup.is_some()=>{},
+                    _=tokio::time::sleep_until(event_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))),if event_wakeup.is_some()=>{},
                     frame=peer.receive_owned_frame()=> {
                         let frame = match frame { Ok(frame)=>frame, Err(error)=>break Error::transport(error,None).kind };
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        match events.frame(&mut peer,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         match owned_data.frame(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.frame(&mut peer,&owned_native,&owned_media,&frame)=>result};
                         match reconciliation {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
@@ -253,6 +263,7 @@ impl Shared {
                                 continue;
                             }
                         }
+                        if let Some(inbox)=&command.events {if let Err(error)=events.can_start(inbox){let _=command.reply.send(Err(error));continue;}}
                         let negotiation=command.native.then(||native_negotiation::Pending::new(command.payload.clone(),command.scope.clone()));
                         let control=if super::selections::is_command(&command.kind) || command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality" || command.payload["action"]=="codec-renegotiate") {
                             command.scope.expected_revision.map(|revision|(command.payload.clone(),revision))
@@ -267,7 +278,7 @@ impl Shared {
                             result=peer.begin_exchange(&command.kind,command.payload,command.scope)=>result
                         };
                         match result {
-                            Ok(exchange)=>{if let Some(key)=command.key.as_ref() {if let Err(error)=reconciliations::issued(&owned_native,key) {break error.kind;}}active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,control,_slot:command.slot})},
+                            Ok(exchange)=>{if let Some(inbox)=command.events {events.start(exchange,inbox,command.reply,command.slot);continue;}if let Some(key)=command.key.as_ref() {if let Err(error)=reconciliations::issued(&owned_native,key) {break error.kind;}}active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,control,_slot:command.slot})},
                             Err(error)=> {
                                 let error=Error::transport(peer.with_owned_signaling_cause(error),command.key.as_ref());
                                 let kind=error.kind;
@@ -282,6 +293,7 @@ impl Shared {
             owned_closed.store(true, Ordering::Release);
             owned_media.end();
             owned_data.end();
+            events.end(failure);
             media_receiver.close();
             while let Some(command) = media_receiver.recv().await {
                 let _ = command.reply.send(Err(Error::media(failure, false)));
@@ -445,7 +457,7 @@ impl Shared {
         key: Option<&OperationKey>,
         options: RequestOptions,
     ) -> Result<ReplyBatch> {
-        self.request_inner(false, kind, payload, scope, key, options)
+        self.request_inner(false, None, kind, payload, scope, key, options)
             .await
     }
     pub(super) async fn native_offer(
@@ -455,12 +467,13 @@ impl Shared {
         key: Option<&OperationKey>,
         options: RequestOptions,
     ) -> Result<ReplyBatch> {
-        self.request_inner(true, "connection.offer", payload, scope, key, options)
+        self.request_inner(true, None, "connection.offer", payload, scope, key, options)
             .await
     }
     async fn request_inner(
         &self,
         native: bool,
+        events: Option<Arc<super::events::Inbox>>,
         kind: &str,
         payload: Value,
         scope: CommandScope,
@@ -508,6 +521,7 @@ impl Shared {
         };
         let (reply, response) = oneshot::channel();
         permit.send(Command {
+            events,
             slot,
             native,
             kind: kind.to_owned(),

@@ -33,6 +33,7 @@ mod conversations;
 mod data;
 mod decisions;
 mod error;
+mod events;
 mod ids;
 mod media;
 mod movements;
@@ -64,6 +65,9 @@ pub use conversations::{
 pub use data::{DataAcceptance, DataAcceptanceBoundary, DataPayload, DataStats, ReceivedData};
 pub use decisions::{DecisionReceipt, ReconcileOutcome};
 pub use error::{CanonicalProblem, Certainty, Error, ErrorKind, Result};
+pub use events::{
+    AudienceMember, Cursor, EventSnapshot, EventSource, EventStream, JournalEvent, SnapshotFact,
+};
 pub use ids::*;
 pub use media::MediaStats;
 pub use movements::{

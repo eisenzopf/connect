@@ -449,3 +449,62 @@ functions, including both owned SDK peers, decoded concurrent audio, journal
 recovery and all three data formats. Verification and earlier failures are in
 `docs/evidence/gate-6/rust-sdk-reliable-data.json`. G6-060 remains in progress;
 full SDK packaging, event streams and operating-profile qualification remain open.
+
+## Durable event streams
+
+`Conversation::events(after, options)` returns a lazy typed `EventStream` over an
+actual native live subscription. Without a cursor, `snapshot().await` or the first
+`next().await` first drains a complete authorized snapshot, retaining one revision
+and journal watermark across all pages. `EventSnapshot` exposes typed resource
+views and all original `SnapshotFact` values. Those observations grant no native
+transport or Stream ownership.
+
+```rust,no_run
+# async fn journal(room: connect_client::sdk::Conversation) -> connect_client::sdk::Result<()> {
+use connect_client::sdk::RequestOptions;
+use std::time::Duration;
+let mut events = room.events(None, RequestOptions::new(Duration::from_secs(10))?);
+let initial = events.snapshot().await?;
+if let Some(event) = events.next().await? {
+    // Apply idempotently by event_id, then persist event.cursor after processing.
+    let _ = (initial, event.event_id, event.cursor);
+}
+events.close().await?;
+# Ok(()) }
+```
+
+Resume with a typed `Cursor` under current authorization. Each event retains its
+original scoped IDs, revision, source, audience epochs, observed time and typed
+journal data represented as JSON. The signed outer wrapper must match that fact.
+Hints accompanying a batch are advisory; only journal facts are returned. Batches
+enter the queue after their correlated ACK. Repeated immutable event IDs are
+suppressed even when an opaque cursor token changes. Changed facts under the same
+ID refuse the source. Debug output redacts payloads and cursor tokens.
+
+The worker renews its 10-second lease using the last complete ACK watermark while
+preserving queued facts. `EventStream::cursor()` reports the last returned fact
+or explicit snapshot/resume boundary. It does not confirm application processing:
+persist each event's cursor only after your own work succeeds. A resync, invalid
+scope or current-authority refusal clears unreturned facts and keeps the previous
+application boundary. Restart-bound live leases are not reused when resuming a
+retained durable cursor.
+
+Each `next` uses the configured finite timeout. Timing out or dropping a wait
+consumes no fact; initialization and partial framing stay owned. Reader close or
+its cancellation signal stops delivery and renewal independently of other readers,
+media and control. `close` is local: the existing server lease expires within its
+10-second bound, and no unsupported unsubscribe command is sent. Client close
+wakes all readers. Physical signature or framing failures still retire the peer.
+
+There is one reader per Conversation, at most eight per Client. Each reader holds
+at most 256 queued events and 2 MiB of encoded journal payload, plus bounded batch
+and replay metadata. Active/retired reply tags are limited to 64. Overflow returns
+`ResyncRequired` and clears unreturned facts without advancing the returned cursor;
+other healthy control remains usable. Close the failed reader and choose an
+explicit retained cursor or fresh snapshot. SDK queue bounds are payload limits,
+not process memory or scheduling guarantees.
+
+This G6-060 implementation is undergoing signed component and production checks;
+verification is recorded in `docs/evidence/gate-6/rust-sdk-events.json`. Incoming
+invitation and receipt convenience APIs, remaining SDK surfaces, complete external
+packaging and operating-profile qualification remain open.
