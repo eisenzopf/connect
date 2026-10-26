@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-administration/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T07:53:20.490909+00:00",
+  "checked_at": "2026-10-26T07:56:50.338944+00:00",
   "base_revision": "69871f25",
-  "scope": "Owned trusted administrative SDK facade over explicit existing local HTTP provisioning and signed native original-ID status. Component checkpoint; current production fixtures are building.",
+  "scope": "Owned trusted administrative SDK facade qualified in its recorded local macOS arm64 functional profile. Explicit local application HTTP provisioning and signed native original-ID status retain current authorization, uncertainty and cleanup. G6-060/all105 tasks remain open; no whole-suite/package/operating-profile/acceptance/publication closure.",
   "implementation": [
     "Separate AdministrativeClient requires explicit native/application configurations with the same supplied credential, and exposes no ordinary Conversation/media mutation facade. Host current administrator and target permissions remain authoritative.",
     "TrustedProvisioningCommand validates/normalizes/bounds the complete current closed schema. The original command ID must match MutationOptions. Export full intent and unscoped status reference before IO. All11 existing provisioning command families map to original named HTTP routes; nonempty canonical extensions refuse locally.",
@@ -24,17 +24,53 @@
       "scope": "All196 client functions pass on current sources, including seven administrative functions. Expanded signed cases require ReadOnly and original key for wrong command/outcome, missing completed result and invalid wait options; validated completed records remain attached instead of claiming NotSubmitted. Queue16, one actual HTTP write, independent status, cancellation/refusal/uncertainty and retained cleanup joins also pass."
     },
     "production": {
-      "status": "candidate04-new-administrative-functions-passed; prior19-SDK-regressions-running",
-      "passed_functions": 3,
+      "status": "passed",
+      "passed_functions": 22,
       "failed_functions": 0,
+      "new_functions": 3,
+      "new_function_algorithm_scenes": 6,
+      "command_family_algorithm_cases": 22,
       "report": {
-        "path": ".local/gate-6/sdk-administration/production-04-00.log",
-        "sha256": "3f5d82e949c546f38bffc155bdae34cb6455b5648ca207df669636082a2d1945"
+        "path": ".local/gate-6/sdk-administration/production-04-summary.json",
+        "sha256": "072477c2c73c9d3872c425b4beae60f1f02a854322bd894e21be11a5187cb27c"
       },
-      "scope": "All three new both-algorithm functions pass, including all11 command families, current ordinary/revoked authority, restart/replay and actual held-response committed uncertainty with zero queued effect. Full current22-function aggregate remains pending."
+      "sealed_binary_sha256": "351051052e9613d19ab4fc664125363a4abbd6f6aa77eac386ffe1c72e9fcb41",
+      "profile": "Release with connect-store,connect-service,connect-server opt-level0; other packages release defaults. Functional scope only.",
+      "results": [
+        {
+          "filter": "sdk_handles::administration::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 3,
+          "failed_functions": 0,
+          "elapsed_seconds": 4.4124127079267055,
+          "log": ".local/gate-6/sdk-administration/production-04-00.log",
+          "log_sha256": "3f5d82e949c546f38bffc155bdae34cb6455b5648ca207df669636082a2d1945"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::administration::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 19,
+          "failed_functions": 0,
+          "elapsed_seconds": 189.69230245798826,
+          "log": ".local/gate-6/sdk-administration/production-04-01.log",
+          "log_sha256": "d9f74a574f72a3039b1276e632c38f14ac2067a15182fab3615bbe1cc581db5b"
+        }
+      ],
+      "scope": "Three new administrative functions across both signing algorithms plus19 existing SDK functions. Functional scope only, not whole-suite, remote, performance or acceptance qualification.",
+      "behaviors": [
+        "Every one of the11 installed provisioning command families completes through the public AdministrativeClient with signed original-ID status and current typed outcome validation. Pre-IO status references match returned Operation references. Actual authorized receipt projection reflects subsequent Endpoint verification and Identity revocation; endpoint addresses remain absent from public outcome metadata.",
+        "A fresh public administrator reconnects after server restart, restores the same original receipt and submits exact original intent without a second record. Changed original intent refuses. Read-only SQL evidence confirms one original receipt. Fixture setup separately issues a target enrollment credential; application administrative mutations/resources use the public SDK.",
+        "Ordinary credentials cannot submit provisioning or read the administrative original. Explicit mixed-credential configuration refuses before transport construction. Current administrator revocation stops new submission and status reads, with zero new unauthorized rows; an independently current credential for the same owner can recover the original metadata.",
+        "An actual backend mutation commits while an explicit local proxy withholds its HTTP response. Local wait cancellation preserves the original key/uncertainty. Independent signed recovery reads the committed operation while HTTP remains owned. Cancelled queued work never reaches HTTP; SQL confirms exactly one original receipt and no queued effect. No additional proxy request is observed before bounded cleanup.",
+        "Nonexistent/inaccessible unscoped status is refused rather than fabricated as Unknown; that refusal is not absence proof. All owners join on close. Nineteen existing SDK media/data/codecs/controls/events/invitations/reconciliation/selection/restart functions pass on the final sealed bytes."
+      ]
     },
     "dependencies": {
-      "path": ".local/gate-6/sdk-administration/dependencies-01.log",
+      "path": ".local/gate-6/sdk-administration/dependencies-04.log",
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "inputs": {
@@ -42,15 +78,48 @@
         "path": ".local/gate-6/sdk-administration/inputs-04.json",
         "sha256": "85a4a06a481570c96f345d87175343a3647507ac8d69ac395a9bcdf40afec11f"
       },
-      "guarded_inputs": 1357
+      "guarded_inputs": 1357,
+      "unchanged": true
     },
     "rustdoc": {
       "passed_functions": 8,
       "log": {
-        "path": ".local/gate-6/sdk-administration/rustdoc.log",
-        "sha256": "c3f2515e2c6c4708065e67dcc66dba0f91978755dfa58c7f98ad10cc49eb2fa5"
+        "path": ".local/gate-6/sdk-administration/rustdoc-04.log",
+        "sha256": "178b5c8df386e400a854f95a0cc55e4d2bebd68113eefe223ab8e5ec398922c0"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "scope": "Schema/source checks only, not runtime qualification.",
+      "log": {
+        "path": ".local/gate-6/sdk-administration/contracts-04.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      }
+    },
+    "documented_public_example": {
+      "report": {
+        "path": ".local/gate-6/sdk-administration/example-summary.json",
+        "sha256": "80457e91bff80f056c367dfc61cfa9eb7ccef38f7d9013d3cedf8c67b0eddfc6"
       },
-      "scope": "Public examples compiled before the final internal observation-certainty correction; final current-source Rustdoc rerun queued."
+      "source": {
+        "path": ".local/gate-6/sdk-administration/sdk-example.rs",
+        "sha256": "83571a375e3897818581bab191ad09a2b7538dc156cf2a7bec536f66b19df065"
+      },
+      "scope": "Actual administrative Rustdoc example compiles separately against the final public crate plus serde_json. Metadata-only compilation; full external packaged runtime remains open."
+    },
+    "checks": {
+      "dependencies-04.log": {
+        "path": ".local/gate-6/sdk-administration/dependencies-04.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-04.log": {
+        "path": ".local/gate-6/sdk-administration/format-check-04.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check-04.log": {
+        "path": ".local/gate-6/sdk-administration/openapi-check-04.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
     }
   },
   "failed_or_superseded_runs": [
@@ -102,12 +171,12 @@
     }
   ],
   "remaining": [
-    "Current production, final source-bound196 client/eight Rustdoc, independently compiled example and contract/reference checks are pending.",
-    "G6-060 receipt/capability/config/raw surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain. Explicit application HTTP currently requires the protected loopback profile; no remote HTTP trust inference.",
+    "G6-060 receipt/capability/config/raw surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain. The explicit application HTTP profile currently requires loopback; this facade infers no remote HTTP trust policy.",
+    "The component queue/cancellation/error and actual production mutation/recovery scopes do not qualify production saturation/forced partial IO, scheduling/performance or whole-suite acceptance.",
     "All105 tasks remain the objective. No whole-task, gate, acceptance, operating-profile, performance or publication closure."
   ],
   "scratch_preservation": {
     "path": ".local/gate-6/sdk-administration/scratch-compression.json",
-    "sha256": "3a7966593bf96f145d85dea3e11cc795493127402d8a3e4ba0f04bb1b4d416e6"
+    "sha256": "72b4d238b87af45b03841fb49967edf7d988d0ee750300c6af8ec6393f13e5a3"
   }
 }

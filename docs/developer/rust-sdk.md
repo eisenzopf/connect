@@ -604,5 +604,11 @@ both owners. A cancelled/timed-out close retains joins for a later close attempt
 The HTTP application configuration currently selects the protected loopback HTTP
 profile explicitly. Native trust/network configuration retains its existing
 explicit Local/Remote rules; this facade does not infer a remote HTTP trust policy.
-Qualification and unresolved profiles are recorded in
-`docs/evidence/gate-6/rust-sdk-administration.json`. Publication remains separate.
+The local functional checkpoint passes 196 client tests (seven new administrative
+functions), eight Rustdoc checks, 254 contract vectors, the separately compiled
+public administrative example and 22 selected production functions. Three new
+both-algorithm functions cover all 11 command families, current authorization,
+restart/replay and actual committed uncertainty with held HTTP response/no queued
+effect. Evidence and failed/superseded candidates are recorded in
+`docs/evidence/gate-6/rust-sdk-administration.json`. Full SDK/package and
+operating-profile qualification remain open. Publication remains separate.
