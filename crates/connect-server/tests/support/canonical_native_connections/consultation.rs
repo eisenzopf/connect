@@ -1376,7 +1376,7 @@ async fn perform_return_with_control(
 }
 
 #[path = "consultation/groups.rs"]
-mod groups;
+pub(crate) mod groups;
 
 #[path = "consultation/provider.rs"]
 mod provider;

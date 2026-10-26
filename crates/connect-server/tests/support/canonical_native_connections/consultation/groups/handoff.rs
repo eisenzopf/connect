@@ -36,6 +36,7 @@ pub(super) async fn handoff_case_with_sdk(
         initial_activation,
         sdk_algorithm,
         false,
+        None,
     )
     .await;
 }
@@ -45,6 +46,7 @@ async fn handoff_case_with_control(
     initial_activation: bool,
     sdk_algorithm: Option<&'static str>,
     mcp: bool,
+    host: Option<&crate::canonical_agent_rehearsal::Settings>,
 ) {
     let codecs::Running {
         f,
@@ -54,7 +56,9 @@ async fn handoff_case_with_control(
         th,
     } = if let Some(algorithm) = sdk_algorithm {
         codecs::setup_started(
-            if mcp {
+            if let Some(settings) = host {
+                Fixture::with_native_mcp_in(algorithm, 16, settings.state_parent()).await
+            } else if mcp {
                 Fixture::with_native_mcp(algorithm, 16).await
             } else {
                 Fixture::with_native_end_scope(algorithm, 16).await
@@ -68,6 +72,9 @@ async fn handoff_case_with_control(
     } else {
         codecs::setup().await
     };
+    if let Some(settings) = host {
+        settings.retain_state(&f);
+    }
     let room = clients[1]
         .list_conversations(Default::default())
         .await
@@ -324,7 +331,9 @@ async fn handoff_case_with_control(
         .unwrap();
     }
     let control = async {
-        let mcp_probe = if mcp {
+        let mcp_probe = if let Some(settings) = host {
+            Some(crate::canonical_agent_rehearsal::submit(&f, &command, settings).await)
+        } else if mcp {
             Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await)
         } else {
             None
@@ -589,8 +598,20 @@ async fn production_mcp_handoff_keeps_decoded_native_audio_roles_original_recove
             (OutgoingDisposition::Observe, RoleScope::Conversation),
             (OutgoingDisposition::Leave, RoleScope::Conversation),
         ] {
-            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true).await;
+            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true, None).await;
             eprintln!("MCP handoff {algorithm}:outgoing={outgoing:?},scope={scope:?}, independent decoded native audio, original recovery, one effect, all owners joined");
         }
     }
+}
+
+pub(crate) async fn host_rehearsal(settings: &crate::canonical_agent_rehearsal::Settings) {
+    handoff_case_with_control(
+        OutgoingDisposition::Observe,
+        RoleScope::Session,
+        false,
+        Some("EdDSA"),
+        true,
+        Some(settings),
+    )
+    .await;
 }

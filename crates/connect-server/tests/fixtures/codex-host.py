@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 
 if sys.argv[1:] == ["--version"]:
-    print("codex-cli 0.162.0-alpha.17.2")
+    print("codex-cli 0.164.0-alpha.11.1")
     sys.exit(0)
 if sys.argv[1:] == ["login", "status"]:
     print("Logged in using a fixture account")

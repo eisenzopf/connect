@@ -8,7 +8,7 @@ mod cleanup;
 #[path = "canonical_native_connections/codecs.rs"]
 mod codecs;
 #[path = "canonical_native_connections/consultation.rs"]
-mod consultation;
+pub(crate) mod consultation;
 #[cfg(unix)]
 #[path = "canonical_native_connections/crash_recovery.rs"]
 mod crash_recovery;

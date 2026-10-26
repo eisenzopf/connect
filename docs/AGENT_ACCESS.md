@@ -81,8 +81,11 @@ application/Task calls need their explicit application configuration.
 The launcher uses the project's pinned supported host profile and verifies its
 version and model-account availability. Record the bounded designated
 host/account/budget and cleanup configuration for actual-model rehearsals in
-G6-093 before invoking that lane. Local fixture checks do not qualify a new host
-version or an actual model turn.
+G6-093 before invoking that lane. Local fixtures and host metadata checks qualify their stated launcher scope;
+an actual model turn requires separate evidence. The current source-compatible profile is
+`codex-cli 0.164.0-alpha.11.1`; exact unknown versions remain refused. The
+[local transition rehearsal](developer/agent-host-rehearsal.md) separates the
+account-free protocol path from explicitly authorized actual host execution.
 
 ```sh
 connect agent-access run-codex --installation .local/codex-agent \

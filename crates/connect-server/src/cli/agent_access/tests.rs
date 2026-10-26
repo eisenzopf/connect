@@ -334,7 +334,7 @@ async fn regular_host_resumes_exact_session_and_redacts_its_key_without_grant_re
 import json, os, sys
 from pathlib import Path
 if sys.argv[1:] == ['--version']:
-    print('codex-cli 0.162.0-alpha.17.2'); sys.exit(0)
+    print('codex-cli 0.164.0-alpha.11.1'); sys.exit(0)
 if sys.argv[1:] == ['login', 'status']:
     print('Logged in using a fixture account'); sys.exit(0)
 state = json.loads(Path('host-state.json').read_text())
@@ -395,7 +395,8 @@ async fn unknown_host_or_missing_model_auth_preserves_installation_and_does_not_
     use std::os::unix::fs::PermissionsExt;
     for (name,script,error) in [
         ("unknown", "#!/bin/sh\nprintf 'codex-cli unknown\\n'\n", "Unknown Codex host version"),
-        ("no-auth", "#!/bin/sh\nif [ \"$1\" = '--version' ]; then printf 'codex-cli 0.162.0-alpha.17.2\\n'; exit 0; fi\nexit 1\n", "no usable authentication"),
+        ("retired", "#!/bin/sh\nprintf 'codex-cli 0.162.0-alpha.17.2\\n'\n", "Unknown Codex host version"),
+        ("no-auth", "#!/bin/sh\nif [ \"$1\" = '--version' ]; then printf 'codex-cli 0.164.0-alpha.11.1\\n'; exit 0; fi\nexit 1\n", "no usable authentication"),
     ] {
         let fixture=Fixture::ordinary();let output=fixture.install();let binary=fixture.directory.path().join(name);
         private_write(&binary,script.as_bytes()).unwrap();std::fs::set_permissions(&binary,std::fs::Permissions::from_mode(0o700)).unwrap();

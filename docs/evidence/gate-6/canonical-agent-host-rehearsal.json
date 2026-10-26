@@ -1,0 +1,210 @@
+{
+  "task": "G6-065",
+  "status": "current-host launcher compatibility and local protocol rehearsal qualified; actual model turn pending authorization",
+  "checked_at": "2026-10-26T21:10:12.164569+00:00",
+  "base_revision": "4be3b5c6c751088e4a929d341fc688392dad282e",
+  "scope": "Local macOS arm64 current Codex metadata/configuration checks and isolated stock native/MCP protocol rehearsal. No model turn has started. A launcher/profile compatibility checkpoint is not actual agent-host acceptance.",
+  "source_inputs": {
+    "crates/connect-server/src/cli/agent_access/preflight.rs": "150e59da33f22fa561e721312c12f8b26e1efb5e37c9373a83d50c0ec9180ab0",
+    "crates/connect-server/src/cli/agent_access/tests.rs": "294a932d24f1121b9ba5bc760c936afa8e13dab15e83720c3fe91ac559ab80b8",
+    "crates/connect-server/tests/fixtures/codex-host.py": "136ec7c32aec6d1539d6a179681839f7d4ce70811b4f25daa8af023a1fc64f3b",
+    "crates/connect-server/tests/support/canonical_agent_rehearsal.rs": "5164a33ab9405d9f042e093e85f39dd52fe4728e177b7d27d59d505a780d6b9a",
+    "crates/connect-server/tests/support/canonical_listener_fixture.rs": "f8944377797d1acd1f5dd3cfaadcb44a78b20eed0a899a5aa18e90eb38d59e34",
+    "crates/connect-server/tests/support/canonical_mcp.rs": "325a2d59d7a5b8b3e32dffb92a3edd44ca2b3038b80498e5484b60110ff9954b",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "8f10f33003cd88bcdba92caf97b1cca7bb3a9d7e359cde4a46ee5beb842aab5f"
+  },
+  "implementation": [
+    "Update the exact source-compatible Codex launcher pin to installed0.164.0-alpha.11.1. Unknown, retired0.162 and missing-account preflights refuse without launching or changing installation/session state.",
+    "An explicitly ignored rehearsal entrypoint has distinct protocol and Codex modes. Codex mode requires explicit approval and a selected absolute binary/hash before any fixture startup. Ordinary test discovery cannot launch a model.",
+    "The rehearsal uses the real private native handoff scene and exports only a non-administrator MCP key with session.handoff/operation.get. It saves the exact prompt, logical ID, payload, revisions and status arguments. Native/server/operator assets are absent from the agent installation; temporary export source files are removed.",
+    "The existing launcher retains exact model session/intent and redacts its Connect bearer. A successful model qualification additionally requires real completed Codex MCP handoff/status items, one exact matching mutation, and independent native audio/role/original-replay/owned-cleanup assertions. Protocol mode always records actual_model_turn:false.",
+    "Retain private native state under .local, with canonical operator/server configs and exact listener addresses for explicit recovery after success or failure. No automatic replacement model session or mutation is introduced."
+  ],
+  "verification": {
+    "current_host_metadata": {
+      "version": "codex-cli 0.164.0-alpha.11.1",
+      "executable_sha256": "a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e",
+      "config_accepted": true,
+      "configured_server": {
+        "name": "connect_agent",
+        "enabled": true,
+        "disabled_reason": null,
+        "transport": {
+          "type": "streamable_http",
+          "url": "http://127.0.0.1:49199/mcp",
+          "bearer_token_env_var": "CONNECT_AGENT_CREDENTIAL",
+          "http_headers": null,
+          "env_http_headers": null,
+          "http_headers_helper": null
+        },
+        "startup_timeout_sec": 10.0,
+        "tool_timeout_sec": 10.0,
+        "auth_status": "bearer_token"
+      },
+      "exec_and_resume_flags_present": true,
+      "account_preflight_exit": 0,
+      "model_started": false,
+      "config_stdout_sha256": "74f1efa0130bf5a494f2af41ac31058b29d967d3bf6fec5630d1c9a5349c6aeb",
+      "official_docs": [
+        "https://learn.chatgpt.com/docs/non-interactive-mode",
+        "https://learn.chatgpt.com/docs/extend/mcp?surface=cli"
+      ]
+    },
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 13.531394459074363,
+      "source_unchanged": true,
+      "binary_sha256": "56a165b7153ccbe9994ea2cd5649ef83f02896fceebda993f4ed9df92efd6e71",
+      "bytes": 251578048,
+      "source_count": 1945,
+      "log_sha256": "4225696df766b67043e15c26b8f253a2b95948a5ab3adfc957d89d97af0018ae",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-02": {
+        "sha256": "ba7441eabbd76614cf93abad7f8cdb3ecd8721b409e21842b068889376d04cb0",
+        "bytes": 99058128
+      },
+      "canonical-cli-02": {
+        "sha256": "b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db",
+        "bytes": 232474976
+      }
+    },
+    "final_cohort": {
+      "runs": [
+        {
+          "name": "agent-units",
+          "exit_code": 0,
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 4.1734668330755085,
+          "binary_sha256": "ba7441eabbd76614cf93abad7f8cdb3ecd8721b409e21842b068889376d04cb0",
+          "log_sha256": "14935447f58d19d31e4ef4b0422b83e3b8dddd5d8c8fe2054842628f4421310a",
+          "source_unchanged": true
+        },
+        {
+          "name": "host-ownership",
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 0.09102050005458295,
+          "binary_sha256": "ba7441eabbd76614cf93abad7f8cdb3ecd8721b409e21842b068889376d04cb0",
+          "log_sha256": "ce2a7174f10cf10b3ae330c2daa1214ac18bb640c6fb09796ccf916ec02aa1b1",
+          "source_unchanged": true
+        },
+        {
+          "name": "mcp-control",
+          "exit_code": 0,
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.303493916988373,
+          "binary_sha256": "56a165b7153ccbe9994ea2cd5649ef83f02896fceebda993f4ed9df92efd6e71",
+          "log_sha256": "54b9dac03d96c3df6bd5b49b90dc1f9b6d5233b1cd09ef540b10ec54d8891885",
+          "source_unchanged": true
+        },
+        {
+          "name": "unapproved-codex",
+          "exit_code": 101,
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0,
+          "seconds": 0.0254464999306947,
+          "binary_sha256": "56a165b7153ccbe9994ea2cd5649ef83f02896fceebda993f4ed9df92efd6e71",
+          "log_sha256": "6e1ed326523eeece707a0a0f70416f1d87972505d72c83d24830927972fe5dfc",
+          "source_unchanged": true,
+          "expected_refusal_before_startup": true
+        },
+        {
+          "name": "protocol",
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 29.927721000043675,
+          "binary_sha256": "56a165b7153ccbe9994ea2cd5649ef83f02896fceebda993f4ed9df92efd6e71",
+          "log_sha256": "9f28091457a631662623c8ed3f317747acd2951f0a737fcd554a3f6bd4c80098",
+          "source_unchanged": true
+        }
+      ],
+      "source_count": 1945,
+      "source_unchanged": true,
+      "model_started": false
+    },
+    "final_passed_functions": 16,
+    "expected_negative_control": {
+      "name": "unapproved Codex mode",
+      "refused_before_fixture_startup": true,
+      "note": "Rust worker exits101 with0passed/1expected failure; this is a required refusal, not a passing model fixture."
+    },
+    "initial_handoff_regression": {
+      "run": {
+        "name": "existing-mcp-handoff",
+        "exit_code": 0,
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 178.5109248328954,
+        "binary_sha256": "89fc46bf889aacca013cfd5a0ba7939004fdd6946f1dbd41bdcc347f7e6421cd",
+        "log_sha256": "1e1b710ba902fbe5502ddd77542769dbeafefa835adc1ca646a16aed893acc3b",
+        "source_unchanged": true
+      },
+      "scope": "All8 existing MCP handoff scenes passed in the first frozen build. Final follow-up changes only rehearsal state placement/retention; its new path passes the complete existing handoff scene again through protocol mode."
+    },
+    "retained_state": {
+      "directory_exists_after_worker_exit": true,
+      "database_bytes": 2310144,
+      "operator_configs_private": true,
+      "temporary_export_sources_removed": true,
+      "private_state_record_sha256": "aad6e1a5f4e19a8478490de8ec3b22d2fb2dffba7a357ac470144311b696a943",
+      "protocol_outcome_sha256": "4a86beb1f8b0b28d505e324e794efdbb59a200e3a4689c46eb52c7804e6785dc"
+    },
+    "http": {
+      "protected_samples": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "sigterm_exit": 0,
+      "cli_sha256": "b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db",
+      "summary_sha256": "204fc76131d60c76f6c8aba3eb7a96a7f3f3626f5e50ad00b042ec515401d61b"
+    },
+    "source_guard": {
+      "count": 1945,
+      "sha256": "3243d482f46c31d75974d0b24bc31103f15f1b519d6c290c564a63ef9c140306",
+      "still_unchanged": true
+    },
+    "static": [
+      "Pinned dependencies/patch digests verified",
+      "scripts/format.sh --check",
+      "HTTP inventory24 declarations/25 explicit methods/zero uncovered",
+      "Plan integrity53done/3in-progress/49not-started",
+      "git diff --check"
+    ]
+  },
+  "cache_maintenance": {
+    "scope": "Pruned only closed regenerable old compiler library/object caches; proof executables/archives, current target, source, logs, credentials and state retained. No .deps edit.",
+    "files": 72,
+    "MiB_removed": 4277,
+    "audit_sha256": "c90461269421a9df9e29eab82d857932bd4fecd143eaca9883a3c7066cba93f3"
+  },
+  "approval": {
+    "status": "pending; no model turn executed",
+    "requested_host_turns": 1,
+    "timeout_seconds": 120,
+    "host_version": "codex-cli 0.164.0-alpha.11.1",
+    "host_binary_sha256": "a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e",
+    "account_reference": "Existing local Codex account; only metadata/login-status checked, no model availability inferred",
+    "scope": "Fresh isolated synthetic native fixture, intended one handoff/status reads; no PSTN/SMS/voice-provider calls",
+    "protected_plan_sha256": "74d7538b4f894b0738ffdbe89d7fcf38b589f1308e35e340bfe231c388049927",
+    "procedure": "docs/developer/agent-host-rehearsal.md",
+    "source_rule": "Gate6 product delivery plan: plans do not authorize agents/live calls/deployment/publication by themselves."
+  },
+  "official_references": [
+    "https://learn.chatgpt.com/docs/non-interactive-mode",
+    "https://learn.chatgpt.com/docs/extend/mcp?surface=cli"
+  ],
+  "remaining": [
+    "Actual bounded installed Codex model-host turn after explicit authorization, with real tool items and native assertions; protocol/metadata checks cannot substitute.",
+    "Remaining facade-positive/profile qualification and the retained intermittent Task/provider uncertainty refusal.",
+    "Browser/fallback, remote/Linux/provider/package and independent Gate6 acceptance remain assigned work. No acceptance promotion or publication."
+  ]
+}

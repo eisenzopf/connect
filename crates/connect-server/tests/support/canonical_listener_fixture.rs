@@ -107,6 +107,26 @@ impl Fixture {
         )
         .await
     }
+    pub(super) async fn with_native_mcp_in(
+        algorithm: &str,
+        connections: usize,
+        parent: &Path,
+    ) -> Self {
+        Self::with_mcp_config_in(
+            algorithm,
+            connections,
+            true,
+            true,
+            true,
+            &[],
+            Some(connect_server::config::McpConfig {
+                bind: "127.0.0.1:0".parse().unwrap(),
+                binding: None,
+            }),
+            Some(parent),
+        )
+        .await
+    }
     async fn with_mcp_config(
         algorithm: &str,
         connections: usize,
@@ -116,7 +136,35 @@ impl Fixture {
         extra: &[&str],
         mcp: Option<connect_server::config::McpConfig>,
     ) -> Self {
-        let temp = tempfile::tempdir().unwrap();
+        Self::with_mcp_config_in(
+            algorithm,
+            connections,
+            all,
+            native_streams,
+            native_end,
+            extra,
+            mcp,
+            None,
+        )
+        .await
+    }
+    async fn with_mcp_config_in(
+        algorithm: &str,
+        connections: usize,
+        all: bool,
+        native_streams: bool,
+        native_end: bool,
+        extra: &[&str],
+        mcp: Option<connect_server::config::McpConfig>,
+        parent: Option<&Path>,
+    ) -> Self {
+        let mut temp = match parent {
+            Some(parent) => tempfile::tempdir_in(parent).unwrap(),
+            None => tempfile::tempdir().unwrap(),
+        };
+        if parent.is_some() {
+            temp.disable_cleanup(true);
+        }
         let state = temp.path().join("state");
         init::initialize(&state, true, "127.0.0.1:0".parse().unwrap()).unwrap();
         let old = ServerConfig::load(&state.join("server.toml")).unwrap();

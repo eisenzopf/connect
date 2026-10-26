@@ -27,6 +27,9 @@ mod external_sdk_consumer;
 #[path = "support/connector_media_contract.rs"]
 mod connector_media_contract;
 
+#[path = "support/canonical_agent_rehearsal.rs"]
+mod canonical_agent_rehearsal;
+
 #[path = "support/canonical_mcp.rs"]
 mod canonical_mcp;
 

@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use std::{path::Path, process::Stdio};
 use tokio::process::Command;
 /// Source-qualified host grammar; unknown versions require another qualification.
-pub(super) const QUALIFIED_VERSION: &str = "codex-cli 0.162.0-alpha.17.2";
+pub(super) const QUALIFIED_VERSION: &str = "codex-cli 0.164.0-alpha.11.1";
 pub(super) async fn check(binary: &Path, deadline: tokio::time::Instant) -> Result<()> {
     let version = probe(binary, &["--version"], deadline).await?;
     anyhow::ensure!(version.status.success() && std::str::from_utf8(&version.stdout).is_ok_and(|text|text.trim()==QUALIFIED_VERSION),"Unknown Codex host version; select the source-qualified Codex runtime before running the agent");

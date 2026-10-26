@@ -819,7 +819,7 @@ async fn production_disjoint_private_consultations_preserve_each_others_audio_an
 }
 
 #[path = "groups/handoff.rs"]
-mod handoff;
+pub(crate) mod handoff;
 
 #[path = "groups/preparation.rs"]
 mod preparation;

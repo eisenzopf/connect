@@ -68,6 +68,15 @@ impl TransitionProbe {
         input: &connect_protocol::transitions::TransitionCommand,
         token: &str,
     ) -> Self {
+        let probe = Self::observe(f, input, token).await;
+        probe.replay().await;
+        probe
+    }
+    pub(crate) async fn observe(
+        f: &Fixture,
+        input: &connect_protocol::transitions::TransitionCommand,
+        token: &str,
+    ) -> Self {
         let mut command = input.clone();
         command.normalize().unwrap();
         let tool = match command.intent.required_scope() {
@@ -93,7 +102,6 @@ impl TransitionProbe {
         }
         let address = f.server.mcp_address.unwrap();
         let client = client(address, token).await;
-        success(call(&client, tool, arguments.clone()).await);
         Self {
             client,
             address,
@@ -103,7 +111,10 @@ impl TransitionProbe {
             tool,
         }
     }
-    fn status_arguments(&self) -> Value {
+    pub(crate) fn mutation_arguments(&self) -> (&str, &Value) {
+        (self.tool, &self.arguments)
+    }
+    pub(crate) fn status_arguments(&self) -> Value {
         let mut scope = self.arguments.clone();
         scope.as_object_mut().unwrap().remove("operation_id");
         scope.as_object_mut().unwrap().remove("expected_revision");
