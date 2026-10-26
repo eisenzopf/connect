@@ -352,6 +352,17 @@
           },
           "observation": "Server receipt does not confirm delivery to another peer or trigger automatic codec renegotiation. Local listener qualification and unresolved checks are recorded separately in auxiliary-native-capability-delivery.json."
         },
+        "x-transition-receipt-identity": {
+          "fields": [
+            "operation_id",
+            "record_id",
+            "command_type",
+            "expected_revision"
+          ],
+          "scope": "Native signed transition admission and operation.get carry authoritative original command and stable record identity. The HTTP OperationRecord carries the same original facts. Native SDK restoration verifies the returned command before decoding a transition result.",
+          "continuation": "A saved typed consultation retains its original via and retained Connection. Return reads the current-authorized original record ID and creates a new logical return operation. Unknown or cancelled waiting never creates a new consultation.",
+          "authority": "Retained/admitted/retired topology and remote_continuing are captured observations; no receipt grants physical media custody or proves remote playback."
+        },
         "x-native-codec-observation": {
           "result-schema": {
             "$ref": "#/components/schemas/NativeCodecResult"
@@ -2992,6 +3003,23 @@
           "record_id": {
             "$ref": "#/components/schemas/WireIdentifier"
           },
+          "command_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "state": {
             "$ref": "#/components/schemas/WireOperationState"
           },
@@ -3027,6 +3055,36 @@
                 "required": [
                   "result"
                 ]
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "command_type"
+              ],
+              "properties": {
+                "command_type": {
+                  "enum": [
+                    "session.consult",
+                    "session.consult.return",
+                    "session.handoff",
+                    "connection.replace"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "record_id",
+                "expected_revision"
+              ],
+              "properties": {
+                "expected_revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740990
+                }
               }
             }
           }

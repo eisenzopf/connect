@@ -131,7 +131,11 @@ impl Client {
         (kind.decode)(result, self, &key)?;
         Ok(Operation::new(
             self.clone(),
-            OperationReference { key, kind },
+            OperationReference {
+                key,
+                kind,
+                continuation: None,
+            },
         ))
     }
 }

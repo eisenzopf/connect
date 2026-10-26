@@ -41,6 +41,8 @@ struct SavedReference {
     operation_id: OperationId,
     command: String,
     scope: OperationScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    continuation: Option<super::consultations::Continuation>,
 }
 pub struct OperationKind<T> {
     pub(super) command: &'static str,
@@ -72,6 +74,8 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    pub session_consult: OperationKind<ConsultationResult>,
+    pub session_consult_return: OperationKind<Session>,
     pub connection_update: OperationKind<ConnectionUpdateReceipt>,
     pub connection_end: OperationKind<Connection>,
     pub connection_offer: OperationKind<Connection>,
@@ -92,6 +96,16 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            session_consult: OperationKind::new(
+                "session.consult",
+                consultations::decode_consult,
+                connections::valid_scope,
+            ),
+            session_consult_return: OperationKind::new(
+                "session.consult.return",
+                consultations::decode_return,
+                connections::valid_scope,
+            ),
             connection_update: OperationKind::new(
                 "connection.update",
                 connection_updates::decode,
@@ -160,12 +174,14 @@ impl OperationKinds {
 pub struct OperationReference<T> {
     pub(super) key: OperationKey,
     pub(super) kind: OperationKind<T>,
+    pub(super) continuation: Option<super::consultations::Continuation>,
 }
 impl<T> Clone for OperationReference<T> {
     fn clone(&self) -> Self {
         Self {
             key: self.key.clone(),
             kind: self.kind,
+            continuation: self.continuation.clone(),
         }
     }
 }
@@ -174,7 +190,12 @@ impl<T> OperationReference<T> {
         &self.key
     }
     pub fn to_json(&self) -> Value {
-        serde_json::json!({"schema":"connect-operation-reference/1","operation_id":self.key.operation_id,"command":self.key.command,"scope":self.key.scope})
+        let mut value = serde_json::json!({"schema":"connect-operation-reference/1","operation_id":self.key.operation_id,"command":self.key.command,"scope":self.key.scope});
+        if let Some(context) = &self.continuation {
+            value["continuation"] =
+                serde_json::to_value(context).expect("validated typed continuation");
+        }
+        value
     }
 }
 #[derive(Clone)]
@@ -182,6 +203,8 @@ pub struct OperationSnapshot {
     pub key: OperationKey,
     pub state: OperationState,
     pub revision: u64,
+    /// Stable host-issued record identity, distinct from the logical operation ID.
+    pub record_id: Option<OperationRecordId>,
     pub cancel_requested: Option<bool>,
     pub expires_at: Option<i64>,
     pub problem: Option<Value>,
@@ -233,6 +256,11 @@ impl<T> Operation<T> {
             || saved.command != kind.command
             || !saved.scope.valid()
             || !(kind.valid_scope)(&saved.scope)
+            || !consultations::valid_continuation(
+                kind.command,
+                &saved.scope,
+                saved.continuation.as_ref(),
+            )
         {
             return Err(Error::local(ErrorKind::Validation));
         }
@@ -245,6 +273,7 @@ impl<T> Operation<T> {
                     scope: saved.scope,
                 },
                 kind,
+                continuation: saved.continuation,
             },
         ))
     }
@@ -268,13 +297,15 @@ impl<T> Operation<T> {
                 )
                 .await?;
             let mut update = None;
+            let mut raw_payload = None;
             for frame in &batch.frames {
                 match frame.payload() {
                     Payload::OperationUpdated(value)
                         if update.is_none()
                             && value.operation_id.as_str() == key.operation_id.as_str() =>
                     {
-                        update = Some(value)
+                        update = Some(value);
+                        raw_payload = Some(&frame.original()["payload"]);
                     }
                     Payload::Ack(_) => {}
                     _ => return Err(Error::request(ErrorKind::Protocol, None, false)),
@@ -289,6 +320,24 @@ impl<T> Operation<T> {
                     .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?,
             )
             .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+            if consultations::is_command(&key.command) {
+                consultations::validate_observation(
+                    raw_payload
+                        .ok_or_else(|| Error::request(ErrorKind::Protocol, Some(key), false))?,
+                    key,
+                    None,
+                )?;
+                if state == OperationState::Completed {
+                    consultations::validate_completion(
+                        update
+                            .result
+                            .as_ref()
+                            .ok_or_else(|| Error::request(ErrorKind::Protocol, Some(key), false))?,
+                        key,
+                        self.reference.continuation.as_ref(),
+                    )?;
+                }
+            }
             if key.command == "connection.update" {
                 match state {
                     OperationState::Completed => {
@@ -313,6 +362,12 @@ impl<T> Operation<T> {
                     key: key.clone(),
                     state,
                     revision: update.revision,
+                    record_id: update
+                        .record_id
+                        .as_ref()
+                        .map(|id| id.as_str().parse())
+                        .transpose()
+                        .map_err(|_| Error::request(ErrorKind::Protocol, Some(key), false))?,
                     cancel_requested: None,
                     expires_at: None,
                     problem: update.problem.clone(),

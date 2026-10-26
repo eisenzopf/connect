@@ -145,7 +145,11 @@ impl<T> Operation<T> {
         }
         Ok(Operation::new(
             self.client().clone(),
-            OperationReference { key, kind },
+            OperationReference {
+                key,
+                kind,
+                continuation: None,
+            },
         ))
     }
 }

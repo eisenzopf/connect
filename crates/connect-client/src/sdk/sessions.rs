@@ -109,6 +109,7 @@ pub struct Session {
     conversation_id: ConversationId,
     receipt: Option<Arc<SessionSnapshot>>,
     reconciliation: Option<connect_protocol::session_codecs::ReconciliationReference>,
+    pub(super) consultation_return: Option<Arc<ConsultationReturnReceipt>>,
 }
 impl Session {
     pub(super) fn client(&self) -> &Client {
@@ -121,7 +122,12 @@ impl Session {
             conversation_id,
             receipt: None,
             reconciliation: None,
+            consultation_return: None,
         }
+    }
+    /// Captured restoration result; a continuing remote call is a separate observation.
+    pub fn consultation_return_receipt(&self) -> Option<&ConsultationReturnReceipt> {
+        self.consultation_return.as_deref()
     }
     pub fn id(&self) -> &SessionId {
         &self.id

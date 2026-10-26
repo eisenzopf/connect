@@ -1,0 +1,72 @@
+{
+  "schema": "connect-gate6-rust-sdk-consultations/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T01:24:59.310320+00:00",
+  "base_revision": "63a1ced5071fb5c6c35207e2a2562ff929023f52",
+  "scope": "Typed consultation/return SDK control and saved reference checkpoint. Controlled signed QUIC and schema checks pass; actual private-media production rehearsal remains pending.",
+  "implementation": [
+    "Session.consult preserves the original logical operation ID, explicit source/retained Connection, normalized private participant set, hold treatment and TopologyRevision. Typed completion handles observe topology and grant no physical ownership.",
+    "Saved typed consultation references retain original source and retained Connection. return_to_retained reads the current-authorized stable OperationRecordId and submits a new named return operation with a shared deadline; it never guesses record identity from logical ID or resubmits the consultation.",
+    "Host transition admission and operation.get provide original command_type and expected_revision alongside record_id. SDK status checks the command and mandatory original identity before accepting topology. Invalid/missing continuation context refuses locally.",
+    "Returned Session exposes captured parent record, retained/retired topology and remote_continuing. Remote EOF may settle with a retired remote leg and false continuing observation. Caller cancellation preserves owned in-flight requests."
+  ],
+  "verification": {
+    "client": {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-consultations/client-02.log",
+        "sha256": "fbeb6fa3d6d5d502f2d5359c37484188471454390c276a58216f146f1740982f"
+      },
+      "passed_functions": 130,
+      "failed_functions": 0,
+      "new_functions": 6,
+      "scope": "Controlled signed QUIC; original reference roundtrip/continuation, unknown recovery, cancelled caller, malformed command/identity/revision/duplicate/retained/parent facts, remote EOF and no-write local validation. No actual managed private audio claim."
+    },
+    "contracts": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/contracts.json",
+        "sha256": "dade08d5313279f7f3a365beba955fc32ec8d6ca22957be6d4c1e8e98a25ca6b"
+      },
+      "log": {
+        "path": ".local/gate-6/rust-sdk-consultations/contracts.log",
+        "sha256": "4b04bd7cfae2f9d81f386d4317448cacb6123f95c67a81135a13d86a44c3f228"
+      },
+      "schema_vectors": 237,
+      "scope": "Schema and semantic contract checks only."
+    },
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-consultations/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-consultations/format-06.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "manifest": {
+      "path": ".local/gate-6/rust-sdk-consultations/inputs-02.json",
+      "sha256": "d45c4744958966e6733b5f92719917ca9a9de1807b2c0fd0d2888d71bf69cad1"
+    },
+    "guarded_source_inputs": 1320
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-consultations/client-01.log",
+        "sha256": "8cc3b3cd07314f96cccc57257b59e971ce2c29528e9de5b11b96292feb04ecf5"
+      },
+      "result": "Initial new code/fixture compile errors: map input was treated as JSON, the fixture used a nonexistent client constructor, and a local options variable shadowed its helper. Corrected before the passing130-function run."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/fixture-precompile-correction.json",
+        "sha256": "66e9e9a765960ddcafde608793347b899ae9952eef226a17fec9c56833d57902"
+      },
+      "result": "Preserved the existing HTTP/provider helper signature before the integration compiler started; runtime/library inputs unchanged."
+    }
+  ],
+  "remaining": [
+    "Actual managed consultation/return with independently decoded private/restored media and fresh authority is still building; no production result is claimed yet.",
+    "G6-060 remains in progress. Handoff, Connection replacement, Stream subscriptions, server-initiated reconciliation, reliable data I/O, full event/capability/config/raw/admin APIs, complete external-package and both-ends SDK media journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain.",
+    "No task, Gate6 acceptance, performance or publication completion claim."
+  ]
+}

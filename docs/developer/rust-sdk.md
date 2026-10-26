@@ -237,3 +237,47 @@ This direct update path does not complete the SDK's remaining transition,
 subscription, server-initiated reconciliation, event, data, device, configuration,
 raw/admin or external-package journeys. The exact codec qualification scope is in
 `docs/evidence/gate-6/rust-sdk-codec-updates.json`.
+
+`Session::consult` returns `Operation<ConsultationResult>` with an explicit source
+Connection, retained Connection, private Participant set, hold treatment and
+`TopologyRevision`. Admission, private preparation, actual decoded audio and
+completion are separate boundaries. A completed topology receipt supplies scoped
+Connection handles for observation; it does not acquire their physical media.
+
+A consultation's saved operation reference retains its original source and
+retained Connection. `Operation<ConsultationResult>::return_to_retained` reads the
+host's stable `OperationRecordId` under current authority, then submits a new
+logical return operation. It never substitutes the logical operation ID for the
+Store record ID or resubmits the original consultation. The parent read and return
+submission share the caller's deadline. A failed parent read reports that the new
+return mutation was not submitted. Caller cancellation still leaves a started
+exchange owned by the driver.
+
+Transition admission and status carry the host's original `command_type`,
+`expected_revision` and `record_id`. The SDK checks these before decoding a
+transition receipt, including after restoring a saved reference. Invalid or
+missing consultation continuation context is refused locally. Current host
+permission and intent checks remain authoritative.
+
+The returned Session exposes `consultation_return_receipt()` with the captured
+retained/retired topology, original consultation record and `remote_continuing`.
+Remote EOF can yield a settled restoration with `remote_continuing: false` and a
+retired remote Connection; completion alone does not assert a continuing call.
+Read current Session topology before choosing a return revision:
+
+```rust
+let original = session.consult(input, begin_options).await?;
+let saved = original.reference_json();
+let restored = client.restore(saved, client.operation_kinds().session_consult)?;
+let consultation = restored.wait(read_options.clone()).await?.value;
+let current = consultation.session.refresh(read_options.clone()).await?;
+let returning = restored
+    .return_to_retained(current.topology_revision, return_options)
+    .await?;
+let session = returning.wait(read_options).await?.value;
+let observation = session.consultation_return_receipt();
+```
+
+The qualification evidence for this checkpoint is recorded in
+`docs/evidence/gate-6/rust-sdk-consultations.json`. Handoff, Connection replacement,
+subscriptions and the remaining complete SDK journeys remain G6-060 work.

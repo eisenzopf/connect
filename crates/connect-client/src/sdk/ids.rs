@@ -30,6 +30,7 @@ ids!(
     ConnectionId,
     StreamId,
     OperationId,
+    OperationRecordId,
     MessageId,
     IdentityId,
     EndpointId,

@@ -27,6 +27,7 @@
 mod connection_controls;
 mod connection_updates;
 mod connections;
+mod consultations;
 mod control;
 mod conversations;
 mod decisions;
@@ -49,6 +50,9 @@ pub use connection_updates::{
 };
 pub use connections::{
     Connection, ConnectionSnapshot, Direction, NativeNegotiation, NegotiatedStream, OfferedStream,
+};
+pub use consultations::{
+    ConsultInput, ConsultationResult, ConsultationReturnReceipt, Hold, TopologyChange,
 };
 pub use conversations::{
     Conversation, ConversationSnapshot, MessageAcceptance, ParticipantSnapshot,

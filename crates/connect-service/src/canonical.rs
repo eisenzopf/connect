@@ -168,7 +168,7 @@ impl CanonicalHandler {
                     authority.map(|a| a.retained()),
                 )
                 .await?;
-            let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"state":record.state,"revision":record.revision});
+            let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
             if let Some(result) = record.result {
                 payload["result"] = result;
             }
@@ -222,7 +222,7 @@ impl CanonicalHandler {
                 .service
                 .canonical_transition_held(credential, command, authority.map(|a| a.retained()))
                 .await?;
-            let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"state":record.state,"revision":record.revision});
+            let mut payload = json!({"operation_id":record.operation_id,"record_id":record.record_id,"command_type":record.command_type,"expected_revision":record.expected_revision,"state":record.state,"revision":record.revision});
             if let Some(result) = record.result {
                 payload["result"] = result;
             }

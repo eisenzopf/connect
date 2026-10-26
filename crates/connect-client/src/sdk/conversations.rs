@@ -71,7 +71,11 @@ impl Conversation {
         }
         Ok(Operation::new(
             self.client.clone(),
-            OperationReference { key, kind },
+            OperationReference {
+                key,
+                kind,
+                continuation: None,
+            },
         ))
     }
     pub async fn refresh(&self, options: RequestOptions) -> Result<ConversationSnapshot> {
@@ -130,7 +134,11 @@ impl Client {
         validate_conversation(&room, self, &key)?;
         Ok(Operation::new(
             self.clone(),
-            OperationReference { key, kind },
+            OperationReference {
+                key,
+                kind,
+                continuation: None,
+            },
         ))
     }
 }

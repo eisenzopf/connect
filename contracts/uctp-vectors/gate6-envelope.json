@@ -4711,6 +4711,114 @@
       }
     },
     {
+      "id": "operation-transition-original-identity",
+      "scope": "schema-only",
+      "valid": true,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "session.consult",
+          "expected_revision": 0
+        }
+      }
+    },
+    {
+      "id": "operation-transition-identity-missing-record",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0,
+          "command_type": "session.consult",
+          "expected_revision": 0
+        }
+      }
+    },
+    {
+      "id": "operation-transition-identity-missing-revision",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "session.consult"
+        }
+      }
+    },
+    {
+      "id": "operation-transition-identity-null-revision",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "session.consult",
+          "expected_revision": null
+        }
+      }
+    },
+    {
+      "id": "operation-transition-identity-unsafe-revision",
+      "scope": "schema-only",
+      "valid": false,
+      "envelope": {
+        "v": 2,
+        "type": "operation.updated",
+        "id": "env_vector_63",
+        "ts": "2026-10-15T12:00:00Z",
+        "cid": "conv_example",
+        "sid": "sess_example",
+        "connid": "conn_example",
+        "payload": {
+          "operation_id": "example",
+          "state": "accepted",
+          "revision": 0,
+          "record_id": "opr_record_reference",
+          "command_type": "session.consult",
+          "expected_revision": 9007199254740991
+        }
+      }
+    },
+    {
       "id": "handoff-target-owned-preparation",
       "scope": "schema-only",
       "valid": true,

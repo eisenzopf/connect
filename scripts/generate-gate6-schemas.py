@@ -122,8 +122,9 @@ def build():
   definitions[name]['properties']['direction']={'enum':['sendrecv','sendonly','recvonly','inactive']}
  definitions['StreamActiveSpeaker']['required']=['active_participant','strm_id','changed_at']
  definitions['OperationState']={'enum':STATES}
- definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
+ definitions['OperationUpdated']=obj({'operation_id':ref('Identifier'),'record_id':ref('Identifier'),'command_type':{'type':'string','minLength':1,'maxLength':128},'expected_revision':{'anyOf':[{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},{'type':'null'}]},'state':ref('OperationState'),'revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER},'result':{},'problem':{'type':'object'}},['operation_id','state','revision'])
  definitions['OperationUpdated']['allOf']=[{'if':{'properties':{'state':{'not':{'const':'completed'}}}},'then':{'not':{'required':['result']}}}]
+ definitions['OperationUpdated']['allOf'].append({'if':{'required':['command_type'],'properties':{'command_type':{'enum':['session.consult','session.consult.return','session.handoff','connection.replace']}}},'then':{'required':['record_id','expected_revision'],'properties':{'expected_revision':{'type':'integer','minimum':0,'maximum':SAFE_INTEGER-1}}}})
  definitions['MemberAdd']=obj({'identity_id':ref('Identifier'),'kind':{'enum':['human','ai','system','external']},'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberUpdate']=obj({'participant_id':ref('Identifier'),'role':{'type':'string','minLength':1,'maxLength':64}})
  definitions['MemberRemove']=obj({'participant_id':ref('Identifier'),'reason':{'type':'string','maxLength':512}},['participant_id'])
@@ -306,6 +307,14 @@ def main():
  status=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-operation.updated')
  status['payload']['record_id']='opr_record_reference'
  vectors.append(dict(id='operation-status-stable-record-reference',scope='schema-only',valid=True,envelope=status))
+ identity=copy.deepcopy(status);identity['payload']['command_type']='session.consult';identity['payload']['expected_revision']=0
+ vectors.append(dict(id='operation-transition-original-identity',scope='schema-only',valid=True,envelope=copy.deepcopy(identity)))
+ for label,field,value in [('missing-record','record_id',None),('missing-revision','expected_revision',None),('null-revision','expected_revision','null'),('unsafe-revision','expected_revision',SAFE_INTEGER)]:
+  invalid=copy.deepcopy(identity)
+  if value is None:invalid['payload'].pop(field)
+  else:invalid['payload'][field]=None if value=='null' else value
+  vectors.append(dict(id='operation-transition-identity-'+label,scope='schema-only',valid=False,envelope=invalid))
+
  prepared=next(copy.deepcopy(v['envelope']) for v in vectors if v['id']=='schema-connection.offer')
  prepared['payload']['handoff_preparation']={'profile':'connect-handoff-preparation-v1'}
  prepared['payload']['streams_offered']=[{'id':'prepared-voice','kind':'audio','direction':'sendrecv','codec_preferences':['g.711-mu']}]
