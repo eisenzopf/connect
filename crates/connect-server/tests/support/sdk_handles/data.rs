@@ -11,8 +11,13 @@ fn body(format: &str, index: usize) -> DataPayload {
         DataPayload::Json(json!({"sequence":index,"text":"native 🦀"}))
     }
 }
-async fn audio(source: sdk::Stream, target: sdk::Stream, path: &std::path::Path) {
-    let clock = tokio::time::Instant::now();
+async fn audio(
+    source: sdk::Stream,
+    target: sdk::Stream,
+    path: &std::path::Path,
+    clock: tokio::time::Instant,
+    epoch: u16,
+) {
     let sending = async move {
         for i in 0..50u16 {
             let bytes = (0..160)
@@ -21,10 +26,10 @@ async fn audio(source: sdk::Stream, target: sdk::Stream, path: &std::path::Path)
             source
                 .send_rtp(
                     sdk::RtpPacket::new(
-                        u32::from(i),
+                        u32::from(epoch + i),
                         media::rtp(
                             0,
-                            i,
+                            epoch + i,
                             (clock.elapsed().as_micros() * 8 / 1000) as u32,
                             0x64617461,
                             false,
@@ -191,6 +196,7 @@ async fn exercise(recording_failure: bool) {
             if recording_failure {
                 db.execute_batch("CREATE TRIGGER isolated_sdk_data_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.state')='completed' AND EXISTS(SELECT 1 FROM operations o WHERE o.operation_id=json_extract(NEW.data_json,'$.operation_id') AND o.command_type='message.send' AND o.connection_id='sdk-data-source') BEGIN SELECT RAISE(ABORT,'isolated SDK data completion failure'); END;").unwrap();
             }
+            let clock = tokio::time::Instant::now();
             let first = send
                 .send_data(
                     "sdk-data-message-0".parse().unwrap(),
@@ -213,6 +219,44 @@ async fn exercise(recording_failure: bool) {
                     first.status(options()).await.unwrap().state,
                     sdk::OperationState::Completed
                 );
+                let competing = send
+                    .send_data(
+                        "sdk-data-competing".parse().unwrap(),
+                        NonEmpty {
+                            first: recipient.clone(),
+                            rest: vec![],
+                        },
+                        body(format, 99),
+                        mutation("sdk-data-competing"),
+                    )
+                    .await
+                    .unwrap_err();
+                assert_eq!(competing.kind, sdk::ErrorKind::Conflict);
+                assert_eq!(competing.certainty, sdk::Certainty::Refused);
+                assert_eq!(
+                    db.query_row(
+                        "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-data-competing'",
+                        [],
+                        |r| r.get::<_, u64>(0)
+                    )
+                    .unwrap(),
+                    0
+                );
+                audio(
+                    source.stream_by_id("audio".parse().unwrap()),
+                    target.stream_by_id("audio".parse().unwrap()),
+                    f.temp.path(),
+                    clock,
+                    0,
+                )
+                .await;
+                assert_ne!(
+                    first.status(options()).await.unwrap().state,
+                    sdk::OperationState::Completed
+                );
+                db.execute_batch("DROP TRIGGER isolated_sdk_data_record_failure")
+                    .unwrap();
+                first.wait(options()).await.unwrap();
             }
             let exchange = async {
                 for index in 1..9 {
@@ -234,7 +278,7 @@ async fn exercise(recording_failure: bool) {
                     assert_eq!(delivered.message_id.as_str(), message);
                     assert_eq!(delivered.operation_id.as_str(), operation);
                     assert_eq!(delivered.payload, body(format, index));
-                    if !recording_failure {
+                    {
                         assert_eq!(
                             pending.wait(options()).await.unwrap().value.boundary,
                             DataAcceptanceBoundary::CoreQueueAdmission
@@ -247,17 +291,11 @@ async fn exercise(recording_failure: bool) {
                 audio(
                     source.stream_by_id("audio".parse().unwrap()),
                     target.stream_by_id("audio".parse().unwrap()),
-                    f.temp.path()
+                    f.temp.path(),
+                    clock,
+                    if recording_failure { 100 } else { 0 }
                 )
             );
-            if recording_failure {
-                assert_ne!(
-                    first.status(options()).await.unwrap().state,
-                    sdk::OperationState::Completed
-                );
-                db.execute_batch("DROP TRIGGER isolated_sdk_data_record_failure")
-                    .unwrap();
-            }
             let result = first.wait(options()).await.unwrap().value;
             assert_eq!(result.message_id.as_str(), "sdk-data-message-0");
             assert_eq!(result.boundary, DataAcceptanceBoundary::CoreQueueAdmission);
@@ -309,9 +347,22 @@ async fn exercise(recording_failure: bool) {
             assert!(
                 matches!(receive.receive_data(RequestOptions::new(Duration::from_millis(180)).unwrap()).await,Err(e) if e.kind==sdk::ErrorKind::Deadline)
             );
-            assert!(
-                matches!(send.send_data("sdk-data-message-0".parse().unwrap(),NonEmpty {first:recipient,rest:vec![]},body(format,99),mutation("sdk-data-send-0")).await,Err(e) if e.kind==sdk::ErrorKind::Conflict)
-            );
+            // Frozen original-intent mismatch is an authorization preflight
+            // refusal; it cannot borrow the original publication's grant.
+            let changed = send
+                .send_data(
+                    "sdk-data-message-0".parse().unwrap(),
+                    NonEmpty {
+                        first: recipient,
+                        rest: vec![],
+                    },
+                    body(format, 99),
+                    mutation("sdk-data-send-0"),
+                )
+                .await
+                .unwrap_err();
+            assert_eq!(changed.kind, sdk::ErrorKind::Authentication, "{changed:?}");
+            assert_eq!(changed.certainty, sdk::Certainty::Refused);
             assert_eq!(db.query_row("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.operation_id='sdk-data-send-0' AND o.connection_id='sdk-data-source'",[],|r|r.get::<_,u64>(0)).unwrap(),1);
             assert_eq!(
                 db.query_row(

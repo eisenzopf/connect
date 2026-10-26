@@ -130,6 +130,23 @@ pub(super) struct Inbox {
 }
 fn prune(state: &mut State, cache: &NativeCache) {
     state.queues.retain(|key, queue| {
+        // A temporary local gate is not recovery from a reliable-data gap.
+        // Keep the failed identity until its physical generation/format retires.
+        if queue.failed
+            && cache.get(&key.connection_id).is_some_and(|entry| {
+                !entry.ended
+                    && entry.conversation == key.conversation_id
+                    && entry.session == key.session_id
+                    && entry.generations.get(&key.stream_id) == Some(&queue.binding.generation)
+                    && entry.selected.streams.iter().any(|stream| {
+                        stream.id == key.stream_id
+                            && stream.medium == Medium::Data
+                            && stream.codec == queue.binding.codec
+                    })
+            })
+        {
+            return true;
+        }
         if binding(cache, key, false).is_ok_and(|b| b == queue.binding) {
             return true;
         }
@@ -150,7 +167,10 @@ impl Inbox {
         cache: &std::sync::Mutex<NativeCache>,
         frame: &Envelope,
     ) -> Result<bool> {
-        if frame.kind() != "message.send" || frame.scope(Scope::Connection).is_none() {
+        if frame.kind() != "message.send"
+            || frame.scope(Scope::Connection).is_none()
+            || frame.scope(Scope::Reply).is_some()
+        {
             return Ok(false);
         }
         let cache = cache
@@ -334,5 +354,103 @@ impl Shared {
             queued_bytes: state.bytes,
             ..state.stats
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    #[tokio::test]
+    async fn temporary_direction_changes_cannot_clear_a_reliable_gap_but_a_new_generation_can() {
+        let key = streams::StreamKey {
+            conversation_id: "room".parse().unwrap(),
+            session_id: "session".parse().unwrap(),
+            connection_id: "connection".parse().unwrap(),
+            stream_id: "data".parse().unwrap(),
+        };
+        let revision = StreamRevision::try_from(1).unwrap();
+        let codec = json!({"name":"json","params":{"reliability":"reliable_ordered"}});
+        let entry = NativeConnection {
+            session: key.session_id.clone(),
+            conversation: key.conversation_id.clone(),
+            selected: NativeNegotiation {
+                source_clock: false,
+                stream_revision: revision,
+                streams: vec![NegotiatedStream {
+                    id: key.stream_id.clone(),
+                    medium: Medium::Data,
+                    direction: Direction::Recvonly,
+                    codec,
+                    stream_local_id: None,
+                }],
+            },
+            ended: false,
+            known_revision: revision,
+            participant: "local".parse().unwrap(),
+            wire_handles: BTreeMap::from([(key.stream_id.clone(), 9)]),
+            local_capabilities: json!({}),
+            server_capabilities: json!({}),
+            reserved_handles: [9].into(),
+            generations: BTreeMap::from([(key.stream_id.clone(), 1)]),
+            prepared: None,
+            gates: BTreeMap::new(),
+            selectors: VecDeque::new(),
+            reconciliation: None,
+        };
+        let cache = std::sync::Mutex::new(NativeCache::from([(key.connection_id.clone(), entry)]));
+        let inbox = Inbox::default();
+        let frame = |i| {
+            Envelope::from_value(json!({"v":2,"type":"message.send","id":format!("frame-{i}"),"ts":chrono::Utc::now(),"cid":"room","sid":"session","connid":"connection","operation_id":format!("original-{i}"),"payload":{"msg_id":format!("message-{i}"),"from":"remote","to":["local"],"label":"data","content_type":"application/json","body":"{}","body_encoding":"utf8","reliability":{"mode":"reliable_ordered"}}})).unwrap()
+        };
+        for i in 0..33 {
+            assert!(inbox.frame(&cache, &frame(i)).unwrap());
+        }
+        let wait = || RequestOptions::new(Duration::from_secs(1)).unwrap();
+        assert_eq!(
+            inbox.receive(&cache, &key, wait()).await.unwrap_err().kind,
+            ErrorKind::ResyncRequired
+        );
+        cache
+            .lock()
+            .unwrap()
+            .get_mut(&key.connection_id)
+            .unwrap()
+            .selected
+            .streams[0]
+            .direction = Direction::Inactive;
+        assert_eq!(
+            inbox.receive(&cache, &key, wait()).await.unwrap_err().kind,
+            ErrorKind::Unsupported
+        );
+        cache
+            .lock()
+            .unwrap()
+            .get_mut(&key.connection_id)
+            .unwrap()
+            .selected
+            .streams[0]
+            .direction = Direction::Recvonly;
+        assert_eq!(
+            inbox.receive(&cache, &key, wait()).await.unwrap_err().kind,
+            ErrorKind::ResyncRequired
+        );
+        cache
+            .lock()
+            .unwrap()
+            .get_mut(&key.connection_id)
+            .unwrap()
+            .generations
+            .insert(key.stream_id.clone(), 2);
+        assert!(inbox.frame(&cache, &frame(34)).unwrap());
+        assert_eq!(
+            inbox
+                .receive(&cache, &key, wait())
+                .await
+                .unwrap()
+                .message_id
+                .as_str(),
+            "message-34"
+        );
     }
 }
