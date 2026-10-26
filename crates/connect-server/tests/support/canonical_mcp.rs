@@ -50,6 +50,145 @@ fn success(result: CallToolResult) -> Value {
     assert_eq!(value["data"]["profile"], "connect/2");
     value
 }
+
+/// A real MCP controller, without native peers, packets or guessed bindings.
+pub(crate) struct TransitionProbe {
+    client: McpClient,
+    address: std::net::SocketAddr,
+    token: String,
+    arguments: Value,
+    operation: String,
+}
+impl TransitionProbe {
+    pub(crate) async fn submit(
+        f: &Fixture,
+        input: &connect_protocol::transitions::TransitionCommand,
+        token: &str,
+    ) -> Self {
+        let mut command = input.clone();
+        command.normalize().unwrap();
+        assert_eq!(command.intent.required_scope(), "session.handoff");
+        let mut payload = serde_json::to_value(&command.intent).unwrap();
+        payload
+            .as_object_mut()
+            .unwrap()
+            .retain(|key, value| key != "type" && !value.is_null());
+        payload
+            .as_object_mut()
+            .unwrap()
+            .extend(command.payload_extensions.clone());
+        let mut arguments = json!({"conversation_id":command.conversation_id,"session_id":command.session_id,
+            "operation_id":command.operation_id,"expected_revision":command.expected_revision,"payload":payload});
+        if let Some(connection) = &command.connection_id {
+            arguments["connection_id"] = json!(connection);
+        }
+        let address = f.server.mcp_address.unwrap();
+        let client = client(address, token).await;
+        success(call(&client, "connect_session_handoff", arguments.clone()).await);
+        Self {
+            client,
+            address,
+            token: token.into(),
+            arguments,
+            operation: command.operation_id,
+        }
+    }
+    fn status_arguments(&self) -> Value {
+        let mut scope = self.arguments.clone();
+        scope.as_object_mut().unwrap().remove("operation_id");
+        scope.as_object_mut().unwrap().remove("expected_revision");
+        scope["payload"] = json!({"operation_id":self.operation});
+        scope
+    }
+    async fn record(&self, client: &McpClient) -> Value {
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(35);
+        loop {
+            let result = call(client, "connect_operation_get", self.status_arguments()).await;
+            let value = result.structured_content.as_ref().unwrap();
+            // Retry only current reads during bounded authority contention.
+            // The mutation is never resubmitted to hide uncertainty.
+            if result.is_error == Some(true) && value["status"] == 503 {
+                assert!(
+                    tokio::time::Instant::now() < deadline,
+                    "MCP original status remained unavailable"
+                );
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                continue;
+            }
+            let value = success(result);
+            let frames = value["data"]["envelopes"].as_array().unwrap();
+            assert!(frames
+                .iter()
+                .all(|e| matches!(e["type"].as_str(), Some("operation.updated" | "ack"))));
+            let record = frames
+                .iter()
+                .find(|e| e["type"] == "operation.updated")
+                .unwrap()["payload"]
+                .clone();
+            assert_eq!(record["operation_id"], self.operation);
+            if matches!(
+                record["state"].as_str(),
+                Some("completed" | "failed" | "cancelled" | "interrupted")
+            ) {
+                return record;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "MCP original operation did not settle"
+            );
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    }
+    pub(crate) async fn failed_and_close(self, expected: &str) {
+        let record = self.record(&self.client).await;
+        assert_eq!(record["state"], "failed");
+        assert_eq!(
+            record["problem"],
+            json!({"code":expected,"source":"native-handoff"})
+        );
+        success(
+            call(
+                &self.client,
+                "connect_session_handoff",
+                self.arguments.clone(),
+            )
+            .await,
+        );
+        let replay = self.record(&self.client).await;
+        assert_eq!(replay["record_id"], record["record_id"]);
+        assert_eq!(replay["problem"], record["problem"]);
+        self.client.cancel().await.unwrap();
+    }
+    pub(crate) async fn completed(
+        &self,
+        expected: &connect_protocol::transitions::OperationRecord,
+    ) {
+        let record = self.record(&self.client).await;
+        assert_eq!(record["state"], "completed");
+        assert_eq!(record["record_id"], expected.record_id);
+        assert_eq!(record["result"], expected.result.as_ref().unwrap().clone());
+        let fresh = client(self.address, &self.token).await;
+        let recovered = self.record(&fresh).await;
+        assert_eq!(recovered["record_id"], record["record_id"]);
+        assert_eq!(recovered["result"], record["result"]);
+        fresh.cancel().await.unwrap();
+    }
+    pub(crate) async fn replay_and_close(self) {
+        let before = self.record(&self.client).await;
+        success(
+            call(
+                &self.client,
+                "connect_session_handoff",
+                self.arguments.clone(),
+            )
+            .await,
+        );
+        let after = self.record(&self.client).await;
+        assert_eq!(after["record_id"], before["record_id"]);
+        assert_eq!(after["result"], before["result"]);
+        self.client.cancel().await.unwrap();
+    }
+}
 #[tokio::test]
 async fn canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation(
 ) {

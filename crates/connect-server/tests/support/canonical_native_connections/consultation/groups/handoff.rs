@@ -30,6 +30,22 @@ pub(super) async fn handoff_case_with_sdk(
     initial_activation: bool,
     sdk_algorithm: Option<&'static str>,
 ) {
+    handoff_case_with_control(
+        disposition,
+        role_scope,
+        initial_activation,
+        sdk_algorithm,
+        false,
+    )
+    .await;
+}
+async fn handoff_case_with_control(
+    disposition: OutgoingDisposition,
+    role_scope: RoleScope,
+    initial_activation: bool,
+    sdk_algorithm: Option<&'static str>,
+    mcp: bool,
+) {
     let codecs::Running {
         f,
         mut clients,
@@ -38,7 +54,11 @@ pub(super) async fn handoff_case_with_sdk(
         th,
     } = if let Some(algorithm) = sdk_algorithm {
         codecs::setup_started(
-            Fixture::with_native_end_scope(algorithm, 16).await,
+            if mcp {
+                Fixture::with_native_mcp(algorithm, 16).await
+            } else {
+                Fixture::with_native_end_scope(algorithm, 16).await
+            },
             (),
             "codec-target-offer",
             "codec-source-offer",
@@ -231,7 +251,14 @@ pub(super) async fn handoff_case_with_sdk(
             } else {
                 refused.payload_extensions.remove("consultation_record_id");
             }
-            controller.transition(refused.clone()).await.unwrap();
+            if mcp {
+                crate::canonical_mcp::TransitionProbe::submit(&f, &refused, &key.token)
+                    .await
+                    .failed_and_close(code)
+                    .await;
+            } else {
+                controller.transition(refused.clone()).await.unwrap();
+            }
             let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
             let failed = loop {
                 let value = controller
@@ -297,16 +324,23 @@ pub(super) async fn handoff_case_with_sdk(
         .unwrap();
     }
     let control = async {
-        let sdk_probe = if sdk_algorithm.is_some() {
-            Some(super::sdk_movements::handoff(&f, &command, &key.token, &group).await)
+        let mcp_probe = if mcp {
+            Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await)
         } else {
+            None
+        };
+        let sdk_probe = if sdk_algorithm.is_some() && !mcp {
+            Some(super::sdk_movements::handoff(&f, &command, &key.token, &group).await)
+        } else if !mcp {
             controller.transition(command.clone()).await.unwrap();
+            None
+        } else {
             None
         };
         let record = wait_state(&f, &key.id, &command.operation_id, true).await;
-        (sdk_probe, record)
+        (sdk_probe, mcp_probe, record)
     };
-    let (sdk_probe, record) = if initial_activation {
+    let (sdk_probe, mcp_probe, record) = if initial_activation {
         // This separate contract intentionally proves historical observed flow
         // without sending another packet before public activation.
         control.await
@@ -334,6 +368,9 @@ pub(super) async fn handoff_case_with_sdk(
     assert_eq!(wire["result"], record.result.as_ref().unwrap().clone());
     assert_eq!(record.effects.len(), 1);
     assert_eq!(record.effects[0].attempt, 1);
+    if let Some(probe) = &mcp_probe {
+        probe.completed(&record).await;
+    }
     if let Some(probe) = sdk_probe {
         super::sdk_movements::handoff_completed(
             &f,
@@ -526,7 +563,11 @@ pub(super) async fn handoff_case_with_sdk(
         .find(|item| item["kind"] == "connection" && item["data"]["connection_id"] == peers[PA].id)
         .unwrap();
     assert_eq!(outgoing["data"]["state"], "retired");
-    controller.transition(command).await.unwrap();
+    if let Some(probe) = mcp_probe {
+        probe.replay_and_close().await;
+    } else {
+        controller.transition(command).await.unwrap();
+    }
     assert_eq!(
         status(&f, &key.id, "native-public-handoff").await.effects[0].attempt,
         1
@@ -536,4 +577,20 @@ pub(super) async fn handoff_case_with_sdk(
     }
     wait_slots(&f, 0).await;
     f.server.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect()
+{
+    for algorithm in ["EdDSA", "ES256"] {
+        for (outgoing, scope) in [
+            (OutgoingDisposition::Observe, RoleScope::Session),
+            (OutgoingDisposition::Leave, RoleScope::Session),
+            (OutgoingDisposition::Observe, RoleScope::Conversation),
+            (OutgoingDisposition::Leave, RoleScope::Conversation),
+        ] {
+            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true).await;
+            eprintln!("MCP handoff {algorithm}:outgoing={outgoing:?},scope={scope:?}, independent decoded native audio, original recovery, one effect, all owners joined");
+        }
+    }
 }

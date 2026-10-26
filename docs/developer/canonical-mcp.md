@@ -1,11 +1,12 @@
 # Canonical MCP control migration
 
-G6-065 is in progress. The current MCP implementation adds finite canonical
+G6-065 is in progress. Ordinary identity access exposes finite canonical
 conversation, participant, Message, Session, Connection, stream-selection and
-operation tools to ordinary identity access. The public composition checkpoint passes the new official-client function under
-both signing algorithms plus6 current HTTP and2 Task/provider functions.
-All9 MCP library tests also pass, including the2 new schema/parser checks. Canonical configured-server qualification is recorded separately below; actual
-supported model-host transitions and remote/model profiles remain open. Canonical scoped-agent export is qualified separately in `docs/evidence/gate-6/canonical-agent-export.json`. Exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`.
+operation tools. The official-client checkpoint and all9 MCP library tests pass;
+exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`. Configured
+hosting, scoped-agent export and native handoff have separate local evidence.
+Actual supported model-host transitions, complete facade parity and required
+remote/model profiles remain open.
 
 Each tool advertises the canonical payload schema and explicit resource scope.
 The schema comes from the checked UCTP contract with only reachable definitions.
@@ -61,3 +62,19 @@ ownership so the same installation can start after its port is repaired.
 Qualification is in `docs/evidence/gate-6/canonical-mcp-hosting.json`. This is local
 control hosting; a running MCP listener does not establish native media custody
 or qualify an actual model or remote ingress. Canonical agent export uses the scoped bearer described in [Agent access](../AGENT_ACCESS.md). Its minimal MCP credential file cannot replace the signed native client configuration required for canonical CLI control.
+
+## Native handoff through MCP
+
+The official RMCP client requests `connect_session_handoff` through the configured
+listener while independent signed native peers own and decode actual PCMU media.
+Both signing algorithms cover Session/Conversation role scopes and observe/leave
+outgoing dispositions. Invalid consultation policy or missing consultation record
+preserves failed original state, zero handoff effects and private media audience.
+
+`connect_operation_get` recovers the same completed record and result from a fresh
+MCP client. Explicit replay after outgoing retirement retains one effect/attempt.
+The fixture independently checks the canonical HTTP record, marked bidirectional
+audio, observer receive-only behavior, participant revisions and owned teardown.
+The MCP result remains metadata; the independent native decoders supply audio
+proof. Local evidence is `docs/evidence/gate-6/canonical-mcp-handoff.json`. This
+direct protocol-client fixture does not qualify an actual model-host turn.

@@ -1,0 +1,154 @@
+{
+  "task": "G6-065",
+  "status": "local MCP native handoff checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T12:44:53.583848+00:00",
+  "scope": "Local macOS arm64 configured canonical server and official RMCP client driving independent native QUIC peers. No actual supported model-host turn, remote/provider/Linux/package/profile acceptance or publication.",
+  "implementation": [
+    "The configured MCP control listener submits the exact original session.handoff command through the canonical tool schema; no native signing material, transport actor, packets or custody are supplied by MCP.",
+    "The existing handoff fixture retains decoded PCMU audio, held/private audience, participant role/revision, native retirement and joined-owner assertions. Existing HTTP and Rust SDK paths keep the same wrapper entry point.",
+    "MCP operation.get observes terminal original state on both the original and a fresh MCP client. Explicit replay retains the same record/result after outgoing native retirement and exactly one native effect/attempt. Only bounded status reads retry temporary authority contention; mutations are never retried to mask uncertainty."
+  ],
+  "cases": {
+    "signing_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "matrix": "observe/leave outgoing disposition \u00d7 Session/Conversation role scope \u00d7 both signing algorithms =8 MCP scenes; existing SDK path repeats8 scenes",
+    "refusal": "Observe/Session in each algorithm additionally refuses copied policy and absent consultation record: same failed original record on explicit replay, no native effect, and strict private forward/reverse plus held-remote silence remain.",
+    "audio": "Private consultation forward/reverse; after handoff remote/incoming bidirectional marked decoded audio; outgoing observer receives but cannot publish; Leave retires outgoing native connection; retained incoming/remote audio survives reader grace and observer exit.",
+    "authority": "Control is scoped to ordinary fixture credential; canonical HTTP status independently agrees with the MCP record/result. This does not qualify model decisions or remote ingress."
+  },
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 82.52885416592471,
+      "source_unchanged": true,
+      "binary_sha256": "1c14a3d71dbcfe7ef2692ce86afa1b569386b77287d76ea2bb0a4c764f89d0c5",
+      "bytes": 246566192,
+      "source_count": 1250,
+      "log_sha256": "33abdcab25392b5b47bb835b8d15661ba4179abad1153f27667d71b38992aed0",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-03": {
+        "sha256": "0c4526bd943b4e99ff9fc953fe17c526a9753f16c1ee470c8d67f0ee24034864",
+        "bytes": 94453680
+      },
+      "canonical-cli-03": {
+        "sha256": "144d35111d5c81ba2b8fb32ecd8897c058776bca132e94f52bed45f9f076439b",
+        "bytes": 230465120
+      }
+    },
+    "production": {
+      "rows": [
+        {
+          "filter": "production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect",
+          "expected": [
+            "canonical_native_connections::consultation::groups::handoff::production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 178.16285687498748,
+          "log": ".local/gate-6/canonical-agent-export/production-03-00.log",
+          "sha256": "7e951bb0157af9fbf2e01c0a525693ed3f1d14d6bc0be802944068616de477f5"
+        },
+        {
+          "filter": "production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio",
+          "expected": [
+            "canonical_native_connections::consultation::groups::sdk_movements::production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 181.70351424999535,
+          "log": ".local/gate-6/canonical-agent-export/production-03-01.log",
+          "sha256": "933efd68acdd14a484ef49590f8172b0ce25929656e697e8e2740c9bd1c956c1"
+        },
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.1418336660135537,
+          "log": ".local/gate-6/canonical-agent-export/production-03-02.log",
+          "sha256": "ab56f7067c993544301131eccc4b2acb89a429fdd8038548f11915f504895426"
+        }
+      ],
+      "binary_sha256": "1c14a3d71dbcfe7ef2692ce86afa1b569386b77287d76ea2bb0a4c764f89d0c5",
+      "guard_count": 1250,
+      "source_unchanged": true,
+      "driver_sha256": "567b86a699715863c6482a8a1fad3cf5f9384d2812dc2c235a91fc6b1f694036"
+    },
+    "agent_export_library": {
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 3.710348208900541,
+      "log_sha256": "37fd1f37680b1f2f6f6caef4790803d772d1fe412c8f365891968a5d34a63a52",
+      "binary_sha256": "0c4526bd943b4e99ff9fc953fe17c526a9753f16c1ee470c8d67f0ee24034864",
+      "source_unchanged": true
+    },
+    "fresh_cli_export": {
+      "status": "passed fresh CLI canonical export and actual MCP original recovery across restart",
+      "cli_sha256": "144d35111d5c81ba2b8fb32ecd8897c058776bca132e94f52bed45f9f076439b",
+      "manifest_sha256": "c322cfc2e555baed57611bbed4895e5bb3c1b93da35e6b3258687ac8b1aadab9",
+      "profile": "connect-codex-agent-install/2",
+      "credential_profile": "connect-agent-credential/2",
+      "exported_files": 6,
+      "native_keys_or_trust_paths_copied": false,
+      "source_credential_unchanged": true,
+      "operator_refused_before_output": true,
+      "repeat_export_preserved_assets": true,
+      "remove_preserved_unrelated_and_server_authority": true,
+      "records": [
+        {
+          "run": 0,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        },
+        {
+          "run": 1,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        }
+      ],
+      "source_unchanged": true,
+      "driver_sha256": "b13d3b0ecd11c032fd3c4f894f477bc7d2e1de6a9d24d027861a5ae78836a150",
+      "scope": "Local CLI export, embedded skill hash validation and direct MCP protocol client from the exported credential. No actual model invocation, Codex tool transition, media/provider/remote/package qualification or publication."
+    },
+    "guard_count": 1250,
+    "source_unchanged": true,
+    "inputs_sha256": "acc28ebd4c92a771b4a3b30ce914e80b5440864739594679262fe5d676ed85d3",
+    "embedded_skill_sha256": "e6f4cb16ed8d5ed3d9417a431305133c1c2cc4be8136e856f4a8efd391408d12",
+    "checks": "prepare-dependencies verified pinned sources/patches; skill quick_validate passed; repository format/progress/diff checks recorded with commit"
+  },
+  "development_record": [
+    {
+      "status": "stopped setup attempt; no runtime result",
+      "detail": "Run-number replacement accidentally changed target cache date20261024 to20361034. The cold build was stopped after25.6s; its exclusively task-created, closed disposable cache was removed. Correct target restored before clean82.5s build; all executable sizes/modes and independent APFS seals verified.",
+      "private_record": ".local/gate-6/canonical-agent-export/build-03-cache-error.json"
+    }
+  ],
+  "remaining": [
+    "Actual supported agent host request/observe qualification under approved bounded configuration.",
+    "Other consultation/device movement MCP facade behavior and complete CLI/stdio/OpenAPI/admin/file parity remain open.",
+    "G6-065 remains in progress; all105 Gate6 tasks remain the active goal."
+  ]
+}

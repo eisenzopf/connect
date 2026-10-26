@@ -92,6 +92,21 @@ impl Fixture {
         )
         .await
     }
+    pub(super) async fn with_native_mcp(algorithm: &str, connections: usize) -> Self {
+        Self::with_mcp_config(
+            algorithm,
+            connections,
+            true,
+            true,
+            true,
+            &[],
+            Some(connect_server::config::McpConfig {
+                bind: "127.0.0.1:0".parse().unwrap(),
+                binding: None,
+            }),
+        )
+        .await
+    }
     async fn with_mcp_config(
         algorithm: &str,
         connections: usize,
