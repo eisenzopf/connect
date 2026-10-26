@@ -44,8 +44,8 @@ pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
 pub use connection_updates::{
-    ConnectionUpdate, ConnectionUpdateOutcome, ConnectionUpdateReceipt, GateAction, GateState,
-    HoldDirection, StreamGateObservation,
+    CodecObservation, ConnectionUpdate, ConnectionUpdateOutcome, ConnectionUpdateReceipt,
+    GateAction, GateState, HoldDirection, StreamGateObservation,
 };
 pub use connections::{
     Connection, ConnectionSnapshot, Direction, NativeNegotiation, NegotiatedStream, OfferedStream,

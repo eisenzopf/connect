@@ -1,5 +1,6 @@
 //! One bounded owner multiplexes signed exchanges despite caller cancellation.
 use super::*;
+mod codecs;
 mod controls;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
@@ -14,6 +15,14 @@ struct NativeConnection {
     conversation: ConversationId,
     selected: NativeNegotiation,
     ended: bool,
+    known_revision: StreamRevision,
+    participant: ParticipantId,
+    wire_handles: std::collections::BTreeMap<StreamId, u16>,
+    local_capabilities: Value,
+    server_capabilities: Value,
+    reserved_handles: std::collections::BTreeSet<u16>,
+    generations: std::collections::BTreeMap<StreamId, u64>,
+    prepared: Option<codecs::Prepared>,
     gates: std::collections::BTreeMap<StreamId, controls::LocalGate>,
 }
 // Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
@@ -106,13 +115,29 @@ impl Shared {
                                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
                                     result=tokio::time::timeout_at(until,confirm_native(&mut peer,&active[index],&frame,&owned_native))=>result
                                 };
-                                let selected=match result {Ok(Ok(selected))=>selected,Ok(Err(error))=>break error.kind,Err(_)=>break ErrorKind::Deadline};
+                                let (selected,(participant,local_capabilities,server_capabilities,wire_handles))=match result {Ok(Ok(selected))=>selected,Ok(Err(error))=>break error.kind,Err(_)=>break ErrorKind::Deadline};
                                 let pending=active.swap_remove(index);
                                 let key=pending.key.expect("native key");
                                 let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
                                 let cid=key.scope.conversation_id.expect("native conversation");let sid=key.scope.session_id.expect("native session");let conn=key.scope.connection_id.expect("native connection");
                                 if let Err(error)=owned_media.install(&cid,&sid,&conn,&selected){break error.kind;}
-                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false,gates:Default::default()});
+                                let reserved_handles=wire_handles.values().copied().collect();
+                                let generations=selected.streams.iter().map(|s|(s.id.clone(),1)).collect();
+                                let known_revision=selected.stream_revision;
+                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false,known_revision,participant,wire_handles,local_capabilities,server_capabilities,reserved_handles,generations,prepared:None,gates:Default::default()});
+                                continue;
+                            }
+                        }
+                        if frame.kind()=="connection.offer" {
+                            let is_codec=|p:&InFlight|p.control.as_ref().is_some_and(|(intent,_)|intent["action"]=="codec-renegotiate") && p.key.as_ref().is_some_and(|k|frame.scope(crate::canonical::Scope::Operation)==Some(k.operation_id.as_str()));
+                            let exact=active.iter().position(|p|is_codec(p) && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(ConnectionId::as_str)==frame.scope(crate::canonical::Scope::Connection));
+                            let index=exact.or_else(||{let mut ids=active.iter().enumerate().filter(|(_,p)|is_codec(p));let first=ids.next().map(|(i,_)|i);if ids.next().is_none(){first}else{None}});
+                            if let Some(index)=index {
+                                let pending=&active[index];let key=pending.key.as_ref().expect("codec key");let (intent,expected)=pending.control.as_ref().expect("codec intent");
+                                let answer=match codecs::prepare(&owned_native,key,intent,*expected,&pending.exchange.id,&frame){Ok(v)=>v,Err(e)=>break e.kind};
+                                let root=key.scope.command(Some(&key.operation_id));let until=pending.exchange.deadline;
+                                let result=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,r=tokio::time::timeout_at(until,peer.answer_connection_offer(&frame,answer,&root))=>r};
+                                match result {Ok(Ok(_))=>(),Ok(Err(error))=>break Error::transport(error,Some(key)).kind,Err(_)=>break ErrorKind::Deadline};
                                 continue;
                             }
                         }
@@ -189,6 +214,10 @@ impl Shared {
                             let _=command.reply.send(Err(Error::request(kind,command.key.as_ref(),false)));
                             continue;
                         }
+                        if command.kind=="connection.update" && command.payload["action"]=="codec-renegotiate" {
+                            let busy=match owned_native.lock(){Ok(cache)=>command.key.as_ref().is_some_and(|key|key.scope.connection_id.as_ref().and_then(|id|cache.get(id)).and_then(|entry|entry.prepared.as_ref()).is_some_and(|p|!p.belongs_to(key))),Err(_)=>break ErrorKind::Protocol};
+                            if busy {let _=command.reply.send(Err(Error::request(ErrorKind::Conflict,command.key.as_ref(),false)));continue;}
+                        }
                         if command.native {
                             let count=match owned_native.lock(){Ok(cache)=>cache.len(),Err(_)=>break ErrorKind::Protocol};
                             if count+active.iter().filter(|p|p.native.is_some()).count()>=NATIVE_CONNECTION_CAPACITY {
@@ -197,7 +226,7 @@ impl Shared {
                             }
                         }
                         let negotiation=command.native.then(||native_negotiation::Pending::new(command.payload.clone(),command.scope.clone()));
-                        let control=if command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality") {
+                        let control=if command.kind=="connection.update" && (connect_protocol::native_gates::is_gate(&command.payload) || command.payload["action"]=="quality" || command.payload["action"]=="codec-renegotiate") {
                             command.scope.expected_revision.map(|revision|(command.payload.clone(),revision))
                         } else {None};
                         // Only explicit close may interrupt a started write. Local caller
@@ -343,6 +372,9 @@ impl Shared {
     ) -> Result<()> {
         controls::record(&self.native, &self.media, key, observed)
     }
+    pub(super) fn fail_connection_update(&self, key: &OperationKey) -> Result<()> {
+        codecs::failed(&self.native, key)
+    }
     pub(super) async fn request(
         &self,
         kind: &str,
@@ -458,11 +490,12 @@ async fn confirm_native(
     pending: &InFlight,
     frame: &crate::canonical::Envelope,
     cache: &std::sync::Mutex<NativeCache>,
-) -> Result<NativeNegotiation> {
+) -> Result<(NativeNegotiation, native_negotiation::Context)> {
     let fail = || Error::request(ErrorKind::Protocol, pending.key.as_ref(), true);
     let negotiation = pending.native.as_ref().ok_or_else(fail)?;
     let answer = negotiation.confirmation(frame)?;
     let selected = negotiation.selected()?.clone();
+    let context = negotiation.context()?;
     let connection = pending
         .key
         .as_ref()
@@ -474,16 +507,12 @@ async fn confirm_native(
         // saved reference cannot overwrite a live binding on this peer.
         if cache.len() >= NATIVE_CONNECTION_CAPACITY
             || cache.contains_key(connection)
-            || selected
-                .streams
-                .iter()
-                .filter_map(|s| s.stream_local_id)
-                .any(|handle| {
-                    cache
-                        .values()
-                        .flat_map(|entry| &entry.selected.streams)
-                        .any(|s| s.stream_local_id == Some(handle))
-                })
+            || context.3.values().copied().any(|handle| {
+                cache
+                    .values()
+                    .flat_map(|entry| &entry.reserved_handles)
+                    .any(|old| *old == handle)
+            })
         {
             return Err(fail());
         }
@@ -491,7 +520,7 @@ async fn confirm_native(
     peer.answer_connection_offer(frame, answer, &negotiation.scope)
         .await
         .map_err(|e| Error::transport(e, pending.key.as_ref()))?;
-    Ok(selected)
+    Ok((selected, context))
 }
 
 fn native_binding(
@@ -563,6 +592,7 @@ fn retire_native(
         }
         media.retire(cid, sid, conn)?;
         entry.ended = true;
+        entry.prepared = None;
     }
     Ok(())
 }

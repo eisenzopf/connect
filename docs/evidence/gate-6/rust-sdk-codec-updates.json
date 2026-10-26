@@ -1,0 +1,105 @@
+{
+  "schema": "connect-gate6-rust-sdk-codec-updates/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T01:01:40.343197+00:00",
+  "base_revision": "f1569d674784065a220e9a4651d149b3c2a0fa65",
+  "scope": "Typed direct codec replacement and owned lifecycle checkpoint. Controlled signed QUIC and targeted local checks pass; final actual production mixed-data rerun remains pending.",
+  "implementation": [
+    "Ordered codec preferences and exact optional targets retain original intent and logical operation identity. Signed reoffers validate request/scope/Participant/revision, original capability declarations, full unchanged stream set and directions, and unique private native port identity including data.",
+    "One unsettled codec preparation per Connection stays bounded. Confirmation alone leaves old local parameters; matching original captured completion installs exact new parameters. Unknown/dropped waits retain original recovery; definitive failure clears preparation but reserves used handles. Historical/fresh receipts alone grant no media ownership.",
+    "Atomic local binding replacement preserves unrelated queues, reports obsolete packets as Gap and binding_change_drops, and retains latest per-stream control facts despite out-of-order receipts. Public data parameters expose no RTP handle while private positive native data handles remain pinned and reserved."
+  ],
+  "verification": {
+    "client": {
+      "binary_sha256": "da917edd7f98cc97960c1cd73d5debb44a75847ea9fa757d7de33229735d1910",
+      "inputs_manifest_sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66",
+      "inputs_unchanged": true,
+      "full_suite_passed_functions": 124,
+      "full_suite_failed_functions": 0,
+      "full_suite_log_sha256": "dc4766cc61f88853a7a75b6dd699d985b52232450cf9b826801234d80d261ca7",
+      "repetitions": [
+        {
+          "exit_code": 0,
+          "passed_functions": 20,
+          "log": ".local/gate-6/rust-sdk-codec-updates/native-final-repeat-00.log",
+          "log_sha256": "2f2dd9623e00d90cc55a151314b7f47dcfde26f7a06f3859d6419fde5ef19396"
+        },
+        {
+          "exit_code": 0,
+          "passed_functions": 20,
+          "log": ".local/gate-6/rust-sdk-codec-updates/native-final-repeat-01.log",
+          "log_sha256": "34eea236180cfb9f58c08de1bd4a417b5e7f9c1e08465f144e047a8e7bfd0aa2"
+        },
+        {
+          "exit_code": 0,
+          "passed_functions": 20,
+          "log": ".local/gate-6/rust-sdk-codec-updates/native-final-repeat-02.log",
+          "log_sha256": "7c0f68c7d8fe6ef1bada9403aa7a5e5e2bcc86f4ddb5a1f4629b47c81f5bd176"
+        }
+      ],
+      "scope": "Three repeated runs of all20 signed native functions under two threads, including actual positive data-port preservation and zero/changed/aliased data rejection. Repetitions do not add unique functions or qualify performance.",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/client-07-summary.json",
+        "sha256": "1d694a1af1c81699a294d302d31613c96aaff9fd0dd8d9d7849a398223c68de2"
+      },
+      "log": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/client-07.log",
+        "sha256": "dc4766cc61f88853a7a75b6dd699d985b52232450cf9b826801234d80d261ca7"
+      },
+      "new_functions": 6
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/rustdoc-03.log",
+        "sha256": "7c248912078cfec9d41003a7fce6faa6a00b9cd5021a267c6634fbcb8c05706e"
+      }
+    },
+    "protocol": {
+      "passed_functions": 38,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/protocol-02.log",
+        "sha256": "7b9a94fb4b967830210d363bec337473c7e983e8b027c887f98230535160c3fc"
+      }
+    },
+    "store": {
+      "passed_functions": 236,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/store-02-summary.json",
+        "sha256": "2caf4f4d2bf41261145d11c3036b9354a4dc4b2eceaacd8e7b1f221b47548fac"
+      },
+      "scope": "Five targeted groups, two threads, Store opt-level0 functional profile; no whole Store or performance claim."
+    },
+    "manifest": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/inputs-03.json",
+      "sha256": "3c29f2a3b0f886f46bf834d9215b802e89e2b81cc581c0922836744310f47e66"
+    },
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/dependencies-final.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/format-09.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/production-02-summary.json",
+        "sha256": "7b4736a39c15e32ac3c95863e83a45b5b3642924ab4b87a6b3e6a56c1e2e123a"
+      },
+      "log": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/production-02.log",
+        "sha256": "12f72377029a0bed6d572c6de9c1a921fe3d892308158be0894b930cd223188e"
+      },
+      "result": "First actual production run passed7/8; both algorithms proved codec recording-failure recovery and independently decoded audio. Mixed-data test exposed a mistaken zero-data-port assumption shared by controlled fixtures and b89dee01. Corrected captured positive handles in f1569d67 and added private SDK data identity checks plus zero/changed/aliased reoffer negatives. Final production rerun is still building."
+    }
+  ],
+  "remaining": [
+    "Final actual production verification and evidence update are pending; SDK integration fixture edits are not claimed as qualified by this checkpoint.",
+    "G6-060 remains in progress. Consult/return/handoff, Connection replacement, Stream subscribe/unsubscribe, server-initiated reconciliation, reliable data I/O, complete event/capability/config/raw/admin APIs, external crate/package, both-ends SDK decoded media, incompatible-server/abrupt-crash and approved remote/Linux qualification remain.",
+    "No task/acceptance/performance/publication completion claim."
+  ]
+}

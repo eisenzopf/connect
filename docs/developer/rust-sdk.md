@@ -180,9 +180,8 @@ Connection leaves other Connections, media and signed control usable. The exact
 verification scope is recorded in
 `docs/evidence/gate-6/rust-sdk-native-end.json`.
 
-`Connection::update` currently implements typed hold/resume, source mute/unmute
-and quality settings. Codec renegotiation still needs its signed replacement
-workflow, so the complete mapped `connection.update` kind remains in progress.
+`Connection::update` implements typed hold/resume, source mute/unmute, quality
+settings and direct codec renegotiation on an owned native Connection.
 `HoldDirection` describes this client: `Sendonly`, `Recvonly` or `Inactive`.
 Mute/unmute require nonempty explicit Stream IDs. Hold/resume can target explicit
 IDs or all current streams. The server still enforces its supported media profile
@@ -207,3 +206,34 @@ known-binding direction/control drops from queue overflow and malformed input.
 Other Stream queues continue. These local facts never replace server admission
 or prove remote playback. Evidence is recorded in
 `docs/evidence/gate-6/rust-sdk-runtime-controls.json`.
+
+`ConnectionUpdate::CodecRenegotiate` preserves ordered original preferences and
+optional exact stream targets. Codec reoffers bind the original request, logical
+operation, Conversation, Session, Connection, Participant, revision, supported
+codec parameters, unchanged stream set and both endpoint directions. The driver
+confirms only that validated preparation. Reliable data streams retain their
+logical identity and privately retained native port handle; the public data
+observation exposes no RTP handle. Selected RTP bindings can change.
+
+Confirmation keeps a bounded pending parameter proof. The old local binding stays
+in place until the matching completed receipt is known. Unknown or cancelled
+waiting preserves the original operation reference; status recovery can pair its
+captured receipt with that proof. Fresh or historical receipts alone cannot
+acquire hop ownership. A recorded failure releases pending preparation while
+retaining its reserved hop identities. At most one unsettled replacement per
+Connection is retained; another codec mutation receives `Conflict` with
+`NotSubmitted` certainty until the original outcome settles.
+
+Binding replacement preserves unrelated queues and known logical mute/hold
+state. It reports discarded old packets as a `Gap` and counts them in
+`binding_change_drops`. Gate observations have separate per-stream revision
+floors, so out-of-order observations for different streams are retained and an
+older codec receipt cannot undo later controls. Native model revision, resource
+revision, stream generation and Connection generation remain distinct counters.
+The HTTP reference describes the captured `NativeCodecBinding` and
+`NativeCodecResult` shapes; these observations grant no media admission.
+
+This direct update path does not complete the SDK's remaining transition,
+subscription, server-initiated reconciliation, event, data, device, configuration,
+raw/admin or external-package journeys. The exact codec qualification scope is in
+`docs/evidence/gate-6/rust-sdk-codec-updates.json`.

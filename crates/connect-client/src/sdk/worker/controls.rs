@@ -6,6 +6,7 @@ pub(super) struct LocalGate {
     active: bool,
     muted: bool,
     held: Option<Direction>,
+    revision: StreamRevision,
 }
 impl LocalGate {
     pub fn direction(&self, base: Direction) -> Direction {
@@ -45,7 +46,11 @@ pub(super) fn observe(
     {
         return Err(fail());
     }
-    if serde_json::to_value(update.state).map_err(|_| fail())? != serde_json::json!("completed") {
+    let state = serde_json::to_value(update.state).map_err(|_| fail())?;
+    if state != serde_json::json!("completed") {
+        if state == "failed" || state == "cancelled" {
+            codecs::failed(cache, key)?;
+        }
         return Ok(());
     }
     let observed = connection_updates::parse(update.result.as_ref().ok_or_else(fail)?, key)?;
@@ -59,6 +64,9 @@ pub(super) fn record(
     observed: &connection_updates::Observed,
 ) -> Result<()> {
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    if observed.codecs.is_some() {
+        return codecs::record(cache, media, key, observed);
+    }
     if observed.quality.is_some() {
         return Ok(());
     }
@@ -72,24 +80,13 @@ pub(super) fn record(
     {
         return Err(fail());
     }
-    if entry.ended || observed.revision.get() <= entry.selected.stream_revision.get() {
+    if entry.ended {
         return Ok(());
     }
-    // Old physical generations, another client's receipts and superseded formats
-    // cannot install hop handles or change this peer's current routing metadata.
-    if !observed.gates.iter().all(|g| matches_binding(entry, g)) {
-        return Ok(());
-    }
-    let mut directions = Vec::new();
-    let mut gates = Vec::new();
+    let old_matches = observed.gates.iter().all(|g| matches_binding(entry, g));
+    let mut changes = Vec::new();
     for gate in &observed.gates {
         let id: StreamId = gate.binding.stream_id.parse().map_err(|_| fail())?;
-        let current = entry
-            .selected
-            .streams
-            .iter()
-            .find(|s| s.id == id)
-            .ok_or_else(fail)?;
         let held = gate
             .held_direction
             .as_ref()
@@ -99,25 +96,83 @@ pub(super) fn record(
                     .map_err(|_| fail())
             })
             .transpose()?;
-        let gate = LocalGate {
-            active: gate.state == "active",
-            muted: gate.source_muted,
-            held,
-        };
-        directions.push((
-            streams::StreamKey {
-                conversation_id: entry.conversation.clone(),
-                session_id: entry.session.clone(),
-                connection_id: conn.clone(),
-                stream_id: id.clone(),
+        changes.push((
+            id,
+            LocalGate {
+                active: gate.state == "active",
+                muted: gate.source_muted,
+                held,
+                revision: observed.revision,
             },
-            gate.direction(current.direction),
         ));
+    }
+    let mut new_matches = false;
+    if let Some(prepared) = entry.prepared.as_mut() {
+        new_matches = observed
+            .gates
+            .iter()
+            .all(|g| prepared.matches_gate(&g.binding));
+        if new_matches || (old_matches && prepared.inherits(observed.revision)) {
+            for (id, gate) in &changes {
+                if prepared
+                    .gates
+                    .get(id)
+                    .is_none_or(|old| old.revision.get() < gate.revision.get())
+                {
+                    prepared.gates.insert(id.clone(), gate.clone());
+                }
+            }
+            prepared.observed_revision = StreamRevision::try_from(
+                prepared
+                    .observed_revision
+                    .get()
+                    .max(observed.revision.get()),
+            )
+            .map_err(|_| fail())?;
+        }
+    }
+    if old_matches || new_matches {
+        entry.known_revision =
+            StreamRevision::try_from(entry.known_revision.get().max(observed.revision.get()))
+                .map_err(|_| fail())?;
+    }
+    if !old_matches {
+        return Ok(());
+    }
+    let mut directions = Vec::new();
+    let mut gates = Vec::new();
+    for (id, gate) in changes {
+        if entry
+            .gates
+            .get(&id)
+            .is_some_and(|old| old.revision.get() >= gate.revision.get())
+        {
+            continue;
+        }
+        let current = entry
+            .selected
+            .streams
+            .iter()
+            .find(|s| s.id == id)
+            .ok_or_else(fail)?;
+        if current.stream_local_id.is_some() {
+            directions.push((
+                streams::StreamKey {
+                    conversation_id: entry.conversation.clone(),
+                    session_id: entry.session.clone(),
+                    connection_id: conn.clone(),
+                    stream_id: id.clone(),
+                },
+                gate.direction(current.direction),
+            ));
+        }
         gates.push((id, gate));
     }
     media.apply_directions(&directions)?;
     entry.gates.extend(gates);
-    entry.selected.stream_revision = observed.revision;
+    if entry.prepared.is_none() {
+        entry.selected.stream_revision = entry.known_revision;
+    }
     Ok(())
 }
 fn matches_binding(entry: &NativeConnection, gate: &GateStream) -> bool {
@@ -127,7 +182,9 @@ fn matches_binding(entry: &NativeConnection, gate: &GateStream) -> bool {
             && serde_json::to_value(s.medium).ok().as_ref() == Some(&serde_json::json!(b.medium))
             && serde_json::to_value(s.direction.reverse()).ok().as_ref()
                 == Some(&serde_json::json!(b.direction))
-            && s.stream_local_id == Some(b.stream_local_id)
+            && entry.wire_handles.get(&s.id) == Some(&b.stream_local_id)
             && s.codec == b.codec
+            && entry.generations.get(&s.id) == Some(&b.stream_generation)
+            && b.connection_generation == 1
     })
 }

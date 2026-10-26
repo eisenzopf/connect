@@ -1,4 +1,4 @@
-//! Typed native runtime controls; codec replacement has a separate negotiation path.
+//! Typed native runtime controls and signed codec replacement receipts.
 use super::*;
 use connect_protocol::{
     native_gates::GateStream,
@@ -45,6 +45,10 @@ pub enum ConnectionUpdate {
     Quality {
         interval_ms: u32,
     },
+    CodecRenegotiate {
+        streams: Option<NonEmpty<StreamId>>,
+        codec_preferences: NonEmpty<String>,
+    },
 }
 impl ConnectionUpdate {
     fn payload(self) -> Value {
@@ -59,6 +63,13 @@ impl ConnectionUpdate {
             Self::Quality { interval_ms } => (
                 json!({"action":"quality","quality_interval_ms":interval_ms}),
                 None,
+            ),
+            Self::CodecRenegotiate {
+                streams,
+                codec_preferences,
+            } => (
+                json!({"action":"codec-renegotiate","codec_preferences":codec_preferences.into_vec()}),
+                streams,
             ),
         };
         if let Some(streams) = streams {
@@ -79,7 +90,18 @@ pub struct StreamGateObservation {
     pub held_direction: Option<Direction>,
 }
 #[derive(Clone, Debug)]
+pub struct CodecObservation {
+    /// Historical parameters at this client; not physical media ownership.
+    pub parameters: NegotiatedStream,
+    pub stream_generation: u64,
+    pub connection_generation: u64,
+}
+#[derive(Clone, Debug)]
 pub enum ConnectionUpdateOutcome {
+    Codecs {
+        resources_changed: bool,
+        streams: Vec<CodecObservation>,
+    },
     Gates {
         action: GateAction,
         streams: Vec<StreamGateObservation>,
@@ -96,7 +118,9 @@ pub struct ConnectionUpdateReceipt {
     pub outcome: ConnectionUpdateOutcome,
 }
 impl Connection {
-    /// Apply native hold/resume, source mute/unmute or a bounded quality interval.
+    /// Apply native runtime controls, quality settings or signed codec replacement.
+    /// A codec reoffer is validated and confirmed by this client's owned driver;
+    /// its old binding remains local until the paired completion receipt arrives.
     /// Hold directions describe this client. Assertions use the native model's
     /// StreamRevision, independently of snapshot resource revisions. A completed
     /// receipt records the effect; it does not prove current media flow.
@@ -130,6 +154,19 @@ impl Connection {
             payload,
         };
         intent.validate().map_err(|_| fail(ErrorKind::Validation))?;
+        if intent.payload["action"] == "codec-renegotiate"
+            && !intent.payload["codec_preferences"]
+                .as_array()
+                .is_some_and(|names| {
+                    names
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(connections::codec_name)
+                        .any(|name| matches!(name.as_str(), "pcmu" | "pcma" | "opus" | "vp8"))
+                })
+        {
+            return Err(fail(ErrorKind::Unsupported));
+        }
         let mut scope = key.scope.command(Some(&key.operation_id));
         scope.expected_revision = intent.expected_revision;
         let batch = self
@@ -167,6 +204,8 @@ pub(super) struct Observed {
     pub action: Option<GateAction>,
     pub gates: Vec<GateStream>,
     pub quality: Option<u32>,
+    pub codecs: Option<Vec<connect_protocol::native_streams::CodecBinding>>,
+    pub resources_changed: bool,
 }
 fn positive(value: &Value) -> Option<u64> {
     value
@@ -179,8 +218,40 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
         || !connections::valid_scope(&key.scope)
         || value["connection_id"].as_str()
             != key.scope.connection_id.as_ref().map(ConnectionId::as_str)
-        || value["resources_changed"] != false
     {
+        return Err(fail());
+    }
+    if let Some(bindings) = value.get("codec_bindings") {
+        let bindings: Vec<connect_protocol::native_streams::CodecBinding> =
+            serde_json::from_value(bindings.clone()).map_err(|_| fail())?;
+        connect_protocol::native_streams::validate_codec_bindings(&bindings).map_err(|_| fail())?;
+        if value.get("gate_streams").is_some()
+            || value.get("quality_interval_ms").is_some()
+            || value.get("action").is_some()
+        {
+            return Err(fail());
+        }
+        let generation = bindings.first().ok_or_else(fail)?.connection_generation;
+        if bindings
+            .iter()
+            .any(|b| b.connection_generation != generation)
+        {
+            return Err(fail());
+        }
+        let revision =
+            StreamRevision::try_from(positive(&value["stream_revision"]).ok_or_else(fail)?)
+                .map_err(|_| fail())?;
+        return Ok(Observed {
+            generation,
+            revision,
+            action: None,
+            gates: vec![],
+            quality: None,
+            codecs: Some(bindings),
+            resources_changed: value["resources_changed"].as_bool().ok_or_else(fail)?,
+        });
+    }
+    if value["resources_changed"] != false {
         return Err(fail());
     }
     let generation = positive(&value["connection_generation"]).ok_or_else(fail)?;
@@ -200,6 +271,8 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
             action: None,
             gates: vec![],
             quality: Some(interval),
+            codecs: None,
+            resources_changed: false,
         });
     }
     let action: GateAction = serde_json::from_value(value["action"].clone()).map_err(|_| fail())?;
@@ -233,6 +306,8 @@ pub(super) fn parse(value: &Value, key: &OperationKey) -> Result<Observed> {
         action: Some(action),
         gates,
         quality: None,
+        codecs: None,
+        resources_changed: false,
     })
 }
 pub(super) fn validate_intent(
@@ -242,14 +317,23 @@ pub(super) fn validate_intent(
     key: &OperationKey,
 ) -> Result<()> {
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
-    if payload["action"] == "quality" {
-        if observed.quality.map(u64::from) != payload["quality_interval_ms"].as_u64()
+    if payload["action"] == "codec-renegotiate" {
+        if observed.codecs.is_none()
+            || !observed.resources_changed
+            || expected.checked_add(1) != Some(observed.revision.get())
+        {
+            return Err(fail());
+        }
+    } else if payload["action"] == "quality" {
+        if observed.codecs.is_some()
+            || observed.quality.map(u64::from) != payload["quality_interval_ms"].as_u64()
             || observed.revision.get() != expected
         {
             return Err(fail());
         }
     } else {
-        if observed.quality.is_some()
+        if observed.codecs.is_some()
+            || observed.quality.is_some()
             || expected.checked_add(1) != Some(observed.revision.get())
             || serde_json::to_value(observed.action).map_err(|_| fail())? != payload["action"]
         {
@@ -268,7 +352,29 @@ pub(super) fn decode(
     let observed = parse(&value, key)?;
     client.shared.record_connection_update(key, &observed)?;
     let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
-    let outcome = if let Some(interval_ms) = observed.quality {
+    let outcome = if let Some(bindings) = observed.codecs {
+        let mut streams = Vec::new();
+        for binding in bindings {
+            let data = binding.medium == "data";
+            streams.push(CodecObservation {
+                parameters: NegotiatedStream {
+                    id: binding.stream_id.parse().map_err(|_| fail())?,
+                    medium: serde_json::from_value(json!(binding.medium)).map_err(|_| fail())?,
+                    direction: serde_json::from_value::<Direction>(json!(binding.direction))
+                        .map_err(|_| fail())?
+                        .reverse(),
+                    codec: binding.codec,
+                    stream_local_id: (!data).then_some(binding.stream_local_id),
+                },
+                stream_generation: binding.stream_generation,
+                connection_generation: binding.connection_generation,
+            });
+        }
+        ConnectionUpdateOutcome::Codecs {
+            resources_changed: observed.resources_changed,
+            streams,
+        }
+    } else if let Some(interval_ms) = observed.quality {
         ConnectionUpdateOutcome::Quality { interval_ms }
     } else {
         let mut streams = Vec::new();

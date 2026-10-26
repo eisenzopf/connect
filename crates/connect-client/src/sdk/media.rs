@@ -20,6 +20,8 @@ pub struct MediaStats {
     pub overflow_drops: u64,
     /// Known-binding packets discarded by local direction or runtime controls.
     pub control_drops: u64,
+    /// Queued packets discarded when a confirmed binding changes format or hop.
+    pub binding_change_drops: u64,
     pub queued_packets: usize,
     pub queued_bytes: usize,
 }
@@ -186,6 +188,77 @@ impl Inbox {
             queue.items.push_back((packet, bytes.len()));
             s.packets += 1;
             s.bytes += bytes.len();
+        }
+        drop(s);
+        self.changed.notify_waiters();
+        Ok(())
+    }
+    pub fn reconfigure(
+        &self,
+        cid: &ConversationId,
+        sid: &SessionId,
+        conn: &ConnectionId,
+        selected: &NativeNegotiation,
+        directions: &BTreeMap<StreamId, Direction>,
+    ) -> Result<()> {
+        let bad = || Error::local(ErrorKind::Protocol);
+        let mut s = self.state.lock().map_err(|_| bad())?;
+        let key = |id: &StreamId| StreamKey {
+            conversation_id: cid.clone(),
+            session_id: sid.clone(),
+            connection_id: conn.clone(),
+            stream_id: id.clone(),
+        };
+        for stream in &selected.streams {
+            if let Some(handle) = stream.stream_local_id {
+                let key = key(&stream.id);
+                if !s.queues.contains_key(&key)
+                    || s.handles.get(&handle).is_some_and(|old| old != &key)
+                {
+                    return Err(bad());
+                }
+            }
+        }
+        for stream in &selected.streams {
+            let Some(handle) = stream.stream_local_id else {
+                continue;
+            };
+            let key = key(&stream.id);
+            let queue = s.queues.get_mut(&key).ok_or_else(bad)?;
+            let changed = queue.binding.stream.stream_local_id != Some(handle)
+                || queue.binding.stream.codec != stream.codec
+                || queue.binding.clock != selected.source_clock;
+            let direction = *directions.get(&stream.id).ok_or_else(bad)?;
+            let lost = if changed || !matches!(direction, Direction::Recvonly | Direction::Sendrecv)
+            {
+                let count = queue.items.len();
+                let bytes: usize = queue.items.iter().map(|(_, n)| *n).sum();
+                queue.items.clear();
+                queue.gap = queue.gap.saturating_add(count as u64);
+                Some((count, bytes))
+            } else {
+                None
+            };
+            let old = queue.binding.stream.stream_local_id;
+            queue.binding = Binding {
+                stream: stream.clone(),
+                clock: selected.source_clock,
+            };
+            queue.binding.stream.direction = direction;
+            if let Some(old) = old {
+                s.handles.remove(&old);
+            }
+            s.handles.insert(handle, key);
+            if let Some((packets, bytes)) = lost {
+                s.packets = s.packets.saturating_sub(packets);
+                s.bytes = s.bytes.saturating_sub(bytes);
+                if changed {
+                    s.stats.binding_change_drops =
+                        s.stats.binding_change_drops.saturating_add(packets as u64);
+                } else {
+                    s.stats.control_drops = s.stats.control_drops.saturating_add(packets as u64);
+                }
+            }
         }
         drop(s);
         self.changed.notify_waiters();

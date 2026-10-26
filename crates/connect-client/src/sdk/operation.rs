@@ -289,6 +289,25 @@ impl<T> Operation<T> {
                     .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?,
             )
             .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+            if key.command == "connection.update" {
+                match state {
+                    OperationState::Completed => {
+                        let observed = connection_updates::parse(
+                            update.result.as_ref().ok_or_else(|| {
+                                Error::request(ErrorKind::Protocol, Some(key), false)
+                            })?,
+                            key,
+                        )?;
+                        self.client
+                            .shared
+                            .record_connection_update(key, &observed)?;
+                    }
+                    OperationState::Failed | OperationState::Cancelled => {
+                        self.client.shared.fail_connection_update(key)?
+                    }
+                    _ => (),
+                }
+            }
             Ok(Observation {
                 snapshot: OperationSnapshot {
                     key: key.clone(),

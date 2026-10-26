@@ -1,5 +1,6 @@
 //! Real signed native frames exercise the SDK's two-leg owned negotiation.
 use super::*;
+mod codecs;
 mod end;
 mod updates;
 use crate::sdk::{
@@ -8,6 +9,7 @@ use crate::sdk::{
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    Codec(codecs::Case),
     Controls(updates::Case),
     End,
     EndHandleReuse,
@@ -104,10 +106,19 @@ pub(super) async fn emit(
         status(writer, signer, &query, "completed").await;
         return;
     }
+    let audio_direction = match first.original()["payload"]["streams_offered"][0]["direction"]
+        .as_str()
+        .unwrap()
+    {
+        "sendrecv" => "sendrecv",
+        "sendonly" => "recvonly",
+        "recvonly" => "sendonly",
+        _ => panic!("inactive"),
+    };
     let mut streams = json!([
-        {"strm_id":"audio","kind":"audio","direction":"recvonly","stream_local_id":7,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}},
+        {"strm_id":"audio","kind":"audio","direction":audio_direction,"stream_local_id":7,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}},
         {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":8,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
-        {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":0,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
+        {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":9,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
     ]);
     if matches!(case, Case::WrongDirection) {
         streams[0]["direction"] = json!("sendrecv");
@@ -175,7 +186,7 @@ pub(super) async fn emit(
     assert_eq!(confirmation.original()["payload"]["substrate_setup"], setup);
     assert_eq!(
         confirmation.original()["payload"]["streams_answered"][0]["direction"],
-        "sendonly"
+        first.original()["payload"]["streams_offered"][0]["direction"]
     );
     assert_eq!(
         confirmation.original()["payload"]["streams_answered"][1]["direction"],
@@ -185,7 +196,18 @@ pub(super) async fn emit(
     let query = read(reader).await;
     assert_eq!(query.kind(), "operation.get");
     status(writer, signer, &query, "completed").await;
-    if let Case::Controls(case) = case {
+    if let Case::Codec(case) = case {
+        codecs::emit(
+            connection,
+            case,
+            reader,
+            writer,
+            signer,
+            signal,
+            &capabilities,
+        )
+        .await;
+    } else if let Case::Controls(case) = case {
         updates::emit(connection, case, writer, reader, signer, signal).await;
     } else if matches!(case, Case::Media) {
         media_wire(connection, writer, reader, signer).await;

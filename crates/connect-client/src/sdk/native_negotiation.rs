@@ -2,13 +2,14 @@
 use super::*;
 use crate::canonical::{CommandScope, Envelope, Scope};
 use serde_json::json;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 pub(super) struct Pending {
     pub scope: CommandScope,
     payload: Value,
     answer: Option<Value>,
     selected: Option<NativeNegotiation>,
 }
+pub(super) type Context = (ParticipantId, Value, Value, BTreeMap<StreamId, u16>);
 impl Pending {
     pub fn new(payload: Value, scope: CommandScope) -> Self {
         Self {
@@ -111,17 +112,17 @@ impl Pending {
                     return Err(fail());
                 }
             }
+            let handle = stream["stream_local_id"]
+                .as_u64()
+                .and_then(|v| u16::try_from(v).ok())
+                .filter(|v| *v > 0)
+                .ok_or_else(fail)?;
+            if !handles.insert(handle) {
+                return Err(fail());
+            }
             let handle = if medium == Medium::Data {
                 None
             } else {
-                let handle = stream["stream_local_id"]
-                    .as_u64()
-                    .and_then(|v| u16::try_from(v).ok())
-                    .filter(|v| *v > 0)
-                    .ok_or_else(fail)?;
-                if !handles.insert(handle) {
-                    return Err(fail());
-                }
                 let pt = match normalized.as_str() {
                     "pcmu" => 0,
                     "pcma" => 8,
@@ -207,6 +208,36 @@ impl Pending {
             answered.push(json!({"id":stream["strm_id"],"kind":stream["kind"],"direction":direction.reverse(),"codec":stream["codec"]}));
         }
         serde_json::from_value(json!({"by_participant":p["by_participant"],"substrate":"quic","capabilities":self.payload["capabilities"],"streams_answered":answered,"substrate_setup":p["substrate_setup"]})).map_err(|_|fail())
+    }
+    pub fn context(&self) -> Result<Context> {
+        let fail = || Error::local(ErrorKind::Protocol);
+        let answer = self.answer.as_ref().ok_or_else(fail)?;
+        let local = self.payload["capabilities"].clone();
+        let remote = answer["capabilities"].clone();
+        for value in [&local, &remote, &answer["substrate_setup"]] {
+            if serde_json::to_vec(value).map_err(|_| fail())?.len() > 32 * 1024 {
+                return Err(fail());
+            }
+        }
+        Ok((
+            serde_json::from_value(answer["by_participant"].clone()).map_err(|_| fail())?,
+            local,
+            remote,
+            answer["substrate_setup"]["streams"]
+                .as_array()
+                .ok_or_else(fail)?
+                .iter()
+                .map(|s| {
+                    let id = serde_json::from_value(s["strm_id"].clone()).map_err(|_| fail())?;
+                    let handle = s["stream_local_id"]
+                        .as_u64()
+                        .and_then(|n| u16::try_from(n).ok())
+                        .filter(|n| *n > 0)
+                        .ok_or_else(fail)?;
+                    Ok((id, handle))
+                })
+                .collect::<Result<_>>()?,
+        ))
     }
     pub fn selected(&self) -> Result<&NativeNegotiation> {
         self.selected
