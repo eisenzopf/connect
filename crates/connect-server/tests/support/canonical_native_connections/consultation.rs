@@ -299,6 +299,7 @@ enum Auxiliary {
     Capability(&'static str),
     Dtmf(&'static str),
     Sdk(&'static str),
+    Mcp(&'static str),
 }
 #[tokio::test]
 async fn production_private_dtmf_excludes_remote_and_same_participant_public_peer_and_replay_cannot_publish_after_return(
@@ -329,6 +330,10 @@ async fn private_candidate_case_with_auxiliary_checks(
     verify_links: bool,
     auxiliary: Option<Auxiliary>,
 ) {
+    let mcp_algorithm = match auxiliary {
+        Some(Auxiliary::Mcp(a)) => Some(a),
+        _ => None,
+    };
     let sdk_algorithm = match auxiliary {
         Some(Auxiliary::Sdk(a)) => Some(a),
         _ => None,
@@ -365,6 +370,15 @@ async fn private_candidate_case_with_auxiliary_checks(
             .0
     } else if let Some(algorithm) = dtmf_algorithm {
         codecs::setup_started_dtmf(Fixture::with_native_dtmf_scope(algorithm, 12).await, true).await
+    } else if let Some(algorithm) = mcp_algorithm {
+        codecs::setup_started(
+            Fixture::with_native_mcp(algorithm, 12).await,
+            (),
+            "codec-target-offer",
+            "codec-source-offer",
+        )
+        .await
+        .0
     } else if let Some(algorithm) = capability_algorithm.or(sdk_algorithm) {
         let f = Fixture::with_native_end_scope(algorithm, 12).await;
         codecs::setup_started(f, (), "codec-target-offer", "codec-source-offer")
@@ -546,6 +560,11 @@ async fn private_candidate_case_with_auxiliary_checks(
         },
         payload_extensions: Default::default(),
     };
+    let mcp_probe = if mcp_algorithm.is_some() {
+        Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &credential.token).await)
+    } else {
+        None
+    };
     let sdk_probe = if sdk_algorithm.is_some() {
         Some(sdk_controls::submit(&f, &command, &credential.token).await)
     } else {
@@ -554,7 +573,7 @@ async fn private_candidate_case_with_auxiliary_checks(
     let admitted = if provider.is_some_and(provider::Case::automatic) {
         None
     } else {
-        if sdk_probe.is_none() {
+        if sdk_probe.is_none() && mcp_probe.is_none() {
             controller.transition(command.clone()).await.unwrap();
         }
         let store = f.server.store.clone();
@@ -1002,6 +1021,9 @@ async fn private_candidate_case_with_auxiliary_checks(
         if let Some(probe) = &sdk_probe {
             sdk_controls::completed(&f, probe, completion.session_revision).await;
         }
+        if let Some(probe) = &mcp_probe {
+            probe.completed(&record).await;
+        }
         let mut competing = command.clone();
         competing.operation_id = "second-private-context".into();
         competing.expected_revision = completion.session_revision;
@@ -1021,7 +1043,11 @@ async fn private_candidate_case_with_auxiliary_checks(
         assert_eq!(record.effects.len(), 1);
         assert_eq!(record.effects[0].attempt, 1);
         let before = serde_json::to_value(&record.effects).unwrap();
-        controller.transition(command.clone()).await.unwrap();
+        if let Some(probe) = &mcp_probe {
+            probe.replay().await;
+        } else {
+            controller.transition(command.clone()).await.unwrap();
+        }
         let after = f
             .server
             .store
@@ -1039,6 +1065,9 @@ async fn private_candidate_case_with_auxiliary_checks(
         let operator = f.server.store.authenticate(&f.admin).unwrap();
         f.server.store.revoke(&operator, &credential.id).unwrap();
         assert!(controller.transition(command.clone()).await.is_err());
+        if let Some(probe) = mcp_probe {
+            probe.revoked_and_close().await;
+        }
         // Current ordering is [remote, primary, candidate, old public context].
         probes[3].close();
         wait_slots(&f, 3).await;
@@ -1049,7 +1078,7 @@ async fn private_candidate_case_with_auxiliary_checks(
         probes.swap(0, 1);
         probes.swap(0, 2);
         if return_to_public {
-            let _returned = perform_return_with_sdk(
+            let _returned = perform_return_with_control(
                 &f,
                 &cid,
                 origin.record_id(),
@@ -1057,6 +1086,7 @@ async fn private_candidate_case_with_auxiliary_checks(
                 true,
                 vec!["private-consultant"],
                 sdk_probe.as_ref().map(|p| p.reference.clone()),
+                mcp_algorithm.is_some(),
             )
             .await;
             wait_slots(&f, 2).await;
@@ -1181,6 +1211,29 @@ async fn perform_return_with_sdk(
     retired: Vec<&str>,
     sdk_reference: Option<serde_json::Value>,
 ) -> serde_json::Value {
+    perform_return_with_control(
+        f,
+        cid,
+        parent,
+        expected_revision,
+        continuing,
+        retired,
+        sdk_reference,
+        false,
+    )
+    .await
+}
+
+async fn perform_return_with_control(
+    f: &Fixture,
+    cid: &str,
+    parent: &str,
+    expected_revision: u64,
+    continuing: bool,
+    retired: Vec<&str>,
+    sdk_reference: Option<serde_json::Value>,
+    mcp: bool,
+) -> serde_json::Value {
     let mut grant = Scope::collaboration(vec!["*".into()]);
     grant.operations.push("session.consult.return".into());
     let store = f.server.store.clone();
@@ -1221,7 +1274,15 @@ async fn perform_return_with_sdk(
         },
         payload_extensions: Default::default(),
     };
-    if sdk_return.is_none() {
+    let mcp_return = if mcp {
+        Some(
+            crate::canonical_mcp::TransitionProbe::submit(f, &return_command, &return_key.token)
+                .await,
+        )
+    } else {
+        None
+    };
+    if sdk_return.is_none() && mcp_return.is_none() {
         return_client
             .transition(return_command.clone())
             .await
@@ -1253,6 +1314,12 @@ async fn perform_return_with_sdk(
     };
     assert_eq!(returned["result"]["remote_continuing"], continuing);
     assert_eq!(returned["result"]["retired_connection_ids"], json!(retired));
+    if let Some(probe) = &mcp_return {
+        probe
+            .completed(&serde_json::from_value(returned.clone()).unwrap())
+            .await;
+        probe.replay().await;
+    }
     let before = returned["effects"].clone();
     let replay = return_client
         .transition(return_command.clone())
@@ -1284,6 +1351,9 @@ async fn perform_return_with_sdk(
         .unwrap()
         .unwrap();
     assert!(return_client.transition(return_command).await.is_err());
+    if let Some(probe) = mcp_return {
+        probe.revoked_and_close().await;
+    }
     if let Some((client, operation)) = sdk_return {
         let error = operation
             .status(sdk_controls::options())
@@ -1693,4 +1763,24 @@ async fn production_private_ai_socket_loss_preserves_cleanup_uncertainty_and_ret
         Some(provider::Case::SocketLost),
     )
     .await;
+}
+
+#[tokio::test]
+async fn production_mcp_consultation_return_preserves_private_audio_original_recovery_and_current_authority(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        private_candidate_case_with_auxiliary_checks(
+            true,
+            false,
+            false,
+            true,
+            false,
+            None,
+            false,
+            false,
+            Some(Auxiliary::Mcp(algorithm)),
+        )
+        .await;
+        eprintln!("MCP consultation/return {algorithm}: private duplex, excluded remote/public silence, retained remote, restored public audio, original recovery/replay, current revocation and joined owners");
+    }
 }

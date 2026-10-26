@@ -1,0 +1,134 @@
+{
+  "task": "G6-065",
+  "status": "local MCP consultation/return and native movement qualified; task remains in progress",
+  "checked_at": "2026-10-26T20:48:59.046413+00:00",
+  "base_revision": "b4200c228e6cac316f47c85e0f11ba8dfb70c5bb",
+  "scope": "Local macOS arm64 stock canonical server, configured loopback MCP listener and official RMCP client controlling independent signed native QUIC media peers. Test/probe changes only; no production policy or tool-schema change.",
+  "source_inputs": {
+    "crates/connect-server/tests/support/canonical_mcp.rs": "d7bc11fcb7ce8d2313f17815188535e67ba043ff4770fafad7d3120398c64e4e",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation.rs": "6085dbb0d1789cbec2ad7c97463f074613bf4c3d23d495b4e1fd4344e8633495",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "be45bde40ee17e561b77c0de8a28cb9b75f00b15badf9c5c8052f105a7bd12e1",
+    "crates/connect-mcp/src/canonical_tools.rs": "c56e5bb92db06c1bd3a1a1727b4e111c0a7a83622db374fed3994dda2f2ef6f2",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "6ef83ed916bc34f227201b52c95489317aa25d1413842ab887495ee797dc9805"
+  },
+  "implementation": [
+    "The shared MCP transition probe selects the named canonical handoff, consultation, return or replacement tool from the exact normalized command. It preserves logical operation ID, scope, revision, intent and extensions; no transport credential or media peer comes from tool arguments.",
+    "Consultation and return use the configured listener and independently scoped current credentials. Both original and fresh MCP clients recover the authoritative record/result. Explicit replay preserves original effects; current credential revocation refuses both mutation and status.",
+    "Native replacement starts through MCP, replays during preparation without duplicate effect, recovers completion on a fresh MCP client and preserves current authority checks. Existing HTTP and SDK fixture entry points delegate to the unchanged control mode. No successful tool result is used as decoded-audio proof."
+  ],
+  "cases": {
+    "new_production_functions": 2,
+    "new_control_scenes": 10,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "consultation_return": "Two algorithm scenes each execute private consultation and return. Actual forward/reverse PCMU, excluded retained/public peer silence, original effect/attempt, public restoration, fresh MCP recovery and current credential revocation are asserted.",
+    "native_movement": "Four movement scenes per algorithm: normal speaker, observer, established target Endpoint withdrawal, established target-key revocation. The first replacement is driven by MCP. Independent marked native IO checks actual generation-two media, retained remote, role preservation and original-only retirement. Normal scenes also retain the existing subsequent generation-three movement through its existing HTTP path.",
+    "regression": "The existing eight-scene native MCP handoff function and all five canonical MCP control/identity/hosting functions pass in the same frozen binary."
+  },
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 13.773177791154012,
+      "source_unchanged": true,
+      "binary_sha256": "708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7",
+      "bytes": 250947456,
+      "source_count": 1944,
+      "log_sha256": "43071bbbae1a4af3841d0220103c62daf04472397e445fd9b9a934bd1d2166a3",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "canonical-cli-01": {
+        "sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+        "bytes": 232474976
+      }
+    },
+    "production": {
+      "rows": [
+        {
+          "filter": "production_mcp_consultation_return_",
+          "expected": [
+            "canonical_native_connections::consultation::production_mcp_consultation_return_preserves_private_audio_original_recovery_and_current_authority"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 38.34937754180282,
+          "log_sha256": "1c19fc4548037286c6403a4e68f86dc0da6803d00a4d40b532cca1d72910e2eb"
+        },
+        {
+          "filter": "production_mcp_device_movement_",
+          "expected": [
+            "canonical_native_connections::consultation::groups::replacement::production_mcp_device_movement_keeps_decoded_generation_two_audio_original_recovery_and_current_authority"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 223.470022165915,
+          "log_sha256": "6c5555358fc73a454ffd8411421fdd38723a93a70263920c7de5b5ec254860f9"
+        },
+        {
+          "filter": "production_mcp_handoff_",
+          "expected": [
+            "canonical_native_connections::consultation::groups::handoff::production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 178.05784191703424,
+          "log_sha256": "0c0e622b83d5d41d8af4cd9d5de5873ca006611567bee96be515bd1a28822c40"
+        },
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::application_dispatch::identity_application_dispatch_refuses_retired_mutations_keeps_tasks_and_rechecks_auth",
+            "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.5103699578903615,
+          "log_sha256": "87577dd2c861b86dcd5690ff5912264f1430decce0987e8a44d5b0cff7d92486"
+        }
+      ],
+      "binary_sha256": "708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7",
+      "guard_count": 1944,
+      "source_unchanged": true,
+      "default_thread_stack": true
+    },
+    "build_inputs": {
+      "count": 1944,
+      "sha256": "92b55ac876a58557dd5aeba8317d930658c17a7683ed43b9ceed9f506cfe2d70",
+      "still_unchanged": true
+    },
+    "existing_http_qualification": {
+      "cli_sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+      "exact_match_to_280_case_checkpoint": true,
+      "note": "The exact CLI that already passed280 protected HTTP/schema exchanges; only integration-test sources changed, so the HTTP run is not repeated or counted as new."
+    },
+    "default_thread_stack": true,
+    "static": [
+      "scripts/prepare-dependencies.sh: pinned sources/patch digests verified",
+      "scripts/format.sh --check",
+      "HTTP inventory:24 declarations/25 explicit methods/zero uncovered",
+      "Plan static/editable task records match;53done/3in-progress/49not-started",
+      "git diff --check"
+    ]
+  },
+  "failure_and_cleanup": [
+    "No runtime failure in this frozen cohort. The deliberate denied-current-authority responses are expected behavior, not skipped cases.",
+    "Every new scene retains the original owned native/listener/server cleanup assertions. MCP clients and fresh recovery clients are explicitly cancelled/joined.",
+    "Closed generated library variants and qualified messaging checkpoint executables were losslessly archived with decoded full hashes, modes and closure audits before building. Current source/state/logs/CLI/native checkpoint were retained; no undocumented prepared-source edits."
+  ],
+  "remaining": [
+    "An actual supported installed agent-host/model turn requesting and observing the transition under its configured authority is still required; an official protocol-client test does not substitute.",
+    "Remaining full facade-positive-branch/profile qualification and the retained intermittent Task/provider uncertainty refusal remain open. No root cause or robustness fix is inferred from later unrelated passes.",
+    "Telephone/browser/remote/provider/Linux/package and independent Gate 6 acceptance retain their separately assigned work. No acceptance promotion or publication."
+  ]
+}

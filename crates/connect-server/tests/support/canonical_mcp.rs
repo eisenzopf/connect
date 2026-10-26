@@ -60,6 +60,7 @@ pub(crate) struct TransitionProbe {
     token: String,
     arguments: Value,
     operation: String,
+    tool: &'static str,
 }
 impl TransitionProbe {
     pub(crate) async fn submit(
@@ -69,7 +70,13 @@ impl TransitionProbe {
     ) -> Self {
         let mut command = input.clone();
         command.normalize().unwrap();
-        assert_eq!(command.intent.required_scope(), "session.handoff");
+        let tool = match command.intent.required_scope() {
+            "session.handoff" => "connect_session_handoff",
+            "session.consult" => "connect_session_consult",
+            "session.consult.return" => "connect_session_consult_return",
+            "connection.replace" => "connect_connection_replace",
+            other => panic!("unsupported transition probe: {other}"),
+        };
         let mut payload = serde_json::to_value(&command.intent).unwrap();
         payload
             .as_object_mut()
@@ -86,13 +93,14 @@ impl TransitionProbe {
         }
         let address = f.server.mcp_address.unwrap();
         let client = client(address, token).await;
-        success(call(&client, "connect_session_handoff", arguments.clone()).await);
+        success(call(&client, tool, arguments.clone()).await);
         Self {
             client,
             address,
             token: token.into(),
             arguments,
             operation: command.operation_id,
+            tool,
         }
     }
     fn status_arguments(&self) -> Value {
@@ -148,14 +156,7 @@ impl TransitionProbe {
             record["problem"],
             json!({"code":expected,"source":"native-handoff"})
         );
-        success(
-            call(
-                &self.client,
-                "connect_session_handoff",
-                self.arguments.clone(),
-            )
-            .await,
-        );
+        success(call(&self.client, self.tool, self.arguments.clone()).await);
         let replay = self.record(&self.client).await;
         assert_eq!(replay["record_id"], record["record_id"]);
         assert_eq!(replay["problem"], record["problem"]);
@@ -175,16 +176,30 @@ impl TransitionProbe {
         assert_eq!(recovered["result"], record["result"]);
         fresh.cancel().await.unwrap();
     }
+    pub(crate) async fn replay(&self) {
+        success(call(&self.client, self.tool, self.arguments.clone()).await);
+    }
+    pub(crate) async fn revoked_and_close(self) {
+        for (name, arguments) in [
+            (self.tool, self.arguments.clone()),
+            ("connect_operation_get", self.status_arguments()),
+        ] {
+            assert!(
+                self.client
+                    .call_tool(
+                        CallToolRequestParams::new(name)
+                            .with_arguments(arguments.as_object().unwrap().clone())
+                    )
+                    .await
+                    .is_err(),
+                "revoked MCP authority must fail transport authentication"
+            );
+        }
+        self.client.cancel().await.unwrap();
+    }
     pub(crate) async fn replay_and_close(self) {
         let before = self.record(&self.client).await;
-        success(
-            call(
-                &self.client,
-                "connect_session_handoff",
-                self.arguments.clone(),
-            )
-            .await,
-        );
+        success(call(&self.client, self.tool, self.arguments.clone()).await);
         let after = self.record(&self.client).await;
         assert_eq!(after["record_id"], before["record_id"]);
         assert_eq!(after["result"], before["result"]);

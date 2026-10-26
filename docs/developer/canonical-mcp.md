@@ -50,7 +50,8 @@ all 27 retired selector refusals through the identity service, nested Task
 exactly-once replay, both signing algorithms through the official MCP client,
 and 280 current HTTP/schema exchanges. Its
 [recorded evidence](../evidence/gate-6/canonical-mcp-application-dispatch.json)
-keeps these scopes separate from remaining consultation, movement and host work.
+records that dispatch scope separately from the consultation/movement checkpoint
+below and the remaining actual host/profile qualification.
 
 ## Canonical server configuration
 
@@ -92,3 +93,31 @@ audio, observer receive-only behavior, participant revisions and owned teardown.
 The MCP result remains metadata; the independent native decoders supply audio
 proof. Local evidence is `docs/evidence/gate-6/canonical-mcp-handoff.json`. This
 direct protocol-client fixture does not qualify an actual model-host turn.
+
+## Consultation, return and native device movement through MCP
+
+`connect_session_consult`, `connect_session_consult_return` and
+`connect_connection_replace` use the same official-client transition probe as
+handoff. Each call preserves the original operation ID, resource scope, expected
+revision and complete payload. Status is read through `connect_operation_get` on
+the original client and a fresh MCP client. Only bounded status reads retry
+authority contention; there is no automatic mutation retry.
+
+The local production consultation scene checks actual private duplex audio,
+silence at the retained remote and another public peer, and restored public
+flow after return. Original replay keeps the same effects. Revocation refuses
+both a mutation replay and a status read while independently authorized media
+continues. The return uses a separately issued current credential.
+
+The native movement scenes cover speaker/observer roles, current target Endpoint
+withdrawal and target-key loss under both signing algorithms. The first move is
+requested through MCP. Independent native peers verify generation-two media,
+retained remote Connection, role preservation and retirement of the original
+route. The original completion is recoverable through a fresh MCP client;
+explicit replay retains one attempt per effect. Later native retirement and
+existing subsequent-move checks retain their own communication paths.
+
+These are direct protocol-client checks against a local stock server. They
+qualify neither a model's decision nor an installed agent-host turn, telephone
+profile, remote provider or package. Exact scope is recorded in
+[the consultation/movement evidence](../evidence/gate-6/canonical-mcp-transitions.json).

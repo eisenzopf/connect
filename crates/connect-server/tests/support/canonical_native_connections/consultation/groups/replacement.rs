@@ -106,6 +106,26 @@ pub(super) async fn exercise_replacement_with_sdk(
     deferred_projection: bool,
     sdk_algorithm: Option<&'static str>,
 ) {
+    exercise_replacement_with_control(
+        allocate,
+        start_media,
+        reject_answer,
+        movement,
+        deferred_projection,
+        sdk_algorithm,
+        false,
+    )
+    .await
+}
+async fn exercise_replacement_with_control(
+    allocate: bool,
+    start_media: bool,
+    reject_answer: bool,
+    movement: bool,
+    deferred_projection: bool,
+    sdk_algorithm: Option<&'static str>,
+    mcp: bool,
+) {
     let cases = if deferred_projection {
         vec![(false, false, false)]
     } else if movement {
@@ -140,7 +160,11 @@ pub(super) async fn exercise_replacement_with_sdk(
             th,
         } = if let Some(algorithm) = sdk_algorithm {
             codecs::setup_started(
-                Fixture::with_native_end_scope(algorithm, 16).await,
+                if mcp {
+                    Fixture::with_native_mcp(algorithm, 16).await
+                } else {
+                    Fixture::with_native_end_scope(algorithm, 16).await
+                },
                 (),
                 "codec-target-offer",
                 "codec-source-offer",
@@ -274,12 +298,17 @@ pub(super) async fn exercise_replacement_with_sdk(
             },
             payload_extensions: Default::default(),
         };
-        let sdk_probe = if sdk_algorithm.is_some() {
+        let mcp_probe = if mcp {
+            Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await)
+        } else {
+            None
+        };
+        let sdk_probe = if sdk_algorithm.is_some() && !mcp {
             Some(super::sdk_movements::replacement(&f, &command, &key.token).await)
         } else {
             None
         };
-        let public_root = if sdk_probe.is_some() {
+        let public_root = if sdk_probe.is_some() || mcp_probe.is_some() {
             controller
                 .operation_get(
                     &command.operation_id,
@@ -300,7 +329,11 @@ pub(super) async fn exercise_replacement_with_sdk(
         assert!(prepared.result.is_none());
         assert_eq!(prepared.effects.len(), 1);
         assert_eq!(prepared.effects[0].attempt, 1);
-        controller.transition(command.clone()).await.unwrap();
+        if let Some(probe) = &mcp_probe {
+            probe.replay().await;
+        } else {
+            controller.transition(command.clone()).await.unwrap();
+        }
         assert_eq!(
             status(&f, &key.id, &command.operation_id).await.effects,
             prepared.effects
@@ -703,6 +736,10 @@ pub(super) async fn exercise_replacement_with_sdk(
                 )
                 .await;
             }
+            if let Some(probe) = &mcp_probe {
+                probe.completed(&done).await;
+                probe.replay().await;
+            }
             assert_eq!(done.effects.len(), 7);
             assert!(done
                 .effects
@@ -753,6 +790,9 @@ pub(super) async fn exercise_replacement_with_sdk(
                 .credential_id;
             f.server.store.revoke(&admin, &old).unwrap();
             f.server.store.revoke(&admin, &key.id).unwrap();
+            if let Some(probe) = mcp_probe {
+                probe.revoked_and_close().await;
+            }
             key = f
                 .server
                 .store
@@ -1289,3 +1329,13 @@ async fn production_replacement_known_commit_metadata_failure_and_target_loss_re
 
 #[path = "replacement/telephone.rs"]
 mod telephone;
+
+#[tokio::test]
+async fn production_mcp_device_movement_keeps_decoded_generation_two_audio_original_recovery_and_current_authority(
+) {
+    for algorithm in ["EdDSA", "ES256"] {
+        exercise_replacement_with_control(true, true, false, true, false, Some(algorithm), true)
+            .await;
+        eprintln!("MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners");
+    }
+}
