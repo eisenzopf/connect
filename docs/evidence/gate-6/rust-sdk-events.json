@@ -2,7 +2,7 @@
   "schema": "connect-gate6-rust-sdk-events/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T06:50:52.022384+00:00",
+  "checked_at": "2026-10-26T06:58:19.861954+00:00",
   "base_revision": "9e6800d9",
   "scope": "Component checkpoint for typed owned native durable event streams; production fixtures are implemented but not yet qualified. G6-060 and all105 tasks remain open.",
   "implementation": [
@@ -16,20 +16,21 @@
       "new_signed_functions": 9,
       "failed_functions": 0,
       "log": {
-        "path": ".local/gate-6/sdk-events/client-06.log",
-        "sha256": "639b1ffc6e208833df6794f15fc76365b5392f193a2ad67c2133cea20d815089"
+        "path": ".local/gate-6/sdk-events/client-07.log",
+        "sha256": "d8630c520f1557dde1729b884c5701318e55a44913d69a5e5da227b3824f82f0"
       },
       "scope": "Signed bootstrap, dropped waits, ACK boundaries, deadlines, renewal, cursor replay, malformed/scope/auth refusal, count/byte overflow, cancellation and capacity."
     },
     "production": {
-      "status": "failed-candidate-02; corrected-candidate-03-building",
+      "status": "new-event-fixtures-passed; selected-regressions-running",
+      "passed_functions": 3,
+      "failed_functions": 0,
       "report": {
-        "path": ".local/gate-6/sdk-events/production-02-summary.json",
-        "sha256": "66ba23ae67e618d27f44c625d402e283e2fc5892b6950cc09a930b0e4cf61aa3"
+        "path": ".local/gate-6/sdk-events/production-04-00.log",
+        "sha256": "4a036449fc83713bf52de7706722706f7e831b41c77b8b179f342137df3f563c"
       },
-      "passed_functions": 1,
-      "failed_functions": 2,
-      "observation": "Both-algorithm durable cursor/restart function passed. Live-original fixture assumed shared event IDs across participant-specific rows. Continuous media passed EdDSA then failed transport in ES256; two independent repeated diagnostics also failed early. The pinned subscription delivery allowlist omits service-emitted started/joined/left lifecycle hints. Corrected fixture reads each participant exact Store row; recorded patch adds only those lifecycle kinds with the same current authority, scope and live deadline. Corrected runtime remains pending."
+      "observation": "All three actual-server fixtures pass both EdDSA/ES256: original participant-specific Store facts/private correlation/current authorization and isolated cancellation; renewed live journal plus decoded PCMU; durable cursor/original operation recovery after restart. Fourteen prior SDK and two subscription/batch regressions are still running.",
+      "pending": "Complete candidate04 aggregate qualification."
     },
     "dependencies": {
       "path": ".local/gate-6/sdk-events/dependencies.log",
@@ -46,8 +47,8 @@
     "rustdoc": {
       "passed_functions": 6,
       "log": {
-        "path": ".local/gate-6/sdk-events/rustdoc.log",
-        "sha256": "a14ec3fdaab70abd322bd220d208571e7c6d89d3c54c17041f8f1db1296feb61"
+        "path": ".local/gate-6/sdk-events/rustdoc-03.log",
+        "sha256": "0cd820924a04890a2120972324de2d10539f45596f8345e3e3fe48da17269499"
       }
     },
     "contracts": {
@@ -85,8 +86,8 @@
     },
     "inputs": {
       "manifest": {
-        "path": ".local/gate-6/sdk-events/inputs-03.json",
-        "sha256": "553882d2a496c63dafbce6bc14c1a68bbc64e817a07bb9658de5deb112625821"
+        "path": ".local/gate-6/sdk-events/inputs-04.json",
+        "sha256": "361c89699faf502a18ceba2a0095de1cfd61a34212f9dd2c32288475b573ad8c"
       },
       "guarded_inputs": 1351,
       "unchanged_at_checkpoint": true
@@ -141,6 +142,20 @@
         "sha256": "8d0d0fdb5b1820d1abde8309a0dd504ebea8b3c7282d2a354678bf99317b03be"
       },
       "observation": "Whole upstream harness requires signed-vcon and Tokio test-util features absent in production dependency graph. Exact new tests with unchanged helper blocks are separately compiled instead."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-events/production-02-summary.json",
+        "sha256": "66ba23ae67e618d27f44c625d402e283e2fc5892b6950cc09a930b0e4cf61aa3"
+      },
+      "observation": "Both-algorithm durable cursor/restart function passed. Live-original fixture assumed shared event IDs across participant-specific rows. Continuous media passed EdDSA then failed transport in ES256; two independent repeated diagnostics also failed early. The pinned subscription delivery allowlist omits service-emitted started/joined/left lifecycle hints. Corrected fixture reads each participant exact Store row; recorded patch adds only those lifecycle kinds with the same current authority, scope and live deadline. Corrected runtime remains pending."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-events/production-03-summary.json",
+        "sha256": "a499a2ebdb9dd6465a43a06d409166167623087770c304f0ce2a51ce2e5a5ced"
+      },
+      "observation": "Current patched library passes durable restart and continuous decoded-audio/live renewal for both signing algorithms. The final original-fact/current-authority fixture used bearer tokens directly in the internal Store comparison, which requires authenticated credential IDs. Corrected both owner and peer evidence reads through Store.authenticate; all application behavior remains on public SDK APIs. Candidate04 runtime pending."
     }
   ],
   "remaining": [

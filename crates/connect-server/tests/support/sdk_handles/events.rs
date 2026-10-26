@@ -133,11 +133,23 @@ async fn public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolat
         );
         assert_eq!(event.data["data"]["body"], "journal message 0");
         let other = until_message(&mut peer_events, "live-event-message-0", None).await;
+        let peer_credential = f
+            .server
+            .store
+            .authenticate(&peer_config.credential)
+            .unwrap()
+            .credential_id;
+        let owner_credential = f
+            .server
+            .store
+            .authenticate(&f.client.credential)
+            .unwrap()
+            .credential_id;
         let peer_actual = f
             .server
             .store
             .conversation_events(
-                &peer_config.credential,
+                &peer_credential,
                 room.id().as_str(),
                 connect_protocol::events::EventQuery {
                     after: Some(peer_baseline.as_str().into()),
@@ -172,7 +184,7 @@ async fn public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolat
             .server
             .store
             .conversation_events(
-                &f.client.credential,
+                &owner_credential,
                 room.id().as_str(),
                 connect_protocol::events::EventQuery {
                     after: Some(baseline.as_str().into()),
