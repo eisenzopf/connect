@@ -1,6 +1,7 @@
 //! Explicit local record erasure. A source selector is never read authority.
 use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
@@ -11,18 +12,21 @@ pub struct Request {
     pub expected_revision: u64,
     pub action: Action,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
     Redact { sources: Vec<Source> },
     Delete,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Source {
     pub target: Target,
     pub mode: Mode,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Target {
@@ -38,6 +42,7 @@ pub enum Target {
         generation: u64,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Mode {
@@ -102,6 +107,7 @@ impl Request {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Outcome {
@@ -112,11 +118,13 @@ pub struct Outcome {
     pub at: chrono::DateTime<chrono::Utc>,
     pub remote_deletion: RemoteDeletion,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RemoteDeletion {
     NotAttempted,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Response {

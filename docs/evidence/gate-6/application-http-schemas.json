@@ -1,0 +1,659 @@
+{
+  "task": "G6-065",
+  "status": "Complete current DTO/dispatch schema foundation passed; fresh server wire qualification pending",
+  "checked_at": "2026-10-26T15:33:25.738888+00:00",
+  "base_revision": "8af6603d164e0d9fe96e296338c18398320e9f95",
+  "scope": "Local Darwin arm64 source generation and actual Rust serde codec only. No current HTTP/service authorization, provider/media/model-host/Linux/remote/package or acceptance qualification is inferred.",
+  "implementation": [
+    "Added optional connect-protocol/schema feature using the already locked schemars1.2.2 derive library and240 conditional schema derives on existing serde DTOs. Production defaults remain without this feature. No mirror DTOs, legacy dispatch or compatibility layer introduced.",
+    "Rust example generates actual Operation deserialize and Response serialize schemas, preserving recursive Task effects, optional/default/skipped fields, enum tags and closed serde structures. It executes current application_api::response_kind on synthetic typed DTOs, expanding membership and receipt selector families and all16 Task commands.",
+    "New consolidated OpenAPI contains225 components for59 root wire tags.69 selector cases partition42 named dispatch cases from27 retired cases. Supported top-level membership/receipt subsets are narrowed explicitly; the complete raw nested Task Operation/outcome graph remains available.",
+    "Generator refines externally tagged Result map cardinality and the current envelope profile; conditional schema metadata reflects the real native-pairing false-SMS-consent decoder. Duplicate metadata/discriminator keys remain byte-level parser constraints rather than invented parsed-JSON schema guarantees.",
+    "Generated synthetic dispatch catalog records shape/dispatch examples only, without presenting them as business-valid calls or authorization. All generation inputs are hashed and checked unchanged. Endpoint inventory adds the consolidated reference without claiming runtime coverage."
+  ],
+  "verification": {
+    "protocol": {
+      "runs": [
+        {
+          "mode": "default",
+          "exit_code": 0,
+          "seconds": 15.003681249916553,
+          "log_sha256": "fc0332e8f8cb05235f95d3cf5044413c4cfd97432beefafcdbecc9c41e54baa0",
+          "result": [
+            "test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+          ]
+        },
+        {
+          "mode": "schema",
+          "exit_code": 0,
+          "seconds": 0.11005829181522131,
+          "log_sha256": "b88e65382cd73d4fb0714047ce989db44d6f982bc2a281d5933d17e5e832d62c",
+          "result": [
+            "test result: ok. 43 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+          ]
+        }
+      ],
+      "source_unchanged": true
+    },
+    "protocol_input_guard_sha256": "22653ba4307f40f6d765c2520a42ce0c2aece2a1e1489685fc7b930423e75028",
+    "schema_codec": {
+      "scope": "Synthetic real serde/schema/dispatch agreement only; no service authorization/media/profile qualification",
+      "codec_sha256": "aa08fdfc232f9c6316b18f58eb952c65f5f9a60fb96b2d830b497e0413a24543",
+      "source_unchanged": true,
+      "generation_inputs": {
+        "Cargo.lock": "dc69ee13a8217a9cb2b3661ada17f9d51abce92fc21eb6523e4890fa8785c186",
+        "Cargo.toml": "5ccdf71e1e209def947e0765eb3201641f5120c3d86b8f71c42904549068411f",
+        "crates/connect-protocol/Cargo.toml": "bbbd622e352c316a507c3cf5a1b6cfad8f2a96e81af273123dcbf02cafbfb24c",
+        "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
+        "crates/connect-protocol/src/application_api.rs": "92f9ceebc43320e807845d7b47db6a3495134444ed21f3735da0d838a57efec7",
+        "crates/connect-protocol/src/attachments.rs": "77ab58a48700c9950f936314c097dd2c20a82c32b74e8468e5891b759412b7cb",
+        "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",
+        "crates/connect-protocol/src/canonical_http.rs": "20020de6aefd890178e2aacbfeb44ca5312ccf623fe35cef50e42d59203c62d7",
+        "crates/connect-protocol/src/connection_control.rs": "461318f216cd3be6c1b392ab0e9ddc9c16d63ad22b35b82f9d28123aa761d492",
+        "crates/connect-protocol/src/contacts.rs": "ea94dce3a693b7ee1a7ebb6e1a59004595b7e47bae8cd365f78b2d877699702f",
+        "crates/connect-protocol/src/conversations.rs": "adf5371467e0f392a4079ec73a45089793b30801e2734234f172b3bea475c99b",
+        "crates/connect-protocol/src/credential_issuance.rs": "5698195e40bb155b8c948bd62791037ad6bce8347faf734624d372a09bc787c5",
+        "crates/connect-protocol/src/discovery.rs": "1013efaa4a1932fc61ee5b9219199f899094f0314bd71229a8c2bcba175856e1",
+        "crates/connect-protocol/src/events/agent.rs": "5edabb2228bd2ad88e6e4e3648ef8c163f45c01ab07e9e807e043c77334a5d86",
+        "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
+        "crates/connect-protocol/src/events.rs": "894e5f211449f729045aa69f904c3fffe3a7c0a7c604c0297097ba69956a422c",
+        "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
+        "crates/connect-protocol/src/lib.rs": "e46ef9d9b9ab1bf355f5e2023fe746dcffcbd746e9e218d50f1b4a50025dc033",
+        "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
+        "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
+        "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
+        "crates/connect-protocol/src/messages.rs": "bcd8a68ef8d6d60e9798688730c7466074d55b01270928523b847f5b7362dba3",
+        "crates/connect-protocol/src/native_capabilities.rs": "caf76d22b5d28a0124116ffd309195ad2a1782f59539a42dc7d7335f70458d1d",
+        "crates/connect-protocol/src/native_data.rs": "e5120aeb30ee6458a86f917305a0041e820575f5a01a356d85273016c353afbe",
+        "crates/connect-protocol/src/native_dtmf.rs": "9f4cd77bd13c53cf2cb5bd65bed19629b5217b928ea5809d12cb899c402eb691",
+        "crates/connect-protocol/src/native_gates.rs": "e34a887a3ee5debdd5069c1628b77df2a426206b594b219c1eef89e2e14915b7",
+        "crates/connect-protocol/src/native_network.rs": "660942bd63592c76352c04ea7f63005505985b9d1fb897078c9ecd9c6a0c0baf",
+        "crates/connect-protocol/src/native_streams.rs": "ac0716a053e299867925012a1f28211447083a3b6e102d38f369fa6561224007",
+        "crates/connect-protocol/src/provisioning.rs": "be66cef48479c33ccfb830edd34941f72814a34a73082814b5c1c5bbec59da51",
+        "crates/connect-protocol/src/readiness.rs": "dd9ffed3628f76e17d7c23b8e5f0cd28cabd3f6f81fe016677d267a9d22da0aa",
+        "crates/connect-protocol/src/readiness_tests.rs": "a44649daab4711d37d5391759e34c14ac34aba886afe88eacec767b12247557d",
+        "crates/connect-protocol/src/receipts.rs": "def59e827fc0b5b658c0b5e091b45f1591a90401c12972054fccdd4a859d3f6a",
+        "crates/connect-protocol/src/received_dtmf.rs": "99e322febcbdbc0fe839c0e256bb613347a67de8c2d829bf7df446d9599923df",
+        "crates/connect-protocol/src/record_mutations.rs": "984346c16a8bffcc24de259bc9c878d11ab1e350eae274b897135b635a19ad20",
+        "crates/connect-protocol/src/record_retention.rs": "69514b71bf86e3bf9fc3d143515a5983afc5f10844eafd9b6ccaac90cd9a4943",
+        "crates/connect-protocol/src/routing.rs": "299658249d9715c985da4636cec46077ec7c76e29767b7339d4d02d82639ac33",
+        "crates/connect-protocol/src/session_codecs.rs": "e1cd465ddc186ab6054b193b13f9782739762ee16bfb41c3ff77bc9764f19963",
+        "crates/connect-protocol/src/session_control/targets.rs": "4fb3870462f591ca21d169db21f846e1a2fe02096c8c02218de9e0476adbf2f2",
+        "crates/connect-protocol/src/session_control.rs": "5f0c91f63f28ac5d4c3c0312091137e696c91945da6467bafad1020b5c0cae40",
+        "crates/connect-protocol/src/session_decisions.rs": "93602f681e8ef73aa4d72d968fafa3a656321867473db23aeed37197e111c78a",
+        "crates/connect-protocol/src/tasks/access.rs": "b403564859c2b16ae3ed1da4b2e68a494c629c95e920e457b83aec18a2a38c37",
+        "crates/connect-protocol/src/tasks/lifecycle.rs": "28b7dda69a2d9516a7cffeb77c462b6104bd820926aa5f7a47f42be405068346",
+        "crates/connect-protocol/src/tasks/mod.rs": "f5787c790b8cfab544f2881adfe4ca58908680773e3a5c21ff8a3aea1b25c1e3",
+        "crates/connect-protocol/src/tasks/models.rs": "2a0ef40483cd4f1fcdef35edb6b5818e8f463b3db44147654ae62ae14722a7e7",
+        "crates/connect-protocol/src/tasks/principal.rs": "15fd3964780deb097cbdb6ca8cce6410b9856e20a6e59a76594352a169a59548",
+        "crates/connect-protocol/src/tasks/request.rs": "9def8ad3c4297b05fdfaab0824f2e077dc0d58840b7d09f01ae64323ddb82018",
+        "crates/connect-protocol/src/tasks/validation.rs": "2e39602776e6da4850a94c4ea803b5ebdbdb8252377b791d48a35e871a053197",
+        "crates/connect-protocol/src/transitions.rs": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+        "crates/connect-protocol/src/user_delegation.rs": "208746e9ffac0bae03bdd6fa2177a9801d7dca273f56458c820e2e656e22b35a",
+        "crates/connect-protocol/src/video_profile.rs": "d1b626fb37196a0c4eb974d7db12aa6c11031a94a51bddca478d388cd65c356c",
+        "crates/connect-protocol/tests/contact_debug.rs": "d9dbf2f6e645b4f9077d4a4d83da5d94478d5e0ab5d5ba5921ed4a4902093265",
+        "crates/connect-protocol/tests/contact_response.rs": "9fa647ae3d0efa1a47b597f64a6fd87fc2e3d1288b981070447b6865bf7ec94d",
+        "crates/connect-protocol/tests/conversation_control.rs": "7d3c41934d97499a567f35e4576b6782c1d366eb8c9104e09895514f7b391546",
+        "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
+        "crates/connect-server/src/transports/http.rs": "ef5e5540ff1cfd7bfc59b773b370820465845d70f42fdd2ea811523c489c1ff1",
+        "dependencies/source-lock.json": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a",
+        "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135"
+      },
+      "schemas": 225,
+      "dispatch_cases": 69,
+      "task_cases": 16,
+      "checks": [
+        {
+          "case": "dispatch-0",
+          "decoded": true,
+          "seconds": 0.20698037487454712
+        },
+        {
+          "case": "dispatch-1",
+          "decoded": true,
+          "seconds": 0.004576292121782899
+        },
+        {
+          "case": "dispatch-2",
+          "decoded": true,
+          "seconds": 0.00399766699410975
+        },
+        {
+          "case": "dispatch-3",
+          "decoded": true,
+          "seconds": 0.0033787498250603676
+        },
+        {
+          "case": "dispatch-4",
+          "decoded": true,
+          "seconds": 0.0033610831014811993
+        },
+        {
+          "case": "dispatch-5",
+          "decoded": true,
+          "seconds": 0.0038365419022738934
+        },
+        {
+          "case": "dispatch-6",
+          "decoded": true,
+          "seconds": 0.0038101670797914267
+        },
+        {
+          "case": "dispatch-7",
+          "decoded": true,
+          "seconds": 0.00376304192468524
+        },
+        {
+          "case": "dispatch-8",
+          "decoded": true,
+          "seconds": 0.0036535412073135376
+        },
+        {
+          "case": "dispatch-9",
+          "decoded": true,
+          "seconds": 0.003224999876692891
+        },
+        {
+          "case": "dispatch-10",
+          "decoded": true,
+          "seconds": 0.0036918330006301403
+        },
+        {
+          "case": "dispatch-11",
+          "decoded": true,
+          "seconds": 0.0032162501011043787
+        },
+        {
+          "case": "dispatch-12",
+          "decoded": true,
+          "seconds": 0.0031755000818520784
+        },
+        {
+          "case": "dispatch-13",
+          "decoded": true,
+          "seconds": 0.0031359579879790545
+        },
+        {
+          "case": "dispatch-14",
+          "decoded": true,
+          "seconds": 0.0031750830821692944
+        },
+        {
+          "case": "dispatch-15",
+          "decoded": true,
+          "seconds": 0.003045083023607731
+        },
+        {
+          "case": "dispatch-16",
+          "decoded": true,
+          "seconds": 0.0030874579679220915
+        },
+        {
+          "case": "dispatch-17",
+          "decoded": true,
+          "seconds": 0.002865416929125786
+        },
+        {
+          "case": "dispatch-18",
+          "decoded": true,
+          "seconds": 0.0034424162004143
+        },
+        {
+          "case": "dispatch-19",
+          "decoded": true,
+          "seconds": 0.0033297501504421234
+        },
+        {
+          "case": "dispatch-20",
+          "decoded": true,
+          "seconds": 0.0031971659045666456
+        },
+        {
+          "case": "dispatch-21",
+          "decoded": true,
+          "seconds": 0.0030897080432623625
+        },
+        {
+          "case": "dispatch-22",
+          "decoded": true,
+          "seconds": 0.003156833117827773
+        },
+        {
+          "case": "dispatch-23",
+          "decoded": true,
+          "seconds": 0.0028575409669429064
+        },
+        {
+          "case": "dispatch-24",
+          "decoded": true,
+          "seconds": 0.0027042911387979984
+        },
+        {
+          "case": "dispatch-25",
+          "decoded": true,
+          "seconds": 0.0026650410145521164
+        },
+        {
+          "case": "dispatch-26",
+          "decoded": true,
+          "seconds": 0.0026682920288294554
+        },
+        {
+          "case": "dispatch-27",
+          "decoded": true,
+          "seconds": 0.003502707928419113
+        },
+        {
+          "case": "dispatch-28",
+          "decoded": true,
+          "seconds": 0.0036530839279294014
+        },
+        {
+          "case": "dispatch-29",
+          "decoded": true,
+          "seconds": 0.003166707931086421
+        },
+        {
+          "case": "dispatch-30",
+          "decoded": true,
+          "seconds": 0.0032905000261962414
+        },
+        {
+          "case": "dispatch-31",
+          "decoded": true,
+          "seconds": 0.003171750111505389
+        },
+        {
+          "case": "dispatch-32",
+          "decoded": true,
+          "seconds": 0.003782375017181039
+        },
+        {
+          "case": "dispatch-33",
+          "decoded": true,
+          "seconds": 0.0033195000141859055
+        },
+        {
+          "case": "dispatch-34",
+          "decoded": true,
+          "seconds": 0.0029390829149633646
+        },
+        {
+          "case": "dispatch-35",
+          "decoded": true,
+          "seconds": 0.0026951669715344906
+        },
+        {
+          "case": "dispatch-36",
+          "decoded": true,
+          "seconds": 0.002534292172640562
+        },
+        {
+          "case": "dispatch-37",
+          "decoded": true,
+          "seconds": 0.002715375041589141
+        },
+        {
+          "case": "dispatch-38",
+          "decoded": true,
+          "seconds": 0.0025391671806573868
+        },
+        {
+          "case": "dispatch-39",
+          "decoded": true,
+          "seconds": 0.002668458968400955
+        },
+        {
+          "case": "dispatch-40",
+          "decoded": true,
+          "seconds": 0.002816624939441681
+        },
+        {
+          "case": "dispatch-41",
+          "decoded": true,
+          "seconds": 0.002898833015933633
+        },
+        {
+          "case": "dispatch-42",
+          "decoded": true,
+          "seconds": 0.002605124842375517
+        },
+        {
+          "case": "dispatch-43",
+          "decoded": true,
+          "seconds": 0.002634500153362751
+        },
+        {
+          "case": "dispatch-44",
+          "decoded": true,
+          "seconds": 0.002642999868839979
+        },
+        {
+          "case": "dispatch-45",
+          "decoded": true,
+          "seconds": 0.002673042006790638
+        },
+        {
+          "case": "dispatch-46",
+          "decoded": true,
+          "seconds": 0.0026509577874094248
+        },
+        {
+          "case": "dispatch-47",
+          "decoded": true,
+          "seconds": 0.002963499864563346
+        },
+        {
+          "case": "dispatch-48",
+          "decoded": true,
+          "seconds": 0.0028291670605540276
+        },
+        {
+          "case": "dispatch-49",
+          "decoded": true,
+          "seconds": 0.002699207980185747
+        },
+        {
+          "case": "dispatch-50",
+          "decoded": true,
+          "seconds": 0.002591584110632539
+        },
+        {
+          "case": "dispatch-51",
+          "decoded": true,
+          "seconds": 0.0026887499261647463
+        },
+        {
+          "case": "dispatch-52",
+          "decoded": true,
+          "seconds": 0.0026020000223070383
+        },
+        {
+          "case": "dispatch-53",
+          "decoded": true,
+          "seconds": 0.002595124999061227
+        },
+        {
+          "case": "dispatch-54",
+          "decoded": true,
+          "seconds": 0.0028130831196904182
+        },
+        {
+          "case": "dispatch-55",
+          "decoded": true,
+          "seconds": 0.002751291962340474
+        },
+        {
+          "case": "dispatch-56",
+          "decoded": true,
+          "seconds": 0.002761000068858266
+        },
+        {
+          "case": "dispatch-57",
+          "decoded": true,
+          "seconds": 0.0026608328334987164
+        },
+        {
+          "case": "dispatch-58",
+          "decoded": true,
+          "seconds": 0.0026591250207275152
+        },
+        {
+          "case": "dispatch-59",
+          "decoded": true,
+          "seconds": 0.0025660828687250614
+        },
+        {
+          "case": "dispatch-60",
+          "decoded": true,
+          "seconds": 0.002595541998744011
+        },
+        {
+          "case": "dispatch-61",
+          "decoded": true,
+          "seconds": 0.002675750060006976
+        },
+        {
+          "case": "dispatch-62",
+          "decoded": true,
+          "seconds": 0.00272666709497571
+        },
+        {
+          "case": "dispatch-63",
+          "decoded": true,
+          "seconds": 0.0026373749133199453
+        },
+        {
+          "case": "dispatch-64",
+          "decoded": true,
+          "seconds": 0.0027559169102460146
+        },
+        {
+          "case": "dispatch-65",
+          "decoded": true,
+          "seconds": 0.0025528750848025084
+        },
+        {
+          "case": "dispatch-66",
+          "decoded": true,
+          "seconds": 0.002550249919295311
+        },
+        {
+          "case": "dispatch-67",
+          "decoded": true,
+          "seconds": 0.002620832994580269
+        },
+        {
+          "case": "dispatch-68",
+          "decoded": true,
+          "seconds": 0.0027601660694926977
+        },
+        {
+          "case": "dispatch-69",
+          "decoded": true,
+          "seconds": 0.002575207967311144
+        },
+        {
+          "case": "dispatch-70",
+          "decoded": true,
+          "seconds": 0.002753790933638811
+        },
+        {
+          "case": "dispatch-71",
+          "decoded": true,
+          "seconds": 0.0026290419045835733
+        },
+        {
+          "case": "dispatch-72",
+          "decoded": true,
+          "seconds": 0.002541125053539872
+        },
+        {
+          "case": "dispatch-73",
+          "decoded": true,
+          "seconds": 0.002629667054861784
+        },
+        {
+          "case": "dispatch-74",
+          "decoded": true,
+          "seconds": 0.0026765409857034683
+        },
+        {
+          "case": "dispatch-75",
+          "decoded": true,
+          "seconds": 0.002547041978687048
+        },
+        {
+          "case": "dispatch-76",
+          "decoded": true,
+          "seconds": 0.002449457999318838
+        },
+        {
+          "case": "dispatch-77",
+          "decoded": true,
+          "seconds": 0.002687833970412612
+        },
+        {
+          "case": "dispatch-78",
+          "decoded": true,
+          "seconds": 0.002722540870308876
+        },
+        {
+          "case": "dispatch-79",
+          "decoded": true,
+          "seconds": 0.002546832896769047
+        },
+        {
+          "case": "dispatch-80",
+          "decoded": true,
+          "seconds": 0.0026525419671088457
+        },
+        {
+          "case": "dispatch-81",
+          "decoded": true,
+          "seconds": 0.0027183331549167633
+        },
+        {
+          "case": "dispatch-82",
+          "decoded": true,
+          "seconds": 0.0025155828334391117
+        },
+        {
+          "case": "dispatch-83",
+          "decoded": true,
+          "seconds": 0.002529083052650094
+        },
+        {
+          "case": "dispatch-84",
+          "decoded": true,
+          "seconds": 0.0028335419483482838
+        },
+        {
+          "case": "actor-selector",
+          "decoded": false,
+          "seconds": 0.00263591599650681
+        },
+        {
+          "case": "unknown-op",
+          "decoded": false,
+          "seconds": 0.0027062499430030584
+        },
+        {
+          "case": "missing-field",
+          "decoded": false,
+          "seconds": 0.0026492909528315067
+        },
+        {
+          "case": "wrong-type",
+          "decoded": false,
+          "seconds": 0.0025078339967876673
+        },
+        {
+          "case": "unknown-task",
+          "decoded": false,
+          "seconds": 0.002595582976937294
+        },
+        {
+          "case": "duplicate-discriminator",
+          "decoded": false,
+          "seconds": 0.0024358329828828573,
+          "scope": "Byte-level duplicate-key refusal; parsed JSON Schema cannot express this constraint"
+        },
+        {
+          "case": "duplicate-metadata",
+          "decoded": false,
+          "seconds": 0.002589625073596835,
+          "scope": "Byte-level duplicate-key refusal; parsed JSON Schema cannot express this constraint"
+        },
+        {
+          "case": "healthy-response",
+          "decoded": true,
+          "seconds": 0.002674583112820983
+        },
+        {
+          "case": "unknown-result-key",
+          "decoded": false,
+          "seconds": 0.002563792048022151
+        },
+        {
+          "case": "both-result-branches",
+          "decoded": false,
+          "seconds": 0.0026391251012682915
+        },
+        {
+          "case": "pairing-without-consent",
+          "decoded": true,
+          "seconds": 0.0026747500523924828
+        },
+        {
+          "case": "synthetic-sms-consent",
+          "decoded": false,
+          "seconds": 0.0025817500427365303
+        },
+        {
+          "case": "wrong-transport-profile",
+          "decoded": true,
+          "seconds": 0.0025279999244958162,
+          "scope": "Transport profile is intentionally narrower than the raw serde String DTO"
+        }
+      ],
+      "openapi_sha256": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
+      "catalog_sha256": "081f8c8743f4aec39d8d245b17e10b733315c331ac25c2b53a45ee2ae7f3471f"
+    },
+    "private_schema_summary_sha256": "fa244616466fb87682faec048436135144115b04e4ba8d9dd959717d3ef6a87c",
+    "static_checks": [
+      "prepare-dependencies verified upstream patches/source-lock before schema build",
+      "43 actual protocol library tests pass with normal defaults",
+      "same43 protocol tests pass with schema feature enabled",
+      "225 JSON schemas pass Draft202012 checks",
+      "69 root dispatch selectors and16 Task commands compare to real bounded serde decoder",
+      "98 total codec/partition/refusal/refinement checks",
+      "repository format --check",
+      "canonical/protected HTTP generators --check",
+      "HTTP endpoint inventory --check",
+      "Gate6 progress/integrity",
+      "git diff --check"
+    ]
+  },
+  "cases": [
+    "All69 root selector samples and16 Task command samples deserialize through the actual Rust codec and match executable dispatch classification. WireOperation accepts each typed sample; supported and retired schemas partition them exactly. This is dispatch/shape evidence, not service acceptance.",
+    "Unknown actor selectors, operation/Task discriminators, missing fields and wrong types fail both schema and real serde decoding. Raw duplicate root tag and nested metadata keys fail real decoding while their parsed maps remain schema-valid; this limitation is recorded explicitly.",
+    "Typed healthy response survives real decode/serialize and schema validation. Extra Result keys and simultaneous Ok/Err branches fail both. Native pairing without consent passes; a synthetic SMS-consent claim fails the source decoder and schema.",
+    "Wrong transport profile remains a raw serde String but is refused by the public response schema; that intentional transport-policy refinement is not mislabeled a DTO parsing failure.",
+    "Conditional derives are absent from default protocol behavior; all43 existing protocol tests pass in both feature modes. Cargo.lock adds only the optional existing schemars dependency edge to connect-protocol; no dependency version or undocumented upstream source edit."
+  ],
+  "development_record": [
+    {
+      "status": "retained failed schema compile",
+      "path": ".local/gate-6/application-http/derive-01.log",
+      "sha256": "ed90da138f91ff81db651c09b78483111dfd46b27516c3f27332b1dad48ca941",
+      "detail": "Five DateTime<Utc> JsonSchema implementations unavailable until optional chrono04 support was enabled; no runtime candidate was executed."
+    },
+    {
+      "status": "repaired generator reference handling",
+      "detail": "Initial bundle conversion rejected recursive root reference #. It now maps that root to the named component, preserving recursive Task Invoke rather than omitting it."
+    },
+    {
+      "status": "retained failed synthetic fixture",
+      "path": ".local/gate-6/application-http/schema-check-01/failure.json",
+      "sha256": "37487e70646068763bf618061bb84a9f6de556d79e6b1a38edfc0e6c11ea204b",
+      "detail": "Duplicate-metadata negative fixture omitted required root request_id, so its parsed form was not wire-schema-valid. Added the original logical ID; final98-check cohort verifies duplicate metadata against the actual custom serde decoder."
+    }
+  ],
+  "remaining": [
+    "Run the current actual server against every root/Task dispatch selector, auth refusal, framework status/media type and representative current resource/replay case. The pending --application-contract wire runner is separate work, not qualified by this foundation.",
+    "Reconcile historical family HTTP descriptions that still imply ordinary canonical operations on /v1/operations. Preserve reusable DTO/policy material while clearly directing current callers to canonical or named interfaces.",
+    "Complete remaining MCP consultation/movement, actual supported agent-host/profile qualification and retained intermittent provider-uncertainty regression investigation. G6-065 stays in progress; full105-task Gate6 objective remains active; publication separate."
+  ],
+  "sources": {
+    "Cargo.lock": "dc69ee13a8217a9cb2b3661ada17f9d51abce92fc21eb6523e4890fa8785c186",
+    "crates/connect-protocol/Cargo.toml": "bbbd622e352c316a507c3cf5a1b6cfad8f2a96e81af273123dcbf02cafbfb24c",
+    "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
+    "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135",
+    "scripts/check-application-http-schema.py": "7408a67a7ff97283a4b9ed22d97323365f3ca9917e66d2b0913bfdebd807fae9",
+    "contracts/openapi-application-http.json": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
+    "contracts/application-http-dispatch.json": "081f8c8743f4aec39d8d245b17e10b733315c331ac25c2b53a45ee2ae7f3471f",
+    "contracts/http-endpoints.json": "2a5b79fa25d2153378670cd9fb149de1fe64a8ec05967d2f80d0868c2d1eced8",
+    "docs/developer/server-http.md": "e0f9841f88272db5274a8b8806792d70bc515ab9e258dc7059f6048538f0b8a9"
+  }
+}

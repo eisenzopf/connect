@@ -15,6 +15,7 @@ remains attached to its particular contract and gate task.
 | Interface | Reference |
 | --- | --- |
 | Canonical command/status/event batches | [canonical HTTP](../../contracts/openapi-canonical-http.json) |
+| Current named application operation bodies and results | [application HTTP](../../contracts/openapi-application-http.json) |
 | Trusted Identity/participant/Device/key/endpoint provisioning | [provisioning](../../contracts/openapi-provisioning.json) |
 | Protected scoped credential issuance, Task grants and base artifact bytes | [protected HTTP](../../contracts/openapi-protected-http.json) |
 | Attachment control, links and receipt observations | [attachments](../../contracts/openapi-attachments.json) |
@@ -23,6 +24,41 @@ remains attached to its particular contract and gate task.
 Other named API families are linked per route in the inventory. Repeated
 `/v1/operations` references describe different families; they are not a blanket
 claim that retired ordinary communication variants remain supported.
+
+## Current application body schemas
+
+`openapi-application-http.json` is generated from the real protocol DTOs with the
+optional `connect-protocol/schema` feature. Deserialize and serialize contexts
+remain separate, including optional/default/skipped fields and recursive Task
+effects. Production builds do not enable that feature. The dispatch catalog
+classifies59 top-level wire tags through69 selector cases, with all16 Task
+commands represented separately. Current membership and receipt actions are
+partitioned explicitly; ordinary canonical communication remains refused here.
+
+`ApplicationOperation` describes currently named top-level calls. `WireOperation`
+retains the full serde model for nested Task operations and deliberate refusal
+checks. `RetiredTopLevelOperation` is a reference for HTTP501 refusals, without
+fallback dispatch. Only the outer result-kind union is narrowed; nested Task
+effects retain the complete attributed outcome model.
+
+Schema validity establishes DTO shape. Current scope, resource audience, original
+intent, business limits, lifecycle, provider configuration and Task/grant policy
+still decide acceptance. Custom duplicate-key checks operate on JSON bytes and
+cannot be expressed by a schema after parsing. Family-specific references retain
+their policy details; this generated document supplies the consolidated current
+body/dispatch model. Fresh service wire qualification is recorded separately.
+
+```sh
+python3 scripts/generate-application-http-openapi.py --check
+python3 scripts/check-application-http-schema.py \
+  --output .local/gate-6/application-schema-check
+```
+
+The generator builds the optional Rust schema example with locked offline
+dependencies after verifying prepared sources. The checker needs Python
+`jsonschema`; it compares synthetic schema vectors to the actual serde decoder.
+These source/codec checks do not establish service authorization, media or remote
+qualification.
 
 ## Scoped credential issuance
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub const PATH: &str = "/v2/discovery";
 pub const MAX_RESPONSE_BYTES: usize = 8192;
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransportDiscovery {
@@ -13,6 +14,7 @@ pub struct TransportDiscovery {
     pub webtransport: Option<WebTransportEndpoint>,
     pub websocket: Option<WebSocketEndpoint>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WebTransportEndpoint {
@@ -20,12 +22,14 @@ pub struct WebTransportEndpoint {
     pub origin_required: bool,
     pub datagrams: DatagramNegotiation,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WebSocketEndpoint {
     pub url: String,
     pub origin_required: bool,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DatagramNegotiation {

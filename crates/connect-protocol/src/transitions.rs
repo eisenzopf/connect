@@ -3,6 +3,7 @@ use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 pub const MAX_OPERATION_TTL: i64 = 86400;
 pub const MAX_WORKER_LEASE: u32 = 60;
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OperationState {
@@ -50,6 +51,7 @@ impl OperationState {
             }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HoldTreatment {
@@ -59,12 +61,14 @@ pub enum HoldTreatment {
     #[serde(rename = "configured-media")]
     ConfiguredMedia,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OutgoingDisposition {
     Leave,
     Observe,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RoleScope {
@@ -72,6 +76,7 @@ pub enum RoleScope {
     Conversation,
     Session,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum TransitionIntent {
@@ -164,6 +169,7 @@ impl std::fmt::Debug for TransitionIntent {
         f.write_str(self.required_scope())
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransitionRequest {
@@ -179,6 +185,7 @@ pub struct TransitionRequest {
 }
 /// Canonical signed intent. Its bounded operation expiry is selected once by
 /// the server, then recovered from the existing receipt on every retry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransitionCommand {
@@ -333,6 +340,7 @@ pub fn id(value: &str) -> Result<()> {
 fn invalid() -> Error {
     Error::new("invalid-request", "Invalid durable transition intent")
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransitionCompletion {
@@ -342,6 +350,7 @@ pub struct TransitionCompletion {
     pub session_revision: u64,
     pub conversation_revision: Option<u64>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OperationRecord {
@@ -369,6 +378,7 @@ pub struct OperationRecord {
     pub causal_event_ids: Vec<String>,
     pub events_omitted: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum IdempotencyMode {
@@ -385,6 +395,7 @@ impl IdempotencyMode {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EffectState {
@@ -407,6 +418,7 @@ impl EffectState {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OperationEffect {
     pub id: String,
@@ -418,6 +430,7 @@ pub struct OperationEffect {
     pub compensates_effect_id: Option<String>,
     pub submission_generation: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum OperationAction {
@@ -436,6 +449,7 @@ pub enum OperationAction {
         evidence_id: String,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReconcileOutcome {
@@ -455,6 +469,7 @@ impl ReconcileOutcome {
 
 /// A completed local mutation is distinct from provider/recipient delivery.
 /// Task effects retain their own task-scoped status API instead of this reference.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MutationReceipt {
@@ -464,6 +479,7 @@ pub struct MutationReceipt {
     pub completion_boundary: LocalMutationBoundary,
     pub status_reference: OperationAction,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LocalMutationBoundary {
     #[serde(rename = "local-mutation")]

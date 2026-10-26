@@ -5,6 +5,7 @@ pub const MAX_REQUEST_BYTES: usize = 65_536;
 pub const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_REPLY_ENVELOPES: usize = 128;
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Problem {
@@ -47,6 +48,7 @@ impl Problem {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReplyBatch {
@@ -55,6 +57,7 @@ pub struct ReplyBatch {
     pub envelopes: Vec<serde_json::Value>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Rejection {

@@ -52,6 +52,7 @@ pub fn validate(payload: &Value) -> Result<()> {
 
 /// Historical returned engine state. Directions describe the server's binding;
 /// `held_direction` is therefore reversed from the endpoint's hold request.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GateStream {

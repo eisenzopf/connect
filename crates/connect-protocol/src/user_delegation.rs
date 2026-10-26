@@ -3,6 +3,7 @@ use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 
 /// Installed host policy; callers cannot select their own required user.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UserAssuranceRule {
@@ -55,6 +56,7 @@ impl UserAssuranceRule {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct UserDelegationRequest {
@@ -64,6 +66,7 @@ pub struct UserDelegationRequest {
     pub recipients: Vec<String>,
     pub expires_at: i64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UserDelegationOutcome {
@@ -81,6 +84,7 @@ impl std::fmt::Debug for UserDelegationOutcome {
         f.write_str("UserDelegationOutcome(redacted)")
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct UserDelegationResponse {

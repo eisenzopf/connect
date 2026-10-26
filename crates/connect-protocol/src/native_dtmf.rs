@@ -3,6 +3,7 @@ use crate::{Error, Result};
 use serde_json::Value;
 
 /// Trusted ingress facts, separate from the original request payload.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceObservation {
@@ -38,6 +39,7 @@ impl SourceObservation {
 }
 
 /// Local transport facts. None of these proves remote playback.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubmissionDisposition {

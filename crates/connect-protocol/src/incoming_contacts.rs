@@ -2,6 +2,7 @@
 //! grant membership, history, consent, or provider execution authority.
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IncomingContactKind {
@@ -16,6 +17,7 @@ impl IncomingContactKind {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IncomingContactReason {
@@ -25,6 +27,7 @@ pub enum IncomingContactReason {
     Routed,
     Ineligible,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IncomingContactState {
@@ -32,6 +35,7 @@ pub enum IncomingContactState {
     Resolved,
     Rejected,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContactCandidate {
@@ -42,6 +46,7 @@ pub struct IncomingContactCandidate {
     pub participant_id: String,
     pub membership_epoch: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContactDecision {
@@ -55,6 +60,7 @@ pub struct IncomingContactDecision {
 }
 /// Metadata only. Held bodies, model context and private provider control URLs
 /// are deliberately absent; administration does not imply Conversation history.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContact {
@@ -68,6 +74,7 @@ pub struct IncomingContact {
     pub candidates: Vec<IncomingContactCandidate>,
     pub created_at: i64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContactPage {
@@ -76,6 +83,7 @@ pub struct IncomingContactPage {
 }
 
 /// A stable administrative decision identity, retained across uncertain replies.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContactSelection {
@@ -100,6 +108,7 @@ impl IncomingContactSelection {
 }
 
 pub const INCOMING_CONTACT_PROFILE: &str = "connect/2";
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
 pub enum IncomingContactCommand {
@@ -154,12 +163,14 @@ impl IncomingContactCommand {
         Ok(())
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum IncomingContactOutcome {
     Contact { contact: IncomingContact },
     Page { page: IncomingContactPage },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IncomingContactResponse {

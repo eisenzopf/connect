@@ -9,12 +9,14 @@ pub use agent::*;
 pub use provider_call::*;
 pub const SNAPSHOT_LEASE_SECONDS: u32 = 30;
 pub const EVENT_QUEUE_LIMIT: usize = 256;
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SnapshotQuery {
     pub page: Option<String>,
     pub limit: Option<u32>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EventQuery {
@@ -25,6 +27,7 @@ pub struct EventQuery {
     #[serde(default)]
     pub wait_ms: u32,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConversationState {
     pub conversation_id: String,
@@ -32,6 +35,7 @@ pub struct ConversationState {
     pub closed: bool,
     pub policy: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectionState {
     pub connection_id: String,
@@ -45,6 +49,7 @@ pub struct ConnectionState {
     pub state: String,
     pub replaces: Option<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamState {
     pub stream_id: String,
@@ -56,6 +61,7 @@ pub struct StreamState {
     pub revision: u64,
 }
 /// Original committed Conversation closure, shared by journal and typed hints.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConversationClosed {
@@ -65,6 +71,7 @@ pub struct ConversationClosed {
     pub closed_at: i64,
 }
 /// Original terminal metadata, independent of later record finalization/retention.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionEnded {
@@ -77,6 +84,7 @@ pub struct SessionEnded {
 }
 /// Original activation snapshot. Later topology or codec changes do not rewrite
 /// this fact; current state is obtained independently from a snapshot.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionStarted {
@@ -86,6 +94,7 @@ pub struct SessionStarted {
     pub active_connections: Vec<SessionActiveConnection>,
     pub negotiated_capabilities: serde_json::Value,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionActiveConnection {
@@ -94,6 +103,7 @@ pub struct SessionActiveConnection {
     pub transport: String,
 }
 /// Immutable verified public appearance, independent of later role/name changes.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionJoinedParticipant {
@@ -104,6 +114,7 @@ pub struct SessionJoinedParticipant {
     pub display_name: String,
     pub joined_at: i64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionParticipantJoined {
@@ -113,6 +124,7 @@ pub struct SessionParticipantJoined {
     pub participant: SessionJoinedParticipant,
     pub via_connection: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionParticipantLeft {
@@ -125,6 +137,7 @@ pub struct SessionParticipantLeft {
 }
 /// A bounded hint, never a source grant or an assertion that audio was captured.
 /// Fetch authenticates again and returns the digest of the caller's exact view.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RecordAvailability {
@@ -151,6 +164,7 @@ impl RecordAvailability {
 }
 /// Current conversation topology and operation state. Message bodies and file
 /// bytes remain separately paged by history and artifact APIs.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum SnapshotItem {
@@ -164,6 +178,7 @@ pub enum SnapshotItem {
     ProviderCall(ProviderSessionVoiceView),
     Record(RecordAvailability),
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SnapshotPage {
     pub conversation_id: String,
@@ -175,6 +190,7 @@ pub struct SnapshotPage {
     pub next: Option<String>,
     pub has_more: bool,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum JournalData {
@@ -213,11 +229,13 @@ pub enum JournalData {
         resource_id: Option<String>,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventSource {
     pub kind: String,
     pub correlation_id: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalEvent {
     pub event_id: String,
@@ -234,6 +252,7 @@ pub struct JournalEvent {
     pub audience: Vec<crate::messages::MessageRecipient>,
     pub data: JournalData,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventPage {
     pub conversation_id: String,
@@ -246,6 +265,7 @@ pub struct EventPage {
     pub snapshot: Option<SnapshotPage>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionAppearance {
@@ -255,6 +275,7 @@ pub struct SessionAppearance {
     pub role: String,
     pub state: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ObservationCapabilities {
@@ -262,6 +283,7 @@ pub struct ObservationCapabilities {
     pub speech: bool,
     pub actions: Vec<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ObservationDraft {
@@ -285,6 +307,7 @@ pub enum ObservationDraft {
         turn_id: Option<String>,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TranscriptCompleteness {
@@ -292,12 +315,14 @@ pub enum TranscriptCompleteness {
     Final,
     Incomplete,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SpeechState {
     Started,
     Stopped,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SessionObservation {
     pub work: Option<ObservationWork>,
@@ -312,6 +337,7 @@ pub struct SessionObservation {
     pub observed_at: i64,
     pub data: ObservationDraft,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObservationRoute {
     pub work: Option<ObservationWork>,
@@ -322,6 +348,7 @@ pub struct ObservationRoute {
     pub source: String,
     pub capabilities: ObservationCapabilities,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObservationPage {
     pub conversation_id: String,
@@ -334,6 +361,7 @@ pub struct ObservationPage {
     pub resync_required: bool,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ObservationQuery {
@@ -358,6 +386,7 @@ pub type SessionSnapshot = crate::session_control::SessionView;
 
 /// The committed question exported to this host-selected work context. These
 /// labels are provenance, never a task grant, semantic answer or execution ID.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ObservationWork {

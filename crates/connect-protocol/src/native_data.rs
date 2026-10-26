@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 /// files use artifact transfer; the signed envelope has independent headroom.
 pub const MAX_BODY_BYTES: usize = 64 * 1024;
 /// Local writer facts, never a remote delivery or consumption receipt.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WriteDisposition {
@@ -24,12 +25,14 @@ impl WriteDisposition {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WriteProvenance {
     LocalWriter,
     RuntimeRecovery,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WriteObservation {

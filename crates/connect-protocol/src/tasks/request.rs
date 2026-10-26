@@ -4,6 +4,7 @@ use crate::{Error, Operation, Result};
 use serde::{Deserialize, Serialize};
 
 /// Explicit versioned command carried by the task extension to control profile v1.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskRequest {
@@ -31,6 +32,7 @@ impl TaskRequest {
 
 /// Administrative commands require backing actor authority; narrow invocation
 /// grants may only use their bound task's communication/read operations.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TaskCommand {

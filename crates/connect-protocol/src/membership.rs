@@ -2,6 +2,7 @@
 use crate::{provisioning::IdentityKind, Error, Result};
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum ContentKind {
@@ -30,12 +31,14 @@ impl ContentKind {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 pub struct ContentRef {
     pub kind: ContentKind,
     pub id: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MembershipAction {
@@ -79,6 +82,7 @@ pub enum MembershipAction {
         sharing_id: String,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct MembershipRequest {
@@ -224,6 +228,7 @@ impl std::fmt::Debug for MembershipRequest {
         f.write_str("MembershipRequest(redacted)")
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct MemberView {
@@ -243,6 +248,7 @@ impl std::fmt::Debug for MemberView {
             .finish()
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct InvitationView {
@@ -253,6 +259,7 @@ pub struct InvitationView {
     pub state: String,
     pub conversation_revision: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MembershipOutcome {
@@ -301,6 +308,7 @@ impl MembershipOutcome {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct MembershipSnapshot {
@@ -308,6 +316,7 @@ pub struct MembershipSnapshot {
     pub revision: u64,
     pub participants: Vec<MemberView>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct InvitationPage {

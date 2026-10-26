@@ -5,6 +5,7 @@ use serde_json::Value;
 pub const MAX_METADATA_BYTES: usize = 16 * 1024;
 pub const MAX_IDLE_SECONDS: u64 = 7 * 86400;
 pub const DEFAULT_IDLE_SECONDS: u64 = 60;
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConversationPolicy {
@@ -19,12 +20,14 @@ impl ConversationPolicy {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord)]
 #[serde(deny_unknown_fields)]
 pub struct InitialParticipant {
     pub identity_id: String,
     pub role: String,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CreateRequest {
@@ -97,6 +100,7 @@ impl std::fmt::Debug for CreateRequest {
         f.write_str("CreateRequest(redacted)")
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CloseOptions {
@@ -120,6 +124,7 @@ impl CloseOptions {
         Ok(())
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConversationState {
@@ -128,6 +133,7 @@ pub enum ConversationState {
     Closed,
     All,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ListFilter {
@@ -139,6 +145,7 @@ pub struct ListFilter {
     pub since: Option<chrono::DateTime<chrono::Utc>>,
     pub until: Option<chrono::DateTime<chrono::Utc>>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ListQuery {
@@ -172,6 +179,7 @@ impl ListQuery {
         Ok(())
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Participant {
@@ -181,6 +189,7 @@ pub struct Participant {
     pub role: String,
     pub display_name: Option<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Conversation {
@@ -207,6 +216,7 @@ impl std::fmt::Debug for Conversation {
             .finish_non_exhaustive()
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ListPage {

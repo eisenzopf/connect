@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 /// One-use challenge. The challenge appears only in the initiating owner's receipt.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Pairing {
     pub id: String,
@@ -24,6 +25,7 @@ impl std::fmt::Debug for Pairing {
     }
 }
 /// Authentication proves possession of a current native identity credential.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum OwnershipState {
@@ -35,6 +37,7 @@ pub enum OwnershipState {
     AttemptsExceeded,
 }
 /// A configured address or caller ID never promotes this state to verified.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContactState {
     pub peer_identity_id: String,
@@ -43,6 +46,7 @@ pub struct ContactState {
     pub verified_at: Option<i64>,
     /// Always false: native pairing supplies no channel enrollment evidence.
     #[serde(deserialize_with = "no_sms_consent")]
+    #[cfg_attr(feature = "schema", schemars(extend("const" = false)))]
     pub sms_consent: bool,
 }
 

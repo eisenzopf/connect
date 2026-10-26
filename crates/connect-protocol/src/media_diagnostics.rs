@@ -2,6 +2,7 @@
 //! These are diagnostics, not delivery receipts or decoded-media proof.
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaDiagnostics {
     pub scope: String,
@@ -14,6 +15,7 @@ pub struct MediaDiagnostics {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webrtc_video_input: Option<WebRtcVideoInputObservation>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaQueueObservation {
     pub stage: String,
@@ -32,6 +34,7 @@ pub struct MediaQueueObservation {
     /// It excludes waiting inside the write and remote network/decoder time.
     pub frame_age_boundary: Option<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaForwardObservation {
     pub stage: String,
@@ -44,6 +47,7 @@ pub struct MediaForwardObservation {
     pub missing_ingress_observations: u64,
     pub handoff_timeouts: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuicTransmissionObservation {
     /// Samples at media sends; connection counters below are maxima across
@@ -88,6 +92,7 @@ pub struct QuicTransmissionObservation {
 }
 
 /// Shared physical-peer DATAGRAM byte occupancy, independent of packet queues.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuicSendBufferObservation {
     pub scope: String,
@@ -104,6 +109,7 @@ pub struct QuicSendBufferObservation {
 
 /// Numeric observations before WebRTC VP8 normalization, without RTP bytes or IDs.
 /// Sequence skips are local observations; they do not assert network packet loss.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WebRtcVideoInputObservation {
     pub source_packets: u64,

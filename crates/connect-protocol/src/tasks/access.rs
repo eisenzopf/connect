@@ -8,6 +8,7 @@ use std::fmt;
 pub const TASK_ACCESS_PROFILE: &str = "connect-task-access/1";
 
 /// Request authenticated by a current backing credential with task-grant scope.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskAccessRequest {
@@ -44,6 +45,7 @@ impl TaskAccessRequest {
 }
 
 /// Protected local management commands. Provider origins use verified adapters.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TaskAccessCommand {
@@ -58,6 +60,7 @@ pub enum TaskAccessCommand {
 
 /// Secret-bearing intended credential exchange. Debug output redacts plaintext;
 /// explicitly serializing this type is reserved for protected transport/files.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtectedTaskGrant {
@@ -84,6 +87,7 @@ impl fmt::Debug for ProtectedTaskGrant {
 }
 
 /// Results for the protected exchange, never an ordinary task/tool outcome.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(
     tag = "kind",
@@ -96,6 +100,7 @@ pub enum TaskAccessOutcome {
     Revoked { grant_id: String },
 }
 /// Explicit envelope. The server disables caching of this credential exchange.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskAccessResponse {

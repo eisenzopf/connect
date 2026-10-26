@@ -3,6 +3,7 @@ use crate::{Availability, ContextDelivery};
 use serde::{Deserialize, Serialize};
 
 /// A route configured by this installation. Configuration is not live reachability.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RouteCapability {
     pub id: String,
@@ -13,6 +14,7 @@ pub struct RouteCapability {
     pub readiness: String,
 }
 /// Public limits needed before sending a message, file or native audio frame.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CapabilityLimits {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -25,6 +27,7 @@ pub struct CapabilityLimits {
     pub audio_codec: String,
 }
 /// Current caller-visible routes and permissions for a resolved participant.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Capabilities {
     /// Supported additive control profiles, not delegated permissions. Older
@@ -42,6 +45,7 @@ pub struct Capabilities {
     pub limits: CapabilityLimits,
 }
 /// The server-selected browser route. A client must not confuse it with its UI selection.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BrowserBinding {
     pub conversation_id: String,
@@ -50,6 +54,7 @@ pub struct BrowserBinding {
     pub signaling_url: String,
 }
 /// Newest-first delivery receipts with an authenticated older-page cursor.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextDeliveryPage {
     pub deliveries: Vec<ContextDelivery>,

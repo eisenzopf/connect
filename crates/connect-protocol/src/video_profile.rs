@@ -18,6 +18,7 @@ pub const MAX_VIDEO_QUEUE_AGE_MS: i64 = 200;
 pub const VIDEO_CLOCK_HZ: u32 = 90_000;
 
 /// Public capability limits for the named two-party VP8 profile.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VideoProfile {
     pub profile: String,

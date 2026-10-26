@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 /// A signed hint about a recorded routing-only operation. Read the journal
 /// under current authority before applying any observation from that operation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReconciliationHint {
@@ -45,6 +46,7 @@ impl ReconciliationHint {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Command {
     #[serde(rename = "stream.subscribe")]
@@ -90,6 +92,7 @@ impl Command {
 /// Store this original, bounded payload as part of logical operation identity.
 /// Optional extension fields remain included even when the current engine does
 /// not interpret them. Selected sources are resolved under current authority.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Intent {
@@ -308,6 +311,7 @@ impl Intent {
     }
 }
 /// Historical native codec commit metadata. It grants no current media rights.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CodecBinding {
@@ -321,6 +325,7 @@ pub struct CodecBinding {
 }
 /// Captured native selection result. Optional bindings distinguish unavailable
 /// concurrent metadata from a known empty set; neither observation grants I/O.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SelectionObservation {

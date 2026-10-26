@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Local operational state; `ready` never promises remote end-to-end reachability.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ReadinessState {
@@ -12,6 +13,7 @@ pub enum ReadinessState {
 }
 
 /// One configured component. Reasons are stable codes, never provider errors.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComponentReadiness {
     pub component: String,
@@ -31,6 +33,7 @@ fn is_configured(configured: &bool) -> bool {
 }
 
 /// Authenticated health diagnostic, sampled from this running process.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Readiness {
     pub state: ReadinessState,

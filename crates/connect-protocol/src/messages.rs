@@ -3,12 +3,14 @@ use crate::{Error, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum MessageAudience {
     All(AllAudience),
     Participants(Vec<String>),
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AllAudience {
     #[serde(rename = "all")]
@@ -34,6 +36,7 @@ impl MessageAudience {
         Ok(())
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum BodyEncoding {
@@ -49,6 +52,7 @@ impl BodyEncoding {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct AttachmentRef {
@@ -56,6 +60,7 @@ pub struct AttachmentRef {
     pub content_type: String,
     pub size_bytes: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct MessageDraft {
@@ -138,6 +143,7 @@ impl std::fmt::Debug for MessageDraft {
         f.write_str("MessageDraft(redacted)")
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MessageRecipient {
     pub participant_id: String,
@@ -180,6 +186,7 @@ fn invalid() -> Error {
 }
 
 /// Filters are applied inside the authorized history query, before pagination.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HistoryQuery {
     pub since: Option<i64>,

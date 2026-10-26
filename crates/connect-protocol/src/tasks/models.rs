@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 /// Closed set of delegatable communication operations and explicit bound-task
 /// cancellation. Administrative authority and conversation creation are never
 /// implicitly delegated; `TaskCancel` requires its own immutable ceiling.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskPermission {
@@ -74,6 +75,7 @@ impl TaskPermission {
 }
 
 /// Immutable authority ceiling; current actor/membership/route checks still apply.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskScope {
@@ -87,6 +89,7 @@ pub struct TaskScope {
 }
 /// A reference to immutable evidence supplied by a trusted enrollment authority.
 /// This reference neither enrolls a recipient nor renews or overrides consent.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSmsEnrollment {
@@ -95,6 +98,7 @@ pub struct TaskSmsEnrollment {
     pub purpose: String,
 }
 /// Developer-supplied task inputs. The authenticated actor supplies ownership.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskDefinition {
@@ -105,6 +109,7 @@ pub struct TaskDefinition {
     pub initiating_event_id: Option<String>,
 }
 /// Durable task metadata; revision is incremented on every lifecycle transition.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskRecord {
@@ -121,6 +126,7 @@ pub struct TaskRecord {
     pub reason: Option<String>,
 }
 /// Runtime correlation type; neither headers nor IDs confer authority on their own.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum InvocationKind {
@@ -130,6 +136,7 @@ pub enum InvocationKind {
     HostSession,
 }
 /// Bound by the trusted composition/adapter after verifying its external origin.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationBinding {
@@ -138,6 +145,7 @@ pub struct InvocationBinding {
     pub external_id: String,
 }
 /// Inspectable grant metadata; the opaque bearer secret is issued separately.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct InvocationGrant {
@@ -150,6 +158,7 @@ pub struct InvocationGrant {
 }
 /// Trusted issuance input. It is never a model-facing task command, and runtime
 /// admission must prove that the binding was registered by its owning adapter.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct GrantDefinition {
@@ -160,6 +169,7 @@ pub struct GrantDefinition {
 }
 /// A bounded step lease is an ownership hint, not permission to retry an effect.
 /// Once an effect may have left the process, expiry requires reconciliation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskStepClaim {
@@ -170,6 +180,7 @@ pub struct TaskStepClaim {
     pub expires_at: i64,
 }
 /// One effect identity includes its task, step and logical mutation.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskEffect {
@@ -184,6 +195,7 @@ pub struct TaskEffect {
     pub error: Option<crate::Error>,
 }
 /// A reply explicitly assigned to one task; unassigned history has no task ID.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskReply {
@@ -195,6 +207,7 @@ pub struct TaskReply {
     pub consumed: bool,
 }
 /// A bounded tool result does not manufacture completion while the task is waiting.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TaskToolResult {
@@ -213,6 +226,7 @@ pub enum TaskToolResult {
 }
 
 /// Durable notification payload; authority is always rechecked when it is read.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(
     tag = "kind",
@@ -231,6 +245,7 @@ pub enum TaskEventData {
     Claim(TaskStepClaim),
 }
 /// Journal entry with stable source attribution and commit order.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskEvent {
@@ -242,6 +257,7 @@ pub struct TaskEvent {
     pub data: TaskEventData,
 }
 /// Retained evidence is data, never an instruction that expands task authority.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSource {
@@ -262,6 +278,7 @@ pub struct TaskSource {
     pub record: Option<crate::ContextRecord>,
 }
 /// Public results shared by native, HTTP, language SDK and MCP adapters.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(
     tag = "kind",

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// The Session control receipt records the policy decision. Follow this separate
 /// operation for the actual bounded Connection reconciliation outcome.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReconciliationReference {
@@ -12,6 +13,7 @@ pub struct ReconciliationReference {
 
 /// Aggregate counts deliberately omit physical peer and private Connection IDs.
 /// Success for one target cannot imply success for the rest of the Session.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReconciliationCounts {
@@ -27,6 +29,7 @@ pub struct ReconciliationCounts {
     pub unknown: u64,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReconciliationOutcome {

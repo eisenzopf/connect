@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 pub const PROVISIONING_PROFILE: &str = "connect/2";
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SigningAlgorithm {
     EdDSA,
@@ -19,6 +20,7 @@ impl SigningAlgorithm {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityKind {
@@ -38,6 +40,7 @@ impl IdentityKind {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum EndpointTransport {
@@ -65,6 +68,7 @@ impl EndpointTransport {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct DeviceSpec {
@@ -73,6 +77,7 @@ pub struct DeviceSpec {
     pub platform: String,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ProvisioningCommand {
@@ -469,6 +474,7 @@ fn revision(value: u64) -> Result<()> {
 }
 
 /// Administrative responses omit endpoint addresses and secret references.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ProvisioningOutcome {
@@ -526,6 +532,7 @@ pub enum ProvisioningOutcome {
     },
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Deserialize)]
 pub struct ProvisioningResponse {
     pub profile: String,

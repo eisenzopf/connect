@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub const PROFILE: &str = "connect/2";
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct CredentialIssueRequest {
@@ -54,6 +55,7 @@ impl std::fmt::Debug for CredentialIssueRequest {
 
 /// Intended protected response only. Persist the original request before IO;
 /// exact replay never replaces the credential or extends its absolute expiry.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct CredentialIssueOutcome {
@@ -74,6 +76,7 @@ impl std::fmt::Debug for CredentialIssueOutcome {
         f.write_str("CredentialIssueOutcome(redacted)")
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CredentialIssueResponse {

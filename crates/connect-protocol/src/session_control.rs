@@ -5,6 +5,7 @@ use serde_json::Value;
 mod targets;
 pub use targets::{sip_authority, Target};
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
@@ -15,6 +16,7 @@ pub struct Request {
     pub expected_revision: Option<u64>,
     pub action: Action,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
@@ -211,6 +213,7 @@ pub fn validate_capabilities(value: &Value) -> Result<()> {
 }
 /// Current shared Session metadata; live appearances and Connections are separate
 /// scoped facts. No initiator/counterpart pair defines the Participant set.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SessionView {
@@ -228,6 +231,7 @@ pub struct SessionView {
     pub updated_at: i64,
     pub ended_reason: Option<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ControlOutcome {

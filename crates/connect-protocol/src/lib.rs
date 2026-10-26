@@ -54,6 +54,7 @@ pub const MAX_PAGE_BYTES: usize = 512 * 1024;
 
 /// The transport envelope ID correlates one exchange. `request_id` identifies a
 /// logical mutation across retries, transports, and server restarts.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Request {
     pub profile: String,
@@ -70,6 +71,7 @@ impl Request {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Operation {
@@ -620,6 +622,7 @@ impl Operation {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Identity {
     pub id: String,
@@ -628,6 +631,7 @@ pub struct Identity {
     pub capabilities: Vec<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Message {
     pub id: String,
@@ -651,6 +655,7 @@ impl std::fmt::Debug for Message {
     }
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Event {
     pub id: String,
@@ -668,6 +673,7 @@ pub struct Event {
     pub receipt: Option<receipts::RecipientReceipt>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AvailabilityState {
@@ -675,6 +681,7 @@ pub enum AvailabilityState {
     Unavailable,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Availability {
     pub identity_id: String,
@@ -685,6 +692,7 @@ pub struct Availability {
     pub observed_at: Option<i64>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Session {
     pub id: String,
@@ -699,6 +707,7 @@ pub struct Session {
 }
 
 /// Durable intent and observed state for one SIP connection in a Session.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SipLeg {
     pub id: String,
@@ -713,6 +722,7 @@ pub struct SipLeg {
     pub updated_at: i64,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextItem {
     pub sequence: u64,
@@ -725,6 +735,7 @@ pub struct ContextItem {
 }
 /// Exact authorized record projection. Raw whole-record/manifest fingerprints
 /// remain private to the server. This reference is data and grants no access.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ContextRecord {
@@ -735,6 +746,7 @@ pub struct ContextRecord {
     pub content_hash: Option<String>,
     pub valid_until: Option<i64>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextRecordState {
@@ -743,6 +755,7 @@ pub enum ContextRecordState {
     Deleted,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextDelivery {
     pub id: String,
@@ -758,6 +771,7 @@ pub struct ContextDelivery {
     pub lifecycle: Option<ContextDeliveryLifecycle>,
 }
 /// Captured native destination. This describes the original export and grants no access.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ContextDeliveryDestination {
@@ -765,12 +779,14 @@ pub struct ContextDeliveryDestination {
     pub generation: u64,
     pub purpose: ContextDeliveryPurpose,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextDeliveryPurpose {
     PublicSession,
     PrivateConsultation,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextDeliveryProblem {
@@ -779,6 +795,7 @@ pub enum ContextDeliveryProblem {
     Incomplete,
     Unknown,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextDeliveryPhase {
@@ -788,6 +805,7 @@ pub enum ContextDeliveryPhase {
 }
 /// Observed control lifecycle, independent of media readiness. None means that
 /// lane does not record an independently admitted cleanup phase.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ContextDeliveryLifecycle {
@@ -802,6 +820,7 @@ pub struct ContextDeliveryLifecycle {
     pub closed: bool,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextView {
     pub conversation_id: String,
@@ -815,6 +834,7 @@ pub struct ContextView {
     pub deliveries_omitted: u64,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Artifact {
     pub id: String,
@@ -831,6 +851,7 @@ pub struct Artifact {
     pub expires_at: Option<i64>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ArtifactChunk {
     pub artifact: Artifact,
@@ -845,6 +866,7 @@ fn outbound_direction() -> String {
     "outbound".into()
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Call {
     /// An accepted end intent remains visible until provider termination is known.
@@ -861,6 +883,7 @@ pub struct Call {
     pub ended_reason: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProviderDelivery {
     pub job_id: String,
@@ -878,6 +901,7 @@ pub struct ProviderDelivery {
     pub refusal_code: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 // This bounded wire DTO keeps its existing public Rust construction API.
@@ -948,6 +972,7 @@ pub enum Outcome {
     },
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize, thiserror::Error, PartialEq, Eq)]
 #[error("{code}: {message}")]
 pub struct Error {
@@ -975,6 +1000,7 @@ impl Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Response {
@@ -982,6 +1008,7 @@ pub struct Response {
     pub result: Result<Outcome>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Limits {

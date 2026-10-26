@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub const MAX_AGENT_OBSERVATION_BYTES: usize = 65_536;
 pub const MAX_AGENT_DRAFT_BYTES: usize = 70 * 1024;
 pub const MAX_AGENT_SEQUENCE: u64 = 9_007_199_254_740_991;
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentCompleteness {
@@ -11,6 +12,7 @@ pub enum AgentCompleteness {
     Final,
     Unavailable,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentSpeakerRole {
@@ -19,6 +21,7 @@ pub enum AgentSpeakerRole {
     System,
     Other,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentActionPhase {
@@ -26,6 +29,7 @@ pub enum AgentActionPhase {
     ResultObserved,
     Unknown,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentObservationIssue {
@@ -35,6 +39,7 @@ pub enum AgentObservationIssue {
     UnsupportedEvent,
     SequenceExhausted,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentObservationGap {
@@ -42,6 +47,7 @@ pub struct AgentObservationGap {
     pub last_sequence: u64,
     pub observations: u64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum AgentObservationContent {
@@ -76,6 +82,7 @@ pub enum AgentObservationContent {
         observations: u64,
     },
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentObservation {

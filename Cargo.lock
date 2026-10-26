@@ -772,6 +772,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "schemars",
  "serde",
  "serde_jcs",
  "serde_json",

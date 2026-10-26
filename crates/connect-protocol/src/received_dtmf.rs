@@ -1,6 +1,7 @@
 //! Actual received SIP facts. This is not a signed native observation or a grant.
 use crate::{transitions::id, Error, Result};
 use serde::{Deserialize, Serialize};
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SourceKind {
     #[serde(rename = "sip-info")]
@@ -22,6 +23,7 @@ impl SourceKind {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RtpObservation {
@@ -35,6 +37,7 @@ pub struct RtpObservation {
     pub event: u8,
     pub start_observed: bool,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceObservation {

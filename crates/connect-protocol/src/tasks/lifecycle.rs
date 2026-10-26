@@ -3,6 +3,7 @@ use crate::{Error, Result};
 use serde::{Deserialize, Serialize};
 
 /// A task remains attached to its conversation through waiting and restart.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskState {
@@ -47,6 +48,7 @@ impl TaskState {
 }
 
 /// Dispatch uncertainty is persisted independently of the task lifecycle.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EffectState {

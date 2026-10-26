@@ -1,0 +1,1054 @@
+{
+  "scope": "Synthetic serde-shape and dispatch samples only. Not authorization, business-valid examples, provider effects or media evidence.",
+  "cases": [
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "connection_prepare",
+        "request": {
+          "endpoint_id": "schema-sample",
+          "intent": {
+            "connection_id": "schema-sample",
+            "conversation_id": "schema-sample",
+            "offer": null,
+            "operation_id": "schema-sample",
+            "session_id": "schema-sample"
+          },
+          "preparation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "session_control",
+        "request": {
+          "action": {
+            "capabilities": null,
+            "intent": "schema-sample",
+            "kind": "invite",
+            "medium": "schema-sample",
+            "participants": []
+          },
+          "conversation_id": "schema-sample",
+          "operation_id": "schema-sample",
+          "session_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "session_decision",
+        "request": {
+          "conversation_id": "schema-sample",
+          "decision": "reject",
+          "operation_id": "schema-sample",
+          "reason": "schema-sample",
+          "reason_code": 0,
+          "session_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "session_observations",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_observations",
+        "query": {},
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "conversation_snapshot",
+        "query": {}
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "conversation_events",
+        "query": {}
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "transition",
+        "request": {
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "expires_at": 0,
+          "intent": {
+            "private_participants": [],
+            "retained_connid": "schema-sample",
+            "type": "session.consult"
+          },
+          "operation_id": "schema-sample",
+          "session_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "durable_operation",
+        "request": {
+          "action": "get",
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "participant_route",
+      "sample": {
+        "op": "participant_route",
+        "request": {
+          "conversation_id": "schema-sample",
+          "direction": "outgoing",
+          "failover": "none",
+          "media": [],
+          "participant_id": "schema-sample",
+          "purpose": "session",
+          "transports": []
+        }
+      }
+    },
+    {
+      "response_kind": "contact_pairing",
+      "sample": {
+        "expires_at": 0,
+        "op": "contact_pairing_start",
+        "peer_identity_id": "schema-sample",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "contact_pairing",
+      "sample": {
+        "challenge": "schema-sample",
+        "op": "contact_pairing_complete",
+        "pairing_id": "schema-sample",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "contact_pairing",
+      "sample": {
+        "op": "contact_pairing_revoke",
+        "pairing_id": "schema-sample",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "contact",
+      "sample": {
+        "op": "contact_state",
+        "peer_identity_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "create",
+            "definition": {
+              "conversation_id": "schema-sample",
+              "expires_at": 0,
+              "scope": {
+                "operations": [],
+                "recipients": []
+              }
+            },
+            "request_id": "schema-sample"
+          },
+          "task_profile": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "identity",
+      "sample": {
+        "address": "schema-sample",
+        "op": "resolve"
+      }
+    },
+    {
+      "response_kind": "capabilities",
+      "sample": {
+        "address": "schema-sample",
+        "op": "capabilities"
+      }
+    },
+    {
+      "response_kind": "browser_binding",
+      "sample": {
+        "op": "browser_binding"
+      }
+    },
+    {
+      "response_kind": "context_deliveries",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "op": "context_deliveries"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "create",
+        "request": {
+          "initial_participants": [],
+          "policy": "persistent"
+        },
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "add",
+            "identity_id": "schema-sample",
+            "kind": "human",
+            "role": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "invite",
+            "expires_at": 0,
+            "identity_id": "schema-sample",
+            "kind": "human",
+            "role": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "join",
+            "invitation_id": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "decline",
+            "invitation_id": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "cancel_invitation",
+            "invitation_id": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "leave"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "remove",
+            "participant_id": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "update_role",
+            "participant_id": "schema-sample",
+            "role": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "share_history",
+            "participants": [],
+            "provenance": "schema-sample",
+            "resources": []
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership",
+      "sample": {
+        "op": "membership",
+        "request": {
+          "change": {
+            "action": "revoke_history_share",
+            "sharing_id": "schema-sample"
+          },
+          "conversation_id": "schema-sample",
+          "expected_revision": 0,
+          "operation_id": "schema-sample"
+        }
+      }
+    },
+    {
+      "response_kind": "membership_snapshot",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "membership_snapshot"
+      }
+    },
+    {
+      "response_kind": "membership_invitations",
+      "sample": {
+        "limit": 0,
+        "op": "membership_invitations"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "conversations",
+        "query": {}
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "message": {
+          "attachments": [],
+          "body": "schema-sample",
+          "body_encoding": "utf8",
+          "content_type": "schema-sample",
+          "label": "schema-sample",
+          "to": "all"
+        },
+        "op": "send",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "message_receipts",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "message_id": "schema-sample",
+        "op": "message_receipts"
+      }
+    },
+    {
+      "response_kind": "receipt_acknowledged",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "message_id": "schema-sample",
+        "op": "message_receipt",
+        "request_id": "schema-sample",
+        "state": "delivered"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "message_id": "schema-sample",
+        "op": "message_receipt",
+        "request_id": "schema-sample",
+        "state": "read"
+      }
+    },
+    {
+      "response_kind": "receipt_preferences",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "receipt_preferences_get"
+      }
+    },
+    {
+      "response_kind": "receipt_preferences",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "delivery": false,
+        "op": "receipt_preferences_set",
+        "read": false,
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "op": "history"
+      }
+    },
+    {
+      "response_kind": "inbox",
+      "sample": {
+        "limit": 0,
+        "op": "inbox",
+        "wait_ms": 0
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "op": "request_status",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "close",
+        "options": {},
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "provider_status",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "provider_status"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "destination": "schema-sample",
+        "op": "call_start",
+        "request_id": "schema-sample",
+        "route_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "call",
+      "sample": {
+        "call_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "op": "call_status"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "call_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "op": "call_end",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "media": [],
+        "op": "session_invite",
+        "participant_id": "schema-sample",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_accept",
+        "request_id": "schema-sample",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_reject",
+        "request_id": "schema-sample",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_cancel",
+        "request_id": "schema-sample",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_end",
+        "request_id": "schema-sample",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "session_get",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "destination": "schema-sample",
+        "op": "sip_dial",
+        "request_id": "schema-sample",
+        "session_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "sip_leg",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "sip_status",
+        "sip_leg_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": null,
+      "sample": {
+        "conversation_id": "schema-sample",
+        "op": "sip_end",
+        "request_id": "schema-sample",
+        "sip_leg_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "context_view",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "op": "context_view"
+      }
+    },
+    {
+      "response_kind": "availability",
+      "sample": {
+        "expires_at": 0,
+        "op": "availability_set",
+        "request_id": "schema-sample",
+        "state": "available"
+      }
+    },
+    {
+      "response_kind": "availability",
+      "sample": {
+        "identity_id": "schema-sample",
+        "op": "availability_get"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "conversation_id": "schema-sample",
+        "media_type": "schema-sample",
+        "name": "schema-sample",
+        "op": "artifact_begin",
+        "request_id": "schema-sample",
+        "sha256": "schema-sample",
+        "size": 0,
+        "to": "all"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "data": "schema-sample",
+        "offset": 0,
+        "op": "artifact_append",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "op": "artifact_finish",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "artifact_chunk",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "offset": 0,
+        "op": "artifact_get"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "op": "artifact_inspect"
+      }
+    },
+    {
+      "response_kind": "artifact_link",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "expires_in": 0,
+        "op": "artifact_upload_link"
+      }
+    },
+    {
+      "response_kind": "artifact_link",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "expires_in": 0,
+        "message_id": "schema-sample",
+        "op": "artifact_download_link"
+      }
+    },
+    {
+      "response_kind": "artifact_chunk",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "limit": 0,
+        "link": "schema-sample",
+        "offset": 0,
+        "op": "artifact_link_get"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "data": "schema-sample",
+        "link": "schema-sample",
+        "offset": 0,
+        "op": "artifact_link_append",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "artifact",
+      "sample": {
+        "artifact_id": "schema-sample",
+        "conversation_id": "schema-sample",
+        "op": "artifact_delete",
+        "request_id": "schema-sample"
+      }
+    },
+    {
+      "response_kind": "health",
+      "sample": {
+        "op": "health"
+      }
+    }
+  ],
+  "task_cases": [
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "create",
+            "definition": {
+              "conversation_id": "schema-sample",
+              "expires_at": 0,
+              "scope": {
+                "operations": [],
+                "recipients": []
+              }
+            },
+            "request_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "get",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "cancel",
+            "request_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "transition",
+            "expected_revision": 0,
+            "request_id": "schema-sample",
+            "state": "ready",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "replies",
+            "conversation_id": "schema-sample",
+            "limit": 0
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "assign_reply",
+            "event_id": "schema-sample",
+            "request_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "reply",
+            "body": "schema-sample",
+            "conversation_id": "schema-sample",
+            "reply_to": "schema-sample",
+            "request_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "inbox",
+            "limit": 0,
+            "task_id": "schema-sample",
+            "wait_ms": 0
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "consume_reply",
+            "event_id": "schema-sample",
+            "expected_revision": 0,
+            "request_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "invoke",
+            "operation": {
+              "op": "connection_prepare",
+              "request": {
+                "endpoint_id": "schema-sample",
+                "intent": {
+                  "connection_id": "schema-sample",
+                  "conversation_id": "schema-sample",
+                  "offer": null,
+                  "operation_id": "schema-sample",
+                  "session_id": "schema-sample"
+                },
+                "preparation_id": "schema-sample"
+              }
+            },
+            "request_id": "schema-sample",
+            "step_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "recall",
+            "limit": 0,
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "wait",
+            "limit": 0,
+            "task_id": "schema-sample",
+            "wait_ms": 0
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "effect_get",
+            "effect_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "claim",
+            "request_id": "schema-sample",
+            "step_id": "schema-sample",
+            "task_id": "schema-sample",
+            "worker_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "claim_get",
+            "step_id": "schema-sample",
+            "task_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    },
+    {
+      "response_kind": "task",
+      "sample": {
+        "op": "task",
+        "request": {
+          "command": {
+            "action": "release_claim",
+            "expected_revision": 0,
+            "request_id": "schema-sample",
+            "step_id": "schema-sample",
+            "task_id": "schema-sample",
+            "worker_id": "schema-sample"
+          },
+          "task_profile": "connect-task/1"
+        }
+      }
+    }
+  ],
+  "inputs": {
+    "Cargo.lock": "dc69ee13a8217a9cb2b3661ada17f9d51abce92fc21eb6523e4890fa8785c186",
+    "Cargo.toml": "5ccdf71e1e209def947e0765eb3201641f5120c3d86b8f71c42904549068411f",
+    "crates/connect-protocol/Cargo.toml": "bbbd622e352c316a507c3cf5a1b6cfad8f2a96e81af273123dcbf02cafbfb24c",
+    "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
+    "crates/connect-protocol/src/application_api.rs": "92f9ceebc43320e807845d7b47db6a3495134444ed21f3735da0d838a57efec7",
+    "crates/connect-protocol/src/attachments.rs": "77ab58a48700c9950f936314c097dd2c20a82c32b74e8468e5891b759412b7cb",
+    "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",
+    "crates/connect-protocol/src/canonical_http.rs": "20020de6aefd890178e2aacbfeb44ca5312ccf623fe35cef50e42d59203c62d7",
+    "crates/connect-protocol/src/connection_control.rs": "461318f216cd3be6c1b392ab0e9ddc9c16d63ad22b35b82f9d28123aa761d492",
+    "crates/connect-protocol/src/contacts.rs": "ea94dce3a693b7ee1a7ebb6e1a59004595b7e47bae8cd365f78b2d877699702f",
+    "crates/connect-protocol/src/conversations.rs": "adf5371467e0f392a4079ec73a45089793b30801e2734234f172b3bea475c99b",
+    "crates/connect-protocol/src/credential_issuance.rs": "5698195e40bb155b8c948bd62791037ad6bce8347faf734624d372a09bc787c5",
+    "crates/connect-protocol/src/discovery.rs": "1013efaa4a1932fc61ee5b9219199f899094f0314bd71229a8c2bcba175856e1",
+    "crates/connect-protocol/src/events/agent.rs": "5edabb2228bd2ad88e6e4e3648ef8c163f45c01ab07e9e807e043c77334a5d86",
+    "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
+    "crates/connect-protocol/src/events.rs": "894e5f211449f729045aa69f904c3fffe3a7c0a7c604c0297097ba69956a422c",
+    "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
+    "crates/connect-protocol/src/lib.rs": "e46ef9d9b9ab1bf355f5e2023fe746dcffcbd746e9e218d50f1b4a50025dc033",
+    "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
+    "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
+    "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
+    "crates/connect-protocol/src/messages.rs": "bcd8a68ef8d6d60e9798688730c7466074d55b01270928523b847f5b7362dba3",
+    "crates/connect-protocol/src/native_capabilities.rs": "caf76d22b5d28a0124116ffd309195ad2a1782f59539a42dc7d7335f70458d1d",
+    "crates/connect-protocol/src/native_data.rs": "e5120aeb30ee6458a86f917305a0041e820575f5a01a356d85273016c353afbe",
+    "crates/connect-protocol/src/native_dtmf.rs": "9f4cd77bd13c53cf2cb5bd65bed19629b5217b928ea5809d12cb899c402eb691",
+    "crates/connect-protocol/src/native_gates.rs": "e34a887a3ee5debdd5069c1628b77df2a426206b594b219c1eef89e2e14915b7",
+    "crates/connect-protocol/src/native_network.rs": "660942bd63592c76352c04ea7f63005505985b9d1fb897078c9ecd9c6a0c0baf",
+    "crates/connect-protocol/src/native_streams.rs": "ac0716a053e299867925012a1f28211447083a3b6e102d38f369fa6561224007",
+    "crates/connect-protocol/src/provisioning.rs": "be66cef48479c33ccfb830edd34941f72814a34a73082814b5c1c5bbec59da51",
+    "crates/connect-protocol/src/readiness.rs": "dd9ffed3628f76e17d7c23b8e5f0cd28cabd3f6f81fe016677d267a9d22da0aa",
+    "crates/connect-protocol/src/readiness_tests.rs": "a44649daab4711d37d5391759e34c14ac34aba886afe88eacec767b12247557d",
+    "crates/connect-protocol/src/receipts.rs": "def59e827fc0b5b658c0b5e091b45f1591a90401c12972054fccdd4a859d3f6a",
+    "crates/connect-protocol/src/received_dtmf.rs": "99e322febcbdbc0fe839c0e256bb613347a67de8c2d829bf7df446d9599923df",
+    "crates/connect-protocol/src/record_mutations.rs": "984346c16a8bffcc24de259bc9c878d11ab1e350eae274b897135b635a19ad20",
+    "crates/connect-protocol/src/record_retention.rs": "69514b71bf86e3bf9fc3d143515a5983afc5f10844eafd9b6ccaac90cd9a4943",
+    "crates/connect-protocol/src/routing.rs": "299658249d9715c985da4636cec46077ec7c76e29767b7339d4d02d82639ac33",
+    "crates/connect-protocol/src/session_codecs.rs": "e1cd465ddc186ab6054b193b13f9782739762ee16bfb41c3ff77bc9764f19963",
+    "crates/connect-protocol/src/session_control/targets.rs": "4fb3870462f591ca21d169db21f846e1a2fe02096c8c02218de9e0476adbf2f2",
+    "crates/connect-protocol/src/session_control.rs": "5f0c91f63f28ac5d4c3c0312091137e696c91945da6467bafad1020b5c0cae40",
+    "crates/connect-protocol/src/session_decisions.rs": "93602f681e8ef73aa4d72d968fafa3a656321867473db23aeed37197e111c78a",
+    "crates/connect-protocol/src/tasks/access.rs": "b403564859c2b16ae3ed1da4b2e68a494c629c95e920e457b83aec18a2a38c37",
+    "crates/connect-protocol/src/tasks/lifecycle.rs": "28b7dda69a2d9516a7cffeb77c462b6104bd820926aa5f7a47f42be405068346",
+    "crates/connect-protocol/src/tasks/mod.rs": "f5787c790b8cfab544f2881adfe4ca58908680773e3a5c21ff8a3aea1b25c1e3",
+    "crates/connect-protocol/src/tasks/models.rs": "2a0ef40483cd4f1fcdef35edb6b5818e8f463b3db44147654ae62ae14722a7e7",
+    "crates/connect-protocol/src/tasks/principal.rs": "15fd3964780deb097cbdb6ca8cce6410b9856e20a6e59a76594352a169a59548",
+    "crates/connect-protocol/src/tasks/request.rs": "9def8ad3c4297b05fdfaab0824f2e077dc0d58840b7d09f01ae64323ddb82018",
+    "crates/connect-protocol/src/tasks/validation.rs": "2e39602776e6da4850a94c4ea803b5ebdbdb8252377b791d48a35e871a053197",
+    "crates/connect-protocol/src/transitions.rs": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+    "crates/connect-protocol/src/user_delegation.rs": "208746e9ffac0bae03bdd6fa2177a9801d7dca273f56458c820e2e656e22b35a",
+    "crates/connect-protocol/src/video_profile.rs": "d1b626fb37196a0c4eb974d7db12aa6c11031a94a51bddca478d388cd65c356c",
+    "crates/connect-protocol/tests/contact_debug.rs": "d9dbf2f6e645b4f9077d4a4d83da5d94478d5e0ab5d5ba5921ed4a4902093265",
+    "crates/connect-protocol/tests/contact_response.rs": "9fa647ae3d0efa1a47b597f64a6fd87fc2e3d1288b981070447b6865bf7ec94d",
+    "crates/connect-protocol/tests/conversation_control.rs": "7d3c41934d97499a567f35e4576b6782c1d366eb8c9104e09895514f7b391546",
+    "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
+    "crates/connect-server/src/transports/http.rs": "ef5e5540ff1cfd7bfc59b773b370820465845d70f42fdd2ea811523c489c1ff1",
+    "dependencies/source-lock.json": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a",
+    "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135"
+  }
+}

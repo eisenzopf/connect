@@ -349,6 +349,12 @@
           "method": "post",
           "references": [
             {
+              "document": "contracts/openapi-application-http.json",
+              "path": "/v1/operations",
+              "method": "post",
+              "pointer": "/paths/~1v1~1operations/post"
+            },
+            {
               "document": "contracts/openapi-attachments.json",
               "path": "/v1/operations",
               "method": "post",
@@ -541,6 +547,7 @@
     }
   ],
   "inputs": {
+    "contracts/openapi-application-http.json": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
     "contracts/openapi-attachments.json": "ff6dde35bcfe748e737ad0228f8aaf315d47844fe0bc60f16f75c6c45cae1cc9",
     "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
     "contracts/openapi-context.json": "ae3643c5c1bfbebf9ae2d1c21790cd1ff419697e324478f837a76a38f0a44f40",
@@ -557,7 +564,7 @@
     "contracts/openapi-routing.json": "ae937ea405c82cce0c543b151d39dbd071837610aad9ef911f76f1a1d6aa1afa",
     "contracts/openapi-session-decisions.json": "ceaaf8c6023ad04f3a121008f3212a47f7708f1eec07004f9054bd49348f3acb",
     "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
-    "crates/connect-protocol/src/canonical_discovery.rs": "8783337d703cd47288d0d14f96872204b799e0d3f488fc640ac14fa51c00b0c8",
+    "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",
     "crates/connect-server/src/canonical_websocket.rs": "d27445f3986dc4f0f5911f5999001848bd39d9c18a4b2e637464fc436fca8873",
     "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",

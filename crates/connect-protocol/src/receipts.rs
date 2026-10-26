@@ -1,5 +1,6 @@
 //! Per-recipient, per-channel evidence. Client reports never establish human action.
 use serde::{Deserialize, Serialize};
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeliveryState {
@@ -22,12 +23,14 @@ impl DeliveryState {
         }
     }
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientReceiptState {
     Delivered,
     Read,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReceiptPreferences {
@@ -37,6 +40,7 @@ pub struct ReceiptPreferences {
     pub delivery: bool,
     pub read: bool,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RecipientReceipt {
@@ -52,11 +56,13 @@ pub struct RecipientReceipt {
     pub provenance: String,
     pub observed_at: i64,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReceiptPage {
     pub receipts: Vec<RecipientReceipt>,
     pub next: Option<String>,
 }
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReceiptAcknowledgement {
     pub conversation_id: String,
