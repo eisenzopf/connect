@@ -4,7 +4,7 @@ G6-065 is in progress. The current MCP implementation adds finite canonical
 conversation, participant, Message, Session, Connection, stream-selection and
 operation tools to ordinary identity access. The public composition checkpoint passes the new official-client function under
 both signing algorithms plus6 current HTTP and2 Task/provider functions.
-MCP library tests are building separately. This does not qualify canonical
+All9 MCP library tests also pass, including the2 new schema/parser checks. This does not qualify canonical
 connect-serve configuration, actual agent-host export/transition or remote/model
 profiles. Exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`.
 

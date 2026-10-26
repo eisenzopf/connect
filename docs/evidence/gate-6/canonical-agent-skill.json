@@ -36,6 +36,6 @@
   },
   "remaining": [
     "Compile/export the revised embedded skill into a fresh canonical agent installation and execute the supported host transition fixture. Existing sealed server/CLI qualification does not claim its earlier embedded skill bytes changed.",
-    "MCP library test build remains running; canonical server MCP configuration, stdio and broader facade/profile parity remain G6-065 work."
+    "MCP library tests now pass9 functions; canonical server MCP configuration, stdio and broader facade/profile parity remain G6-065 work."
   ]
 }

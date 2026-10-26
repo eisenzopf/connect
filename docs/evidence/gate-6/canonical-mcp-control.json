@@ -72,7 +72,23 @@
       "target_envelopes": 66
     },
     "format_openapi_diff": "passed",
-    "library_unit_checks": "MCP library unit checks building in a separate feature graph; not yet a runtime pass.",
+    "library_unit_checks": {
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "new_schema_parser_tests": 2,
+      "run_seconds": 0.59,
+      "build": "13m33s separate library feature graph; source prep reused, no dependency source edits",
+      "log": ".local/gate-6/canonical-mcp/unit-01.jsonl",
+      "sha256": "16d12d1c34584884f4b0f35900671297dcbed7c491fea7691ecd74ac1d9a6aad",
+      "build_log_sha256": "4f1e86bf8c92dc79f7f03253c08e23b118b6194fc5caaef3d8daa47cbe7b2d98",
+      "binary_sha256": "305a9252f651f5030a6b22f05d9733d2059743edcfb3ea8ad9fa4122b7f9034b",
+      "binary_bytes": 96136816,
+      "source_manifest": ".local/gate-6/canonical-mcp/unit-inputs-01.json",
+      "source_count": 615,
+      "source_unchanged": true,
+      "scope": "Actual library tests for parser/schema bounds, argument authority isolation, listener capacity/readiness/owned abort/cancelled shutdown. Canonical server config files were edited independently; they are outside this library graph and require their own production run."
+    },
     "build": {
       "exit_code": 0,
       "seconds": 11.08416874986142,
@@ -123,7 +139,7 @@
     }
   ],
   "remaining": [
-    "Run the two new schema/parser library tests and existing MCP unit suite; this separate feature graph is currently building.",
+    "Library schema/parser and existing MCP unit suite now pass9 functions. Canonical configured-server/MCP runtime qualification is the next active component.",
     "Wire owned MCP configuration into canonical connect serve and update regular-agent export/skills to the current tool contract.",
     "Qualify actual consultation/handoff/move request/status over MCP while independent native media owners enforce decoded audio. Supported actual agent-host/model lanes retain their explicit bounded configuration requirement.",
     "Finish stdio/CLI control migration and actual OpenAPI endpoint/auth/file/admin parity without compatibility dispatch. Existing one-shot request CLI is already canonical.",
