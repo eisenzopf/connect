@@ -2,6 +2,7 @@ import './media_diagnostics.test.mjs';
 import './canonical_http.test.mjs';
 import './browser_uctp.test.mjs';
 import './browser_wss.test.mjs';
+import './browser_webrtc_signaling.test.mjs';
 import './browser_rtp.test.mjs';
 import './browser_codecs.test.mjs';
 import './browser_media.test.mjs';
