@@ -225,10 +225,15 @@ pub struct Completion<T> {
 pub struct Operation<T> {
     client: Client,
     reference: OperationReference<T>,
+    observed_record: Arc<std::sync::Mutex<Option<OperationRecordId>>>,
 }
 impl<T> Clone for Operation<T> {
     fn clone(&self) -> Self {
-        Self::new(self.client.clone(), self.reference.clone())
+        Self {
+            client: self.client.clone(),
+            reference: self.reference.clone(),
+            observed_record: self.observed_record.clone(),
+        }
     }
 }
 struct Observation {
@@ -240,7 +245,15 @@ impl<T> Operation<T> {
         &self.client
     }
     pub(super) fn new(client: Client, reference: OperationReference<T>) -> Self {
-        Self { client, reference }
+        let record = match reference.continuation.as_ref() {
+            Some(consultations::Continuation::Consultation { record_id, .. }) => record_id.clone(),
+            _ => None,
+        };
+        Self {
+            client,
+            reference,
+            observed_record: Arc::new(std::sync::Mutex::new(record)),
+        }
     }
     pub(super) fn restore(client: Client, value: Value, kind: OperationKind<T>) -> Result<Self> {
         if serde_json::to_vec(&value)
@@ -278,10 +291,18 @@ impl<T> Operation<T> {
         ))
     }
     pub fn reference(&self) -> OperationReference<T> {
-        self.reference.clone()
+        let mut reference = self.reference.clone();
+        if let Some(consultations::Continuation::Consultation { record_id, .. }) =
+            &mut reference.continuation
+        {
+            if let Ok(observed) = self.observed_record.lock() {
+                *record_id = observed.clone().or_else(|| record_id.clone());
+            }
+        }
+        reference
     }
     pub fn reference_json(&self) -> Value {
-        self.reference.to_json()
+        self.reference().to_json()
     }
     async fn observe(&self, options: RequestOptions) -> Result<Observation> {
         let key = &self.reference.key;
@@ -338,6 +359,22 @@ impl<T> Operation<T> {
                     )?;
                 }
             }
+            let record_id = update
+                .record_id
+                .as_ref()
+                .map(|id| id.as_str().parse::<OperationRecordId>())
+                .transpose()
+                .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+            if let Some(record) = &record_id {
+                let mut known = self
+                    .observed_record
+                    .lock()
+                    .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+                if known.as_ref().is_some_and(|old| old != record) {
+                    return Err(Error::request(ErrorKind::Protocol, None, false));
+                }
+                *known = Some(record.clone());
+            }
             if key.command == "connection.update" {
                 match state {
                     OperationState::Completed => {
@@ -362,12 +399,7 @@ impl<T> Operation<T> {
                     key: key.clone(),
                     state,
                     revision: update.revision,
-                    record_id: update
-                        .record_id
-                        .as_ref()
-                        .map(|id| id.as_str().parse())
-                        .transpose()
-                        .map_err(|_| Error::request(ErrorKind::Protocol, Some(key), false))?,
+                    record_id,
                     cancel_requested: None,
                     expires_at: None,
                     problem: update.problem.clone(),

@@ -245,13 +245,17 @@ completion are separate boundaries. A completed topology receipt supplies scoped
 Connection handles for observation; it does not acquire their physical media.
 
 A consultation's saved operation reference retains its original source and
-retained Connection. `Operation<ConsultationResult>::return_to_retained` reads the
-host's stable `OperationRecordId` under current authority, then submits a new
-logical return operation. It never substitutes the logical operation ID for the
-Store record ID or resubmits the original consultation. The parent read and return
-submission share the caller's deadline. A failed parent read reports that the new
-return mutation was not submitted. Caller cancellation still leaves a started
-exchange owned by the driver.
+retained Connection and observed host-issued `OperationRecordId`.
+`Operation<ConsultationResult>::return_to_retained` uses that saved record and
+submits a new logical return operation under current host authority. It never
+substitutes the logical operation ID for the
+Store record ID or resubmits the original consultation. If the record has not yet
+been observed, recovery reads it under current authority; that read and return
+submission share the caller's deadline. A failed read reports that the new return
+mutation was not submitted. Later observed record IDs enrich saved references,
+and a changed host record ID is refused. A saved record grants no permission: the
+server checks current return authority even after the old execution credential is
+revoked. Caller cancellation still leaves a started exchange owned by the driver.
 
 Transition admission and status carry the host's original `command_type`,
 `expected_revision` and `record_id`. The SDK checks these before decoding a

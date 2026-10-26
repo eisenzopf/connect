@@ -41,6 +41,8 @@ pub struct ConsultationReturnReceipt {
 pub(super) enum Continuation {
     Consultation {
         retained_connection_id: ConnectionId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        record_id: Option<OperationRecordId>,
     },
     ConsultationReturn {
         consultation_record_id: OperationRecordId,
@@ -60,6 +62,7 @@ pub(super) fn valid_continuation(
             "session.consult",
             Some(Continuation::Consultation {
                 retained_connection_id,
+                ..
             }),
         )
         | (
@@ -163,6 +166,7 @@ pub(super) fn validate_completion(
     let retained = match context {
         Some(Continuation::Consultation {
             retained_connection_id,
+            ..
         }) if key.command == "session.consult" => retained_connection_id,
         Some(Continuation::ConsultationReturn {
             consultation_record_id,
@@ -248,6 +252,7 @@ impl Session {
     ) -> Result<Operation<ConsultationResult>> {
         let context = Continuation::Consultation {
             retained_connection_id: input.retain.clone(),
+            record_id: None,
         };
         let intent = TransitionIntent::Consult {
             retained_connid: input.retain.into(),
@@ -280,7 +285,7 @@ impl Session {
         via: ConnectionId,
         expected: TopologyRevision,
         intent: TransitionIntent,
-        context: Continuation,
+        mut context: Continuation,
         options: MutationOptions,
     ) -> Result<Operation<T>> {
         let key = OperationKey {
@@ -336,6 +341,15 @@ impl Session {
                 Some(&context),
             )?;
         }
+        if let Continuation::Consultation { record_id, .. } = &mut context {
+            *record_id = Some(
+                frame.original()["payload"]["record_id"]
+                    .as_str()
+                    .ok_or_else(|| fail(&key, true))?
+                    .parse()
+                    .map_err(|_| fail(&key, true))?,
+            );
+        }
         Ok(Operation::new(
             self.client().clone(),
             OperationReference {
@@ -348,7 +362,9 @@ impl Session {
 }
 impl Operation<ConsultationResult> {
     /// Restore the original retained engagement through a new, explicitly named operation.
-    /// The original record is read under current authority; missing identity is never guessed.
+    /// Use the original host-issued record observation; only an as-yet unknown
+    /// record requires a current-authorized read. The new mutation always checks
+    /// current return authority on the host. Record identity is never guessed.
     pub async fn return_to_retained(
         &self,
         expected: TopologyRevision,
@@ -367,22 +383,27 @@ impl Operation<ConsultationResult> {
         options.request.validate().map_err(|_| invalid())?;
         let Some(Continuation::Consultation {
             retained_connection_id,
+            record_id,
         }) = reference.continuation
         else {
             return Err(invalid());
         };
         let until = tokio::time::Instant::now() + options.request.timeout;
-        let observed = self
-            .status(options.request.clone())
-            .await
-            .map_err(|mut e| {
-                e.operation = Some(key.clone());
-                e.certainty = Certainty::NotSubmitted;
-                e
-            })?;
-        let record = observed
-            .record_id
-            .ok_or_else(|| Error::request(ErrorKind::ReceiptUnavailable, Some(&key), false))?;
+        let record = if let Some(record) = record_id {
+            record
+        } else {
+            let observed = self
+                .status(options.request.clone())
+                .await
+                .map_err(|mut e| {
+                    e.operation = Some(key.clone());
+                    e.certainty = Certainty::NotSubmitted;
+                    e
+                })?;
+            observed
+                .record_id
+                .ok_or_else(|| Error::request(ErrorKind::ReceiptUnavailable, Some(&key), false))?
+        };
         let remaining = until.saturating_duration_since(tokio::time::Instant::now());
         if remaining.is_zero() {
             return Err(Error::request(ErrorKind::Deadline, Some(&key), false));

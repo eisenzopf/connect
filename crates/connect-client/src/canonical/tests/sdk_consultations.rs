@@ -13,6 +13,9 @@ pub(in crate::canonical) enum Case {
     WrongParent,
     RemoteEof,
     WrongRevision,
+    NoParentRead,
+    ParentRefused,
+    ChangedRecord,
 }
 fn options() -> RequestOptions {
     RequestOptions::new(Duration::from_secs(3)).unwrap()
@@ -123,6 +126,18 @@ pub(super) async fn emit(
             "session.consult"
         };
         assert_eq!(request.scope(Scope::Connection), Some("primary"));
+        if matches!(case, Case::NoParentRead) {
+            assert!(
+                !query || returned,
+                "a saved host record must not require parent read permission"
+            );
+        }
+        if matches!(case, Case::ParentRefused) && query && !returned {
+            write(writer,signer,&request,json!({"code":401,"category":"authentication","reason":"Parent execution read unavailable"}),"error").await;
+            frame = read(reader).await;
+            continue;
+        }
+
         if !query {
             assert_eq!(request.kind(), command);
             if returned {
@@ -165,6 +180,9 @@ pub(super) async fn emit(
             || query && gets > 1
             || matches!(case, Case::Duplicate | Case::WrongRetained);
         let mut value = json!({"operation_id":id,"record_id":if returned{"host_record_return"}else{"host_record_original"},"command_type":if matches!(case,Case::WrongKind){"session.handoff"}else{command},"expected_revision":if matches!(case,Case::WrongRevision){99}else if returned{3}else{2},"state":if completed{"completed"}else if query{"unknown"}else{"accepted"},"revision":1});
+        if matches!(case, Case::ChangedRecord) && query && !returned {
+            value["record_id"] = json!("foreign_record");
+        }
         if completed {
             value["result"] = result(case, returned);
         }
@@ -200,7 +218,9 @@ async fn consultation_reference_roundtrip_recovers_original_record_then_returns_
     let mut opts = mutation("consult_original");
     opts.extensions = Some(serde_json::from_value(json!({"opaque":{"order":[2,1]}})).unwrap());
     let op = session(&client).consult(input(), opts).await.unwrap();
-    assert_eq!(op.reference_json(), saved());
+    let mut with_record = saved();
+    with_record["continuation"]["record_id"] = json!("host_record_original");
+    assert_eq!(op.reference_json(), with_record);
     let restored = client
         .restore(
             op.reference_json(),
@@ -274,6 +294,10 @@ async fn consultation_cancelled_caller_keeps_owned_submission_and_saved_intent_r
     assert_eq!(
         restored.wait(options()).await.unwrap().snapshot.state,
         sdk::OperationState::Completed
+    );
+    assert_eq!(
+        restored.reference_json()["continuation"]["record_id"],
+        "host_record_original"
     );
     close(client, host).await;
 }
@@ -375,6 +399,67 @@ async fn consultation_local_intent_and_saved_continuation_validation_precede_mut
         .unwrap();
     assert!(
         matches!(op.return_to_retained(rev(3),mutation("consult_original")).await,Err(e) if e.certainty==sdk::Certainty::NotSubmitted)
+    );
+    close(client, host).await;
+}
+
+#[tokio::test]
+async fn consultation_saved_record_allows_return_without_parent_read_and_missing_record_refusal_is_not_submitted(
+) {
+    let (client, host, _) = client(Case::NoParentRead).await;
+    let op = session(&client)
+        .consult(input(), mutation("consult_original"))
+        .await
+        .unwrap();
+    let restored = client
+        .restore(
+            op.reference_json(),
+            client.operation_kinds().session_consult,
+        )
+        .unwrap();
+    let returned = restored
+        .return_to_retained(rev(3), mutation("return_original"))
+        .await
+        .unwrap();
+    assert!(
+        returned
+            .wait(options())
+            .await
+            .unwrap()
+            .value
+            .consultation_return_receipt()
+            .unwrap()
+            .remote_continuing
+    );
+    close(client, host).await;
+    let (client, host, _) = self::client(Case::ParentRefused).await;
+    let unresolved = client
+        .restore(saved(), client.operation_kinds().session_consult)
+        .unwrap();
+    let error = unresolved
+        .return_to_retained(rev(3), mutation("return_original"))
+        .await
+        .unwrap_err();
+    assert_eq!(error.certainty, sdk::Certainty::NotSubmitted);
+    assert_eq!(
+        error.operation.unwrap().operation_id.as_str(),
+        "return_original"
+    );
+    close(client, host).await;
+}
+#[tokio::test]
+async fn consultation_changed_host_record_cannot_replace_saved_original_identity() {
+    let (client, host, _) = client(Case::ChangedRecord).await;
+    let op = session(&client)
+        .consult(input(), mutation("consult_original"))
+        .await
+        .unwrap();
+    let error = op.status(options()).await.unwrap_err();
+    assert_eq!(error.kind, sdk::ErrorKind::Protocol);
+    assert_eq!(error.certainty, sdk::Certainty::ReadOnly);
+    assert_eq!(
+        op.reference_json()["continuation"]["record_id"],
+        "host_record_original"
     );
     close(client, host).await;
 }
