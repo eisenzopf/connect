@@ -112,13 +112,13 @@ pub(crate) fn current_projection(
     // The initial projection additionally requires an entirely unobserved slot.
     // Future packet reads use the same current facts, including later revisions,
     // while the sealed origin below fences the exact generation and ownership.
-    let row: Option<Row> = c.prepare_cached("SELECT o.runtime_connection_id,o.offer_json,e.device_id,e.address,e.capabilities_json,cap.capabilities_json,sp.role,n.state,n.generation,n.revision,e.transport FROM connections n JOIN connection_offers o ON o.connection_id=n.id JOIN endpoints e ON e.id=n.endpoint_id AND e.identity_id=n.identity_id JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 JOIN session_participants sp ON sp.session_id=n.session_id AND sp.participant_id=n.participant_id AND sp.membership_epoch=n.membership_epoch JOIN session_presence_capabilities cap ON cap.session_id=sp.session_id AND cap.participant_id=sp.participant_id AND cap.membership_epoch=sp.membership_epoch WHERE n.id=?1 AND n.session_id=?2 AND n.participant_id=?3 AND n.membership_epoch=?4 AND n.identity_id=?5 AND n.endpoint_id=?6 AND n.state IN ('preparing','ready','active') AND (n.observed_runtime_id IS NULL OR n.observed_runtime_id=?10) AND (?9=0 OR (n.state='preparing' AND n.generation=1 AND n.revision=0 AND n.observed_runtime_id IS NULL AND n.readiness_json IS NULL)) AND sp.state='present' AND e.transport IN ('quic','webtransport') AND e.verification_state='verified' AND e.device_id=?7 AND o.operation_id=?8").map_err(|_|Error::storage())?.query_row(
+    let row: Option<Row> = c.prepare_cached("SELECT o.runtime_connection_id,o.offer_json,e.device_id,e.address,e.capabilities_json,cap.capabilities_json,sp.role,n.state,n.generation,n.revision,e.transport FROM connections n JOIN connection_offers o ON o.connection_id=n.id JOIN endpoints e ON e.id=n.endpoint_id AND e.identity_id=n.identity_id JOIN devices d ON d.id=e.device_id AND d.identity_id=e.identity_id AND d.tenant_id=e.tenant_id AND d.revoked=0 JOIN session_participants sp ON sp.session_id=n.session_id AND sp.participant_id=n.participant_id AND sp.membership_epoch=n.membership_epoch JOIN session_presence_capabilities cap ON cap.session_id=sp.session_id AND cap.participant_id=sp.participant_id AND cap.membership_epoch=sp.membership_epoch WHERE n.id=?1 AND n.session_id=?2 AND n.participant_id=?3 AND n.membership_epoch=?4 AND n.identity_id=?5 AND n.endpoint_id=?6 AND n.state IN ('preparing','ready','active') AND (n.observed_runtime_id IS NULL OR n.observed_runtime_id=?10) AND (?9=0 OR (n.state='preparing' AND n.generation=1 AND n.revision=0 AND n.observed_runtime_id IS NULL AND n.readiness_json IS NULL)) AND sp.state='present' AND e.transport IN ('quic','webtransport','webrtc') AND e.verification_state='verified' AND e.device_id=?7 AND o.operation_id=?8").map_err(|_|Error::storage())?.query_row(
         params![intent.connection_id,intent.session_id,member.participant_id,member.membership_epoch,actor.identity_id,endpoint_id,device_id,intent.operation_id,initial,runtime_epoch],
         |r| Ok(Row {runtime:r.get(0)?,offer:r.get(1)?,device:r.get(2)?,address:r.get(3)?,endpoint_caps:r.get(4)?,accepted:r.get(5)?,role:r.get(6)?,state:r.get(7)?,generation:r.get(8)?,revision:r.get(9)?,transport:r.get(10)?}),
     ).optional().map_err(|_| Error::storage())?;
     let row = row.ok_or_else(Error::forbidden)?;
     let offer: Value = serde_json::from_str(&row.offer).map_err(|_| Error::storage())?;
-    if offer != intent.offer {
+    if offer != intent.offer || row.transport != intent.endpoint_transport()?.as_str() {
         return Err(Error::forbidden());
     }
     let conversation_revision = c
@@ -174,6 +174,7 @@ pub(crate) fn current_projection(
         endpoint_transport: match row.transport.as_str() {
             "quic" => connect_protocol::provisioning::EndpointTransport::Quic,
             "webtransport" => connect_protocol::provisioning::EndpointTransport::Webtransport,
+            "webrtc" => connect_protocol::provisioning::EndpointTransport::Webrtc,
             _ => return Err(Error::forbidden()),
         },
         endpoint_capabilities,

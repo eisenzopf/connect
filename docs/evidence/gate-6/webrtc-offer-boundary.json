@@ -1,0 +1,100 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T21:48:04.917032+00:00",
+  "scope": "Local isolated protocol and Store behavior only; no WebRTC engine, ICE/DTLS, browser or physical media qualification.",
+  "source_inputs": {
+    "crates/connect-protocol/src/connection_control.rs": "3e98c270693ee04d95cda22199aa00b1f66f3a97774ec3c4e7f5aefe63a3798d",
+    "crates/connect-store/src/connection_control.rs": "7565128f7134ebf4e1d709eebb61319dadf823e945e1bc6fa6a43e64af727ed4",
+    "crates/connect-store/src/peer_authority.rs": "8fb267bf51cbcf00e900ca31b99f2aff52ee7b3e722835ca3c28be5374554a4e",
+    "crates/connect-store/src/peer_authority/native_endpoint.rs": "4eeb2abf12bb1cfe802d89027cbc812c2eaebd934e865e1e683752e42a100c7e",
+    "crates/connect-store/src/peer_authority/connection_projection.rs": "299ca114248578126d07c4beefad61fa4e59c14fc730fc6802ae0790b8a491b0",
+    "crates/connect-store/src/transitions/native_offers/rejection.rs": "7435ad978a2bbf0109509f2dee17f2088ce51301edc2d4b726a4033938c6f976",
+    "crates/connect-store/src/connection_control/tests/native_wire.rs": "78f3318cdee570f54b3f0614eb35e050b92fb3580f5edef8ba0cbb4f3e75c29b",
+    "contracts/application-http-dispatch.json": "eb1c5efc87cbbe38322454546f017902ff6f5b25789865bfedf617c27f903681",
+    "contracts/openapi-application-http.json": "b6f71e744951cc0124dff0e82032fd1ec42b938879cdced2bd454e2924785803",
+    "contracts/http-endpoints.json": "4918c8e00c2376b048921fdd98eb2eb961afe117a0e204b273ed8adaabbf592d"
+  },
+  "build": {
+    "source_count": 1576,
+    "manifest_sha256": "0e632f1cf48527a4f3abbc1cc6c44f2d1e800d8b5d9262cc91f68c3fe2d4b20a",
+    "seconds": 28.730956374900416,
+    "artifacts": {
+      "connect_protocol": {
+        "sha256": "b4f306c10e574e6e1d5e37537803552274ad58f347c39b801686abedf11a13ce",
+        "bytes": 6650160
+      },
+      "connect_store": {
+        "sha256": "4fde51831dd3be8fdd016122a4a0e6408b821160f03adc5b0431fb6f069682cd",
+        "bytes": 66417856
+      }
+    }
+  },
+  "guards": {
+    "build_inputs_unchanged": true,
+    "compiled_product_inputs_unchanged": true,
+    "original_and_sealed_executables_match": true,
+    "generated_metadata_difference": {
+      "path": "contracts/http-endpoints.json",
+      "before": "61c4c96f64dd50258975498a563a5afe9b4f31eeecd8476e0572955ab871c6a0",
+      "after": "4918c8e00c2376b048921fdd98eb2eb961afe117a0e204b273ed8adaabbf592d",
+      "reason": "Inventory generator refreshed the application reference digest; not consumed by these compiled crates."
+    }
+  },
+  "verification": {
+    "protocol_tests_passed": 46,
+    "store_native_wire_tests_passed": 17,
+    "broader_connection_control": "running; no pass claimed",
+    "checks": [
+      {
+        "name": "protocol",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-offer-boundary/connect_protocol-test-03",
+          "--test-threads=4"
+        ],
+        "exit_code": 0,
+        "seconds": 0.26943941693753004,
+        "log_sha256": "c11aae55d2418612ca50602c2fb77b739e90413babf82dd54b7f142f3c71817b",
+        "summary": [
+          "test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          ""
+        ]
+      },
+      {
+        "name": "native-wire",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-offer-boundary/connect_store-test-03",
+          "connection_control::tests::native_wire::",
+          "--test-threads=4"
+        ],
+        "exit_code": 0,
+        "seconds": 10.560249582864344,
+        "log_sha256": "62d408394ed2c2507de3dbcff5c2217a19ce5dcc3a5ffa77081a207279834650",
+        "summary": [
+          "test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 1211 filtered out; finished in 10.02s",
+          ""
+        ]
+      }
+    ],
+    "references": "Application/canonical/protected/record HTTP generation, UCTP66 types/254 vectors,24declarations/25operations inventory and Rust formatting pass."
+  },
+  "behavior": [
+    "Exact bounded websocket+webrtc SDP maps to verified Webrtc Endpoint technology; native32KiB bounds remain.",
+    "Authenticated Device and exact technology bind selection, direct preparation and current projection.",
+    "One dormant Connection/original acceptance has no readiness/result or physical effect.",
+    "Changed SDP under the original ID conflicts; exact replay preserves its receipt. Endpoint revocation prevents selection/projection/new attempts; currently authorized owner history remains readable.",
+    "Existing QUIC/WebTransport replay remains covered with stricter cross-technology refusal before allocation."
+  ],
+  "failed_or_incomplete_attempts": [
+    "Initial historical-read refusal expectation was incorrect; test now requires preserved history plus refusal of current IO preparation. Product recovery semantics unchanged.",
+    "Initial broad cohort timed out at120seconds; no pass claimed and raw child output was not retained. Current run streams logs with4test workers and600second cap.",
+    "One runner start preceded build-manifest completion and refused before tests.",
+    "The whole1576-input runtime guard sees one generated HTTP inventory digest refresh. All compiled product inputs and original/sealed executable bytes remain unchanged."
+  ],
+  "remaining": [
+    "Canonical server WebRTC engine/adapter and SDP/ICE dispatch with current authority and owned physical lifetimes.",
+    "Public capture/track/data integration and removal of old offer-ready dialect.",
+    "Actual Chrome/Firefox forced WT/UDP failure, same Conversation/transitions, media and complete operating/failure profiles.",
+    "G6-051 and full Gate6 acceptance remain open."
+  ]
+}

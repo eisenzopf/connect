@@ -1,4 +1,4 @@
-//! Durable native Connection intent; transport resources remain server-owned.
+//! Durable initial Connection intent; transport resources remain server-owned.
 use crate::{transitions::id, Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -17,6 +17,20 @@ pub struct OfferIntent {
     pub offer: Value,
 }
 impl OfferIntent {
+    /// The authenticated physical backend must select this exact endpoint
+    /// technology. An SDP payload never selects a Device or grants authority.
+    pub fn endpoint_transport(&self) -> Result<crate::provisioning::EndpointTransport> {
+        use crate::provisioning::EndpointTransport;
+        match self.offer.get("substrate").and_then(Value::as_str) {
+            Some("quic") => Ok(EndpointTransport::Quic),
+            Some("webtransport") => Ok(EndpointTransport::Webtransport),
+            Some("websocket+webrtc") => Ok(EndpointTransport::Webrtc),
+            _ => Err(Error::new(
+                "unsupported-media-profile",
+                "Connection substrate is unavailable",
+            )),
+        }
+    }
     pub fn normalize(&mut self) -> Result<()> {
         for value in [
             &self.operation_id,
@@ -35,22 +49,42 @@ impl OfferIntent {
         {
             return Err(invalid());
         }
+        if !self.offer.is_object() {
+            return Err(invalid());
+        }
+        let transport = self.endpoint_transport()?;
+        let webrtc = transport == crate::provisioning::EndpointTransport::Webrtc;
+        let maximum_bytes = if webrtc { 544 * 1024 } else { 32 * 1024 };
         if !self.offer.is_object()
             || serde_json::to_vec(&self.offer)
                 .map_err(|_| invalid())?
                 .len()
-                > 32 * 1024
+                > maximum_bytes
         {
             return Err(invalid());
         }
-        if !matches!(
-            self.offer.get("substrate").and_then(Value::as_str),
-            Some("quic" | "webtransport")
-        ) {
-            return Err(Error::new(
-                "unsupported-media-profile",
-                "Native Connection substrate is unavailable",
-            ));
+        if webrtc {
+            let setup = self.offer.get("substrate_setup").ok_or_else(invalid)?;
+            let sdp = setup
+                .get("sdp")
+                .and_then(Value::as_str)
+                .ok_or_else(invalid)?;
+            if !setup.is_object()
+                || setup.get("kind").and_then(Value::as_str) != Some("websocket+webrtc")
+                || !sdp.starts_with("v=0\r\n")
+                || sdp.len() > 512 * 1024
+                || sdp.contains('\0')
+            {
+                return Err(invalid());
+            }
+            // Keep all non-SDP state within the existing native intent bound.
+            // The WebRTC engine still parses SDP and checks the selected media;
+            // this bounded contract validation proves no ICE/DTLS or readiness.
+            let mut metadata = self.offer.clone();
+            metadata["substrate_setup"]["sdp"] = Value::Null;
+            if serde_json::to_vec(&metadata).map_err(|_| invalid())?.len() > 32 * 1024 {
+                return Err(invalid());
+            }
         }
         if !self.offer.get("capabilities").is_some_and(Value::is_object) {
             return Err(invalid());
@@ -245,5 +279,58 @@ mod tests {
         let mut encoded = serde_json::to_value(request).unwrap();
         encoded["ready"] = json!(true);
         assert!(serde_json::from_value::<PrepareRequest>(encoded).is_err());
+    }
+    fn web_rtc_intent() -> OfferIntent {
+        let mut wire = intent();
+        wire.offer["substrate"] = json!("websocket+webrtc");
+        wire.offer["substrate_setup"] =
+            json!({"kind":"websocket+webrtc","sdp":"v=0\r\ns=synthetic-contract-only\r\n"});
+        wire
+    }
+    #[test]
+    fn web_rtc_offer_preserves_exact_sdp_and_maps_only_to_web_rtc_endpoint() {
+        let mut wire = web_rtc_intent();
+        let original = wire.clone();
+        wire.normalize().unwrap();
+        assert!(wire == original);
+        assert_eq!(
+            wire.endpoint_transport().unwrap(),
+            crate::provisioning::EndpointTransport::Webrtc
+        );
+        let mut encoded = serde_json::to_value(&wire).unwrap();
+        encoded["offer"]["substrate_setup"]["sdp"] = json!("v=0\r\ns=changed\r\n");
+        let changed: OfferIntent = serde_json::from_value(encoded).unwrap();
+        assert!(changed != wire);
+    }
+    #[test]
+    fn web_rtc_sdp_and_metadata_have_independent_byte_bounds() {
+        let mut wire = web_rtc_intent();
+        wire.offer["substrate_setup"]["sdp"] =
+            json!(format!("v=0\r\n{}", "x".repeat(512 * 1024 - 5)));
+        wire.normalize().unwrap();
+        wire.offer["substrate_setup"]["sdp"] =
+            json!(format!("v=0\r\n{}", "x".repeat(512 * 1024 - 4)));
+        assert!(wire.normalize().is_err());
+        let mut multibyte = web_rtc_intent();
+        multibyte.offer["substrate_setup"]["sdp"] =
+            json!(format!("v=0\r\n{}", "é".repeat(256 * 1024)));
+        assert!(multibyte.normalize().is_err());
+        let mut metadata = web_rtc_intent();
+        metadata.offer["capabilities"] = json!({"extension":"x".repeat(32 * 1024)});
+        assert!(metadata.normalize().is_err());
+    }
+    #[test]
+    fn malformed_web_rtc_setup_refuses_before_durable_preparation() {
+        for bad in [
+            json!(null),
+            json!({"kind":"webtransport","sdp":"v=0\r\n"}),
+            json!({"kind":"websocket+webrtc","sdp":"invalid"}),
+            json!({"kind":"websocket+webrtc","sdp":"v=0\r\n\u{0000}"}),
+            json!({"kind":"websocket+webrtc","sdp":42}),
+        ] {
+            let mut wire = web_rtc_intent();
+            wire.offer["substrate_setup"] = bad;
+            assert_eq!(wire.normalize().unwrap_err().code, "invalid-request");
+        }
     }
 }

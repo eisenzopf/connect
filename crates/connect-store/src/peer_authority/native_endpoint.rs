@@ -10,16 +10,12 @@ impl Store {
         proof: &PeerAuthorityGuard,
         transport: connect_protocol::provisioning::EndpointTransport,
     ) -> Result<String> {
-        if !matches!(
-            transport,
-            connect_protocol::provisioning::EndpointTransport::Quic
-                | connect_protocol::provisioning::EndpointTransport::Webtransport
-        ) {
-            return Err(Error::forbidden());
-        }
         let PeerCommand::NativeConnectionOffer(intent) = &proof.request.command else {
             return Err(Error::forbidden());
         };
+        if transport != intent.endpoint_transport()? {
+            return Err(Error::forbidden());
+        }
         let c = self.connection()?;
         self.require_peer_source(&c, proof, credential)?;
         let actor = crate::identity::actor_from_connection(&c, credential)?;

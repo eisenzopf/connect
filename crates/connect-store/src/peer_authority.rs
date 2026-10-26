@@ -646,7 +646,8 @@ impl Store {
             {
                 return Err(Error::forbidden());
             }
-            let endpoint:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM endpoints WHERE id=?1 AND identity_id=?2 AND device_id=?3 AND transport IN ('quic','webtransport') AND verification_state='verified')",params![request.endpoint_id,proof.metadata.actor.identity_id,proof.key.device_id],|r|r.get(0)).map_err(|_|Error::storage())?;
+            let transport = request.intent.endpoint_transport()?;
+            let endpoint:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM endpoints WHERE id=?1 AND identity_id=?2 AND device_id=?3 AND transport=?4 AND verification_state='verified')",params![request.endpoint_id,proof.metadata.actor.identity_id,proof.key.device_id,transport.as_str()],|r|r.get(0)).map_err(|_|Error::storage())?;
             if !endpoint {
                 return Err(Error::forbidden());
             }

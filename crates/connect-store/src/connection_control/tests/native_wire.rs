@@ -950,8 +950,9 @@ fn native_transport_selection_preserves_verified_endpoint_and_refuses_cross_tran
     assert_eq!(
         f.store
             .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
-            .unwrap(),
-        f.endpoints[0]
+            .unwrap_err()
+            .code,
+        "forbidden"
     );
     assert_eq!(f.count("connections"), 0);
     drop(proof);
@@ -976,8 +977,9 @@ fn native_transport_selection_preserves_verified_endpoint_and_refuses_cross_tran
     assert_eq!(
         f.store
             .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
-            .unwrap(),
-        f.endpoints[0]
+            .unwrap_err()
+            .code,
+        "forbidden"
     );
     assert_eq!(
         f.store
@@ -1071,5 +1073,200 @@ fn native_transport_selection_preserves_verified_endpoint_and_refuses_cross_tran
         "forbidden"
     );
     assert_eq!(f.count("connections"), 1);
+    assert_eq!(f.count("operation_effects"), 0);
+}
+
+fn web_rtc_request(f: &Fixture) -> PeerAuthorityRequest {
+    let mut request = f.native_request(600);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut request.command else {
+        panic!()
+    };
+    intent.offer["substrate"] = json!("websocket+webrtc");
+    intent.offer["substrate_setup"] =
+        json!({"kind":"websocket+webrtc","sdp":"v=0\r\ns=synthetic-store-contract-only\r\n"});
+    request
+}
+fn verify_web_rtc(f: &Fixture, endpoint: &str) {
+    f.store
+        .execute_provisioning(
+            &f.admin,
+            ProvisioningCommand::VerifyEndpoint {
+                operation_id: "verify-web-rtc".into(),
+                endpoint_id: endpoint.into(),
+                expected_revision: 0,
+                evidence_ref: "controlled-store-fixture-not-physical-media".into(),
+            },
+        )
+        .unwrap();
+}
+#[test]
+fn web_rtc_preparation_requires_verified_exact_device_transport_and_never_reports_media() {
+    let f = Fixture::new();
+    let request = web_rtc_request(&f);
+    let endpoint = extra_endpoint_for_transport(&f, EndpointTransport::Webrtc);
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webrtc)
+            .unwrap_err()
+            .code,
+        "not-ready"
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Quic)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("connections"), 0);
+    drop(proof);
+    verify_web_rtc(&f, &endpoint);
+    let proof = f.admit(&request);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &request.command else {
+        panic!()
+    };
+    // A verified endpoint belonging to this same Device but another technology
+    // cannot be smuggled through direct preparation either.
+    assert_eq!(
+        f.store
+            .prepare_connection_with_peer(
+                &f.keys[0],
+                intent.clone(),
+                f.endpoints[0].clone(),
+                &proof
+            )
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("connections"), 0);
+    let original = f
+        .store
+        .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(EndpointTransport::Webrtc))
+        .unwrap();
+    assert_eq!(original.state, OperationState::Accepted);
+    assert!(original.result.is_none());
+    let projection = f
+        .store
+        .project_connection_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    assert_eq!(projection.endpoint_transport, EndpointTransport::Webrtc);
+    assert_eq!(projection.connection.endpoint_id, endpoint);
+    assert_eq!(projection.device_id, "device-0");
+    assert_eq!(projection.connection.state, "preparing");
+    assert_eq!(projection.connection.revision, 0);
+    assert_eq!(projection.offer, intent.offer);
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, None)
+            .unwrap(),
+        original
+    );
+    assert_eq!(f.count("connections"), 1);
+    assert_eq!(f.count("native_offer_operations"), 1);
+    assert_eq!(f.count("operation_effects"), 0);
+}
+#[test]
+fn web_rtc_original_sdp_replay_cannot_select_new_intent_or_revoked_endpoint() {
+    let f = Fixture::new();
+    let request = web_rtc_request(&f);
+    let endpoint = extra_endpoint_for_transport(&f, EndpointTransport::Webrtc);
+    verify_web_rtc(&f, &endpoint);
+    let proof = f.admit(&request);
+    let original = f
+        .store
+        .prepare_native_offer_with_peer(&f.keys[0], &proof, Some(EndpointTransport::Webrtc))
+        .unwrap();
+    drop(proof);
+    let mut changed = request.clone();
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &mut changed.command else {
+        panic!()
+    };
+    intent.offer["substrate_setup"]["sdp"] = json!("v=0\r\ns=changed-under-original-id\r\n");
+    let changed_proof = f.admit(&changed);
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(
+                &f.keys[0],
+                &changed_proof,
+                Some(EndpointTransport::Webrtc)
+            )
+            .unwrap_err()
+            .code,
+        "conflict"
+    );
+    drop(changed_proof);
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, None)
+            .unwrap(),
+        original
+    );
+    drop(proof);
+    f.store
+        .execute_provisioning(
+            &f.admin,
+            ProvisioningCommand::RevokeEndpoint {
+                operation_id: "revoke-web-rtc".into(),
+                endpoint_id: endpoint,
+                expected_revision: 1,
+            },
+        )
+        .unwrap();
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .project_connection_with_peer(&f.keys[0], &proof)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    // The journal remains readable under the owner's current scope. Its old
+    // accepted receipt cannot authorize current endpoint/attempt creation.
+    assert_eq!(
+        f.store
+            .prepare_native_offer_with_peer(&f.keys[0], &proof, None)
+            .unwrap(),
+        original
+    );
+    assert_eq!(
+        f.store
+            .select_native_endpoint_with_peer(&f.keys[0], &proof, EndpointTransport::Webrtc)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(
+        f.store
+            .begin_native_offer_with_peer(&f.keys[0], &proof)
+            .err()
+            .unwrap()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("connections"), 1);
+    assert_eq!(f.count("operation_effects"), 0);
+}
+#[test]
+fn direct_preparation_cannot_pair_a_native_offer_with_a_verified_web_rtc_endpoint() {
+    let f = Fixture::new();
+    let request = f.native_request(600);
+    let endpoint = extra_endpoint_for_transport(&f, EndpointTransport::Webrtc);
+    verify_web_rtc(&f, &endpoint);
+    let crate::PeerCommand::NativeConnectionOffer(intent) = &request.command else {
+        panic!()
+    };
+    let proof = f.admit(&request);
+    assert_eq!(
+        f.store
+            .prepare_connection_with_peer(&f.keys[0], intent.clone(), endpoint, &proof)
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+    assert_eq!(f.count("connections"), 0);
     assert_eq!(f.count("operation_effects"), 0);
 }

@@ -121,7 +121,7 @@ impl Store {
                 "This physical transport negotiated canonical control only",
             )
         })?;
-        if wire.offer["substrate"].as_str() != Some(transport.as_str()) {
+        if wire.endpoint_transport()? != transport {
             return Err(Error::new(
                 "unsupported-media-profile",
                 "Offer substrate differs from the negotiated physical transport",

@@ -1001,7 +1001,7 @@
     "crates/connect-protocol/src/attachments.rs": "77ab58a48700c9950f936314c097dd2c20a82c32b74e8468e5891b759412b7cb",
     "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",
     "crates/connect-protocol/src/canonical_http.rs": "20020de6aefd890178e2aacbfeb44ca5312ccf623fe35cef50e42d59203c62d7",
-    "crates/connect-protocol/src/connection_control.rs": "461318f216cd3be6c1b392ab0e9ddc9c16d63ad22b35b82f9d28123aa761d492",
+    "crates/connect-protocol/src/connection_control.rs": "3e98c270693ee04d95cda22199aa00b1f66f3a97774ec3c4e7f5aefe63a3798d",
     "crates/connect-protocol/src/contacts.rs": "ea94dce3a693b7ee1a7ebb6e1a59004595b7e47bae8cd365f78b2d877699702f",
     "crates/connect-protocol/src/conversations.rs": "adf5371467e0f392a4079ec73a45089793b30801e2734234f172b3bea475c99b",
     "crates/connect-protocol/src/credential_issuance.rs": "5698195e40bb155b8c948bd62791037ad6bce8347faf734624d372a09bc787c5",

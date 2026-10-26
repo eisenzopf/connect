@@ -51,3 +51,26 @@ track/data routing and the public browser surface, remove the old offer-ready
 dialect, and run forced WT/UDP failure in Chrome and Firefox with the same
 Conversation and transition intents. Current authorization, uncertainty,
 permission/background/resume, loss and owned teardown remain required.
+
+## Durable offer preparation
+
+The initial Connection intent contract now accepts `websocket+webrtc` and maps it
+to the already provisioned `webrtc` Endpoint technology. Its SDP setup must have
+the matching `kind`, a `v=0` CRLF prefix, no NUL, and at most 512 KiB of UTF-8.
+The serialized offer is limited to 544 KiB, with at most 32 KiB of non-SDP
+metadata. Native QUIC/WebTransport offers retain their 32 KiB limit. These are
+contract bounds; the WebRTC engine must still parse SDP and validate the actual
+selected media before exposing IO.
+
+Trusted preparation selects exactly one verified Endpoint for the authenticated
+Device and the intent's technology. A same-Device QUIC Endpoint cannot satisfy a
+WebRTC offer, or vice versa. The original selected Endpoint, exact SDP and all
+other intent fields remain immutable on replay. The public preparation path and
+current Connection projection enforce the same technology binding.
+
+Preparation creates only a dormant Connection and an accepted original operation.
+It allocates no WebRTC peer, starts no physical effect, and reports no media
+readiness. Endpoint revocation prevents current selection, projection and new
+attempt issuance. Under current owner authorization, historical receipt reads
+remain possible; those reads do not restore the revoked Endpoint or grant IO.
+The canonical WebRTC engine and physical lifetime integration remain unfinished.
