@@ -26,7 +26,23 @@ It imports no Connect store, service, server, conversation or routing internals.
 Its state file represents the remote provider's journal, never Connect's history.
 Keep fixture state, logs and build targets under ignored `.local/`.
 
-For a clean public-contract exercise, export a kit into a new directory:
+From the Connect checkout, export the complete standalone contribution kit into
+a new directory:
+
+```sh
+python3 scripts/export-connector-kit.py --output .local/gate-6/connector-kit
+```
+
+The kit contains both message fixtures, the actual PCMU media fixture, shared
+harnesses, public API, selected pinned engine sources and source/manifest patches.
+Its top-level README has independent build commands. All local Cargo dependencies
+must resolve inside that kit; locked registry caches remain external build inputs.
+The export does not include Connect Store/service/server, private state or Git
+history. Consumer manifests flatten workspace inheritance and relocate paths;
+original manifests, generated digests and explicit patches remain in provenance.
+No Rust source changes. See the [kit profile](../contracts/connectors/contribution-kit-v2.md).
+
+The API-only message exercise is also available:
 
 ```sh
 python3 scripts/check-connector-contract.py --export-kit .local/gate5/public-connector-kit
