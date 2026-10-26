@@ -1,4 +1,6 @@
 //! Actual production listener exercises public owned SDK handles and recovery.
+#[path = "sdk_handles/administration.rs"]
+mod administration;
 #[path = "sdk_handles/codec_updates.rs"]
 mod codec_updates;
 #[path = "sdk_handles/data.rs"]

@@ -557,3 +557,48 @@ signing algorithms, all six media intents, explicit decisions, stale cancellatio
 and membership refusal, and joined cleanup. Evidence and failed candidates are in
 `docs/evidence/gate-6/rust-sdk-invitations.json`. Full SDK/package and operating-profile
 qualification remains open.
+
+## Trusted administration
+
+`AdministrativeClient` is a separate trusted backend interface. Its explicit
+constructor takes the signed native configuration, Tenant ID and an
+`ApplicationClientConfig` for the existing local HTTP provisioning API. Both
+transports must use the same supplied credential. No endpoint discovery,
+credential substitution, transport fallback or automatic retry occurs. The server
+enforces current administrator and target authority; constructing this client
+does not grant that permission.
+
+`validate_provisioning` accepts the complete current provisioning command JSON,
+normalizes and bounds it before IO, and returns `TrustedProvisioningCommand`.
+Persist both `to_json()` and `reference_json()` before submission. The command's
+logical ID must equal `MutationOptions.operation_id`; nonempty canonical payload
+extensions are explicitly unsupported by the closed provisioning schema. All
+11 existing command families are supported: Identity, Participant, Endpoint and
+record-reader role provisioning, Endpoint verification, signing-key enrollment,
+and Identity/Endpoint/credential/key/Device revocation. Debug output omits bodies,
+addresses, key material and credentials.
+
+`provision` returns an `Operation<serde_json::Value>`. Its completion and restored
+status use signed `operation.get` with the original unscoped ID and exact recorded
+command kind. Typed outcome shape, scoped IDs and safe counters are checked before
+returning JSON. Current authorized metadata may reflect later verification or
+revocation. A saved reference performs a read; it never resubmits provisioning.
+To retry uncertain submission, reuse the separately persisted full original
+command, logical ID and intent. Changed original intent remains a server conflict.
+Administrative clients expose no ordinary Conversation or media mutation facade.
+
+The application worker owns at most 16 active/queued submissions and serializes
+its bounded HTTP transactions. Cancelling or timing out before queue admission
+submits nothing. After queue admission, local cancellation is conservatively
+uncertain; an unwritten cancelled command is skipped, while started HTTP IO remains
+owned until its response or the configured transaction deadline. Native status
+reads remain independent of a held HTTP response. Structured refusals retain the
+original operation key; transport loss, malformed completion or server failure
+preserve uncertainty. `close` stops both workers, wakes queued requests and joins
+both owners. A cancelled/timed-out close retains joins for a later close attempt.
+
+The HTTP application configuration currently selects the protected loopback HTTP
+profile explicitly. Native trust/network configuration retains its existing
+explicit Local/Remote rules; this facade does not infer a remote HTTP trust policy.
+Qualification and unresolved profiles are recorded in
+`docs/evidence/gate-6/rust-sdk-administration.json`. Publication remains separate.

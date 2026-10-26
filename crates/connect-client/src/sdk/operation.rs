@@ -375,6 +375,15 @@ impl<T> Operation<T> {
                     .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?,
             )
             .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+            if administration::is_command(&key.command)
+                && state != OperationState::Unknown
+                && raw_payload
+                    .and_then(|p| p.get("command_type"))
+                    .and_then(Value::as_str)
+                    != Some(key.command.as_str())
+            {
+                return Err(Error::request(ErrorKind::Protocol, Some(key), false));
+            }
             if consultations::is_command(&key.command) {
                 consultations::validate_observation(
                     raw_payload

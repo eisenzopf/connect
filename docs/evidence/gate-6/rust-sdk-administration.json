@@ -1,0 +1,63 @@
+{
+  "schema": "connect-gate6-rust-sdk-administration/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T07:40:37.243082+00:00",
+  "base_revision": "69871f25",
+  "scope": "Owned trusted administrative SDK facade over explicit existing local HTTP provisioning and signed native original-ID status. Component checkpoint; current production fixtures are building.",
+  "implementation": [
+    "Separate AdministrativeClient requires explicit native/application configurations with the same supplied credential, and exposes no ordinary Conversation/media mutation facade. Host current administrator and target permissions remain authoritative.",
+    "TrustedProvisioningCommand validates/normalizes/bounds the complete current closed schema. The original command ID must match MutationOptions. Export full intent and unscoped status reference before IO. All11 existing provisioning command families map to original named HTTP routes; nonempty canonical extensions refuse locally.",
+    "Bounded16-request owned HTTP worker skips unwritten cancelled/expired work and owns started IO through caller cancellation/deadline. Independent signed status remains usable. Error context preserves original keys, refusal versus uncertainty and safe diagnostics. Explicit close stops/joins both owners and retains joins after cleanup cancellation/timeouts.",
+    "Operation<Value> restores only known administrative commands, checks exact recorded command_type on known status and verifies provisioning outcome family/IDs/safe counters. Status/recovery never resubmits. Current authorized metadata may reflect later verification or revocation."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 196,
+      "new_functions": 7,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/sdk-administration/client-05.log",
+        "sha256": "760b01d3eb02de1157463333fa9584b0c58b6524771c1dcde62c1770485c2cbb"
+      },
+      "scope": "Real bounded HTTP and signed independent native status: original intent/ID guards, started caller cancellation, continued status, wrong result/kind, current-shaped refusal/server failure, cancelled cleanup joins and16-slot saturation with one actual HTTP write and unwritten close refusal. Final pre-IO reference-export/Rustdoc source run is queued."
+    },
+    "production": {
+      "status": "pending",
+      "new_functions": 3,
+      "scope": "Implemented both-algorithm fixtures for all11 command families, restart/exact replay/changed-intent refusal, ordinary/current-revoked authority, and actual backend commit with deliberately held HTTP response plus cancelled queued work. No production pass claimed."
+    },
+    "dependencies": {
+      "path": ".local/gate-6/sdk-administration/dependencies-01.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/sdk-administration/inputs-01.json",
+        "sha256": "dd27eba829406b258dd0f7da66cc1a73b685819e4b0319d15ea925ecd23ffe14"
+      },
+      "guarded_inputs": 1357
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-administration/client-02.log",
+        "sha256": "644281d3d62336a80a31f5db89ab0d23f0ba49bf7c5902cf9b54cb1cfe19ce0b"
+      },
+      "observation": "New fixture passed JSON Value where extensions require a BTreeMap and moved an administrator while its pinned future still borrowed it. Corrected fixture types/lifetime."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-administration/client-04.log",
+        "sha256": "e1cfdce44fe6261b5458729e364e523af14962045f85e46e31ceeef4ddb6fa27"
+      },
+      "observation": "Expanded HTTP fixture changed refusal to Option<status> but one formatted response branch still used it as bool. Corrected that branch; all196 tests pass in05."
+    }
+  ],
+  "remaining": [
+    "Current production, final source-bound196 client/eight Rustdoc, independently compiled example and contract/reference checks are pending.",
+    "G6-060 receipt/capability/config/raw surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain. Explicit application HTTP currently requires the protected loopback profile; no remote HTTP trust inference.",
+    "All105 tasks remain the objective. No whole-task, gate, acceptance, operating-profile, performance or publication closure."
+  ]
+}

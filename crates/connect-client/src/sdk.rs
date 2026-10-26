@@ -24,6 +24,7 @@
 //! client.close(wait).await?;
 //! # Ok(()) }
 //! ```
+mod administration;
 mod connection_controls;
 mod connection_updates;
 mod connections;
@@ -47,6 +48,7 @@ mod sessions;
 mod snapshot;
 mod streams;
 mod worker;
+pub use administration::{AdministrativeClient, TrustedProvisioningCommand};
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
