@@ -70,6 +70,21 @@ remain available. Check their reconciliation with:
 python3 scripts/generate-application-family-references.py --check
 ```
 
+The isolated current server checkpoint validates 280 actual HTTP exchanges
+against the references, including 69 root selectors, 16 Task command vectors,
+authentication and framework refusals, plus selected real resource and replay
+cases. [Recorded evidence](../evidence/gate-6/application-http-wire.json) states
+the remaining provider, browser, lifecycle and host qualification limits. Run the
+wire checker with a sealed CLI and matching frozen build evidence:
+
+```sh
+python3 scripts/check-gate6-protected-http.py --application-contract \
+  --executable .local/gate-6/application-http/canonical-cli-01 \
+  --build-summary .local/gate-6/application-http/build-01-summary.json \
+  --build-inputs .local/gate-6/application-http/inputs-01.json \
+  --output .local/gate-6/application-http/new-wire-check
+```
+
 ## Scoped credential issuance
 
 `POST /v2/credentials` accepts a typed `CredentialIssueRequest` with the original

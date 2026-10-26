@@ -38,6 +38,8 @@ def main():
     parser.add_argument("--build-summary", required=True, type=Path)
     parser.add_argument("--build-inputs", required=True, type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--application-contract", action="store_true",
+                        help="Also qualify the complete current operation-body/dispatch reference")
     args = parser.parse_args()
     os.umask(0o077)
     cli = args.executable.resolve()
@@ -52,6 +54,9 @@ def main():
     source_names = ["scripts/check-gate6-protected-http.py", "scripts/generate-protected-http-openapi.py",
                     "contracts/openapi-protected-http.json", "contracts/openapi-attachments.json",
                     "contracts/openapi-canonical-http.json", "contracts/openapi-provisioning.json"]
+    if args.application_contract:
+        source_names += ["scripts/generate-application-http-openapi.py", "scripts/lib/application_http_cases.py",
+                         "contracts/openapi-application-http.json", "contracts/application-http-dispatch.json"]
     source_guard = {p: sha(ROOT / p) for p in source_names}
     subprocess.run(["python3", "scripts/generate-protected-http-openapi.py", "--check"], cwd=ROOT, check=True)
     directory = args.output or ROOT / ".local/gate-6/protected-http" / datetime.datetime.now(
@@ -67,6 +72,8 @@ def main():
         "canonical": "contracts/openapi-canonical-http.json",
         "provisioning": "contracts/openapi-provisioning.json",
     }.items()}
+    if args.application_contract:
+        documents["application"] = json.loads((ROOT / "contracts/openapi-application-http.json").read_text())
     for document in documents.values():
         for schema in document["components"]["schemas"].values():
             Draft202012Validator.check_schema(schema)
@@ -190,7 +197,8 @@ def main():
 
     def named(case, operation, token=None):
         status, result, _, _ = exchange(case, "POST", "/v1/operations", token or operator["credential"], body=operation,
-            contract=("attachment","/v1/operations") if operation["op"].startswith("artifact_") else None)
+            contract=("application","/v1/operations") if args.application_contract else
+                (("attachment","/v1/operations") if operation["op"].startswith("artifact_") else None))
         assert status == 200 and result["profile"] == "connect-control/1" and "Ok" in result["result"], case
         return result["result"]["Ok"]
 
@@ -252,6 +260,10 @@ def main():
             _, result, _, headers = task_access("grant-issue", issue, expected=200)
             assert headers.get("cache-control") == "no-store" and headers.get("pragma") == "no-cache"
             grant = result["result"]["Ok"]["data"]
+            if args.application_contract:
+                from lib.application_http_cases import qualify
+                summary["application"] = qualify(exchange, validate, documents["application"],
+                    operator, reviews, agent, grant, cid, task_id)
             _, replay, _, _ = task_access("grant-original-replay", issue, expected=200)
             assert replay == result, "same original grant/secret/expiry"
             changed = copy.deepcopy(issue)

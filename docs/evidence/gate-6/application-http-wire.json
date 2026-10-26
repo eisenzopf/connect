@@ -1,0 +1,2944 @@
+{
+  "task": "G6-065",
+  "status": "Passed isolated application HTTP dispatch, schema and selected behavior checkpoint; task remains in-progress",
+  "checked_at": "2026-10-26T15:49:55.947977+00:00",
+  "base_revision": "b55c56777d486df5174ae6c3a17ffe915f84e956",
+  "scope": "Local Darwin arm64 actual current CLI/production HTTP server with isolated review-loop fixtures. Synthetic dispatch vectors establish parser/dispatch/refusal agreement; selected resource reads, mutations, replay and current Task authority are exercised separately. No provider call, media, actual model-host, Linux, remote, package, publication or acceptance qualification.",
+  "implementation": [
+    "Extend the existing actual protected HTTP checker with --application-contract and the consolidated current body/result schema for all named application calls, including Task creation setup.",
+    "Exercise all 69 root selector cases and 16 Task command cases with current administrator authentication and without authentication. Recognized retired selectors refuse with HTTP 501; current named selectors proceed to service authorization/business validation.",
+    "Exercise actual native contact pairing start/replay/peer completion/revoke without SMS consent, availability and receipt preference replay, scoped reads, Task reads and narrow-grant/header refusals.",
+    "Check framework malformed JSON 400, wrong content type 415, unknown/forged/duplicate fields 422 and default aggregate limit 413 before authentication. Duplicate raw JSON tag remains byte-level rejection despite parsed schema validity.",
+    "Unconfigured browser binding explicitly returns typed unsupported-operation in HTTP 200; this is feature-refusal evidence, not browser signaling or media support."
+  ],
+  "verification": {
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 648.7792629578616,
+      "source_unchanged": true,
+      "binary_sha256": "07a425d5334a134fd2ce51533c0940c7292c623246eec023434662759b33e354",
+      "bytes": 247938848,
+      "source_count": 1303,
+      "log_sha256": "42d958687d0c0cd541319d439a63e940da3c2d1a43788b13ae332ccd9c6eaab5",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-01": {
+        "sha256": "82d405f875830de2b255e0d015f607671323adbc05a3953a37ffd33ab4f5faa3",
+        "bytes": 98348608
+      },
+      "client-test-01": {
+        "sha256": "f69e83926d57a709b83e2c5cbb02f0785abdd208f9cef37487d96706003a999f",
+        "bytes": 25177152
+      },
+      "canonical-cli-01": {
+        "sha256": "64141e37fdf43d229d3c24f04d3e61a014becf33469a075962d583963c59a9a0",
+        "bytes": 231422480
+      }
+    },
+    "guarded_build_inputs_sha256": "71671efd4fd48c03c7a8b1e8fc6f6b37b3081025c12e47fe533196d5dd2a3eaf",
+    "production_protocol_schema_feature": false,
+    "runtime": {
+      "runs": [
+        {
+          "name": "installation-unit",
+          "binary_sha256": "82d405f875830de2b255e0d015f607671323adbc05a3953a37ffd33ab4f5faa3",
+          "exit_code": 0,
+          "seconds": 1.5591195418965071,
+          "log_sha256": "9a687f11d07df1f48ae50474065b2951cbe02379071cce71255cda2a273dc465",
+          "result": [
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 75 filtered out; finished in 0.73s"
+          ]
+        },
+        {
+          "name": "agent-export-regression",
+          "binary_sha256": "82d405f875830de2b255e0d015f607671323adbc05a3953a37ffd33ab4f5faa3",
+          "exit_code": 0,
+          "seconds": 2.937973916064948,
+          "log_sha256": "b1526eea9de63c0abd4626f00a932ccbb60e96a80f891a5a0ec7f40e435a1318",
+          "result": [
+            "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 2.88s"
+          ]
+        },
+        {
+          "name": "installation-production",
+          "binary_sha256": "07a425d5334a134fd2ce51533c0940c7292c623246eec023434662759b33e354",
+          "exit_code": 0,
+          "seconds": 15.097736374940723,
+          "log_sha256": "a6088f06ad1a002b7c6b097b3f15cfc101d5e1f2555a7598553647e5c6c23679",
+          "result": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 336 filtered out; finished in 13.41s"
+          ]
+        },
+        {
+          "name": "issuance-api-regression",
+          "binary_sha256": "07a425d5334a134fd2ce51533c0940c7292c623246eec023434662759b33e354",
+          "exit_code": 0,
+          "seconds": 1.1786817500833422,
+          "log_sha256": "f78d79c2c1b86a02f25d6013b4645beabc8a91f54e5db839b5b809750afa520c",
+          "result": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 336 filtered out; finished in 1.01s"
+          ]
+        },
+        {
+          "name": "issuance-sdk-regression",
+          "binary_sha256": "f69e83926d57a709b83e2c5cbb02f0785abdd208f9cef37487d96706003a999f",
+          "exit_code": 0,
+          "seconds": 0.4503887500613928,
+          "log_sha256": "d3de9f4f40b9d4d121a25be4447f49ddf9dd01c2c550331e625980d317062e4e",
+          "result": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 219 filtered out; finished in 0.05s"
+          ]
+        }
+      ],
+      "source_unchanged_before": true,
+      "source_unchanged_after": true
+    },
+    "http": {
+      "exchanges": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "source_unchanged": true,
+      "sigterm_exit": 0,
+      "jsonschema_version": "4.26.0",
+      "platform": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "python": "3.14.7"
+      },
+      "bootstrap_signing_algorithm": "EdDSA; unsigned HTTP is not physical signing proof",
+      "status_media_counts": {
+        "200 application/json": 70,
+        "501 application/json": 27,
+        "401 application/json": 96,
+        "403 application/json": 57,
+        "400 text/plain": 4,
+        "415 text/plain": 2,
+        "422 text/plain": 5,
+        "413 text/plain": 2,
+        "400 application/json": 10,
+        "200 application/octet-stream": 5,
+        "409 application/json": 1,
+        "413 application/json": 1
+      },
+      "reference_inputs": {
+        "scripts/check-gate6-protected-http.py": "f85bbf0ec552da2df6ab5424cf765096aadb8544b3f35b7f40d402995a153fca",
+        "scripts/generate-protected-http-openapi.py": "e5bfb95bd44f2e75d7055e3d7dac659973d452b3d8d91603678a00db1c3a9f92",
+        "contracts/openapi-protected-http.json": "1bc98ea100168bacf626a69e741a38ab2612710b773e7112422cf4761062e993",
+        "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
+        "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
+        "contracts/openapi-provisioning.json": "a68fedffed7bf0fa949ec383651c2a2ad9cb6093e035e24477b86307c2446bb0",
+        "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135",
+        "scripts/lib/application_http_cases.py": "44ac10fff84777ae22aa3a017dda93ff6b61af1e2b52caa6cfc670662f51f770",
+        "contracts/openapi-application-http.json": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
+        "contracts/application-http-dispatch.json": "081f8c8743f4aec39d8d245b17e10b733315c331ac25c2b53a45ee2ae7f3471f"
+      },
+      "application": {
+        "scope": "Actual isolated current CLI/server application serde/dispatch and selected resource/Task/read/replay authority. No provider call or media/host/remote qualification.",
+        "dispatch_cases": 85,
+        "supported_cases": 58,
+        "retired_cases": 27,
+        "authentication_cases": 85,
+        "matrix": [
+          {
+            "selector": "connection_prepare",
+            "op": "connection_prepare",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_control",
+            "op": "session_control",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_decision",
+            "op": "session_decision",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_observations",
+            "op": "session_observations",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "conversation_snapshot",
+            "op": "conversation_snapshot",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "conversation_events",
+            "op": "conversation_events",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "transition",
+            "op": "transition",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "durable_operation",
+            "op": "durable_operation",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "participant_route",
+            "op": "participant_route",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "contact_pairing_start",
+            "op": "contact_pairing_start",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "contact_pairing_complete",
+            "op": "contact_pairing_complete",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "contact_pairing_revoke",
+            "op": "contact_pairing_revoke",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "contact_state",
+            "op": "contact_state",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.create",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "unsupported-profile"
+          },
+          {
+            "selector": "resolve",
+            "op": "resolve",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "capabilities",
+            "op": "capabilities",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "browser_binding",
+            "op": "browser_binding",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "unsupported-operation"
+          },
+          {
+            "selector": "context_deliveries",
+            "op": "context_deliveries",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "create",
+            "op": "create",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "membership.add",
+            "op": "membership",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "membership.invite",
+            "op": "membership",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "membership.join",
+            "op": "membership",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership.decline",
+            "op": "membership",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership.cancel_invitation",
+            "op": "membership",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership.leave",
+            "op": "membership",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership.remove",
+            "op": "membership",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "membership.update_role",
+            "op": "membership",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "membership.share_history",
+            "op": "membership",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "membership.revoke_history_share",
+            "op": "membership",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership_snapshot",
+            "op": "membership_snapshot",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "membership_invitations",
+            "op": "membership_invitations",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "conversations",
+            "op": "conversations",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "send",
+            "op": "send",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "message_receipts",
+            "op": "message_receipts",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "message_receipt.delivered",
+            "op": "message_receipt",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "message_receipt.read",
+            "op": "message_receipt",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "receipt_preferences_get",
+            "op": "receipt_preferences_get",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "receipt_preferences_set",
+            "op": "receipt_preferences_set",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "history",
+            "op": "history",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "inbox",
+            "op": "inbox",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "request_status",
+            "op": "request_status",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "close",
+            "op": "close",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "provider_status",
+            "op": "provider_status",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "call_start",
+            "op": "call_start",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "call_status",
+            "op": "call_status",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "call_end",
+            "op": "call_end",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_invite",
+            "op": "session_invite",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_accept",
+            "op": "session_accept",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_reject",
+            "op": "session_reject",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_cancel",
+            "op": "session_cancel",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_end",
+            "op": "session_end",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "session_get",
+            "op": "session_get",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "sip_dial",
+            "op": "sip_dial",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "sip_status",
+            "op": "sip_status",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "sip_end",
+            "op": "sip_end",
+            "supported": false,
+            "status": 501,
+            "response_kind": null,
+            "error_code": "unsupported-command"
+          },
+          {
+            "selector": "context_view",
+            "op": "context_view",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "availability_set",
+            "op": "availability_set",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "availability_get",
+            "op": "availability_get",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_begin",
+            "op": "artifact_begin",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "conflict"
+          },
+          {
+            "selector": "artifact_append",
+            "op": "artifact_append",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_finish",
+            "op": "artifact_finish",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_get",
+            "op": "artifact_get",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_inspect",
+            "op": "artifact_inspect",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_upload_link",
+            "op": "artifact_upload_link",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "artifact_download_link",
+            "op": "artifact_download_link",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "artifact_link_get",
+            "op": "artifact_link_get",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_link_append",
+            "op": "artifact_link_append",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "artifact_delete",
+            "op": "artifact_delete",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "health",
+            "op": "health",
+            "supported": true,
+            "status": 200,
+            "response_kind": "health",
+            "error_code": null
+          },
+          {
+            "selector": "task.create",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "task.get",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.cancel",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.transition",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.replies",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "task.assign_reply",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.reply",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.inbox",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "task.consume_reply",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.invoke",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.recall",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "task.wait",
+            "op": "task",
+            "supported": true,
+            "status": 200,
+            "response_kind": null,
+            "error_code": "invalid-request"
+          },
+          {
+            "selector": "task.effect_get",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.claim",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.claim_get",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          },
+          {
+            "selector": "task.release_claim",
+            "op": "task",
+            "supported": true,
+            "status": 403,
+            "response_kind": null,
+            "error_code": "forbidden"
+          }
+        ],
+        "curated": [
+          {
+            "case": "health",
+            "op": "health",
+            "kind": "health"
+          },
+          {
+            "case": "resolve",
+            "op": "resolve",
+            "kind": "identity"
+          },
+          {
+            "case": "capabilities",
+            "op": "capabilities",
+            "kind": "capabilities"
+          },
+          {
+            "case": "contact-state",
+            "op": "contact_state",
+            "kind": "contact"
+          },
+          {
+            "case": "pairing-start",
+            "op": "contact_pairing_start",
+            "kind": "contact_pairing"
+          },
+          {
+            "case": "pairing-replay",
+            "op": "contact_pairing_start",
+            "kind": "contact_pairing"
+          },
+          {
+            "case": "pairing-complete",
+            "op": "contact_pairing_complete",
+            "kind": "contact_pairing"
+          },
+          {
+            "case": "paired-state",
+            "op": "contact_state",
+            "kind": "contact"
+          },
+          {
+            "case": "pairing-revoke",
+            "op": "contact_pairing_revoke",
+            "kind": "contact_pairing"
+          },
+          {
+            "case": "availability-set",
+            "op": "availability_set",
+            "kind": "availability"
+          },
+          {
+            "case": "availability-replay",
+            "op": "availability_set",
+            "kind": "availability"
+          },
+          {
+            "case": "availability-get",
+            "op": "availability_get",
+            "kind": "availability"
+          },
+          {
+            "case": "inbox",
+            "op": "inbox",
+            "kind": "inbox"
+          },
+          {
+            "case": "membership-snapshot",
+            "op": "membership_snapshot",
+            "kind": "membership_snapshot"
+          },
+          {
+            "case": "membership-invitations",
+            "op": "membership_invitations",
+            "kind": "membership_invitations"
+          },
+          {
+            "case": "context-view",
+            "op": "context_view",
+            "kind": "context_view"
+          },
+          {
+            "case": "context-deliveries",
+            "op": "context_deliveries",
+            "kind": "context_deliveries"
+          },
+          {
+            "case": "provider-status",
+            "op": "provider_status",
+            "kind": "provider_status"
+          },
+          {
+            "case": "preferences-get",
+            "op": "receipt_preferences_get",
+            "kind": "receipt_preferences"
+          },
+          {
+            "case": "preferences-set",
+            "op": "receipt_preferences_set",
+            "kind": "receipt_preferences"
+          },
+          {
+            "case": "preferences-replay",
+            "op": "receipt_preferences_set",
+            "kind": "receipt_preferences"
+          },
+          {
+            "case": "task-get",
+            "op": "task",
+            "kind": "task"
+          },
+          {
+            "case": "task-replies",
+            "op": "task",
+            "kind": "task"
+          },
+          {
+            "case": "task-inbox",
+            "op": "task",
+            "kind": "task"
+          },
+          {
+            "case": "task-recall",
+            "op": "task",
+            "kind": "task"
+          },
+          {
+            "case": "task-wait",
+            "op": "task",
+            "kind": "task"
+          },
+          {
+            "case": "grant-task-get",
+            "op": "task",
+            "kind": "task"
+          }
+        ],
+        "feature_refusals": [
+          {
+            "case": "browser-binding-unconfigured",
+            "status": 200,
+            "error_code": "unsupported-operation"
+          }
+        ],
+        "task_create_schema_checked": true
+      },
+      "private_summary": ".local/gate-6/application-http/wire-01/summary.json",
+      "private_summary_sha256": "7c3089eaba69e6f0da2245214ee858877ca10304f54dfe3ce5920fd321cc4e11"
+    },
+    "generation": "Application/canonical/protected/family --check passed; endpoint inventory24 declarations/25 methods/0 uncovered; format --check and diff check passed."
+  },
+  "cases": [
+    {
+      "case": "canonical-room",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "91a6de67dfc4b26ab8673bf23bc5088ef66de68df58ad614fbf7957ec5796173"
+    },
+    {
+      "case": "task-create",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a5f9bf0486f2e5ce901e4c9794a8690cb8d07860cab9c24efcad5a7da5592998"
+    },
+    {
+      "case": "grant-issue",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "3d1eb3e454a30fdef0048cf25b018873ec285b69ffb34f0c2894dae5dec1647a"
+    },
+    {
+      "case": "application-dispatch-0",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6c3834d074aa8a2058a9a0a883dcbdac6e64e8593ba3470f738e4b5c3c3b9bb4"
+    },
+    {
+      "case": "application-no-auth-0",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1af0de25245372f18ef33860e6dc874d1e8194ae459b4cc79c139ffb25a0987d"
+    },
+    {
+      "case": "application-dispatch-1",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6de138c3374d3db93513f8083067f5b5a4bf4ae85b097dd865b2beddacac7555"
+    },
+    {
+      "case": "application-no-auth-1",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5594a74c79bf9ea315088fc031d047a94ea827fb95f73a45cf8adce9605272a5"
+    },
+    {
+      "case": "application-dispatch-2",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0946426e3663b2c0e9e1bf7ccd95a647655ed6108c9c59d0bbe4933b32dc147f"
+    },
+    {
+      "case": "application-no-auth-2",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "db556909bd64d88e6ffa3fc837f9738739ac12f24b7257a828fc889e0fda4943"
+    },
+    {
+      "case": "application-dispatch-3",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f76e69a925fd8285ca8d797880914a98ef8ce806ae5f4347920d160804d64949"
+    },
+    {
+      "case": "application-no-auth-3",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "367c05e5e949ddbe894edd11d4aec9766c52efa9cce258997a227c0f21cf485c"
+    },
+    {
+      "case": "application-dispatch-4",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ad4a90aa97f1f4449eb9f2ed0f84cfdd10fe5d570ec89ac34417d91b90ab81b4"
+    },
+    {
+      "case": "application-no-auth-4",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "69af370c0ce841d2655d7b3c1564c5e7e74bb59126849bdd5355138b81669b6d"
+    },
+    {
+      "case": "application-dispatch-5",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "468aa0116acfe09c8d1c3bd214e91ddc071fd1da0fc2e7d00a8c52c18c3cf9b3"
+    },
+    {
+      "case": "application-no-auth-5",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9abc6beee521152bfa5eb0a02df5474285160f87790e56406982098e9fc86b53"
+    },
+    {
+      "case": "application-dispatch-6",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "17c29f732afbac8b5e54498d2d1e14e2a0c614cca39647f81908c5af71719cad"
+    },
+    {
+      "case": "application-no-auth-6",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "17d5aecfa459b915e4c36f949ef1754cf03870de0c3ec72e136f6f327f8218d7"
+    },
+    {
+      "case": "application-dispatch-7",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0075e9b16c7b66066a6695a560cb61499a5ac26e451f739aec58de26b64dcbcb"
+    },
+    {
+      "case": "application-no-auth-7",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "575d5b1169ba65e0b0de53ad5a143e7850d02b9153652b4dd1d9a35029556216"
+    },
+    {
+      "case": "application-dispatch-8",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "be4de7ea988d2e0494c5f10e41bd458b4adc3fc11a7ee96f6f4c7f2bd0d666e8"
+    },
+    {
+      "case": "application-no-auth-8",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "83f324cd6d3653f162e7baa3b4270dbc876a7fc57d1531c51172b87228eb5bfa"
+    },
+    {
+      "case": "application-dispatch-9",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1f99498581b582b310dad81e2a3eebbf785d5716e398cbb0e2f58ab399d89911"
+    },
+    {
+      "case": "application-no-auth-9",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f6261741ca24f8b92fa142897c99ab2d9516cecca7fd4fd8d546b86f004853c4"
+    },
+    {
+      "case": "application-dispatch-10",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7bd7742a615b2e3acc7d8f30b62800457020c1823283cd479fc683376f09ccfa"
+    },
+    {
+      "case": "application-no-auth-10",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "60fce6edbc798d1dbb62585d8bf93a1c66df41849b3dbe00a648adbd41478ce6"
+    },
+    {
+      "case": "application-dispatch-11",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5d1ca7acfa110c1484cdc770e031eac4bac75678c58a6dee1b138a45c4f3be67"
+    },
+    {
+      "case": "application-no-auth-11",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c4b09a1dc23638e00ce103749f1253598bbfb1adac650d9220124fa71974e9dd"
+    },
+    {
+      "case": "application-dispatch-12",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d611a111030f967c89a032436b8c0a23f0970dbd8e6ac1ca565a976cf1dda8e4"
+    },
+    {
+      "case": "application-no-auth-12",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b78838ecb2eccea45d0e7ff4278427a9261aa7c614b260c37f19814ace862306"
+    },
+    {
+      "case": "application-dispatch-13",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6eb33d8d483cf350cd5f8b7a87bc81698f43467e8f57d7892f98dc1df68b6ecf"
+    },
+    {
+      "case": "application-no-auth-13",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d33c42fbca18d5b86c888973a3b417c13f701540c09f8c5214fcc51be53676dc"
+    },
+    {
+      "case": "application-dispatch-14",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1ef8875163712d313e749bd144a2b9ae5bbb90b0fa076c5bee76fd9f15a79188"
+    },
+    {
+      "case": "application-no-auth-14",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "068694301ecad1272ec4fa44f82e0447a203ec621ee052e3f410a6facd130acc"
+    },
+    {
+      "case": "application-dispatch-15",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "57ecc5d9d7caf18be72ae8101fd5828985cb5e3f69dcb107e428a2054c29f74f"
+    },
+    {
+      "case": "application-no-auth-15",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e39f0d9b7b34da7476707d755823c20f518f1426f043f1d30b7ea861b2a159c4"
+    },
+    {
+      "case": "application-dispatch-16",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0ecb8fc08aa01ace5cb1adce08ce4dd0b26650adc24267e1a45e4e3017879af4"
+    },
+    {
+      "case": "application-no-auth-16",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "619cae9b23ecb43408597f8fcae2cc099d94ade7dc1fc82bd1aacc2eeb173f29"
+    },
+    {
+      "case": "application-dispatch-17",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "430329d3b8210df7a4a6e323388c997ad91177e4b54ed5774cf64fe055f1f845"
+    },
+    {
+      "case": "application-no-auth-17",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "74a1aa23f8a7d4c71af5ded9d8dc746df03a30588df7ee5c2657c50756c44854"
+    },
+    {
+      "case": "application-dispatch-18",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5509d259aa2d7445b45bfdf521e39644be00a0b0f40f09889feabe36577837af"
+    },
+    {
+      "case": "application-no-auth-18",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "8645b6ddb0652613bccda5876111a55a0ab6036607ef4d7cf136f84e2e0e1c1d"
+    },
+    {
+      "case": "application-dispatch-19",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "799caba3fe78f4cecf30982bfb2c9ffc322f566c2e7c0b2393c54a47c6a96b98"
+    },
+    {
+      "case": "application-no-auth-19",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c81097e43bff11cdfec667541f3251dece11ef622d8221e21992a42a88e2d27b"
+    },
+    {
+      "case": "application-dispatch-20",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "25b733b449e31179f367e9caacbf12e6d7d5ab08f7b4ae5e4e801562a4367228"
+    },
+    {
+      "case": "application-no-auth-20",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "adf77bff18ac6aa297284baf701ac7b104ff152e32fcfac249821857f006a5a2"
+    },
+    {
+      "case": "application-dispatch-21",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "cacca3f985220716216186886f2540f1b33b8f8004a1bbceba8cdf6043d1e3f5"
+    },
+    {
+      "case": "application-no-auth-21",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "cb90c34b27fa3573941ceac1b36c3cd7532fc71c3f511d753d70e115a1b6178c"
+    },
+    {
+      "case": "application-dispatch-22",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e5ba676104ddcecec9e1342e66e96ae3ba8bd7c677871b1bddb6279b6c150d43"
+    },
+    {
+      "case": "application-no-auth-22",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2d903ecdd9b6657180888c966ca4b6c7825032a5be2a3528c4b6d7b6162bfaf3"
+    },
+    {
+      "case": "application-dispatch-23",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "8b93d30a6993142e585c4b8874cdefbddded4f42e734d4548ae4a5fb68643c13"
+    },
+    {
+      "case": "application-no-auth-23",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "43d0bacf0eb0f5618e5db0a22b41e59261f5b99ce98cea08f8b6dc500d02bc91"
+    },
+    {
+      "case": "application-dispatch-24",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2d7f1e5d25e75e44eb2ad7fe86c4f91767f413365aaba16c0c127a5df9ef5d72"
+    },
+    {
+      "case": "application-no-auth-24",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9e6f99a2a4787cbd16341b5b32e50c062aa085236db373d26fdd00f98e72617c"
+    },
+    {
+      "case": "application-dispatch-25",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "467f32bc311ba057b81242911543518d495ade979287f7e10506c72587efbea2"
+    },
+    {
+      "case": "application-no-auth-25",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "05d0cfbf3eea557e9bf89ed5cb696a64ffd66b36a29b549c398b33eb11d21010"
+    },
+    {
+      "case": "application-dispatch-26",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e902c4959de8e99aa235983407fe9b08bea06caf6fa5b80fc17aa95b1760870a"
+    },
+    {
+      "case": "application-no-auth-26",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b4cd1bf65741443b16b1889487cf44cb3ee30af9ccb0001834dd5491dcb53616"
+    },
+    {
+      "case": "application-dispatch-27",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "dd668ae255a16ec2aa963e0c721bd7da56aaf6da1674e70be7e8274053285b10"
+    },
+    {
+      "case": "application-no-auth-27",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e0be6a9eb80fce6820083ddba42385c7246de6ab43b657077607ab03aef7b867"
+    },
+    {
+      "case": "application-dispatch-28",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "961c0d738476a73be651d15203c51c985d04c9eb3cef3c3eb71f28194d8a7953"
+    },
+    {
+      "case": "application-no-auth-28",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f88face44a06ee5bb91b95c4d61d98898f7ff0b62b6fa55b5b37c389bd3614c5"
+    },
+    {
+      "case": "application-dispatch-29",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "192bdf4fcbcc24aa0a2afb8e9c4872babc90da6f1f70c7f2f7ad5f09cc3c02d1"
+    },
+    {
+      "case": "application-no-auth-29",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "20a3b27f0729f4b723d56918a63f01073b9c877026b264d2564d2d3930eb753b"
+    },
+    {
+      "case": "application-dispatch-30",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f051e277db2d2e8a8e3905bd294a94bb44589f9fad4a1a1fae67869ddfcc3d6e"
+    },
+    {
+      "case": "application-no-auth-30",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fa7be0a6b9a858c9ef154c13d67e5fb69f0c4b7d8d41fa2e1cd4c20c85f02e45"
+    },
+    {
+      "case": "application-dispatch-31",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "95ab38ada9cb3f3b3c86d4758ae7f495b9bcd97ca0bbee77a8772618b032f135"
+    },
+    {
+      "case": "application-no-auth-31",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "837825f554e228ed2eea1c89561d8a5a5e49ca10fed15a50773ad58c7b33beac"
+    },
+    {
+      "case": "application-dispatch-32",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d296352cc6225e8c90e208289efc349b640bb69369d736c4abec884c6485a796"
+    },
+    {
+      "case": "application-no-auth-32",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c61eab4cbf6a3473f87eeb58218ba37f8a3808ce19d2c94101418395e0c75c45"
+    },
+    {
+      "case": "application-dispatch-33",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ca38f7be57376d9a877f74640ab2c1338db63b9d781f1754239643c0f5424100"
+    },
+    {
+      "case": "application-no-auth-33",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c6af7743be8e8f9e72aaf71546e10c79641e5b4056826b9265539bc2d05c35f5"
+    },
+    {
+      "case": "application-dispatch-34",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "692c1dca4d09138e31addf1bc7a9f9cf0dfc84355ae716eca459851affa75aa4"
+    },
+    {
+      "case": "application-no-auth-34",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "45d06755929800138f7886da95cad0ae96fee031d0012873fe01239b04809363"
+    },
+    {
+      "case": "application-dispatch-35",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7ef3935072b44313b660248ac2bd637c0071098418bb19cb84aa62744aeecd0f"
+    },
+    {
+      "case": "application-no-auth-35",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fcd25acb7b6358456ab6221366185db64ffdde070a0def7877b2a1b9014a33d6"
+    },
+    {
+      "case": "application-dispatch-36",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4e663063c100c80074256d1d05a45138fded8fff80b3f3ae027ab4cafee318ad"
+    },
+    {
+      "case": "application-no-auth-36",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f8807c797eb6a4b6bf038534e4f1b3bef6d8236ed59e9a0e2b4e6ed7d18177e6"
+    },
+    {
+      "case": "application-dispatch-37",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9e7f2eea3938627e9be50fe7970d71180bfd130dd624d8e0ea41a8df79de654b"
+    },
+    {
+      "case": "application-no-auth-37",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b053e20f0d926168cb4ed3dac09668d93d628f8ade2f14b805b7530b16b38d08"
+    },
+    {
+      "case": "application-dispatch-38",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "046d4d26eb32cc8e78d9b78af8dcaf2d8e8348fb9fa7f1f4897b01fc6ca1aa1d"
+    },
+    {
+      "case": "application-no-auth-38",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "59a281536018e5975cdd31986037c215b6441a291908a67b6a89d1499fb37cf0"
+    },
+    {
+      "case": "application-dispatch-39",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d91549232364df9b6d4026a92ab61f7239f330348e72b77ff88a5fbeb19b55df"
+    },
+    {
+      "case": "application-no-auth-39",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9ff71ec8bbda60c47b5e03280789949afe6a5ad7be625f36e348bba7ab7433aa"
+    },
+    {
+      "case": "application-dispatch-40",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2ef7bc843d32a7c468e69a5104dcaefb5d198d89624e099cc04af0790250f84e"
+    },
+    {
+      "case": "application-no-auth-40",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c66bce971c62884e79b6f6e69d3bfcb840006dde2ac51d5e34eb8edadffb7a7c"
+    },
+    {
+      "case": "application-dispatch-41",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b95875de2453424ea75b5bb50aaf4afc92b439fee45bdb8a349bdbf855531b8e"
+    },
+    {
+      "case": "application-no-auth-41",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "889f147affb246364687ba39c250911b326d9789a2c0a964b485e0233e3dd32b"
+    },
+    {
+      "case": "application-dispatch-42",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "bd28e0b30d83630528d01684b7d20e9615b6a8fd9fb10f513d92b7c0b8395dd5"
+    },
+    {
+      "case": "application-no-auth-42",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b111362fccdef3ddbde9c41d98864709687fd95106517ad9d05e259037e90e7d"
+    },
+    {
+      "case": "application-dispatch-43",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "3cb6872f80a937294aaa9b84d9567f06d29cb59811f354e485beaa9984d1bee1"
+    },
+    {
+      "case": "application-no-auth-43",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "63b531927d9130129f22bf52f93515cf8d69a183136f7274f8b5eb67d751019e"
+    },
+    {
+      "case": "application-dispatch-44",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "8faecc970ccf6ad5b926517bbaa7ea20be9577d8d6bbf59e9d6e39b8aa7b6175"
+    },
+    {
+      "case": "application-no-auth-44",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "119495331eba9d3c3ebefa635be880bd29a5dcfa1fbfd501e975c96184316608"
+    },
+    {
+      "case": "application-dispatch-45",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1cf34e8481959479cc6b9a11a0f4591a97f696aaf3b113dacc38032f13b8918e"
+    },
+    {
+      "case": "application-no-auth-45",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f405fd48d3e080c1171f6f29977da34716209445582453389d32ab4d65d65f39"
+    },
+    {
+      "case": "application-dispatch-46",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f9166a47bc39976e7a8534aae1850fc25ee708b68174dfa18d0c18dd6e5d01a7"
+    },
+    {
+      "case": "application-no-auth-46",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "3f5bd1db2569fb1a646b81af42d92230c3428537d3d726b24d8f6b91cc3833a8"
+    },
+    {
+      "case": "application-dispatch-47",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f5befe73b23ab60262a25b329becd262c7596eab59d870e38ec67122430203f0"
+    },
+    {
+      "case": "application-no-auth-47",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7f3accbd52fe17ffbeb6c00168827eae705c4e6668d03137d732fc013631afea"
+    },
+    {
+      "case": "application-dispatch-48",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1fe533f51567082bc8830cbcfa3e69743fc110c9338776466131f6f6dc7878aa"
+    },
+    {
+      "case": "application-no-auth-48",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "62dd864dab89d1aab011c4d14ae5f424cd1ccc05b7bba9e852947ed7428f0a12"
+    },
+    {
+      "case": "application-dispatch-49",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "8ca932eedca766f56ff19bc5d6936e0da9cb13e61748bb5153019d585e8c0e6f"
+    },
+    {
+      "case": "application-no-auth-49",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "553cd3402c161c1154715191ac8653a3e7307bd934086945a135d4868ae52aa8"
+    },
+    {
+      "case": "application-dispatch-50",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "007bae585383303c0ee266275e6c38fad7bb12a58829761d33ec7d1931e9e7b9"
+    },
+    {
+      "case": "application-no-auth-50",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4048c16bd4352c08ce5eac35e6c82c15f0db48d0fd9b4fc908c507fcf67b3b6e"
+    },
+    {
+      "case": "application-dispatch-51",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0f572dcb098525195e7a98f34b1623c30c90e8b35149d394ee935ea415267768"
+    },
+    {
+      "case": "application-no-auth-51",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "809226d5b99145870406a398e6b4c5c4713490d7f398ca2b4b72403b7347d033"
+    },
+    {
+      "case": "application-dispatch-52",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ee59c375e4a157b8ae32e523dddfe2a62cdbcfa56ec73430aae7decce8317835"
+    },
+    {
+      "case": "application-no-auth-52",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "55925857417f9620cedb0a5c6ec2a8a93b85e13bafa4f2b0c7de3cc9998aeaba"
+    },
+    {
+      "case": "application-dispatch-53",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "55af79d9a838d632122c0e6fb84cc62a2383b58201232b1155bcff4018c744dd"
+    },
+    {
+      "case": "application-no-auth-53",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fc97109df51443db74000d699dd1776ebf2765b9b6496c15f7beeaf4ac46c048"
+    },
+    {
+      "case": "application-dispatch-54",
+      "status": 501,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0e2fa7723e899664ff8283e1c2e6bc0baaff24fc941726755afdea10e42061a3"
+    },
+    {
+      "case": "application-no-auth-54",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "14d7a2d3d09e5ddc44f2aa7a764b7d5a2a8ea2b1105bea907a9aaf828f4aae8f"
+    },
+    {
+      "case": "application-dispatch-55",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e149b73a08bed83c60a8a76a49b1657346abeb2dff6a4acd4e0b15b80e17aceb"
+    },
+    {
+      "case": "application-no-auth-55",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7740a55c362b1b2d53ec3d08438e4c96fb7d6e64b005c4ec3ffcbb39e182ddc8"
+    },
+    {
+      "case": "application-dispatch-56",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b0b4e0ec9d3cee636747630045f929fbb6b932e1d90f238cd6dd86016bdc81df"
+    },
+    {
+      "case": "application-no-auth-56",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a9442ea5f25420130aef69132c385a43f4a130c5abeaac81066bfa101adfc20f"
+    },
+    {
+      "case": "application-dispatch-57",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6a7c59dec820436953cc4a5e3c0fadb8f3a9a53e4dcc5bf5a67e3da2f57c5cf8"
+    },
+    {
+      "case": "application-no-auth-57",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "cc1f12dea3bb37f46fc7a4085aa2c7cd512a9aa3f07f604cac282ffa664de79f"
+    },
+    {
+      "case": "application-dispatch-58",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0123662108f2df98f998396211d2bc0570273a0452a56e96d80c38abfc567a4e"
+    },
+    {
+      "case": "application-no-auth-58",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7136a7f4851eeba22ea8273dca6db2488bc5d57a6d2a5126b3d1b23ad06f3dad"
+    },
+    {
+      "case": "application-dispatch-59",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "53c5c4e7dbfbfe0c9a5f3a811e3a05d2ff1fb5c24b1e5be8cf001f20ef025aa0"
+    },
+    {
+      "case": "application-no-auth-59",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "cf82f67d803522d22707a084b0a81aef4c38b595a57bea7a57c44da55f20f38e"
+    },
+    {
+      "case": "application-dispatch-60",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b49cac12337d99bc1dd281faf46cc5c66368fc6bf7495e6f2c98d2253a196ce6"
+    },
+    {
+      "case": "application-no-auth-60",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "53d3794bc6bc477109c9d97eb31fbae0be1b02a8c65bc519d58b663da5bb8871"
+    },
+    {
+      "case": "application-dispatch-61",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "3d626b4785cc8e63a387143184f273258b3983b521180891b9e92323995e0bf7"
+    },
+    {
+      "case": "application-no-auth-61",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d854c680ba4076b9649b3365a451e327881317592088967dfc7031759863bf64"
+    },
+    {
+      "case": "application-dispatch-62",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c4e0958ac48fe59428a4271edea7cbe4c824998de4327b59bf655df73e7a8d1c"
+    },
+    {
+      "case": "application-no-auth-62",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "277b8dcde6fcc47ab756c704a3fc7e24773334b148425b12a7080b200146af71"
+    },
+    {
+      "case": "application-dispatch-63",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6b5e249feab41b8de8050e41a0ecf8efc5001ea05ca40a24ac4411e80071b73c"
+    },
+    {
+      "case": "application-no-auth-63",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fc96e18f0f0c432327222b288cdc63cc535a4d96cb577cb7788fc02030627160"
+    },
+    {
+      "case": "application-dispatch-64",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "003d22fe88a6010f2f91a5b254d9e1c75a321be23805d2aae5328eb9c7a3d377"
+    },
+    {
+      "case": "application-no-auth-64",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c86f260715f71653926c79b29929602334592d8f3732e799703a6e130f9fb07a"
+    },
+    {
+      "case": "application-dispatch-65",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "93b1e6769e7c7cc13133a889f12b1de84adae7b79958392590e970317c9dba6e"
+    },
+    {
+      "case": "application-no-auth-65",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "98232f6bbfee789f6d646c16377f050533e8e2ab4906a3bb93eb156d1c2d217a"
+    },
+    {
+      "case": "application-dispatch-66",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d62fb81b6a6f94aade30ef9706400c14ad1021118697374615bccc2877428761"
+    },
+    {
+      "case": "application-no-auth-66",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "721b3765130ab4933705a8cfea65c2cc3a32d8180178d6ea62efe1195fc3b0d3"
+    },
+    {
+      "case": "application-dispatch-67",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "16584b5da2e56d0eb01b520fa74efb431bc19fa3df5c63fb2097493339a76708"
+    },
+    {
+      "case": "application-no-auth-67",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "62485c4ae3f09835fc2c7221852c76d9ce9c704170941ab921fa7fee82efacc2"
+    },
+    {
+      "case": "application-dispatch-68",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a243652b21a36c20a3cd6e38dfbb43a36892436485fdb18c2b20bbff0722e1a7"
+    },
+    {
+      "case": "application-no-auth-68",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1989152647aa455b80dfdf1868902b45de43975266cf2372ccd33b9d433d75ed"
+    },
+    {
+      "case": "application-dispatch-69",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ec554e88f36641d50fec68da46c8323a95964c0afdd545ed3f3480210c1dcba0"
+    },
+    {
+      "case": "application-no-auth-69",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "25bfd8c87903b2740a33f15cd20e14987462d73d53682ed17e92475457781219"
+    },
+    {
+      "case": "application-dispatch-70",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4e4f1f40cbe02c27c8dffe26faec56c8739a5598098879e37a47ef16ff3502c5"
+    },
+    {
+      "case": "application-no-auth-70",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7423644f4318a4f71eac64eb80a7aea863adb937da65165ea4cbea2068232811"
+    },
+    {
+      "case": "application-dispatch-71",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a2d39080cbbe2c91fbd85eb626514004325c62a8487d8dc1b65054119e8f8bc3"
+    },
+    {
+      "case": "application-no-auth-71",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6a22dd60efe7b3464d64b5b559f061b0a7e20b587b58030cb495ba3660afdf59"
+    },
+    {
+      "case": "application-dispatch-72",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b22754c50b283106fd2cfdda37e5b0fe36d8bfe687bf9de90476f0d3e1d37382"
+    },
+    {
+      "case": "application-no-auth-72",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d5139fc22e6bdf30b51829323c35bf9407b6b30e8c4434c06d41199169ce091a"
+    },
+    {
+      "case": "application-dispatch-73",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "88fee45f01c5dd79ae778a800e8419e57f0f7e8be4b6445da918d628a159a3ee"
+    },
+    {
+      "case": "application-no-auth-73",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "db50a9fd723d23b3c1c919e8981333e0f87b39754981792615e8b7bd37802e2e"
+    },
+    {
+      "case": "application-dispatch-74",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5019e263c7b57bda4aa76daa8245ccf668c5930d80772af999d7ec581b49ab41"
+    },
+    {
+      "case": "application-no-auth-74",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "70a1faeb5274f5b2ee89ed058997a6f1d16bbeec210b22c0738b4d07992a1da8"
+    },
+    {
+      "case": "application-dispatch-75",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b1cbcca8ca30603687e07ee3ff3320e43a463087bc83cd5f82b3b5ce64cbe62f"
+    },
+    {
+      "case": "application-no-auth-75",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a34904efeceb035858a5c7c2aa91c7399aaaf191d88c17664100d0120d4c9f47"
+    },
+    {
+      "case": "application-dispatch-76",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "10d4371a7212cd54c6f5bfa085afdc0774ae8e8be5841b7a78c1ca92b2588f9f"
+    },
+    {
+      "case": "application-no-auth-76",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5f5fd640dd6de0cfafc4e589efef48f9878545631e54bc7c190e11eddab1feaa"
+    },
+    {
+      "case": "application-dispatch-77",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "16442505dd2905df86a27e70aef01073a86256be3f522cb082f18d29c8959465"
+    },
+    {
+      "case": "application-no-auth-77",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7a70fcf1cc2c1609bec8a25f2b3646f768f44815cdea6a0ae4dc8707096020b7"
+    },
+    {
+      "case": "application-dispatch-78",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9b4e7045a2b2ee72ad22a051f61538fbb27b85240045d901eeaf965fe9f262b3"
+    },
+    {
+      "case": "application-no-auth-78",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ef140fd1cd7df411c5f985d11930f7f467a9f2b795284d137e68f7aaec7e2a51"
+    },
+    {
+      "case": "application-dispatch-79",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b65acdf414e28aee087303e72b5fb5d2bbef989e826e17bcc8b91441e17f1529"
+    },
+    {
+      "case": "application-no-auth-79",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b3af304f62c87398073414aea10179ef4ca66a1526ad29718711a3ac958feef2"
+    },
+    {
+      "case": "application-dispatch-80",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4a6c89c0c9025f98b73042a35f888846dc6eceacbd4e75d091e39feaa9779f46"
+    },
+    {
+      "case": "application-no-auth-80",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "3aac5c6a0fbeb62b06faa6c3dd479046509bee2d29b744ae1ae2bf4f2a44746b"
+    },
+    {
+      "case": "application-dispatch-81",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "876767cf1a5af6f9fff4c5d314054753be09f7babe52c9286b9e38bec93084e2"
+    },
+    {
+      "case": "application-no-auth-81",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "000eb566669258e5d1933bb58437f9453b039c08cff06dd29a7bcaf88f1b06b8"
+    },
+    {
+      "case": "application-dispatch-82",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "abdcd847445c6785890c78d5d2d9fa5d2eecdc5b99c7b04c0a1c0ccdc30aaa9a"
+    },
+    {
+      "case": "application-no-auth-82",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0d5c24a41f5087c04079f1a41b8daf3186b0f8a1ace299b21b2eac763acc56bc"
+    },
+    {
+      "case": "application-dispatch-83",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5d4902f8424fbeb48490eb6b67bf62582d894dddfcdabb0399a7f07305711f54"
+    },
+    {
+      "case": "application-no-auth-83",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6b7efcaf2cd693b9195ecb673afd2c483760574ab667b170b2ea4e0ffd8eb2cd"
+    },
+    {
+      "case": "application-dispatch-84",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f7c51942c81a03b821b19989e29dbd3702c8e9d92c370aaa095653feed31f05f"
+    },
+    {
+      "case": "application-no-auth-84",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "515c798ddeee15ba53af37eb7b76fc5ea6ce8381db0505dd5bdac05cc3f39ee1"
+    },
+    {
+      "case": "application-health",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a5a27eb2404702c52e1b1f665e1c1d1789e9664ce77ed1d442278acd6cbbc7f1"
+    },
+    {
+      "case": "application-resolve",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e58f7bb4489cdde66596dd2fa93cfd610c9021eb4f646e1508bc3ebb7c1b4365"
+    },
+    {
+      "case": "application-capabilities",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6d0b983dbba620a7f3458bdba51e68f6734ff087faf2d2246eabf0ed76a54941"
+    },
+    {
+      "case": "application-browser-binding-unconfigured",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ece8365c0bd0f78f3b35ab9e2d33e3a7eec4376f9ee3c0ca783f60de5bef10ca"
+    },
+    {
+      "case": "application-contact-state",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2bdc6ed9923af65d5da7c827a8d347d390f19ff6808804c0f1eb2190735212c7"
+    },
+    {
+      "case": "application-pairing-start",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a5e993cd7eb1500fcf7bf39f20befb1cab1f0fcd6979407fac5876e238b5cad5"
+    },
+    {
+      "case": "application-pairing-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "671d4a39e574e57b20407370d251e80b7e904ffde8f9a0e62be300368197e312"
+    },
+    {
+      "case": "application-pairing-complete",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "eea5444e8bea8c8490a06cd60172c196cca4da245c43ede649d6132b8a7e2ff7"
+    },
+    {
+      "case": "application-paired-state",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "32590f9c3e601dffe2a88bf11f3a4140dcb266f8e05b917b083974f384d60b53"
+    },
+    {
+      "case": "application-pairing-revoke",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "10eaffdd62f9b05530484308f52f8de9ef52435a7a4239dcf22aebb5c13c55cf"
+    },
+    {
+      "case": "application-availability-set",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "22375166d37f91d78a2bfa5af1c996be4148a717c1e21221e1b01efbd93b0178"
+    },
+    {
+      "case": "application-availability-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d038105a7ed68260e07dad6db333293f31bbd3842163fd8f1fb3db316e5d0160"
+    },
+    {
+      "case": "application-availability-get",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7fc9a415c9bca0a4932ede2a11bc381a321a2f37042514cfbd6e8681dac38429"
+    },
+    {
+      "case": "application-inbox",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0c2bf812c928c530b813bd865837ac87a3747c5c15e5f29b2009afa70cd38522"
+    },
+    {
+      "case": "application-membership-snapshot",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fe0bc02b66aabb59b6d56abeb5a6d607c6da684050a6975154b4ac5cd9cb2fac"
+    },
+    {
+      "case": "application-membership-invitations",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "337514473cd64e813cc421239afda23b57adef762a8d461903f6b28897ba161a"
+    },
+    {
+      "case": "application-context-view",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "14e77efbcb144db15036fe77fd7cc1dea2dc906e30af31db93e154987c55ae83"
+    },
+    {
+      "case": "application-context-deliveries",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ffc439cb0358a32f0a9d3552aef7a5d2eae7b9c64ae711bf117beecd64eb91c9"
+    },
+    {
+      "case": "application-provider-status",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "08bc7208a227eca369fdf98bbd45cc839f6849fe42171915051678b967f1a836"
+    },
+    {
+      "case": "application-preferences-get",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7c56510945e5f67b8c512843fbc5550146c237f5b463571a6d4e96ab235abfef"
+    },
+    {
+      "case": "application-preferences-set",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a4e2247c9ef0ec26789283d2bf88d922b9519f087d346a22afb91dfdb40da4b0"
+    },
+    {
+      "case": "application-preferences-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "9ae07c434900bf2a80aee09d47c328cdab27e56f4bbb0807476b73c4593c61ad"
+    },
+    {
+      "case": "application-task-get",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "eea80fe4623933ba0df5818bdca33707b041497cbf136f2163c575f1b7502291"
+    },
+    {
+      "case": "application-task-replies",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a6ca7edc4925483d558db930702d2e7212aad6af9f9aa93421f7848f6cf1b8c2"
+    },
+    {
+      "case": "application-task-inbox",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5d9a0520b01842db5675a0cadab2171ee9644986d9c3b1029bd76882e472c4e6"
+    },
+    {
+      "case": "application-task-recall",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "cd25d1a0cabfdcc13e8f62ce957934f430d4e4538db5d28287672b91997cc469"
+    },
+    {
+      "case": "application-task-wait",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "103e630a127f216fd0754c6d921c6417758540b9a41c16001c900ba44b86d8a9"
+    },
+    {
+      "case": "application-grant-task-get",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a2f82925a62ffd9d53dd4d62cadd49cc33df0c05cad9d338f3cdff2f42edc50e"
+    },
+    {
+      "case": "application-grant-cannot-create",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c94ff952f38c2a8965ca8ccbe8b6f1e075cd5346e39c20b640cdbac4b42e48c6"
+    },
+    {
+      "case": "application-grant-provider-header",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "77e39601037ef59750f2e027c15d852b62e519b58c32ff40e809a4294473f0c6"
+    },
+    {
+      "case": "application-bad-json",
+      "status": 400,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "d3445e18de32c05dd0fbfedeb0112baf782deb12a5b9f8d6af0044fcca8e99fa"
+    },
+    {
+      "case": "application-bad-content-type",
+      "status": 415,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "f70f88c632bd2472b095204e0c8cb723a17c85d81df223aac885a8ab4ed7479f"
+    },
+    {
+      "case": "application-unknown-op",
+      "status": 422,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "32af44dcc4e42a969173769ae1e43b18f46207111f6220a90e7e711bfd8c06f7"
+    },
+    {
+      "case": "application-authority-selector",
+      "status": 422,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "c7eaa4934bf3ff6e9b106c19bd7cbf3480eab07d822e2d2fd4e3267c0d499d7b"
+    },
+    {
+      "case": "application-duplicate-tag",
+      "status": 422,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "112e405231fdadc0edd4995b8b8bae364b326860642ea7ac0957704f4b154188"
+    },
+    {
+      "case": "application-oversize",
+      "status": 413,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "4639724e2fd3f29dafcdaf777b4af253bfee390dd6967f558a012c10a0b4bfa8"
+    },
+    {
+      "case": "grant-original-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6a4b41dbc47bd19606b02d3362b4f5bf15bf8483b030054d054aeae8097331d9"
+    },
+    {
+      "case": "grant-changed-intent",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fe1e3743eda1acc27854355a37567dd0f3403a7f580a74890c2260f0d82f1598"
+    },
+    {
+      "case": "ordinary-no-task-grant-scope",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "779ab8523f8d2e8a236b2a0cba25cecd481c52c972645c14c99b7bb6f3d041ba"
+    },
+    {
+      "case": "model-grant-cannot-issue",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "41a15e79264f756f1b5dfcaac00b62f69dd31f8410ea43a1cb4e22f28226a5e4"
+    },
+    {
+      "case": "task-duplicate-authorization",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "21220ec084de85292c78b62bae02715457a8961a20be33e6c27dd05bcbfcad51"
+    },
+    {
+      "case": "task-no-authorization",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "584b7c1a61ab601018c6ad76b3724b71c73d73f13f7b8e2fb3b74d99ce0ccab6"
+    },
+    {
+      "case": "task-header-origin",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5e609a24ecbc9fab506e293ff455aa589cda7d9efc1f416b174beb53e94dddb8"
+    },
+    {
+      "case": "task-header-x-call-id",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "403be06853587c0cb6dfd74c70fece0040a909691d6f0194680f7fba6fa69c62"
+    },
+    {
+      "case": "task-header-x-chat-id",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7d2deee244879711f1bae541a8fbad45e3bf6dd3d89a1a8343814ecbdba6cb13"
+    },
+    {
+      "case": "task-header-host",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c14c6013021872fc32a73b546a2102d4de14197bbd32e5e7da24a1558dd4cfb7"
+    },
+    {
+      "case": "provider-binding-refused",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e3f3d2c265272c7bca9419d22378506753416727bce515a5ea16181c3aab19f6"
+    },
+    {
+      "case": "task-unknown-permission",
+      "status": 422,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "8f7e42bc6cda33bde8c21a64d03dea49f03187fcf2663ff8dfd9e1764b75c919"
+    },
+    {
+      "case": "task-duplicate-permission",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "db2c789d166fd01f43fd49d730834efb8f7afd31390137aef19aa79bfc8d3d02"
+    },
+    {
+      "case": "task-caller-authority-field-refused",
+      "status": 422,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "5fa30978d0e6f7810f6f56bef64668292677dad91420619d7ece489c6a4b20b7"
+    },
+    {
+      "case": "task-relative-ttl-refused",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4cd981af0135808bbb79017701ddf5ee298eb22cc901a2d36b97930cf7d642af"
+    },
+    {
+      "case": "task-profile-separated",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "80140e85e56b081d0ad7c470a2a1d3cf3bb5268a05b005848358cb1920e1749a"
+    },
+    {
+      "case": "task-malformed-json",
+      "status": 400,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "5902c6e4355d9a6c8e739bfdf866813d6d4574d8a636e9847fbe71a686fa2047"
+    },
+    {
+      "case": "task-no-json-type",
+      "status": 415,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "a1f0fe7d598e9b54de18acb0a65172c45350f67c43ed75d0c85a1db4365fa880"
+    },
+    {
+      "case": "task-oversized-json",
+      "status": 413,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "f50f1987cdf47f4fc3e9d7ade82fcbd334ec1e50bb84b83540336033e3d80f79"
+    },
+    {
+      "case": "task-auth-before-json",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5c8f043900b61c910476b024d199ecb7460baa95b9937b3d5016af111ea51c13"
+    },
+    {
+      "case": "canonical-file-room",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e18f912333c55f069e12bb10d312873bef8edb4e4144ac525da209a415ac38b5"
+    },
+    {
+      "case": "artifact-begin-255-name",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "febc412b37a472ae4f11d616c9085862cab5c7fd19deaa24a651fb94a91117b5"
+    },
+    {
+      "case": "artifact-not-ready",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2511b9bdf429ff4a6adeebc7444a6afd8355db0eafac0cb77201c9c535e0249f"
+    },
+    {
+      "case": "artifact-nonowner-put",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2d7d3a125d85cb86947f8676b1515572295bc3d88a02de8a0bba95c76d82d3c3"
+    },
+    {
+      "case": "artifact-empty-chunk",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a84ddb7c3f44f45b440ba950784873d6c758411f6f6fe4c329a6e30a170a2cee"
+    },
+    {
+      "case": "artifact-configured-oversize",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "ab319da9c9e7d904b0988a77e4293e55d3213b3fe05ddf9f485c4fb10f82ee1a"
+    },
+    {
+      "case": "artifact-first-chunk",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "a0632cf4db63772f1c2968f1be00d6357adf336d0b9565a8e3be66569655350d"
+    },
+    {
+      "case": "artifact-chunk-original-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "7959154c7c91555706f1920a3c5cbaf1942004652721ea7f25c4d1e65ddfc0be"
+    },
+    {
+      "case": "artifact-chunk-changed-intent",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "83419f4553edb8f2dc6308f5173fbf02754099a01a9f67ae6b6ceb8d64fa5da9"
+    },
+    {
+      "case": "artifact-second-chunk",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2c473b8bef08e2f1430e638451039b581522beaa4cd4c4b009329e23e194375d"
+    },
+    {
+      "case": "artifact-finish",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "eba1a8fb05020252a76ed36878c7acaebee6c9b997101c4eb1025ffd90f764c4"
+    },
+    {
+      "case": "artifact-first-window",
+      "status": 200,
+      "content_type": "application/octet-stream",
+      "schema_checked": true,
+      "sha256": "9b7b99bd35285f2f50706de2023b9473e93810914adca0c7dd9580d6ecd6ec48"
+    },
+    {
+      "case": "artifact-second-window",
+      "status": 200,
+      "content_type": "application/octet-stream",
+      "schema_checked": true,
+      "sha256": "fe3b1990067648c04bdb259cd04c120550466b9c78e79b2a0f423be00698669c"
+    },
+    {
+      "case": "artifact-empty-eof",
+      "status": 200,
+      "content_type": "application/octet-stream",
+      "schema_checked": true,
+      "sha256": "7e646e0a78fbed5b9d71c6ebf98f41889c47850e0816b9e56b14bcd943e5b7f6"
+    },
+    {
+      "case": "canonical-file-message",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "d76bf485cdcc537729b2123e0b153ea942131f61ab52a61aff397334f5d0f6f2"
+    },
+    {
+      "case": "artifact-original-recipient",
+      "status": 200,
+      "content_type": "application/octet-stream",
+      "schema_checked": true,
+      "sha256": "49e91b5ad0c16325e41c454aadbfbbc194baf815a2a023694d307b6653b23635"
+    },
+    {
+      "case": "artifact-foreign-identity",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "fe4f9f8a06c2c3468b9c32945dd85e7b94cc14155e566fa52fe7bf73d69a98e6"
+    },
+    {
+      "case": "artifact-grant-requires-task-api",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "28ac4b42852f9fe135a197cbc4aef723b54944bcb322b33a156bfcb4f0b1f3e2"
+    },
+    {
+      "case": "artifact-beyond-eof",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "bf75f668ba2d60ed8870c7ea0c3c2230324f71cab0d92696f99b51f83695d9eb"
+    },
+    {
+      "case": "artifact-limit-zero",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "29c43e598e50485162fe89e7905d7f27bd6cea4791aa6a9a5b53162a84b33397"
+    },
+    {
+      "case": "artifact-query-type",
+      "status": 400,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "90f2543e431d6c52dfcd149535dc6bc2015f21b6f68a89db6ca8c0174ef82659"
+    },
+    {
+      "case": "artifact-query-unknown",
+      "status": 400,
+      "content_type": "text/plain",
+      "schema_checked": true,
+      "sha256": "3dd8063f26531286077882a624b08137bf4f3964d94c7887d89f95df4cdae42b"
+    },
+    {
+      "case": "grant-revoke",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "2a249d1e83dedc5f3bf8a9f91a600865e0977c16329d8bb50eb042cdacaadb91"
+    },
+    {
+      "case": "grant-revocation-refuses-original",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c9209d1abc09307df40414825a64fa2a332cb60d163393dc9bec158f4c93b43d"
+    },
+    {
+      "case": "recipient-credential-revoke",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "adfbefac96ff9a5026074106a9f0138b7dfe6cd0d45a24ac13c88834feffc920"
+    },
+    {
+      "case": "artifact-current-recipient-revocation",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "e4cd16ee729df458c1b5f942cab106de63f470bd97f20c657f0a1b12107a7c16"
+    },
+    {
+      "case": "artifact-owner-remains-current",
+      "status": 200,
+      "content_type": "application/octet-stream",
+      "schema_checked": true,
+      "sha256": "4ecb1d3c0ae061eeb590784857da3d5a101f58e5d4493fd455d145053310a9de"
+    },
+    {
+      "case": "uploader-credential-revoke",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "bd335fb14148313cf001493e497b95ad622454c036ccef464ad9dc3902bacd4c"
+    },
+    {
+      "case": "artifact-current-authority-on-original-replay",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "826ae2012ec4ec4f14da943c28bc57a626c39d9bd43141ff44bb359e505117f6"
+    },
+    {
+      "case": "credential-issue",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "759ffc10742afbdbe0d6ce8ea820d232435b5d7a8dea9dde3e14fcbe1dcebd6a"
+    },
+    {
+      "case": "credential-original-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5d6c9e0537c397ca7f04eff27bc98416ad6b2d0525bc58b01d9cd97da9da3b97"
+    },
+    {
+      "case": "credential-normalized-replay",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "5c41c018d969e71126f460181231beda9ba0c7ca326b0b9355d9510b6e504ddc"
+    },
+    {
+      "case": "credential-changed-intent",
+      "status": 409,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "1eb68166f47ed6e048176806ce183ebeddf5d745e02a525de7b5b40596913bec"
+    },
+    {
+      "case": "credential-narrow-cannot-issue",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "0a714ddf26377f3ae8c4191fd02f75cfcbfee17b053a9128f00a9000572eb221"
+    },
+    {
+      "case": "credential-model-grant-refused",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "71b7a20208d0bfdc5e47b395ca1e46a1c4c80a9f0d4901e8c050a5db2ece6a0e"
+    },
+    {
+      "case": "credential-header-origin",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "b438f2e6f2476fdae9b49910d09ad5d6f51dd6387a606845f391356c26594838"
+    },
+    {
+      "case": "credential-header-x-call-id",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "392770cefe08eadb624648f79e44b5b7c49c0e9df6a7897aa6e851f791fc2c65"
+    },
+    {
+      "case": "credential-header-x-chat-id",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "65e7d0f06ad385189048e272a4787e8425aa6436f2d59248ab1f774acbfce244"
+    },
+    {
+      "case": "credential-header-host",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "45eb14d106e4c1957f4c1930c45bee5c8ecdf79812d1e09133bde6ab60da5ea0"
+    },
+    {
+      "case": "credential-duplicate-authorization",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "df5f0f078ab1607675b0a361828a52b7d812f4df852676f9f6ed88c7c5b21093"
+    },
+    {
+      "case": "credential-scope-admin",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "c4423f3367c8ddbbd204d78be07668741c122ccfe27321e50d6047e1606a8037"
+    },
+    {
+      "case": "credential-scope-credential.delegate",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4032ca352166103c4a2db67b145dcf7c2c450563e602480762e5c8e6dd905649"
+    },
+    {
+      "case": "credential-scope-wildcard",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "407c84559702eecaf0c1d92b03cfcdc4552d85f8f5d1d7dc7b59962915759aa7"
+    },
+    {
+      "case": "credential-synthetic-user",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "19f601a2c9d1c0980a1463d5864d1ff343a75d5347df077dff068e4f70322dc7"
+    },
+    {
+      "case": "credential-expired-intent",
+      "status": 403,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "f983da3e03b094dce6344c7ea42201b856c140cfcda8c3237ba0fd60cf338011"
+    },
+    {
+      "case": "credential-malformed-json",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "02b7200232bda01b2a70c97d1f8137698596f25e9cd7fe181d4ac9cdd464aa76"
+    },
+    {
+      "case": "credential-no-json-type",
+      "status": 400,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "8df2632009512de61fe3a02c49ff825b963abb583db93f461759feccc505aebd"
+    },
+    {
+      "case": "credential-oversized-json",
+      "status": 413,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "6ee6c1d03be041f823303dedd59bf82a888416b7f9907fd6616f58dff4ea03a7"
+    },
+    {
+      "case": "credential-auth-before-json",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "4bcdc70ae9bf76a71a8a1f15f0b3bf6abd751d95267795edb352ae02d3d65c0b"
+    },
+    {
+      "case": "credential-revoke-child",
+      "status": 200,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "720fbd856e6d912d0e320e317ae274bc2ff594d7f967316bcce97f2628d6738c"
+    },
+    {
+      "case": "credential-current-child-revocation",
+      "status": 401,
+      "content_type": "application/json",
+      "schema_checked": true,
+      "sha256": "35d41770dcf76793348d5a1bef420bc9ab85d79ded3a9e43d27ceaaa01e51fa1"
+    }
+  ],
+  "development_record": [
+    "Fresh frozen-source release build completed in 648.8 seconds. Production artifacts were independently cloned and full hashes/inodes checked; optional protocol schema feature is absent from actual production compiler artifacts.",
+    "This first current application wire run passed. Before execution, fixture review aligned the pairing owner with configured mutual recipient ceilings and classified absent browser routing as an explicit refusal. No runtime failure, scope widening or product behavior change was needed."
+  ],
+  "remaining": [
+    "Additional positive provider/browser-bound and lifecycle/state-specific result branches are not inferred from synthetic refusals or the selected fixture successes.",
+    "Remaining MCP consultation/movement and actual supported model-host/profile evidence, wider Gate6 transport/hosting work and the previously recorded intermittent provider uncertainty failure remain open.",
+    "G6-065 remains in-progress; all105-task Gate6 objective remains active."
+  ]
+}
