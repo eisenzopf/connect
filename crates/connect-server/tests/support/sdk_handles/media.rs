@@ -336,6 +336,98 @@ async fn public_sdk_native_rtp_publisher_routes_independently_decoded_audio_vide
         let stats = client.media_stats().unwrap();
         assert!(stats.queued_bytes <= 4 * 1024 * 1024 && stats.queued_packets <= 256);
         println!("SDK RTP {algorithm}: decoded_audio_bytes={}, loud_samples={loud}, decoded_rgb_bytes={pixels}, source_media_queued={}",received_audio.len()*2,stats.queued_packets);
+        let spare = session
+            .offer_connection(
+                "sdk-spare-connection".parse().unwrap(),
+                NonEmpty {
+                    first: stream(
+                        "sdk-spare-audio",
+                        sdk::Medium::Audio,
+                        sdk::Direction::Recvonly,
+                        "g.711-mu",
+                    ),
+                    rest: vec![],
+                },
+                mutation("sdk-spare-offer"),
+            )
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        let spare_stream = spare.stream_by_id("sdk-spare-audio".parse().unwrap());
+        let pending_read = spare_stream.receive_packet(options());
+        tokio::pin!(pending_read);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(10), &mut pending_read)
+                .await
+                .is_err()
+        );
+        spare
+            .end(200, "normal".into(), None, mutation("sdk-spare-end"))
+            .await
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        assert!(
+            matches!(tokio::time::timeout(Duration::from_millis(500),pending_read).await.expect("only ended Connection reader wakes"),Err(e) if e.kind==sdk::ErrorKind::Unsupported)
+        );
+        assert!(spare.native_negotiation().unwrap().is_none());
+        assert!(connection.native_negotiation().unwrap().is_some());
+        // Verify actual media on the other Connection after the typed end receipt.
+        // The new 1kHz waveform excludes queued 500Hz packets from the AV scene.
+        // Core packetization may assign a new RTP identity to routed audio.
+        let sending = async {
+            for index in 120..160u16 {
+                let pcmu = (0..160)
+                    .map(|i| if i % 8 < 4 { 0x80 } else { 0x00 })
+                    .collect::<Vec<_>>();
+                audio
+                    .send_rtp(
+                        sdk::RtpPacket::new(
+                            u32::from(index),
+                            rtp(0, index, u32::from(index) * 160, 0x735f6101, false, &pcmu),
+                        )
+                        .unwrap(),
+                        options(),
+                    )
+                    .await
+                    .unwrap();
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        };
+        let receiving = tokio::time::timeout(Duration::from_secs(5), async {
+            let mut encoded = Vec::new();
+            while encoded.len() < 1600 {
+                let bytes = target.receive_native_media_datagram().await.unwrap();
+                if let connect_client::canonical::ObservedNativeMediaDatagram::Rtp(packet) =
+                    connect_client::canonical::observe_native_media_datagram(&bytes).unwrap()
+                {
+                    if handles.get(&packet.stream_local_id).map(String::as_str) == Some("audio") {
+                        let payload = &packet.rtp.packet().payload;
+                        let transitions = payload
+                            .windows(2)
+                            .filter(|pair| (pair[0] & 0x80) != (pair[1] & 0x80))
+                            .count();
+                        // 1kHz has about40 sign transitions per160samples; old500Hz has20.
+                        if transitions >= 30 && transitions <= 50 {
+                            encoded.extend_from_slice(payload);
+                        }
+                    }
+                }
+            }
+            encoded
+        });
+        let (_, after_end) = tokio::join!(sending, receiving);
+        let after_end =
+            after_end.expect("ending spare Connection preserves independently decoded audio");
+        let after_loud = decoded_audio(f.temp.path(), &after_end);
+        println!(
+            "SDK end {algorithm}: unrelated_audio_bytes={}, loud_samples={after_loud}",
+            after_end.len() * 2
+        );
         target.shutdown().await.unwrap();
         client.close(options()).await.unwrap();
         assert!(

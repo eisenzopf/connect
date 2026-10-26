@@ -177,6 +177,52 @@ async fn public_sdk_native_multistream_offers_share_peer_keep_status_recovery_an
         let recovered = restored.wait(options()).await.unwrap().value;
         assert_eq!(recovered.id(), one.id());
         assert!(recovered.native_negotiation().unwrap().is_none()); // No physical ownership from a saved reference.
+        let ending = one
+            .end(200, "normal".into(), None, mutation("native-sdk-end-one"))
+            .await
+            .unwrap();
+        let ended_reference = ending.reference_json();
+        assert!(one.native_negotiation().unwrap().is_none());
+        assert!(two.native_negotiation().unwrap().is_some());
+        assert_eq!(ending.wait(options()).await.unwrap().value.id(), one.id());
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while one.refresh(options()).await.unwrap().state != "retired" {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("end reaches distinct durable retirement");
+        let replay = one
+            .end(200, "normal".into(), None, mutation("native-sdk-end-one"))
+            .await
+            .unwrap();
+        assert_eq!(replay.reference_json(), ended_reference);
+        assert_eq!(replay.wait(options()).await.unwrap().value.id(), one.id());
+        let changed = one
+            .end(
+                200,
+                "changed original reason".into(),
+                None,
+                mutation("native-sdk-end-one"),
+            )
+            .await;
+        assert!(
+            matches!(changed,Err(e) if e.certainty==sdk::Certainty::Refused && e.operation.as_ref().unwrap().operation_id.as_str()=="native-sdk-end-one")
+        );
+        let restored_end = fresh
+            .restore(ended_reference, fresh.operation_kinds().connection_end)
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert_eq!(restored_end.id(), one.id());
+        assert!(restored_end.native_negotiation().unwrap().is_none());
+        assert_ne!(two.refresh(options()).await.unwrap().state, "retired");
+        assert_eq!(
+            two.native_negotiation().unwrap().unwrap().streams[0].stream_local_id,
+            b.streams[0].stream_local_id
+        );
         fresh.close(options()).await.unwrap();
         client.close(options()).await.unwrap();
         assert!(one.native_negotiation().is_err());

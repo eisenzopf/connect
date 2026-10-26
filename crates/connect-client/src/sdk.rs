@@ -24,6 +24,7 @@
 //! client.close(wait).await?;
 //! # Ok(()) }
 //! ```
+mod connection_controls;
 mod connections;
 mod control;
 mod conversations;

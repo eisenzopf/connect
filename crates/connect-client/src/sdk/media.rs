@@ -180,6 +180,38 @@ impl Inbox {
         self.changed.notify_waiters();
         Ok(())
     }
+    pub fn retire(
+        &self,
+        cid: &ConversationId,
+        sid: &SessionId,
+        connection: &ConnectionId,
+    ) -> Result<()> {
+        let mut s = self
+            .state
+            .lock()
+            .map_err(|_| Error::local(ErrorKind::Protocol))?;
+        let keys: Vec<_> = s
+            .queues
+            .keys()
+            .filter(|k| {
+                &k.conversation_id == cid && &k.session_id == sid && &k.connection_id == connection
+            })
+            .cloned()
+            .collect();
+        for key in keys {
+            if let Some(queue) = s.queues.remove(&key) {
+                if let Some(handle) = queue.binding.stream.stream_local_id {
+                    s.handles.remove(&handle);
+                }
+                s.packets = s.packets.saturating_sub(queue.items.len());
+                let bytes: usize = queue.items.iter().map(|(_, bytes)| *bytes).sum();
+                s.bytes = s.bytes.saturating_sub(bytes);
+            }
+        }
+        drop(s);
+        self.changed.notify_waiters();
+        Ok(())
+    }
     pub fn end(&self) {
         if let Ok(mut s) = self.state.lock() {
             s.ended = true;
@@ -447,5 +479,73 @@ mod tests {
         assert_eq!(stats.unknown_handles, 1);
         assert_eq!(stats.rtp_packets, 0);
         assert_eq!(stats.clock_reports, 1);
+    }
+    #[tokio::test]
+    async fn retiring_one_connection_releases_queued_bytes_without_consuming_another_connection() {
+        let inbox = inbox(2);
+        let mut other = key(0);
+        other.connection_id = "other-connection".parse().unwrap();
+        let selected = NativeNegotiation {
+            source_clock: false,
+            stream_revision: StreamRevision::try_from(1).unwrap(),
+            streams: vec![NegotiatedStream {
+                id: other.stream_id.clone(),
+                medium: Medium::Audio,
+                direction: Direction::Recvonly,
+                codec: json!({"name":"pcmu","params":{"payload_type":0}}),
+                stream_local_id: Some(3),
+            }],
+        };
+        inbox
+            .install(
+                &other.conversation_id,
+                &other.session_id,
+                &other.connection_id,
+                &selected,
+            )
+            .unwrap();
+        inbox.push(wire(1, 1, 160)).unwrap();
+        inbox.push(wire(2, 2, 160)).unwrap();
+        inbox.push(wire(3, 3, 160)).unwrap();
+        let root = key(0);
+        inbox
+            .retire(&root.conversation_id, &root.session_id, &root.connection_id)
+            .unwrap();
+        assert_eq!(inbox.stats().unwrap().queued_packets, 1);
+        assert_eq!(inbox.stats().unwrap().queued_bytes, wire(3, 3, 160).len());
+        inbox
+            .retire(&root.conversation_id, &root.session_id, &root.connection_id)
+            .unwrap();
+        inbox.push(wire(1, 4, 160)).unwrap();
+        assert_eq!(inbox.stats().unwrap().unknown_handles, 1);
+        assert!(
+            matches!(inbox.receive(&root,options()).await,Err(e) if e.kind==ErrorKind::Unsupported)
+        );
+        assert!(
+            matches!(inbox.receive(&other,options()).await.unwrap(),MediaPacket::Rtp(p) if p.datagram_sequence==3)
+        );
+        assert_eq!(inbox.stats().unwrap().queued_packets, 0);
+        assert_eq!(inbox.stats().unwrap().queued_bytes, 0);
+        inbox.push(wire(3, 5, 160)).unwrap();
+        assert!(
+            matches!(inbox.receive(&other,options()).await.unwrap(),MediaPacket::Rtp(p) if p.datagram_sequence==5)
+        );
+    }
+    #[tokio::test]
+    async fn retiring_connection_wakes_its_pending_packet_reader() {
+        let inbox = inbox(1);
+        let root = key(0);
+        let receive = inbox.receive(&root, options());
+        tokio::pin!(receive);
+        assert!(tokio::time::timeout(Duration::from_millis(5), &mut receive)
+            .await
+            .is_err());
+        inbox
+            .retire(&root.conversation_id, &root.session_id, &root.connection_id)
+            .unwrap();
+        let result = tokio::time::timeout(Duration::from_millis(100), receive)
+            .await
+            .expect("retirement wakes pending reader");
+        assert!(matches!(result,Err(e) if e.kind==ErrorKind::Unsupported));
     }
 }

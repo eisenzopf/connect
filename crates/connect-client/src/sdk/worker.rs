@@ -8,8 +8,14 @@ use std::sync::{
 use tokio::sync::{mpsc, oneshot, Mutex, OwnedSemaphorePermit, Semaphore};
 const REQUEST_CAPACITY: usize = 16;
 const NATIVE_CONNECTION_CAPACITY: usize = 64;
-type NativeCache =
-    std::collections::BTreeMap<ConnectionId, (SessionId, ConversationId, NativeNegotiation)>;
+struct NativeConnection {
+    session: SessionId,
+    conversation: ConversationId,
+    selected: NativeNegotiation,
+    ended: bool,
+}
+// Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
+type NativeCache = std::collections::BTreeMap<ConnectionId, NativeConnection>;
 pub(super) struct Shared {
     requests: mpsc::Sender<Command>,
     stop: CancellationToken,
@@ -103,7 +109,7 @@ impl Shared {
                                 let mut cache=match owned_native.lock(){Ok(cache)=>cache,Err(_)=>break ErrorKind::Protocol};
                                 let cid=key.scope.conversation_id.expect("native conversation");let sid=key.scope.session_id.expect("native session");let conn=key.scope.connection_id.expect("native connection");
                                 if let Err(error)=owned_media.install(&cid,&sid,&conn,&selected){break error.kind;}
-                                cache.insert(conn,(sid,cid,selected));
+                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false});
                                 continue;
                             }
                         }
@@ -115,7 +121,16 @@ impl Shared {
                                 if let Err(error)=pending.native.as_mut().expect("native pending").answer(&frame,&pending.exchange.id){break error.kind;}
                             }
                             let native_frame=native_answer.then(||frame.clone());
-                            match peer.accept_exchange_frame(&mut active[index].exchange,frame) {
+                            let ending = active[index].key.as_ref()
+                                .filter(|k| k.command=="connection.end" && frame.kind()=="operation.updated")
+                                .map(|k| (k.clone(),frame.clone()));
+                            let accepted=peer.accept_exchange_frame(&mut active[index].exchange,frame);
+                            if accepted.is_ok() {
+                                if let Some((key,frame))=ending {
+                                    if let Err(error)=observe_end(&owned_native,&owned_media,&key,&frame){break error.kind;}
+                                }
+                            }
+                            match accepted {
                                 Ok(true)=> {
                                     let pending=active.swap_remove(index);
                                     if let Some(reply)=pending.reply {let _=reply.send(Ok(pending.exchange.finish()));}
@@ -299,12 +314,15 @@ impl Shared {
             .lock()
             .map_err(|_| Error::local(ErrorKind::Protocol))?;
         match cache.get(id) {
-            Some((session, conversation, selected)) if session == sid && conversation == cid => {
-                Ok(Some(selected.clone()))
+            Some(entry) if &entry.session == sid && &entry.conversation == cid => {
+                Ok((!entry.ended).then(|| entry.selected.clone()))
             }
             Some(_) => Err(Error::local(ErrorKind::Protocol)),
             None => Ok(None),
         }
+    }
+    pub(super) fn retire_connection(&self, key: &OperationKey) -> Result<()> {
+        retire_native(&self.native, &self.media, key)
     }
     pub(super) async fn request(
         &self,
@@ -444,7 +462,7 @@ async fn confirm_native(
                 .any(|handle| {
                     cache
                         .values()
-                        .flat_map(|(_, _, n)| &n.streams)
+                        .flat_map(|entry| &entry.selected.streams)
                         .any(|s| s.stream_local_id == Some(handle))
                 })
         {
@@ -464,13 +482,17 @@ fn native_binding(
     let cache = cache
         .lock()
         .map_err(|_| Error::media(ErrorKind::Protocol, false))?;
-    let (sid, cid, selected) = cache
+    let entry = cache
         .get(&key.connection_id)
         .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
-    if sid != &key.session_id || cid != &key.conversation_id {
+    if entry.session != key.session_id || entry.conversation != key.conversation_id {
         return Err(Error::media(ErrorKind::Validation, false));
     }
-    let stream = selected
+    if entry.ended {
+        return Err(Error::media(ErrorKind::Unsupported, false));
+    }
+    let stream = entry
+        .selected
         .streams
         .iter()
         .find(|s| s.id == key.stream_id)
@@ -478,6 +500,47 @@ fn native_binding(
         .ok_or_else(|| Error::media(ErrorKind::Unsupported, false))?;
     Ok(media::Binding {
         stream,
-        clock: selected.source_clock,
+        clock: entry.selected.source_clock,
     })
+}
+
+fn observe_end(
+    cache: &std::sync::Mutex<NativeCache>,
+    media: &media::Inbox,
+    key: &OperationKey,
+    frame: &crate::canonical::Envelope,
+) -> Result<()> {
+    let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    let crate::canonical::Payload::OperationUpdated(update) = frame.payload() else {
+        return Err(fail());
+    };
+    if update.operation_id.as_str() != key.operation_id.as_str()
+        || update.revision > 9_007_199_254_740_991
+    {
+        return Err(fail());
+    }
+    if serde_json::to_value(update.state).map_err(|_| fail())? == serde_json::json!("completed") {
+        connection_controls::validate_end(update.result.as_ref().ok_or_else(fail)?, key)?;
+        retire_native(cache, media, key)?;
+    }
+    Ok(())
+}
+fn retire_native(
+    cache: &std::sync::Mutex<NativeCache>,
+    media: &media::Inbox,
+    key: &OperationKey,
+) -> Result<()> {
+    let fail = || Error::request(ErrorKind::Protocol, Some(key), true);
+    let cid = key.scope.conversation_id.as_ref().ok_or_else(fail)?;
+    let sid = key.scope.session_id.as_ref().ok_or_else(fail)?;
+    let conn = key.scope.connection_id.as_ref().ok_or_else(fail)?;
+    let mut cache = cache.lock().map_err(|_| fail())?;
+    if let Some(entry) = cache.get_mut(conn) {
+        if &entry.session != sid || &entry.conversation != cid {
+            return Err(fail());
+        }
+        media.retire(cid, sid, conn)?;
+        entry.ended = true;
+    }
+    Ok(())
 }

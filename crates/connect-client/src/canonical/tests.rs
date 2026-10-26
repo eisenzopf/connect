@@ -141,6 +141,7 @@ pub(super) async fn controlled(
                 &mut writer,
                 &mut reader,
                 &signer,
+                &signal,
             )
             .await;
             connection.closed().await;

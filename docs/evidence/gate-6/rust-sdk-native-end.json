@@ -1,0 +1,187 @@
+{
+  "schema": "connect-gate6-rust-sdk-native-end/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T00:00:56.798902+00:00",
+  "base_revision": "4b2d6502bb7e7a15f9c4ff81a4446ad0a37e8039",
+  "scope": "Public Rust SDK native Connection termination, original-ID status/recovery/replay, exact scoped local media cleanup, retained hop identities and actual independent decoded audio on another Connection. Local macOS arm64 functional verification only. No whole SDK/task, remote/Linux, package, external crate or performance claim.",
+  "implementation": [
+    "Connection.end uses a saved original operation ID, u16 reason code, bounded original reason, extension intent and optional negotiated StreamRevision. Local validation retains the key and NotSubmitted certainty. Resource revision families are distinct types.",
+    "End returns Operation<Connection> even for pending or unknown outcomes. Signed reply scope, operation identity, safe observation revision and exact ended:true Connection result are validated before completion affects local state. Unknown is not invented termination or a new command.",
+    "The owned driver processes a completed end after caller cancellation. Only matching Conversation/Session/Connection media queues are discarded; byte/packet accounting is released and pending readers wake. Queued sends recheck the retired binding. Other Connections and signed requests stay usable.",
+    "Retired native metadata remains inside the existing bound of 64 Connections per physical peer so its hop handles cannot be reused. Public native_negotiation returns no live local binding after completion. A restored end result is a scoped handle with no borrowed physical ownership.",
+    "Core end receipt and later durable Connection retirement remain distinct. Original-intent replay checks current authorization. Fresh authorized clients recover the saved completed operation without repeating the effect."
+  ],
+  "verification": {
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-native-controls/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-native-controls/format-09.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "client_library": {
+      "exit_code": 0,
+      "elapsed_seconds": 1.8851663330569863,
+      "binary_sha256": "3b74181a1281a8cd3421488b8c0f4465479f74bca02db7050ef5d54c49cad340",
+      "log_sha256": "4f8d05226b16b647706aadbb07bdce62ae49a22433df50302929e386553526d5",
+      "inputs_manifest_sha256": "156d41127e71719fd6b86147193abf04e7528284ffa7fce847d0392d4281e74e",
+      "inputs_unchanged": true,
+      "passed_functions": 114,
+      "failed_functions": 0,
+      "new_functions": 7,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-07-summary.json",
+        "sha256": "97a0a8e0edb0e935ba67b62bfcfe6077027ecbcec5161fda4ae324b0eb77fa59"
+      },
+      "log": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-07.log",
+        "sha256": "4f8d05226b16b647706aadbb07bdce62ae49a22433df50302929e386553526d5"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-native-controls/inputs-04.json",
+        "sha256": "156d41127e71719fd6b86147193abf04e7528284ffa7fce847d0392d4281e74e"
+      },
+      "behaviors": [
+        "Signed completed end, exact saved reference restoration and completed status without acquiring media.",
+        "Local caller cancellation preserves uncertain original ID; independent status observes completed and local cache is already retired by the still-owned dropped-caller exchange.",
+        "Unknown status keeps prior local parameters until attributed completed observation; recovery uses operation.get, never another end.",
+        "Local oversized original reason is NotSubmitted; explicit current-owner refusal remains Refused. Foreign completed Connection and invalid signed revision retire the peer with the original logical key.",
+        "A new signed native offer that reuses a retired hop handle is refused before signing its confirmation.",
+        "Ending one inbox Connection releases its queued byte/packet counts, drops retired handles, preserves another same-named Stream on another Connection, and wakes a pending read."
+      ]
+    },
+    "native_fixture_repetitions": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-native-controls/native-repeat-summary.json",
+        "sha256": "e9d61666f2623528274d1763a8950a12100cc6323cdf49925f493f14f9a992b6"
+      },
+      "scope": "Three repetitions with two test threads after the fixture interleaving fix; these are repeated functions, not additional unique coverage."
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-native-controls/rustdoc-02.log",
+        "sha256": "ddc6e1733e0acc860e1b1ddeeb880d1d04376b9423c80dd9d66c06c16510cf8e"
+      }
+    },
+    "production": {
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-native-controls/production-test-02",
+        "sdk_handles::",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 30.46215391601436,
+      "binary_sha256": "0170e444330f8f42337fd0df581ff63d348634cef3d1686f99ee00719bbe02a7",
+      "sealed_binary_sha256": "0170e444330f8f42337fd0df581ff63d348634cef3d1686f99ee00719bbe02a7",
+      "build_log_sha256": "abe8aeade2431e79f3e82e882ef14874ca5c045a9a7926edffe2162d629543e5",
+      "build_jsonl_sha256": "e2a4dd1e06a80f02977d6ad29c67018c589ed3d0a7f8a55973aff4667cf0e6ac",
+      "profile": "release with connect-store, connect-service and connect-server opt-level=0; other packages use release defaults. Functional behavior only; no performance claim.",
+      "log_sha256": "02881cd87daf1018758847f312c834b6a6797f83038906a3617488cf3071b67e",
+      "inputs_unchanged": true,
+      "driver_sha256": "7898219858b62b53a5953d77f9bb3d5ac707d09ea739f78dd81e845a59fcdb31",
+      "passed_functions": 8,
+      "failed_functions": 0,
+      "algorithm_scenes": 16,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "report": {
+        "path": ".local/gate-6/rust-sdk-native-controls/production-02-summary.json",
+        "sha256": "2c7c9866c82b7eb3efa5cbe8b1045c7ca25f2b49c4cbf20a0aa35bbdc0640daa"
+      },
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-native-controls/inputs-02.json",
+        "sha256": "8d491d8a6159b3f6963ab155148e3c35990d1777822940fbfdedc5cb0abe17cf"
+      },
+      "guarded_source_inputs": 1305,
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-native-controls/final-source-equivalence.json",
+        "sha256": "77a7071262de95533e2417027a2929bfd9c8e62e98c9d416065ff2cf75a1c779"
+      },
+      "behaviors": [
+        "Two native SDK Connections share one authenticated peer. Typed end completion clears only one binding, its current snapshot later retires, while the second remains live with its original hop handle.",
+        "Actual same-intent end replay preserves the saved operation reference after retirement. Changed original reason refuses. A fresh SDK client recovers the completed end handle and gains no physical ownership.",
+        "The actual AV publisher still produces independently decoded PCMU/VP8. It creates and ends a spare native Connection, wakes its pending reader, then publishes a new 1kHz tone on the original route. Sign-transition selection excludes queued earlier 500Hz audio; independent FFmpeg decoding proves non-silent flow under both signing algorithms.",
+        "The remaining current SDK production functions also pass, including private messaging, concurrency/capacity, participants, Session topology, operation decisions and metadata authorization/normal restart."
+      ],
+      "decoded_after_other_connection_end": [
+        {
+          "algorithm": "EdDSA",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1598
+        },
+        {
+          "algorithm": "ES256",
+          "decoded_pcm_bytes": 3200,
+          "loud_samples": 1598
+        }
+      ]
+    },
+    "checks": {
+      "diff": "passed",
+      "openapi_event_reference": "passed; no server protocol change",
+      "plan_integrity": "passed;50done/3in-progress/52not-started; no acceptance promotion"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-02.log",
+        "sha256": "f9798ce49381288fdb545d7782e0ecb265288548c1b87358428f8fe628640265"
+      },
+      "result": "112passed/1failed: new local validation fixture incorrectly expected Refused instead of existing NotSubmitted certainty. Corrected assertion; no implementation change."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-04.log",
+        "sha256": "06a4027507ccd300a48edecac8de6cb4d5285d46ae5c5b085426ef418559f0a9"
+      },
+      "result": "New test failed to compile because unwrap_err requires Debug on successful Completion. The test now matches Err explicitly; no unsolicited public Debug API added."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-05.log",
+        "sha256": "1c077b02acb6143ae3842a9924695f378f4398687c57fd6ceee1c6b6688cbf69"
+      },
+      "result": "113passed/1failed: ordinary signed fixture writer correctly rejected an invalid revision payload before wire I/O. Final fixture writes invalid signed bytes directly so the receiving client is exercised."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-native-controls/production-01-summary.json",
+        "sha256": "1b75b594fd10f6f465f3d638507d115d62ca0828cd7c6edd78a6a3f46711abb4"
+      },
+      "result": "7passed/1failed: initial fresh-audio fixture filtered the sender SSRC even though Core may generate routed RTP identities. Final fixture preserves source sequence/timestamp continuity and selects a new 1kHz waveform, then independently decodes it. Runtime end implementation unchanged; later runtime change adds explicit safe observation-revision validation."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-native-controls/client-06-summary.json",
+        "sha256": "f4b9300c5fb54a772b4bd27bef737781d18fefc71ff513dd3acb0f38f57d9a29"
+      },
+      "result": "113 passed/1 failed: controlled native fixture assumed confirmation preceded every status request. Final cfg(test) fixtures explicitly service legitimate interleaved status reads while retaining exact confirmation validation and refusal of any signature for reused handles. Runtime sources unchanged."
+    },
+    {
+      "logs": [
+        {
+          "path": ".local/gate-6/rust-sdk-native-controls/client-01.log",
+          "sha256": "a48c6ccffb7cbe8298aff88a2a667c704714aa6155f2313db464afdf200e712d"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-native-controls/client-03.log",
+          "sha256": "d4250585cfbb4361ae40bc6341177c5377c18394e37d22224ff2f16b906a1b87"
+        }
+      ],
+      "result": "Intermediate baseline builds ran while later controlled unit/production fixtures were being added. They are not final qualification; final sealed unit and production manifests are authoritative."
+    }
+  ],
+  "remaining": [
+    "G6-060 remains in progress.15 of 22 mapped mutation kinds now exist; consult/return/handoff, Connection update/replace and Stream subscribe/unsubscribe remain.",
+    "Reliable data I/O, both-ends SDK decoded journeys, event/capability/raw/admin/config APIs, external-crate/package checks, incompatible-server and abrupt-crash journeys and approved remote/Linux profiles remain.",
+    "The new signed malformed-result cases qualify these bounded protocol refusals, not the whole incompatible-server requirement. Publication remains separate."
+  ]
+}

@@ -1,11 +1,19 @@
 //! Real signed native frames exercise the SDK's two-leg owned negotiation.
 use super::*;
+mod end;
 use crate::sdk::{
     self, Client, Direction, Medium, MutationOptions, NonEmpty, OfferedStream, RequestOptions,
 };
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    End,
+    EndHandleReuse,
+    EndCancelled,
+    EndUnknown,
+    EndWrongConnection,
+    EndWrongRevision,
+    EndRefused,
     Media,
     ChangedSetup,
     ForeignScope,
@@ -70,6 +78,7 @@ pub(super) async fn emit(
     writer: &mut quinn::SendStream,
     reader: &mut quinn::RecvStream,
     signer: &Sig9421Signer,
+    signal: &Notify,
 ) {
     assert_eq!(first.kind(), "connection.offer");
     assert_eq!(first.original()["expected_revision"], 0);
@@ -147,7 +156,14 @@ pub(super) async fn emit(
             assert_ne!(Envelope::parse(&raw).unwrap().kind(), "connection.answer");
         }
     }
-    let confirmation = read(reader).await;
+    let confirmation = loop {
+        let frame = read(reader).await;
+        if frame.kind() == "operation.get" {
+            status(writer, signer, &frame, "preparing").await;
+            continue;
+        }
+        break frame;
+    };
     assert_eq!(confirmation.kind(), "connection.answer");
     assert_eq!(confirmation.scope(Scope::Reply), Some(callback.id()));
     for field in ["cid", "sid", "connid", "operation_id"] {
@@ -169,6 +185,17 @@ pub(super) async fn emit(
     status(writer, signer, &query, "completed").await;
     if matches!(case, Case::Media) {
         media_wire(connection, writer, reader, signer).await;
+    } else if matches!(
+        case,
+        Case::End
+            | Case::EndHandleReuse
+            | Case::EndCancelled
+            | Case::EndUnknown
+            | Case::EndWrongConnection
+            | Case::EndWrongRevision
+            | Case::EndRefused
+    ) {
+        end::emit(case, writer, reader, signer, signal).await;
     }
 }
 fn options() -> RequestOptions {

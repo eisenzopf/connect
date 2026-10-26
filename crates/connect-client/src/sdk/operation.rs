@@ -72,6 +72,7 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    pub connection_end: OperationKind<Connection>,
     pub connection_offer: OperationKind<Connection>,
     pub conversation_create: OperationKind<Conversation>,
     pub message_send: OperationKind<MessageAcceptance>,
@@ -90,6 +91,11 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            connection_end: OperationKind::new(
+                "connection.end",
+                connection_controls::decode_end,
+                connections::valid_scope,
+            ),
             connection_offer: OperationKind::new(
                 "connection.offer",
                 connections::decode,

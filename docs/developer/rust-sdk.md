@@ -23,6 +23,7 @@ recipient consumption or media readiness. The compiled starting example is in
 | `Session::invite_participants` | Nonempty targets, current media, original intent/capabilities and topology revision |
 | `Session::accept`, `reject`, `cancel_invitation`, `update`, `end` | Explicit topology revision |
 | `Session::offer_connection` | Saved new Connection ID and nonempty typed stream offers |
+| `Connection::end` | Saved operation ID, original reason and optional negotiated `StreamRevision` |
 
 Session updates include role changes, participant leave, additive media upgrades
 and codec preference changes. Codec reconciliation references remain separate
@@ -112,8 +113,8 @@ Connection receipt without gaining another physical peer's hop-local handles.
 
 `docs/evidence/gate-6/rust-sdk-native-offers.json` records the mixed negotiation,
 pending status, parameter refusal, replay, shared-peer and fresh-client checks.
-This adds the fourteenth mapped mutation kind. Media I/O, Stream controls,
-Connection update/end/device move and consultation/handoff remain in progress.
+Connection end adds the fifteenth mapped mutation kind. Stream controls,
+Connection update, device move and consultation/handoff remain in progress.
 
 `Connection::stream_by_id` returns a scoped Stream handle. For a native RTP
 binding owned by this exact client, `Stream::send_rtp` accepts a validated complete
@@ -156,3 +157,24 @@ captures, reliable data I/O and the remaining typed controls are still G6-060
 work. RTP/clock evidence is in `docs/evidence/gate-6/rust-sdk-media.json`;
 authoritative metadata evidence is in
 `docs/evidence/gate-6/rust-sdk-stream-metadata.json`.
+
+`Connection::end` returns `Operation<Connection>`. It accepts an optional
+negotiated `StreamRevision`; a `ConnectionRevision` or `StreamResourceRevision`
+is a distinct type. A completed, scoped `ended: true` result establishes actual
+local native termination. The separate offer worker can journal `retired` later,
+so callers wait for that resource observation when they need ended Stream rows.
+
+The owned driver clears only that Connection's receive queues and wakes its
+pending packet readers when it verifies completion. This happens even if the
+caller cancels its local wait. Later queued sends recheck the binding and refuse
+it. Unknown outcomes do not manufacture termination; use the original operation
+for status and recovery. A restored completed operation can return its scoped
+Connection handle without acquiring physical ownership. Same-intent end replay
+remains subject to current server authorization.
+
+Retired negotiation metadata keeps its hop handles reserved within the existing
+lifetime bound of 64 Connections on the physical peer. A later offer cannot reuse
+those handles to interpret an old queued datagram as a new stream. Ending one
+Connection leaves other Connections, media and signed control usable. The exact
+verification scope is recorded in
+`docs/evidence/gate-6/rust-sdk-native-end.json`.
