@@ -114,6 +114,15 @@ cargo test --offline --locked --release \
   -- --test-threads=1
 ```
 
+The [live fixture profile](../contracts/connectors/live-fixture-v1.md) is executed
+by `connect-media-conformance`, a reusable package using public rvoip interfaces
+and the storage-independent connector API. The template's separate factory module
+supplies instrumentation; the harness owns check logic and current/read-only
+permits. `scripts/check-media-connector-contract.py` runs the actual reporter with
+source guards. Its negative-control lane intentionally loses custody and must
+produce a refused fixture report. Neither report qualifies a stock application
+journey or network/provider/model media.
+
 Implement `connect_connector_api::media::LiveMediaLifecycle` on the same adapter
 object: `cancel` permanently closes admission and fences routes synchronously;
 `drain` observes original workers and retains handles across cancelled cleanup.

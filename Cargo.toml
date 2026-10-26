@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = [".local", ".deps/rvoip", ".deps/parley", ".deps/rtc-dtls", ".deps/rtc-interceptor", ".deps/quinn-proto", ".deps/web-transport-proto", "examples/connector-template", "examples/connector-contribution", "examples/media-connector-template", "examples/rust-sdk-journey"]
-members = ["crates/connect-connector-http", "crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
+members = ["crates/connect-media-conformance", "crates/connect-connector-http", "crates/connect-connector-api", "crates/connect-protocol", "crates/connect-store", "crates/connect-service", "crates/connect-client", "crates/connect-server", "examples/review-loop", "examples/native-video", "crates/connect-connectors", "crates/connect-mcp"]
 
 [workspace.package]
 version = "0.1.0"

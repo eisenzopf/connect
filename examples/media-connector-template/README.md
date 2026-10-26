@@ -63,8 +63,36 @@ of a drain keeps that handle for the next cleanup attempt. Drop requests stop;
 it is not clean-teardown proof. A saturated or closed terminal queue uses the
 installed rvoip lifecycle fallback after liveness is retired.
 
-The component tests exercise staged/replayed intent, real duplex PCMU decoding,
+The reusable component harness exercises staged/replayed intent, real duplex PCMU decoding,
 receiver reservation rollback, stale buffered generations, current revocation and
 expiry, bounded queues, terminal fallback, in-process restart, unsupported media,
 receipt capacity and cancellation-safe cleanup. None of these checks turns a
 manifest or an ACK into proof of delivery to a real external participant.
+
+
+Run the shared conformance runner against this independent package:
+
+```sh
+python3 scripts/check-media-connector-contract.py \
+  --target-dir .local/gate-6/media-connector-template-target \
+  --output .local/gate-6/media-conformance-positive.json
+python3 scripts/check-media-connector-contract.py \
+  --target-dir .local/gate-6/media-connector-template-target \
+  --negative-control --output .local/gate-6/media-conformance-negative.json
+```
+
+Both runner invocations exit zero when their respective expectation is verified.
+The negative report has `fixture_passed:false` and `status:expected-refusal`.
+Its factory replaces current/read-only custody before calling the real adapter;
+it cannot populate harness check results. Standalone `cargo test` executes both
+factories. The optional `conformance` feature enables the executable reporter;
+normal adapter-library consumers do not include the harness.
+
+To adapt a genuine transport, implement the public rvoip interfaces and
+`LiveMediaLifecycle`, then implement the fixture-only factory and instrumentation
+in a separate module/package. Preserve the harness's exact permits and operation
+IDs. Keep the actual codec, queue and unsupported profile declarations truthful;
+use a separate profile for other codecs or inbound behavior. Read the
+[executable profile](../../contracts/connectors/live-fixture-v1.md). Component
+reports complement the stock canonical-host startup/cleanup tests; full current
+application workflows and exported kit qualification remain G6-068 work.

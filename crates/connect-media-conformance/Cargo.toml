@@ -1,0 +1,23 @@
+[package]
+name = "connect-media-conformance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+connect-connector-api.workspace = true
+rvoip-core.workspace = true
+rvoip-core-traits = { path = "../../.deps/rvoip/crates/foundation/rvoip-core-traits" }
+codec-core = { package = "rvoip-codec-core", path = "../../.deps/rvoip/crates/media/codec-core" }
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+bytes = "1"
+chrono.workspace = true
+
+[lints]
+workspace = true
