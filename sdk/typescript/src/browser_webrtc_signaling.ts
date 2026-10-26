@@ -82,6 +82,17 @@ export class CanonicalWebRtcSignaling {
     private stopEvents?: () => void;
     private stopLifetime?: () => void;
     private rejectWait?: (error: Error) => void;
+    private readonly peerStateChanged = () => {
+        if (this.stopped) return;
+        if (this.peer.connectionState === "failed")
+            this.die(
+                new ConnectError(
+                    "webrtc-failed",
+                    "WebRTC peer transport failed; retain original operation ID",
+                ),
+            );
+        else if (this.peer.connectionState === "closed") this.close();
+    };
     constructor(
         private readonly client: BrowserClient,
         private readonly peer: RTCPeerConnection,
@@ -285,6 +296,12 @@ export class CanonicalWebRtcSignaling {
                 this.stopEvents();
                 this.check();
             }
+            this.peer.addEventListener(
+                "connectionstatechange",
+                this.peerStateChanged,
+            );
+            this.peerStateChanged();
+            this.check();
             const offer = await bound(this.peer.createOffer());
             await bound(this.peer.setLocalDescription(offer));
             await bound(this.gather());
@@ -404,6 +421,10 @@ export class CanonicalWebRtcSignaling {
     }
     private retire(): void {
         this.stopped = true;
+        this.peer.removeEventListener(
+            "connectionstatechange",
+            this.peerStateChanged,
+        );
         this.gatheringCleanup?.();
         this.stopEvents?.();
         this.stopLifetime?.();

@@ -147,3 +147,23 @@ test('validation precedes ownership transfer and invalid timeout does not consum
     const peer=new Peer(),client=new Client();assert.throws(()=>new CanonicalWebRtcSignaling(client,peer,{...options(),operationId:'bad id'}),{code:'invalid-request'});assert.equal(peer.closed,0);
     const f=fixture();await assert.rejects(f.owner.offer({timeoutMs:0}),{code:'invalid-request'});await f.owner.offer();assert.equal(f.client.requests.length,1);f.owner.close();
 });
+test('peer-state failure retires the signaling owner while preserving its original intent',async()=>{
+    const f=fixture();await f.owner.offer();
+    f.peer.connectionState='failed';f.peer.dispatchEvent(new Event('connectionstatechange'));
+    await assert.rejects(f.owner.finished,{code:'webrtc-failed'});
+    assert.equal(f.peer.closed,1);assert.equal(f.client.events.size,0);assert.equal(f.client.lifetimes.size,0);
+    assert.equal(f.client.requests.length,1);assert.equal(f.owner.savedOffer.scope.operation_id,'original-offer');assert.equal(f.owner.savedOffer.submissionAttempted,true);
+    f.owner.close();assert.equal(f.peer.closed,1);assert.equal(f.client.closed,0);
+});
+test('failed or closed supplied peer refuses before offer creation or control submission',async()=>{
+    for(const [state,code] of [['failed','webrtc-failed'],['closed','closed']]){
+        const f=fixture();f.peer.connectionState=state;
+        await assert.rejects(f.owner.offer(),{code});assert.equal(f.peer.offers,0);assert.equal(f.client.requests.length,0);assert.equal(f.peer.closed,1);
+        assert.equal(f.client.events.size,0);assert.equal(f.client.lifetimes.size,0);
+    }
+});
+test('terminal retirement removes peer-state callbacks and late failure cannot change completion',async()=>{
+    const f=fixture();await f.owner.offer();f.owner.close();await f.owner.finished;
+    f.peer.connectionState='failed';f.peer.dispatchEvent(new Event('connectionstatechange'));await f.owner.finished;
+    assert.equal(f.peer.closed,1);assert.equal(f.client.requests.length,1);
+});

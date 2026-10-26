@@ -42,6 +42,7 @@ export declare class CanonicalWebRtcSignaling {
     private stopEvents?;
     private stopLifetime?;
     private rejectWait?;
+    private readonly peerStateChanged;
     constructor(client: BrowserClient, peer: RTCPeerConnection, options: WebRtcSignalingOptions);
     /** Save this exact original intent for status recovery, never synthesize a replacement offer. */
     get savedOffer(): Readonly<{

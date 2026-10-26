@@ -1,0 +1,31 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T22:13:23.472698+00:00",
+  "scope": "Controlled browser peer-state and canonical control boundaries; not actual Chrome/Firefox, network, Core WebRTC or physical media.",
+  "source_inputs": {
+    "sdk/typescript/src/browser_webrtc_signaling.ts": "9740ab07e760e264bee587d95bc8da2057af5980ab045f947ff0a2736463ad6d",
+    "sdk/typescript/dist/browser_webrtc_signaling.js": "21f3dff417def79164b56deb6011b669c3b143ece028854d76865e0f65c9b7e8",
+    "sdk/typescript/dist/browser_webrtc_signaling.d.ts": "92009f612c1073c6687bc463864f98f01091932585d080091207c7ff7da8566c",
+    "sdk/tests/browser_webrtc_signaling.test.mjs": "249d90412940d2097952f930f3aea869b47de07310330460c297388cef375cfe"
+  },
+  "verification": {
+    "command": "node --test sdk/tests/clients.test.mjs",
+    "exit_code": 0,
+    "sdk_methods_passed": 279,
+    "webrtc_signaling_methods": 15,
+    "guarded_sources_unchanged": true,
+    "source_manifest_sha256": "63438079e8a56a955837ac75706a9fef9ea5d30861f978b8bf7fef25ea427861",
+    "log_sha256": "7c439642ae342236205c073b694d50c87bc64e2231e6ee4d9d8f014f756875a4",
+    "node": "v26.7.0"
+  },
+  "behavior": [
+    "Observed peer failure closes the owned local peer, rejects finished and removes signaling/lifetime/peer listeners. Original SDP/operation identity and one submission are retained.",
+    "Initially failed/closed supplied peers refuse before creating or submitting an offer.",
+    "Terminal retirement removes peer-state callbacks; late failure cannot reopen or alter completion. Shared client is not explicitly closed or sent another command."
+  ],
+  "remaining": [
+    "Server WebRTC ownership/adapter and canonical SDP/ICE dispatch integration.",
+    "Actual fallback/browser media and complete operating/transition/failure profiles."
+  ]
+}
