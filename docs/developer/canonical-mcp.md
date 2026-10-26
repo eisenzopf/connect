@@ -5,7 +5,7 @@ conversation, participant, Message, Session, Connection, stream-selection and
 operation tools to ordinary identity access. The public composition checkpoint passes the new official-client function under
 both signing algorithms plus6 current HTTP and2 Task/provider functions.
 All9 MCP library tests also pass, including the2 new schema/parser checks. Canonical configured-server qualification is recorded separately below; actual
-agent-host export/transition and remote/model profiles remain open. Exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`.
+supported model-host transitions and remote/model profiles remain open. Canonical scoped-agent export is qualified separately in `docs/evidence/gate-6/canonical-agent-export.json`. Exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`.
 
 Each tool advertises the canonical payload schema and explicit resource scope.
 The schema comes from the checked UCTP contract with only reachable definitions.
@@ -60,4 +60,4 @@ before retiring the canonical installation. Failed bind releases startup
 ownership so the same installation can start after its port is repaired.
 Qualification is in `docs/evidence/gate-6/canonical-mcp-hosting.json`. This is local
 control hosting; a running MCP listener does not establish native media custody
-or qualify an actual model, installed agent export or remote ingress.
+or qualify an actual model or remote ingress. Canonical agent export uses the scoped bearer described in [Agent access](../AGENT_ACCESS.md). Its minimal MCP credential file cannot replace the signed native client configuration required for canonical CLI control.

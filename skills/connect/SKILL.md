@@ -145,6 +145,8 @@ receipt; do not switch credentials or create replacement work to conceal it.
 
 If tools are missing, report the missing Connect installation. For a developer
 explicitly using the native JSON CLI, read [references/json-cli.md](references/json-cli.md).
-Use the installed regular agent configuration or an explicitly selected Native
-task-grant configuration. HostSession/provider grants need their own adapters;
-missing tools do not authorize exporting an administrator credential.
+Canonical CLI control needs a separately configured signed native client file;
+the exported MCP `agent.toml` contains only its scoped credential. Named
+application/Task CLI calls need their explicit application configuration. Narrow
+Task grants retain their installed adapters. Missing tools do not authorize
+changing access mode or exporting an administrator credential.

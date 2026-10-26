@@ -148,7 +148,57 @@
     "cli_fixture_details": "Fresh CLI bootstrap/configured server; export6 protected files and compare all3 embedded skill assets to source hashes. Exact Message/Create replay and completed original status survive same configured endpoint/state/credential restart with one Message. Source credential/manifest stay unchanged; operator export refused before output; repeat export preserves assets; removal preserves unrelated notes/source files/server authority. Both server processes SIGTERM0/stopped.",
     "source_guard_count": 1250,
     "source_unchanged": true,
-    "format_diff": "passed"
+    "format_diff": "passed",
+    "embedded_skill_refresh": {
+      "checked_at": "2026-10-26T12:39:54.176245+00:00",
+      "change": "The minimal exported MCP agent.toml is a scoped credential, and signed native CLI control requires its separately configured native client. Named application/Task calls retain explicit application configuration.",
+      "library": {
+        "exit_code": 0,
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 3.710348208900541,
+        "log_sha256": "37fd1f37680b1f2f6f6caef4790803d772d1fe412c8f365891968a5d34a63a52",
+        "binary_sha256": "0c4526bd943b4e99ff9fc953fe17c526a9753f16c1ee470c8d67f0ee24034864",
+        "source_unchanged": true
+      },
+      "fresh_cli_export": {
+        "status": "passed fresh CLI canonical export and actual MCP original recovery across restart",
+        "cli_sha256": "144d35111d5c81ba2b8fb32ecd8897c058776bca132e94f52bed45f9f076439b",
+        "manifest_sha256": "c322cfc2e555baed57611bbed4895e5bb3c1b93da35e6b3258687ac8b1aadab9",
+        "profile": "connect-codex-agent-install/2",
+        "credential_profile": "connect-agent-credential/2",
+        "exported_files": 6,
+        "native_keys_or_trust_paths_copied": false,
+        "source_credential_unchanged": true,
+        "operator_refused_before_output": true,
+        "repeat_export_preserved_assets": true,
+        "remove_preserved_unrelated_and_server_authority": true,
+        "records": [
+          {
+            "run": 0,
+            "tool_count": 60,
+            "current_export_identity": true,
+            "same_original_completed": true,
+            "message_count": 1,
+            "manifest_unchanged": true,
+            "sigterm_exit": 0
+          },
+          {
+            "run": 1,
+            "tool_count": 60,
+            "current_export_identity": true,
+            "same_original_completed": true,
+            "message_count": 1,
+            "manifest_unchanged": true,
+            "sigterm_exit": 0
+          }
+        ],
+        "source_unchanged": true,
+        "driver_sha256": "b13d3b0ecd11c032fd3c4f894f477bc7d2e1de6a9d24d027861a5ae78836a150",
+        "scope": "Local CLI export, embedded skill hash validation and direct MCP protocol client from the exported credential. No actual model invocation, Codex tool transition, media/provider/remote/package qualification or publication."
+      }
+    }
   },
   "development_record": [
     "Initial canonical format/export implementation passes7 library functions,12 production functions and fresh two-cycle CLI/MCP export/recovery. Source review then identified the inherited send/history/inbox prerequisite excluding legitimate control-only credentials. Final source adds narrow-control coverage, and passes8 library/13 production functions plus a new fresh two-cycle CLI/MCP export.",
@@ -161,7 +211,6 @@
   "remaining": [
     "Run the supported actual agent host against canonical consultation/handoff/movement under the required bounded lane; current exported-credential MCP proof is not an actual-model turn.",
     "Finish canonical CLI issuance/retained-inspection and stdio migration, plus complete facade OpenAPI/auth/admin/file parity. AGENT_ACCESS.md now distinguishes the working canonical bootstrap/export/revocation path and open generic issuance migration.",
-    "Clarify the embedded skill fallback configuration wording for the minimal MCP credential asset and requalify that asset when changed.",
     "All105 Gate6 tasks remain the active goal. G6-065 and broader installed/profile/acceptance work remain in progress; publication remains separate."
   ]
 }
