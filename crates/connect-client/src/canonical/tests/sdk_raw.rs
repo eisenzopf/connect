@@ -67,13 +67,25 @@ async fn raw_validation_and_lifecycle_refusals_leave_signed_extensions_intact() 
     let mut live = query();
     live["type"] = json!("conversation.subscribe");
     live["payload"] = json!({"after":"saved-cursor","live":true,"limit":1,"lease_seconds":10});
-    for v in [reply, extension, live] {
+    let mut auth = query();
+    auth["type"] = json!("auth.keepalive");
+    auth["payload"] = json!({"session_token":"private-auth-secret"});
+    for v in [reply, extension, live, auth] {
         let v = raw.validate(v).unwrap();
         assert_eq!(
             raw.request(v, options()).await.unwrap_err().kind,
             sdk::ErrorKind::Unsupported
         );
     }
+    let mut advisory = query();
+    advisory["type"] = json!("capability.advertise");
+    advisory["payload"] = json!({"capabilities":{},"trigger":"change"});
+    let advisory = raw.validate(advisory).unwrap();
+    let e = raw.request(advisory, options()).await.unwrap_err();
+    assert_eq!(
+        (e.kind, e.certainty),
+        (sdk::ErrorKind::Validation, sdk::Certainty::NotSubmitted)
+    );
     let v = raw.validate(query()).unwrap();
     assert_eq!(v.to_json(), query());
     assert!(!format!("{v:?}").contains("payload-secret"));

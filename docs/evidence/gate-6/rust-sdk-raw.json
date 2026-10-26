@@ -7,8 +7,9 @@
     "client": {
       "passed_functions": 200,
       "new_functions": 4,
-      "log": ".local/gate-6/sdk-raw/client-01.log",
-      "log_sha256": "f5ce695708b7436772fac4958bc6c44f479295bb89996a8a8025e270fc0c1b17"
+      "log": ".local/gate-6/sdk-raw/client-02.log",
+      "log_sha256": "df45c9a7874a67d386d7445d1146bff6c1d414243046a32f8706b6be15307fce",
+      "additional_boundary": "Missing logical mutation ID refuses locally as NotSubmitted; auth lifecycle envelopes never reach the worker."
     },
     "production": {
       "status": "pending",
@@ -26,5 +27,12 @@
   "limitations": [
     "Raw finite requests do not own auth/step-up, native negotiation, binary record transfer or live event leases; use their lifecycle helpers. Unknown top-level intent refuses; payload extensions are preserved.",
     "Full G6-060 configuration/capability/receipt, native recovery, external packaging and required operating-profile qualification remain. Publication is separate."
+  ],
+  "superseded": [
+    {
+      "build": ".local/gate-6/sdk-raw/build-01.jsonl",
+      "runtime_functions_executed": 0,
+      "reason": "Local certainty fix changed guarded SDK source during compile. A fresh guarded build is required; no runtime qualification claimed."
+    }
   ]
 }

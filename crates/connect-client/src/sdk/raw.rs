@@ -182,7 +182,7 @@ fn intent(envelope: &Envelope) -> Result<(CommandScope, Option<OperationKey>)> {
         return Err(fail(ErrorKind::Unsupported));
     }
     if !read && key.is_none() {
-        return Err(fail(ErrorKind::Validation));
+        return Err(Error::local(ErrorKind::Validation));
     }
     if scope.session_id.is_some() && scope.conversation_id.is_none()
         || scope.connection_id.is_some() && scope.session_id.is_none()
