@@ -1,0 +1,89 @@
+{
+  "task": "G6-060",
+  "status": "done for approved implementation task scope",
+  "checked_at": "2026-10-26T11:11:06.983737+00:00",
+  "dependencies": {
+    "G6-048": "done",
+    "G6-059": "done"
+  },
+  "requirements": [
+    {
+      "requirement": "Typed canonical control, events, operations, stable IDs and current authority",
+      "evidence": [
+        "rust-sdk-foundation.json",
+        "rust-sdk-control.json",
+        "rust-sdk-participants-sessions.json",
+        "rust-sdk-decisions.json",
+        "rust-sdk-events.json",
+        "rust-sdk-invitations.json",
+        "rust-sdk-administration.json",
+        "rust-sdk-raw.json",
+        "rust-sdk-receipts.json",
+        "rust-sdk-capabilities.json",
+        "rust-sdk-contract-alignment.json"
+      ],
+      "result": "Implemented; shared revision3 checks25 method returns,22 kind witnesses and4 native receipt field sets. Ordinary participant and trusted provisioning authority stay distinct."
+    },
+    {
+      "requirement": "Explicit Local/Remote configuration and useful errors, cancellation and bounded owned lifetime",
+      "evidence": [
+        "rust-sdk-multiplex.json",
+        "rust-sdk-receipts.json",
+        "rust-sdk-compatibility.json"
+      ],
+      "source": [
+        "crates/connect-client/src/sdk/configuration.rs",
+        "crates/connect-client/src/sdk/error.rs",
+        "crates/connect-client/src/sdk/control.rs",
+        "crates/connect-client/src/sdk/worker.rs"
+      ],
+      "result": "Uses explicit canonical transport/trust configuration; optional named application reads require same credential. No implicit fallback. Deadline/cancellation/uncertainty, queued versus written work, original recovery and joinable close verified."
+    },
+    {
+      "requirement": "Audio/video/data IO and native lifecycle over shared core",
+      "evidence": [
+        "rust-sdk-media.json",
+        "rust-sdk-runtime-controls.json",
+        "rust-sdk-codec-updates.json",
+        "rust-sdk-consultations.json",
+        "rust-sdk-movements.json",
+        "rust-sdk-selections.json",
+        "rust-sdk-reliable-data.json",
+        "rust-sdk-auto-reconciliation.json",
+        "rust-sdk-routing-reconciliation.json",
+        "rust-sdk-capture-recovery.json",
+        "rust-sdk-journal-catchup.json"
+      ],
+      "result": "Actual both-end media, independent decoding, private reliable data and lifecycle/failure recovery verified. Metadata never grants custody; unavailable capture requires explicit end/fresh offer. Missed routing hints recover from original durable records before cursor advancement."
+    },
+    {
+      "requirement": "Fresh external crate Message, Session, handoff/device move and decoded media; compile examples; cleanup/restart/incompatible servers",
+      "evidence": [
+        "rust-sdk-external.json",
+        "rust-sdk-contract-alignment.json",
+        "rust-sdk-tasks.json",
+        "rust-sdk-compatibility.json",
+        "rust-sdk-journal-catchup.json"
+      ],
+      "result": "Fresh outside-repository consumer builds with no server/service/Store dependency. Current sealed server passes29 SDK functions plus3 external functions; client219 and Rustdoc12 pass. Public native_receipts example and4 shared compiler targets pass. Prior checkpoints cover current authorization across restart, unknown original effects and version refusals. Full default/legacy suite not inferred."
+    },
+    {
+      "requirement": "Remove publication blockers once dependency packaging is ready",
+      "result": "Condition is not yet met. Locked prepared upstream path patches and publish=false remain explicit. G6-069 depends on this task and owns archive/dependency/platform packaging; G6-070 owns installed parity. No publication attempted."
+    }
+  ],
+  "acceptance": "This task closure is not A6-13/A6-19/A6-26 qualification, installed package/profile parity, Linux/remote/provider rehearsal or Gate6 closure. Existing failed/skipped/bounded checks remain in the cited evidence.",
+  "current_checkpoint": {
+    "client_functions": 219,
+    "rustdoc_functions": 12,
+    "production_functions": 32,
+    "production_groups": [
+      1,
+      28,
+      3
+    ],
+    "source_guard_count": 1380,
+    "source_unchanged_during_production": true,
+    "production_report_sha256": "9ca93e390b2c1ed883850e1c33c1b04b148b3e18956b6da5b42ba589151ce293"
+  }
+}

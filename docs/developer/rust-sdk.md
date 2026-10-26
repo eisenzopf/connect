@@ -1,10 +1,15 @@
 # Rust public SDK implementation
 
-G6-060 is in progress. `connect_client::sdk` provides owned signed native
-control through `Client`, `Conversation`, `Participant`, `Session` and typed
-`Operation<T>` handles. It composes the configured canonical transport and uses
-one bounded request owner. Native lifecycle recovery and external/package/profile
-qualification remain in progress.
+G6-060 implementation and its specified local verification are complete.
+`connect_client::sdk` provides typed canonical control, events, operations and
+owned audio/video/data IO through explicit Local/Remote configuration. The
+requirement audit is in `docs/evidence/gate-6/rust-sdk-completion.json`.
+Current verification passes219 client functions,12 Rustdoc checks,29 production
+SDK functions and3 fresh external-crate functions. Earlier checkpoint counts
+below describe their recorded scope; later sections supersede their unfinished
+implementation notes. Installable archives, installed facade parity and required
+Linux/remote/provider profiles remain assigned to later Gate6 tasks.
+Publication remains separate.
 
 Creating a handle from an ID grants no authority. Each refresh, mutation and
 original-operation status query checks current server policy. Mutations require
@@ -61,8 +66,7 @@ canonical 128-frame/2 MiB limits and its original transport/authority deadline.
 An incomplete exchange deadline or invalid correlated frame retires the peer
 and returns the original logical IDs for all affected mutations. Local caller
 cancellation keeps a submitted exchange owned until it settles or the peer
-retires. This control driver is a prerequisite for native negotiation; native
-offer/answer and media I/O are still being implemented.
+retires. This control driver also owns native negotiation and media IO described below.
 
 `docs/evidence/gate-6/rust-sdk-multiplex.json` records signed interleaving,
 capacity, failure and cleanup checks, plus production listener concurrency with
@@ -751,8 +755,9 @@ executables with identical SDK/runtime/dependency sources and external consumer
 bytes; fixture-only repairs and earlier failed runs are retained. The latest
 external handoff, eight in-process handoff scenes and historical activation
 without new packets pass. This is a selected functional checkpoint, not one
-all-pass default suite. Incompatible-server qualification and final G6-060
-requirements review remain open. Evidence and exact scope are recorded in
+all-pass default suite. The current source was subsequently requalified by all
+three fresh external functions in the durable catch-up checkpoint below.
+Evidence and exact scope of this earlier checkpoint are recorded in
 `docs/evidence/gate-6/rust-sdk-external.json`.
 
 
@@ -777,8 +782,8 @@ connections under EdDSA and ES256, including both public connection entry points
 The full client suite passes 213 functions and all 12 Rustdoc checks pass. These
 checks change test sources only; previously qualified product bytes remain
 unchanged. Exact evidence is in
-`docs/evidence/gate-6/rust-sdk-compatibility.json`. G6-060 remains in progress for
-final contract and lifecycle requirements review.
+`docs/evidence/gate-6/rust-sdk-compatibility.json`. The completed task-level
+contract and lifecycle review is in `rust-sdk-completion.json`.
 
 
 ## Optional Task-to-provider workflows
@@ -831,8 +836,7 @@ old sends, fresh handle confirmation, actual outgoing RTP on the new handle and
 historical original receipt recovery without taking old custody. All 214 client
 functions pass. Evidence is in
 `docs/evidence/gate-6/rust-sdk-capture-recovery.json`. This qualifies the existing
-explicit recovery path; missed-hint durable journal catch-up remains the next
-G6-060 implementation/verification item.
+explicit recovery path. Missed-hint durable journal catch-up is qualified below.
 
 
 ## Durable native routing catch-up
@@ -849,13 +853,19 @@ predecessor and still reports `bindings_adopted: false`.
 The event stays owned and charged to the existing 256-fact/2 MiB inbox until its
 read and native observation settle. Dropping or timing out `next` retains that
 same fact and the previous returned cursor. A refused or contradictory current
-read also preserves them for retry. A different pending native preparation keeps
+read also preserves them for retry. Cancelling the whole reader signal is
+terminal; create a new reader from its last returned cursor. A different pending
+native preparation keeps
 its original recovery identity and is never overwritten by the journal reader.
 Control and media continue on their existing owned workers. This catch-up sends
 only `operation.get`; it does not replay the original mutation or sign a native
 parameter answer. Metadata-only clients do not gain physical custody.
 
 The component checkpoint passes 219 client functions and 12 Rustdoc checks,
-including 13 signed no-hint scenes. Production dropped-hint/decoded-media
-qualification is being run separately. Exact scope is recorded in
+including13 signed no-hint scenes. The same current sealed server passes the new
+production dropped-hint function (both algorithms, with/without journal-write
+failure),28 SDK regressions and3 freshly built external-consumer functions.
+Actual eligible hint drops are counted; cursor resumption recovers the original
+routing record before return while decoded audio continues with one effect and
+no new parameters. All1380 guarded inputs stayed unchanged. Exact scope is recorded in
 `docs/evidence/gate-6/rust-sdk-journal-catchup.json`.

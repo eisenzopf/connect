@@ -76,6 +76,14 @@ async fn audio_only(
     media::decoded_audio(directory, &bytes);
 }
 async fn exercise(recording_failure: bool) {
+    exercise_with_journal(recording_failure, false).await;
+}
+async fn exercise_with_journal(recording_failure: bool, journal_catch_up: bool) {
+    #[cfg(not(feature = "test-support"))]
+    assert!(
+        !journal_catch_up,
+        "missed-hint fixture requires explicit test-support"
+    );
     for algorithm in ["EdDSA", "ES256"] {
         let f = Fixture::with_native_end_scope(algorithm, 16).await;
         super::super::canonical_native_connections::ready_endpoint_with_capabilities(
@@ -400,6 +408,22 @@ async fn exercise(recording_failure: bool) {
             .unwrap()
             .is_none());
         assert_eq!(recovered.stream_revision, receipt.stream_revision);
+        #[cfg(feature = "test-support")]
+        let mut journal = if journal_catch_up {
+            let room = subscriber.conversation_by_id(room.id().clone());
+            let mut initial = room.events(None, options());
+            initial.snapshot().await.unwrap();
+            let saved = initial.cursor().unwrap();
+            initial.close().await.unwrap();
+            let dropped = f
+                .server
+                .service
+                .suppress_canonical_reconciliation_hints_for_test(target.id().as_str())
+                .unwrap();
+            Some((room.events(Some(saved), options()), dropped))
+        } else {
+            None
+        };
         if recording_failure {
             db.execute_batch("CREATE TRIGGER isolated_sdk_route_record_failure BEFORE INSERT ON journal WHEN json_extract(NEW.data_json,'$.state')='completed' AND EXISTS(SELECT 1 FROM operations o WHERE o.operation_id=json_extract(NEW.data_json,'$.operation_id') AND o.command_type='stream.reconcile' AND o.connection_id='selection-target') BEGIN SELECT RAISE(ABORT,'isolated SDK route-only recording failure'); END;").unwrap();
         }
@@ -460,6 +484,48 @@ async fn exercise(recording_failure: bool) {
             );
             db.execute_batch("DROP TRIGGER isolated_sdk_route_record_failure")
                 .unwrap();
+        }
+        #[cfg(feature = "test-support")]
+        if let Some((events, dropped)) = &mut journal {
+            let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
+            while dropped.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+                assert!(
+                    tokio::time::Instant::now() < deadline,
+                    "no committed routing hint was dropped"
+                );
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+            assert_eq!(
+                target.native_reconciliation().unwrap().unwrap().key,
+                status.key,
+                "dedicated hint was actually absent"
+            );
+            let (original,record):(String,String)=db.query_row("SELECT operation_id,record_id FROM operations WHERE command_type='stream.reconcile' AND connection_id='selection-target' AND state='completed' AND expected_revision=?1 AND operation_id!=?2 ORDER BY rowid DESC LIMIT 1",rusqlite::params![receipt.stream_revision.get(),status.key.operation_id.as_str()],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
+            loop {
+                let event = tokio::time::timeout_at(deadline, events.next())
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .unwrap();
+                if event.operation_id.as_ref().map(sdk::OperationId::as_str)
+                    == Some(original.as_str())
+                    && event.data["data"]["record_id"] == record
+                    && event.data["data"]["state"] == "completed"
+                {
+                    assert_eq!(
+                        target
+                            .native_reconciliation()
+                            .unwrap()
+                            .unwrap()
+                            .key
+                            .operation_id
+                            .as_str(),
+                        original
+                    );
+                    assert_eq!(events.cursor().as_ref(), Some(&event.cursor));
+                    break;
+                }
+            }
         }
         let limit = tokio::time::Instant::now() + Duration::from_secs(8);
         let route = loop {
@@ -566,8 +632,13 @@ async fn exercise(recording_failure: bool) {
             )
             .unwrap();
         assert_eq!(effects, 1);
-        eprintln!("SDK route-only journal hint {algorithm}, recording_failure={recording_failure}, old={}, new={}, no new parameters, continued decoded audio, no camera, one effect",receipt.stream_revision.get(),routed.stream_revision.get());
+        eprintln!("SDK route-only journal {algorithm}, recording_failure={recording_failure}, journal_catch_up={journal_catch_up}, old={}, new={}, no new parameters, continued decoded audio, no camera, one effect",receipt.stream_revision.get(),routed.stream_revision.get());
         eprintln!("SDK automatic reconciliation {algorithm}, recording_failure={recording_failure}, generation={}, revision={}, one effect, decoded audio/video",receipt.connection_generation,receipt.stream_revision.get());
+        #[cfg(feature = "test-support")]
+        if let Some((events, dropped)) = &mut journal {
+            assert!(dropped.load(std::sync::atomic::Ordering::Relaxed) > 0);
+            events.close().await.unwrap();
+        }
         fresh.close(options()).await.unwrap();
         subscriber.close(options()).await.unwrap();
         publisher.close(options()).await.unwrap();
@@ -581,4 +652,12 @@ async fn public_sdk_future_publication_automatically_checks_journal_and_decodes_
 #[tokio::test]
 async fn public_sdk_automatic_reconciliation_waits_for_durable_capture_and_recovers_one_effect() {
     exercise(true).await;
+}
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn public_sdk_missed_routing_hint_resumes_durable_events_checks_original_record_and_keeps_decoded_audio(
+) {
+    for recording_failure in [false, true] {
+        exercise_with_journal(recording_failure, true).await;
+    }
 }

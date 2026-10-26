@@ -93,6 +93,19 @@ impl connect_store::RuntimeRetirementSignal for Retirement {
     }
 }
 impl Runtime {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn suppress_reconciliation_hints_for_test(
+        &self,
+        connection: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicUsize>> {
+        let peers = self.physical.lock().map_err(|_| Error::storage())?;
+        for peer in peers.iter().filter_map(Weak::upgrade) {
+            if let Some(counter) = peer.reconciliations.suppress_for_test(connection)? {
+                return Ok(counter);
+            }
+        }
+        Err(Error::forbidden())
+    }
     /// Select only a registered canonical transport. The caller supplies sealed
     /// physical context or Core ownership, never a transport from a wire payload.
     pub(crate) fn native_adapter(

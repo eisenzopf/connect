@@ -95,6 +95,8 @@ struct State {
     items: BTreeMap<String, Queued>,
     order: VecDeque<String>,
     flight: Option<Flight>,
+    #[cfg(feature = "test-support")]
+    suppressed: BTreeMap<String, Arc<std::sync::atomic::AtomicUsize>>,
 }
 #[derive(Default)]
 pub(crate) struct Queue {
@@ -102,6 +104,25 @@ pub(crate) struct Queue {
     changed: tokio::sync::Notify,
 }
 impl Queue {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn suppress_for_test(
+        &self,
+        connection: &str,
+    ) -> Result<Option<Arc<std::sync::atomic::AtomicUsize>>> {
+        let mut state = self.state.lock().map_err(|_| Error::storage())?;
+        let Some(id) = state
+            .listeners
+            .iter()
+            .find(|(_, listener)| {
+                listener.current() && listener.entry.origin.connection_id() == connection
+            })
+            .map(|(id, _)| id.clone())
+        else {
+            return Ok(None);
+        };
+        let counter = state.suppressed.entry(id).or_default().clone();
+        Ok(Some(counter))
+    }
     fn enqueue(
         self: &Arc<Self>,
         listener: Arc<Listener>,
@@ -119,6 +140,11 @@ impl Queue {
                 .get(&id)
                 .is_none_or(|current| !Arc::ptr_eq(current, &listener))
         {
+            return;
+        }
+        #[cfg(feature = "test-support")]
+        if let Some(counter) = state.suppressed.get(&id) {
+            counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             return;
         }
         if state.items.get(&id).is_some_and(|q| q.revision >= revision)

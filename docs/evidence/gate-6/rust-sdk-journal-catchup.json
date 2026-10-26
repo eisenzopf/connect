@@ -1,12 +1,13 @@
 {
   "task": "G6-060",
-  "status": "component checkpoint passed; dropped-hint production qualification pending",
-  "checked_at": "2026-10-26T10:43:04.814588+00:00",
-  "scope": "Owned Rust event delivery and native routing recovery, local real signed QUIC component tests. No server wire command or mutation replay added. Real production dropped-hint/decoded-media fixture is not yet qualified.",
+  "status": "local component and production dropped-hint qualification passed",
+  "checked_at": "2026-10-26T11:11:06.983737+00:00",
+  "scope": "Owned Rust event delivery and native routing recovery on local macOS arm64: signed QUIC component checks and actual production listeners, including dropped eligible hints, resumed durable events, decoded media and journal-write failure. No new server wire command or mutation replay.",
   "implementation": [
-    "EventStream.next retains one owned pending fact inside the existing counted/byte-bounded inbox until its native journal catch-up succeeds. Cursor advances only at actual return. Dropped futures, cancellation, deadlines and refused or contradictory current reads keep that same fact and previous cursor. Close/overflow releases it under the existing explicit terminal reader state.",
+    "EventStream.next retains one owned pending fact inside the existing counted/byte-bounded inbox until native journal catch-up succeeds. Cursor advances only at actual return. Dropping or timing out next and refused/contradictory current reads keep that fact and previous cursor. Whole-reader signal cancellation, close or overflow is terminal; resume a new reader from the last returned cursor.",
     "Completed Operation journal facts within an actually owned native Session trigger only a current-authorized original operation.get. Envelope/record ID, revision floor, Conversation/Session and current record result identify the exact owned target. Unknown or metadata-only ownership never grants native custody.",
-    "Only completed routing-only stream.reconcile with known originally issued selector, matching native generation, binding parameters and per-stream generations may advance the existing native counter. Null capture requires the exact installed predecessor and invents no binding set. Other pending preparations retain their identity; resource replacement facts cannot manufacture preparation. No native parameter answer is sent."
+    "Only completed routing-only stream.reconcile with known originally issued selector, matching native generation, binding parameters and per-stream generations may advance the existing native counter. Null capture requires the exact installed predecessor and invents no binding set. Other pending preparations retain their identity; resource replacement facts cannot manufacture preparation. No native parameter answer is sent.",
+    "A test-support-only hook suppresses eligible dedicated hints for the registered physical source and counts actual drops after normal eligibility checks. Journal, native effects and authorization are unchanged; the hook is absent from the default feature profile."
   ],
   "verification": {
     "client": {
@@ -22,7 +23,116 @@
       "log": ".local/gate-6/sdk-journal-catchup/rustdoc-01.log",
       "sha256": "e9828d9e65b7df09aa6d11502868849c482783b640f6a009aa2a8feed5dbe519"
     },
-    "format_diff_openapi": "passed"
+    "format_diff_openapi": "passed",
+    "production": {
+      "status": "passed selected local functional functions",
+      "results": [
+        {
+          "filter": "sdk_handles::reconciliations::public_sdk_missed_routing_hint_resumes_durable_events_checks_original_record_and_keeps_decoded_audio",
+          "skip": null,
+          "external_process_enabled": false,
+          "expected_test_names": [
+            "sdk_handles::reconciliations::public_sdk_missed_routing_hint_resumes_durable_events_checks_original_record_and_keeps_decoded_audio"
+          ],
+          "exit_code": 0,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "ignored_functions": 0,
+          "seconds": 30.15776495798491,
+          "log": ".local/gate-6/sdk-journal-catchup/production-01-00.log",
+          "log_sha256": "8b493e65701ea6ed9aa31b18dd7538e7e45d129006245e6b7c9abfdc0b863e55"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::reconciliations::public_sdk_missed_routing_hint_resumes_durable_events_checks_original_record_and_keeps_decoded_audio",
+          "external_process_enabled": false,
+          "expected_test_names": [
+            "sdk_handles::administration::public_sdk_administration_requires_current_administrator_for_submission_status_and_replay",
+            "sdk_handles::administration::public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect",
+            "sdk_handles::administration::public_sdk_trusted_administration_covers_every_command_and_recovers_original_receipts_after_restart",
+            "sdk_handles::data::public_sdk_both_ends_reliable_json_binary_data_keeps_decoded_audio_and_original_recovery",
+            "sdk_handles::data::public_sdk_native_data_journal_failure_preserves_one_publication_and_live_media",
+            "sdk_handles::events::public_sdk_durable_event_cursor_survives_restart_without_reusing_the_old_live_lease",
+            "sdk_handles::events::public_sdk_live_event_renewal_keeps_mutations_and_decoded_native_audio_running",
+            "sdk_handles::events::public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolate_current_authority",
+            "sdk_handles::invitations::public_sdk_incoming_invitations_keep_original_metadata_and_decide_without_copied_callee_ids",
+            "sdk_handles::invitations::public_sdk_stale_invitation_hint_grants_no_acceptance_after_cancel_or_membership_removal",
+            "sdk_handles::media::public_sdk_native_rtp_publisher_routes_independently_decoded_audio_video_and_keeps_control_live",
+            "sdk_handles::public_sdk_concurrent_mutations_and_status_keep_receipts_and_history_distinct",
+            "sdk_handles::public_sdk_conversation_private_send_recovery_and_owned_shutdown",
+            "sdk_handles::public_sdk_durable_decisions_keep_target_identity_and_require_real_evidence",
+            "sdk_handles::public_sdk_native_multistream_offers_share_peer_keep_status_recovery_and_own_only_local_parameters",
+            "sdk_handles::public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope",
+            "sdk_handles::public_sdk_session_controls_use_topology_revision_and_current_scoped_results",
+            "sdk_handles::raw::public_sdk_raw_current_membership_is_required_for_mutation_status_and_events",
+            "sdk_handles::raw::public_sdk_raw_original_intent_status_and_finite_journal_survive_restart",
+            "sdk_handles::receipts::public_sdk_configured_receipts_preserve_original_channel_facts_and_survive_restart",
+            "sdk_handles::receipts::public_sdk_receipts_follow_current_preferences_and_membership_epochs",
+            "sdk_handles::reconciliations::public_sdk_automatic_reconciliation_waits_for_durable_capture_and_recovers_one_effect",
+            "sdk_handles::reconciliations::public_sdk_future_publication_automatically_checks_journal_and_decodes_both_ends_media",
+            "sdk_handles::selections::public_sdk_selection_recording_failure_keeps_old_parameters_and_recovers_one_commit",
+            "sdk_handles::selections::public_sdk_selections_both_ends_decode_audio_video_and_preserve_route_only_recovery",
+            "sdk_handles::stream_metadata::public_sdk_stream_metadata_tracks_controls_scoped_ids_authorization_and_normal_restart",
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed_functions": 28,
+          "failed_functions": 0,
+          "ignored_functions": 0,
+          "seconds": 191.43466662499122,
+          "log": ".local/gate-6/sdk-journal-catchup/production-01-01.log",
+          "log_sha256": "0394abc28ccdf788a6ca5fa536401d5dbbf29c56057dda2826e31e4d66515844"
+        },
+        {
+          "filter": "external_public_crate_",
+          "skip": null,
+          "external_process_enabled": true,
+          "expected_test_names": [
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_device_move_retains_actual_generation_two_audio_and_recovers",
+            "canonical_native_connections::consultation::groups::sdk_movements::external_public_crate_handoff_preserves_roles_audio_and_original_recovery",
+            "external_sdk_consumer::external_public_crate_message_session_invitation_and_independently_decoded_media"
+          ],
+          "exit_code": 0,
+          "passed_functions": 3,
+          "failed_functions": 0,
+          "ignored_functions": 0,
+          "seconds": 294.1302548327949,
+          "log": ".local/gate-6/sdk-journal-catchup/production-01-02.log",
+          "log_sha256": "3b06ca957c61082c12aefa5c4c53fc093af87a993ffbd1fc2b47551c10e19b37"
+        }
+      ],
+      "server_binary_sha256": "7cf3dbab0f0d95a9ccf97c40563358929e05af8fe543b8f016aa3df8607532ad",
+      "external_binary_sha256": "f88be659a5137817cdcfc98403f28bae61f3dceac712f939bc345a30c0405f38",
+      "source_manifest": ".local/gate-6/sdk-journal-catchup/production-inputs-01.json",
+      "input_count": 1380,
+      "inputs_unchanged": true,
+      "driver_sha256": "5e4fb01fa9f46d363c68f36b47eb6a4decc2ddfb140653b16d0a5989106de5e2",
+      "report": ".local/gate-6/sdk-journal-catchup/production-01-summary.json",
+      "report_sha256": "9ca93e390b2c1ed883850e1c33c1b04b148b3e18956b6da5b42ba589151ce293",
+      "scenes": "New function: EdDSA/ES256 \u00d7 ordinary/journal-write-failure = four scenes. Both ends start with independently decoded audio/video. Missing committed hint is counted, durable cursor resumes and recovers the exact original Operation/record before delivery; routing keeps revision3, no new parameters, continued decoded audio, no ended camera and exactly one effect. Owners/readers/server join."
+    },
+    "fresh_external_workspace": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-external-rust-w_bsl8v8",
+      "source": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/examples/rust-sdk-journey",
+      "workspace_root": "/Users/jonathaneisenzopf/.local/share/connect/gate6-external-rust-w_bsl8v8",
+      "source_hashes": {
+        "src/black-640x360.vp8": "609475934e989888713520c5bb2ff8c2ae832d0a50c9af82c2353f576da354f2",
+        "src/main.rs": "f4284d005bc55016515e1afcdf844175d073cec9902ba3bc8b123c228f07f7c9",
+        "src/media.rs": "e0d15ca6de887cd44ca56321b77216b718d0a6f6837d958f1e37a896c69ac0b0",
+        "src/transition.rs": "c07cc1b1009606373dcd422f1151499f6030defd8222c589514850c18c76d7d6"
+      },
+      "manifest_sha256": "40e5d1b43356e933cbe2f50c15c892664b35647e958876d14d857311736dc754",
+      "lock_sha256": "69bb46dafe8d32e8798d864dd0b909af81088b7da207e7d4bd36dd54442d7e3b",
+      "metadata_sha256": "e3b5236576fe74808687e0e5d8dcb345526fffbcc5ce07c032651a700dd0df16",
+      "forbidden_dependencies_absent": [
+        "connect-store",
+        "connect-service",
+        "connect-server"
+      ],
+      "scope": "Fresh outside-repository source-consumer workspace with only public connect-client plus general libraries and explicitly prepared locked upstream patches. Not installed/published package qualification.",
+      "runtime": "Three current functions pass both signing algorithms: private Message/original recovery/actual incoming Session/both-end SDK packet IO and independent PCMU/VP8 decode; handoff and device move use typed SDK controllers with independently owned public native media legs. Each media scene decodes1598 loud samples and691200 RGB bytes. This is an outside-repository source-consumer build, not installed archive qualification."
+    }
   },
   "failed_candidates": [
     {
@@ -32,7 +142,21 @@
     }
   ],
   "remaining": [
-    "Qualify the actual production listener with the dedicated hint deliberately dropped, durable cursor resumption, continued independent decoded media and journal failure recovery. Test-only per-source suppression must not alter journal/native effects or authorization.",
-    "G6-060 and all105 Gate6 tasks remain active. Installed package/profile/acceptance/publication work retains its assigned scope."
-  ]
+    "No G6-060 implementation/verification item remains after the explicit requirement audit. Conditional publication blocker removal awaits dependency packaging in G6-069; installed archive/facade parity is G6-070.",
+    "Linux/remote/provider/performance/profile acceptance and publication remain unqualified and assigned to their own tasks; the105-task Gate6 goal remains active."
+  ],
+  "build_and_recovery": {
+    "server_build_seconds": 631.17,
+    "server_binary_sha256": "7cf3dbab0f0d95a9ccf97c40563358929e05af8fe543b8f016aa3df8607532ad",
+    "external_binary_sha256": "f88be659a5137817cdcfc98403f28bae61f3dceac712f939bc345a30c0405f38",
+    "external_toolchain": "Explicit Rust1.97.1; first outside-workspace attempt correctly refused default1.95 before compilation. Successful locked/offline build32.32s.",
+    "storage": "Both volumes were nearly full. One incomplete task-owned compressed cache was removed; stopped exact-hash duplicate executables were removed only after lossless archive/hash/not-open verification. The sealed server remained intact throughout. No source, dependency, user data or private state removed.",
+    "private_audits": [
+      ".local/gate-6/sdk-journal-catchup/stopped-archive-audit.json",
+      ".local/gate-6/sdk-journal-catchup/compression-recovery-audit.json",
+      ".local/gate-6/sdk-journal-catchup/previous-cli-duplicate-audit.json",
+      ".local/gate-6/sdk-journal-catchup/build-server-01-summary.json",
+      ".local/gate-6/sdk-journal-catchup/build-external-02-summary.json"
+    ]
+  }
 }

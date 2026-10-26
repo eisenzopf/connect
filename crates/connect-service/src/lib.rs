@@ -150,6 +150,18 @@ impl Service {
             .get()
             .map(|runtime| runtime.snapshot())
     }
+    /// Drop only eligible dedicated routing hints on this actual physical source.
+    /// The counter proves loss; journal, native IO and authorization are untouched.
+    #[cfg(feature = "test-support")]
+    pub fn suppress_canonical_reconciliation_hints_for_test(
+        &self,
+        connection_id: &str,
+    ) -> Result<Arc<std::sync::atomic::AtomicUsize>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .suppress_reconciliation_hints_for_test(connection_id)
+    }
     /// Actual Core metadata for isolated contention tests; grants no IO authority.
     #[cfg(feature = "test-support")]
     pub fn canonical_session_metadata_for_test(
