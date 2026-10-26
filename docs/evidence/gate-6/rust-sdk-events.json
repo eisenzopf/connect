@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-events/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T06:58:19.861954+00:00",
+  "checked_at": "2026-10-26T07:00:30.236220+00:00",
   "base_revision": "9e6800d9",
-  "scope": "Component checkpoint for typed owned native durable event streams; production fixtures are implemented but not yet qualified. G6-060 and all105 tasks remain open.",
+  "scope": "Typed owned native durable event streams qualified in the recorded local macOS arm64 functional scope. G6-060 and all105 tasks remain open; no whole-suite, operating-profile, acceptance or publication closure.",
   "implementation": [
     "Typed Cursor, JournalEvent, EventSnapshot and EventStream preserve original authoritative journal facts and complete paginated snapshot bootstrap.",
     "Owned lazy initialization survives dropped waits. Events become visible only after correlated ACK; application-returned cursor remains separate from renewal watermark. Current-authorized10-second leases share the owned worker, with8 source and64 correlation limits.",
@@ -22,26 +22,81 @@
       "scope": "Signed bootstrap, dropped waits, ACK boundaries, deadlines, renewal, cursor replay, malformed/scope/auth refusal, count/byte overflow, cancellation and capacity."
     },
     "production": {
-      "status": "new-event-fixtures-passed; selected-regressions-running",
-      "passed_functions": 3,
+      "status": "passed",
+      "passed_functions": 19,
       "failed_functions": 0,
+      "new_functions": 3,
+      "new_algorithm_scenes": 6,
       "report": {
-        "path": ".local/gate-6/sdk-events/production-04-00.log",
-        "sha256": "4a036449fc83713bf52de7706722706f7e831b41c77b8b179f342137df3f563c"
+        "path": ".local/gate-6/sdk-events/production-04-summary.json",
+        "sha256": "b8fee11a6fa2ebb3aad088103e90779b5761b5e23c3ceb6ff5a2d1b4d3e830a4"
       },
-      "observation": "All three actual-server fixtures pass both EdDSA/ES256: original participant-specific Store facts/private correlation/current authorization and isolated cancellation; renewed live journal plus decoded PCMU; durable cursor/original operation recovery after restart. Fourteen prior SDK and two subscription/batch regressions are still running.",
-      "pending": "Complete candidate04 aggregate qualification."
+      "sealed_binary_sha256": "d92b83a4ba70bd6d746acda1115c56fa872eab07fd8b9a5490f1b88e168f7109",
+      "profile": "Release with connect-store,connect-service,connect-server opt-level0; other packages release defaults. Functional scope only.",
+      "results": [
+        {
+          "filter": "sdk_handles::events::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 3,
+          "failed_functions": 0,
+          "elapsed_seconds": 50.31172124994919,
+          "log": ".local/gate-6/sdk-events/production-04-00.log",
+          "log_sha256": "4a036449fc83713bf52de7706722706f7e831b41c77b8b179f342137df3f563c"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::events::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 14,
+          "failed_functions": 0,
+          "elapsed_seconds": 129.87553187506273,
+          "log": ".local/gate-6/sdk-events/production-04-01.log",
+          "log_sha256": "1128ff24e305206b237c510e52d33abdd16af135a7ced78900298044fdaf5666"
+        },
+        {
+          "filter": "production_physical_factory_delivers_live_subscription_with_original_request_correlation",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 0.3317629999946803,
+          "log": ".local/gate-6/sdk-events/production-04-02.log",
+          "log_sha256": "75b186bb99342ce2552f638e5dbdf10ccb81274192c98e8f4c508c6c4487bce4"
+        },
+        {
+          "filter": "signed_batch_collector_keeps_live_facts_separate_and_business_refusal_keeps_peer_usable",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 0.5556615840177983,
+          "log": ".local/gate-6/sdk-events/production-04-03.log",
+          "log_sha256": "73ec471518f3827b32da8341ce40116d59fb412ea4f239862b55ab91b68ea7b7"
+        }
+      ],
+      "scope": "Three new both-algorithm SDK live event functions,14 prior SDK regressions, one direct production subscription and one signed batch collector regression. No whole suite, remote or performance qualification.",
+      "behaviors": [
+        "Complete bootstrap retains all original facts. Owner event ID, revision, observed time and source are checked against its exact authorized Store row. Peer payload, revision, source correlation and recipient identity are checked against its own row. Typed original audiences/epochs are retained and validated; private operation correlation remains private.",
+        "Saved application cursor resumes without replaying processed Message. Local reader cancellation isolates other readers/control; current Participant removal refuses that reader under current authority while other authorized control remains usable.",
+        "In each signing-algorithm scene, twelve actual mutations and original journal facts share the owned native peer with600 PCMU RTP packets. Independent FFmpeg audio decoding succeeds before and after10-second lease renewal for EdDSA and ES256.",
+        "Server restart accepts original durable cursor on a fresh live lease. Original operation recovery is read-only and no original Message is republished."
+      ]
     },
     "dependencies": {
-      "path": ".local/gate-6/sdk-events/dependencies.log",
+      "path": ".local/gate-6/sdk-events/dependencies-04.log",
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "format": {
-      "path": ".local/gate-6/sdk-events/format-08.log",
+      "path": ".local/gate-6/sdk-events/format-check-04.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "openapi": {
-      "path": ".local/gate-6/sdk-events/openapi-check.log",
+      "path": ".local/gate-6/sdk-events/openapi-check-03.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "rustdoc": {
@@ -55,7 +110,7 @@
       "schema_vectors": 254,
       "scope": "Schema/source contract checks only.",
       "log": {
-        "path": ".local/gate-6/sdk-events/contracts.log",
+        "path": ".local/gate-6/sdk-events/contracts-03.log",
         "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
       }
     },
@@ -90,7 +145,32 @@
         "sha256": "361c89699faf502a18ceba2a0095de1cfd61a34212f9dd2c32288475b573ad8c"
       },
       "guarded_inputs": 1351,
-      "unchanged_at_checkpoint": true
+      "unchanged": true
+    },
+    "checks": {
+      "dependencies-04.log": {
+        "path": ".local/gate-6/sdk-events/dependencies-04.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-04.log": {
+        "path": ".local/gate-6/sdk-events/format-check-04.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check-03.log": {
+        "path": ".local/gate-6/sdk-events/openapi-check-03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "documented_public_example": {
+      "report": {
+        "path": ".local/gate-6/sdk-events/example-summary.json",
+        "sha256": "9e44f4827c73e13a9b6a72a6b0bc9293d02ae21e03a984b8b36c1493cda35d5a"
+      },
+      "source": {
+        "path": ".local/gate-6/sdk-events/sdk-example.rs",
+        "sha256": "7f4083772d55d3e0ed81bb253efdf1d89bd320a659ff26920b2757b05d6ea634"
+      },
+      "scope": "Actual event guide snippet compiled independently against final public crate. Metadata-only compilation; full packaged external-crate runtime remains open."
     }
   },
   "failed_or_superseded_runs": [
@@ -156,14 +236,22 @@
         "sha256": "a499a2ebdb9dd6465a43a06d409166167623087770c304f0ce2a51ce2e5a5ced"
       },
       "observation": "Current patched library passes durable restart and continuous decoded-audio/live renewal for both signing algorithms. The final original-fact/current-authority fixture used bearer tokens directly in the internal Store comparison, which requires authenticated credential IDs. Corrected both owner and peer evidence reads through Store.authenticate; all application behavior remains on public SDK APIs. Candidate04 runtime pending."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-events/production-04-00.log",
+        "sha256": "4a036449fc83713bf52de7706722706f7e831b41c77b8b179f342137df3f563c"
+      },
+      "observation": "All three actual-server fixtures pass both EdDSA/ES256: original participant-specific Store facts/private correlation/current authorization and isolated cancellation; renewed live journal plus decoded PCMU; durable cursor/original operation recovery after restart. Fourteen prior SDK and two subscription/batch regressions are still running."
     }
   ],
   "remaining": [
-    "Production validation and independent documented example compilation are pending.",
-    "Invitation/receipt, capability/config/raw/admin surfaces, remaining native recovery, full external package journeys, incompatible versions and approved Linux/remote profiles remain open. No task/acceptance/publication closure."
+    "Incoming invitation/receipt convenience APIs, capabilities/config/raw/admin, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain in G6-060.",
+    "Queue overflow/count/byte/cancellation/source capacity are signed component tests; production forced partial IO, slow-consumer/saturation and wider performance profiles remain unqualified.",
+    "All105 tasks remain the objective. No whole gate/task/acceptance/publication closure."
   ],
   "scratch_preservation": {
     "path": ".local/gate-6/sdk-events/scratch-compression.json",
-    "sha256": "ad0f64d3278d51890f7fbd09bd4865afcf2b215e7391c6ded6f5a14163909b9a"
+    "sha256": "e68bc250c3147ac9d6ac1d3af921bcbc6d454384b31c177201dbbb5898b41dbc"
   }
 }

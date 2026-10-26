@@ -504,7 +504,10 @@ other healthy control remains usable. Close the failed reader and choose an
 explicit retained cursor or fresh snapshot. SDK queue bounds are payload limits,
 not process memory or scheduling guarantees.
 
-This G6-060 implementation is undergoing signed component and production checks;
-verification is recorded in `docs/evidence/gate-6/rust-sdk-events.json`. Incoming
+The recorded local functional checkpoint passes 182 client tests, six Rustdoc
+examples, two upstream delivery regressions and 19 selected production functions,
+including live renewal with independently decoded audio and durable cursor recovery
+after restart. Verification and earlier failures are recorded in
+`docs/evidence/gate-6/rust-sdk-events.json`. Incoming
 invitation and receipt convenience APIs, remaining SDK surfaces, complete external
 packaging and operating-profile qualification remain open.
