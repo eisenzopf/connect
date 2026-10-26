@@ -687,6 +687,12 @@ page has at most 100 facts. Client clones share the owner. `close` signals and
 joins both owners, retaining cleanup joins across cancelled/timed-out cleanup.
 No extra HTTP query begins after the native owner retires.
 
-The component checkpoint passes 208 client functions, including eight new tests.
-Real-server current-preference/epoch/restart qualification is pending in
-`docs/evidence/gate-6/rust-sdk-receipts.json`. G6-060 remains in progress.
+The checkpoint passes 208 client functions (eight new), 11 Rustdoc checks, 254
+contract vectors, the independently compiled public receipt example and 26
+selected production functions. Two new EdDSA/ES256 functions qualify current
+preferences, original membership epochs, explicit reports and TOML/restart
+recovery with one durable Message; 24 earlier SDK regression functions pass on
+the same sealed executable. The fixture failure and exact functional scope are
+recorded in `docs/evidence/gate-6/rust-sdk-receipts.json`. Capability helpers,
+external/package and required operating-profile qualification remain open;
+G6-060 remains in progress.

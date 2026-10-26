@@ -1,26 +1,107 @@
 {
   "task": "G6-060",
-  "checked_at": "2026-10-26T08:21:45.950504+00:00",
-  "status": "component checkpoint; real-server qualification pending",
-  "scope": "Explicit SDK configuration and bounded named application receipt reads; local macOS arm64 functional evidence only.",
+  "checked_at": "2026-10-26T08:29:05.366529+00:00",
+  "status": "verified explicit configuration and receipt-read checkpoint; G6-060 remains in progress",
+  "scope": "Local macOS arm64 functional SDK qualification only. Both new production functions run EdDSA/ES256;24 prior SDK functions pass on the same current sealed executable. Full SDK/external/profile/package acceptance remains open.",
   "verification": {
     "client": {
       "passed_functions": 208,
       "new_functions": 8,
-      "log": ".local/gate-6/sdk-receipts/client-03.log",
-      "log_sha256": "18dbc77df0ec63f811b718235c521ea2bb6bbb0b04b12e0a6b0e8b4c8fd1814b"
+      "log": ".local/gate-6/sdk-receipts/client-04.log",
+      "log_sha256": "3f0635168737ba7b88ca18d82535a471fee3d7117bd4f0c8f164777377b54aa0"
     },
     "production": {
-      "status": "pending",
-      "planned_functions": 2,
-      "algorithms": [
-        "EdDSA",
-        "ES256"
+      "status": "passed",
+      "passed_functions": 26,
+      "new_functions": 2,
+      "new_algorithm_scenes": 4,
+      "prior_functions": 24,
+      "report": {
+        "path": ".local/gate-6/sdk-receipts/production-01-summary.json",
+        "sha256": "0dd856d5696f4e963f27ba1cc97f67cfd84d18c81df6888a6e6256954eaacc97"
+      },
+      "results": [
+        {
+          "filter": "sdk_handles::receipts::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 3.960308250039816,
+          "log": ".local/gate-6/sdk-receipts/production-01-00.log",
+          "log_sha256": "24e6c21581d4a08dcb54e4a6cd62dae01481a74a1a413531228959986bb5dc5e"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::receipts::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 24,
+          "failed_functions": 0,
+          "elapsed_seconds": 188.83592574996874,
+          "log": ".local/gate-6/sdk-receipts/production-01-01.log",
+          "log_sha256": "875b1b82e4542c11e8cc5ff70ece11a7e35d2f8e55908a7325215191e3bbedf9"
+        }
       ],
+      "sealed_binary_sha256": "acb4ef29c6d18b6695cad3046f759cce07b774c6f4d7fe9dbfa88c9789076ea2",
+      "profile": "Release with connect-store,connect-service,connect-server opt-level0; other packages release defaults. Functional scope only.",
       "behaviors": [
-        "Actual explicit config/TOML/restart and current source receipt state/epoch/channel/provenance.",
-        "Current receipt preferences, removal and new membership epoch cannot inherit old source evidence."
-      ]
+        "Both protected named application receipt reads and signed native mutations are explicitly configured with the same credential using public SDK constructors. Actual complete facts match a separate current-authorized Store projection.",
+        "Explicit delivered/client_reported and ordinary signed message.read observations retain Participant/epoch/channel/delivery identity/state/provenance/time. They never infer human action or upgrade another channel. The read API does not submit an acknowledgement or Message.",
+        "A fresh ClientConfig loaded from TOML reconnects after server restart and retrieves the same original receipt metadata with one durable source Message. Native key/certificate paths resolve relative to the supplied configuration file.",
+        "Current preferences suppress and restore existing facts. Membership removal refuses the removed reader and hides its old epoch from the sender; rejoining cannot inherit that original source evidence.",
+        "All26 selected production functions pass on the same current sealed bytes. The24 existing SDK functions cover trusted administration, raw access, events/invitations, reliable data, media/codecs/controls, native reconciliation/selections and restart. All explicit clients and servers close/join."
+      ],
+      "limits": "Functional local profile only; no named provider, remote HTTP/native, Linux, performance, production saturation or forced partial-IO qualification is inferred."
+    },
+    "rustdoc": {
+      "passed_functions": 11,
+      "log": {
+        "path": ".local/gate-6/sdk-receipts/rustdoc-01.log",
+        "sha256": "4f2477db529e9db50d29f13c9376189875b39e06f72e7155fcb6e13092e0c4cc"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "log": {
+        "path": ".local/gate-6/sdk-receipts/contracts-01.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      },
+      "scope": "Source/schema vectors only, not runtime qualification."
+    },
+    "checks": {
+      "dependencies-01.log": {
+        "path": ".local/gate-6/sdk-receipts/dependencies-01.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-01.log": {
+        "path": ".local/gate-6/sdk-receipts/format-check-01.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check-01.log": {
+        "path": ".local/gate-6/sdk-receipts/openapi-check-01.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "inputs": {
+      "files": 1365,
+      "manifest": {
+        "path": ".local/gate-6/sdk-receipts/inputs-01.json",
+        "sha256": "1212743afc4cdc7b82cb95ae1f4d16bf037fb4f9569da10035d15c353f91d526"
+      },
+      "unchanged": true
+    },
+    "documented_public_example": {
+      "report": {
+        "path": ".local/gate-6/sdk-receipts/example-summary.json",
+        "sha256": "16af0f4a2e5befaecb808a00611b6ff39f10703600bcf48e07de659113e69962"
+      },
+      "source": {
+        "path": ".local/gate-6/sdk-receipts/sdk-example.rs",
+        "sha256": "28636ffa9c84aa3779b1c121c28d7b7bf94ce1fa1f84bca0fac757ea317adfca"
+      },
+      "scope": "The actual receipt Rustdoc example independently metadata-compiles against the final public SDK and serde_json. A full external packaged runtime journey remains open."
     }
   },
   "failed_candidates": [
@@ -34,5 +115,9 @@
   "remaining": [
     "Capability snapshot/require, remaining native recovery, full packaged external journey, incompatible-server and required approved Linux/remote profiles remain.",
     "Named application HTTP is explicitly loopback only; no remote HTTP trust or provider delivery qualification is inferred. Publication remains separate."
-  ]
+  ],
+  "scratch_preservation": {
+    "path": ".local/gate-6/sdk-receipts/scratch-compression.json",
+    "sha256": "6c6b036fec171091741cb2e4ce14cb574492dd147c555569e456fb5c254c5a3a"
+  }
 }
