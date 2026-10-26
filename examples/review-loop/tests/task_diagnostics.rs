@@ -18,7 +18,7 @@ use std::time::Duration;
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn crashed_worker_pending_intent_is_visible_without_restarting_or_consuming_it() {
     let mut f = Fixture::start().await;
-    let config = f.directory.join("invocation.toml");
+    let config = f.diagnostic_config("invocation");
     let not_started = diagnostics::inspect(&config, &f.task.id, Some(&f.state()), 100)
         .await
         .unwrap();
@@ -84,7 +84,7 @@ async fn stopped_waiting_worker_catches_up_reply_after_server_restart_and_never_
     let mut app = f.spawn(None, None);
     let question = f.question().await;
     f.settled(0).await;
-    let config = f.directory.join("controller.toml");
+    let config = f.diagnostic_config("controller");
     let running = diagnostics::inspect(&config, &f.task.id, Some(&f.state()), 100)
         .await
         .unwrap();
@@ -152,7 +152,7 @@ async fn cli(f: &Fixture) -> std::process::Output {
         tokio::process::Command::new(env!("CARGO_BIN_EXE_connect-example"))
             .arg("task-diagnostics")
             .arg("--config")
-            .arg(f.directory.join("invocation.toml"))
+            .arg(f.diagnostic_config("invocation"))
             .arg("--task-id")
             .arg(&f.task.id)
             .arg("--state")

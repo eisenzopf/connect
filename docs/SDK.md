@@ -311,8 +311,9 @@ the same UCTP/QUIC task facade.
 See [protected installation](TASK_ACCESS.md) for the actual command sequence.
 
 Rust applications can sample metadata through
-`ConnectClient::task_diagnostics(task_id, cursors, limit)`. The independent
-`connect task-diagnostics` CLI uses the same public client. See
+`application::ApplicationClient::task_diagnostics(task_id, cursors, limit)`. The independent
+`connect task-diagnostics` CLI uses the same public application client and an
+explicit `ApplicationClientConfig`; a native config is not accepted. See
 [task diagnostics](TASK_DIAGNOSTICS.md) for cursor lanes, optional denied sections,
 read-only behavior and the distinction between journal observations and current
 effect receipts. This convenience does not add a wire command or permission.

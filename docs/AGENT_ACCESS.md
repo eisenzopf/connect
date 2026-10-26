@@ -157,3 +157,25 @@ recorded source and local scope. They do not establish Gate 6 actual-model,
 remote/provider, current package or publication acceptance. The
 [agent journey runbook](AGENT_JOURNEY_QUALIFICATION.md) retains its own lane and
 configuration requirements.
+
+## Inspect retained Task work
+
+Use an explicitly issued current Task-owner inspection credential in an
+`ApplicationClientConfig`; do not reuse the revoked agent or a protected
+HostSession grant as an ordinary owner. The endpoint is the installation's
+protected HTTP application listener.
+
+```sh
+connect task-diagnostics --config "$CONNECT_INSPECTION_APPLICATION_CONFIG" \
+  --task-id "$CONNECT_TASK_ID" --limit 100
+```
+
+The view contains bounded lifecycle/journal/source metadata, independent paging
+cursors and conservative local host observations. It does not publish message
+bodies, resume a host, consume replies or retry an effect. Missing optional read
+permissions are explicit unavailable sections. Invalid cursors and current
+reader revocation fail the sample. A current owner's ability to inspect old work
+does not revive the old agent's authority. See the
+[application diagnostic contract](developer/application-sdk.md#retained-task-diagnostics).
+The older generic credential `issue` recipe still requires its canonical issuance
+and recovery migration; no issued credential is fabricated by this command.

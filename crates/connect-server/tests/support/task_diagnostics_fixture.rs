@@ -27,6 +27,20 @@ pub fn owner(f: &Fixture) -> ClientConfig {
     config.credential = credential.token;
     config
 }
+pub fn application(
+    f: &Fixture,
+    source: ClientConfig,
+) -> connect_client::application::ApplicationClientConfig {
+    connect_client::application::ApplicationClientConfig {
+        endpoint: f
+            .server
+            .http_address
+            .expect("explicit application listener"),
+        credential: source.credential,
+        expires_at: chrono::DateTime::from_timestamp(f.task.expires_at, 0).unwrap(),
+        timeout_ms: 10_000,
+    }
+}
 pub async fn question(f: &Fixture, body: &str) -> String {
     let mut client = ConnectClient::open(native(f)).await.unwrap();
     client.negotiate_task(&f.task.id).await.unwrap();
@@ -87,7 +101,9 @@ pub async fn cli(f: &Fixture) -> std::process::Output {
     let config = f.directory().join("diagnostic-native.toml");
     connect_server::cli::init::private_write(
         &config,
-        toml::to_string(&native(f)).unwrap().as_bytes(),
+        toml::to_string(&application(f, native(f)))
+            .unwrap()
+            .as_bytes(),
     )
     .unwrap();
     tokio::time::timeout(

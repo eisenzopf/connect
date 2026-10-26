@@ -124,3 +124,39 @@ limits and the optional WebTransport contact through authenticated
 uses the configured request deadline. It supplies contact metadata; separately
 configured TLS and enrolled signing trust are still required. See
 [canonical transport discovery](canonical-http.md#canonical-transport-discovery).
+
+## Retained Task diagnostics
+
+`ApplicationClient::task_diagnostics(task_id, cursors, limit)` samples bounded
+Task journal metadata, authorized source references, unassigned reply metadata
+and process readiness. It uses the explicitly configured application credential;
+it neither opens a native connection nor substitutes another authority. The
+limit is1–100 and each lane has its own cursor. Missing optional permissions are
+reported as unavailable sections. Invalid cursors, transport failures and a
+revoked reader fail the sample. Reads do not consume replies or retry effects.
+
+The first and final current Task reads must agree on Task/Conversation/owner
+bindings. A revision change is reported; the pages are not an atomic snapshot.
+Source content, message bodies, provider errors and credential plaintext are
+removed from the returned diagnostic projection. Historical effect observations
+remain distinct from current authorized EffectGet reconciliation.
+
+The CLI uses the same public client:
+
+```sh
+connect task-diagnostics --config "$CONNECT_INSPECTION_APPLICATION_CONFIG" \
+  --task-id "$CONNECT_TASK_ID" --limit 100
+```
+
+This command requires `ApplicationClientConfig`, including an explicit protected
+loopback HTTP endpoint and the selected ordinary or narrow Native-grant bearer.
+Signed native and minimal MCP config files are different formats and are refused.
+An independently issued current owner inspection credential may read retained
+work after an old agent/grant is revoked; it does not restore that delegation.
+Revoking the inspection credential refuses its next sample, including final
+rechecks after local host metadata is observed.
+
+Current canonical-server behavior is recorded in
+`docs/evidence/gate-6/canonical-task-diagnostics.json`. Historical Gate4/example
+call sites have been moved to explicit application configuration; their own full
+runtime profiles remain separate from this current canonical-server checkpoint.

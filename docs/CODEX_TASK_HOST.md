@@ -127,11 +127,12 @@ Connect receipts, then continue that same session.
 Inspect without launching a model:
 
 ```sh
-connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID \
+connect task-diagnostics --config .local/task.application.toml --task-id TASK_ID \
   --codex-installation .local/codex-review
 ```
 
-Diagnostics require separate current Native/owner read authority. They report
+Diagnostics require separate current Native/owner read authority in an explicit
+`ApplicationClientConfig` for the protected HTTP listener. They report
 retained correlation and turn state, not prompts, bearer secrets or raw logs.
 See [task diagnostics](TASK_DIAGNOSTICS.md).
 

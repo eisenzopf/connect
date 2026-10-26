@@ -263,19 +263,32 @@ impl Fixture {
         )
         .unwrap();
     }
+    pub fn diagnostic_config(&self, name: &str) -> PathBuf {
+        let native = ClientConfig::load(&self.directory.join(format!("{name}.toml"))).unwrap();
+        let application = connect_client::application::ApplicationClientConfig {
+            endpoint: self.server.as_ref().unwrap().http_address.unwrap(),
+            credential: native.credential,
+            expires_at: chrono::DateTime::from_timestamp(self.task.expires_at, 0).unwrap(),
+            timeout_ms: 10_000,
+        };
+        let path = self.directory.join(format!("{name}.application.toml"));
+        init::private_replace(
+            &path,
+            toml::to_string_pretty(&application).unwrap().as_bytes(),
+        )
+        .unwrap();
+        path
+    }
     pub async fn restart(&mut self) {
         let address = self.server.as_ref().unwrap().address;
+        let application_address = self.server.as_ref().unwrap().http_address.unwrap();
         self.finish().await;
         // start_local's optional bind is HTTP; native QUIC uses config.bind.
         self.config.bind = address;
         self.server = Some(
-            RunningServer::start_local(
-                self.config.clone(),
-                Some("127.0.0.1:0".parse().unwrap()),
-                false,
-            )
-            .await
-            .unwrap(),
+            RunningServer::start_local(self.config.clone(), Some(application_address), false)
+                .await
+                .unwrap(),
         );
         let mut owner = ConnectClient::open(self.owner_config.clone())
             .await

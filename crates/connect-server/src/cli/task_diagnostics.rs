@@ -2,7 +2,10 @@
 use super::task_access::codex_host::diagnostics::{self, HostObservation};
 use anyhow::Result;
 use clap::Args;
-use connect_client::{task_diagnostics::DiagnosticCursors, ClientConfig, ConnectClient};
+use connect_client::{
+    application::{ApplicationClient, ApplicationClientConfig},
+    task_diagnostics::DiagnosticCursors,
+};
 use std::path::PathBuf;
 
 #[derive(serde::Serialize)]
@@ -33,9 +36,10 @@ pub struct Arguments {
 }
 impl Arguments {
     /// Public authenticated reads only; missing permission never borrows an
-    /// owner credential. Always close the connection, including a failed sample.
+    /// owner credential. Each bounded HTTP transaction retains its own authority.
     pub async fn execute(self) -> Result<()> {
-        let mut client = ConnectClient::open(ClientConfig::load(&self.config)?).await?;
+        let mut client =
+            ApplicationClient::open(ApplicationClientConfig::load(&self.config)?).await?;
         let result = async {
             let binding = client.negotiate_task(&self.task_id).await?;
             let mut task = client
@@ -76,7 +80,7 @@ impl Arguments {
             })
         }
         .await;
-        client.close().await;
+        drop(client);
         println!("{}", serde_json::to_string_pretty(&result?)?);
         Ok(())
     }

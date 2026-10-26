@@ -4,7 +4,9 @@
 mod fixture;
 #[path = "support/task_diagnostics_fixture.rs"]
 mod setup;
-use connect_client::{task_diagnostics::*, ClientError, ConnectClient};
+use connect_client::{
+    application::ApplicationClient, task_diagnostics::*, ClientError, ConnectClient,
+};
 use connect_protocol::tasks::*;
 use connect_store::Store;
 
@@ -21,21 +23,20 @@ fn forbidden(error: ClientError) {
     assert!(matches!(error,ClientError::Application(error) if error.code=="forbidden"));
 }
 async fn start() -> fixture::Fixture {
-    fixture::Fixture::start_permitted(
-        true,
-        vec![
-            TaskPermission::Send,
-            TaskPermission::History,
-            TaskPermission::Inbox,
-        ],
-    )
+    fixture::Fixture::start_independent_permitted(vec![
+        TaskPermission::Send,
+        TaskPermission::History,
+        TaskPermission::Inbox,
+    ])
     .await
 }
 #[tokio::test]
 async fn missing_notification_catches_up_exact_reply_without_consuming_or_exposing_content() {
     let f = start().await;
     let question = setup::question(&f, "PRIVATE-QUESTION-BODY").await;
-    let mut client = ConnectClient::open(setup::native(&f)).await.unwrap();
+    let mut client = ApplicationClient::open(setup::application(&f, setup::native(&f)))
+        .await
+        .unwrap();
     let before = Store::inspect_snapshot(f.server.store.path()).unwrap();
     let view = client
         .task_diagnostics(&f.task.id, &Default::default(), 100)
@@ -55,9 +56,11 @@ async fn missing_notification_catches_up_exact_reply_without_consuming_or_exposi
         Store::inspect_snapshot(f.server.store.path()).unwrap(),
         before
     );
-    client.close().await;
+    drop(client);
     let reply = setup::answer(&f, question).await;
-    let mut client = ConnectClient::open(setup::native(&f)).await.unwrap();
+    let mut client = ApplicationClient::open(setup::application(&f, setup::native(&f)))
+        .await
+        .unwrap();
     let after = Store::inspect_snapshot(f.server.store.path()).unwrap();
     let view = client
         .task_diagnostics(
@@ -97,7 +100,7 @@ async fn missing_notification_catches_up_exact_reply_without_consuming_or_exposi
         Store::inspect_snapshot(f.server.store.path()).unwrap(),
         revoked
     );
-    client.close().await;
+    drop(client);
     f.close().await;
 }
 #[tokio::test]
@@ -114,7 +117,9 @@ async fn owner_sees_unassigned_metadata_and_explicit_paging_while_bad_cursor_fai
         .await
         .unwrap();
     human.close().await;
-    let mut owner = ConnectClient::open(setup::owner(&f)).await.unwrap();
+    let mut owner = ApplicationClient::open(setup::application(&f, setup::owner(&f)))
+        .await
+        .unwrap();
     let before = Store::inspect_snapshot(f.server.store.path()).unwrap();
     let view = owner
         .task_diagnostics(&f.task.id, &Default::default(), 1)
@@ -149,7 +154,7 @@ async fn owner_sees_unassigned_metadata_and_explicit_paging_while_bad_cursor_fai
         Store::inspect_snapshot(f.server.store.path()).unwrap(),
         before
     );
-    owner.close().await;
+    drop(owner);
     f.close().await;
 }
 #[tokio::test]
@@ -168,7 +173,9 @@ async fn independent_cli_uses_scoped_sdk_and_rejects_unauthorized_task_without_f
     assert_eq!(view.task.state, TaskState::Waiting);
     let text = String::from_utf8(output.stdout).unwrap();
     assert!(!text.contains("PRIVATE-QUESTION-BODY") && !text.contains(f.issued.expose_secret()));
-    let mut client = ConnectClient::open(setup::native(&f)).await.unwrap();
+    let mut client = ApplicationClient::open(setup::application(&f, setup::native(&f)))
+        .await
+        .unwrap();
     forbidden(
         client
             .task_diagnostics("another-task", &Default::default(), 100)
@@ -183,6 +190,6 @@ async fn independent_cli_uses_scoped_sdk_and_rejects_unauthorized_task_without_f
         Store::inspect_snapshot(f.server.store.path()).unwrap(),
         before
     );
-    client.close().await;
+    drop(client);
     f.close().await;
 }

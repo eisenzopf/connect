@@ -134,6 +134,195 @@ async fn invocation(
 }
 
 #[tokio::test]
+async fn canonical_application_diagnostics_retains_metadata_after_grant_revocation_and_rechecks_the_reader(
+) {
+    use connect_client::task_diagnostics::{DiagnosticCursors, DiagnosticSection};
+    for algorithm in ["EdDSA", "ES256"] {
+        let setup = setup(algorithm).await;
+        let (record, grant) = create_task(
+            &setup,
+            "diagnostic-task",
+            vec![TaskPermission::Send, TaskPermission::Inbox],
+        )
+        .await;
+        let mut original = invocation(&setup, &record, &grant).await;
+        let request = question(
+            &record,
+            "diagnostic-question",
+            "Private diagnostic question",
+        );
+        task(&mut original, request.clone()).await;
+        let before = connect_store::Store::inspect_snapshot(&setup.f.config.database).unwrap();
+        let narrow = original
+            .task_diagnostics(&record.id, &DiagnosticCursors::default(), 1)
+            .await
+            .unwrap();
+        assert!(matches!(narrow.journal, DiagnosticSection::Available(_)));
+        assert!(
+            matches!(narrow.sources,DiagnosticSection::Unavailable { ref code } if code=="forbidden")
+        );
+        assert!(
+            matches!(narrow.unassigned,DiagnosticSection::Unavailable { ref code } if code=="forbidden")
+        );
+        assert!(
+            matches!(narrow.server_readiness,DiagnosticSection::Unavailable { ref code } if code=="forbidden")
+        );
+        assert_eq!(
+            connect_store::Store::inspect_snapshot(&setup.f.config.database).unwrap(),
+            before
+        );
+        access(
+            &setup.application,
+            TaskAccessCommand::Revoke {
+                grant_id: grant.grant.id.clone(),
+            },
+        )
+        .await;
+        assert!(
+            matches!(original.task_diagnostics(&record.id,&Default::default(),1).await,Err(ClientError::Application(error)) if error.code=="unauthorized")
+        );
+        let inspection = setup
+            .f
+            .server
+            .store
+            .issue(
+                &setup.f.client.identity_id,
+                Scope {
+                    operations: [
+                        "task_get",
+                        "task_wait",
+                        "task_recall",
+                        "task_replies",
+                        "history",
+                        "inbox",
+                        "health",
+                    ]
+                    .map(String::from)
+                    .to_vec(),
+                    recipients: vec![setup.ai.clone()],
+                },
+                record.expires_at,
+            )
+            .unwrap();
+        let mut config = setup.application.clone();
+        config.credential = inspection.token.clone();
+        let mut reader = application(&config).await;
+        let before = connect_store::Store::inspect_snapshot(&setup.f.config.database).unwrap();
+        let view = reader
+            .task_diagnostics(&record.id, &Default::default(), 1)
+            .await
+            .unwrap();
+        let text = serde_json::to_string(&view).unwrap();
+        for secret in [
+            FACT,
+            "Private diagnostic question",
+            grant.expose_secret(),
+            &inspection.token,
+            &setup.application.credential,
+        ] {
+            assert!(!text.contains(secret));
+        }
+        let DiagnosticSection::Available(sources) = view.sources else {
+            panic!("current owner recall");
+        };
+        assert!(!sources.items.is_empty());
+        assert!(sources.next.is_some());
+        assert!(
+            matches!(reader.task_diagnostics(&record.id,&DiagnosticCursors { journal:sources.next,..Default::default() },1).await,Err(ClientError::Application(error)) if error.code=="invalid-request")
+        );
+        assert!(
+            matches!(reader.task_diagnostics(&record.id,&Default::default(),0).await,Err(ClientError::Application(error)) if error.code=="invalid-request")
+        );
+        let retained = reader
+            .task_diagnostics(&record.id, &Default::default(), 100)
+            .await
+            .unwrap();
+        assert!(
+            matches!(retained.journal,DiagnosticSection::Available(ref page)
+            if page.items.iter().any(|event|matches!(&event.observation,
+                connect_client::task_diagnostics::DiagnosticObservation::Effect { request_id,.. }
+                    if request_id=="diagnostic-question")))
+        );
+        let path = setup.f.temp.path().join("retained.application.toml");
+        init::private_write(&path, toml::to_string(&config).unwrap().as_bytes()).unwrap();
+        let run = || {
+            let mut command = tokio::process::Command::new(env!("CARGO_BIN_EXE_connect"));
+            command
+                .args(["task-diagnostics", "--config"])
+                .arg(&path)
+                .args(["--task-id", &record.id, "--limit", "100"])
+                .stdin(std::process::Stdio::null())
+                .kill_on_drop(true);
+            command
+        };
+        let output = tokio::time::timeout(Duration::from_secs(15), run().output())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let cli: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(cli["task"]["task_id"], record.id);
+        assert_eq!(cli["sources"]["availability"], "available");
+        assert!(cli["journal"]["data"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|event| event["observation"]["kind"] == "effect"
+                && event["observation"]["data"]["request_id"] == "diagnostic-question"));
+        assert_eq!(
+            connect_store::Store::inspect_snapshot(&setup.f.config.database).unwrap(),
+            before
+        );
+        let store = setup.f.server.store.clone();
+        let admin = store.authenticate(&setup.f.admin).unwrap();
+        let id = inspection.id.clone();
+        tokio::task::spawn_blocking(move || store.revoke(&admin, &id))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            matches!(reader.task_diagnostics(&record.id,&Default::default(),1).await,Err(ClientError::Application(error)) if error.code=="unauthorized")
+        );
+        let refused = tokio::time::timeout(Duration::from_secs(15), run().output())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(!refused.status.success() && refused.stdout.is_empty());
+        for output in [&output, &refused] {
+            let text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            for secret in [
+                FACT,
+                "Private diagnostic question",
+                grant.expose_secret(),
+                &inspection.token,
+                &setup.application.credential,
+            ] {
+                assert!(!text.contains(secret));
+            }
+        }
+        // Neither retained inspection nor a separate owner's availability revives delegation.
+        let mut owner = application(&setup.application).await;
+        assert_eq!(
+            owner.negotiate_task(&record.id).await.unwrap().id,
+            record.id
+        );
+        assert!(
+            matches!(original.execute(Operation::Task { request:Box::new(TaskRequest::new(request)) }.try_into().unwrap()).await,Err(ClientError::Application(error)) if error.code=="unauthorized")
+        );
+        setup.client.close(options()).await.unwrap();
+        setup.f.server.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
 async fn canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation(
 ) {
     for algorithm in ["EdDSA", "ES256"] {

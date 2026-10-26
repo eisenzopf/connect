@@ -1,0 +1,132 @@
+{
+  "task": "G6-065",
+  "status": "current canonical retained Task inspection checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T13:14:00.904298+00:00",
+  "scope": "Local macOS arm64 actual canonical production server, public application SDK and shipped Task-diagnostics CLI under both native server signing algorithms. No actual model-host, remote/provider-account/Linux/package acceptance or publication.",
+  "implementation": [
+    "Task diagnostic convenience belongs to ApplicationClient and uses closed named Task operations through its explicitly configured current HTTP credential. Removed the generic native diagnostic implementation; no runtime format fallback or native transport is opened.",
+    "Existing bounded projections/cursor lanes, optional forbidden sections, metadata redaction, initial/final Task binding checks and revision-change reporting are preserved. CLI samples local host metadata only after current Task authorization and rechecks current Task authority before output.",
+    "CLI, reference-app inspector and historical diagnostic consumers now select explicit ApplicationClientConfig. Historical/reference fixture configuration is separate from native worker configuration and preserves a concrete HTTP endpoint across server restart.",
+    "Documentation and current Rustdoc now show the explicit application configuration; native signing files, minimal MCP assets and historical generic export-native files do not become diagnostic configuration automatically."
+  ],
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 0.2220925420988351,
+      "source_unchanged": true,
+      "binary_sha256": "397c8279f9d9265dc2ae8d7b22efd9b84e6e78a17d78af28cd241911ecee200e",
+      "bytes": 246952208,
+      "source_count": 1291,
+      "log_sha256": "1675376b46aaedef098940cfc4baa0102f059d030faa462df079f1a960f3e712",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-03": {
+        "sha256": "8f5c3a8a0b7de2f0dcfa44fbfb9e50f6d325f7226ff135a6d0739bbc44634292",
+        "bytes": 94469216
+      },
+      "canonical-cli-03": {
+        "sha256": "fcd2db5d4e1b04c2adf86eda125c5abe07661ac046e142dd6a46359df5762e6e",
+        "bytes": 230478928
+      }
+    },
+    "production": {
+      "rows": [
+        {
+          "filter": "canonical_stdio::",
+          "expected": [
+            "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+            "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration"
+          ],
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.55462354212068,
+          "log": ".local/gate-6/canonical-diagnostics/production-03-00.log",
+          "sha256": "b4e0dd7d96ac452ea841ddccd25473e84d92ee92b3dd4450957801441cfa032c"
+        },
+        {
+          "filter": "sdk_handles::tasks::",
+          "expected": [
+            "sdk_handles::tasks::canonical_application_diagnostics_retains_metadata_after_grant_revocation_and_rechecks_the_reader",
+            "sdk_handles::tasks::canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation",
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 4.276499750092626,
+          "log": ".local/gate-6/canonical-diagnostics/production-03-01.log",
+          "sha256": "2cbb438ed9b04b8f2c5a143f4b056374b7822894da3f8c90a7ab127b84207436"
+        },
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.3087999999988824,
+          "log": ".local/gate-6/canonical-diagnostics/production-03-02.log",
+          "sha256": "cd368995debed14eb4c83e92c123abbcc966a4034545dd1b59cd6b00da048040"
+        },
+        {
+          "filter": "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation",
+          "expected": [
+            "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 0.31585224997252226,
+          "log": ".local/gate-6/canonical-diagnostics/production-03-03.log",
+          "sha256": "58da232b9eafc830d79992de4b2c2b6186f1c7dc7e02affd60cdfb62fe22ce59"
+        }
+      ],
+      "binary_sha256": "397c8279f9d9265dc2ae8d7b22efd9b84e6e78a17d78af28cd241911ecee200e",
+      "guard_count": 1291,
+      "source_unchanged": true,
+      "driver_sha256": "44b8a9ddb2cf0d78ca0538d9401d30da8859c71700b974a0d32729a500cad336"
+    },
+    "source_count": 1291,
+    "source_unchanged": true,
+    "inputs_sha256": "6399ecb896bf94c7d80b6cc20d97c16298b73f338f7eb9db08e2ab6680a41847",
+    "consumers": {
+      "status": "compile checks running; not counted as passes",
+      "scope": "Historical server diagnostic and reference-app consumer compile checks only. No runtime qualification inherited.",
+      "private_summary": ".local/gate-6/canonical-diagnostics/consumer-check-03-summary.json"
+    },
+    "static_checks": [
+      "prepare-dependencies verified source/patch pins",
+      "repository format --check",
+      "git diff --check",
+      "OpenAPI generator --check",
+      "Gate6 progress/integrity check"
+    ]
+  },
+  "cases": [
+    "Both EdDSA/ES256 production listeners: narrow Native Task grant sees journal metadata, while Recall, unassigned owner replies and health remain explicit forbidden sections. Inspection leaves Store snapshot unchanged.",
+    "Revoking the original grant refuses its diagnostic and exact original mutation. A separately issued non-administrator owner inspection credential discovers the original effect ID/request identity in retained journal metadata and authorized source references; SDK and independent CLI agree without consuming work.",
+    "Wrong-lane cursor and limit0 fail with invalid-request. Full diagnostic output excludes context/question text, source credential, grant secret and inspection bearer. Successful diagnostic Store snapshots are unchanged.",
+    "Revoking the independent current inspection reader refuses the already-open SDK reader and fresh CLI with empty stdout; separate original owner still reads the Task. Inspection never restores revoked delegation."
+  ],
+  "development_record": {
+    "scope": "No new production failure in this checkpoint. Prior intermittent Task/provider forbidden failure remains open; current selected provider regression passed without a robustness claim.",
+    "prebuild_cache": "Removed1017432760 bytes of closed obsolete regenerable task cache libraries absent from current Cargo graph; source/prepared dependencies/current artifacts/proof seals preserved.",
+    "cache_audit_sha256": "b14abc91324cfb6a48fe6639360a8cd437b73d89c54ae171cf45457d94e33989",
+    "builds": "Initial current public/CLI build86.96s, stronger effect assertion fixture build11.47s, final consumer endpoint-only fixture fingerprint build0.22s. Final binary is independently sealed and matches the stronger fixture binary."
+  },
+  "remaining": [
+    "Finish canonical CLI credential issuance with durable original-intent recovery and explicit native enrollment; do not reuse the old generic non-idempotent issue path.",
+    "Complete facade endpoint/OpenAPI/auth/schema parity, including uncovered Task-access and base raw-artifact byte routes; normalize route parameter names when comparing record-mutation paths.",
+    "Complete remaining MCP consultation/movement and actual supported agent-host/profile work. Historical/reference consumer compilation and runtime are separate evidence; never infer those passes from this canonical checkpoint.",
+    "Retained provider-uncertainty forbidden regression needs diagnosis despite later passing runs. All105 Gate6 tasks stay active; G6-065 remains in progress."
+  ]
+}

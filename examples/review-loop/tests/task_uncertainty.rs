@@ -165,7 +165,7 @@ async fn app_and_server_restarts_retain_actual_provider_uncertainty_without_redi
     let snapshot =
         connect_store::Store::inspect_snapshot(f.server.as_ref().unwrap().store.path()).unwrap();
     let diagnostic = connect_review_loop::task_runner::diagnostics::inspect(
-        &f.directory.join("invocation.toml"),
+        &f.diagnostic_config("invocation"),
         &f.task.id,
         Some(&f.state()),
         100,

@@ -6,15 +6,18 @@ work after model-key revocation; an administrator has no membership bypass.
 Regular host sampling reports that installation's saved session/run state, not
 per-task model progress. Optional narrow installations retain their own binding.
 
-The native public SDK and `connect task-diagnostics` sample the existing task
-interfaces. They add no transport, task store or administrative authority.
+The public application SDK and `connect task-diagnostics` sample the existing
+named Task HTTP interfaces using an explicit application configuration. They add
+no task store or administrative authority.
 
 ```sh
-connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID
+connect task-diagnostics --config .local/task.application.toml --task-id TASK_ID
 ```
 
-Use a currently authorized task-owner configuration or an explicitly exported
-Native task grant. The command never reads the server database or falls back
+Use a currently authorized Task-owner credential or narrow Native Task grant
+in an explicit `ApplicationClientConfig`. Native signing/MCP config files and
+the historical generic `export-native` file are different formats; the diagnostic
+command does not convert them or infer an HTTP listener. The command never reads the server database or falls back
 to another credential. HostSession and provider MCP grants retain their own
 adapters; they cannot be converted into Native authority. Missing optional
 permission appears as `availability: unavailable` with a stable code.
@@ -23,7 +26,7 @@ Authentication, transport, invalid-cursor and protocol errors fail the sample.
 Rust applications use the same convenience:
 
 ```rust,no_run
-# async fn inspect(client: &mut connect_client::ConnectClient, task: &str) -> connect_client::Result<()> {
+# async fn inspect(client: &mut connect_client::application::ApplicationClient, task: &str) -> connect_client::Result<()> {
 use connect_client::task_diagnostics::DiagnosticCursors;
 let report = client.task_diagnostics(task, &DiagnosticCursors::default(), 100).await?;
 assert_eq!(report.task.task_id, task);
@@ -43,7 +46,7 @@ Each of the three paged views has its own `after` and `next` checkpoint:
 Continue a particular view with its matching option:
 
 ```sh
-connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID \
+connect task-diagnostics --config .local/task.application.toml --task-id TASK_ID \
   --after TASK_JOURNAL_CURSOR --sources-after RECALL_CURSOR --limit 25
 ```
 
@@ -99,7 +102,7 @@ uncertainty qualifications; G4-024 is not complete.
 Inspect one explicitly selected Codex installation alongside the task:
 
 ```sh
-connect task-diagnostics --config .local/native-task.toml --task-id TASK_ID \
+connect task-diagnostics --config .local/task.application.toml --task-id TASK_ID \
   --codex-installation .local/codex-task
 ```
 
@@ -126,7 +129,7 @@ explicit. Metadata observations confer no authority or permission to replay work
 The reference app provides a separate SDK client view:
 
 ```sh
-connect-example task-diagnostics --config .local/invocation.toml \
+connect-example task-diagnostics --config .local/invocation.application.toml \
   --task-id TASK_ID --state .local/runner.sqlite3 --limit 100
 ```
 
@@ -209,3 +212,13 @@ recovery, see [local Gate 4 recovery](TASK_RECOVERY.md).
 Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
 
 [offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
+
+## Current canonical qualification
+
+The Gate6 canonical-server checkpoint is
+[canonical Task diagnostics](evidence/gate-6/canonical-task-diagnostics.json).
+It records both signing algorithms, narrow denied sections, read-only snapshots,
+original retained effect discovery after grant revocation, bad-cursor refusal,
+current independent reader revocation and actual SDK/CLI redaction. Historical
+Gate4 and reference-app consumer source is migrated to application configuration;
+compile checks alone do not requalify their complete historical runtime profiles.

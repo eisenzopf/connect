@@ -1,7 +1,10 @@
 //! Public task reads plus a consistent, private application checkpoint snapshot.
 use super::state::{statistics_at, Binding, Statistics};
 use anyhow::Result;
-use connect_client::{task_diagnostics::TaskDiagnostics, ClientConfig, ConnectClient};
+use connect_client::{
+    application::{ApplicationClient, ApplicationClientConfig},
+    task_diagnostics::TaskDiagnostics,
+};
 use fs2::FileExt;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
@@ -57,7 +60,7 @@ pub async fn inspect(
     state: Option<&Path>,
     limit: u32,
 ) -> Result<Report> {
-    let mut client = ConnectClient::open(ClientConfig::load(config)?).await?;
+    let mut client = ApplicationClient::open(ApplicationClientConfig::load(config)?).await?;
     let result = async {
         let first = client.negotiate_task(task_id).await?;
         let binding = Binding {
@@ -85,7 +88,7 @@ pub async fn inspect(
         })
     }
     .await;
-    client.close().await;
+    drop(client);
     result
 }
 

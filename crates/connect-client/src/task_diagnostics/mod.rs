@@ -7,12 +7,12 @@ pub use readiness::WorkerCondition;
 mod readiness_tests;
 #[cfg(test)]
 mod tests;
-use crate::{ClientError, ConnectClient, Result};
-use connect_protocol::{tasks::*, Error};
+use crate::{application::ApplicationClient, ClientError, Result};
+use connect_protocol::{tasks::*, Error, Operation, Outcome};
 pub use models::*;
 use projection::{event, record, section, source, task, unavailable};
 
-impl ConnectClient {
+impl ApplicationClient {
     /// Sample one page of task events, source references and unassigned replies,
     /// plus server process health. Never widens a grant or falls back to another
     /// credential. Missing optional read permission is explicit; transport,
@@ -24,7 +24,7 @@ impl ConnectClient {
     /// its events; diagnostic reads never acknowledge or consume them.
     ///
     /// ```no_run
-    /// # async fn inspect(client: &mut connect_client::ConnectClient, task: &str) -> connect_client::Result<()> {
+    /// # async fn inspect(client: &mut connect_client::application::ApplicationClient, task: &str) -> connect_client::Result<()> {
     /// let view = client.task_diagnostics(task, &Default::default(), 100).await?;
     /// assert_eq!(view.task.task_id, task);
     /// # Ok(()) }
@@ -42,12 +42,15 @@ impl ConnectClient {
         }
         let first = self.negotiate_task(task_id).await?;
         let journal = section(
-            self.task(TaskCommand::Wait {
-                task_id: task_id.into(),
-                after: cursors.journal.clone(),
-                limit,
-                wait_ms: 0,
-            })
+            diagnostic_task(
+                self,
+                TaskCommand::Wait {
+                    task_id: task_id.into(),
+                    after: cursors.journal.clone(),
+                    limit,
+                    wait_ms: 0,
+                },
+            )
             .await,
             |outcome| {
                 let TaskOutcome::Inbox { events, next } = outcome else {
@@ -63,11 +66,14 @@ impl ConnectClient {
             },
         )?;
         let sources = section(
-            self.task(TaskCommand::Recall {
-                task_id: task_id.into(),
-                after: cursors.sources.clone(),
-                limit,
-            })
+            diagnostic_task(
+                self,
+                TaskCommand::Recall {
+                    task_id: task_id.into(),
+                    after: cursors.sources.clone(),
+                    limit,
+                },
+            )
             .await,
             |outcome| {
                 let TaskOutcome::Recall {
@@ -88,11 +94,14 @@ impl ConnectClient {
             },
         )?;
         let unassigned = section(
-            self.task(TaskCommand::Replies {
-                conversation_id: first.conversation_id.clone(),
-                after: cursors.unassigned.clone(),
-                limit,
-            })
+            diagnostic_task(
+                self,
+                TaskCommand::Replies {
+                    conversation_id: first.conversation_id.clone(),
+                    after: cursors.unassigned.clone(),
+                    limit,
+                },
+            )
             .await,
             |outcome| {
                 let TaskOutcome::Replies { items, next } = outcome else {
@@ -111,18 +120,21 @@ impl ConnectClient {
             },
         )?;
         let server_readiness = match self.health().await {
-            Ok(health) => health
-                .readiness
+            Ok(Outcome::Health { readiness, .. }) => readiness
                 .map(DiagnosticSection::Available)
                 .unwrap_or(DiagnosticSection::Unavailable {
                     code: "readiness-not-reported".into(),
                 }),
+            Ok(_) => return Err(ClientError::Protocol),
             Err(error) => unavailable(error)?,
         };
         let last = record(
-            self.task(TaskCommand::Get {
-                task_id: task_id.into(),
-            })
+            diagnostic_task(
+                self,
+                TaskCommand::Get {
+                    task_id: task_id.into(),
+                },
+            )
             .await?,
         )?;
         if last.id != first.id
@@ -139,5 +151,23 @@ impl ConnectClient {
             unassigned,
             server_readiness,
         })
+    }
+}
+
+async fn diagnostic_task(
+    client: &mut ApplicationClient,
+    command: TaskCommand,
+) -> Result<TaskOutcome> {
+    match client
+        .execute(
+            Operation::Task {
+                request: Box::new(TaskRequest::new(command)),
+            }
+            .try_into()?,
+        )
+        .await?
+    {
+        Outcome::Task(outcome) => Ok(*outcome),
+        _ => Err(ClientError::Protocol),
     }
 }
