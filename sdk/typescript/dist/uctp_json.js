@@ -56,8 +56,12 @@ export function canonicalJson(value) {
     return result;
 }
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
-export function parseCanonicalJson(bytes) {
-    if (!bytes.length || bytes.length > MAX_ENVELOPE_BYTES)
+export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES) {
+    if (!Number.isSafeInteger(maximumBytes) ||
+        maximumBytes < 1 ||
+        maximumBytes > 2 * MAX_ENVELOPE_BYTES ||
+        !bytes.length ||
+        bytes.length > maximumBytes)
         return fail();
     let text;
     try {

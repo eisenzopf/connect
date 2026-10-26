@@ -7042,7 +7042,7 @@
       "id": "A6-24",
       "title": "Documentation tells one current developer story",
       "milestone": "G6-G",
-      "status": "not-started",
+      "status": "in-progress",
       "proof": "Publish-ready website and repository docs explain VoIP 3 \u2192 UCTP \u2192 rvoip \u2192 Connect \u2192 application; provide quickstart, concepts, progressive Parley tutorial, a dedicated server HTTP/REST API reference, SDK/protocol reference, provider setup, hosting, operations, breaking-change notes and capability matrix. Publish an OpenAPI contract covering every supported HTTP endpoint, auth/scopes, schemas, status/error responses, pagination/event cursors, logical request IDs, operation status/cancellation, file transfer and limits. Run curl examples and check the OpenAPI contract against the real server. Run every supported snippet, check links/accessibility/mobile layout and compare claims with exact candidate evidence. Engineering gates remain accessible behind the developer entry path.",
       "evidence": [],
       "implementation_items": [
@@ -7064,7 +7064,7 @@
         "G6-103",
         "G6-104"
       ],
-      "observation": "Planned acceptance; no Gate 6 runtime or qualification result exists.",
+      "observation": "0/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-15"
       ],

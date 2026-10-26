@@ -1,4 +1,5 @@
 import './media_diagnostics.test.mjs';
+import './canonical_http.test.mjs';
 import './browser_uctp.test.mjs';
 import './browser_wss.test.mjs';
 import './browser_rtp.test.mjs';

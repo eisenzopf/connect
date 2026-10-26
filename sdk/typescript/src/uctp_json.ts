@@ -58,8 +58,18 @@ export function canonicalJson(value: Json): string {
 }
 
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
-export function parseCanonicalJson(bytes: Uint8Array): Json {
-    if (!bytes.length || bytes.length > MAX_ENVELOPE_BYTES) return fail();
+export function parseCanonicalJson(
+    bytes: Uint8Array,
+    maximumBytes = MAX_ENVELOPE_BYTES,
+): Json {
+    if (
+        !Number.isSafeInteger(maximumBytes) ||
+        maximumBytes < 1 ||
+        maximumBytes > 2 * MAX_ENVELOPE_BYTES ||
+        !bytes.length ||
+        bytes.length > maximumBytes
+    )
+        return fail();
     let text: string;
     try {
         text = new TextDecoder("utf-8", {

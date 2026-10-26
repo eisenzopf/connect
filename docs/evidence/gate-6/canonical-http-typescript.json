@@ -1,0 +1,45 @@
+{
+  "task": "G6-065",
+  "status": "finite canonical HTTP consumer foundation; task in progress",
+  "checked_at": "2026-10-26T11:16:18.023928+00:00",
+  "scope": "Actual local Node HTTP peers exercise the new TypeScript finite transport. These are transport/protocol fixtures, not Connect production authorization or service parity. Full G6-062 Node handles/helper implementation remains dependency-gated and not started.",
+  "implementation": [
+    "Explicit loopback-only POST /v2/commands, connect/2 batch/rejection profile, original canonical payload and stable mutation ID. No v1 compatibility, redirect, credential refresh, automatic retry or fallback.",
+    "Requests clone intent synchronously, enforce64KiB, current finite command allowlist, original IDs for mutations, no inferred scope, and explicit live:false for finite journal replay. Native offer/answer and live leases require their own owners.",
+    "Reply bodies have a fixed2MiB read buffer and absolute request deadline through parsing;128 envelopes and1MiB per envelope. Duplicate-key/scalar/depth/node validation is shared with browser JSON parsing; its default1MiB remains unchanged. Reply profile/physical correlation, resource scope, original operation identity, event nested scopes/cursor, duplicate frame IDs, final ACK/error and HTTP status must agree. Signatures are refused on bearer HTTP responses.",
+    "CanonicalError retains certainty and original operation key. Queued/local failures are not-submitted; started mutation failure is uncertain; checked remote refusal is refused; reads stay read-only. Public error display omits raw replies/credentials.",
+    "At most16 active exchanges. Close aborts and joins owned requests under its bounded/cancellable wait; repeated close remains joinable. A local cancellation never claims remote rollback."
+  ],
+  "verification": {
+    "new_tests": 13,
+    "full_typescript_regression": {
+      "passed": 264,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "log": ".local/gate-6/node-sdk-http/regression-01.log",
+      "sha256": "4872e2d03bd8a670baa81264fef3b7ff70c5cbc663387fd3a1e156f8581c5ab1",
+      "runtime": "v26.7.0",
+      "qualification": "Current local runtime only; approved minimum Node22 runtime not qualified by this run."
+    },
+    "typescript_build": "passed",
+    "format": "Changed TypeScript files formatted and checked. Package-wide format check also reports pre-existing protocol.ts/record_context.ts/task_protocol.ts drift, left visible.",
+    "inputs": {
+      "sdk/typescript/src/canonical_http.ts": "91030a49d9dd2daac196fda9776ac66d6bd9cbe8d9fb79396a570d835a6cdfe5",
+      "sdk/typescript/src/canonical_error.ts": "cfc411868ac9a77969f8cd869bfd47d178adbde5c5ab0efc7835339c6e891b09",
+      "sdk/typescript/src/uctp_json.ts": "0ca495a1f0f7b704b7bfdb588eac9d32f7141e195bebaad17c8423d7caed785f",
+      "sdk/typescript/src/uctp_wire.ts": "af3e92e0102853dcb885b1171e2549957907ac31636b35b2e5713c496ed9642c",
+      "sdk/typescript/src/index.ts": "f436fb7552fa05af82f7c2a26c267709553b6f7218901e93da045b77fce17818",
+      "sdk/tests/canonical_http.test.mjs": "b8caff726fd188f6309326506eb8ed1a6d8381cdae8cecb2b1022f5959a53906",
+      "sdk/tests/clients.test.mjs": "4a33cd71bd26caa6806e12e5f035f3cf8fdb7432ed3469d8a8c1b4ad492f1b5b",
+      "contracts/openapi-canonical-http.json": "7e57fe54a8ac499a426e9bd2720363f6bee653305cc177413c3a3ca1480839ca",
+      "contracts/schemas/uctp-envelope-2.schema.json": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39"
+    }
+  },
+  "remaining": [
+    "Implement and qualify current CLI/MCP consumers, named Task/grant composition and trusted administrative/file endpoints without compatibility dispatch.",
+    "Add actual production HTTP/native facade parity, current permission/audience checks, original uncertainty/restart and supported agent-host transition evidence.",
+    "Typed result and full raw schema validation remain above this structural finite transport; no typed SDK parity or media ownership is claimed.",
+    "G6-062 waits on G6-052 transport selection; installable assets, remote HTTPS and approved runtime/profile qualification remain assigned."
+  ]
+}
