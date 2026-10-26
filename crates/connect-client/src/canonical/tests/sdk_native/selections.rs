@@ -42,7 +42,7 @@ fn selectors() -> NonEmpty<StreamSelector> {
         rest: vec![StreamSelector::Stream("remote-data".parse().unwrap())],
     }
 }
-fn streams() -> Value {
+pub(super) fn streams() -> Value {
     json!([
      {"strm_id":"audio","kind":"audio","direction":"recvonly","stream_local_id":7,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}},
      {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":8,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
@@ -51,7 +51,7 @@ fn streams() -> Value {
      {"strm_id":"remote-data","kind":"data","direction":"sendonly","stream_local_id":18,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
     ])
 }
-fn bindings(v: &Value) -> Value {
+pub(super) fn bindings(v: &Value) -> Value {
     json!(v.as_array().unwrap().iter().map(|s|json!({"stream_id":s["strm_id"],"medium":s["kind"],"direction":s["direction"],"codec":s["codec"],"stream_local_id":s["stream_local_id"],"stream_generation":1,"connection_generation":1})).collect::<Vec<_>>())
 }
 fn ports(request: &Envelope, case: Case) -> Value {
@@ -94,7 +94,7 @@ fn result(request: &Envelope, case: Case) -> Value {
     };
     out
 }
-async fn maybe_read(reader: &mut quinn::RecvStream) -> Option<Envelope> {
+pub(super) async fn maybe_read(reader: &mut quinn::RecvStream) -> Option<Envelope> {
     let mut prefix = [0; 4];
     tokio::time::timeout(Duration::from_secs(3), reader.read_exact(&mut prefix))
         .await

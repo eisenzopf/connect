@@ -2,6 +2,7 @@
 use super::*;
 mod codecs;
 mod end;
+mod reconciliations;
 mod selections;
 mod updates;
 use crate::sdk::{
@@ -11,6 +12,7 @@ use crate::sdk::{
 pub(in crate::canonical) enum Case {
     Mixed,
     Selection(selections::Case),
+    Reconciliation(reconciliations::Case),
     Codec(codecs::Case),
     Controls(updates::Case),
     End,
@@ -200,6 +202,17 @@ pub(super) async fn emit(
     status(writer, signer, &query, "completed").await;
     if let Case::Codec(case) = case {
         codecs::emit(
+            connection,
+            case,
+            reader,
+            writer,
+            signer,
+            signal,
+            &capabilities,
+        )
+        .await;
+    } else if let Case::Reconciliation(case) = case {
+        reconciliations::emit(
             connection,
             case,
             reader,

@@ -1,7 +1,12 @@
 //! Actual both-ends SDK selection, original-result recovery and decoded A/V.
 use super::*;
 use sdk::{Direction, Medium, StreamSelector};
-fn stream(id: &str, kind: Medium, direction: Direction, codec: &str) -> sdk::OfferedStream {
+pub(super) fn stream(
+    id: &str,
+    kind: Medium,
+    direction: Direction,
+    codec: &str,
+) -> sdk::OfferedStream {
     sdk::OfferedStream {
         id: id.parse().unwrap(),
         kind,
@@ -12,7 +17,7 @@ fn stream(id: &str, kind: Medium, direction: Direction, codec: &str) -> sdk::Off
         },
     }
 }
-fn revision(n: u64) -> sdk::StreamRevision {
+pub(super) fn revision(n: u64) -> sdk::StreamRevision {
     sdk::StreamRevision::try_from(n).unwrap()
 }
 fn selectors() -> NonEmpty<StreamSelector> {
@@ -21,7 +26,7 @@ fn selectors() -> NonEmpty<StreamSelector> {
         rest: vec![StreamSelector::Stream("selection-video".parse().unwrap())],
     }
 }
-async fn send(a: sdk::Stream, v: sdk::Stream, epoch: u16, clock: tokio::time::Instant) {
+pub(super) async fn send(a: sdk::Stream, v: sdk::Stream, epoch: u16, clock: tokio::time::Instant) {
     for i in 0..100u16 {
         let pcmu = (0..160)
             .map(|n| if n % 16 < 8 { 0x80 } else { 0 })
@@ -67,7 +72,7 @@ async fn send(a: sdk::Stream, v: sdk::Stream, epoch: u16, clock: tokio::time::In
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
 }
-async fn receive(
+pub(super) async fn receive(
     audio: sdk::Stream,
     video: sdk::Stream,
     want_video: bool,
@@ -122,7 +127,7 @@ async fn receive(
     let (a, v) = tokio::join!(audio_read, video_read);
     (a, v)
 }
-async fn drain(s: &sdk::Stream) {
+pub(super) async fn drain(s: &sdk::Stream) {
     for _ in 0..40 {
         if matches!(s.receive_packet(RequestOptions::new(Duration::from_millis(25)).unwrap()).await,Err(e) if e.kind==sdk::ErrorKind::Deadline)
         {

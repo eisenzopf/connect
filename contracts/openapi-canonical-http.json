@@ -275,7 +275,7 @@
             "subscription_record_id"
           ],
           "subscription_record_id": "Stable original explicit stream.subscribe or stream.unsubscribe record that authorized this server-created operation; available while Preparing and preserved through completion or uncertain recovery. Private engine plans are never exposed.",
-          "authority": "Current-authorized operation.get only. Parent record identity is not a permission or physical media grant. An owned SDK must verify its original selector, exact current scope, signed preparation and captured completion before adopting new bindings. Automatic SDK confirmation remains unqualified."
+          "authority": "Current-authorized operation.get only. Parent record identity is not a permission or physical media grant. An owned SDK must verify its original selector, exact current scope, signed preparation and captured completion before adopting new bindings. Owned SDK callbacks use bounded current-journal reads, original selector identity and matching captured completion. Local progress distinguishes Recorded from bindings_adopted; the read-only stream_reconcile operation kind preserves original recovery. Routing-only synchronization and unavailable capture reconciliation remain separate SDK work."
         },
         "x-native-runtime-controls": {
           "transport": "Signed current original native QUIC peer only; HTTP may inspect/cancel the operation but cannot apply a native runtime gate.",

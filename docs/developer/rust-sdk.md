@@ -352,3 +352,29 @@ reconciliation. This is a remaining reconciliation limit, not a claim that the
 recorded effect failed. Fresh-client recovery can inspect captured parameters
 without taking the original physical peer's media custody. Current qualification
 and unresolved scope are recorded in `docs/evidence/gate-6/rust-sdk-selections.json`.
+
+
+An owned native Connection handles server-initiated receive-resource offers for
+its previously issued selectors. Before signing, the worker reads the original
+server-created `stream.reconcile` operation under current authority and matches
+its original `subscription_record_id`, exact scope and native revision. The
+internal proposal ID and signed callback envelope ID remain distinct. A bounded
+job shares the worker's command capacity; media and other control exchanges stay
+live while it polls for captured completion. Confirmation alone does not change
+local parameters. Unsupported receive formats receive a signed refusal.
+
+`Connection::native_reconciliation()` exposes the latest local callback progress,
+original logical/host/parent identity and `bindings_adopted`. `Recorded` describes
+the journal; adoption is separately false for unavailable captures. Use
+`progress.operation(&client)` to observe that original operation, save its
+reference, or restore with `operation_kinds().stream_reconcile`. This kind is
+read-only recovery, not another direct mutation API. Current-authorized recovery
+can settle a retained matching preparation; fresh Clients acquire no transport
+or media custody. A failed internal read or deadline preserves original recovery
+and the old bindings without closing unrelated control work.
+
+Automatic handling currently follows resource-changing signed callbacks. Full
+routing-only event/revision synchronization, unavailable capture reconciliation
+and the remaining SDK/package/profile scope stay open under G6-060. Detailed
+verification is recorded in
+`docs/evidence/gate-6/rust-sdk-auto-reconciliation.json`.

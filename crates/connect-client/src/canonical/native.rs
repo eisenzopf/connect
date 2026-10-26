@@ -83,6 +83,39 @@ fn replacement_offer(
     ))
 }
 impl CanonicalClient {
+    pub(crate) async fn decline_connection_offer(
+        &mut self,
+        request: &Envelope,
+        root: &CommandScope,
+        code: u16,
+    ) -> Result<()> {
+        if request.kind() != "connection.offer" || !matches!(code, 429 | 488) {
+            return Err(ClientError::Protocol);
+        }
+        let mut value = envelope(
+            "error",
+            json!({"code":code,"category":if code==429 {"capacity"}else{"media"},"reason":"native-reconciliation-refused"}),
+        );
+        for (scope, field, expected) in [
+            (Scope::Conversation, "cid", root.conversation_id.as_deref()),
+            (Scope::Session, "sid", root.session_id.as_deref()),
+            (Scope::Connection, "connid", root.connection_id.as_deref()),
+            (
+                Scope::Operation,
+                "operation_id",
+                root.operation_id.as_deref(),
+            ),
+        ] {
+            let expected = expected.ok_or(ClientError::Protocol)?;
+            if request.scope(scope) != Some(expected) {
+                return Err(ClientError::Protocol);
+            }
+            value[field] = json!(expected);
+        }
+        value["in_reply_to"] = json!(request.id());
+        Envelope::from_value(value.clone()).map_err(|_| ClientError::Protocol)?;
+        self.write(value, true).await
+    }
     /// Allocate this signed target against the original replacement root. This
     /// consumes its reserved Core candidate once; it does not negotiate media,
     /// confirm the endpoint, commit movement or retire the old route. Preserve

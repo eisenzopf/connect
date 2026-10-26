@@ -2,6 +2,7 @@
 use super::*;
 mod codecs;
 mod controls;
+mod reconciliations;
 mod selections;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
 use std::sync::{
@@ -25,6 +26,8 @@ struct NativeConnection {
     generations: std::collections::BTreeMap<StreamId, u64>,
     prepared: Option<codecs::Prepared>,
     gates: std::collections::BTreeMap<StreamId, controls::LocalGate>,
+    selectors: std::collections::VecDeque<reconciliations::Origin>,
+    reconciliation: Option<NativeReconciliation>,
 }
 // Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
 type NativeCache = std::collections::BTreeMap<ConnectionId, NativeConnection>;
@@ -88,7 +91,16 @@ impl Shared {
         let owned_native = native.clone();
         let task = tokio::spawn(async move {
             let mut active: Vec<InFlight> = Vec::new();
+            let mut reconciliations = reconciliations::Driver::default();
             let failure = loop {
+                let tick = tokio::select! {biased;
+                    _=stopping.cancelled()=>break ErrorKind::Cancelled,
+                    result=reconciliations.tick(&mut peer,&owned_native)=>result,
+                };
+                if let Err(error) = tick {
+                    break error.kind;
+                }
+                let reconciliation_wakeup = reconciliations.wakeup();
                 let next_deadline = active
                     .iter()
                     .map(|pending| pending.exchange.deadline)
@@ -104,11 +116,14 @@ impl Shared {
                 tokio::select! {
                     _=stopping.cancelled()=>break ErrorKind::Cancelled,
                     _=tokio::time::sleep_until(next_deadline), if !active.is_empty()=>break ErrorKind::Deadline,
+                    _=tokio::time::sleep_until(reconciliation_wakeup.unwrap_or_else(||tokio::time::Instant::now()+Duration::from_secs(60))), if reconciliation_wakeup.is_some()=>{},
                     frame=peer.receive_owned_frame()=> {
                         let frame = match frame { Ok(frame)=>frame, Err(error)=>break Error::transport(error,None).kind };
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.frame(&mut peer,&owned_native,&owned_media,&frame)=>result};
+                        match reconciliation {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         if frame.kind()=="connection.offer" {
                             if let Some(index)=active.iter().position(|p|p.native.is_some() && p.key.as_ref().and_then(|k|k.scope.connection_id.as_ref()).map(|v|v.as_str())==frame.scope(crate::canonical::Scope::Connection)) {
                                 let until=active[index].exchange.deadline;
@@ -125,7 +140,7 @@ impl Shared {
                                 let reserved_handles=wire_handles.values().copied().collect();
                                 let generations=selected.streams.iter().map(|s|(s.id.clone(),1)).collect();
                                 let known_revision=selected.stream_revision;
-                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false,known_revision,participant,wire_handles,local_capabilities,server_capabilities,reserved_handles,generations,prepared:None,gates:Default::default()});
+                                cache.insert(conn,NativeConnection{session:sid,conversation:cid,selected,ended:false,known_revision,participant,wire_handles,local_capabilities,server_capabilities,reserved_handles,generations,prepared:None,gates:Default::default(),selectors:Default::default(),reconciliation:None});
                                 continue;
                             }
                         }
@@ -142,6 +157,8 @@ impl Shared {
                                 continue;
                             }
                         }
+                        let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.offer(&mut peer,&owned_native,&owned_slots,&frame)=>result};
+                        match reconciliation {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         let index = active.iter().position(|pending| frame.scope(crate::canonical::Scope::Reply) == Some(pending.exchange.id.as_str()));
                         if let Some(index) = index {
                             let native_answer=active[index].native.is_some() && frame.kind()=="connection.answer";
@@ -162,6 +179,7 @@ impl Shared {
                                     if let Err(error)=observe_end(&owned_native,&owned_media,&key,&frame){break error.kind;}
                                 }
                                 if let Some((key,intent,expected,frame))=updating {
+                                    if super::selections::is_command(&key.command) {if let Err(error)=reconciliations::remember(&owned_native,&key,&frame.original()["payload"]) {break error.kind;}}
                                     if let Err(error)=if super::selections::is_command(&key.command) {selections::observe(&owned_native,&owned_media,&key,expected,&frame)}else{controls::observe(&owned_native,&owned_media,&key,&intent,expected,&frame)}{break error.kind;}
                                 }
                             }
@@ -217,6 +235,7 @@ impl Shared {
                         }
                         if (command.kind=="connection.update" && command.payload["action"]=="codec-renegotiate") || super::selections::is_command(&command.kind) {
                             let busy=match owned_native.lock(){Ok(cache)=>command.key.as_ref().is_some_and(|key|key.scope.connection_id.as_ref().and_then(|id|cache.get(id)).and_then(|entry|entry.prepared.as_ref()).is_some_and(|p|!p.belongs_to(key))),Err(_)=>break ErrorKind::Protocol};
+                            let busy=busy || command.key.as_ref().is_some_and(|key|reconciliations.busy(key));
                             if busy {let _=command.reply.send(Err(Error::request(ErrorKind::Conflict,command.key.as_ref(),false)));continue;}
                         }
                         if command.native {
@@ -240,7 +259,7 @@ impl Shared {
                             result=peer.begin_exchange(&command.kind,command.payload,command.scope)=>result
                         };
                         match result {
-                            Ok(exchange)=>active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,control,_slot:command.slot}),
+                            Ok(exchange)=>{if let Some(key)=command.key.as_ref() {if let Err(error)=reconciliations::issued(&owned_native,key) {break error.kind;}}active.push(InFlight {exchange,key:command.key,reply:Some(command.reply),native:negotiation,control,_slot:command.slot})},
                             Err(error)=> {
                                 let error=Error::transport(peer.with_owned_signaling_cause(error),command.key.as_ref());
                                 let kind=error.kind;
@@ -286,6 +305,31 @@ impl Shared {
             media_requests,
             task: Mutex::new(Some(task)),
         }))
+    }
+    pub(super) fn reconciliation(
+        &self,
+        id: &ConnectionId,
+        sid: &SessionId,
+        cid: &ConversationId,
+    ) -> Result<Option<NativeReconciliation>> {
+        let cache = self
+            .native
+            .lock()
+            .map_err(|_| Error::local(ErrorKind::Protocol))?;
+        match cache.get(id) {
+            Some(entry) if &entry.session == sid && &entry.conversation == cid => Ok((!entry
+                .ended)
+                .then(|| entry.reconciliation.clone())
+                .flatten()),
+            Some(_) => Err(Error::local(ErrorKind::Protocol)),
+            None => Ok(None),
+        }
+    }
+    pub(super) fn remember_selector(&self, key: &OperationKey, p: &Value) -> Result<()> {
+        reconciliations::remember(&self.native, key, p)
+    }
+    pub(super) fn observe_reconciliation(&self, key: &OperationKey, p: &Value) -> Result<()> {
+        reconciliations::observe(&self.native, &self.media, key, p)
     }
     pub(super) fn media_stats(&self) -> Result<MediaStats> {
         self.media.stats()

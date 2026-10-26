@@ -1,0 +1,214 @@
+{
+  "schema": "connect-gate6-rust-sdk-auto-reconciliation/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T04:16:05.511606+00:00",
+  "base_revision": "b1b2bbb3d18e9486656460b5ef7aae602f2200db",
+  "scope": "Owned Rust SDK receive-resource reconciliation through server signed callbacks and current-authorized original journal identity. Local macOS arm64; full SDK, routing-only synchronization and all remote/Linux profiles remain open.",
+  "implementation": [
+    "The signed owned worker tracks at most64 original issued selector keys/record IDs per owned Connection. Current journal status must bind a server-created stream.reconcile to a completed original selector before any positive confirmation; another Client historic read never acquires native custody. Exact logical/scope/counter and stable host/parent identity are independently checked.",
+    "At most16 shared command slots cover internal jobs and explicit exchanges; one job per owned Connection has a fixed up-to30-second lifetime, bounded by each current peer query deadline. One signature-verifying reader multiplexes query batches, media and explicit requests; late expired query replies are ignored in a bounded64-ID retirement window. Explicit peer close can interrupt internal writes.",
+    "Preparation verifies current Participant, unchanged publishing streams, declared formats, native revision and positive reserved hop handles. The internal proposal ID differs from the callback envelope ID. Signing alone retains original local parameters; only matching recorded captures adopt the preparation. Unsupported formats receive a signed488 refusal.",
+    "Internal read refusal, malformed identity or deadline retains original logical recovery and existing media without closing unrelated control work. Duplicate logical callbacks do not reconfirm a known effect. Another unsettled receive/codec mutation refuses locally before submission.",
+    "Connection.native_reconciliation exposes original logical/host/parent identity, local phase and bindings_adopted. Recorded and local adoption are distinct, including null captures. progress.operation and the read-only stream_reconcile kind support original-ID saved recovery. Fresh-client completed reads remain observations. HTTP/OpenAPI and Rust SDK references describe this behavior."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 159,
+      "failed_functions": 0,
+      "new_signed_functions": 9,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/client-06.log",
+        "sha256": "aeb52265b17c5f820faea7a047263f04df5ac9509acb49b103c14ece4a549589"
+      },
+      "behaviors": [
+        "Current journal read precedes positive confirmation; same-root captured completion adds video/data while preserving publication. Another server callback cannot overwrite original recovery while a prior preparation remains unsettled.",
+        "Delayed completion retains prior bindings and independent control; a competing mutation is NotSubmitted.",
+        "Wrong parent, logical ID, expected counter or changed host record never adopts; authenticated permission refusal and internal query deadline leave other operation reads usable. Late expired replies cannot install bindings.",
+        "Unsupported formats decline without retiring the healthy peer; unavailable capture is not an empty set; fresh signed duplicate logical callbacks never reconfirm."
+      ]
+    },
+    "rustdoc": {
+      "passed_functions": 5,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/rustdoc-final.log",
+        "sha256": "b56b12487947a49a4c9c0af62f9559930cb69de7a84a1dc0c6e398bd4f18034c"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 244,
+      "scope": "Frozen source/shape inventory and semantic boundaries only; no full SDK/runtime parity claim.",
+      "log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/contracts.log",
+        "sha256": "81b241fe7689d1e04658607f7d30ca8973efb161c0cd68965c80e1a764a3fe3f"
+      },
+      "sdk_inventory": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/sdk-contract.json/summary.json",
+        "sha256": "59136cb8b1d6971838693b1a8fc1250733e3dbadd951c5a1a8b3e1ab1c6259b7"
+      }
+    },
+    "production": {
+      "passed_functions": 19,
+      "failed_functions": 0,
+      "new_sdk_functions": 2,
+      "new_algorithm_scenes": 4,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-summary.json",
+        "sha256": "b63e836e85748b090653c9a1bc81cb36f2d98bddae37659dbdcd0adb9cc92e57"
+      },
+      "sealed_binary_sha256": "856ca9428a334f510143eec69c24cb910f580cb4e33da32f08bda89d487312bf",
+      "results": [
+        {
+          "filter": "sdk_handles::reconciliations::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 22.1411752498243,
+          "log": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-00.log",
+          "log_sha256": "1f6d620107c6a8389c62fa2a4a87a0c30b64934293b0aa93cb5517df757e0f25"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::reconciliations::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 10,
+          "failed_functions": 0,
+          "elapsed_seconds": 64.61865537497215,
+          "log": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-01.log",
+          "log_sha256": "921f4801529f5faee79a5706ab0741a54244affdcabb0e2608a63e8c24f24ad0"
+        },
+        {
+          "filter": "canonical_native_connections::future::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 4,
+          "failed_functions": 0,
+          "elapsed_seconds": 36.03739545796998,
+          "log": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-02.log",
+          "log_sha256": "e3d8a534fccde19d3dbf0a38af15346bc54358a9cc6aba75279857fc38d8bfa2"
+        },
+        {
+          "filter": "canonical_native_connections::handles::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 1,
+          "failed_functions": 0,
+          "elapsed_seconds": 9.029237249866128,
+          "log": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-03.log",
+          "log_sha256": "2ba05aba6ba82b6a8e7c282eb119d6d79f81fa433c073e62dfe962745751dfc2"
+        },
+        {
+          "filter": "canonical_native_connections::selector_policy::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 10.848376875044778,
+          "log": ".local/gate-6/rust-sdk-auto-reconciliation/production-04-04.log",
+          "log_sha256": "7f322a45b926d64dd03777402c6b0b6379e207c50ae953738e8bf3caabe6abc6"
+        }
+      ],
+      "scope": "Two new both-ends SDK functions exercise EdDSA/ES256; ten existing SDK functions, four canonical future-selector functions, one native handle-custody function and two selector-policy/data refusal functions pass. Not the whole server/default suite.",
+      "behaviors": [
+        "A committed Participant selector follows later real camera publication, without application-level callback or answer handling. Both owned SDK peers independently decode PCMU audio and VP8 video through FFmpeg.",
+        "Completion-journal failure retains original local native revision while actual decoded audio and independent original-operation reads continue. Another selection has zero durable rows. Removing the trigger settles the original captured result and exposes the new video binding, with one native effect.",
+        "Original saved read/recovery does not rewind the newer local revision. Fresh-client stream_reconcile restoration returns the same receipt but has no local parameters or reconciliation custody."
+      ]
+    },
+    "public_consumer_snippet": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/example-summary.json",
+        "sha256": "aa1d915dfda9d2583c76e21213a1eabc9f524b9cac66d054e65ee0542ca97b26"
+      },
+      "scope": "Separate public API metadata compilation includes NativeReconciliation, original operation references and read-only kind. Full packaged external-consumer runtime remains open."
+    },
+    "prior_unchanged_backend": {
+      "source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/backend-source-equivalence.json",
+        "sha256": "f432961ea58793f19a0df8e5916390f0877c771a552e15a55e1f447a67d77505"
+      },
+      "evidence": "docs/evidence/gate-6/subscription-reconciliation-journal.json",
+      "prior_protocol_functions": 40,
+      "prior_targeted_store_functions": 178,
+      "scope": "Prior actual passes on byte-identical backend sources; not rerun or counted as new tests here."
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/inputs-04.json",
+        "sha256": "8bc57e54d4a913d32149193f105c013c7e815acd74e58b3a7636f40bb8743912"
+      },
+      "guarded_inputs": 1331,
+      "unchanged": true
+    },
+    "checks": {
+      "format-08.log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/format-08.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "dependencies.log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/dependencies.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "schema-check.log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/schema-check.log",
+        "sha256": "e091dab1dfa37630599eaf5338746e022572ee0ea7abc96f1f610de93f19debc"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/client-02.log",
+        "sha256": "0ac4e9ce35bef1d41b7b3303361b1d78ca6de0cf3d9bcddab721f87aa3528fd4"
+      },
+      "observation": "New test fixture needed an explicit Option<Envelope> annotation; compilation failed before tests."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-auto-reconciliation/client-03.log",
+        "sha256": "c8db6d4a8d07927e200e7fadc23bff6734771883cb52f67fa203f31966c6be9e"
+      },
+      "observation": "157 passed and duplicate test failed because it replayed identical signed bytes, correctly triggering protocol replay protection. Fixture now sends a fresh signed envelope for the same logical operation; final159 pass. No replay policy relaxed."
+    },
+    {
+      "builds": [
+        {
+          "path": ".local/gate-6/rust-sdk-auto-reconciliation/build-01.log",
+          "sha256": "fe20923d02541ff03e6148ecf95037aebcb4c7a0c6b83edfdcdd545d98e9be75"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-auto-reconciliation/build-02.log",
+          "sha256": "19883db1186943069587b23639d2c2eab852a4a26567a6155a6d0db6e46a11c7"
+        },
+        {
+          "path": ".local/gate-6/rust-sdk-auto-reconciliation/build-03.log",
+          "sha256": "fe20923d02541ff03e6148ecf95037aebcb4c7a0c6b83edfdcdd545d98e9be75"
+        }
+      ],
+      "observation": "Builds01/02 were unexecuted superseded inputs (monotonic fixture epochs and explicit close cancellation). Build03 passed all19 functions, before review added a fence against overwriting an unsettled original preparation; final04 repeats qualification after that fix."
+    }
+  ],
+  "scratch_preservation": [
+    {
+      "path": ".local/gate-6/rust-sdk-auto-reconciliation/qualified-binary-compression.json",
+      "sha256": "5b3b2c8a06c5c6ac7837cd45bfdfc0cbef3f734418b3967def398d61f58f3224"
+    }
+  ],
+  "remaining": [
+    "G6-060 remains in progress. All22 direct mapped mutation APIs plus this read-only reconciliation kind are a subset of the full task.",
+    "Routing-only server operation/event revision synchronization, explicit reconciliation of unavailable captures and other server negotiation families remain open. This checkpoint handles owned receive-resource-changing callbacks only.",
+    "Reliable data/event/capability/config/raw/admin surfaces, full packaged external/both-ends media/movement journeys, incompatible-server/abrupt-crash and approved Linux/remote profiles remain.",
+    "Full parallel capacity/performance and wider gate acceptance are not qualified here. All105 tasks remain the objective; no task/acceptance, whole default suite, publication or remote-provider completion."
+  ]
+}

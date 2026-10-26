@@ -38,6 +38,7 @@ mod movements;
 mod native_negotiation;
 mod operation;
 mod participants;
+mod reconciliations;
 mod selections;
 mod sessions;
 mod snapshot;
@@ -72,6 +73,7 @@ pub use operation::{
     OperationScope, OperationSnapshot,
 };
 pub use participants::Participant;
+pub use reconciliations::{NativeReconciliation, NativeReconciliationPhase};
 pub use selections::{StreamSelectionReceipt, StreamSelector};
 use serde_json::Value;
 pub use sessions::{

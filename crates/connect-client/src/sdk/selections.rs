@@ -42,7 +42,7 @@ pub(super) fn is_command(command: &str) -> bool {
 }
 pub(super) fn parse(v: &Value, key: &OperationKey) -> Result<SelectionObservation> {
     let bad = || Error::request(ErrorKind::Protocol, Some(key), true);
-    if !is_command(&key.command)
+    if !(is_command(&key.command) || key.command == "stream.reconcile")
         || !connections::valid_scope(&key.scope)
         || serde_json::to_vec(v).map_err(|_| bad())?.len() > 32 * 1024
         || !v
@@ -51,7 +51,21 @@ pub(super) fn parse(v: &Value, key: &OperationKey) -> Result<SelectionObservatio
     {
         return Err(bad());
     }
-    let out: SelectionObservation = serde_json::from_value(v.clone()).map_err(|_| bad())?;
+    let mut value = v.clone();
+    if key.command == "stream.reconcile" {
+        if value["server_reconciliation"] != json!(true)
+            || value["subscription_record_id"]
+                .as_str()
+                .and_then(|s| s.parse::<OperationRecordId>().ok())
+                .is_none()
+        {
+            return Err(bad());
+        }
+        let object = value.as_object_mut().ok_or_else(bad)?;
+        object.remove("server_reconciliation");
+        object.remove("subscription_record_id");
+    }
+    let out: SelectionObservation = serde_json::from_value(value).map_err(|_| bad())?;
     out.validate().map_err(|_| bad())?;
     if out.command_type.name() != key.command
         || key.scope.connection_id.as_ref().map(ConnectionId::as_str)
@@ -164,7 +178,9 @@ pub(super) fn decode(
     key: &OperationKey,
 ) -> Result<StreamSelectionReceipt> {
     let out = parse(&v, key)?;
-    client.shared.record_selection(key, &out)?;
+    if is_command(&key.command) {
+        client.shared.record_selection(key, &out)?;
+    }
     let bad = || Error::request(ErrorKind::Protocol, Some(key), true);
     let bindings = out
         .stream_bindings

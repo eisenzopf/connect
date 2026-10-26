@@ -3,6 +3,8 @@
 mod codec_updates;
 #[path = "sdk_handles/media.rs"]
 mod media;
+#[path = "sdk_handles/reconciliations.rs"]
+mod reconciliations;
 #[path = "sdk_handles/runtime_controls.rs"]
 mod runtime_controls;
 #[path = "sdk_handles/selections.rs"]

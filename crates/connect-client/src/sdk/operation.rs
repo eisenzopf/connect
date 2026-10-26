@@ -74,6 +74,8 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    /// Read-only recovery of a server-created receive reconciliation.
+    pub stream_reconcile: OperationKind<StreamSelectionReceipt>,
     pub stream_subscribe: OperationKind<StreamSelectionReceipt>,
     pub stream_unsubscribe: OperationKind<StreamSelectionReceipt>,
     pub session_handoff: OperationKind<HandoffResult>,
@@ -100,6 +102,11 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            stream_reconcile: OperationKind::new(
+                "stream.reconcile",
+                selections::decode,
+                connections::valid_scope,
+            ),
             stream_subscribe: OperationKind::new(
                 "stream.subscribe",
                 selections::decode,
@@ -400,6 +407,11 @@ impl<T> Operation<T> {
                 *known = Some(record.clone());
             }
             if selections::is_command(&key.command) {
+                self.client.shared.remember_selector(
+                    key,
+                    raw_payload
+                        .ok_or_else(|| Error::request(ErrorKind::Protocol, Some(key), false))?,
+                )?;
                 match state {
                     OperationState::Completed => self.client.shared.record_selection(
                         key,
@@ -415,6 +427,13 @@ impl<T> Operation<T> {
                     }
                     _ => (),
                 }
+            }
+            if key.command == "stream.reconcile" {
+                self.client.shared.observe_reconciliation(
+                    key,
+                    raw_payload
+                        .ok_or_else(|| Error::request(ErrorKind::Protocol, Some(key), false))?,
+                )?;
             }
             if key.command == "connection.update" {
                 match state {
