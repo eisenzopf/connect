@@ -171,10 +171,26 @@ pub(super) async fn replacement(
     token: &str,
 ) -> ReplacementProbe {
     let config = super::super::sdk_controls::controller_config(f, token, 921);
+    let original = f.server.service.canonical_runtime_snapshot().unwrap();
     let client = Client::connect(config.clone(), "tnt_default".parse().unwrap())
         .await
         .unwrap();
-    let before = f.server.service.canonical_runtime_snapshot().unwrap();
+    // Authentication can ACK before runtime registration is visible. Establish
+    // the controller's own peer before asserting preparation allocates no peer.
+    let until = tokio::time::Instant::now() + Duration::from_secs(3);
+    let before = loop {
+        let current = f.server.service.canonical_runtime_snapshot().unwrap();
+        if current.physical_peers == original.physical_peers + 1 {
+            assert_eq!(current.connections, original.connections);
+            assert_eq!(current.live_sessions, original.live_sessions);
+            break current;
+        }
+        assert!(
+            tokio::time::Instant::now() < until,
+            "SDK controller registration did not settle"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    };
     let TransitionIntent::Replace {
         retained_connid,
         endpoint_id,

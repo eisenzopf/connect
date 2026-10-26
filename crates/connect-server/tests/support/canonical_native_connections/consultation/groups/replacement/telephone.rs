@@ -1155,6 +1155,25 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
             tokio::time::sleep(Duration::from_millis(20)).await;
         };
         assert_eq!(done.result.as_ref().unwrap()["generation"], 2);
+        let captured = done.result.as_ref().unwrap();
+        assert_eq!(
+            captured["retained_connection_ids"],
+            json!([command.intent.retained()])
+        );
+        assert_eq!(
+            captured["admitted_connection_ids"],
+            json!([captured["connection_id"]])
+        );
+        assert_eq!(
+            captured["retired_connection_ids"],
+            json!([command.connection_id.as_ref().unwrap()])
+        );
+        assert_eq!(
+            captured["replaces"],
+            json!(command.connection_id.as_ref().unwrap())
+        );
+        assert!(captured["conversation_revision"].is_null());
+
         assert_eq!(done.effects.len(), 8);
         assert!(done
             .effects
