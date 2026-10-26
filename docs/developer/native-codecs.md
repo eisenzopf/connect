@@ -26,9 +26,8 @@ see `native-runtime-controls.md`.
 Only an actual successful native return creates a captured codec receipt. Its
 `codec_bindings` identify actual negotiated medium, direction, format, native
 handle, stream generation and Connection generation. These are observations,
-not new media grants. RTP hop handles are positive and unique in a captured
-set. Reliable data has no RTP hop and retains the reserved value `0`; multiple
-distinct logical data streams can share that reserved observation value. Codec
+not new media grants. Native port handles are positive and unique in a captured
+set, including reliable data ports. Data port metadata grants no RTP I/O. Codec
 replacement of selected RTP streams preserves those unchanged data bindings.
 The HTTP reference names these historical shapes `NativeCodecBinding` and
 `NativeCodecResult`. Completion advances the stream revision and updates

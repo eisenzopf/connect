@@ -295,13 +295,8 @@ pub fn validate_codec_bindings(bindings: &[CodecBinding]) -> Result<()> {
             .and_then(Value::as_str)
             .ok_or_else(invalid)?;
         if !ids.insert(&b.stream_id)
-            // Reliable data has no RTP hop; multiple logical data streams use
-            // the reserved zero observation without aliasing a media route.
-            || if b.medium == "data" {
-                b.stream_local_id != 0
-            } else {
-                b.stream_local_id == 0 || !handles.insert(b.stream_local_id)
-            }
+            || !handles.insert(b.stream_local_id)
+            || b.stream_local_id == 0
             || !matches!(b.medium.as_str(), "audio" | "video" | "screen" | "data")
             || !matches!(b.direction.as_str(), "sendonly" | "recvonly" | "sendrecv")
             || name.is_empty()
@@ -405,13 +400,14 @@ mod tests {
         let mut data = b.clone();
         data.stream_id = "chat".into();
         data.medium = "data".into();
-        data.stream_local_id = 0;
+        data.stream_local_id = 4;
         data.codec = json!({"name":"json","params":{"reliability":"reliable_ordered"}});
         let mut more = data.clone();
         more.stream_id = "binary".into();
+        more.stream_local_id = 5;
         validate_codec_bindings(&[b.clone(), data.clone(), more.clone()]).unwrap();
         assert!(validate_codec_bindings(&[data.clone(), data.clone()]).is_err());
-        data.stream_local_id = 2;
+        data.stream_local_id = 0;
         assert!(validate_codec_bindings(&[b.clone(), data]).is_err());
         let mut zero = b.clone();
         zero.stream_local_id = 0;

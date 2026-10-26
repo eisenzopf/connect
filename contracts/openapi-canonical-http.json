@@ -357,7 +357,7 @@
             "$ref": "#/components/schemas/NativeCodecResult"
           },
           "transport": "Native physical codec mutation requires signed peer custody; HTTP mutation returns501. Current-authorized operation.get exposes its captured historical receipt.",
-          "identities": "RTP bindings use distinct positive hop handles. Reliable data retains zero and never aliases an RTP route. All Stream IDs in one captured set are unique; native model revision, stream generations and Connection generations are distinct counters.",
+          "identities": "Native bindings use distinct positive port handles, including reliable data. Data observations do not grant RTP I/O. All Stream IDs in one captured set are unique; native model revision, stream generations and Connection generations are distinct counters.",
           "grant": "A receipt alone cannot install physical ownership or revive a retired generation."
         },
         "x-native-codec-lifecycle": {
@@ -5373,7 +5373,7 @@
           },
           "stream_local_id": {
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "maximum": 65535
           },
           "stream_generation": {
@@ -5397,34 +5397,7 @@
           "connection_generation"
         ],
         "additionalProperties": false,
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "medium": {
-                  "const": "data"
-                }
-              }
-            },
-            "then": {
-              "properties": {
-                "stream_local_id": {
-                  "const": 0
-                }
-              }
-            },
-            "else": {
-              "properties": {
-                "stream_local_id": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 65535
-                }
-              }
-            }
-          }
-        ],
-        "description": "Captured binding metadata, never a media grant. RTP hops are distinct positive u16 values; reliable data uses reserved zero with no RTP hop. Multiple logical data streams can have zero; logical Stream IDs stay distinct. Full captured sets contain at most32bindings and32768encoded bytes."
+        "description": "Captured binding metadata, never a media grant. All native port handles are distinct positive u16 values, including data ports. An observed data port does not grant RTP I/O; logical Stream IDs stay distinct. Full captured sets contain at most32bindings and32768encoded bytes."
       },
       "NativeCodecResult": {
         "type": "object",
