@@ -40,6 +40,7 @@ mod error;
 mod events;
 mod ids;
 mod invitations;
+mod journal_recovery;
 mod media;
 mod movements;
 mod native_negotiation;

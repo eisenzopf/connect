@@ -247,6 +247,101 @@ fn current_hint(
         || hint.stream_revision == installed && hint.expected_revision == installed)
         && !entry.reconciliation.as_ref().is_some_and(|s| s.key == *key)
 }
+/// The event is a discovery trigger only. Its current signed original record
+/// must still match an issued selector and this exact owned physical binding.
+pub(super) fn catch_up_routing(
+    cache: &std::sync::Mutex<NativeCache>,
+    key: &OperationKey,
+    p: &Value,
+) -> Result<bool> {
+    let fail = |kind| Error::request(kind, None, false);
+    let j = journal(key, p).map_err(|_| fail(ErrorKind::Protocol))?;
+    let out = super::super::selections::parse(&p["result"], key)
+        .map_err(|_| fail(ErrorKind::Protocol))?;
+    if j.state != OperationState::Completed
+        || out.resources_changed
+        || out.expected_revision != j.expected
+        || out.connection_generation != 1
+        || p["result"]["subscription_record_id"] != json!(j.parent)
+    {
+        return Err(fail(ErrorKind::Protocol));
+    }
+    let mut cache = cache.lock().map_err(|_| fail(ErrorKind::Protocol))?;
+    let Some(entry) = exact(&mut cache, key).map_err(|_| fail(ErrorKind::Protocol))? else {
+        return Ok(true);
+    };
+    if !entry
+        .selectors
+        .iter()
+        .any(|o| o.completed && o.record.as_ref() == Some(&j.parent))
+    {
+        return Ok(!entry.selectors.iter().any(|o| !o.completed));
+    }
+    if out.stream_revision < entry.known_revision.get() {
+        return Ok(true);
+    }
+    if entry.prepared.is_some()
+        || entry.reconciliation.as_ref().is_some_and(|s| {
+            matches!(
+                s.phase,
+                NativeReconciliationPhase::Authorizing
+                    | NativeReconciliationPhase::AwaitingCompletion
+            )
+        })
+    {
+        return Ok(false);
+    }
+    let adopted = match &out.stream_bindings {
+        Some(bindings) => {
+            if bindings.len() != entry.selected.streams.len()
+                || bindings.iter().any(|b| {
+                    b.connection_generation != 1
+                        || !codecs::matches(&entry.selected.streams, &entry.wire_handles, b)
+                        || b.stream_id
+                            .parse::<StreamId>()
+                            .ok()
+                            .and_then(|id| entry.generations.get(&id))
+                            .copied()
+                            != Some(b.stream_generation)
+                })
+            {
+                return Err(fail(ErrorKind::ResyncRequired));
+            }
+            true
+        }
+        None => {
+            if entry.selected.stream_revision.get() != out.expected_revision {
+                return Err(fail(ErrorKind::ResyncRequired));
+            }
+            false
+        }
+    };
+    if let Some(old) = entry.reconciliation.as_ref().filter(|s| s.key == *key) {
+        if old.expected_revision != j.expected
+            || old.record_id.as_ref().is_some_and(|r| r != &j.record)
+            || old
+                .subscription_record_id
+                .as_ref()
+                .is_some_and(|r| r != &j.parent)
+        {
+            return Err(fail(ErrorKind::Protocol));
+        }
+    }
+    let revision =
+        StreamRevision::try_from(out.stream_revision).map_err(|_| fail(ErrorKind::Protocol))?;
+    entry.known_revision = revision;
+    entry.selected.stream_revision = revision;
+    entry.reconciliation = Some(NativeReconciliation {
+        key: key.clone(),
+        expected_revision: j.expected,
+        record_id: Some(j.record),
+        subscription_record_id: Some(j.parent),
+        phase: NativeReconciliationPhase::Recorded,
+        bindings_adopted: adopted,
+        error: None,
+    });
+    Ok(true)
+}
 struct Job {
     key: OperationKey,
     offer: Option<Envelope>,

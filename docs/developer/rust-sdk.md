@@ -833,3 +833,29 @@ functions pass. Evidence is in
 `docs/evidence/gate-6/rust-sdk-capture-recovery.json`. This qualifies the existing
 explicit recovery path; missed-hint durable journal catch-up remains the next
 G6-060 implementation/verification item.
+
+
+## Durable native routing catch-up
+
+A completed Operation fact returned by `EventStream::next` can recover a missing
+dedicated routing hint. For a currently owned native Session with issued
+selectors, the reader queries that exact original operation under current
+server authority. The durable record ID, revision floor and scope must agree;
+the record must describe a routing-only `stream.reconcile` with a known issued
+selector and matching current physical parameters. Captured data never creates
+new native resources. Unavailable capture can advance only its exact installed
+predecessor and still reports `bindings_adopted: false`.
+
+The event stays owned and charged to the existing 256-fact/2 MiB inbox until its
+read and native observation settle. Dropping or timing out `next` retains that
+same fact and the previous returned cursor. A refused or contradictory current
+read also preserves them for retry. A different pending native preparation keeps
+its original recovery identity and is never overwritten by the journal reader.
+Control and media continue on their existing owned workers. This catch-up sends
+only `operation.get`; it does not replay the original mutation or sign a native
+parameter answer. Metadata-only clients do not gain physical custody.
+
+The component checkpoint passes 219 client functions and 12 Rustdoc checks,
+including 13 signed no-hint scenes. Production dropped-hint/decoded-media
+qualification is being run separately. Exact scope is recorded in
+`docs/evidence/gate-6/rust-sdk-journal-catchup.json`.

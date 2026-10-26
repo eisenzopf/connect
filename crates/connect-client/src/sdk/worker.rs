@@ -79,6 +79,28 @@ impl Drop for Shared {
     }
 }
 impl Shared {
+    pub(super) fn has_native_journal_scope(
+        &self,
+        cid: &ConversationId,
+        sid: &SessionId,
+    ) -> Result<bool> {
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::request(ErrorKind::Cancelled, None, false));
+        }
+        let cache = self
+            .native
+            .lock()
+            .map_err(|_| Error::request(ErrorKind::Protocol, None, false))?;
+        Ok(cache.values().any(|e| {
+            !e.ended && &e.conversation == cid && &e.session == sid && !e.selectors.is_empty()
+        }))
+    }
+    pub(super) fn catch_up_routing(&self, key: &OperationKey, p: &Value) -> Result<bool> {
+        if self.closed.load(Ordering::Acquire) {
+            return Err(Error::request(ErrorKind::Cancelled, None, false));
+        }
+        reconciliations::catch_up_routing(&self.native, key, p)
+    }
     pub(super) fn start(mut peer: CanonicalClient) -> Result<Arc<Self>> {
         let authority_expires = peer
             .sdk_authority_expires()

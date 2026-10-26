@@ -1,0 +1,38 @@
+{
+  "task": "G6-060",
+  "status": "component checkpoint passed; dropped-hint production qualification pending",
+  "checked_at": "2026-10-26T10:43:04.814588+00:00",
+  "scope": "Owned Rust event delivery and native routing recovery, local real signed QUIC component tests. No server wire command or mutation replay added. Real production dropped-hint/decoded-media fixture is not yet qualified.",
+  "implementation": [
+    "EventStream.next retains one owned pending fact inside the existing counted/byte-bounded inbox until its native journal catch-up succeeds. Cursor advances only at actual return. Dropped futures, cancellation, deadlines and refused or contradictory current reads keep that same fact and previous cursor. Close/overflow releases it under the existing explicit terminal reader state.",
+    "Completed Operation journal facts within an actually owned native Session trigger only a current-authorized original operation.get. Envelope/record ID, revision floor, Conversation/Session and current record result identify the exact owned target. Unknown or metadata-only ownership never grants native custody.",
+    "Only completed routing-only stream.reconcile with known originally issued selector, matching native generation, binding parameters and per-stream generations may advance the existing native counter. Null capture requires the exact installed predecessor and invents no binding set. Other pending preparations retain their identity; resource replacement facts cannot manufacture preparation. No native parameter answer is sent."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 219,
+      "new_functions": 5,
+      "new_scenes": 13,
+      "log": ".local/gate-6/sdk-journal-catchup/client-02.jsonl",
+      "sha256": "23cf6ee427b004dc267622eb189562605b676190298075eb3568e2353ef1c007",
+      "executable_sha256": "3e9aeffadd367fb89fa18c6866e1d7fc075a3bb38abe6c42c2fb5878f1516da2"
+    },
+    "rustdoc": {
+      "passed_functions": 12,
+      "log": ".local/gate-6/sdk-journal-catchup/rustdoc-01.log",
+      "sha256": "e9828d9e65b7df09aa6d11502868849c482783b640f6a009aa2a8feed5dbe519"
+    },
+    "format_diff_openapi": "passed"
+  },
+  "failed_candidates": [
+    {
+      "log": ".local/gate-6/sdk-journal-catchup/client-01.jsonl",
+      "result": "218 passed/1 failed",
+      "reason": "New duplicate-journal fixture resent identical signed envelope bytes, correctly triggering physical signature replay refusal. Duplicated immutable journal facts now use fresh physical envelope IDs/signatures; event deduplication and one metadata read are still asserted."
+    }
+  ],
+  "remaining": [
+    "Qualify the actual production listener with the dedicated hint deliberately dropped, durable cursor resumption, continued independent decoded media and journal failure recovery. Test-only per-source suppression must not alter journal/native effects or authorization.",
+    "G6-060 and all105 Gate6 tasks remain active. Installed package/profile/acceptance/publication work retains its assigned scope."
+  ]
+}

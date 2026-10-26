@@ -106,6 +106,7 @@ impl std::fmt::Debug for EventSnapshot {
 #[derive(Default)]
 struct State {
     queue: VecDeque<(JournalEvent, usize)>,
+    pending: Option<(JournalEvent, usize)>,
     bytes: usize,
     closed: bool,
     failure: Option<Error>,
@@ -308,6 +309,7 @@ impl Inbox {
     pub(in crate::sdk) fn fail(&self, error: Error) {
         if let Ok(mut s) = self.state.lock() {
             s.queue.clear();
+            s.pending.take();
             s.bytes = 0;
             if !s.closed && s.failure.is_none() {
                 s.failure = Some(error);
@@ -320,6 +322,7 @@ impl Inbox {
         if let Ok(mut s) = self.state.lock() {
             s.closed = true;
             s.queue.clear();
+            s.pending.take();
             s.bytes = 0;
         }
         self.changed.notify_waiters();
@@ -347,7 +350,9 @@ impl Inbox {
             seen.insert(item.event.event_id.clone(), item.digest);
             fresh.push(item);
         }
-        if s.queue.len() + fresh.len() > 256 || s.bytes.saturating_add(bytes) > 2 * 1024 * 1024 {
+        if s.queue.len() + usize::from(s.pending.is_some()) + fresh.len() > 256
+            || s.bytes.saturating_add(bytes) > 2 * 1024 * 1024
+        {
             return Err(Error::request(ErrorKind::ResyncRequired, None, false));
         }
         for item in fresh {
@@ -384,10 +389,11 @@ impl Inbox {
                 if tokio::time::Instant::now() >= until {
                     return Err(Error::request(ErrorKind::Deadline, None, false));
                 }
-                if let Some((event, bytes)) = s.queue.pop_front() {
-                    s.bytes = s.bytes.saturating_sub(bytes);
-                    s.delivered = Some(event.cursor.clone());
-                    return Ok(Some(event));
+                if s.pending.is_none() {
+                    s.pending = s.queue.pop_front();
+                }
+                if let Some((event, _)) = &s.pending {
+                    return Ok(Some(event.clone()));
                 }
             }
             tokio::select! {biased;
@@ -396,6 +402,18 @@ impl Inbox {
                 _=&mut changed=>(),
             }
         }
+    }
+    fn delivered(&self, event: &JournalEvent) -> Result<()> {
+        self.check()?;
+        let mut s = self.state.lock().map_err(|_| bad())?;
+        let (pending, bytes) = s.pending.as_ref().ok_or_else(bad)?;
+        if pending.event_id != event.event_id || pending.cursor != event.cursor {
+            return Err(bad());
+        }
+        s.bytes = s.bytes.saturating_sub(*bytes);
+        s.pending.take();
+        s.delivered = Some(event.cursor.clone());
+        Ok(())
     }
 }
 pub struct EventStream {
@@ -538,6 +556,9 @@ impl EventStream {
     }
     /// Each next has its configured finite timeout. A timed-out established
     /// wait consumes nothing; closing/cancelling this stream leaves control live.
+    /// Before returning a completed native routing fact, read its original
+    /// journal under current authority. Interrupted catch-up retains the same
+    /// charged fact and previous cursor; it never replays a mutation.
     pub async fn next(&mut self) -> Result<Option<JournalEvent>> {
         self.options.validate()?;
         let until = tokio::time::Instant::now() + self.options.timeout;
@@ -545,7 +566,16 @@ impl EventStream {
             return Ok(None);
         }
         self.open(until).await?;
-        self.inbox.receive(until).await
+        let event = self.inbox.receive(until).await?;
+        if let Some(event) = &event {
+            self.client
+                .as_ref()
+                .expect("opened event owner")
+                .catch_up_native_event(event, &self.options, until)
+                .await?;
+            self.inbox.delivered(event)?;
+        }
+        Ok(event)
     }
     /// Local detach stops delivery/renewal immediately. The bounded existing
     /// server lease expires within10 seconds; no unsupported unsubscribe is sent.

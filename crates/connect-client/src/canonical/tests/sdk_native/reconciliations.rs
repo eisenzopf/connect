@@ -1,6 +1,7 @@
 //! Signed server callbacks must prove their original journal before confirmation.
 use super::*;
 use sdk::{NativeReconciliationPhase as Phase, StreamSelector};
+mod journal;
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Normal,
@@ -11,6 +12,7 @@ pub(in crate::canonical) enum Case {
     WrongOperation,
     NoCapture,
     NoCaptureRetire,
+    Journal(journal::Case),
     Unsettled,
     Route,
     RouteEqual,
@@ -206,6 +208,10 @@ pub(super) async fn emit(
     signal: &Notify,
     caps: &Value,
 ) {
+    if let Case::Journal(case) = case {
+        journal::emit(case, reader, writer, signer, signal).await;
+        return;
+    }
     let mut offer: Option<Envelope> = None;
     let mut late_query: Option<Envelope> = None;
     let mut authorized = false;
