@@ -1285,8 +1285,20 @@ async fn perform_return_with_sdk(
         .unwrap();
     assert!(return_client.transition(return_command).await.is_err());
     if let Some((client, operation)) = sdk_return {
+        let error = operation
+            .status(sdk_controls::options())
+            .await
+            .err()
+            .expect("revoked return authority cannot read");
         assert!(
-            matches!(operation.status(sdk_controls::options()).await,Err(e) if e.certainty==connect_client::sdk::Certainty::Refused)
+            error.certainty == connect_client::sdk::Certainty::Refused
+                || (error.certainty == connect_client::sdk::Certainty::ReadOnly
+                    && matches!(
+                        error.kind,
+                        connect_client::sdk::ErrorKind::Authentication
+                            | connect_client::sdk::ErrorKind::Cancelled
+                    )),
+            "revoked return read must refuse or retire authenticated peer: {error:?}"
         );
         client.close(sdk_controls::options()).await.unwrap();
     }

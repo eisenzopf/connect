@@ -282,9 +282,10 @@ let session = returning.wait(read_options).await?.value;
 let observation = session.consultation_return_receipt();
 ```
 
-The qualification evidence for this checkpoint is recorded in
-`docs/evidence/gate-6/rust-sdk-consultations.json`. Handoff, Connection replacement,
-subscriptions and the remaining complete SDK journeys remain G6-060 work.
+The consultation/return qualification evidence is recorded in
+`docs/evidence/gate-6/rust-sdk-consultations.json`. The subsequent handoff and
+Connection replacement APIs are described below. Subscriptions and the remaining
+complete SDK journeys remain G6-060 work.
 
 `Session::handoff` takes explicit source/target Participants, source and retained
 Connections, optional candidate, outgoing disposition and role scope. A
@@ -316,3 +317,8 @@ retain the intent context needed to validate historical results. Device movement
 uses Session `TopologyRevision`, independently of stream, resource and generation
 counters. The exact current qualification scope is recorded in
 `docs/evidence/gate-6/rust-sdk-movements.json`.
+
+The movement qualification uses SDK controllers with independent public Canonical
+native media owners. Restoring a controller operation does not grant the target
+Device's transport custody. Complete transition reconciliation, both-ends SDK
+media and external-package/remote profiles remain separate G6-060 work.

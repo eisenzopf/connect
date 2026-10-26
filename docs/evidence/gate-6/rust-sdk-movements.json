@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-movements/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T02:36:43.522207+00:00",
+  "checked_at": "2026-10-26T02:45:35.412504+00:00",
   "base_revision": "5d81daf978cec6285f6d9c9b7d4859139b46200d",
-  "scope": "All four new SDK controller functions pass 24 actual signed native algorithm scenes: handoff, device movement, preparation/cancellation and known-commit recording recovery. Existing SDK/native/telephone regression groups remain running. Local macOS arm64; independent Canonical native media owners.",
+  "scope": "Public Rust SDK handoff and Connection device replacement through actual signed listeners, captured original operation identity and managed audio. SDK controls use independent public Canonical native media owners. Local macOS arm64 functional scope; this does not qualify both-ends SDK media or complete G6-060.",
   "implementation": [
     "Session.handoff preserves explicit Participants, outgoing disposition, separate Session/Conversation revisions, optional candidate and original consultation record. Saved context checks completed topology and role observations without granting foreign media custody.",
     "Connection.replace_device selects an Endpoint or candidate Connection and validates the captured target generation, membership epoch, Device/Endpoint and retained/admitted/retired topology. Both native and telephone Store commit projections now capture topology from the original intent and actual committed source/target.",
@@ -23,68 +23,195 @@
       "binary_sha256": "8fdec86ec45103b546e91c952eff54b850260e3170fb9f71a26a28551ea9b0df",
       "guarded_inputs_manifest_sha256": "1b7d2cab94d1e2a1de11b96ed7c4352380c386344713e26c4356fd83e9540f1a",
       "inputs_unchanged": true,
-      "final_source_equivalence": "SDK/client/runtime implementation unchanged; only server fixtures changed after unit qualification."
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-movements/qualified-source-equivalence.json",
+        "sha256": "20c3cad8e1b31f986dedf0bea995fbbcffa739eb1e6de1dd151ecd217f731c11"
+      }
     },
     "inputs": {
-      "path": ".local/gate-6/rust-sdk-movements/inputs-05.json",
-      "sha256": "de9d9aaeff3dc4dfdd8b0f2d42f0a2b4a9b79d8d612e5db58c024884217a4ced",
+      "path": ".local/gate-6/rust-sdk-movements/inputs-06.json",
+      "sha256": "46106d02cc97bc90c40a3e5425635ee9dc48fd5f002faa03c2888c617ae9db35",
       "guarded_source_inputs": 1323,
       "unchanged": true
     },
     "production": {
-      "status": "new-sdk-scenes-passed-regressions-running",
-      "handoff": {
-        "passed_functions": 1,
-        "algorithm_scenes": 8,
-        "algorithms": [
-          "EdDSA",
-          "ES256"
-        ],
-        "report": {
-          "path": ".local/gate-6/rust-sdk-movements/production-01-summary.json",
-          "sha256": "c5dbf9b4e9de9c79fe9ec22277594a31df28461d36b80559d12463eda21ea7d4"
+      "status": "passed-in-recorded-scope",
+      "passed_unique_functions": 18,
+      "new_sdk_functions": 4,
+      "new_sdk_algorithm_scenes": 24,
+      "qualified_candidates": [
+        {
+          "report": {
+            "path": ".local/gate-6/rust-sdk-movements/production-01-summary.json",
+            "sha256": "c5dbf9b4e9de9c79fe9ec22277594a31df28461d36b80559d12463eda21ea7d4"
+          },
+          "selected_passing_results": [
+            {
+              "filter": "production_public_rust_sdk_handoff_scopes_and_dispositions_keep_actual_remote_audio",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 177.92548562493175,
+              "log": ".local/gate-6/rust-sdk-movements/production-01-00.log",
+              "log_sha256": "3d363d8e80a08bcea898badd91c87afb10795a276c5acf54db95f8a001b37c8e"
+            }
+          ],
+          "binary_sha256": "12a53dfbe6e7736ec6e3fbb35678b7142ccff10c30c509e2d440be38c4ca83b4",
+          "scope": "One passing handoff function covers eight algorithm/scope/disposition scenes. The report separately records a failed replacement fixture; it is not an entirely passing report."
         },
-        "log": {
-          "path": ".local/gate-6/rust-sdk-movements/production-01-00.log",
-          "sha256": "3d363d8e80a08bcea898badd91c87afb10795a276c5acf54db95f8a001b37c8e"
+        {
+          "report": {
+            "path": ".local/gate-6/rust-sdk-movements/production-03-summary.json",
+            "sha256": "0064114a40ee941dd792679f53f548823f54d37803a3b1d62f5a17614f85fbb7"
+          },
+          "selected_passing_results": [
+            {
+              "filter": "production_public_rust_sdk_device_movement_retains_generation_two_audio_and_recovers",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 226.79010441689752,
+              "log": ".local/gate-6/rust-sdk-movements/production-03-01.log",
+              "log_sha256": "7b87abd48094bd7e7ed46c2a31e645c9a7b3160dbf144e94a606d99c538f472e"
+            }
+          ],
+          "binary_sha256": "f9b8bdcb853382cd9e10b1aba77b216d2fe2100a954f6ea6e5c0cebf2735477c",
+          "scope": "One passing movement function covers eight algorithm scenes. The report separately records a failed revoked-controller read assumption in cancellation; it is not an entirely passing report."
         },
-        "binary_sha256": "12a53dfbe6e7736ec6e3fbb35678b7142ccff10c30c509e2d440be38c4ca83b4",
-        "scope": "One SDK controller function exercises Session/Conversation scopes and observe/leave dispositions with actual managed audio. This report also records the distinct failed replacement function; it is not a passing whole report."
-      },
-      "replacement": {
-        "status": "movement-passed-recovery-checks-running",
-        "passed_functions": 1,
-        "algorithm_scenes": 8,
-        "report": {
-          "path": ".local/gate-6/rust-sdk-movements/production-03-movement-checkpoint.json",
-          "sha256": "0064114a40ee941dd792679f53f548823f54d37803a3b1d62f5a17614f85fbb7"
+        {
+          "report": {
+            "path": ".local/gate-6/rust-sdk-movements/production-04-summary.json",
+            "sha256": "13f16dff414250fa1ae5ea69a919c69a4b4d35c51e2f6b0e777592068de12aae"
+          },
+          "selected_passing_results": [
+            {
+              "filter": "production_public_rust_sdk_device_move_preparation_cancellation_never_invents_completion",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 93.76282837498002,
+              "log": ".local/gate-6/rust-sdk-movements/production-04-02.log",
+              "log_sha256": "0ae9bd1b3f5184a409e91ea9c302fbfb0d3c5a3720c379ab21232a5d8ddea6ac",
+              "failed_functions": 0
+            },
+            {
+              "filter": "production_public_rust_sdk_device_move_recording_failure_preserves_one_known_commit",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 27.303290750132874,
+              "log": ".local/gate-6/rust-sdk-movements/production-04-03.log",
+              "log_sha256": "3a4601a72b6d21c27913226b90c2e0ad6e2451e431621ed8fb149fc16edf9d6b",
+              "failed_functions": 0
+            }
+          ],
+          "binary_sha256": "9c0470f65d3851dd51f0323fc22d5250f6bebecd2069d6d0101c4850fd2d236e",
+          "scope": "Two passing preparation/recovery functions cover eight scenes. The same report records a failed legacy consultation revoked-read assertion; it is not entirely passing."
         },
-        "log": {
-          "path": ".local/gate-6/rust-sdk-movements/production-03-01.log",
-          "sha256": "7b87abd48094bd7e7ed46c2a31e645c9a7b3160dbf144e94a606d99c538f472e"
-        },
-        "binary_sha256": "f9b8bdcb853382cd9e10b1aba77b216d2fe2100a954f6ea6e5c0cebf2735477c",
-        "scope": "Actual generation-two duplex movement, source role/observer behavior, original authority revocation, late cancellation, target endpoint/key loss and generation-three follow-on remain asserted. Preparation cancellation and recording-failure groups remain pending."
-      },
-      "source_change_audit": {
-        "path": ".local/gate-6/rust-sdk-movements/controller-read-baseline-correction.json",
-        "sha256": "64cb4c203f9670c702dc391f99d13263e8ab735694c27ca3b81a96537ac38bf8"
-      },
-      "recovery": {
-        "passed_functions": 2,
-        "algorithm_scenes": 8,
-        "report": {
-          "path": ".local/gate-6/rust-sdk-movements/production-04-new-sdk-checkpoint.json",
-          "sha256": "dbc38030d15059688c2f58fa3171765e4591b22700dbf3f37b0e6ee3a6f99222"
-        },
-        "scope": "Six preparation/cancellation scenes and two known-commit projection/recording-failure scenes under both algorithms. Revoked original read refuses; fresh authority restores exact recorded Failed/Cancelled state. Same known commit recovers without a second movement effect."
-      },
+        {
+          "report": {
+            "path": ".local/gate-6/rust-sdk-movements/production-07-summary.json",
+            "sha256": "731b2f6e2dd0909f67cc94f5b71acca9ff43de2d5c259bd25e39cdb1588bbca2"
+          },
+          "passed_functions": 14,
+          "failed_functions": 0,
+          "binary_sha256": "0bd6591cc6d5a2ee880f543a3feebf1aef61a6a4f6cd490340fbaa28a0713956",
+          "results": [
+            {
+              "filter": "sdk_controls::",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 2,
+              "elapsed_seconds": 47.185400708112866,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-04.log",
+              "log_sha256": "70a9261fa17fa7ff9d5c070fa7da9b99774e8398b418e5d8a71ae27882ee55da"
+            },
+            {
+              "filter": "sdk_handles::",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 8,
+              "elapsed_seconds": 33.518607874866575,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-05.log",
+              "log_sha256": "8117ef6c2114de622afc6027f268d0b49d639a2eddff877e8199e9459ad234ee"
+            },
+            {
+              "filter": "production_replacement_actual_movement_keeps_generation_two_audio_after_old_authority_retires",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 111.95866837492213,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-06.log",
+              "log_sha256": "a349a4a4df490dd7d14beb541888dcbf20124187c3d28cf95fe6ce2eed184890"
+            },
+            {
+              "filter": "production_replacement_known_commit_metadata_failure_and_target_loss_retire_without_replay",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 13.423542249947786,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-07.log",
+              "log_sha256": "6f18cf960f1fe558cd1e69c6ca59dbe302d92a3f1e8d94a2ef4e817f0410421e"
+            },
+            {
+              "filter": "production_telephone_movement_actual_pcmu_commits_once_survives_old_authority_and_retires_on_route_loss",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 19.512995833996683,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-08.log",
+              "log_sha256": "1bdec604444330d4f809e02a84a44997b51cf65a9fd45e61e8858c59f4f793ce"
+            },
+            {
+              "filter": "production_telephone_movement_actual_pcma_preserves_negotiated_codec_and_independent_lifetime",
+              "exit_code": 0,
+              "timeout": false,
+              "passed_functions": 1,
+              "elapsed_seconds": 19.827216459205374,
+              "log": ".local/gate-6/rust-sdk-movements/production-07-09.log",
+              "log_sha256": "25221fde8215e244fbf43765b2168be5c0ec7cac95ad64dc49f722fe1e9a9cc5"
+            }
+          ],
+          "scope": "Six final-source groups: two SDK consult/return functions (four scenes), eight SDK lifecycle/media functions (16 scenes), two original native replacement functions (five scenes) and two original telephone movement functions (two scenes)."
+        }
+      ],
       "source_equivalence": {
         "path": ".local/gate-6/rust-sdk-movements/qualified-source-equivalence.json",
-        "sha256": "de47e3d5b203c19e52bb04db374b8d10577d135f553699915e379bd864d690c9"
+        "sha256": "20c3cad8e1b31f986dedf0bea995fbbcffa739eb1e6de1dd151ecd217f731c11"
       },
-      "new_sdk_functions": 4,
-      "new_sdk_algorithm_scenes": 24
+      "scope": "18 unique passing functions across four sealed executables with explicit unchanged-source evidence for earlier handoff and movement. Not a single default/full-suite run. Endpoint-target SDK replacement is qualified at runtime; candidate-target serialization/validation is covered by signed client fixtures only.",
+      "behaviors": [
+        "Actual handoff covers Session/Conversation role scope and observe/leave under EdDSA/ES256. Correct private/public audiences and silent observer publication remain asserted; remote audio survives command-reader expiry and saved typed observations preserve original identity without foreign media custody.",
+        "Native replacement keeps original audio during actual Core preparation, completes generation two with exact captured topology, preserves source role and moves real duplex audio only to the target. Late cancel and old source/controller revocation cannot roll back the target. Generation-three follow-on movement and independent target endpoint/key retirement remain enforced.",
+        "Six preparation/cancellation scenes preserve original audio and never invent completion. An intentionally revoked original controller cannot read; fresh authority restores the same operation and returns its recorded terminal state. Two recording-failure scenes retain one known commit and recover the same typed result without repeating movement.",
+        "Current-source SDK messaging/membership/Session/decision/status/native media/codecs/controls and consult/return regressions pass. Original native movement/known-commit and local telephone PCMU/PCMA scenes exercise both changed commit projections; telephone topology is asserted alongside actual duplex media and current route lifetime."
+      ],
+      "observations": [
+        "SDK handoff EdDSA:native-public-handoff scope=\"session\",outgoing=\"observe\",one_effect,fresh_observation_no_custody",
+        "SDK handoff EdDSA:native-public-handoff scope=\"session\",outgoing=\"leave\",one_effect,fresh_observation_no_custody",
+        "SDK handoff EdDSA:native-public-handoff scope=\"conversation\",outgoing=\"observe\",one_effect,fresh_observation_no_custody",
+        "SDK handoff EdDSA:native-public-handoff scope=\"conversation\",outgoing=\"leave\",one_effect,fresh_observation_no_custody",
+        "SDK handoff ES256:native-public-handoff scope=\"session\",outgoing=\"observe\",one_effect,fresh_observation_no_custody",
+        "SDK handoff ES256:native-public-handoff scope=\"session\",outgoing=\"leave\",one_effect,fresh_observation_no_custody",
+        "SDK handoff ES256:native-public-handoff scope=\"conversation\",outgoing=\"observe\",one_effect,fresh_observation_no_custody",
+        "SDK handoff ES256:native-public-handoff scope=\"conversation\",outgoing=\"leave\",one_effect,fresh_observation_no_custody",
+        "SDK replacement EdDSA:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement EdDSA:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement EdDSA:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement EdDSA:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement ES256:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement ES256:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement ES256:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement ES256:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK stopped replacement EdDSA:state=Cancelled,fresh_authority_original_id,original_revoked=false",
+        "SDK stopped replacement EdDSA:state=Failed,fresh_authority_original_id,original_revoked=true",
+        "SDK stopped replacement EdDSA:state=Failed,fresh_authority_original_id,original_revoked=false",
+        "SDK stopped replacement ES256:state=Cancelled,fresh_authority_original_id,original_revoked=false",
+        "SDK stopped replacement ES256:state=Failed,fresh_authority_original_id,original_revoked=true",
+        "SDK stopped replacement ES256:state=Failed,fresh_authority_original_id,original_revoked=false",
+        "SDK replacement EdDSA:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody",
+        "SDK replacement ES256:actual-managed-replacement generation=2,retained=codec-source,retired=codec-target,captured_topology,fresh_observation_no_custody"
+      ]
     },
     "contracts": {
       "report": {
@@ -111,6 +238,32 @@
         "sha256": "38168bff67af2e4fc03d050b12428f737d90c7190424b9b31756cae9903feab9"
       },
       "scope": "Separate public API snippet compilation only; full packaged consumer journey remains open."
+    },
+    "checks": {
+      "schema-generation-check.log": {
+        "path": ".local/gate-6/rust-sdk-movements/schema-generation-check.log",
+        "sha256": "1497795f452ca20872630ced63c26934eb9c7ecd72994496ca39267db67c90ff"
+      },
+      "event-reference-check.log": {
+        "path": ".local/gate-6/rust-sdk-movements/event-reference-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check.log": {
+        "path": ".local/gate-6/rust-sdk-movements/openapi-check.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "format-final.log": {
+        "path": ".local/gate-6/rust-sdk-movements/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-movements/format-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "telephone_capture_assertions": {
+      "path": ".local/gate-6/rust-sdk-movements/telephone-capture-assertions.json",
+      "sha256": "581027e2301dc8fd457ab0a398cb363536913ca78698d5bd458a2a35c1469a99"
     }
   },
   "failed_or_superseded_runs": [
@@ -150,11 +303,43 @@
         "path": ".local/gate-6/rust-sdk-movements/revoked-controller-recovery-correction.json",
         "sha256": "d0528c76cb48a5d82442cca076c74ad28452d9eb70fc05e2eea7e0b9616d75df"
       }
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-movements/production-04-summary.json",
+        "sha256": "13f16dff414250fa1ae5ea69a919c69a4b4d35c51e2f6b0e777592068de12aae"
+      },
+      "result": "New preparation/recovery scenes passed; legacy EOF-return required only a direct refusal after revocation. The peer can also retire first, yielding a read-only Authentication/Cancelled error. Corrected fixture still requires denial and accepts only these authenticated retirement outcomes.",
+      "correction": {
+        "path": ".local/gate-6/rust-sdk-movements/consultation-revoked-read-correction.json",
+        "sha256": "51a9f8faca96e8519abbe4ec7711378292c3fca3d0cf97ca57c26e97c3524d2e"
+      }
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-movements/invalid-build-05-artifact.json",
+        "sha256": "8e8692c7f863f2e15b102635c5969dd897f91f0400493191e710246cef8c5384"
+      },
+      "result": "Candidate05 did not run: reported integration artifact was non-executable data at launch. Preserved bytes, confirmed earlier qualified binary hashes unchanged and rebuilt only the missing integration target; disk exhaustion during stripping was identified in Cargo warnings."
     }
   ],
   "remaining": [
-    "G6-060 remains in progress with20of22 direct mapped mutation kinds implemented. Subscribe/unsubscribe and full SDK surfaces/custody/reconciliation remain. Existing SDK/native and telephone regressions are running.",
-    "Subscribe/unsubscribe and full SDK API/event/configuration, reliable data, transition custody and server-initiated reconciliation, packaged consumers, both-ends SDK and approved remote/Linux profiles remain.",
-    "G6-060 remains in progress; no Gate acceptance, performance or publication claim."
+    "G6-060 remains in progress with20of22 direct mapped mutation kinds implemented. Stream subscribe/unsubscribe remain.",
+    "Transition binding/custody and server-initiated reconciliation, reliable data, full event/capability/config/raw/admin APIs, packaged external-crate and both-ends SDK media journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain unqualified.",
+    "No whole Store/default suite, performance, Gate acceptance, remote-provider or publication claim."
+  ],
+  "scratch_cleanup": [
+    {
+      "path": ".local/gate-6/rust-sdk-movements/failed-scratch-cleanup.json",
+      "sha256": "cc8cf3f368e10d774a8d1d8e55ec8acba260e3e681f40b01e2a1fb746d41eae0"
+    },
+    {
+      "path": ".local/gate-6/rust-sdk-movements/failed-scratch-cleanup-02.json",
+      "sha256": "7d2ed3c3df8ef5f1df559e564d7eff88d4bb44001690f022f47db98ce5c7ad75"
+    },
+    {
+      "path": ".local/gate-6/rust-sdk-movements/qualified-binary-compression.json",
+      "sha256": "4769720733d91273bd3f44513cc90b43929d055f43b90eba0f720a8956994019"
+    }
   ]
 }
