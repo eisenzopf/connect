@@ -547,7 +547,7 @@
     }
   ],
   "inputs": {
-    "contracts/openapi-application-http.json": "9b2d8a898c25c886b10c6ea2fa2a27f1bc3171633749fbd5e0e5ca3d6b4cd6a5",
+    "contracts/openapi-application-http.json": "6d411c20b9615ef9d281dc395e4dcda975939e414bdf0c79126873ee9df5f184",
     "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
     "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
@@ -559,9 +559,9 @@
     "contracts/openapi-operations.json": "cd2c402032ffbc43d1863da18136d12359a4dba5b64b613cd5be46221b08c9e8",
     "contracts/openapi-protected-http.json": "1bc98ea100168bacf626a69e741a38ab2612710b773e7112422cf4761062e993",
     "contracts/openapi-provider-observations.json": "0f8a9ca465126bb7da41c325b385e69ee9709b4a77fbe1b38796a8bbd78a73b1",
-    "contracts/openapi-provisioning.json": "a68fedffed7bf0fa949ec383651c2a2ad9cb6093e035e24477b86307c2446bb0",
+    "contracts/openapi-provisioning.json": "7ea2ba5731c65bb70b1b4fff124a2e6b68ce400cb43cd1eeb8b08f7475722a09",
     "contracts/openapi-record-mutations.json": "31e79a18676ac0a0f54cf53b5d8ca293b3def6d1826964f5e5b29e251f0b1809",
-    "contracts/openapi-routing.json": "f2330d6f25029d9cc0af98ce5bbef81922389680b9c78b8f152a6a0a9f0e4de3",
+    "contracts/openapi-routing.json": "e7552260fde3611599353f2e5313592fd37b425045355a60465c8dab567ad800",
     "contracts/openapi-session-decisions.json": "ceaaf8c6023ad04f3a121008f3212a47f7708f1eec07004f9054bd49348f3acb",
     "crates/connect-mcp/src/listener.rs": "81248af78e15b5238803502dd5e54468f88ab731c139494e9a5de23bb5c514ee",
     "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",

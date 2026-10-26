@@ -1,0 +1,48 @@
+{
+  "task": "G6-068",
+  "status": "in-progress; protocol and manifest checkpoint only",
+  "checked_at": "2026-10-26T18:58:36.545437+00:00",
+  "base_revision": "e7656df5fdbd1434d13f98a3d655d6aa1fa452d0",
+  "scope": "Local Darwin arm64 API/protocol tests and reference generation. Stock server workflow and schema binding verification continue separately. No task closure or acceptance qualification.",
+  "implementation": [
+    "Explicit messaging-only connector Endpoint locators with exact-once target decoding, canonicalization and mandatory secret references.",
+    "Generic manifest-declared account binding requires one unambiguous required secret field and the selected opaque reference.",
+    "Update public provisioning/routing and generated application HTTP reference."
+  ],
+  "inputs": {
+    "crates/connect-connector-api/src/manifest.rs": "bf944876ba7439c3189359d625cac9a6c3597d7a821a0a883fd09c32cfd92384",
+    "crates/connect-connector-api/tests/contracts.rs": "9811a872b591ea9b35046ef53b8e1cefebe3d5d78084a93172d61d72e500a9fe",
+    "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
+    "crates/connect-protocol/src/provisioning.rs": "60114420e0ae7fe3e52bb77d011194cec681e87f151ebd7d9f59c36d87e33ab8",
+    "crates/connect-protocol/tests/connector_endpoint.rs": "2b7cd8c308f2eabb72a212f7bdb916a1f0c5b6e704bbcbf9df9084494e23cfd3",
+    "Cargo.lock": "7927b0fa065c7fa09793b546554612c07e498e53dee870d2f85aad2de66043e4"
+  },
+  "verification": {
+    "connector_api": {
+      "name": "api",
+      "exit_code": 0,
+      "seconds": 499.4410567919258,
+      "passed": 24,
+      "results": [
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "942bb8d8ece38c15f4019bb1a144858c8c865144db488badb7730f534c876a66",
+      "source_unchanged": true
+    },
+    "protocol": {
+      "passed": 3,
+      "exit_code": 0,
+      "log_sha256": "4526a370084353f33cfb1fdd01a44bdb1e4fb8eba7cb5f0898b258ee4f4cbf13"
+    },
+    "source_guard_note": "API/protocol inputs unchanged. Later edits affect only unconsumed server test and Store files; the pending broader stock workflow is not qualified here."
+  },
+  "remaining": [
+    "Stock server composition, decoded Endpoint binding schema and full public workflow runtime matrix.",
+    "Current callback authentication/inbound routing, independent Prism and actual media stock journeys, cancel and teardown."
+  ]
+}

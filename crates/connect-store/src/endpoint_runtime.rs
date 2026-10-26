@@ -343,9 +343,9 @@ impl EndpointRuntime {
                     .enumerate()
                     .any(|(i, m)| p.media[..i].contains(m))
                     || p.media.iter().any(|m| match p.transport {
-                        EndpointTransport::Sms | EndpointTransport::VapiChat => {
-                            *m != RouteMedium::Messages
-                        }
+                        EndpointTransport::Sms
+                        | EndpointTransport::VapiChat
+                        | EndpointTransport::Connector => *m != RouteMedium::Messages,
                         EndpointTransport::Sip
                         | EndpointTransport::Telephone
                         | EndpointTransport::VapiVoice => *m != RouteMedium::Audio,

@@ -804,6 +804,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "percent-encoding",
  "schemars",
  "serde",
  "serde_jcs",

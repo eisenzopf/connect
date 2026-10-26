@@ -52,6 +52,8 @@ pub enum EndpointTransport {
     Sms,
     VapiVoice,
     VapiChat,
+    /// Explicitly installed message connector, never a native media transport.
+    Connector,
 }
 impl EndpointTransport {
     pub fn as_str(&self) -> &'static str {
@@ -64,6 +66,7 @@ impl EndpointTransport {
             Self::Sms => "sms",
             Self::VapiVoice => "vapi-voice",
             Self::VapiChat => "vapi-chat",
+            Self::Connector => "connector",
         }
     }
 }
@@ -375,6 +378,10 @@ impl ProvisioningCommand {
                             && address.len() > 8
                             && !address.contains('@')
                     }
+                    EndpointTransport::Connector => {
+                        connector_endpoint_name(address)?;
+                        capabilities.iter().all(|c| c == "messaging")
+                    }
                     EndpointTransport::VapiVoice | EndpointTransport::VapiChat => {
                         identifier(address)?;
                         true
@@ -391,6 +398,7 @@ impl ProvisioningCommand {
                         | EndpointTransport::Sms
                         | EndpointTransport::VapiVoice
                         | EndpointTransport::VapiChat
+                        | EndpointTransport::Connector
                 ) && secret_ref.is_none()
                 {
                     return Err(invalid());
@@ -428,6 +436,14 @@ impl ProvisioningCommand {
 }
 fn canonical_address(transport: &EndpointTransport, address: &str) -> Result<String> {
     match transport {
+        EndpointTransport::Connector => {
+            connector_endpoint_name(address)?;
+            let (name, target) = connector_endpoint(address)?;
+            Ok(format!(
+                "connector://{name}/{}",
+                percent_encoding::utf8_percent_encode(&target, percent_encoding::NON_ALPHANUMERIC)
+            ))
+        }
         EndpointTransport::Quic | EndpointTransport::Webtransport | EndpointTransport::Webrtc => {
             let value = url::Url::parse(address).map_err(|_| invalid())?;
             if value.host_str().is_none()
@@ -450,6 +466,47 @@ fn canonical_address(transport: &EndpointTransport, address: &str) -> Result<Str
         _ => Ok(address.to_owned()),
     }
 }
+/// Connector endpoint locators name a trusted declaration, never a principal.
+/// The URI carries an opaque backend target decoded once under the registered
+/// address contract; it implies no network resolution or principal authority.
+pub fn connector_endpoint_name(address: &str) -> Result<String> {
+    Ok(connector_endpoint(address)?.0)
+}
+/// Exact opaque backend target decoded once from the endpoint locator. The
+/// registered address contract still validates its UUID/E.164/opaque semantics.
+pub fn connector_endpoint_target(address: &str) -> Result<String> {
+    Ok(connector_endpoint(address)?.1)
+}
+fn connector_endpoint(address: &str) -> Result<(String, String)> {
+    let uri = url::Url::parse(address).map_err(|_| invalid())?;
+    let name = uri.host_str().ok_or_else(invalid)?;
+    if uri.scheme() != "connector"
+        || name.is_empty()
+        || name.len() > 64
+        || !name.bytes().all(|b| b.is_ascii_lowercase() || b == b'-')
+        || !uri.username().is_empty()
+        || uri.password().is_some()
+        || uri.port().is_some()
+        || uri.query().is_some()
+        || uri.fragment().is_some()
+        || uri.path().len() <= 1
+        || address.len() > 2048
+    {
+        return Err(invalid());
+    }
+    let target = percent_encoding::percent_decode_str(&uri.path()[1..])
+        .decode_utf8()
+        .map_err(|_| invalid())?
+        .into_owned();
+    if target.is_empty()
+        || target.len() > 256
+        || target.chars().any(|c| c.is_control() || c.is_whitespace())
+    {
+        return Err(invalid());
+    }
+    Ok((name.to_owned(), target))
+}
+
 fn invalid() -> Error {
     Error::new("invalid-request", "Invalid trusted provisioning request")
 }

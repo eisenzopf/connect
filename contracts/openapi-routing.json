@@ -198,7 +198,8 @@
                 "telephone",
                 "sms",
                 "vapi-voice",
-                "vapi-chat"
+                "vapi-chat",
+                "connector"
               ]
             }
           },
@@ -318,7 +319,8 @@
               "telephone",
               "sms",
               "vapi-voice",
-              "vapi-chat"
+              "vapi-chat",
+              "connector"
             ]
           },
           "endpoint_revision": {

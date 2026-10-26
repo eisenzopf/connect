@@ -315,3 +315,48 @@ fn correlation_capability_needs_independent_status_and_cleanup_without_creation_
         assert_eq!(bad.validate(), Err(ContractError::Manifest));
     }
 }
+
+#[test]
+fn selected_account_reference_uses_declared_required_secret_without_provider_names() {
+    let mut manifest = connect_connector_api::manifest::Manifest::messaging(
+        connect_connector_api::Descriptor::one_way("independent-fixture"),
+    );
+    let selected = [("callback-key".into(), "secret:ACCOUNT_REF".into())].into();
+    assert!(manifest
+        .validate_account_reference(&selected, "ACCOUNT_REF")
+        .is_err());
+    manifest
+        .configuration
+        .push(connect_connector_api::manifest::ConfigField {
+            name: "callback-key".into(),
+            required: true,
+            secret: true,
+        });
+    manifest
+        .validate_account_reference(&selected, "ACCOUNT_REF")
+        .unwrap();
+    assert!(manifest
+        .validate_account_reference(&selected, "OTHER_REF")
+        .is_err());
+    assert!(manifest
+        .validate_account_reference(
+            &[("callback-key".into(), "raw-private-value".into())].into(),
+            "ACCOUNT_REF"
+        )
+        .is_err());
+    manifest
+        .configuration
+        .push(connect_connector_api::manifest::ConfigField {
+            name: "second-key".into(),
+            required: true,
+            secret: true,
+        });
+    let ambiguous = [
+        ("callback-key".into(), "secret:ACCOUNT_REF".into()),
+        ("second-key".into(), "secret:ACCOUNT_REF".into()),
+    ]
+    .into();
+    assert!(manifest
+        .validate_account_reference(&ambiguous, "ACCOUNT_REF")
+        .is_err());
+}

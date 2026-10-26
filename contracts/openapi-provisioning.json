@@ -2056,14 +2056,15 @@
               "telephone",
               "sms",
               "vapi-voice",
-              "vapi-chat"
+              "vapi-chat",
+              "connector"
             ]
           },
           "address": {
             "type": "string",
             "minLength": 1,
             "maxLength": 2048,
-            "description": "Canonical reachable address. QUIC requires an explicit port; browser transports require HTTPS without userinfo/query/fragment; SIP requires a user and host without password; telephone/SMS require E.164; Vapi uses a bounded assistant reference."
+            "description": "Canonical reachable address. QUIC requires an explicit port; browser transports require HTTPS without userinfo/query/fragment; SIP requires a user and host without password; telephone/SMS require E.164; Vapi uses a bounded assistant reference. Connector messaging uses connector://<registered-name>/<encoded-target>; the target is decoded exactly once and canonicalized before receipt identity. It grants no principal or route and does not advertise native media."
           },
           "capabilities": {
             "type": "array",
@@ -2084,7 +2085,7 @@
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^[A-Za-z0-9._~-]+$",
-            "description": "Reference to server-owned secret configuration. Required for SIP, telephone, SMS and Vapi. Never credential plaintext."
+            "description": "Reference to server-owned secret configuration. Required for SIP, telephone, SMS and Vapi. Never credential plaintext. Also required for contributed connector messaging."
           }
         },
         "required": [
@@ -2106,7 +2107,8 @@
                     "telephone",
                     "sms",
                     "vapi-voice",
-                    "vapi-chat"
+                    "vapi-chat",
+                    "connector"
                   ]
                 }
               }
@@ -2343,7 +2345,8 @@
               "telephone",
               "sms",
               "vapi-voice",
-              "vapi-chat"
+              "vapi-chat",
+              "connector"
             ]
           },
           "capabilities": {

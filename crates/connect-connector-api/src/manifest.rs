@@ -187,6 +187,23 @@ impl Manifest {
     }
     /// Configuration receives opaque references, never a raw secret value.
     /// Resolution and secure storage are the host composition's responsibility.
+    /// An explicitly mounted message account must bind its one required secret
+    /// field to the selected protected host reference. Metadata grants no IO.
+    pub fn validate_account_reference(
+        &self,
+        values: &BTreeMap<String, String>,
+        reference: &str,
+    ) -> Result<(), ContractError> {
+        self.validate_configuration(values)?;
+        let mut required = self.configuration.iter().filter(|f| f.required && f.secret);
+        let field = required.next().ok_or(ContractError::Configuration)?;
+        if required.next().is_some()
+            || values.get(&field.name) != Some(&format!("secret:{reference}"))
+        {
+            return Err(ContractError::Configuration);
+        }
+        Ok(())
+    }
     pub fn validate_configuration(
         &self,
         values: &BTreeMap<String, String>,

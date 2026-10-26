@@ -100,3 +100,13 @@ The fixtures perform no external provider calls.
 Tenant vCon-read role assignment, revocation, private-source policy and revision
 checks are described in [tenant-record-readers.md](tenant-record-readers.md).
 The role uses the same protected provisioning SDK/CLI and durable receipts.
+
+Contributed message Endpoints use `transport:"connector"`, a protected
+`secret_ref`, and messaging capabilities only. Their locator is
+`connector://<registered-name>/<encoded-backend-target>`. Normalization decodes
+exactly once and canonicalizes equivalent escapes before the immutable operation
+intent is recorded. Userinfo, port, query, fragment, invalid UTF-8 and decoded
+whitespace/control characters refuse. This is a declared locator, not a network
+connection or principal grant. Trusted startup must separately install the exact
+manifest, driver, account custody and verified Endpoint route. SMS keeps its
+explicit profile/source/enrollment policy; native media uses its own transport.
