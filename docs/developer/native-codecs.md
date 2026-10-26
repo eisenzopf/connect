@@ -20,16 +20,21 @@ current source and target readers and exact selected media. A signed counteroffe
 must be confirmed with the exact codec/direction/handle set; a stale confirmation
 leaves the operation preparing and old authorized audio continues. Unsupported
 codecs, stale revisions and unknown stream targets refuse without a native effect.
-Other connection.update actions remain explicitly unsupported under their
-assigned implementation tasks.
+Hold/resume, mute/unmute and quality controls have separate runtime paths;
+see `native-runtime-controls.md`.
 
 Only an actual successful native return creates a captured codec receipt. Its
 `codec_bindings` identify actual negotiated medium, direction, format, native
 handle, stream generation and Connection generation. These are observations,
-not new media grants. Completion advances the stream revision and updates
+not new media grants. RTP hop handles are positive and unique in a captured
+set. Reliable data has no RTP hop and retains the reserved value `0`; multiple
+distinct logical data streams can share that reserved observation value. Codec
+replacement of selected RTP streams preserves those unchanged data bindings.
+The HTTP reference names these historical shapes `NativeCodecBinding` and
+`NativeCodecResult`. Completion advances the stream revision and updates
 readiness only for the original still-live generation. Historical completion
-cannot revive a retired slot. Schema 45 admits this command to the existing
-native control ledger; pre-alpha old schemas are refused.
+cannot revive a retired slot. The current schema 112 retains this command in
+the native control ledger; old pre-alpha databases are refused.
 
 Recording retry retains only the captured receipt and Store kernel, with no
 command, readers or physical peer. A public role writer can proceed while

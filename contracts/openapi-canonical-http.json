@@ -352,6 +352,14 @@
           },
           "observation": "Server receipt does not confirm delivery to another peer or trigger automatic codec renegotiation. Local listener qualification and unresolved checks are recorded separately in auxiliary-native-capability-delivery.json."
         },
+        "x-native-codec-observation": {
+          "result-schema": {
+            "$ref": "#/components/schemas/NativeCodecResult"
+          },
+          "transport": "Native physical codec mutation requires signed peer custody; HTTP mutation returns501. Current-authorized operation.get exposes its captured historical receipt.",
+          "identities": "RTP bindings use distinct positive hop handles. Reliable data retains zero and never aliases an RTP route. All Stream IDs in one captured set are unique; native model revision, stream generations and Connection generations are distinct counters.",
+          "grant": "A receipt alone cannot install physical ownership or revive a retired generation."
+        },
         "x-native-codec-lifecycle": {
           "delivery": "Native codec replacement publishes adjacent signed stream.closed and stream.opened observations as one guarded physical-writer batch after confirmed fresh replacement flow.",
           "timestamps": "closed_at preserves the earlier observed retirement time; both envelope ts values identify their common publication.",
@@ -5323,6 +5331,135 @@
           "counts"
         ],
         "additionalProperties": false
+      },
+      "NativeCodecBinding": {
+        "type": "object",
+        "properties": {
+          "stream_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "medium": {
+            "enum": [
+              "audio",
+              "video",
+              "screen",
+              "data"
+            ]
+          },
+          "direction": {
+            "enum": [
+              "sendonly",
+              "recvonly",
+              "sendrecv"
+            ]
+          },
+          "codec": {
+            "type": "object",
+            "required": [
+              "name",
+              "params"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9._/-]+$"
+              },
+              "params": {
+                "type": "object"
+              }
+            }
+          },
+          "stream_local_id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "stream_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "connection_generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "stream_id",
+          "medium",
+          "direction",
+          "codec",
+          "stream_local_id",
+          "stream_generation",
+          "connection_generation"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "medium": {
+                  "const": "data"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "stream_local_id": {
+                  "const": 0
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "stream_local_id": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              }
+            }
+          }
+        ],
+        "description": "Captured binding metadata, never a media grant. RTP hops are distinct positive u16 values; reliable data uses reserved zero with no RTP hop. Multiple logical data streams can have zero; logical Stream IDs stay distinct. Full captured sets contain at most32bindings and32768encoded bytes."
+      },
+      "NativeCodecResult": {
+        "type": "object",
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "stream_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "resources_changed": {
+            "type": "boolean"
+          },
+          "codec_bindings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/NativeCodecBinding"
+            }
+          },
+          "session_codec_batch": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          }
+        },
+        "required": [
+          "connection_id",
+          "stream_revision",
+          "resources_changed",
+          "codec_bindings"
+        ],
+        "additionalProperties": false,
+        "description": "Historical direct codec completion or captured Session-policy reconciliation. Binding directions describe the server; SDK parameter observations reverse them for the client. All bindings share one Connection generation. The optional batch reference does not grant physical custody."
       },
       "HttpEnvelope": {
         "allOf": [

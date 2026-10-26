@@ -1,0 +1,53 @@
+{
+  "schema": "connect-gate6-native-codec-data-bindings/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T00:57:29.652768+00:00",
+  "scope": "Captured native codec receipt validation and generated historical HTTP observation schema; no SDK codec lifecycle completion claim.",
+  "change": "Allow multiple distinct logical reliable-data bindings to retain reserved zero; RTP bindings still require distinct positive hop handles and all logical Stream IDs remain unique. This corrects mixed codec capture validation after Core success without creating data media ownership.",
+  "source_sha256": {
+    "crates/connect-protocol/src/native_streams.rs": "1c1bffebe862719b1b8aac2046473c83e6a90de65d18d451386470f217104508",
+    "scripts/generate-canonical-http-openapi.py": "fa48a76f50a89e7dd972aa773155f94c98a94df4412bb1208ea81c54fb1ba0b4",
+    "contracts/openapi-canonical-http.json": "59446c1a09f7f1a5d7e55c05394c408b807ca8af4b6fa4c58f1bf838dd03fea0"
+  },
+  "verification": {
+    "protocol": {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/protocol-01.log",
+        "sha256": "32915cdad8557ff0595f7b908f8f60974e9d2aa427dedc0f6905c845ff3cd33b"
+      },
+      "passed_functions": 38,
+      "failed_functions": 0
+    },
+    "store": {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/store-01-summary.json",
+        "sha256": "ecd9dfa543f75688b7b702adc3bf318e57d362f73bf14a4e08a41516410f2085"
+      },
+      "passed_functions": 236,
+      "failed_functions": 0,
+      "scope": "Five targeted Store groups; opt-level0 functional profile, two threads. No whole Store, default-parallel or performance claim."
+    },
+    "http_schema": {
+      "schema_sha256": "59446c1a09f7f1a5d7e55c05394c408b807ca8af4b6fa4c58f1bf838dd03fea0",
+      "valid_mixed_rtp_and_two_reserved_data_observations": true,
+      "optional_session_codec_batch": true,
+      "refused_rtp_zero_data_positive_and_zero_generation": true,
+      "scope": "Generated NativeCodecResult JSON Schema shape only; logical ID and positive RTP handle uniqueness and the 32KiB bound are additionally enforced by Rust captured-binding validation.",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-codec-updates/http-reference-validation.json",
+        "sha256": "5708c36a9f4d54544a2d4b16f38996db8675d04c57b5f6b6d427c37fb42dcc1e"
+      }
+    },
+    "dependencies": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/dependencies.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "path": ".local/gate-6/rust-sdk-codec-updates/format-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "generated_reference_check": "passed"
+  },
+  "remaining": "SDK codec lifecycle production verification, reliable data I/O, the rest of G6-060, remote/Linux and Gate6 acceptance remain open. Publication is separate."
+}
