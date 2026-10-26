@@ -38,9 +38,9 @@ def source_hashes(package, public_root=ROOT):
     paths = sorted(p for p in package.rglob("*") if p.is_file()
                    and (p.suffix == ".rs" or p.name in ("Cargo.toml", "Cargo.lock"))
                    and "target" not in p.parts)
-    paths += sorted((public_root / "crates/connect-connector-api/src").glob("*.rs"))
+    paths += sorted((public_root / "crates/connect-connector-api/src").rglob("*.rs"))
     paths += [public_root / "crates/connect-connector-api/Cargo.toml", public_root / "docs/CONNECTORS.md",
-              public_root / "contracts/connectors/profile-v1.md", public_root / "contracts/connectors/host-context-v1.md"]
+              public_root / "contracts/connectors/profile-v2.md", public_root / "contracts/connectors/host-context-v1.md"]
     return {**{str(p.relative_to(public_root)) if p.is_relative_to(public_root) else str(p.relative_to(package)): digest(p)
             for p in paths}, "scripts/check-connector-contract.py": digest(Path(__file__).resolve())}
 
@@ -70,12 +70,12 @@ tokio = {{ version = "1", features = ["full"] }}
 [lints.rust]
 unsafe_code = "forbid"
 ''')
-    for relative in ["docs/CONNECTORS.md", "contracts/connectors/profile-v1.md", "contracts/connectors/host-context-v1.md", "LICENSE"]:
+    for relative in ["docs/CONNECTORS.md", "contracts/connectors/profile-v2.md", "contracts/connectors/host-context-v1.md", "LICENSE"]:
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / relative, target)
     files = {str(p.relative_to(destination)): digest(p) for p in destination.rglob("*") if p.is_file()}
-    (destination / "kit-source.json").write_text(json.dumps({"profile": "connect-connector-fixture-v1", "source_files": files,
+    (destination / "kit-source.json").write_text(json.dumps({"profile": "connect-connector-fixture-v2", "source_files": files,
         "export": "public API + guide + contract only; no store/service/routing implementation"}, indent=2) + "\n")
     print(json.dumps({"exported": str(destination), "files": len(files)}))
 
@@ -114,7 +114,7 @@ def main():
             return 1
         checks = report.get("checks", [])
         names = [c.get("name") for c in checks]
-        valid = (report.get("profile") == "connect-connector-fixture-v1" and len(names) == len(set(names))
+        valid = (report.get("profile") == "connect-connector-fixture-v2" and len(names) == len(set(names))
                  and MANDATORY.issubset(names) and all(c.get("passed") is True for c in checks)
                  and report.get("unsupported") == ["video", "live-provider"] and result.returncode == 0)
         redacted_command = [part.replace(str(ROOT) + "/", "") for part in command[:-1]]

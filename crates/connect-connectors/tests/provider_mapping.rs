@@ -5,13 +5,23 @@ use connect_connectors::provider_mapping::*;
 fn manifests_preserve_sms_chat_and_separate_voice_semantics() {
     let sms = telnyx_manifest();
     sms.validate_descriptor(TELNYX).unwrap();
-    assert!(sms.sms && sms.messaging && !sms.context && sms.audio.is_none() && !sms.video);
+    assert!(
+        sms.sms
+            && sms.messaging
+            && !sms.context
+            && sms.media == connect_connector_api::media::MediaSupport::Unsupported
+    );
     assert!(sms
         .validate_configuration(&references("api-key", "TELNYX_API_KEY"))
         .is_ok());
     let chat = vapi_manifest();
     chat.validate_descriptor(VAPI).unwrap();
-    assert!(chat.messaging && chat.context && !chat.sms && chat.audio.is_none() && !chat.video);
+    assert!(
+        chat.messaging
+            && chat.context
+            && !chat.sms
+            && chat.media == connect_connector_api::media::MediaSupport::Unsupported
+    );
     assert_eq!(telnyx_message_state("sent"), Ok(MessageState::Accepted));
     assert_eq!(
         telnyx_message_state("delivered"),
@@ -98,7 +108,10 @@ fn telephone_manifest_declares_control_without_promising_audio_or_sms() {
     let phone = vapi_telephone_manifest();
     phone.validate().unwrap();
     assert!(
-        !phone.messaging && !phone.sms && !phone.context && !phone.video && phone.audio.is_none()
+        !phone.messaging
+            && !phone.sms
+            && !phone.context
+            && phone.media == connect_connector_api::media::MediaSupport::Unsupported
     );
     assert_eq!(
         phone.operations,
@@ -116,4 +129,56 @@ fn telephone_manifest_declares_control_without_promising_audio_or_sms() {
         &references("private-key", "VAPI_PRIVATE_KEY"),
     );
     assert!(checks.iter().all(|c| c.passed));
+}
+
+#[test]
+fn live_profiles_distinguish_native_assistant_from_negotiated_sip_and_sms() {
+    use connect_connector_api::media::*;
+    let sip = sip_live_manifest();
+    sip.validate().unwrap();
+    assert!(!sip.sms && !sip.context && !sip.messaging);
+    assert!(
+        matches!(&sip.media,MediaSupport::Live{binding:LiveBinding::Transport{transport},codecs:LiveCodecs::Negotiated,..} if transport=="Sip")
+    );
+    assert_eq!(
+        sip.media.require_codecs(&LiveCodecs::Advertised {
+            audio: vec![AudioCodec {
+                name: "pcmu".into(),
+                clock_rate_hz: 8000,
+                channels: 1
+            }],
+            video: vec![],
+            data: vec![]
+        }),
+        Err(ContractError::MediaNegotiation)
+    );
+    let native = vapi_native_manifest();
+    native.validate().unwrap();
+    native
+        .validate_configuration(&references("private-key", "selected_vapi_key"))
+        .unwrap();
+    assert!(!native.sms && !native.messaging && native.context);
+    assert!(matches!(
+        &native.media,
+        MediaSupport::Live {
+            binding: LiveBinding::SignedNativeEndpoint,
+            ..
+        }
+    ));
+    assert_eq!(
+        native.media.require_codecs(&LiveCodecs::Advertised {
+            audio: vec![],
+            video: vec![VideoCodec {
+                name: "vp8".into(),
+                clock_rate_hz: 90000
+            }],
+            data: vec![]
+        }),
+        Err(ContractError::UnsupportedMedia)
+    );
+    assert!(matches!(telnyx_manifest().media, MediaSupport::Unsupported));
+    assert!(matches!(
+        vapi_telephone_manifest().media,
+        MediaSupport::Unsupported
+    ));
 }

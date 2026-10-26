@@ -7,7 +7,7 @@ It imports no Connect store/service/server internals and makes no provider calls
 It is contribution material, not a supported carrier or a video implementation.
 
 Read [the contributor guide](../../docs/CONNECTORS.md) and
-[the versioned profile](../../contracts/connectors/profile-v1.md). From the Connect
+[the versioned profile](../../contracts/connectors/profile-v2.md). From the Connect
 repository root:
 
 ```sh

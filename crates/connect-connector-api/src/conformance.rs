@@ -77,7 +77,7 @@ pub fn manifest_contract(
     configuration: &std::collections::BTreeMap<String, String>,
 ) -> Vec<Check> {
     let mut r = Report {
-        profile: "connect-connector-fixture-v1".into(),
+        profile: "connect-connector-fixture-v2".into(),
         connector: m.name.clone(),
         manifest: m.clone(),
         checks: vec![],
@@ -109,7 +109,14 @@ pub fn manifest_contract(
         bad_version.validate() == Err(ContractError::Version),
     );
     let mut bad_video = m.clone();
-    bad_video.video = true;
+    bad_video.media = MediaSupport::LifecycleFixture {
+        audio: AudioFormat {
+            codec: "vp8".into(),
+            sample_rate: 90_000,
+            channels: 1,
+            frame_ms: 20,
+        },
+    };
     r.check("unsupported-video-rejected", bad_video.validate().is_err());
     let mut registry = Registry::default();
     let registered = registry.register(m.clone()).is_ok();
@@ -132,7 +139,7 @@ pub fn manifest_contract(
 pub async fn run(adapter: &mut dyn Fixture) -> Report {
     let m = adapter.manifest();
     let mut r = Report {
-        profile: "connect-connector-fixture-v1".into(),
+        profile: "connect-connector-fixture-v2".into(),
         connector: m.name.clone(),
         manifest: m.clone(),
         checks: vec![],
@@ -370,7 +377,7 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
         "callback-restart",
         restored.apply(delivered, true) == Ok(Apply::Duplicate),
     );
-    if m.audio.is_none() {
+    if m.media.fixture_audio().is_none() {
         r.check("voice-required", false);
         return r;
     }
@@ -389,7 +396,7 @@ pub async fn run(adapter: &mut dyn Fixture) -> Report {
             )
         }) && activated.is_ok_and(|v| v.state == State::Voice(VoiceState::Active)),
     );
-    let rate = m.audio.as_ref().map_or(16_000, |a| a.sample_rate);
+    let rate = m.media.fixture_audio().map_or(16_000, |a| a.sample_rate);
     let count = (rate / 50) as usize;
     let pcm: Vec<i16> = (0..count)
         .map(|i| (((i as f64 * std::f64::consts::TAU * 440.0 / rate as f64).sin()) * 8000.0) as i16)

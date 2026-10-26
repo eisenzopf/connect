@@ -256,6 +256,8 @@ impl Loaded {
         Ok(Some(Self { targets, secrets }))
     }
     pub fn prepare(self, store: &Store) -> Result<Prepared> {
+        let manifest = connect_connectors::provider_mapping::vapi_native_manifest();
+        manifest.validate()?;
         let mut bindings = Vec::new();
         let mut refs = BTreeSet::new();
         let mut targets = Vec::new();
@@ -300,6 +302,10 @@ impl Loaded {
                 None
             };
             let profile = t.config.profile(observations)?;
+            manifest.validate_configuration(&connect_connectors::provider_mapping::references(
+                "private-key",
+                &t.config.secret_ref,
+            ))?;
             refs.insert(t.config.secret_ref.clone());
             bindings.push(host);
             targets.push(PublicVapiTarget {
@@ -324,6 +330,9 @@ impl Loaded {
                 .collect(),
         )?
         .with_assistant_hosts(bindings)?;
+        // Persist only the immutable declaration. No secret reference value or
+        // route/credential grant is installed by this metadata registration.
+        store.register_extension_manifest(&manifest)?;
         runtime.vapi_audio = true;
         for target in &mut targets {
             target.routing = runtime.clone();

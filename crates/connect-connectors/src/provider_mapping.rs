@@ -76,3 +76,61 @@ pub fn vapi_telephone_manifest() -> Manifest {
     .into();
     m
 }
+
+/// SIP/Telnyx media is an actual Core transport. Its adapter reports codecs only
+/// after negotiation; registration must not invent a static audio/video promise.
+pub fn sip_live_manifest() -> Manifest {
+    use connect_connector_api::media::*;
+    let mut m = Manifest::messaging(TELNYX);
+    m.name = "sip-live-media".into();
+    m.messaging = false;
+    m.sms = false;
+    m.context = false;
+    m.limits.context_bytes = 0;
+    m.operations = [ConnectorOperation::LiveMedia].into();
+    m.media = MediaSupport::Live {
+        binding: LiveBinding::Transport {
+            transport: "Sip".into(),
+        },
+        codecs: LiveCodecs::Negotiated,
+        controls: [
+            LiveControl::End,
+            LiveControl::InboundAdmission,
+            LiveControl::StagedOriginate,
+            LiveControl::DeviceReplacement,
+        ]
+        .into(),
+        context: ContextHandling::Unsupported,
+        records: RecordHandling::HostAuthorizedStreams,
+    };
+    m
+}
+/// Canonical Vapi hosting owns a separately enrolled native SDK Endpoint. This
+/// declaration is not a Core Vapi adapter registration or a telephone capability.
+pub fn vapi_native_manifest() -> Manifest {
+    use connect_connector_api::media::*;
+    let mut m = vapi_manifest();
+    m.name = "vapi-native-voice".into();
+    m.messaging = false;
+    m.operations = [
+        ConnectorOperation::LiveMedia,
+        ConnectorOperation::ContextExport,
+    ]
+    .into();
+    m.media = MediaSupport::Live {
+        binding: LiveBinding::SignedNativeEndpoint,
+        codecs: LiveCodecs::Advertised {
+            audio: vec![AudioCodec {
+                name: "pcmu".into(),
+                clock_rate_hz: 8000,
+                channels: 1,
+            }],
+            video: vec![],
+            data: vec![],
+        },
+        controls: [LiveControl::End].into(),
+        context: ContextHandling::HostSelected,
+        records: RecordHandling::HostAuthorizedStreams,
+    };
+    m
+}

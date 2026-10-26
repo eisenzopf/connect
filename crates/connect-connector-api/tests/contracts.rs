@@ -5,10 +5,17 @@ fn invalid_versions_capabilities_limits_and_fields_fail_closed() {
     let base = Manifest::messaging(Descriptor::one_way("fixture"));
     assert!(base.validate().is_ok());
     let mut value = base.clone();
-    value.version = 2;
+    value.version = MANIFEST_VERSION + 1;
     assert_eq!(value.validate(), Err(ContractError::Version));
     let mut value = base.clone();
-    value.video = true;
+    value.media = MediaSupport::LifecycleFixture {
+        audio: AudioFormat {
+            codec: "vp8".into(),
+            sample_rate: 90_000,
+            channels: 1,
+            frame_ms: 20,
+        },
+    };
     assert_eq!(value.validate(), Err(ContractError::Manifest));
     let mut value = base.clone();
     value.context = true;
@@ -34,12 +41,14 @@ fn invalid_versions_capabilities_limits_and_fields_fail_closed() {
     ];
     assert!(value.validate().is_err());
     let mut value = base.clone();
-    value.audio = Some(AudioFormat {
-        codec: "opus".into(),
-        sample_rate: 8000,
-        channels: 1,
-        frame_ms: 20,
-    });
+    value.media = MediaSupport::LifecycleFixture {
+        audio: AudioFormat {
+            codec: "opus".into(),
+            sample_rate: 8000,
+            channels: 1,
+            frame_ms: 20,
+        },
+    };
     assert!(value.validate().is_err());
     assert!(base
         .validate_descriptor(Descriptor {

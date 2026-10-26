@@ -8,6 +8,7 @@ mod descriptor;
 pub mod host_context;
 pub mod lifecycle;
 pub mod manifest;
+pub mod media;
 pub use descriptor::{AddressKind, Descriptor, TELNYX, VAPI};
 
 /// Delivery payload and authorized history; no credentials or storage access.

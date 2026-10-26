@@ -152,6 +152,10 @@ impl TelephoneTransport {
         )
         .await
         .context("Cannot create canonical telephone adapter")?;
+        let manifest = connect_connectors::provider_mapping::sip_live_manifest();
+        crate::connector_media::validate_adapter(&manifest, adapter.as_ref())
+            .context("Canonical telephone adapter does not satisfy its connector contract")?;
+        store.register_extension_manifest(&manifest)?;
         if !config.routes.is_empty() {
             service
                 .install_telephone_replacement_adapter(

@@ -1,0 +1,529 @@
+{
+  "task": "G6-067",
+  "status": "Manifest v2 and trusted composition foundation passed; fresh runtime/hook qualification pending",
+  "checked_at": "2026-10-26T16:34:57.022702+00:00",
+  "base_revision": "e9a7186d331ab48108006a3cc8c48719697123cf",
+  "scope": "Local Darwin arm64 contract/API/provider mapping and two deterministic PCM lifecycle fixtures; production server and test targets typechecked only. No new current production media/adapter/control/host runtime pass, independent live transport, provider account, browser, Linux, remote, package, publication or acceptance claim.",
+  "implementation": [
+    "Replace manifest v1 audio/video fields with a strict v2 union: unsupported, PCM lifecycle fixture or live binding. No version-1 fallback or implicit media capability. Retain normalized message/voice observations, configuration references, immutable registration and protected host responsibilities.",
+    "Describe direct rvoip Transport adapters separately from enrolled signed native Endpoint hosts. Bound unique codec-family catalogs; negotiated-only media refuses static readiness claims. Explicit liveness, inbound handoff, terminal fallback, staged origination and replacement guarantees constrain runtime binding. Context and recording remain current host policies.",
+    "Trusted server composition derives runtime facts from the existing real ConnectionAdapter interface without provider-name branches. Canonical SIP startup validates its supplied adapter and records its immutable declaration; canonical Vapi native startup records a separate PCMU/native/context profile after existing Endpoint/key/source checks. Telephone API and SMS stay media-unsupported.",
+    "Migrate both standalone lifecycle fixtures and the API-only export/checker to v2. A fixture exchange cannot satisfy a live runtime claim. New contract tests cover runtime/binding mismatch, codec refusal, negotiated-only readiness, restart policy drift and closed fields."
+  ],
+  "verification": {
+    "api": {
+      "passed": 23,
+      "results": [
+        "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+      ],
+      "log_sha256": "65ae4489c3b4dfb7f84b5db21e8f13a6bd8f9bd4a56311829efd5fc6dd179bde"
+    },
+    "provider_mapping": {
+      "passed": 5,
+      "log_sha256": "ffd23d7a14aa15a6ece43fe7f0af52f46584120b281dc1fe8ee5e02f927f9459"
+    },
+    "lifecycle_fixtures": [
+      {
+        "fixture": "template",
+        "profile": "connect-connector-fixture-v2",
+        "passed": true,
+        "checks": [
+          {
+            "name": "manifest-valid",
+            "passed": true
+          },
+          {
+            "name": "configuration-valid",
+            "passed": true
+          },
+          {
+            "name": "missing-secret-rejected",
+            "passed": true
+          },
+          {
+            "name": "raw-secret-rejected",
+            "passed": true
+          },
+          {
+            "name": "incompatible-manifest-rejected",
+            "passed": true
+          },
+          {
+            "name": "unsupported-video-rejected",
+            "passed": true
+          },
+          {
+            "name": "duplicate-registration",
+            "passed": true
+          },
+          {
+            "name": "restart-manifest-compatibility",
+            "passed": true
+          },
+          {
+            "name": "setup-ready",
+            "passed": true
+          },
+          {
+            "name": "retired-authority-has-no-effect",
+            "passed": true
+          },
+          {
+            "name": "cloned-permit-cannot-create-two-effects",
+            "passed": true
+          },
+          {
+            "name": "attributable-context-reply",
+            "passed": true
+          },
+          {
+            "name": "message-restart",
+            "passed": true
+          },
+          {
+            "name": "message-logical-effect-once",
+            "passed": true
+          },
+          {
+            "name": "mutation-conflict-rejected",
+            "passed": true
+          },
+          {
+            "name": "independently-initiated-message",
+            "passed": true
+          },
+          {
+            "name": "uncertain-message",
+            "passed": true
+          },
+          {
+            "name": "uncertain-restart",
+            "passed": true
+          },
+          {
+            "name": "uncertain-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "retired-authority-cannot-observe",
+            "passed": true
+          },
+          {
+            "name": "observation-authority-cannot-create",
+            "passed": true
+          },
+          {
+            "name": "uncertain-message-reconcile",
+            "passed": true
+          },
+          {
+            "name": "reconciled-message-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "signed-callback",
+            "passed": true
+          },
+          {
+            "name": "invalid-callback-auth",
+            "passed": true
+          },
+          {
+            "name": "tampered-callback",
+            "passed": true
+          },
+          {
+            "name": "final-before-acceptance",
+            "passed": true
+          },
+          {
+            "name": "duplicate-callback",
+            "passed": true
+          },
+          {
+            "name": "revoked-replay",
+            "passed": true
+          },
+          {
+            "name": "reordered-no-regression",
+            "passed": true
+          },
+          {
+            "name": "terminal-race-reconcile",
+            "passed": true
+          },
+          {
+            "name": "callback-restart",
+            "passed": true
+          },
+          {
+            "name": "voice-start-active",
+            "passed": true
+          },
+          {
+            "name": "duplex-generated-decoded-audio",
+            "passed": true
+          },
+          {
+            "name": "media-frame-bound",
+            "passed": true
+          },
+          {
+            "name": "voice-restart",
+            "passed": true
+          },
+          {
+            "name": "paired-teardown",
+            "passed": true
+          },
+          {
+            "name": "uncertain-voice-create",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-restart",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-reconcile",
+            "passed": true
+          },
+          {
+            "name": "cancel-uncertain-creation",
+            "passed": true
+          },
+          {
+            "name": "failure-after-acceptance",
+            "passed": true
+          },
+          {
+            "name": "peer-loss-bounded-cleanup",
+            "passed": true
+          }
+        ],
+        "source_files": {
+          "examples/connector-template/Cargo.lock": "3d8985a6e7000c3a60b37fbb5e8f87ca045e1bbae108321bbbabc9d0ec2f258b",
+          "examples/connector-template/Cargo.toml": "47e9d5f95e11ad5f751f30e6aa8b4c816a38d7bd5bae0f8f0d77a8d486441bef",
+          "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
+          "examples/connector-template/src/lib.rs": "a9a807fb1be6952306d5a00dc12b6d1a73e53dd1606410b2ccf66ac24e8586a5",
+          "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
+          "examples/connector-template/tests/broken_fixture.rs": "e9fe0edbf392301be492ddfbf1c4b245911b79684674c7fb2e0563d1a1d9e941",
+          "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478",
+          "crates/connect-connector-api/src/conformance.rs": "74c9c5f5eb093bb4c7e0d01b3d4fc7b0e69e2c4b9035c9d826f7d5e3e0d5a9bb",
+          "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+          "crates/connect-connector-api/src/dispatch.rs": "56b636658d25ed052c21b146ab359be25216f265a1fb8f851eb0739fa4a7aec4",
+          "crates/connect-connector-api/src/host_context.rs": "5263855c62cf2f8353e4b4c6843258be2d2df67eba1c6ee260b5f300deb3953f",
+          "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
+          "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
+          "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
+          "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+          "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
+          "docs/CONNECTORS.md": "cc78b969d73dd63688d3e856855298975bf2142c4842f756756887885bb2b04e",
+          "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+          "contracts/connectors/host-context-v1.md": "5843fb02d0311b08f9ef739221cc9d913d66f33ff530d4a2aec90a35bc9e97cf",
+          "scripts/check-connector-contract.py": "2880e44b3cc43f651759e4078d653928c9cc4e6c2df7d998295d172205546666"
+        },
+        "report_sha256": "c651449de20f301e8d0e22365db912b220605d843bd64042293bf074a80fb7d2",
+        "unsupported": [
+          "video",
+          "live-provider"
+        ]
+      },
+      {
+        "fixture": "contribution",
+        "profile": "connect-connector-fixture-v2",
+        "passed": true,
+        "checks": [
+          {
+            "name": "manifest-valid",
+            "passed": true
+          },
+          {
+            "name": "configuration-valid",
+            "passed": true
+          },
+          {
+            "name": "missing-secret-rejected",
+            "passed": true
+          },
+          {
+            "name": "raw-secret-rejected",
+            "passed": true
+          },
+          {
+            "name": "incompatible-manifest-rejected",
+            "passed": true
+          },
+          {
+            "name": "unsupported-video-rejected",
+            "passed": true
+          },
+          {
+            "name": "duplicate-registration",
+            "passed": true
+          },
+          {
+            "name": "restart-manifest-compatibility",
+            "passed": true
+          },
+          {
+            "name": "setup-ready",
+            "passed": true
+          },
+          {
+            "name": "retired-authority-has-no-effect",
+            "passed": true
+          },
+          {
+            "name": "cloned-permit-cannot-create-two-effects",
+            "passed": true
+          },
+          {
+            "name": "attributable-context-reply",
+            "passed": true
+          },
+          {
+            "name": "message-restart",
+            "passed": true
+          },
+          {
+            "name": "message-logical-effect-once",
+            "passed": true
+          },
+          {
+            "name": "mutation-conflict-rejected",
+            "passed": true
+          },
+          {
+            "name": "independently-initiated-message",
+            "passed": true
+          },
+          {
+            "name": "uncertain-message",
+            "passed": true
+          },
+          {
+            "name": "uncertain-restart",
+            "passed": true
+          },
+          {
+            "name": "uncertain-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "retired-authority-cannot-observe",
+            "passed": true
+          },
+          {
+            "name": "observation-authority-cannot-create",
+            "passed": true
+          },
+          {
+            "name": "uncertain-message-reconcile",
+            "passed": true
+          },
+          {
+            "name": "reconciled-message-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "signed-callback",
+            "passed": true
+          },
+          {
+            "name": "invalid-callback-auth",
+            "passed": true
+          },
+          {
+            "name": "tampered-callback",
+            "passed": true
+          },
+          {
+            "name": "final-before-acceptance",
+            "passed": true
+          },
+          {
+            "name": "duplicate-callback",
+            "passed": true
+          },
+          {
+            "name": "revoked-replay",
+            "passed": true
+          },
+          {
+            "name": "reordered-no-regression",
+            "passed": true
+          },
+          {
+            "name": "terminal-race-reconcile",
+            "passed": true
+          },
+          {
+            "name": "callback-restart",
+            "passed": true
+          },
+          {
+            "name": "voice-start-active",
+            "passed": true
+          },
+          {
+            "name": "duplex-generated-decoded-audio",
+            "passed": true
+          },
+          {
+            "name": "media-frame-bound",
+            "passed": true
+          },
+          {
+            "name": "voice-restart",
+            "passed": true
+          },
+          {
+            "name": "paired-teardown",
+            "passed": true
+          },
+          {
+            "name": "uncertain-voice-create",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-restart",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-no-repeat",
+            "passed": true
+          },
+          {
+            "name": "unknown-voice-reconcile",
+            "passed": true
+          },
+          {
+            "name": "cancel-uncertain-creation",
+            "passed": true
+          },
+          {
+            "name": "failure-after-acceptance",
+            "passed": true
+          },
+          {
+            "name": "peer-loss-bounded-cleanup",
+            "passed": true
+          }
+        ],
+        "source_files": {
+          "examples/connector-contribution/Cargo.lock": "5eb0911908fcce60fcfbd6abdb39f6a8239d5aff0f5697de8ac909ff5e03561f",
+          "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
+          "examples/connector-contribution/src/lib.rs": "d381528b1bfcb4335d78d593cedc9ab4360c5ed4e8499b46c5dbce42be436649",
+          "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+          "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+          "examples/connector-contribution/tests/boundaries.rs": "a870f03daa6a3cfd36322087389fe6fc68f950b8dd0fc5821c5c1b027f79feda",
+          "crates/connect-connector-api/src/conformance.rs": "74c9c5f5eb093bb4c7e0d01b3d4fc7b0e69e2c4b9035c9d826f7d5e3e0d5a9bb",
+          "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+          "crates/connect-connector-api/src/dispatch.rs": "56b636658d25ed052c21b146ab359be25216f265a1fb8f851eb0739fa4a7aec4",
+          "crates/connect-connector-api/src/host_context.rs": "5263855c62cf2f8353e4b4c6843258be2d2df67eba1c6ee260b5f300deb3953f",
+          "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
+          "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
+          "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
+          "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+          "crates/connect-connector-api/Cargo.toml": "423405d05c8d5d81dcbecd6ddded85ae90848dc99e4a786437936e0d897a0ce1",
+          "docs/CONNECTORS.md": "cc78b969d73dd63688d3e856855298975bf2142c4842f756756887885bb2b04e",
+          "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+          "contracts/connectors/host-context-v1.md": "5843fb02d0311b08f9ef739221cc9d913d66f33ff530d4a2aec90a35bc9e97cf",
+          "scripts/check-connector-contract.py": "2880e44b3cc43f651759e4078d653928c9cc4e6c2df7d998295d172205546666"
+        },
+        "report_sha256": "f833c55c7b4850ccc292a6045a638be866c0917b0aeca41fb86f819569e6c812",
+        "unsupported": [
+          "video",
+          "live-provider"
+        ]
+      }
+    ],
+    "production_typecheck": {
+      "exit_code": 0,
+      "scope": "cargo check --release --offline --locked -p connect-server --features test-support --test gate6_canonical_runtime with existing opt-level0 overrides; not runtime execution",
+      "log_sha256": "f0e2e1cc8fba2b01996fc5bcdc3277fc83a5881b2bb719c1fbef3b7a78144d4a",
+      "recorded_duration": "6m44s"
+    },
+    "static": "Format --check, Gate6 plan integrity, HTTP inventory24 declarations/25 methods/0 uncovered and diff check passed.",
+    "stopped_proof_archive": {
+      "audit": ".local/gate-6/connector-media/archives-01/audit.json",
+      "audit_sha256": "fd1d5f67922394fcd2e815f1f99987141328d70ebc2af8cca6a4fa322b74f547",
+      "groups": 6,
+      "paths": 9,
+      "scope": "Closed proof executables only; gzip decoded hash verification and original path/mode restore mappings retained before removal; no source, logs, state or dependency libraries removed."
+    }
+  },
+  "inputs": {
+    "Cargo.lock": "dc69ee13a8217a9cb2b3661ada17f9d51abce92fc21eb6523e4890fa8785c186",
+    "contracts/connectors/profile-v2.md": "ea04b889fac6e24a920db24e963525dde9146859e34a7e4d7f6ff2b910406c1a",
+    "crates/connect-connector-api/examples/echo.rs": "048e1ad2371fb488153096c5389593f3f76ff4d7ab8ab201b1e5b9794e86ea7a",
+    "crates/connect-connector-api/src/conformance.rs": "74c9c5f5eb093bb4c7e0d01b3d4fc7b0e69e2c4b9035c9d826f7d5e3e0d5a9bb",
+    "crates/connect-connector-api/src/descriptor.rs": "6b3dc36cdf8ada44f5a9b547f279bd9ebb3463b6d596487d26029f70efda063d",
+    "crates/connect-connector-api/src/dispatch.rs": "56b636658d25ed052c21b146ab359be25216f265a1fb8f851eb0739fa4a7aec4",
+    "crates/connect-connector-api/src/host_context.rs": "5263855c62cf2f8353e4b4c6843258be2d2df67eba1c6ee260b5f300deb3953f",
+    "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
+    "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
+    "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
+    "crates/connect-connector-api/src/media.rs": "29a62ceff8bb2a6f6ab6eb14270eff6c4e24837691ca252bb55bdf58e3bb95eb",
+    "crates/connect-connector-api/tests/contracts.rs": "5edc8eb8b4c0bc415e08747248a34a15d1ee33c276253b045ffbf06317189c5f",
+    "crates/connect-connector-api/tests/host_context.rs": "7e79afaaf1cb3f428dfbb6c83e85d29063aa20e906e72e3f7f5ace546ff54734",
+    "crates/connect-connector-api/tests/media_contract.rs": "a8d8112d289277e614a0ba86ab372d6fe567115512991c5c0cba93f0f3dc9b45",
+    "crates/connect-connector-api/tests/voice_receipts.rs": "1e159285fe5afa74adbf0dcf5016a4d2d98fa01587eaf84c48611bfe4a3b821a",
+    "crates/connect-connectors/src/chat_context.rs": "60af82258dd153686bc5da284ea76efe09bed5b4b9cd045c7a8ad7321ea091ea",
+    "crates/connect-connectors/src/lib.rs": "eb03e701c21f5578d0b06635c2d7c70bb444ef86689f09da7f87d5cdd2a7f845",
+    "crates/connect-connectors/src/numbers.rs": "0d2225f4160919676772b25c857391faca77de5013bab4181e8a4e7295d84c45",
+    "crates/connect-connectors/src/provider_mapping.rs": "a4eed7a968aa3f8ef79b8c37eb78ba4a946d9fe9ef548608b01d467a69335dc5",
+    "crates/connect-connectors/src/provisioning/catalog.rs": "67c90ecdaaaa8b03b9694623cce6e8893c1449eb1169e03ba955f1e1affd0ebf",
+    "crates/connect-connectors/src/provisioning/discovery.rs": "c20edfb4b2ab5f124686855e05ce2a611728c2b41d9bac1c1920823f18bafa34",
+    "crates/connect-connectors/src/provisioning/execution.rs": "06aed4445342355c594c2ad9ab47cd9d148d912e44c14d093732b9372f619d2e",
+    "crates/connect-connectors/src/provisioning/mod.rs": "25c7ceac3d58e43e2346832eff9e600d12572ac0ccc1ee25d90f1ae040cd1c1f",
+    "crates/connect-connectors/src/provisioning/readiness.rs": "33c7aaf434de2fb5ef9edcee4d626a8d19e9955c2c35700cfd3c5d15288fb4ae",
+    "crates/connect-connectors/src/setup/secrets.rs": "74f68f976e9a94c21046c32c653fbd019d55ac53988875fd7abc97bbcccedae1",
+    "crates/connect-connectors/src/setup.rs": "4c441775190aab88900e585c54d7cf972a28ff1a665c6f86559adb07d19f2f06",
+    "crates/connect-connectors/src/vapi_endpoint.rs": "d12fe10e82ed39ca27ffe9e0e42422de9acd68c243af5256dca9e26067ea3474",
+    "crates/connect-connectors/src/vapi_origin.rs": "cf79494297ef6fe8524504b31c64e91b2a575cee3cabc7f277eb419956335a8b",
+    "crates/connect-connectors/src/voice/reconciliation/tests.rs": "aed12ad701431180e90d261e37f61acfe34bfc40ee670cca9074806d8f59f499",
+    "crates/connect-connectors/src/voice/reconciliation.rs": "46e95f57bea435b9b81a6b0ab4054d5e3ffe5aa6c9d8351d3d554d3303347157",
+    "crates/connect-connectors/src/voice.rs": "9a33c5c92639c8aaca6187e54b40b99d13f9dd89fd7b13a712bd5818a48e1dec",
+    "crates/connect-connectors/src/voice_native_setup.rs": "c41d88ea38fdf676b78bcb9f0ada7c9c6395dfe2aa38606d605a9a88d0373238",
+    "crates/connect-connectors/src/voice_setup.rs": "1f7af1a38a6a2101b9e5e0c304a3da387772344311af8d7deca0fe74a59b9af0",
+    "crates/connect-connectors/tests/adapters.rs": "2b057559287e56cae4c8df6b0c8f68ef727798046ed217736170209502b6abda",
+    "crates/connect-connectors/tests/crypto_init.rs": "7475bd2f620c54b0a623a4fba4e1d6034d16861a615060834313cd087d60309c",
+    "crates/connect-connectors/tests/numbers.rs": "50e5f75132e328e995047854737ec0de91502af6173e8fd71c7bbd736c4769cc",
+    "crates/connect-connectors/tests/provider_discovery.rs": "4c8eff151abeef8b1ef201295f23a24f1b4c256914f89ca665acb38bff852a23",
+    "crates/connect-connectors/tests/provider_mapping.rs": "f1de7acad015a258444f5c5db9317f535989c2df4db0e152246c5382ba58edf1",
+    "crates/connect-connectors/tests/provisioning.rs": "3b41b518ac8c9f8ad6613102cde0ebee519de50b2a33697a29185e56c3b3fde8",
+    "crates/connect-connectors/tests/setup.rs": "57ddd62667f816af47311b44257f8fd0090d9bc33fa3a939baf9da10896661ee",
+    "crates/connect-connectors/tests/support/setup_vault.rs": "e746910a510fd94c0bb25a9db31bcd188e2cc5c3b0072ad828ec9448ac3c53d4",
+    "crates/connect-connectors/tests/vapi_origin.rs": "36940d944e6cf1f5de6f84befa27c6eb7f795d8ceb14f42b0ff3547a98089611",
+    "crates/connect-server/src/canonical_assistants.rs": "d4eed1647e091e764107a7b65f743497a266d24d0bf2e1e1c3969757343acf77",
+    "crates/connect-server/src/canonical_provider_voice.rs": "c52c053f828cdc57d65b4aba062f696e80f0d3f0e78bfa161f997abd993385cd",
+    "crates/connect-server/src/canonical_telephone.rs": "3858105591b602699d3c82bc5e703363043318f2e664cfbfbbb37f1ca3fe8ae3",
+    "crates/connect-server/src/connector_media.rs": "2cd4d72c2fd66aa7fb58cb9d7dc8f0eeebdf32f136f463c70d158ece5c9acd92",
+    "crates/connect-server/tests/support/connector_media_contract.rs": "0193b5406476978a8a61dff8c7cd59f8ddc367460e156931e6fecdc32bea0852",
+    "dependencies/source-lock.json": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a",
+    "examples/connector-contribution/src/lib.rs": "d381528b1bfcb4335d78d593cedc9ab4360c5ed4e8499b46c5dbce42be436649",
+    "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
+    "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
+    "examples/connector-contribution/tests/boundaries.rs": "a870f03daa6a3cfd36322087389fe6fc68f950b8dd0fc5821c5c1b027f79feda",
+    "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
+    "examples/connector-template/src/lib.rs": "a9a807fb1be6952306d5a00dc12b6d1a73e53dd1606410b2ccf66ac24e8586a5",
+    "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
+    "examples/connector-template/tests/broken_fixture.rs": "e9fe0edbf392301be492ddfbf1c4b245911b79684674c7fb2e0563d1a1d9e941",
+    "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478"
+  },
+  "remaining": [
+    "Execute the new actual SIP/Vapi adapter and registration-authority production tests on a frozen current build; rerun current canonical telephone and configured assistant startup/media scopes.",
+    "Complete admission/control hook and independent live fixture evidence required by G6-067, then ship the G6-068 media contribution harness through stock trusted composition. The PCM fixture checks here do not qualify a live transport.",
+    "G6-067 remains in-progress. The unchanged full105-task goal and existing G6-050/G6-051/G6-065 obligations remain active."
+  ]
+}

@@ -43,7 +43,7 @@ uncertainty mode creates a second effect for a retained uncertain message. None
 fabricates harness pass/fail fields.
 
 Read the [guide](../../docs/CONNECTORS.md),
-[fixture profile](../../contracts/connectors/profile-v1.md) and
+[fixture profile](../../contracts/connectors/profile-v2.md) and
 [exact host projection contract](../../contracts/connectors/host-context-v1.md).
 The fixed HMAC key is synthetic fixture setup, never a production credential.
 Video, live providers, network quality, real-time capacity and concurrent

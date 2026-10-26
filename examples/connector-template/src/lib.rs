@@ -96,12 +96,14 @@ impl Connector for LocalProvider {
             ConnectorOperation::VoiceEnd,
             ConnectorOperation::MediaExchange,
         ]);
-        m.audio = Some(AudioFormat {
-            codec: "pcm-s16le".into(),
-            sample_rate: 16_000,
-            channels: 1,
-            frame_ms: 20,
-        });
+        m.media = MediaSupport::LifecycleFixture {
+            audio: AudioFormat {
+                codec: "pcm-s16le".into(),
+                sample_rate: 16_000,
+                channels: 1,
+                frame_ms: 20,
+            },
+        };
         m.limits.message_bytes = 4096;
         m.limits.context_bytes = 16_384;
         m.configuration = vec![ConfigField {

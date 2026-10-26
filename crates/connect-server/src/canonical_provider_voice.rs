@@ -178,7 +178,7 @@ impl Worker {
                 || manifest
                     .operations
                     .contains(&ConnectorOperation::MediaExchange)
-                || manifest.audio.is_some()
+                || manifest.media != connect_connector_api::media::MediaSupport::Unsupported
                 || configuration.get("private-key")
                     != Some(&format!("secret:{}", route.policy.route_reference))
             {

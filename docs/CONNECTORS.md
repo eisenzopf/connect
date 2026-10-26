@@ -1,7 +1,7 @@
 # Contributing a connector
 
 Start with the public `connect-connector-api` crate and the
-[versioned contract](../contracts/connectors/profile-v1.md). A connector is trusted
+[versioned contract](../contracts/connectors/profile-v2.md). A connector is trusted
 code selected by the server owner at composition time. There is no runtime plugin
 loader, remote download or marketplace. A fixture contribution is executable
 teaching material, not another supported provider.
@@ -43,7 +43,8 @@ The export flattens workspace metadata only; it retains exact public Rust source
 1. Implement `Connector` and declare `Descriptor` plus `manifest()`. The manifest
    must agree with dispatch's address/context/SMS semantics. Populate the typed `operations` set, including status/reconciliation and
    media exchange where implemented. Declare only operations
-   and codecs you actually implement; v1 rejects video. `configuration()` returns
+   and codecs you actually implement. Manifest v2 distinguishes unsupported media,
+   a PCM lifecycle fixture and an actual live binding; see the media contract below. `configuration()` returns
    reference declarations such as `secret:callback-key`; resolve secrets in the
    adapter constructor and return an accurate `readiness()` state. Production
    adapters must not use the template's fixed fixture HMAC key.
@@ -75,7 +76,7 @@ The export flattens workspace metadata only; it retains exact public Rust source
    incomplete transcripts remain labelled historical material. Do not infer derived
    material from arbitrary `kind` text: the shared mapping's exact known outcome
    categories and opaque-body rules are documented in the projection contract.
-5. Implement `MediaExtension` independently of messages: one `open` attempt,
+5. Implement the PCM lifecycle fixture independently of messages: one `open` attempt,
    explicit `reconcile`, idempotent paired `close`, bounded format-aware media
    exchange. An uncertain open may already have created a remote session. Cancel
    and peer-loss recovery must reconcile/close that effect rather than starting
@@ -85,6 +86,32 @@ The export flattens workspace metadata only; it retains exact public Rust source
    as permission. Preserve terminal state across reordered callbacks. The public
    reducer checks current host authorization before duplicate handling; it does
    not replace the host's policy check or transactional journal.
+
+## Declare real live media
+
+Manifest v2 uses `MediaSupport::Live` for an actual host/transport contract.
+`LifecycleFixture` describes the bounded PCM exercise, and `Unsupported` describes
+message or telephone-control profiles with no media. There is no v1 fallback.
+A changed persisted manifest fails closed and requires an explicit migration.
+
+Use the existing rvoip `ConnectionAdapter` interface for a transport. Trusted
+composition can call `connect_server::connector_media::validate_adapter` to
+compare the declaration with the actual adapter's binding, codec families and
+liveness/inbound/staging/replacement guarantees before registration. This check
+makes no network effect and grants no route or operation. Keep Core registration,
+current Store policy, negotiated media and shutdown with the host.
+
+The canonical SIP startup path checks its real adapter and persists its contract.
+Its codecs are negotiated per Connection; registration cannot invent PCMU, Opus
+or video availability. Canonical Vapi hosting instead declares a signed native
+Endpoint with PCMU, selected historical context and host-authorized recording;
+its existing Endpoint/key/source checks and owned provider job remain required.
+Chat, native hosting and telephone API control have distinct manifests.
+
+The [v2 contract](../contracts/connectors/profile-v2.md) defines the closed media
+union, static versus negotiated codecs, control declarations and context/record
+policy. Registration and advertised capability remain observations, not evidence
+of an answered call, decoded media, provider delivery or a human decision.
 
 ## Register through trusted composition
 

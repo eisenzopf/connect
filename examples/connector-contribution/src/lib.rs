@@ -173,12 +173,14 @@ impl Prism {
             ConnectorOperation::MediaExchange,
         ]
         .into();
-        m.audio = Some(AudioFormat {
-            codec: "pcm-s16le".into(),
-            sample_rate: 16000,
-            channels: 1,
-            frame_ms: 20,
-        });
+        m.media = MediaSupport::LifecycleFixture {
+            audio: AudioFormat {
+                codec: "pcm-s16le".into(),
+                sample_rate: 16000,
+                channels: 1,
+                frame_ms: 20,
+            },
+        };
         m.limits = Limits {
             message_bytes: MESSAGE_BYTES,
             context_bytes: CONTEXT_BYTES,

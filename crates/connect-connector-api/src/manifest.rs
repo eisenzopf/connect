@@ -6,7 +6,10 @@ use crate::{AddressKind, Descriptor};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const MANIFEST_VERSION: u16 = 1;
+pub const MANIFEST_VERSION: u16 = 2;
+pub use crate::media::{
+    ContextHandling, LiveBinding, LiveCodecs, LiveControl, MediaSupport, RecordHandling,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -18,10 +21,9 @@ pub struct Manifest {
     pub operations: BTreeSet<ConnectorOperation>,
     pub context: bool,
     pub sms: bool,
-    /// None explicitly means that this extension does not support voice/media.
-    pub audio: Option<AudioFormat>,
-    /// This version has no video extension. A true value is rejected.
-    pub video: bool,
+    /// Explicitly separates unsupported media, a lifecycle fixture, and an
+    /// installed live host/transport contract. No variant grants authority.
+    pub media: MediaSupport,
     pub limits: Limits,
     pub configuration: Vec<ConfigField>,
 }
@@ -39,6 +41,7 @@ pub enum ConnectorOperation {
     VoiceReconcile,
     VoiceEnd,
     MediaExchange,
+    LiveMedia,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -85,6 +88,12 @@ pub enum ContractError {
     Conflict,
     #[error("route address does not match connector contract")]
     Address,
+    #[error("connector media is unsupported")]
+    UnsupportedMedia,
+    #[error("connector media runtime does not satisfy its contract")]
+    MediaRuntime,
+    #[error("current connection media negotiation is required")]
+    MediaNegotiation,
 }
 fn name_valid(value: &str) -> bool {
     !value.is_empty()
@@ -109,8 +118,7 @@ impl Manifest {
             },
             context: descriptor.conversational,
             sms: descriptor.sms,
-            audio: None,
-            video: false,
+            media: MediaSupport::Unsupported,
             limits: Limits {
                 message_bytes: 40_000,
                 context_bytes: 128_000,
@@ -130,27 +138,29 @@ impl Manifest {
         use ConnectorOperation::*;
         let has = |op| self.operations.contains(&op);
         if !name_valid(&self.name)
-            || self.video
             || self.operations.is_empty()
             || self.messaging != (has(MessageSend) || has(MessageReceive))
             || self.context != has(ContextExport)
             || (has(MessageStatus) && !self.messaging)
             || (has(VoiceStart) && (!has(VoiceStatus) || !has(VoiceEnd)))
             || (has(VoiceReconcile) && (!has(VoiceStatus) || !has(VoiceEnd)))
-            || (has(MediaExchange) && (self.audio.is_none() || !has(VoiceStart)))
-            || (self.audio.is_some() && !has(MediaExchange))
-            || (self.context && !self.messaging && !has(VoiceStart))
+            || (has(MediaExchange) != matches!(&self.media, MediaSupport::LifecycleFixture { .. }))
+            || (has(MediaExchange) && !has(VoiceStart))
+            || (has(LiveMedia) != matches!(&self.media, MediaSupport::Live { .. }))
+            || (self.context && !self.messaging && !has(VoiceStart) && !has(LiveMedia))
+            || matches!(&self.media,MediaSupport::Live{context,..} if self.context != (*context==ContextHandling::HostSelected))
             || (self.sms
                 && (!self.messaging
                     || self.context
                     || self.address != AddressKind::E164Pair
-                    || self.audio.is_some()
+                    || self.media != MediaSupport::Unsupported
                     || has(VoiceStart)
                     || has(VoiceDiscover)
                     || has(VoiceStatus)
                     || has(VoiceReconcile)
                     || has(VoiceEnd)
-                    || has(MediaExchange)))
+                    || has(MediaExchange)
+                    || has(LiveMedia)))
             || !(1..=1_048_576).contains(&l.message_bytes)
             || l.context_bytes > 1_048_576
             || (self.context && l.context_bytes == 0)
@@ -165,19 +175,15 @@ impl Manifest {
         {
             return Err(ContractError::Manifest);
         }
-        if let Some(a) = &self.audio {
-            if !matches!(a.codec.as_str(), "pcm-s16le" | "opus" | "pcmu" | "pcma")
-                || !matches!(a.sample_rate, 8_000 | 16_000 | 24_000 | 48_000)
-                || !(1..=2).contains(&a.channels)
-                || !matches!(a.frame_ms, 10 | 20 | 40 | 60)
-                || (matches!(a.codec.as_str(), "pcmu" | "pcma")
-                    && (a.sample_rate != 8_000 || a.channels != 1))
-                || (a.codec == "opus" && a.sample_rate != 48_000)
-            {
-                return Err(ContractError::Manifest);
-            }
-        }
+        self.media.validate()?;
         Ok(())
+    }
+    pub fn validate_media_runtime(
+        &self,
+        runtime: &crate::media::MediaRuntime,
+    ) -> Result<(), ContractError> {
+        self.validate()?;
+        self.media.require_runtime(runtime)
     }
     /// Configuration receives opaque references, never a raw secret value.
     /// Resolution and secure storage are the host composition's responsibility.
