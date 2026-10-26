@@ -37,6 +37,13 @@ keep their own ceilings. See [developer/canonical-mcp.md](developer/canonical-mc
 
 ## Export an existing scoped credential
 
+For a new scoped native/application installation, use the
+[credential installer](developer/credential-installation.md): `connect issue`
+persists the original request and fresh Device key, enrolls the issued child and
+confirms native admission. `connect issue-resume` recovers that same credential
+and enrollment after interruption. Its `client.toml` can be the export source
+below; the bootstrap's existing agent configuration remains usable too.
+
 Use the bootstrap's canonical agent configuration as the credential source:
 
 ```sh
@@ -146,8 +153,9 @@ and continuation under different authority require explicit owner action.
 `agent-access create-identity` accepts canonical owner/server configurations and
 reconciles the original owner/alias/request ID. It creates the Identity only;
 credential issuance and any required native endpoint enrollment are separate
-trusted setup. The older generic `issue`/retained-inspection recipes are not a
-qualified canonical workflow; their facade migration remains in G6-065.
+trusted setup through the saved-intent installer. Retained inspection uses the
+explicit application configuration described below. The old generic issuance
+flags and single-file output are replaced without format conversion.
 
 Earlier [Gate 4 review](evidence/gate-4/acceptance.html),
 [installed candidate](evidence/gate-4/package-dc73996.json),
@@ -177,5 +185,5 @@ permissions are explicit unavailable sections. Invalid cursors and current
 reader revocation fail the sample. A current owner's ability to inspect old work
 does not revive the old agent's authority. See the
 [application diagnostic contract](developer/application-sdk.md#retained-task-diagnostics).
-The older generic credential `issue` recipe still requires its canonical issuance
-and recovery migration; no issued credential is fabricated by this command.
+This read-only inspection command issues no new credential; use the installer
+with a separately saved scope/expiry intent when new authority is required.

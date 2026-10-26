@@ -63,25 +63,25 @@ enum Command {
         #[arg(long)]
         server_config: PathBuf,
     },
-    /// Issue a scoped credential into a new protected client configuration file.
+    /// Issue and enroll a scoped credential into a new protected installation.
     Issue {
         #[arg(long)]
         config: PathBuf,
         #[arg(long)]
-        server_config: PathBuf,
+        native_template: PathBuf,
         #[arg(long)]
-        identity_id: String,
-        #[arg(long, required = true, value_delimiter = ',')]
-        recipients: Vec<String>,
-        #[arg(long, default_value = "30")]
-        expires_days: u32,
-        #[arg(long)]
-        voice: bool,
-        /// Enable owned-task management/delegation; never grants admin access.
-        #[arg(long)]
-        tasks: bool,
+        request: PathBuf,
+        #[arg(long, default_value="EdDSA",value_parser=["EdDSA","ES256"])]
+        signing_algorithm: String,
         #[arg(long)]
         output: PathBuf,
+    },
+    /// Reconcile the original credential and native enrollment without replacement.
+    IssueResume {
+        #[arg(long)]
+        config: PathBuf,
+        #[arg(long)]
+        installation: PathBuf,
     },
     /// Capture a consistent database and protected installation recovery material.
     Backup {
@@ -352,52 +352,24 @@ async fn main() -> Result<()> {
         } => connect_server::cli::credentials::rotate_tls(&server_config, &config)?,
         Command::Issue {
             config,
-            server_config,
-            identity_id,
-            recipients,
-            expires_days,
-            voice,
-            tasks,
+            native_template,
+            request,
+            signing_algorithm,
             output,
         } => {
-            anyhow::ensure!(!output.exists(), "Credential output must be a new file");
-            anyhow::ensure!(
-                (1..=365).contains(&expires_days),
-                "Expiry must be 1–365 days"
-            );
-            let operator = ClientConfig::load(&config)?;
-            let server = ServerConfig::load(&server_config)?;
-            let store = connect_store::Store::open(&server.database, server.limits)?;
-            let actor = store.authenticate(&operator.credential)?;
-            let scope = if voice {
-                connect_store::Scope::communications(recipients)
-            } else {
-                connect_store::Scope::messaging(recipients)
-            };
-            let scope = if tasks {
-                connect_server::cli::credentials::with_task_management(scope)
-            } else {
-                scope
-            };
-            let key = store.issue_as(
-                &actor,
-                &identity_id,
-                scope,
-                chrono::Utc::now().timestamp() + i64::from(expires_days) * 86400,
-            )?;
-            let id = key.id.clone();
-            let client = ClientConfig {
-                endpoint: server.bind,
-                server_name: operator.server_name,
-                trust_certificate: server.certificate.canonicalize()?,
-                credential: key.token,
-                identity_id,
-                credential_id: key.id,
-                timeout_ms: operator.timeout_ms,
-            };
-            init::private_write(&output, toml::to_string_pretty(&client)?.as_bytes())?;
-            println!("Credential issued id={id} config={}", output.display());
+            connect_server::cli::credential_installation::issue(
+                &config,
+                &native_template,
+                &request,
+                &output,
+                &signing_algorithm,
+            )
+            .await?
         }
+        Command::IssueResume {
+            config,
+            installation,
+        } => connect_server::cli::credential_installation::resume(&config, &installation).await?,
         Command::Backup {
             config,
             server_config,

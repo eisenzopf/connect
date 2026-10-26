@@ -1,6 +1,7 @@
 pub mod canonical_init;
 mod client_errors;
 mod connected_app_init;
+pub mod credential_installation;
 pub mod credentials;
 pub mod demo;
 pub mod first_run;

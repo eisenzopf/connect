@@ -53,8 +53,9 @@ recover with the original request rather than minting a new logical credential.
 
 The [application SDK](application-sdk.md) exposes explicit issuance. Device and
 signing-key enrollment remain separate trusted provisioning operations before
-native admission. The old CLI issuance command has not yet been migrated to this
-recovery/enrollment workflow.
+native admission. The [credential installer](credential-installation.md) saves
+original intent and a fresh Device key before IO, enrolls the returned child and
+confirms actual native admission before writing its completion marker.
 
 ## Protected Task access
 

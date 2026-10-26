@@ -51,7 +51,11 @@ wrappers need their approved SDK migrations; they do not consume this new
 canonical JSON-lines shape.
 
 Local behavior evidence is `docs/evidence/gate-6/canonical-cli-stdio.json`.
-G6-065 remains in progress. Full facade endpoint/OpenAPI/admin/file parity,
-retained CLI issuance/inspection migration and actual supported agent-host
+Scoped issuance and native enrollment use the
+[saved-intent credential installer](credential-installation.md), with explicit
+`issue-resume` after uncertainty. Retained inspection uses the
+[application diagnostics](application-sdk.md#retained-task-diagnostics) config.
+G6-065 remains in progress. Full facade endpoint/OpenAPI/admin/file parity
+and actual supported agent-host
 transitions remain required. Remote, provider, Linux and distribution profiles
 need their own qualification.

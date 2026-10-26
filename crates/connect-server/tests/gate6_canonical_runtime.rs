@@ -29,6 +29,8 @@ mod canonical_mcp;
 
 #[path = "support/canonical_stdio.rs"]
 mod canonical_stdio;
+#[path = "support/credential_installation.rs"]
+mod credential_installation;
 #[path = "support/credential_issuance.rs"]
 mod credential_issuance;
 
