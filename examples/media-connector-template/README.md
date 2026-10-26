@@ -122,3 +122,12 @@ wait. Check both cleanup fields in the terminal report; Drop alone proves only a
 stop request. See `crates/connect-server/tests/connector_media_stock.rs` for the
 current executable public-client workflow. This simulated local device is not a
 live provider, model, browser or remote-host qualification.
+
+The stock native test also restarts the server after real decoded flow, recovers
+the original receipt without reconstructing a peer from it, and explicitly opens
+a fresh Connection before exchanging audio again. An unconfirmed signed answer
+recovers its original failed operation rather than another effect. Current
+Endpoint withdrawal refuses new admission and fences a newly tagged audio source
+on the existing route; signaling authentication has its own lifetime. These
+checks use public interfaces and keep device custody separate from current server
+permission. See [native stock evidence](../../docs/evidence/gate-6/connector-stock-native.json).

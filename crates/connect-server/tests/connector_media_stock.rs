@@ -61,6 +61,8 @@ struct Device {
     output: mpsc::Sender<MediaFrame>,
     stream: StreamId,
     clock: AtomicU32,
+    marker: AtomicU32,
+    tagged: AtomicUsize,
     cancelled: Notify,
     mode: DeviceMode,
     _events: Mutex<mpsc::Receiver<rvoip_core::adapter::OrchestratorAdapterEvent>>,
@@ -79,6 +81,11 @@ impl PcmuDevice for Device {
             .await
             .map(|v| v.payload.to_vec())
             .ok_or(ClientError::MediaEnded)?;
+        let marker = self.marker.load(Ordering::SeqCst);
+        if marker <= u8::MAX as u32 {
+            frame.fill(marker as u8);
+            self.tagged.fetch_add(1, Ordering::SeqCst);
+        }
         match self.mode {
             DeviceMode::Normal => (),
             DeviceMode::Short => {
@@ -117,14 +124,14 @@ impl PcmuDevice for Device {
             .map_err(|_| ClientError::MediaEnded)
     }
 }
-async fn peer(
+async fn enroll(
     f: &setup::Setup,
     server: &RunningCanonicalServer,
     admin: &mut ApplicationClient,
     identity: &str,
     name: &str,
     recipients: &[String],
-) -> CanonicalClientConfig {
+) -> (CanonicalClientConfig, String, u64) {
     let issued = admin
         .issue_scoped_credential(CredentialIssueRequest {
             operation_id: format!("{name}-credential"),
@@ -170,15 +177,18 @@ async fn peer(
     else {
         panic!("endpoint")
     };
-    admin
+    let verified = admin
         .provision(ProvisioningCommand::VerifyEndpoint {
             operation_id: format!("{name}-verify"),
-            endpoint_id,
+            endpoint_id: endpoint_id.clone(),
             expected_revision: 0,
             evidence_ref: "isolated-signed-native-fixture".into(),
         })
         .await
         .unwrap();
+    let ProvisioningOutcome::Endpoint { revision, .. } = verified else {
+        panic!("verified endpoint")
+    };
     let key = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519).unwrap();
     let private = f.temp.path().join(format!("{name}.der"));
     std::fs::write(&private, key.serialize_der()).unwrap();
@@ -201,26 +211,52 @@ async fn peer(
     let server_key = rcgen::KeyPair::try_from(raw.as_slice()).unwrap();
     let public = f.temp.path().join("native-server-public.key");
     std::fs::write(&public, server_key.public_key_raw()).unwrap();
-    CanonicalClientConfig {
-        network_profile: Default::default(),
-        endpoint: server.address,
-        server_name: "localhost".into(),
-        trust_certificate: f.config.certificate.clone(),
-        credential: issued.credential,
-        identity_id: identity.into(),
-        device_id: device,
-        device_kind: "service".into(),
-        device_platform: "stock-native-fixture".into(),
-        signing_key_id: name.into(),
-        signing_algorithm: "EdDSA".into(),
-        signing_private_key: private,
-        server_key_id: f.config.signing_key_id.clone(),
-        server_algorithm: "EdDSA".into(),
-        server_public_key: public,
-        server_key_not_before: f.config.signing_key_not_before,
-        server_key_expires_at: f.config.signing_key_expires_at,
-        timeout_ms: 5000,
+    (
+        CanonicalClientConfig {
+            network_profile: Default::default(),
+            endpoint: server.address,
+            server_name: "localhost".into(),
+            trust_certificate: f.config.certificate.clone(),
+            credential: issued.credential,
+            identity_id: identity.into(),
+            device_id: device,
+            device_kind: "service".into(),
+            device_platform: "stock-native-fixture".into(),
+            signing_key_id: name.into(),
+            signing_algorithm: "EdDSA".into(),
+            signing_private_key: private,
+            server_key_id: f.config.signing_key_id.clone(),
+            server_algorithm: "EdDSA".into(),
+            server_public_key: public,
+            server_key_not_before: f.config.signing_key_not_before,
+            server_key_expires_at: f.config.signing_key_expires_at,
+            timeout_ms: 5000,
+        },
+        endpoint_id,
+        revision,
+    )
+}
+async fn peer(
+    f: &setup::Setup,
+    server: &RunningCanonicalServer,
+    admin: &mut ApplicationClient,
+    identity: &str,
+    name: &str,
+    recipients: &[String],
+) -> CanonicalClientConfig {
+    enroll(f, server, admin, identity, name, recipients).await.0
+}
+fn native_scope(cid: &str, sid: &str, name: &str) -> CommandScope {
+    CommandScope {
+        conversation_id: Some(cid.into()),
+        session_id: Some(sid.into()),
+        connection_id: Some(name.into()),
+        operation_id: Some(format!("{name}-offer")),
+        expected_revision: Some(0),
     }
+}
+fn offer(name: &str) -> serde_json::Value {
+    json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8,"identity_assurance_offered":"identified"},"streams_offered":[{"id":format!("{name}-voice"),"kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]})
 }
 async fn try_audio(
     config: CanonicalClientConfig,
@@ -228,7 +264,10 @@ async fn try_audio(
     sid: &str,
     name: &str,
 ) -> connect_client::Result<PublicNativeAudio> {
-    CanonicalClient::open(config).await?.prepare_public_native_audio(CommandScope {conversation_id:Some(cid.into()),session_id:Some(sid.into()),connection_id:Some(name.into()),operation_id:Some(format!("{name}-offer")),expected_revision:Some(0)},json!({"substrate":"quic","capabilities":{"audio_codecs":[{"name":"pcmu","params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":8,"identity_assurance_offered":"identified"},"streams_offered":[{"id":format!("{name}-voice"),"kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]})).await
+    CanonicalClient::open(config)
+        .await?
+        .prepare_public_native_audio(native_scope(cid, sid, name), offer(name))
+        .await
 }
 async fn audio(config: CanonicalClientConfig, cid: &str, name: &str) -> PublicNativeAudio {
     try_audio(config, cid, "media-host-session", name)
@@ -457,6 +496,8 @@ async fn device(
         output: stream.try_frames_out().unwrap(),
         stream: stream.id(),
         clock: AtomicU32::new(0),
+        marker: AtomicU32::new(256),
+        tagged: AtomicUsize::new(0),
         cancelled: Notify::new(),
         mode,
         _events: Mutex::new(events),
@@ -649,5 +690,235 @@ async fn native_host_session_isolation_has_an_authorized_positive_control_and_ex
     drop(admin);
     drop(other_control);
     drop(root_control);
+    server.shutdown().await.unwrap();
+}
+
+async fn hear_fixture(root: &mut PublicNativeAudio) {
+    tokio::time::timeout(Duration::from_secs(5), async {
+        let mut tick = tokio::time::interval(Duration::from_millis(20));
+        loop {
+            tokio::select! {
+                _ = tick.tick() => root.send_pcmu(&[0x1f;160]).unwrap(),
+                heard = root.receive_pcmu() => {
+                    if heard.unwrap().iter().all(|b| (decode(*b) - 4096).abs() < 256) { break; }
+                }
+            }
+        }
+    })
+    .await
+    .unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn native_host_restart_retains_original_receipt_requires_fresh_peer_and_current_endpoint() {
+    let (f, server, mut root, _host) = scene().await;
+    let mut admin = ApplicationClient::open(setup::http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    let (mut host, endpoint, revision) = enroll(
+        &f,
+        &server,
+        &mut admin,
+        &f.route.identity_id,
+        "restart-host",
+        &[f.operator.identity_id.clone(), f.route.identity_id.clone()],
+    )
+    .await;
+    let mut root_audio = audio(root.clone(), &f.cid, "restart-root-original").await;
+    let mut host_audio = audio(host.clone(), &f.cid, "restart-host-original").await;
+    select(&mut root_audio, &f.ai_pid, "restart-root-select").await;
+    select(&mut host_audio, &f.root_pid, "restart-host-select").await;
+    let (original_device, _, _) = device("restart-original-device", DeviceMode::Normal).await;
+    original_device.drain_release.notify_one();
+    let bridge = PublicPcmuBridge::start(host_audio, original_device.clone());
+    hear_fixture(&mut root_audio).await;
+    let mut http = CanonicalHttpClient::open(setup::http(&server, &host.credential))
+        .await
+        .unwrap();
+    let scope = CommandScope {
+        conversation_id: Some(f.cid.clone()),
+        ..Default::default()
+    };
+    let original = http
+        .operation_get("restart-host-original-offer", scope.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(&original).unwrap()["state"],
+        "completed"
+    );
+    let mut config = f.config.clone();
+    config.bind = server.address;
+    drop(admin);
+    drop(http);
+    server.shutdown().await.unwrap();
+    tokio::time::timeout(Duration::from_secs(6), original_device.cancelled.notified())
+        .await
+        .unwrap();
+    let report = bridge.drain().await.unwrap();
+    assert_eq!(
+        report.exit,
+        connect_client::canonical::PcmuBridgeExit::PeerEnded
+    );
+    assert!(report.cleanup_confirmed(), "{report:?}");
+    assert_eq!(original_device.drains.load(Ordering::SeqCst), 1);
+    root_audio.close();
+    root_audio.shutdown().await.unwrap();
+    let server = RunningCanonicalServer::start(config).await.unwrap();
+    root.endpoint = server.address;
+    host.endpoint = server.address;
+    let mut http = CanonicalHttpClient::open(setup::http(&server, &host.credential))
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(
+            http.operation_get("restart-host-original-offer", scope.clone())
+                .await
+                .unwrap()
+        )
+        .unwrap(),
+        serde_json::to_value(&original).unwrap()
+    );
+    assert!(
+        try_audio(
+            host.clone(),
+            &f.cid,
+            "media-host-session",
+            "restart-host-original"
+        )
+        .await
+        .is_err(),
+        "a historical receipt cannot construct a new physical peer"
+    );
+    assert_eq!(
+        serde_json::to_value(
+            http.operation_get("restart-host-original-offer", scope)
+                .await
+                .unwrap()
+        )
+        .unwrap(),
+        serde_json::to_value(&original).unwrap()
+    );
+    let mut root_audio = audio(root, &f.cid, "restart-root-fresh").await;
+    let mut host_audio = audio(host.clone(), &f.cid, "restart-host-fresh").await;
+    select(&mut root_audio, &f.ai_pid, "fresh-root-select").await;
+    select(&mut host_audio, &f.root_pid, "fresh-host-select").await;
+    let (device, _, _) = device("fresh-explicit-device", DeviceMode::Normal).await;
+    device.drain_release.notify_one();
+    let bridge = PublicPcmuBridge::start(host_audio, device.clone());
+    hear_fixture(&mut root_audio).await;
+    let mut admin = ApplicationClient::open(setup::http(&server, &f.operator.credential))
+        .await
+        .unwrap();
+    admin
+        .provision(ProvisioningCommand::RevokeEndpoint {
+            operation_id: "withdraw-current-native-host".into(),
+            endpoint_id: endpoint,
+            expected_revision: revision,
+        })
+        .await
+        .unwrap();
+    assert!(
+        try_audio(host, &f.cid, "media-host-session", "withdrawn-host")
+            .await
+            .is_err()
+    );
+    // A route withdrawal fences delivery; it need not close the authenticated
+    // physical signaling connection. Send a new marker only after withdrawal,
+    // so old permitted buffered frames cannot masquerade as a current grant.
+    device.marker.store(0x8f, Ordering::SeqCst);
+    let until = tokio::time::Instant::now() + Duration::from_millis(1200);
+    let mut tick = tokio::time::interval(Duration::from_millis(20));
+    loop {
+        tokio::select! {
+            _ = tokio::time::sleep_until(until) => break,
+            _ = tick.tick() => root_audio.send_pcmu(&[0x1f;160]).unwrap(),
+            frame = root_audio.receive_pcmu() => {
+                match frame {
+                    Ok(frame) => assert!(frame.iter().all(|b| decode(*b) < 13000), "withdrawn Endpoint emitted the new marker"),
+                    Err(ClientError::Timeout) => (),
+                    Err(error) => panic!("independent root failed during withdrawal observation: {error}"),
+                }
+            }
+        }
+    }
+    assert!(
+        device.tagged.load(Ordering::SeqCst) >= 20,
+        "the withdrawn host must actually attempt twenty new marker frames"
+    );
+    let report = bridge.drain().await.unwrap();
+    assert!(
+        report.native_submissions + 1 >= device.tagged.load(Ordering::SeqCst) as u64,
+        "actual native submissions must cover the new marker frames (at most one pending)"
+    );
+    assert_eq!(
+        report.exit,
+        connect_client::canonical::PcmuBridgeExit::Stopped
+    );
+    assert!(report.cleanup_confirmed(), "{report:?}");
+    root_audio.close();
+    root_audio.shutdown().await.unwrap();
+    server.shutdown().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn native_host_unconfirmed_answer_recovers_original_failure_without_a_replacement_effect() {
+    let (f, server, _root, mut host) = scene().await;
+    let mut client = CanonicalClient::open(host.clone()).await.unwrap();
+    let request = client
+        .send_value(
+            "connection.offer",
+            offer("unconfirmed-host"),
+            native_scope(&f.cid, "media-host-session", "unconfirmed-host"),
+        )
+        .await
+        .unwrap();
+    let answer = client.receive().await.unwrap();
+    assert_eq!(answer.kind(), "connection.answer");
+    assert_eq!(answer.original()["in_reply_to"], request);
+    let callback = client.receive().await.unwrap();
+    assert_eq!(callback.kind(), "connection.offer");
+    let mut http = CanonicalHttpClient::open(setup::http(&server, &host.credential))
+        .await
+        .unwrap();
+    let scope = CommandScope {
+        conversation_id: Some(f.cid.clone()),
+        ..Default::default()
+    };
+    let before = http
+        .operation_get("unconfirmed-host-offer", scope.clone())
+        .await
+        .unwrap();
+    assert_eq!(serde_json::to_value(&before).unwrap()["state"], "preparing");
+    client.shutdown().await.unwrap();
+    drop(http);
+    let mut config = f.config.clone();
+    config.bind = server.address;
+    server.shutdown().await.unwrap();
+    let server = RunningCanonicalServer::start(config).await.unwrap();
+    host.endpoint = server.address;
+    let mut http = CanonicalHttpClient::open(setup::http(&server, &host.credential))
+        .await
+        .unwrap();
+    let recovered = http
+        .operation_get("unconfirmed-host-offer", scope.clone())
+        .await
+        .unwrap();
+    assert_eq!(serde_json::to_value(&recovered).unwrap()["state"], "failed");
+    assert_eq!(recovered.record_id, before.record_id);
+    assert!(
+        try_audio(host, &f.cid, "media-host-session", "unconfirmed-host")
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        serde_json::to_value(
+            http.operation_get("unconfirmed-host-offer", scope)
+                .await
+                .unwrap()
+        )
+        .unwrap(),
+        serde_json::to_value(recovered).unwrap()
+    );
     server.shutdown().await.unwrap();
 }

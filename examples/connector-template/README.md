@@ -26,3 +26,11 @@ requires a fresh isolated fixture path; it prints only named checks and limits.
 The fixed fixture HMAC key is test data. Replace its verifier and resolve declared
 secret references in a real provider adapter. Preserve uncertainty and use current
 host authorization rather than granting authority to external IDs or context.
+
+The current stock application example is
+`crates/connect-server/tests/connector_stock.rs`. It uses public SDK provisioning,
+scoped credentials and canonical messages, plus protected account/Endpoint/route
+startup. It covers retained unknown effects, read-only reconciliation, private
+context, independent inbound deduplication and current Endpoint withdrawal. See
+[stock evidence](../../docs/evidence/gate-6/connector-stock.json). The fixture
+ledger represents the synthetic remote backend and is never the application DB.

@@ -1,0 +1,177 @@
+{
+  "task": "G6-068",
+  "status": "complete in approved local fixture scope",
+  "checked_at": "2026-10-26T20:34:20.580368+00:00",
+  "base_revision": "8c6ef1c7a4236c47a8eab994e15c7ae2cda2d95a",
+  "scope": "The full G6-068 implementation and verification clauses. This closes the contribution fixtures and current stock local application journeys; it does not promote acceptance or substitute for separately assigned package, Linux/remote/browser, performance or real provider/model qualification.",
+  "dependency": {
+    "G6-067": "done; connector contract/media-adapter evidence retained"
+  },
+  "implementation_clauses": [
+    {
+      "requirement": "Independently buildable message and live-media fixtures",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "examples/connector-template",
+        "examples/connector-contribution",
+        "examples/media-connector-template",
+        "scripts/export-connector-kit.py"
+      ],
+      "evidence": [
+        "connector-kit.json: 1361 inventoried exported files,3 fixtures,2 independent public libraries,12 preserved local package contracts; all10 local media packages rebuilt outside repository",
+        "API24, message4, Prism4, media2 standalone tests pass;44+44 message checks and8 actual media checks pass"
+      ]
+    },
+    {
+      "requirement": "Configuration/secret manifests",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "crates/connect-connector-api/src/manifest.rs",
+        "examples/connector-template/src/lib.rs",
+        "examples/connector-contribution/src/lib.rs",
+        "examples/media-connector-template/src/lib.rs",
+        "docs/CONNECTORS.md"
+      ],
+      "evidence": [
+        "Typed config/reference manifests and exact account-reference stock validation; no raw provider secrets exposed",
+        "Local media truthfully needs no external secret; signed host provisions its own Endpoint/key through public administration, separate from the backend transport manifest"
+      ]
+    },
+    {
+      "requirement": "Callback authentication examples and inbound routing",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "crates/connect-server/tests/connector_prism_stock.rs",
+        "crates/connect-server/tests/connector_stock.rs",
+        "examples/connector-template/src/lib.rs"
+      ],
+      "evidence": [
+        "Current stock local/Prism functions verify exact-byte MAC refusal, authenticated callback application/duplicate/current withdrawal",
+        "Independent incoming contact routing preserves source IDs, deduplicates and selects private authorized audiences; outbound-only live fixture explicitly rejects unsupported inbound"
+      ]
+    },
+    {
+      "requirement": "Startup/shutdown registration",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "crates/connect-server/tests/support/connector_stock_setup.rs",
+        "crates/connect-server/tests/support/connector_media_contract.rs",
+        "crates/connect-server/tests/connector_media_stock.rs"
+      ],
+      "evidence": [
+        "Protected stock account/Endpoint/route composition; trusted LiveTransport registration remains distinct from the public signed host",
+        "Public native enrollment/acceptance/source selection; real resource cleanup, in-flight shutdown and retained original cleanup custody"
+      ]
+    },
+    {
+      "requirement": "Reusable lifecycle harness and genuine transport adapter instructions",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "crates/connect-media-conformance",
+        "scripts/check-media-connector-contract.py",
+        "contracts/connectors/live-fixture-v1.md",
+        "docs/CONNECTORS.md",
+        "examples/media-connector-template/README.md"
+      ],
+      "evidence": [
+        "Independent factory supplies actual adapter/instrumentation; shared harness owns checks and original custody",
+        "Broken custody genuinely refused; guide covers public ConnectionAdapter, LiveMediaLifecycle, manifest binding, truthful codec/queue/support declarations and current policy"
+      ]
+    }
+  ],
+  "behavior_clauses": [
+    {
+      "requirement": "Deduplication",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "connector-stock.json",
+        "connector-stock-prism.json",
+        "connector-stock-native.json",
+        "connector-kit.json"
+      ],
+      "evidence": [
+        "Current message parent/inbound/callback replays preserve one effect; physical submission counters precede backend idempotency",
+        "Native local exact admission preserves one original Connection/effect; historical offer replay cannot reconstruct a physical peer"
+      ]
+    },
+    {
+      "requirement": "Uncertainty",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "connector-stock-prism.json",
+        "connector-stock-native.json",
+        "connector-kit.json"
+      ],
+      "evidence": [
+        "Held real acknowledgement cancels/drains; restart/reconciliation preserves original unknown effect without resubmission",
+        "Native unconfirmed real signed answer recovers original failed record; actual component harness preserves retained remote original effects"
+      ]
+    },
+    {
+      "requirement": "Privacy",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "connector-stock.json",
+        "connector-stock-prism.json",
+        "connector-stock-native.json"
+      ],
+      "evidence": [
+        "Private context/inbound and public positive-control peer checks",
+        "Uninvited Session refusal plus authorized separate-Session decoded positive control;40 isolated frames exclude the fixture marker; current withdrawal fences newly tagged source frames"
+      ]
+    },
+    {
+      "requirement": "Reconnect",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "connector-stock.json",
+        "connector-stock-prism.json",
+        "connector-stock-native.json"
+      ],
+      "evidence": [
+        "Stock host/provider restart retains original message effect and requires read-only reconciliation",
+        "Native actual server restart drains original peer, retains original receipt without borrowed physical ownership, and requires explicit fresh Connection before decoded flow resumes"
+      ]
+    },
+    {
+      "requirement": "Cancel and teardown",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "connector-stock-prism.json",
+        "connector-stock-native.json",
+        "connector-kit.json"
+      ],
+      "evidence": [
+        "Held actual submission future drains under stock shutdown",
+        "Cancelled drain retains same worker/report and drains once; malformed frames close actual peer/device; worker panic returns an honest failure rather than a cleanup claim",
+        "Actual native peer loss and explicit stop both report successful native/device drains"
+      ]
+    },
+    {
+      "requirement": "Stock composition without direct application database access or patched dispatch",
+      "status": "proved in local fixture scope",
+      "artifacts": [
+        "crates/connect-server/tests/connector_stock.rs",
+        "crates/connect-server/tests/connector_prism_stock.rs",
+        "crates/connect-server/tests/connector_media_stock.rs",
+        "crates/connect-server/tests/support/connector_stock_setup.rs"
+      ],
+      "evidence": [
+        "Reviewed sources use public client/provisioning/Session/native operations and stock RunningCanonicalServer startup. No connect_store/rusqlite/server.store/direct dispatch references in the four journey sources",
+        "Separate provider fixture ledgers and local synthetic-device instrumentation do not access the application journal"
+      ]
+    }
+  ],
+  "evidence_files": {
+    "connector-kit.json": "0aeb4b461a021bfc06ac040cf80ee663271d97557dc14aa3702fb06a912ce205",
+    "connector-stock-native.json": "70afffbd949a5ef3fac2ff599e234e3d05218e883661b902dd93c3e1e8bbd3af",
+    "connector-stock.json": "2b372b7b312292747734d9aeea61f47f29af8bc7e6479850876694939395dc37",
+    "connector-stock-prism.json": "bce1280bbf65a87a98b428300408b6c2d3239e8c0f148e36e48cd7eb707fcf7e",
+    "native-subscription-credentials.json": "cec5dac9dc84f5fb4df522e349556d31c085fecfe248e788678972351a147b7d"
+  },
+  "qualification_limits": [
+    "Local macOS arm64 fixtures only; no live provider/model result or network transport claim from synthetic audio.",
+    "Existing external registry cache and explicit shared target; no clean-cache/installable package claim.",
+    "No Gate 6 acceptance criterion is promoted. All105 tasks remain the goal and publication remains separate."
+  ]
+}

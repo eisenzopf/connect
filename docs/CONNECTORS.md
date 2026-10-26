@@ -446,8 +446,7 @@ canonical communication, and supplies the protected startup composition. Remote
 fixture ledger instrumentation is separate from the application journal. The
 two current local journeys pass private context, parent/inbound replay, restart,
 uncertainty reconciliation and current Endpoint withdrawal. Read the bounded
-[stock workflow evidence](evidence/gate-6/connector-stock.json). The actual media public application journey remains
-G6-068 work; the implementation plan retains those requirements.
+[stock workflow evidence](evidence/gate-6/connector-stock.json).
 
 The independent Prism adapter also passes its current public SDK stock journey
 in `crates/connect-server/tests/connector_prism_stock.rs`. It verifies original
@@ -457,5 +456,38 @@ callback replay/current withdrawal, private context and inbound routing. See
 [Prism stock evidence](evidence/gate-6/connector-stock-prism.json). The held-acknowledgement fixture also proves stock shutdown cancels and drains an
 outstanding real submission response, and restart/reconciliation recovers its
 original effect without resubmission. The full Store regression passes1222 tests
-with3 top-level ignored subprocess fixture entrypoints. The actual media public
-application journey remains open.
+with3 top-level ignored subprocess fixture entrypoints.
+
+The live fixture also has an owned signed native SDK host, exercised in
+`crates/connect-server/tests/connector_media_stock.rs`. Public administration
+provisions its own QUIC Endpoint and signing key, and explicit Session acceptance
+and source selection precede actual PCMU exchange. `PublicPcmuBridge` connects the
+local device to that negotiated peer. The signed-host manifest and backend
+transport manifest remain distinct; neither is a Conversation grant.
+
+The current native journey decodes both directions, verifies Session isolation
+with an authorized positive control, retains cleanup after a cancelled wait and
+handles malformed frames and worker failure. Server restart drains the old host;
+its original receipt cannot reconstruct physical ownership. An unconfirmed answer
+recovers the original failed record without another route. A fresh explicitly
+named peer can exchange audio after restart. Endpoint withdrawal refuses new
+admission and fences a new marker on the already active route; it does not imply
+closure of the separately authenticated signaling connection. Owned cleanup is
+observed explicitly. Read the [native stock evidence](evidence/gate-6/connector-stock-native.json)
+and [G6-068 clause audit](evidence/gate-6/connector-template-audit.json).
+
+The kit and local stock journeys qualify contribution fixtures. Runtime package
+installation, Linux/remote/browser profiles, performance, real providers/models
+and Gate 6 acceptance retain their separately assigned checks.
+
+From a prepared Connect checkout, execute the current stock examples with:
+
+```sh
+cargo test --release --offline --locked -p connect-server --features test-support \
+  --test connector_stock --test connector_prism_stock --test connector_media_stock \
+  -- --test-threads=1
+```
+
+These tests create isolated loopback state and synthetic backend accounts. They
+make no real provider calls. The independently exported kit runs its component
+commands separately because it deliberately excludes the application server.

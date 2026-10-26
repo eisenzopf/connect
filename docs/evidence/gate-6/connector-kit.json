@@ -1,9 +1,9 @@
 {
   "task": "G6-068",
-  "status": "in-progress; external contribution kit qualified, stock application workflows remain",
-  "checked_at": "2026-10-26T18:01:48.395235+00:00",
-  "base_revision": "33d885d868ba41d80f1d9ed84661b898a2b98b5b",
-  "scope": "Darwin arm64 source kit exported outside the repository. Existing Cargo registry cache and explicit shared target are used. Every local dependency is inside the kit and every local media package was rebuilt from that kit. No clean-cache, installed runtime/server, stock application journey, provider/model, network/browser/Linux/remote/platform/capacity/latency or publication claim.",
+  "status": "qualified local independent component source kit; task closure is audited separately",
+  "checked_at": "2026-10-26T20:34:20.580368+00:00",
+  "base_revision": "8c6ef1c7a4236c47a8eab994e15c7ae2cda2d95a",
+  "scope": "Darwin arm64 source kit outside the repository. Existing registry cache and explicit shared target; all local Cargo dependencies stay inside the kit. All ten local media graph packages rebuild from this snapshot. Clean-cache installation, runtime/SDK packages, other platforms, real providers and publication are separately assigned work.",
   "implementation": [
     "Export both message/PCM fixtures, public storage-independent API, reusable media harness, actual outbound-PCMU fixture and seven selected pinned engine consumer crates. Exclude Store/service/server, source symlinks, Git history and private state.",
     "Verify source preparation before copying. Preserve original Rust bytes, manifests and source-lock/patch digests; generate explicit consumer-manifest patches and original/generated hashes. Flatten workspace inheritance and relocate local dependency paths. Engine-local development targets/dependencies are explicitly excluded rather than called qualified.",
@@ -16,15 +16,14 @@
       "fixtures": 3,
       "independent_libraries": 2,
       "all_local_dependencies_inside_kit": true,
-      "source_manifest_sha256": "3995f6beb1b1c15608588efa0955fe10cf65354f0ca4ea74d269913f3b9ffed8",
+      "source_manifest_sha256": "8e62ae5e2c158fcb36d9313b0dcca4deede3326d514e244939a9500c8e8b358f",
       "source_lock_sha256": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a",
       "rust_toolchain_sha256": "559f488c181e0e9e77cf17c29de663977f036ec7ff2e2060585714bf53c52d62",
       "rust_channel": "1.97.1",
-      "consumer_manifest_patches": 12,
-      "base_revision_note": "The export records the Git baseline plus exact source-file hashes; this source snapshot was built before the current checkpoint commit."
+      "consumer_manifest_patches": 12
     },
     "external_runs": {
-      "kit_source_manifest_sha256": "3995f6beb1b1c15608588efa0955fe10cf65354f0ca4ea74d269913f3b9ffed8",
+      "kit_source_manifest_sha256": "8e62ae5e2c158fcb36d9313b0dcca4deede3326d514e244939a9500c8e8b358f",
       "cwd": "exported source directory outside repository",
       "registry_cache": "existing external Cargo registry cache; no clean-cache claim",
       "build_target": "explicit existing owned shared target; selected local paths must remain inside kit",
@@ -32,52 +31,52 @@
         {
           "name": "media-positive",
           "exit_code": 0,
-          "seconds": 28.38235479197465,
+          "seconds": 40.704958541085944,
           "log_sha256": "248d793b9a275213a8e40e3de44f496686d09afe67dadd4874c5096bba029ad9",
           "kit_unchanged": true
         },
         {
           "name": "media-negative",
           "exit_code": 0,
-          "seconds": 1.435256749857217,
+          "seconds": 1.5965674170292914,
           "log_sha256": "4c355af19458d59b37f7f4c618d6d734aa87175971319dd5f862e7dfd2884500",
           "kit_unchanged": true
         },
         {
           "name": "message",
           "exit_code": 0,
-          "seconds": 1.9176880829036236,
-          "log_sha256": "2c9a0feedd69d4f278ced8d05a5ff538e3c27b0a29de73864ddae484ec3b29d5",
+          "seconds": 2.126885666977614,
+          "log_sha256": "95ee8f6e4966279927d5400914cc5f8aed7dc27fee652dab20c507a4f4288c27",
           "kit_unchanged": true
         },
         {
           "name": "prism",
           "exit_code": 0,
-          "seconds": 1.5897170000243932,
-          "log_sha256": "346d2fde46841fb6a5f3259288761a17d2cd4ce97fa855df71fb886e7331b10b",
+          "seconds": 1.5599818339105695,
+          "log_sha256": "b1ab1f7b7a09074170ecc518ae8ab0d5f5e892efe7bbbe7be79ec0dfadf76a20",
           "kit_unchanged": true
         },
         {
           "name": "api-tests",
           "exit_code": 0,
-          "seconds": 5.9411269158590585,
-          "log_sha256": "00e16680f839c8350adb2862876965d2717380d5ebd759a103e517884f0286fc",
+          "seconds": 0.7906635419931263,
+          "log_sha256": "0213d9941e2b953050a1fabff53280f740ae7f443c2c4695047eba28716ad658",
           "kit_unchanged": true,
           "results": [
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
-            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
             "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
             "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
             "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
           ],
-          "passed": 23
+          "passed": 24
         },
         {
           "name": "message-tests",
           "exit_code": 0,
-          "seconds": 3.324428250081837,
-          "log_sha256": "d3de60c564b84b668e3262ed819e261086552947ca9f87c7ecbe6e9eaee76cca",
+          "seconds": 2.139079957967624,
+          "log_sha256": "d71416f4fc8b01554da756d5452a1c9d1902a9641a02662c856e237896ff79e6",
           "kit_unchanged": true,
           "results": [
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
@@ -91,13 +90,13 @@
         {
           "name": "prism-tests",
           "exit_code": 0,
-          "seconds": 1.6514902079943568,
-          "log_sha256": "58f23399105c3da6d725838937c5beda5a6dc04f3d931f0643bbd40e259e6403",
+          "seconds": 1.5964648330118507,
+          "log_sha256": "a40205523e05358f3d062182ad337291ee34b9cfed410dc4570ff17935b7303b",
           "kit_unchanged": true,
           "results": [
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
-            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s",
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s",
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
           ],
           "passed": 4
@@ -105,8 +104,8 @@
         {
           "name": "media-tests",
           "exit_code": 0,
-          "seconds": 4.286629708018154,
-          "log_sha256": "bf33a9bb6ad42b09e3d4875263fb97324a41dfa7f5f095e813da1b53f2288b05",
+          "seconds": 4.5165109999943525,
+          "log_sha256": "da25a95627465ad7caa6f165122249b8351ae6cb01ae23c8c01c61c154ad3215",
           "kit_unchanged": true,
           "results": [
             "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
@@ -179,9 +178,9 @@
           "stock-application-journey"
         ],
         "source_unchanged": true,
-        "binary_sha256": "fb769de635303ef8ba5ef879faee8edc713b0e1a6b4673ef1c73f493f1b2c231",
+        "binary_sha256": "45ba8ffde8a7d9414e5b3df19be87611467b2d213fabc30a842b43603aa1037b",
         "binary_seal": "independent full-byte copy; distinct inode; hash checked before/after execution",
-        "private_report_sha256": "1a9e0c4ec152c3ef7d035c5670d7d1c6f89168f7beb79315e7f32e470fe3ae2c"
+        "private_report_sha256": "53f7e18d06da536128793cc5268ebac4eed53bc46a5318cffcba0fd107a70ec1"
       },
       "media-negative": {
         "profile": "connect-live-media-fixture-v1",
@@ -232,9 +231,9 @@
           "stock-application-journey"
         ],
         "source_unchanged": true,
-        "binary_sha256": "fb769de635303ef8ba5ef879faee8edc713b0e1a6b4673ef1c73f493f1b2c231",
+        "binary_sha256": "45ba8ffde8a7d9414e5b3df19be87611467b2d213fabc30a842b43603aa1037b",
         "binary_seal": "independent full-byte copy; distinct inode; hash checked before/after execution",
-        "private_report_sha256": "1baf585f1e9cb6b851ad34e4863b643beeba4b72e5a8d072184f0418feb11f93"
+        "private_report_sha256": "33ab2379f189233b4d3d3627c3371db1f7757738ddb2780b66e51b64bd87d2d5"
       },
       "message": {
         "profile": "connect-connector-fixture-v2",
@@ -421,7 +420,7 @@
           "video",
           "live-provider"
         ],
-        "private_report_sha256": "49a2372a7ec13e73e5184b214d8f79d8d308dc38afc1c3b97d43b230e54e8afd"
+        "private_report_sha256": "ddc6aac4340034fccca6f7744e477daba8e9e106d1b2ae710b4a6801282cc138"
       },
       "prism": {
         "profile": "connect-connector-fixture-v2",
@@ -608,76 +607,78 @@
           "video",
           "live-provider"
         ],
-        "private_report_sha256": "aa1aa22527a37cc06247925e7b62fdfa19e22dcbf6061b4c9a562b6eee982e67"
+        "private_report_sha256": "21cf15b73c3c42a02a103c32159408238f221ed0c502eecfd8ef317ec68d663d"
       }
     },
     "manifest_contracts": {
+      "passed": true,
       "packages": {
         "connect-connector-api": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": false
+          "all_local_dependencies_inside_kit": true
         },
         "connect-connector-template": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": false
+          "all_local_dependencies_inside_kit": true
         },
         "prism-fixture": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": false
+          "all_local_dependencies_inside_kit": true
         },
         "connect-media-conformance": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": false
+          "all_local_dependencies_inside_kit": true
         },
         "connect-media-connector-template": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": false
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-codec-core": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-core": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-core-traits": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-infra-common": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-media-core": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-rtp-core": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         },
         "rvoip-vcon": {
           "normal_dependency_contract_preserved": true,
           "feature_definitions_preserved": true,
-          "engine_development_targets_excluded": true
+          "all_local_dependencies_inside_kit": true
         }
       },
-      "passed": true
+      "fixture_registry_resolutions_preserved": true,
+      "scope": "Actual locked Cargo metadata; dependency feature lists compare as sets because repeated inherited features have identical Cargo semantics; engine development targets remain explicitly excluded by the consumer manifests."
     },
     "negative_export_checks": {
-      "source_kit_manifest_sha256": "3995f6beb1b1c15608588efa0955fe10cf65354f0ca4ea74d269913f3b9ffed8",
+      "source_kit_manifest_sha256": "8e62ae5e2c158fcb36d9313b0dcca4deede3326d514e244939a9500c8e8b358f",
       "checks": [
         {
           "name": "modified-source",
@@ -691,13 +692,6 @@
         }
       ]
     },
-    "static": [
-      "scripts/format.sh --check",
-      "check-gate6-contracts.py: 254 schema vectors and semantic boundaries",
-      "check-gate6-http-inventory.py: zero uncovered declarations",
-      "Python exporter compilation",
-      "git diff --check"
-    ],
     "retained_failures": [
       {
         "attempt": "Export 02 external media build",
@@ -708,13 +702,17 @@
         "attempt": "Export 03 standalone API tests",
         "result": "Library inherited the repository lock originally; its flattened standalone workspace had no Cargo.lock, so --locked refused. Exporter now generates standalone public library locks from exact repository versions before recording inventory. Final API23, message4, Prism4 and media2 tests pass.",
         "log_sha256": "01514438b43f0e0dc32cc6d6115a001e5fcc802ab65df2ab99a431de215d24f2"
+      },
+      {
+        "attempt": "Current metadata contract comparison",
+        "result": "The first comparison treated duplicated inherited Cargo features as a semantic difference. The final comparison uses feature sets, preserving every actual dependency requirement/default/optional/kind/target/registry field and exact feature definitions."
       }
     ],
-    "retained_scope": "Prior partial exports and the first compression error are not passing qualifications. Only the final unchanged 1361-file kit and matching reports qualify this component."
+    "prior_export_manifest_sha256": "3995f6beb1b1c15608588efa0955fe10cf65354f0ca4ea74d269913f3b9ffed8"
   },
   "provenance": {
     "exporter_sha256": "172e7d2cd5e4b7e0206d889815d7636fde52b95f3065a8a52b46f5cfb317ab99",
-    "registry_resolution": "Fixture registry name/version/source sets unchanged; public-library lock versions remain a subset of the repository lock.",
+    "registry_resolution": "Fixture registry name/version/source sets match; normal dependency contracts and feature definitions match for all twelve local packages. Dependency features compare as sets, reflecting Cargo union semantics.",
     "consumer_manifests": [
       {
         "package": "connect-connector-api",
@@ -834,15 +832,15 @@
       "crates/connect-connector-api/src/host_context.rs": "5263855c62cf2f8353e4b4c6843258be2d2df67eba1c6ee260b5f300deb3953f",
       "crates/connect-connector-api/src/lib.rs": "826df4629f730010de4afa8e3d0bd3c484e0cc299817490de6d322492ba63334",
       "crates/connect-connector-api/src/lifecycle.rs": "2bfc84a8ddd0b2c5de16ff81d6b5445bc7cb21942dc6ab3f4e1da04576941799",
-      "crates/connect-connector-api/src/manifest.rs": "206b56c83792d7e56b6ebf3e63a88cfdaba21b143d9b3f4b8bbd3216f7e4367e",
+      "crates/connect-connector-api/src/manifest.rs": "bf944876ba7439c3189359d625cac9a6c3597d7a821a0a883fd09c32cfd92384",
       "crates/connect-connector-api/src/media.rs": "a3875ea5d3795c29e6fb5ba663b37d80ba2888e306283c2337cb1e1f24dbbd0b",
-      "crates/connect-connector-api/tests/contracts.rs": "5edc8eb8b4c0bc415e08747248a34a15d1ee33c276253b045ffbf06317189c5f",
+      "crates/connect-connector-api/tests/contracts.rs": "9811a872b591ea9b35046ef53b8e1cefebe3d5d78084a93172d61d72e500a9fe",
       "crates/connect-connector-api/tests/host_context.rs": "7e79afaaf1cb3f428dfbb6c83e85d29063aa20e906e72e3f7f5ace546ff54734",
       "crates/connect-connector-api/tests/media_contract.rs": "a8d8112d289277e614a0ba86ab372d6fe567115512991c5c0cba93f0f3dc9b45",
       "crates/connect-connector-api/tests/voice_receipts.rs": "1e159285fe5afa74adbf0dcf5016a4d2d98fa01587eaf84c48611bfe4a3b821a",
       "examples/connector-template/Cargo.lock": "3d8985a6e7000c3a60b37fbb5e8f87ca045e1bbae108321bbbabc9d0ec2f258b",
       "examples/connector-template/Cargo.toml": "47e9d5f95e11ad5f751f30e6aa8b4c816a38d7bd5bae0f8f0d77a8d486441bef",
-      "examples/connector-template/README.md": "8a99bff64f447fe24d2fc5a163032bc9ecc7bd8efb61e044ce9bc5492661466d",
+      "examples/connector-template/README.md": "059841a2b187efd783a298161de1417378d7f66e2febfeb406eb3047a4e0b716",
       "examples/connector-template/media/voice.rs": "c1050828affe83ca4e28ad9d2c3ccb82738fff7bec5d0b8f2693b173b7766a20",
       "examples/connector-template/src/lib.rs": "a9a807fb1be6952306d5a00dc12b6d1a73e53dd1606410b2ccf66ac24e8586a5",
       "examples/connector-template/src/main.rs": "1658d3b68bc9da125ae18c60ab90c9b511e379469bbe0ac03a4a92472b0f7547",
@@ -850,7 +848,7 @@
       "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478",
       "examples/connector-contribution/Cargo.lock": "5eb0911908fcce60fcfbd6abdb39f6a8239d5aff0f5697de8ac909ff5e03561f",
       "examples/connector-contribution/Cargo.toml": "016088f10da1ddaa7f09d67c3966e7852fa057fcadf534c880ce862639302d80",
-      "examples/connector-contribution/README.md": "3f5a7b2055b049ce20ea9d44ebe57ca03ee9953fc7c16179094f1b0b69e6fd85",
+      "examples/connector-contribution/README.md": "89c7d54acdb14d1dbd922eed9ef0849407bb73064a733053a48dc11b7b0f0d2e",
       "examples/connector-contribution/src/lib.rs": "d381528b1bfcb4335d78d593cedc9ab4360c5ed4e8499b46c5dbce42be436649",
       "examples/connector-contribution/src/main.rs": "25e3fa68185900ee0f5d0f1eb12da19d0ee1dbf1b4312d42701efb59c691f17a",
       "examples/connector-contribution/src/media.rs": "455f89124255a8a0edfab1d5b9c018730bfa6458ff39993d3b0ad8fb5502816d",
@@ -860,9 +858,9 @@
       "crates/connect-media-conformance/src/lib.rs": "b4a58b8e96bc079e95e440bdea941e50fffd2a03e3c92492569a6b5c76d6cbe9",
       "examples/media-connector-template/Cargo.lock": "d23c2500c7d81cb15be7b91dca5e3676e6a7ca47ae1d30673347672e5f3535f2",
       "examples/media-connector-template/Cargo.toml": "f14dc166cf5a80755744b140d34969880220337722fa2c09159a8105f8a29b9c",
-      "examples/media-connector-template/README.md": "ffe6630068edc6afdaa73c22d3fdcae247aa11fa08a5030ae11aec58d1b301b6",
+      "examples/media-connector-template/README.md": "0581e445047b8ba4f512513ef3a60a8c776750d240328523f1ff31c8fc9a57c2",
       "examples/media-connector-template/conformance/fixture.rs": "c5b7d2719aecc33d9a16f61ba260211e552dfe0fe333b54f59ce9e9547f1457c",
-      "examples/media-connector-template/src/lib.rs": "75c0847d21c3ed2eb24a3370f5c0d0d74c8e8c909a265619c1aeaaf9e21323d8",
+      "examples/media-connector-template/src/lib.rs": "d041a0ef8969e07b7b63ba9bb98efaeca277a4c004140332224a7a406480528a",
       "examples/media-connector-template/src/main.rs": "bc5654ab479bb71196f1fb203b86f0cc2c0910bcc9accad0cbc20eb4a119404d",
       "examples/media-connector-template/src/stream.rs": "b4a0a3a5a3c45e7b8f88cb1418f5cf32c38c02769716c0384c0a805c387fe9d6",
       "examples/media-connector-template/tests/contract.rs": "88c1e38c3c60b2c69c9b897a38e8abead2eb16dbc8ac346c79bdf02fe5c28191",
@@ -1943,7 +1941,7 @@
       "engine/rvoip/crates/extensions/rvoip-vcon/tests/fixtures/vcon_json_schema.json": "f1dc065096d42620da92b2056b5e60b7223401038c29d0fd1ee6874df30c2954",
       "LICENSE": "2a2a2cbcaa51b2012f2c66f1168fa520cf86004397c0058682c4d3bb1bd53716",
       "rust-toolchain.toml": "559f488c181e0e9e77cf17c29de663977f036ec7ff2e2060585714bf53c52d62",
-      "docs/CONNECTORS.md": "74297f249f5e0b4c434be47b8e0f422c26887bce80d030308483c283e0d45f46",
+      "docs/CONNECTORS.md": "aefe77f0ae069710642fd139b42139c7bf5ba339f03079fadf201a0c7f851fbb",
       "contracts/connectors/profile-v2.md": "c9a1b320489953a0aefef7d52f32321d7e07b52fa66f50161052503d047c5057",
       "contracts/connectors/host-context-v1.md": "5843fb02d0311b08f9ef739221cc9d913d66f33ff530d4a2aec90a35bc9e97cf",
       "contracts/connectors/live-fixture-v1.md": "6adf674cdda4f92c4ac020dbd487d61af890bcab312b731c14382b5c2d1223d7",
@@ -2161,20 +2159,9 @@
       "engine/rvoip/README.md": "ccf1affa90ed8cebb18f21e439e0b18fc857e3e0ca8ce9443cfff02c7162fa06"
     }
   },
-  "artifact_preservation": {
-    "closed_executable_groups": 16,
-    "closed_executable_paths": 18,
-    "decoded_hashes_and_original_modes_verified": true,
-    "archive_audit_sha256": "0a9b16e5934a22c3dbd613a6ca8f978c9fba49f0b93dcc41cc53453d58723967",
-    "duplicate_scratch_files_removed": 9500,
-    "duplicates_match_current_qualified_kit": true,
-    "dedup_audit_sha256": "5c24444ec38787cb5d90f82dbc12f10abd357dc6dbc861f2fefdc95a966279ab",
-    "all_differing_files_retained": true,
-    "compression_failure": "Initial compression ran out of space before any original was deleted. The truncated derived copy was discarded only after verifying its intact original hash. The final archive proceeded smallest-first and decoded every complete group before removing its closed originals. No source, dependency library, log or state was removed."
-  },
+  "closure_audit": "docs/evidence/gate-6/connector-template-audit.json",
   "remaining": [
-    "Migrate obsolete Gate5 connector stock-composition exercises to current canonical SDK/provisioning flows. Qualify actual host deduplication, uncertainty, privacy, reconnect, cancel and teardown; component reports cannot substitute.",
-    "Complete the current callback/inbound routing and startup/shutdown registration examples through the stock host without direct application DB access or patched service dispatch. This outbound PCMU fixture still explicitly refuses inbound.",
-    "All105 tasks and independent acceptance remain open. Candidate runtime/SDK packaging, clean-cache installs, Linux/browser/remote and bounded real provider/model rehearsals remain separately assigned work."
+    "Runtime/SDK candidate packaging and clean-cache installations remain G6-069.",
+    "Linux/remote/browser, performance, named provider/model rehearsals and Gate 6 acceptance remain assigned downstream work. Publication remains separate."
   ]
 }
