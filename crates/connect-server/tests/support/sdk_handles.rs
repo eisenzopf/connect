@@ -11,6 +11,8 @@ mod events;
 mod invitations;
 #[path = "sdk_handles/media.rs"]
 mod media;
+#[path = "sdk_handles/raw.rs"]
+mod raw;
 #[path = "sdk_handles/reconciliations.rs"]
 mod reconciliations;
 #[path = "sdk_handles/runtime_controls.rs"]

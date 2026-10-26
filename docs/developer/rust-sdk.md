@@ -612,3 +612,35 @@ restart/replay and actual committed uncertainty with held HTTP response/no queue
 effect. Evidence and failed/superseded candidates are recorded in
 `docs/evidence/gate-6/rust-sdk-administration.json`. Full SDK/package and
 operating-profile qualification remain open. Publication remains separate.
+
+
+## Advanced canonical access
+
+`Client::raw()` returns a cloneable facade over the same owned signed peer.
+`validate(Value)` checks the current envelope schema and its one MiB wire bound;
+it does not authenticate caller-supplied signatures or grant authority.
+`ValidatedEnvelope::to_json()` exports original JSON; Debug omits private bodies.
+
+`request(envelope, options)` preserves the complete payload, resource assertions,
+logical operation ID and expected revision. It replaces the physical envelope
+ID, timestamp and signature on each explicit call. Persist the original intent
+and logical ID before I/O. Successful batches contain every original signed,
+correlated response through the terminal ACK, including optional fields.
+Canonical refusals use structured SDK errors. Cancellation preserves the same
+owned exchange and mutation uncertainty as typed requests; status is an explicit
+read through `operation.get`, with no hidden mutation replay.
+
+Finite Conversation snapshots, message history and journal catch-up are available
+without decoding every fact into a typed helper. Catch-up requires explicit
+`live:false`; advanced callers manage its cursor and pagination. Use
+`Conversation::events` for owned live leases and typed Connection helpers for
+native negotiation. Auth/step-up, offer/answer/ready/ICE, binary record transfer,
+server-only replies and unknown top-level intent fields refuse locally. These
+lifecycles cannot be submitted as standalone finite requests. Raw results never
+create native media ownership. Mutations require a logical operation ID even
+when a wire family permits untracked advisory use. No fallback or older dialect
+is selected.
+
+The current checkpoint passes 200 client tests, including four new signed raw
+boundary tests. Real-server restart/current-authority/journal qualification is
+pending in `docs/evidence/gate-6/rust-sdk-raw.json`; G6-060 remains in progress.

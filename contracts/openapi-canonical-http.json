@@ -275,6 +275,14 @@
           "lifecycle": "Per-wait deadlines/drop/cancellation consume no hint. Close/drop detaches the reader and preserves bounded pending hints for a replacement. Exact known signed cancellation removes only its pending scoped invitation. Client close clears bodies and wakes waits; other healthy control/media/event readers remain independent.",
           "reference": "docs/developer/rust-sdk.md"
         },
+        "x-owned-sdk-raw-canonical": {
+          "transport": "Rust Client.raw uses its existing signed native peer and bounded owned request queue. No HTTP fallback or older dialect is selected.",
+          "validation": "validate checks the current schema and one MiB envelope bound. Local validation is not signature verification, authorization or media ownership. to_json retains original optional fields; Debug omits private bodies.",
+          "request": "Finite requests preserve complete payload extensions, scope, logical mutation ID and expected revision. Fresh physical ID, timestamp and signature replace attempt metadata. Unknown top-level intent fields refuse rather than silently dropping data. Mutations require a logical ID. Successful batches retain every signed correlated frame and terminal ACK. Canonical errors remain structured SDK errors.",
+          "recovery": "Persist complete original intent/ID before IO. Started cancellation retains uncertainty and exchange ownership; operation.get reads the original without replay. Finite journal catch-up requires explicit live:false and caller-managed pagination/cursor.",
+          "lifecycle": "Auth/step-up, native offer/answer/ready/ICE, binary record transfer, live leases and server-only replies require dedicated lifecycle helpers and refuse as standalone raw requests. Returned metadata never establishes native custody.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-owned-sdk-trusted-administration": {
           "configuration": "A separate Rust AdministrativeClient explicitly selects protected loopback application HTTP provisioning and a signed native status peer with the same supplied credential. It does not discover or fall back to another endpoint, credential or dialect. No ordinary communication/media facade is exposed.",
           "intent": "validate_provisioning bounds and normalizes the current closed schema. Persist the complete command and original unscoped status reference before IO; its logical ID must match MutationOptions. All11 installed command families use their existing documented HTTP routes and server ledger.",
