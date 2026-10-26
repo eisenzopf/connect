@@ -1,9 +1,9 @@
 {
   "task": "G6-067",
-  "status": "Manifest v2 and trusted composition foundation passed; fresh runtime/hook qualification pending",
-  "checked_at": "2026-10-26T16:34:57.022702+00:00",
+  "status": "Manifest v2, trusted composition and selected current production runtime checks passed; full hook/independent live fixture qualification pending",
+  "checked_at": "2026-10-26T16:54:27.434876+00:00",
   "base_revision": "e9a7186d331ab48108006a3cc8c48719697123cf",
-  "scope": "Local Darwin arm64 contract/API/provider mapping and two deterministic PCM lifecycle fixtures; production server and test targets typechecked only. No new current production media/adapter/control/host runtime pass, independent live transport, provider account, browser, Linux, remote, package, publication or acceptance claim.",
+  "scope": "Local Darwin arm64 contract/API/provider mapping, two deterministic PCM lifecycle fixtures, selected actual production adapter/registration/assistant/telephone startup and recovery checks, and current CLI/HTTP. No independent live transport fixture pass, actual provider account/model-host/browser/Linux/remote/package/publication or acceptance claim.",
   "implementation": [
     "Replace manifest v1 audio/video fields with a strict v2 union: unsupported, PCM lifecycle fixture or live binding. No version-1 fallback or implicit media capability. Retain normalized message/voice observations, configuration references, immutable registration and protected host responsibilities.",
     "Describe direct rvoip Transport adapters separately from enrolled signed native Endpoint hosts. Bound unique codec-family catalogs; negotiated-only media refuses static readiness claims. Explicit liveness, inbound handoff, terminal fallback, staged origination and replacement guarantees constrain runtime binding. Context and recording remain current host policies.",
@@ -460,6 +460,87 @@
       "groups": 6,
       "paths": 9,
       "scope": "Closed proof executables only; gzip decoded hash verification and original path/mode restore mappings retained before removal; no source, logs, state or dependency libraries removed."
+    },
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 638.1354419169948,
+      "source_unchanged": true,
+      "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+      "bytes": 250171216,
+      "source_count": 1321,
+      "log_sha256": "dfb788114843aba5d6cb5ee569f95bdc012729f3c1a593d3601ba79ae4001c62",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-01": {
+        "sha256": "5574d623cab344d9a676d1b240b4c0d7c029550db7ddabd6d87737c3fd29c242",
+        "bytes": 98387072
+      },
+      "client-test-01": {
+        "sha256": "f69e83926d57a709b83e2c5cbb02f0785abdd208f9cef37487d96706003a999f",
+        "bytes": 25177152
+      },
+      "canonical-cli-01": {
+        "sha256": "b40c8e2bbce5641eb6fa806306ec72beb2117afb707e4522740bf497dbd9c4c6",
+        "bytes": 232257392
+      }
+    },
+    "production_runtime": {
+      "runs": [
+        {
+          "name": "adapter-contract",
+          "pattern": "connector_media_contract::",
+          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "exit_code": 0,
+          "seconds": 2.003986584022641,
+          "log_sha256": "83e1b5b9d9e5da6267f7ce5a9c9cd683e07071fff3f5dee79d90319f10937184",
+          "result": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 339 filtered out; finished in 0.22s"
+          ]
+        },
+        {
+          "name": "configured-assistant",
+          "pattern": "configured_startup_exposes_only_hosted_endpoint_and_owns_http_accepted_provider_job",
+          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "exit_code": 0,
+          "seconds": 0.9478359168861061,
+          "log_sha256": "af91fe9764e23af85721474c9bcc7b92cc494750ae888d5209bf059985b0273a",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 0.78s"
+          ]
+        },
+        {
+          "name": "configured-telephone",
+          "pattern": "production_initial_telephone_public_invite_records_real_answer_and_guarded_admission_once",
+          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "exit_code": 0,
+          "seconds": 4.254473292035982,
+          "log_sha256": "97b2efa462e94c2e7c8a003225e42c121b503a8c888f990268c300d5f3bfc735",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 4.11s"
+          ]
+        },
+        {
+          "name": "startup-failure-drain",
+          "pattern": "production_telephone_configured_later_http_bind_failure_drains_started_sip",
+          "binary_sha256": "fd352047eeb046f07d25df3bb68db43f60f310b32393bc2950631a010096d3aa",
+          "exit_code": 0,
+          "seconds": 0.3662612079642713,
+          "log_sha256": "e9db431389af4b47b08df383ba8799f635786005cba82833cbd131feeaa1544e",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 340 filtered out; finished in 0.21s"
+          ]
+        }
+      ],
+      "source_unchanged_before": true,
+      "source_unchanged_after": true
+    },
+    "http_regression": {
+      "exchanges": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "source_unchanged": true,
+      "cli_sha256": "b40c8e2bbce5641eb6fa806306ec72beb2117afb707e4522740bf497dbd9c4c6",
+      "private_summary_sha256": "23836981a806487861cf75b340a94659d0a1a1ddac4f380553f5565a0bb6eb2a",
+      "sigterm_exit": 0
     }
   },
   "inputs": {
@@ -522,8 +603,8 @@
     "examples/connector-template/tests/contract.rs": "0b3424d6555246914fb6a55d86b622e843ef709a490a2d074e853f1bbda92478"
   },
   "remaining": [
-    "Execute the new actual SIP/Vapi adapter and registration-authority production tests on a frozen current build; rerun current canonical telephone and configured assistant startup/media scopes.",
-    "Complete admission/control hook and independent live fixture evidence required by G6-067, then ship the G6-068 media contribution harness through stock trusted composition. The PCM fixture checks here do not qualify a live transport.",
-    "G6-067 remains in-progress. The unchanged full105-task goal and existing G6-050/G6-051/G6-065 obligations remain active."
+    "Complete generic admission/control hook and independent live fixture qualification required by G6-067; the standalone in-process adapter prototype is not yet compiled or qualified.",
+    "The selected production checks establish real SIP/Vapi adapter matching and metadata registration without new credential authority, configured assistant job ownership, original telephone admission, and cleanup after later bind failure. They do not establish every media/profile/control path.",
+    "G6-067 remains in-progress. Its G6-068 external harness/stock-composition delivery remains dependent work. The full 105-task goal and G6-050/G6-051/G6-065 obligations stay active."
   ]
 }
