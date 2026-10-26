@@ -10,6 +10,7 @@ pub(in crate::canonical) enum Case {
     WrongExpected,
     WrongOperation,
     NoCapture,
+    NoCaptureRetire,
     Unsettled,
     Route,
     RouteEqual,
@@ -56,7 +57,7 @@ fn captured(case: Case) -> Value {
     if routing(case) {
         ports.as_array_mut().unwrap().truncate(3);
     }
-    let mut out = json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":!routing(case),"stream_bindings":if matches!(case,Case::NoCapture|Case::Unsettled|Case::RouteUnsettled|Case::RouteNoCapture|Case::RouteEqualNoCapture) {Value::Null}else{selections::bindings(&ports)},"server_reconciliation":true,"subscription_record_id":"opr_selector"});
+    let mut out = json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":!routing(case),"stream_bindings":if matches!(case,Case::NoCapture|Case::NoCaptureRetire|Case::Unsettled|Case::RouteUnsettled|Case::RouteNoCapture|Case::RouteEqualNoCapture) {Value::Null}else{selections::bindings(&ports)},"server_reconciliation":true,"subscription_record_id":"opr_selector"});
     if matches!(case, Case::RouteEqual | Case::RouteEqualNoCapture) {
         out["stream_revision"] = json!(2);
     }
@@ -197,7 +198,7 @@ async fn resend(writer: &mut quinn::SendStream, signer: &Sig9421Signer, offer: &
     writer.write_all(&bytes).await.unwrap();
 }
 pub(super) async fn emit(
-    _connection: &quinn::Connection,
+    connection: &quinn::Connection,
     case: Case,
     reader: &mut quinn::RecvStream,
     writer: &mut quinn::SendStream,
@@ -214,6 +215,31 @@ pub(super) async fn emit(
     let mut sent_next = false;
     let mut started = false;
     while let Some(request) = selections::maybe_read(reader).await {
+        if matches!(case, Case::NoCaptureRetire) {
+            if request.kind() == "connection.offer" {
+                fresh_after_retirement(connection, reader, writer, signer, &request).await;
+                continue;
+            }
+            if request.kind() == "connection.end"
+                || request.original()["payload"]["operation_id"] == "retire-missing-capture"
+            {
+                assert_eq!(request.scope(Scope::Connection), Some("connection_one"));
+                if request.kind() == "connection.end" {
+                    assert_eq!(
+                        request.scope(Scope::Operation),
+                        Some("retire-missing-capture")
+                    );
+                    assert!(request.expected_revision().is_none());
+                    assert_eq!(
+                        request.original()["payload"],
+                        json!({"reason_code":200,"reason":"Unavailable capture; establish a fresh Connection"})
+                    );
+                }
+                write(writer, signer, &request, "operation.updated",json!({"operation_id":"retire-missing-capture","state":"completed","revision":1,"result":{"connection_id":"connection_one","ended":true}}),true).await;
+                write(writer, signer, &request, "ack", json!({}), true).await;
+                continue;
+            }
+        }
         if request.kind() == "stream.subscribe" {
             assert_eq!(request.scope(Scope::Operation), Some("selector"));
             reply(writer, signer, &request, true, "completed", case, false).await;
@@ -325,6 +351,73 @@ pub(super) async fn emit(
             }
         }
     }
+}
+async fn fresh_after_retirement(
+    connection: &quinn::Connection,
+    reader: &mut quinn::RecvStream,
+    writer: &mut quinn::SendStream,
+    signer: &Sig9421Signer,
+    request: &Envelope,
+) {
+    assert_eq!(request.scope(Scope::Connection), Some("connection_fresh"));
+    assert_eq!(request.scope(Scope::Operation), Some("fresh-offer"));
+    assert_eq!(request.expected_revision(), Some(0));
+    let streams = json!([
+        {"strm_id":"audio","kind":"audio","direction":"recvonly","stream_local_id":47,"codec":{"name":"pcmu","params":{"sample_rate":8000,"channels":1,"payload_type":0}}},
+        {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":48,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
+        {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":49,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
+    ]);
+    let setup =
+        json!({"kind":"native-prepared/1","revision":1,"offer_id":request.id(),"streams":streams});
+    let caps = request.original()["payload"]["capabilities"].clone();
+    let answered=streams.as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec":s["codec"]})).collect::<Vec<_>>();
+    write(writer,signer,request,"connection.answer",json!({"by_participant":"part_one","substrate":"quic","capabilities":caps,"streams_answered":answered,"substrate_setup":setup}),true).await;
+    let query = read(reader).await;
+    assert_eq!(query.kind(), "operation.get");
+    write(
+        writer,
+        signer,
+        &query,
+        "operation.updated",
+        json!({"operation_id":"fresh-offer","state":"preparing","revision":1}),
+        true,
+    )
+    .await;
+    write(writer, signer, &query, "ack", json!({}), true).await;
+    let offered=streams.as_array().unwrap().iter().map(|s|json!({"id":s["strm_id"],"kind":s["kind"],"direction":s["direction"],"codec_preferences":[s["codec"]["name"]]})).collect::<Vec<_>>();
+    let callback=write(writer,signer,request,"connection.offer",json!({"by_participant":"part_one","substrate":"quic","capabilities":caps,"streams_offered":offered,"substrate_setup":setup}),false).await;
+    loop {
+        let next = read(reader).await;
+        assert_eq!(next.scope(Scope::Connection), Some("connection_fresh"));
+        if next.kind() == "operation.get" {
+            write(
+                writer,
+                signer,
+                &next,
+                "operation.updated",
+                json!({"operation_id":"fresh-offer","state":"preparing","revision":1}),
+                true,
+            )
+            .await;
+            write(writer, signer, &next, "ack", json!({}), true).await;
+            continue;
+        }
+        assert_eq!(next.kind(), "connection.answer");
+        assert_eq!(next.scope(Scope::Reply), Some(callback.id()));
+        assert_eq!(next.scope(Scope::Operation), Some("fresh-offer"));
+        assert_eq!(next.original()["payload"]["substrate_setup"], setup);
+        break;
+    }
+    let query = read(reader).await;
+    assert_eq!(query.kind(), "operation.get");
+    assert_eq!(query.original()["payload"]["operation_id"], "fresh-offer");
+    write(writer,signer,&query,"operation.updated",json!({"operation_id":"fresh-offer","state":"completed","revision":1,"result":{"streams":["audio","video","data"],"stream_revision":1}}),true).await;
+    write(writer, signer, &query, "ack", json!({}), true).await;
+    let bytes = tokio::time::timeout(Duration::from_secs(2), connection.read_datagram())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(bytes.as_ref(), datagram(47, 40, &raw_rtp(0)));
 }
 async fn ready(
     case: Case,
@@ -483,6 +576,85 @@ async fn unavailable_completion_capture_is_recorded_without_inventing_empty_bind
     let receipt = s.operation(&client).wait(options()).await.unwrap().value;
     assert!(receipt.bindings.is_none());
     assert_eq!(count(&c), 3);
+    close(client, host).await;
+}
+#[tokio::test]
+async fn unavailable_resource_capture_can_end_original_connection_and_negotiate_fresh_handles_without_adopting_it(
+) {
+    let (client, c, _, host, _) = ready(Case::NoCaptureRetire).await;
+    let original = phase(&c, Phase::Recorded).await;
+    assert!(!original.bindings_adopted);
+    let receipt = original
+        .operation(&client)
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    assert!(receipt.bindings.is_none());
+    let original_ref = original.operation(&client).reference_json();
+    let mut retire = mutation();
+    retire.operation_id = "retire-missing-capture".parse().unwrap();
+    let ended = c
+        .end(
+            200,
+            "Unavailable capture; establish a fresh Connection".into(),
+            None,
+            retire,
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    assert_eq!(ended.id(), c.id());
+    assert!(ended.native_negotiation().unwrap().is_none());
+    assert!(c
+        .stream_by_id("audio".parse().unwrap())
+        .send_rtp(sdk::RtpPacket::new(40, raw_rtp(0)).unwrap(), options())
+        .await
+        .is_err());
+    let mut fresh = mutation();
+    fresh.operation_id = "fresh-offer".parse().unwrap();
+    let session = client
+        .conversation_by_id("conv_one".parse().unwrap())
+        .session_by_id("session_one".parse().unwrap());
+    let fresh = session
+        .offer_connection("connection_fresh".parse().unwrap(), offered(), fresh)
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    assert_eq!(
+        fresh
+            .native_negotiation()
+            .unwrap()
+            .unwrap()
+            .streams
+            .iter()
+            .map(|s| s.stream_local_id)
+            .collect::<Vec<_>>(),
+        vec![Some(47), Some(48), None]
+    );
+    fresh
+        .stream_by_id("audio".parse().unwrap())
+        .send_rtp(sdk::RtpPacket::new(40, raw_rtp(0)).unwrap(), options())
+        .await
+        .unwrap();
+    // Original receipt restoration after teardown stays historical and cannot
+    // reacquire old native custody or fill in the unavailable capture.
+    let restored = client
+        .restore(original_ref, client.operation_kinds().stream_reconcile)
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    assert!(restored.bindings.is_none());
+    assert!(c.native_negotiation().unwrap().is_none());
+    assert_eq!(count(&fresh), 3);
     close(client, host).await;
 }
 #[tokio::test]

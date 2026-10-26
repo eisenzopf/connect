@@ -1,0 +1,34 @@
+{
+  "task": "G6-060",
+  "status": "unavailable native capture teardown and fresh-offer recovery verified",
+  "checked_at": "2026-10-26T10:23:47.734820+00:00",
+  "scope": "One new signed real QUIC component fixture, plus the full214-function client suite. Existing public SDK methods, no production code or wire changes. Not a new decoded-media or production/remote/performance qualification.",
+  "verification": {
+    "client": {
+      "passed_functions": 214,
+      "failed_functions": 0,
+      "ignored_functions": 0,
+      "new_functions": 1,
+      "log": ".local/gate-6/sdk-capture-recovery/client-01.jsonl",
+      "sha256": "0aeafaa1d0858102be5337d89cfc4b6ee894934601289e9db4ad47f93a530a44",
+      "executable_sha256": "5c2d3c6917000441c29ada6fbd36a0fda1bb1723d68eab273d74f81ea6e11d65",
+      "source_manifest": ".local/gate-6/sdk-capture-recovery/client-inputs-current.json",
+      "manifest_sha256": "6c4aae5c5e83aff70ca92dfe8bda4e61c39e5f475379ceeb075dd05fc1b94fe2",
+      "source_changes_since213_suite": [
+        "crates/connect-client/src/canonical/tests/sdk_native/reconciliations.rs"
+      ]
+    },
+    "previous_rustdoc": "12 passing Rustdoc checks; no documented library source changed in this test-only increment",
+    "prepare_format_diff": "passed"
+  },
+  "behavior": [
+    "An actual signed server receive-resource replacement is authorized against its original operation, confirmed once and recorded Completed with unavailable capture. The SDK keeps bindings=None, the prior three parameters and the original reserved preparation; it invents no new bindings.",
+    "The application explicitly ends that affected Connection with its saved new mutation ID and no guessed StreamRevision. Only matching Completed retirement releases local preparation/ownership and refuses old Stream media sends.",
+    "A new saved offer uses a distinct Connection ID and fresh native handles47/48/49 on the same authenticated physical peer and stable Conversation/Session. Signed parameter confirmation precedes the Completed receipt; actual outgoing RTP bytes use handle47. Data handle remains private in public negotiation metadata.",
+    "Restoring and reading the original reconciliation after retirement still returns bindings=None. It acquires no old custody, cannot overwrite the fresh Connection and does not replay the original effect. Client and signed fixture host are explicitly joined."
+  ],
+  "remaining": [
+    "Durable cursor catch-up for a missed routing reconciliation hint remains unqualified under G6-060. Preserve current-authorized original journal reads and exact native custody when implementing that path.",
+    "Other negotiation/backpressure/operating-profile and installed-package coverage retains its assigned requirements; no full G6-060/Gate6/acceptance/publication closure."
+  ]
+}

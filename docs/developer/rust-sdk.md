@@ -347,10 +347,13 @@ binding drops its queued packets; unrelated queues stay bounded and available.
 
 `bindings: None` explicitly records unavailable concurrent capture metadata;
 `Some(vec![])` records a known empty set. An unavailable capture never installs
-unproven local parameters, and its preparation remains reserved pending explicit
-reconciliation. This is a remaining reconciliation limit, not a claim that the
-recorded effect failed. Fresh-client recovery can inspect captured parameters
-without taking the original physical peer's media custody. Current qualification
+unproven local parameters, and its preparation remains reserved. To establish
+new physical resources, explicitly end that affected Connection with a new saved
+mutation ID and `expected_revision: None`, await its matching Completed receipt,
+then offer a distinct Connection ID with a new saved mutation ID. No guessed
+revision or fabricated capture is needed. Existing authorization still applies
+to both mutations. Fresh-client recovery can inspect captured parameters without
+taking the original physical peer's media custody. Current qualification
 and unresolved scope are recorded in `docs/evidence/gate-6/rust-sdk-selections.json`.
 
 
@@ -388,7 +391,8 @@ When a recorded routing-only result has unavailable binding capture, its exact
 installed predecessor can advance to the recorded native counter: that operation
 changed no physical parameters. No binding set is invented and
 `bindings_adopted` remains false. Unavailable resource-replacement captures still
-retain their original preparation pending explicit physical reconciliation.
+retain their original preparation until matching retirement. The explicit
+end/fresh-offer recovery path is qualified below.
 Delivery is advisory; durable cursor catch-up, wider backpressure profiles, other
 automatic negotiation families and the remaining SDK/package/profile scope stay
 open under G6-060. Routing-only commits can preserve both native ports and
@@ -810,3 +814,22 @@ public crate. The three shared declaration outlines also compile the updated
 selection/update/end journey. Contract revision 3 audits the actual Rust fields
 against all three declarations. It changes no server wire or runtime behavior;
 evidence is in `docs/evidence/gate-6/rust-sdk-contract-alignment.json`.
+
+
+## Recovery from unavailable physical capture
+
+A completed reconciliation with `bindings: None` is a recorded effect with
+unavailable historical parameters. It does not authorize guessing or adopting
+new local bindings. The application can retire that Connection through
+`Connection::end` with an explicit original reason, new logical ID and no guessed
+revision assertion. After its matching completion, `Session::offer_connection`
+establishes a distinct Connection with fresh parameters and another saved ID.
+The Conversation and Session IDs remain stable.
+
+The signed QUIC fixture verifies original null capture, retirement, refusal of
+old sends, fresh handle confirmation, actual outgoing RTP on the new handle and
+historical original receipt recovery without taking old custody. All 214 client
+functions pass. Evidence is in
+`docs/evidence/gate-6/rust-sdk-capture-recovery.json`. This qualifies the existing
+explicit recovery path; missed-hint durable journal catch-up remains the next
+G6-060 implementation/verification item.
