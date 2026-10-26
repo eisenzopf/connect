@@ -10,5 +10,7 @@ cargo fmt --manifest-path examples/connector-template/Cargo.toml "$@"
 
 cargo fmt --manifest-path examples/connector-contribution/Cargo.toml "$@"
 
+cargo fmt --manifest-path examples/rust-sdk-journey/Cargo.toml "$@"
+
 # Declaration-only shared SDK contract fixtures live outside Cargo workspaces.
 rustfmt --edition 2024 contracts/sdk-api/rust/contract.rs contracts/sdk-api/rust/outline.rs contracts/sdk-api/rust/negative.rs "$@"

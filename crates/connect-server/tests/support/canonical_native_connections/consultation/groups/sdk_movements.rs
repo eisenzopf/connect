@@ -19,15 +19,17 @@ fn session(client: &Client, command: &TransitionCommand) -> sdk::Session {
         .conversation_by_id(command.conversation_id.parse().unwrap())
         .session_by_id(command.session_id.parse().unwrap())
 }
-pub(super) struct HandoffProbe {
-    client: Client,
-    operation: sdk::Operation<sdk::HandoffResult>,
-    config: CanonicalClientConfig,
+enum Owner<T> {
+    Internal {
+        client: Client,
+        operation: sdk::Operation<T>,
+        config: CanonicalClientConfig,
+    },
+    External(crate::external_sdk_consumer::Consumer),
 }
+pub(super) struct HandoffProbe(Owner<sdk::HandoffResult>);
 pub(super) struct ReplacementProbe {
-    client: Client,
-    operation: sdk::Operation<sdk::MoveResult>,
-    config: CanonicalClientConfig,
+    owner: Owner<sdk::MoveResult>,
     pub baseline: (usize, usize, usize),
 }
 pub(super) async fn handoff(
@@ -37,6 +39,13 @@ pub(super) async fn handoff(
     group: &Group,
 ) -> HandoffProbe {
     let config = super::super::sdk_controls::controller_config(f, token, 911);
+    if crate::external_sdk_consumer::enabled() {
+        let parent = json!({"schema":"connect-operation-reference/1","operation_id":group.command.operation_id,"command":"session.consult","scope":{"conversation_id":group.command.conversation_id,"session_id":group.command.session_id,"connection_id":group.command.connection_id},"continuation":{"kind":"consultation","retained_connection_id":group.command.intent.retained(),"record_id":group.record}});
+        let mut consumer=crate::external_sdk_consumer::Consumer::start(f,json!({"mode":"transition","config":crate::external_sdk_consumer::configured(config),"command":command,"consultation":parent})).await;
+        consumer.registered().await;
+        consumer.begin().await;
+        return HandoffProbe(Owner::External(consumer));
+    }
     let client = Client::connect(config.clone(), "tnt_default".parse().unwrap())
         .await
         .unwrap();
@@ -89,11 +98,11 @@ pub(super) async fn handoff(
         .handoff(input, opts)
         .await
         .unwrap();
-    HandoffProbe {
+    HandoffProbe(Owner::Internal {
         client,
         operation,
         config,
-    }
+    })
 }
 pub(super) async fn handoff_completed(
     f: &Fixture,
@@ -101,7 +110,38 @@ pub(super) async fn handoff_completed(
     command: &TransitionCommand,
     recorded: &Value,
 ) {
-    let value = probe.operation.wait(options()).await.unwrap().value;
+    let (client, operation, config) = match probe.0 {
+        Owner::Internal {
+            client,
+            operation,
+            config,
+        } => (client, operation, config),
+        Owner::External(consumer) => {
+            let result = consumer.finish().await;
+            assert_eq!(result["phase"], "completed");
+            assert_eq!(result["recovered"], true);
+            let summary = &result["summary"];
+            assert_eq!(
+                summary["topology"]["topology_revision"],
+                recorded["session_revision"]
+            );
+            assert_eq!(
+                summary["topology"]["retained"],
+                recorded["retained_connection_ids"]
+            );
+            assert_eq!(
+                summary["topology"]["admitted"],
+                recorded["admitted_connection_ids"]
+            );
+            assert_eq!(
+                summary["topology"]["retired"],
+                recorded["retired_connection_ids"]
+            );
+            assert_eq!(summary["role_change"], recorded["native_handoff"]);
+            return;
+        }
+    };
+    let value = operation.wait(options()).await.unwrap().value;
     assert_eq!(
         value.topology.topology_revision.get(),
         recorded["session_revision"].as_u64().unwrap()
@@ -135,12 +175,12 @@ pub(super) async fn handoff_completed(
         .native_negotiation()
         .unwrap()
         .is_none());
-    let fresh = Client::connect(probe.config, "tnt_default".parse().unwrap())
+    let fresh = Client::connect(config, "tnt_default".parse().unwrap())
         .await
         .unwrap();
     let restored = fresh
         .restore(
-            probe.operation.reference_json(),
+            operation.reference_json(),
             fresh.operation_kinds().session_handoff,
         )
         .unwrap();
@@ -156,7 +196,7 @@ pub(super) async fn handoff_completed(
         value.topology.topology_revision.get()
     );
     fresh.close(options()).await.unwrap();
-    probe.client.close(options()).await.unwrap();
+    client.close(options()).await.unwrap();
     println!(
         "SDK handoff {}:{} scope={},outgoing={},one_effect,fresh_observation_no_custody",
         f.client.signing_algorithm,
@@ -172,6 +212,33 @@ pub(super) async fn replacement(
 ) -> ReplacementProbe {
     let config = super::super::sdk_controls::controller_config(f, token, 921);
     let original = f.server.service.canonical_runtime_snapshot().unwrap();
+    if crate::external_sdk_consumer::enabled() {
+        let mut consumer=crate::external_sdk_consumer::Consumer::start(f,json!({"mode":"transition","config":crate::external_sdk_consumer::configured(config),"command":command,"consultation":null})).await;
+        consumer.registered().await;
+        let until = tokio::time::Instant::now() + Duration::from_secs(3);
+        let before = loop {
+            let current = f.server.service.canonical_runtime_snapshot().unwrap();
+            if current.physical_peers == original.physical_peers + 1 {
+                assert_eq!(current.connections, original.connections);
+                assert_eq!(current.live_sessions, original.live_sessions);
+                break current;
+            }
+            assert!(
+                tokio::time::Instant::now() < until,
+                "external controller registration did not settle"
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        };
+        consumer.begin().await;
+        return ReplacementProbe {
+            owner: Owner::External(consumer),
+            baseline: (
+                before.connections,
+                before.physical_peers,
+                before.live_sessions,
+            ),
+        };
+    }
     let client = Client::connect(config.clone(), "tnt_default".parse().unwrap())
         .await
         .unwrap();
@@ -232,9 +299,11 @@ pub(super) async fn replacement(
         "preparation is not committed movement"
     );
     ReplacementProbe {
-        client,
-        operation,
-        config,
+        owner: Owner::Internal {
+            client,
+            operation,
+            config,
+        },
         baseline: (
             before.connections,
             before.physical_peers,
@@ -248,7 +317,36 @@ pub(super) async fn replacement_completed(
     command: &TransitionCommand,
     recorded: &Value,
 ) {
-    let value = probe.operation.wait(options()).await.unwrap().value;
+    let (client, operation, config) = match probe.owner {
+        Owner::Internal {
+            client,
+            operation,
+            config,
+        } => (client, operation, config),
+        Owner::External(consumer) => {
+            let result = consumer.finish().await;
+            assert_eq!(result["phase"], "completed");
+            assert_eq!(result["recovered"], true);
+            let summary = &result["summary"];
+            assert_eq!(summary["connection_id"], recorded["connection_id"]);
+            assert_eq!(summary["generation"], 2);
+            assert_eq!(summary["native_owned"], false);
+            assert_eq!(
+                summary["topology"]["topology_revision"],
+                recorded["session_revision"]
+            );
+            assert_eq!(
+                summary["topology"]["retained"],
+                recorded["retained_connection_ids"]
+            );
+            assert_eq!(
+                summary["topology"]["retired"],
+                recorded["retired_connection_ids"]
+            );
+            return;
+        }
+    };
+    let value = operation.wait(options()).await.unwrap().value;
     assert_eq!(
         value.connection.id().as_str(),
         recorded["connection_id"].as_str().unwrap()
@@ -267,12 +365,12 @@ pub(super) async fn replacement_completed(
         command.connection_id.as_ref().unwrap()
     );
     assert!(value.connection.native_negotiation().unwrap().is_none());
-    let fresh = Client::connect(probe.config, "tnt_default".parse().unwrap())
+    let fresh = Client::connect(config, "tnt_default".parse().unwrap())
         .await
         .unwrap();
     let restored = fresh
         .restore(
-            probe.operation.reference_json(),
+            operation.reference_json(),
             fresh.operation_kinds().connection_replace,
         )
         .unwrap();
@@ -281,7 +379,7 @@ pub(super) async fn replacement_completed(
     assert_eq!(replay.binding.generation, value.binding.generation);
     assert!(replay.connection.native_negotiation().unwrap().is_none());
     fresh.close(options()).await.unwrap();
-    probe.client.close(options()).await.unwrap();
+    client.close(options()).await.unwrap();
     println!("SDK replacement {}:{} generation={},retained={},retired={},captured_topology,fresh_observation_no_custody",f.client.signing_algorithm,command.operation_id,value.binding.generation,command.intent.retained(),command.connection_id.as_ref().unwrap());
 }
 pub(super) async fn replacement_stopped(
@@ -291,9 +389,33 @@ pub(super) async fn replacement_stopped(
     token: &str,
     original_revoked: bool,
 ) {
+    let (client, operation) = match probe.owner {
+        Owner::Internal {
+            client, operation, ..
+        } => (client, operation),
+        Owner::External(consumer) => {
+            let reference = consumer.reference.clone().unwrap();
+            let command = consumer.command.clone();
+            let result = consumer.finish().await;
+            if original_revoked {
+                assert_eq!(result["phase"], "error");
+                assert_eq!(result["certainty"], "ReadOnly");
+            } else {
+                assert_eq!(result["phase"], "stopped");
+                assert_eq!(result["state"], serde_json::to_value(state).unwrap());
+                assert_eq!(result["certainty"], "Recorded");
+            }
+            let config = super::super::sdk_controls::controller_config(f, token, 922);
+            let recovery=crate::external_sdk_consumer::Consumer::start(f,json!({"mode":"recover","config":crate::external_sdk_consumer::configured(config),"command":command,"reference":reference})).await;
+            let recovered = recovery.finish().await;
+            assert_eq!(recovered["phase"], "stopped");
+            assert_eq!(recovered["state"], serde_json::to_value(state).unwrap());
+            assert_eq!(recovered["certainty"], "Recorded");
+            return;
+        }
+    };
     if original_revoked {
-        let error = probe
-            .operation
+        let error = operation
             .status(options())
             .await
             .err()
@@ -307,12 +429,9 @@ pub(super) async fn replacement_stopped(
                 | sdk::ErrorKind::Application
         ));
     } else {
-        assert_eq!(
-            probe.operation.status(options()).await.unwrap().state,
-            state
-        );
+        assert_eq!(operation.status(options()).await.unwrap().state, state);
         assert!(
-            matches!(probe.operation.wait(options()).await,Err(e) if e.certainty==sdk::Certainty::Recorded)
+            matches!(operation.wait(options()).await,Err(e) if e.certainty==sdk::Certainty::Recorded)
         );
     }
     let config = super::super::sdk_controls::controller_config(f, token, 922);
@@ -321,7 +440,7 @@ pub(super) async fn replacement_stopped(
         .unwrap();
     let restored = fresh
         .restore(
-            probe.operation.reference_json(),
+            operation.reference_json(),
             fresh.operation_kinds().connection_replace,
         )
         .unwrap();
@@ -334,7 +453,7 @@ pub(super) async fn replacement_stopped(
     assert_eq!(error.certainty, sdk::Certainty::Recorded);
     assert_eq!(error.observation.unwrap().state, state);
     fresh.close(options()).await.unwrap();
-    probe.client.close(options()).await.unwrap();
+    client.close(options()).await.unwrap();
     println!("SDK stopped replacement {}:state={state:?},fresh_authority_original_id,original_revoked={original_revoked}",f.client.signing_algorithm);
 }
 #[tokio::test]
@@ -400,6 +519,37 @@ async fn production_public_rust_sdk_device_move_recording_failure_preserves_one_
             false,
             true,
             true,
+            Some(algorithm),
+        )
+        .await;
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires independent public consumer via CONNECT_GATE6_EXTERNAL_SDK"]
+async fn external_public_crate_handoff_preserves_roles_audio_and_original_recovery() {
+    crate::external_sdk_consumer::require();
+    for algorithm in ["EdDSA", "ES256"] {
+        super::handoff::handoff_case_with_sdk(
+            connect_protocol::transitions::OutgoingDisposition::Observe,
+            connect_protocol::transitions::RoleScope::Session,
+            false,
+            Some(algorithm),
+        )
+        .await;
+    }
+}
+#[tokio::test]
+#[ignore = "requires independent public consumer via CONNECT_GATE6_EXTERNAL_SDK"]
+async fn external_public_crate_device_move_retains_actual_generation_two_audio_and_recovers() {
+    crate::external_sdk_consumer::require();
+    for algorithm in ["EdDSA", "ES256"] {
+        super::replacement::exercise_replacement_with_sdk(
+            true,
+            true,
+            false,
+            true,
+            false,
             Some(algorithm),
         )
         .await;

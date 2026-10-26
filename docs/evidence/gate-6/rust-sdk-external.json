@@ -1,0 +1,50 @@
+{
+  "task": "G6-060",
+  "status": "independent consumer and fixture checkpoint; runtime qualification pending",
+  "checked_at": "2026-10-26T08:53:29.932339+00:00",
+  "scope": "Fresh independent public source-consumer workspace outside the repository. Local functional fixture lane only; not published-package or operating-profile acceptance.",
+  "verification": {
+    "external_build": {
+      "status": "passed",
+      "project": "/Users/jonathaneisenzopf/.local/share/connect/gate6-external-rust-hyi17u1b",
+      "workspace_root": "/Users/jonathaneisenzopf/.local/share/connect/gate6-external-rust-hyi17u1b",
+      "forbidden_dependencies_absent": [
+        "connect-server",
+        "connect-service",
+        "connect-store"
+      ],
+      "source_hashes": {
+        "src/transition.rs": "c07cc1b1009606373dcd422f1151499f6030defd8222c589514850c18c76d7d6",
+        "src/media.rs": "e0d15ca6de887cd44ca56321b77216b718d0a6f6837d958f1e37a896c69ac0b0",
+        "src/main.rs": "f4284d005bc55016515e1afcdf844175d073cec9902ba3bc8b123c228f07f7c9",
+        "src/black-640x360.vp8": "609475934e989888713520c5bb2ff8c2ae832d0a50c9af82c2353f576da354f2"
+      },
+      "build_log": ".local/gate-6/sdk-external/build-external-03.log",
+      "build_jsonl_sha256": "619ca8c21708a2f420c1d9a552f1d2d79adb3411d496ce835f6d234b022bc05e",
+      "metadata_sha256": "440b297454386c98e099d9e825ec0fa5907b6315372c848df074c1c1555b7085"
+    },
+    "server_fixture_build": {
+      "status": "passed",
+      "build_log": ".local/gate-6/sdk-external/build-server-02.log",
+      "build_jsonl_sha256": "d44ab1f54b197d2cb83f894b401f5b4bca9579b965cdf7a3f7571482cf8ef077"
+    },
+    "production": {
+      "status": "running; no aggregate pass claimed",
+      "planned_functions": 3,
+      "planned_prior_functions": 30,
+      "driver": ".local/gate-6/sdk-external/run-production.py",
+      "report": ".local/gate-6/sdk-external/production-01-summary.json"
+    }
+  },
+  "failed_candidates": [
+    {
+      "build_jsonl": ".local/gate-6/sdk-external/build-server-01.jsonl",
+      "reason": "External stopped-operation recovery fixture referenced a command outside its scope. The bounded Consumer now retains the saved original command for that recovery; corrected fixture compiles."
+    }
+  ],
+  "boundaries": [
+    "The media case uses both owned typed SDK peers and independent FFmpeg decode. Transition cases use external typed SDK controllers while independent public native media owners perform physical preparation and forwarding; observation never transfers custody.",
+    "All original case inputs exist before IO. Fresh status reconstruction does not resubmit. Explicit ignored fixtures require the built consumer rather than silently substituting an in-process client.",
+    "Remaining native lifecycle/recovery, incompatible-server, package and required remote/Linux/provider qualification remain open. G6-060 and the full Gate6 objective remain open. Publication is separate."
+  ]
+}

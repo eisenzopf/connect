@@ -21,6 +21,9 @@ use std::{path::Path, time::Duration};
 mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
 
+#[path = "support/external_sdk_consumer.rs"]
+mod external_sdk_consumer;
+
 fn payload(kind: &str, value: Value) -> Payload {
     serde_json::from_value(json!({"type":kind,"payload":value})).unwrap()
 }

@@ -3,8 +3,8 @@
 G6-060 is in progress. `connect_client::sdk` provides owned signed native
 control through `Client`, `Conversation`, `Participant`, `Session` and typed
 `Operation<T>` handles. It composes the configured canonical transport and uses
-one bounded request owner. The remaining Connection/Stream, transition,
-The remaining native lifecycle and external/package/profile qualification are still in progress.
+one bounded request owner. Native lifecycle recovery and external/package/profile
+qualification remain in progress.
 
 Creating a handle from an ID grants no authority. Each refresh, mutation and
 original-operation status query checks current server policy. Mutations require
@@ -721,3 +721,23 @@ flow still requires current authorization and its own behavior evidence.
 The component checkpoint passes 211 client functions and 12 Rustdoc checks.
 External runtime qualification remains open in G6-060; evidence is recorded in
 `docs/evidence/gate-6/rust-sdk-capabilities.json`.
+
+
+## Independent public-crate journey
+
+`examples/rust-sdk-journey` is a separate Cargo workspace depending only on the
+public client crate and general Rust libraries. Its media case uses typed SDK
+handles for a private Message, original-ID recovery, actual incoming Session,
+native packet IO on both ends, stream selection, independent PCMU/VP8 decoding
+and bounded cleanup. Its transition cases act as typed SDK controllers for real
+handoff/device-move fixtures with independently owned public native media legs.
+The controller's returned metadata never grants those legs' media ownership.
+
+The verification runner copies the consumer into a fresh workspace outside the
+repository, builds it independently, checks dependency isolation and runs it
+against actual local production listeners. The test subprocess protocol owns its
+stdin/stdout, deadlines and child lifetime. Default test runs explicitly ignore
+these cases until a built binary is supplied. This source-consumer lane does not
+qualify published installation, remote/Linux/provider profiles or desktop
+capture. The current external runtime run is pending; evidence is recorded in
+`docs/evidence/gate-6/rust-sdk-external.json`.

@@ -1,0 +1,26 @@
+[package]
+name = "connect-external-rust-journey"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97.1"
+publish = false
+
+# Independent consumer: no Connect server, service or Store dependency.
+[workspace]
+
+[dependencies]
+connect-client = { path = "../../crates/connect-client" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+
+# The current source checkout has not reached dependency packaging yet.
+# These are the same prepared/locked upstream patches as the root workspace.
+[patch.crates-io]
+rtc-dtls = { path = "../../.deps/rtc-dtls" }
+rtc-interceptor = { path = "../../.deps/rtc-interceptor" }
+quinn-proto = { path = "../../.deps/quinn-proto" }
+web-transport-proto = { path = "../../.deps/web-transport-proto" }
+
+[lints.rust]
+unsafe_code = "forbid"
