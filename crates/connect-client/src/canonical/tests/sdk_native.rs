@@ -126,6 +126,9 @@ pub(super) async fn emit(
         {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":8,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
         {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":9,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
     ]);
+    if matches!(case, Case::Data(data::Case::Text)) {
+        streams[2]["codec"]["name"] = json!("text");
+    }
     if matches!(case, Case::Data(data::Case::Binary)) {
         streams[2]["codec"]["name"] = json!("binary");
     }

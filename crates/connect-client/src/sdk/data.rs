@@ -5,12 +5,17 @@ use serde_json::json;
 pub(super) const MAX_BYTES: usize = 64 * 1024;
 #[derive(Clone, PartialEq)]
 pub enum DataPayload {
+    Text(String),
     Json(Value),
     Binary(Vec<u8>),
 }
 impl std::fmt::Debug for DataPayload {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Text(s) => f
+                .debug_struct("DataPayload::Text")
+                .field("bytes", &s.len())
+                .finish(),
             Self::Json(_) => f.write_str("DataPayload::Json(redacted)"),
             Self::Binary(b) => f
                 .debug_struct("DataPayload::Binary")
@@ -51,6 +56,12 @@ impl DataPayload {
     fn wire(self) -> Result<(String, &'static str, &'static str)> {
         let bad = || Error::local(ErrorKind::Validation);
         match self {
+            Self::Text(body) => {
+                if body.len() > MAX_BYTES {
+                    return Err(bad());
+                }
+                Ok((body, "text/plain", "utf8"))
+            }
             Self::Json(v) => {
                 let body = serde_json::to_string(&v).map_err(|_| bad())?;
                 if body.len() > MAX_BYTES {
@@ -75,6 +86,13 @@ pub(super) fn body(payload: &Value, codec: &str) -> Result<(DataPayload, usize)>
         .and_then(Value::as_str)
         .unwrap_or("utf8");
     match codec {
+        "text"
+            if encoding == "utf8"
+                && payload["content_type"] == "text/plain"
+                && bytes.len() <= MAX_BYTES =>
+        {
+            Ok((DataPayload::Text(bytes.into()), bytes.len()))
+        }
         "json"
             if encoding == "utf8"
                 && payload["content_type"] == "application/json"

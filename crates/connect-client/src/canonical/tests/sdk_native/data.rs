@@ -4,6 +4,7 @@ use sdk::{Certainty, DataAcceptanceBoundary, DataPayload, ErrorKind};
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Json,
+    Text,
     Binary,
     Unknown,
     CancelSend,
@@ -51,6 +52,10 @@ async fn incoming(
     frame["sid"] = json!("session_one");
     frame["connid"] = json!("connection_one");
     frame["operation_id"] = json!(format!("incoming-operation-{index}"));
+    if matches!(case, Case::Text) {
+        frame["payload"]["content_type"] = json!("text/plain");
+        frame["payload"]["body"] = json!("hello 🦀");
+    }
     if matches!(case, Case::Binary) {
         frame["payload"]["content_type"] = json!("application/octet-stream");
         frame["payload"]["body_encoding"] = json!("base64");
@@ -127,6 +132,8 @@ pub(super) async fn emit(
                 if matches!(case, Case::Binary) {
                     assert_eq!(p["body"], "AP+AAQ==");
                     assert_eq!(p["body_encoding"], "base64");
+                } else if matches!(case, Case::Text) {
+                    assert_eq!(p["body"], "hello 🦀");
                 } else {
                     assert_eq!(
                         serde_json::from_str::<Value>(p["body"].as_str().unwrap()).unwrap(),
@@ -190,8 +197,13 @@ async fn ready(
         .conversation_by_id("conv_one".parse().unwrap())
         .session_by_id("session_one".parse().unwrap());
     let mut streams = offered();
-    if matches!(case, Case::Binary) {
-        streams.rest[1].codecs.first = "binary".into();
+    if matches!(case, Case::Binary | Case::Text) {
+        streams.rest[1].codecs.first = if matches!(case, Case::Text) {
+            "text"
+        } else {
+            "binary"
+        }
+        .into();
     }
     let operation = session
         .offer_connection(
@@ -214,7 +226,7 @@ async fn received(client: &Client, n: u64) {
 }
 #[tokio::test]
 async fn signed_native_json_and_binary_data_preserve_bytes_original_ids_and_queue_admission_only() {
-    for case in [Case::Json, Case::Binary, Case::Unknown] {
+    for case in [Case::Json, Case::Text, Case::Binary, Case::Unknown] {
         let (client, c, _, host, _) = ready(case).await;
         let stream = c.stream_by_id("data".parse().unwrap());
         let incoming = stream.receive_data(options()).await.unwrap();
@@ -222,7 +234,9 @@ async fn signed_native_json_and_binary_data_preserve_bytes_original_ids_and_queu
         assert_eq!(incoming.operation_id.as_str(), "incoming-operation-0");
         assert_eq!(
             incoming.payload,
-            if matches!(case, Case::Binary) {
+            if matches!(case, Case::Text) {
+                DataPayload::Text("hello 🦀".into())
+            } else if matches!(case, Case::Binary) {
                 DataPayload::Binary(vec![0, 255, 128, 1])
             } else {
                 DataPayload::Json(json!({"index":0}))
@@ -232,7 +246,11 @@ async fn signed_native_json_and_binary_data_preserve_bytes_original_ids_and_queu
             .send_data(
                 "message-original".parse().unwrap(),
                 to(),
-                payload(matches!(case, Case::Binary)),
+                if matches!(case, Case::Text) {
+                    DataPayload::Text("hello 🦀".into())
+                } else {
+                    payload(matches!(case, Case::Binary))
+                },
                 mutation("data-original"),
             )
             .await

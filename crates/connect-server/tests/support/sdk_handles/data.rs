@@ -2,8 +2,10 @@
 use super::selections::{revision, stream};
 use super::*;
 use sdk::{DataAcceptanceBoundary, DataPayload, Direction, Medium, StreamSelector};
-fn body(binary: bool, index: usize) -> DataPayload {
-    if binary {
+fn body(format: &str, index: usize) -> DataPayload {
+    if format == "text" {
+        DataPayload::Text(format!("native 🦀 {index}"))
+    } else if format == "binary" {
         DataPayload::Binary(vec![0, 255, 128, index as u8])
     } else {
         DataPayload::Json(json!({"sequence":index,"text":"native 🦀"}))
@@ -51,7 +53,7 @@ async fn audio(source: sdk::Stream, target: sdk::Stream, path: &std::path::Path)
 }
 async fn exercise(recording_failure: bool) {
     for algorithm in ["EdDSA", "ES256"] {
-        for binary in [false, true] {
+        for format in ["json", "text", "binary"] {
             let f = Fixture::with_native_end_scope(algorithm, 16).await;
             super::super::canonical_native_connections::ready_endpoint_with_capabilities(
                 &f,
@@ -89,12 +91,21 @@ async fn exercise(recording_failure: bool) {
                 .await
                 .unwrap()
                 .value;
+            let invited = room
+                .refresh(options())
+                .await
+                .unwrap()
+                .participants
+                .into_iter()
+                .find(|p| p.identity_id.as_str() == f.peer.identity_id)
+                .unwrap()
+                .id;
             let session = room
                 .invite(
                     "data-sdk-session".parse().unwrap(),
-                    vec![],
+                    vec![invited],
                     sdk::SessionMedium::Mixed,
-                    "data-sdk-solo".into(),
+                    "conference".into(),
                     json!({"audio":["g.711-mu"],"data":["reliable-ordered"]}),
                     mutation("data-sdk-invite"),
                 )
@@ -107,7 +118,17 @@ async fn exercise(recording_failure: bool) {
             let target_session = subscriber
                 .conversation_by_id(room.id().clone())
                 .session_by_id(session.id().clone());
-            let format = if binary { "binary" } else { "json" };
+            target_session
+                .accept(
+                    json!({"audio":["g.711-mu"],"data":["reliable-ordered"]}),
+                    sdk::TopologyRevision::try_from(0).unwrap(),
+                    mutation("data-sdk-accept"),
+                )
+                .await
+                .unwrap()
+                .wait(options())
+                .await
+                .unwrap();
             let source = session
                 .offer_connection(
                     "sdk-data-source".parse().unwrap(),
@@ -177,14 +198,14 @@ async fn exercise(recording_failure: bool) {
                         first: recipient.clone(),
                         rest: vec![],
                     },
-                    body(binary, 0),
+                    body(format, 0),
                     mutation("sdk-data-send-0"),
                 )
                 .await
                 .unwrap();
             let saved = first.reference_json();
             let delivered = receive.receive_data(options()).await.unwrap();
-            assert_eq!(delivered.payload, body(binary, 0));
+            assert_eq!(delivered.payload, body(format, 0));
             assert_eq!(delivered.from, from);
             assert_eq!(delivered.operation_id.as_str(), "sdk-data-send-0");
             if recording_failure {
@@ -204,7 +225,7 @@ async fn exercise(recording_failure: bool) {
                                 first: recipient.clone(),
                                 rest: vec![],
                             },
-                            body(binary, index),
+                            body(format, index),
                             mutation(&operation),
                         )
                         .await
@@ -212,7 +233,7 @@ async fn exercise(recording_failure: bool) {
                     let delivered = receive.clone().receive_data(options()).await.unwrap();
                     assert_eq!(delivered.message_id.as_str(), message);
                     assert_eq!(delivered.operation_id.as_str(), operation);
-                    assert_eq!(delivered.payload, body(binary, index));
+                    assert_eq!(delivered.payload, body(format, index));
                     if !recording_failure {
                         assert_eq!(
                             pending.wait(options()).await.unwrap().value.boundary,
@@ -257,7 +278,7 @@ async fn exercise(recording_failure: bool) {
                 .connection_by_id(source.id().clone())
                 .stream_by_id("application".parse().unwrap());
             assert!(
-                matches!(foreign.send_data("foreign-message".parse().unwrap(),NonEmpty {first:recipient.clone(),rest:vec![]},body(binary,0),mutation("foreign-native-data")).await,Err(e) if e.kind==sdk::ErrorKind::Unsupported && e.certainty==sdk::Certainty::NotSubmitted)
+                matches!(foreign.send_data("foreign-message".parse().unwrap(),NonEmpty {first:recipient.clone(),rest:vec![]},body(format,0),mutation("foreign-native-data")).await,Err(e) if e.kind==sdk::ErrorKind::Unsupported && e.certainty==sdk::Certainty::NotSubmitted)
             );
             assert!(
                 matches!(foreign.receive_data(options()).await,Err(e) if e.kind==sdk::ErrorKind::Unsupported)
@@ -277,7 +298,7 @@ async fn exercise(recording_failure: bool) {
                     first: recipient.clone(),
                     rest: vec![],
                 },
-                body(binary, 0),
+                body(format, 0),
                 mutation("sdk-data-send-0"),
             )
             .await
@@ -289,7 +310,7 @@ async fn exercise(recording_failure: bool) {
                 matches!(receive.receive_data(RequestOptions::new(Duration::from_millis(180)).unwrap()).await,Err(e) if e.kind==sdk::ErrorKind::Deadline)
             );
             assert!(
-                matches!(send.send_data("sdk-data-message-0".parse().unwrap(),NonEmpty {first:recipient,rest:vec![]},body(binary,99),mutation("sdk-data-send-0")).await,Err(e) if e.kind==sdk::ErrorKind::Conflict)
+                matches!(send.send_data("sdk-data-message-0".parse().unwrap(),NonEmpty {first:recipient,rest:vec![]},body(format,99),mutation("sdk-data-send-0")).await,Err(e) if e.kind==sdk::ErrorKind::Conflict)
             );
             assert_eq!(db.query_row("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.operation_id='sdk-data-send-0' AND o.connection_id='sdk-data-source'",[],|r|r.get::<_,u64>(0)).unwrap(),1);
             assert_eq!(

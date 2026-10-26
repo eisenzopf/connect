@@ -399,11 +399,12 @@ are recorded in `docs/evidence/gate-6/rust-sdk-routing-reconciliation.json`.
 
 ## Native reliable data
 
-An owned negotiated `json` or `binary` Stream provides `send_data` and
+An owned negotiated `text`, `json` or `binary` Stream provides `send_data` and
 `receive_data`. Use caller-persisted message and operation IDs. JSON uses a typed
 `serde_json::Value` and `application/json` with `utf8`; binary preserves bytes
 through canonical base64 and `application/octet-stream`. Both use
-`reliable_ordered` with a maximum decoded body of 64 KiB.
+`reliable_ordered` with a maximum decoded body of 64 KiB. `DataPayload::Text`
+preserves UTF-8 text with `text/plain` and `utf8` encoding.
 
 ```rust,no_run
 # async fn data(stream: connect_client::sdk::Stream, target: connect_client::sdk::ParticipantId) -> connect_client::sdk::Result<()> {

@@ -272,6 +272,7 @@
             "$ref": "#/components/schemas/NativeDataAcceptance"
           },
           "formats": {
+            "text": "text/plain with utf8 body encoding",
             "json": "application/json with utf8 body encoding",
             "binary": "application/octet-stream with canonical base64 body encoding",
             "maximum_decoded_body_bytes": 65536,

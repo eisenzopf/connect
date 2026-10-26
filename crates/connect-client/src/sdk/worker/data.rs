@@ -37,7 +37,10 @@ fn binding(cache: &NativeCache, key: &streams::StreamKey, send: bool) -> Result<
     } {
         return Err(bad());
     }
-    if !matches!(stream.codec["name"].as_str(), Some("json" | "binary")) {
+    if !matches!(
+        stream.codec["name"].as_str(),
+        Some("json" | "text" | "binary")
+    ) {
         return Err(bad());
     }
     Ok(Binding {

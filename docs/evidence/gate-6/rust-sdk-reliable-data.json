@@ -2,11 +2,11 @@
   "schema": "connect-gate6-rust-sdk-reliable-data/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T05:40:59.212029+00:00",
+  "checked_at": "2026-10-26T05:43:15.609715+00:00",
   "base_revision": "52f08068d3c6befb5da56b5300d2a03aa1603167",
-  "scope": "Typed owned SDK reliable data implementation checkpoint. Component tests pass; actual both-ends production qualification is running and no runtime pass is claimed yet.",
+  "scope": "Typed owned SDK reliable text/JSON/binary implementation checkpoint. Component tests pass; corrected production qualification is running and no runtime pass is claimed yet.",
   "implementation": [
-    "Stream.send_data preserves explicit original message/operation IDs, exact owned scope/label, negotiated JSON or binary format and reliable_ordered delivery. Local preflight and worker dispatch both recheck current owned binding/direction. data_send references are separate from Conversation message_send by their full Connection scope.",
+    "Stream.send_data preserves explicit original message/operation IDs, exact owned scope/label, negotiated text, JSON or binary format and reliable_ordered delivery. Local preflight and worker dispatch both recheck current owned binding/direction. data_send references are separate from Conversation message_send by their full Connection scope.",
     "Signed incoming message.send is demultiplexed before unmatched control retention. Exact owned Conversation/Session/Connection/Stream, receive direction, addressed local Participant, source attribution, format and bounded payload are required. Fresh status recovery cannot acquire native custody.",
     "Clones share ordered bounded queues:32 messages per Stream,256 globally and1MiB decoded bodies. Local overflow clears and fails the binding with ResyncRequired until a binding generation/format changes; other control remains usable. Current binding checks discard retired/changed queued bodies. Close releases queues and wakes receivers. Debug output redacts payloads.",
     "DataAcceptance proves only the recorded Core queue admission. Submitted caller cancellation keeps original uncertain recovery, without publishing another logical message. HTTP reference documents native-only submission and current-authorized status."
@@ -17,14 +17,14 @@
       "new_functions": 6,
       "failed_functions": 0,
       "log": {
-        "path": ".local/gate-6/sdk-reliable-data/client-06.log",
-        "sha256": "011a01595c4c40ba3405de15f8e06ab7147481dafd8211016f0dbb09e23be63c"
+        "path": ".local/gate-6/sdk-reliable-data/client-07.log",
+        "sha256": "d653fad269381bf5d580e1e93ba5a57c3464c612d5963974a294453810613fc6"
       },
-      "scope": "Signed JSON/binary/exact binary bytes, original-ID unknown recovery, cancellation before/after submission, clone/deadline queue ownership, bounded sticky overflow with other control, foreign/malformed/unowned refusal and connection cleanup."
+      "scope": "Signed Text/JSON/binary, exact Unicode text and binary bytes, original-ID unknown recovery, cancellation before/after submission, clone/deadline queue ownership, bounded sticky overflow with other control, foreign/malformed/unowned refusal and connection cleanup."
     },
     "production": {
-      "status": "running",
-      "scope": "Two new functions across EdDSA/ES256 and JSON/binary, concurrent decoded PCMU, forced journal failure, replay/fresh-client custody and one effect; existing native data and SDK regressions follow."
+      "status": "building",
+      "scope": "Corrected public Session invitation/acceptance fixture, EdDSA/ES256 x text/JSON/binary, concurrent decoded PCMU, journal failure, replay/fresh-client custody and one effect; existing native data and SDK regressions follow."
     },
     "openapi": {
       "path": ".local/gate-6/sdk-reliable-data/openapi-check.log",
@@ -67,6 +67,13 @@
         "sha256": "23a7a52729d19d348064ce6106daa1013e7b0fd7463656a55ce391e7f3b7fed6"
       },
       "observation": "Negative fixture used a delivery class outside the wire schema. Replaced with a wire-valid but unsupported native threading field; every fixture frame is now validated before signing."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/production-02-00.log",
+        "sha256": "eb9f7c902cef858400f15b83924edc047ab33db87d8eececac8976429da856a4"
+      },
+      "observation": "Both new functions correctly refused an uninvited receiver Connection offer. Fixed only fixture setup to invite its explicit Conversation Participant and accept through the public SDK before offering native media. No authorization check was bypassed."
     }
   ],
   "remaining": [
