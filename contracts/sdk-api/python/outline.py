@@ -5,7 +5,7 @@ from contract import (
     ParticipantClient, Conversation, Session, Connection, Participant, EndpointId,
     OperationId, MessageId, Cursor, OperationReference, MoveResult, RequestOptions,
     MutationOptions, NonEmpty, ConsultInput, HandoffInput, SessionRole, MoveInput,
-    EndpointTarget, ConnectError, Cancellation,
+    EndpointTarget, ConnectError, Cancellation, ParticipantId, StreamRevision, Quality, ParticipantStreams,
 )
 
 @dataclass(frozen=True)
@@ -124,3 +124,17 @@ async def recover_saved(client: ParticipantClient, saved: Json, wait: RequestOpt
         return
     if observed.state == 'completed':
         await original.wait(wait)
+
+# None is unavailable capture; an empty sequence is an observed empty set.
+async def native_receipts(
+    connection: Connection,
+    source: "ParticipantId",
+    revision: "StreamRevision",
+    mutations: tuple[MutationOptions, MutationOptions, MutationOptions],
+    wait: RequestOptions,
+) -> int | None:
+    changed = await (await connection.update(Quality(250), revision, mutations[0])).wait(wait)
+    selected = await (await connection.streams.subscribe(NonEmpty(ParticipantStreams(source), ()), changed.value.stream_revision, mutations[1])).wait(wait)
+    observed = None if selected.value.bindings is None else len(selected.value.bindings)
+    await (await connection.end(1000, "Application completed", selected.value.stream_revision, mutations[2])).wait(wait)
+    return observed

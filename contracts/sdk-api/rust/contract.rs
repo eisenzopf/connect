@@ -216,9 +216,70 @@ pub struct ConnectionSnapshot {
     pub stream_revision: Option<StreamRevision>,
     pub state: String,
 }
-pub struct StreamSelection<S> {
-    pub streams: Vec<S>,
+// Captured binding observations never grant local physical ownership.
+pub struct NegotiatedStream {
+    pub id: StreamId,
+    pub medium: Medium,
+    pub direction: Direction,
+    pub codec: Json,
+    pub stream_local_id: Option<u16>,
+}
+pub struct CodecObservation {
+    pub parameters: NegotiatedStream,
+    pub stream_generation: u64,
+    pub connection_generation: u64,
+}
+pub enum GateAction {
+    Hold,
+    Resume,
+    Mute,
+    Unmute,
+}
+pub enum GateState {
+    Active,
+    Paused,
+}
+pub struct StreamGateObservation {
+    pub parameters: NegotiatedStream,
+    pub stream_generation: u64,
+    pub connection_generation: u64,
+    pub state: GateState,
+    pub source_muted: bool,
+    pub held_direction: Option<Direction>,
+}
+pub enum ConnectionUpdateOutcome {
+    Codecs {
+        resources_changed: bool,
+        streams: Vec<CodecObservation>,
+    },
+    Gates {
+        action: GateAction,
+        streams: Vec<StreamGateObservation>,
+    },
+    Quality {
+        interval_ms: u32,
+    },
+}
+pub struct ConnectionUpdateReceipt<C> {
+    pub connection: C,
+    pub connection_generation: u64,
     pub stream_revision: StreamRevision,
+    pub outcome: ConnectionUpdateOutcome,
+}
+pub enum StreamSelector {
+    Stream(StreamId),
+    Participant {
+        participant_id: ParticipantId,
+        kinds: Option<NonEmpty<Medium>>,
+    },
+}
+pub struct StreamSelectionReceipt<C> {
+    pub connection: C,
+    pub connection_generation: u64,
+    pub stream_revision: StreamRevision,
+    pub resources_changed: bool,
+    // None is unavailable capture; Some(vec![]) is a known empty binding set.
+    pub bindings: Option<Vec<CodecObservation>>,
 }
 pub struct MessageAcceptance {
     pub message_id: MessageId,
@@ -463,9 +524,12 @@ pub enum ConnectionUpdate {
     },
     Resume(Option<NonEmpty<StreamId>>),
     Quality {
-        interval_ms: u64,
+        interval_ms: u32,
     },
-    CodecRenegotiate(NonEmpty<String>),
+    CodecRenegotiate {
+        streams: Option<NonEmpty<StreamId>>,
+        codec_preferences: NonEmpty<String>,
+    },
 }
 pub enum HoldDirection {
     Sendonly,
@@ -552,7 +616,7 @@ pub trait Connection<A: Api>: Clone + Send + Sync {
         input: ConnectionUpdate,
         expected_stream_revision: StreamRevision,
         options: MutationOptions,
-    ) -> impl Future<Output = Result<impl Operation<A::Connection>>> + Send;
+    ) -> impl Future<Output = Result<impl Operation<ConnectionUpdateReceipt<A::Connection>>>> + Send;
     fn replace_device(
         &self,
         input: MoveInput,
@@ -560,22 +624,24 @@ pub trait Connection<A: Api>: Clone + Send + Sync {
     ) -> impl Future<Output = Result<impl Operation<MoveResult<A::Connection>>>> + Send;
     fn end(
         &self,
+        reason_code: u16,
+        reason: String,
+        expected_stream_revision: Option<StreamRevision>,
         options: MutationOptions,
     ) -> impl Future<Output = Result<impl Operation<A::Connection>>> + Send;
     fn stream_by_id(&self, id: StreamId) -> A::Stream;
     fn subscribe(
         &self,
-        from_participant: ParticipantId,
-        kinds: NonEmpty<Medium>,
+        selectors: NonEmpty<StreamSelector>,
         expected_stream_revision: StreamRevision,
         options: MutationOptions,
-    ) -> impl Future<Output = Result<impl Operation<StreamSelection<A::Stream>>>> + Send;
+    ) -> impl Future<Output = Result<impl Operation<StreamSelectionReceipt<A::Connection>>>> + Send;
     fn unsubscribe(
         &self,
         streams: NonEmpty<StreamId>,
         expected_stream_revision: StreamRevision,
         options: MutationOptions,
-    ) -> impl Future<Output = Result<impl Operation<StreamSelection<A::Stream>>>> + Send;
+    ) -> impl Future<Output = Result<impl Operation<StreamSelectionReceipt<A::Connection>>>> + Send;
 }
 pub struct MediaFormat {
     pub codec: String,
@@ -687,11 +753,11 @@ pub struct OperationKinds<A: Api> {
     pub session_update: OperationKind<A::Session>,
     pub session_end: OperationKind<A::Session>,
     pub connection_offer: OperationKind<A::Connection>,
-    pub connection_update: OperationKind<A::Connection>,
+    pub connection_update: OperationKind<ConnectionUpdateReceipt<A::Connection>>,
     pub connection_replace: OperationKind<MoveResult<A::Connection>>,
     pub connection_end: OperationKind<A::Connection>,
-    pub stream_subscribe: OperationKind<StreamSelection<A::Stream>>,
-    pub stream_unsubscribe: OperationKind<StreamSelection<A::Stream>>,
+    pub stream_subscribe: OperationKind<StreamSelectionReceipt<A::Connection>>,
+    pub stream_unsubscribe: OperationKind<StreamSelectionReceipt<A::Connection>>,
     pub operation_cancel: OperationKind<DecisionReceipt>,
     pub operation_reconcile: OperationKind<DecisionReceipt>,
 }

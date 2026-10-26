@@ -215,10 +215,10 @@
       "id": "connection.update",
       "target_typescript": "Connection.update",
       "canonical_type": "connection.update",
-      "result": "Connection",
+      "result": "ConnectionUpdateReceipt",
       "logical_operation_id_required": true,
       "implementation_qualified": false,
-      "await_result": "Operation<Connection>"
+      "await_result": "Operation<ConnectionUpdateReceipt>"
     },
     {
       "id": "connection.replace",
@@ -242,19 +242,19 @@
       "id": "stream.subscribe",
       "target_typescript": "Connection.streams.subscribe",
       "canonical_type": "stream.subscribe",
-      "result": "StreamSelection",
+      "result": "StreamSelectionReceipt",
       "logical_operation_id_required": true,
       "implementation_qualified": false,
-      "await_result": "Operation<StreamSelection>"
+      "await_result": "Operation<StreamSelectionReceipt>"
     },
     {
       "id": "stream.unsubscribe",
       "target_typescript": "Connection.streams.unsubscribe",
       "canonical_type": "stream.unsubscribe",
-      "result": "StreamSelection",
+      "result": "StreamSelectionReceipt",
       "logical_operation_id_required": true,
       "implementation_qualified": false,
-      "await_result": "Operation<StreamSelection>"
+      "await_result": "Operation<StreamSelectionReceipt>"
     },
     {
       "id": "operation.status",
@@ -444,9 +444,15 @@
     "command_kind_must_match": true,
     "restore_performs_io": false
   },
-  "revision": 4,
+  "revision": 3,
   "review_corrections": [
-    "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added."
+    "Revision2: G6-060 Store-source audit corrects the revision1 assignment of Session command preconditions. Both general Session control and pending invitation decisions compare/increment sessions.topology_revision, independently of state_revision. No server compatibility/downgrade or alternate revision acceptance is added.",
+    {
+      "date": "2026-10-26",
+      "task": "G6-060",
+      "source": "Implemented native public SDK audit",
+      "correction": "Connection.update returns the captured ConnectionUpdateReceipt; stream subscribe/unsubscribe return StreamSelectionReceipt with explicitly nullable historical captures, not invented Stream handles. Typed stream/Participant selector sets and optional codec stream targets match the current canonical intent. Connection.end requires its reason and an optional native StreamRevision. All three target declarations and operation witnesses use these results. Observations never grant physical custody."
+    }
   ],
   "existing_session_invitation": {
     "typescript": "Session.inviteParticipants",

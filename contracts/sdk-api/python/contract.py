@@ -146,10 +146,71 @@ class ConnectionSnapshot:
     stream_revision: StreamRevision | None
     state: str
 
+type Direction = Literal["sendonly", "recvonly", "sendrecv", "inactive"]
+
+# Historical captured parameters, never a local ownership grant.
 @dataclass(frozen=True)
-class StreamSelection:
-    streams: Sequence[Stream]
+class NegotiatedStream:
+    id: StreamId
+    medium: Medium
+    direction: Direction
+    codec: Json
+    stream_local_id: int | None
+
+@dataclass(frozen=True)
+class CodecObservation:
+    parameters: NegotiatedStream
+    stream_generation: int
+    connection_generation: int
+
+@dataclass(frozen=True)
+class StreamGateObservation(CodecObservation):
+    state: Literal['active', 'paused']
+    source_muted: bool
+    held_direction: Direction | None
+
+@dataclass(frozen=True)
+class CodecOutcome:
+    resources_changed: bool
+    streams: Sequence[CodecObservation]
+
+@dataclass(frozen=True)
+class GateOutcome:
+    action: Literal['hold', 'resume', 'mute', 'unmute']
+    streams: Sequence[StreamGateObservation]
+
+@dataclass(frozen=True)
+class QualityOutcome:
+    interval_ms: int
+
+type ConnectionUpdateOutcome = CodecOutcome | GateOutcome | QualityOutcome
+
+@dataclass(frozen=True)
+class ConnectionUpdateReceipt:
+    connection: Connection
+    connection_generation: int
     stream_revision: StreamRevision
+    outcome: ConnectionUpdateOutcome
+
+@dataclass(frozen=True)
+class StreamTarget:
+    stream: StreamId
+
+@dataclass(frozen=True)
+class ParticipantStreams:
+    participant: ParticipantId
+    kinds: NonEmpty[Medium] | None = None
+
+type StreamSelector = StreamTarget | ParticipantStreams
+
+@dataclass(frozen=True)
+class StreamSelectionReceipt:
+    connection: Connection
+    connection_generation: int
+    stream_revision: StreamRevision
+    resources_changed: bool
+    # None is unavailable capture; [] is a known empty binding set.
+    bindings: Sequence[CodecObservation] | None
 
 @dataclass(frozen=True)
 class MessageAcceptance:
@@ -342,7 +403,12 @@ class ResumeConnection:
 class Quality:
     interval_ms: int
 
-type ConnectionUpdate = Mute | HoldConnection | ResumeConnection | Quality | CodecRenegotiate
+@dataclass(frozen=True)
+class ConnectionCodecRenegotiate:
+    codec_preferences: NonEmpty[str]
+    streams: NonEmpty[StreamId] | None = None
+
+type ConnectionUpdate = Mute | HoldConnection | ResumeConnection | Quality | ConnectionCodecRenegotiate
 
 class Connections(Protocol):
     def by_id(self, id: ConnectionId) -> Connection: ...
@@ -374,8 +440,8 @@ class Session(Protocol):
 
 class Streams(Protocol):
     def by_id(self, id: StreamId) -> Stream: ...
-    async def subscribe(self, from_participant: ParticipantId, kinds: NonEmpty[Medium], expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[StreamSelection]: ...
-    async def unsubscribe(self, streams: NonEmpty[StreamId], expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[StreamSelection]: ...
+    async def subscribe(self, selectors: NonEmpty[StreamSelector], expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[StreamSelectionReceipt]: ...
+    async def unsubscribe(self, streams: NonEmpty[StreamId], expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[StreamSelectionReceipt]: ...
 
 class Connection(Protocol):
     @property
@@ -387,9 +453,9 @@ class Connection(Protocol):
     @property
     def streams(self) -> Streams: ...
     async def refresh(self, options: RequestOptions) -> ConnectionSnapshot: ...
-    async def update(self, input: ConnectionUpdate, expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[Connection]: ...
+    async def update(self, input: ConnectionUpdate, expected_stream_revision: StreamRevision, options: MutationOptions) -> Operation[ConnectionUpdateReceipt]: ...
     async def replace_device(self, input: MoveInput, options: MutationOptions) -> Operation[MoveResult]: ...
-    async def end(self, options: MutationOptions) -> Operation[Connection]: ...
+    async def end(self, reason_code: int, reason: str, expected_stream_revision: StreamRevision | None, options: MutationOptions) -> Operation[Connection]: ...
 
 @dataclass(frozen=True)
 class MediaFormat:
@@ -492,15 +558,15 @@ class OperationKinds(Protocol):
     @property
     def connection_offer(self) -> OperationKind[Connection]: ...
     @property
-    def connection_update(self) -> OperationKind[Connection]: ...
+    def connection_update(self) -> OperationKind[ConnectionUpdateReceipt]: ...
     @property
     def connection_replace(self) -> OperationKind[MoveResult]: ...
     @property
     def connection_end(self) -> OperationKind[Connection]: ...
     @property
-    def stream_subscribe(self) -> OperationKind[StreamSelection]: ...
+    def stream_subscribe(self) -> OperationKind[StreamSelectionReceipt]: ...
     @property
-    def stream_unsubscribe(self) -> OperationKind[StreamSelection]: ...
+    def stream_unsubscribe(self) -> OperationKind[StreamSelectionReceipt]: ...
     @property
     def operation_cancel(self) -> OperationKind[DecisionReceipt]: ...
     @property

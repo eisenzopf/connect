@@ -158,9 +158,45 @@ export interface ConnectionSnapshot {
     readonly streamRevision?: Revision<"stream">;
     readonly state: string;
 }
-export interface StreamSelection {
-    readonly streams: readonly Stream[];
+// Historical captured parameters, never a local ownership grant.
+export type Direction = "sendonly" | "recvonly" | "sendrecv" | "inactive";
+export interface NegotiatedStream {
+    readonly id: StreamId;
+    readonly medium: Medium;
+    readonly direction: Direction;
+    readonly codec: Json;
+    readonly streamLocalId?: number;
+}
+export interface CodecObservation {
+    readonly parameters: NegotiatedStream;
+    readonly streamGeneration: number;
+    readonly connectionGeneration: number;
+}
+export interface StreamGateObservation extends CodecObservation {
+    readonly state: "active" | "paused";
+    readonly sourceMuted: boolean;
+    readonly heldDirection?: Direction;
+}
+export type ConnectionUpdateOutcome =
+    | { readonly kind: "codecs"; readonly resourcesChanged: boolean; readonly streams: readonly CodecObservation[] }
+    | { readonly kind: "gates"; readonly action: "hold" | "resume" | "mute" | "unmute"; readonly streams: readonly StreamGateObservation[] }
+    | { readonly kind: "quality"; readonly intervalMs: number };
+export interface ConnectionUpdateReceipt {
+    readonly connection: Connection;
+    readonly connectionGeneration: number;
     readonly streamRevision: Revision<"stream">;
+    readonly outcome: ConnectionUpdateOutcome;
+}
+export type StreamSelector =
+    | { readonly stream: StreamId }
+    | { readonly participant: ParticipantId; readonly kinds?: NonEmpty<Medium> };
+export interface StreamSelectionReceipt {
+    readonly connection: Connection;
+    readonly connectionGeneration: number;
+    readonly streamRevision: Revision<"stream">;
+    readonly resourcesChanged: boolean;
+    // null is unavailable capture; [] is a known empty binding set.
+    readonly bindings: readonly CodecObservation[] | null;
 }
 export interface MessageAcceptance {
     readonly messageId: MessageId;
@@ -336,6 +372,7 @@ export type ConnectionUpdate =
     | { readonly action: "quality"; readonly intervalMs: number }
     | {
           readonly action: "codec-renegotiate";
+          readonly streams?: NonEmpty<StreamId>;
           readonly codecPreferences: NonEmpty<string>;
       };
 export interface Session {
@@ -428,29 +465,28 @@ export interface Connection {
         input: ConnectionUpdate,
         expectedStreamRevision: Revision<"stream">,
         options: MutationOptions,
-    ): Promise<Operation<Connection>>;
+    ): Promise<Operation<ConnectionUpdateReceipt>>;
     replaceDevice(
         input: MoveInput,
         options: MutationOptions,
     ): Promise<Operation<MoveResult>>;
-    end(options: MutationOptions): Promise<Operation<Connection>>;
+    end(input: { reasonCode: number; reason: string; expectedStreamRevision?: Revision<"stream"> }, options: MutationOptions): Promise<Operation<Connection>>;
     readonly streams: {
         byId(id: StreamId): Stream;
         subscribe(
             input: {
-                from: ParticipantId;
-                kinds: NonEmpty<Medium>;
+                selectors: NonEmpty<StreamSelector>;
                 expectedStreamRevision: Revision<"stream">;
             },
             options: MutationOptions,
-        ): Promise<Operation<StreamSelection>>;
+        ): Promise<Operation<StreamSelectionReceipt>>;
         unsubscribe(
             input: {
                 streams: NonEmpty<StreamId>;
                 expectedStreamRevision: Revision<"stream">;
             },
             options: MutationOptions,
-        ): Promise<Operation<StreamSelection>>;
+        ): Promise<Operation<StreamSelectionReceipt>>;
     };
 }
 export interface MediaFormat {
@@ -557,11 +593,11 @@ export interface OperationKinds {
     readonly session_update: OperationKind<Session>;
     readonly session_end: OperationKind<Session>;
     readonly connection_offer: OperationKind<Connection>;
-    readonly connection_update: OperationKind<Connection>;
+    readonly connection_update: OperationKind<ConnectionUpdateReceipt>;
     readonly connection_replace: OperationKind<MoveResult>;
     readonly connection_end: OperationKind<Connection>;
-    readonly stream_subscribe: OperationKind<StreamSelection>;
-    readonly stream_unsubscribe: OperationKind<StreamSelection>;
+    readonly stream_subscribe: OperationKind<StreamSelectionReceipt>;
+    readonly stream_unsubscribe: OperationKind<StreamSelectionReceipt>;
     readonly operation_cancel: OperationKind<DecisionReceipt>;
     readonly operation_reconcile: OperationKind<DecisionReceipt>;
 }

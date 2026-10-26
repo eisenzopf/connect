@@ -320,3 +320,52 @@ pub fn assert_send_journey<A: Api>(
     fn require_send(_: impl std::future::Future + Send) {}
     require_send(journey(client, context, saved, wait));
 }
+
+// The native receipt is historical capture, not a set of newly owned Streams.
+pub async fn native_receipts<A: Api>(
+    connection: &A::Connection,
+    from: ParticipantId,
+    revision: StreamRevision,
+    mutations: [MutationOptions; 3],
+    wait: RequestOptions,
+) -> Result<Option<usize>> {
+    let [update, select, end] = mutations;
+    let changed = connection
+        .update(
+            ConnectionUpdate::Quality { interval_ms: 250 },
+            revision,
+            update,
+        )
+        .await?
+        .wait(wait.clone())
+        .await?
+        .value;
+    let selected = connection
+        .subscribe(
+            NonEmpty {
+                first: StreamSelector::Participant {
+                    participant_id: from,
+                    kinds: None,
+                },
+                rest: vec![],
+            },
+            changed.stream_revision,
+            select,
+        )
+        .await?
+        .wait(wait.clone())
+        .await?
+        .value;
+    let observed = selected.bindings.as_ref().map(Vec::len);
+    connection
+        .end(
+            1000,
+            "Application completed".into(),
+            Some(selected.stream_revision),
+            end,
+        )
+        .await?
+        .wait(wait)
+        .await?;
+    Ok(observed)
+}

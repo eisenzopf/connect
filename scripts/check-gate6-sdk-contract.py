@@ -32,7 +32,10 @@ def main():
              'crates/connect-protocol/src/events.rs', 'crates/connect-service/src/canonical_membership.rs',
              'crates/connect-service/src/canonical.rs', 'crates/connect-protocol/src/conversations.rs',
              'crates/connect-store/src/transitions/native_consultations.rs',
-             'crates/connect-store/src/session_control.rs', 'crates/connect-store/src/session_decisions.rs', 'crates/connect-store/src/transitions/actions.rs']
+             'crates/connect-store/src/session_control.rs', 'crates/connect-store/src/session_decisions.rs', 'crates/connect-store/src/transitions/actions.rs',
+             'crates/connect-client/src/sdk/connections.rs', 'crates/connect-client/src/sdk/connection_updates.rs',
+             'crates/connect-client/src/sdk/connection_controls.rs', 'crates/connect-client/src/sdk/selections.rs',
+             'crates/connect-client/examples/native_receipts.rs']
     names += sorted(str(p.relative_to(ROOT)) for p in (ROOT/'contracts/sdk-api').rglob('*') if p.is_file())
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     before = {n: digest(ROOT / n) for n in names}
@@ -128,6 +131,42 @@ process.stdout.write(JSON.stringify(paths));
     py_kinds = {n.name for n in classes['OperationKinds'].body if isinstance(n,ast.FunctionDef)}
     rust_kinds = set(re.findall(r'pub (\w+): OperationKind<',re.search(r'pub struct OperationKinds<A: Api> \{(.*?)\n\}',target_rust,re.S)[1]))
     assert expected_kinds == ts_kinds == py_kinds == rust_kinds and len(expected_kinds) == 22
+    # Revision 3 records the implemented native receipts. Nullable captures are
+    # historical observations, never invented Stream handles or local custody.
+    native_types = {
+        'NegotiatedStream': 'connections.rs',
+        'CodecObservation': 'connection_updates.rs',
+        'ConnectionUpdateReceipt': 'connection_updates.rs',
+        'StreamSelectionReceipt': 'selections.rs',
+    }
+    native_fields = {}
+    for name, source in native_types.items():
+        current = (ROOT / 'crates/connect-client/src/sdk' / source).read_text()
+        fields_for = lambda text: re.findall(r'pub (\w+):', re.search(
+            r'pub struct ' + name + r'(?:<\w+>)? \{(.*?)\n\}', text, re.S)[1])
+        current_fields = fields_for(current)
+        ts_fields = [to_snake(n) for n in re.findall(r'^\s+readonly (\w+)\??:', re.search(
+            r'export interface ' + name + r' \{(.*?)\n\}', target_ts, re.S)[1], re.M)]
+        py_fields = [n.target.id for n in classes[name].body if isinstance(n, ast.AnnAssign)]
+        assert current_fields == fields_for(target_rust) == ts_fields == py_fields, name
+        native_fields[name] = current_fields
+    assert 'pub bindings: Option<Vec<CodecObservation>>' in target_rust
+    assert 'readonly bindings: readonly CodecObservation[] | null' in target_ts
+    assert ast.unparse(next(n.annotation for n in classes['StreamSelectionReceipt'].body
+                           if isinstance(n, ast.AnnAssign) and n.target.id == 'bindings')) == 'Sequence[CodecObservation] | None'
+    selection = (ROOT/'crates/connect-client/src/sdk/selections.rs').read_text()
+    update = (ROOT/'crates/connect-client/src/sdk/connection_updates.rs').read_text()
+    ending = (ROOT/'crates/connect-client/src/sdk/connection_controls.rs').read_text()
+    assert 'selectors: NonEmpty<StreamSelector>' in selection and 'Operation<StreamSelectionReceipt>' in selection
+    assert 'Operation<ConnectionUpdateReceipt>' in update
+    assert 'reason_code: u16' in ending and 'expected_revision: Option<StreamRevision>' in ending
+    rust_connection = re.search(r'pub trait Connection<A: Api>.*?\n\}', target_rust, re.S)[0]
+    assert 'selectors: NonEmpty<StreamSelector>' in rust_connection
+    assert 'reason_code: u16' in rust_connection and 'expected_stream_revision: Option<StreamRevision>' in rust_connection
+    assert 'Operation<ConnectionUpdateReceipt<A::Connection>>' in rust_connection
+    assert 'Operation<StreamSelectionReceipt<A::Connection>>' in rust_connection
+    assert 'StreamSelection<' not in target_rust and 'class StreamSelection:' not in (ROOT/'contracts/sdk-api/python/contract.py').read_text()
+    assert contract['revision'] >= 3
     transitions = (ROOT/'crates/connect-protocol/src/transitions.rs').read_text()
     actual_states = re.findall(r'^    (\w+),$',re.search(r'pub enum OperationState \{(.*?)\n\}',transitions,re.S)[1],re.M)
     assert [to_snake(s) for s in actual_states] == contract['operation_states']
@@ -172,6 +211,8 @@ process.stdout.write(JSON.stringify(paths));
               'passed':True,'candidate_finalized':True,'handles':len(contract['handles']),'mapped_methods':len(methods),
               'approved_runtime_minima':approved_minima,'operation_kind_witnesses':len(expected_kinds),
               'mapped_method_paths_and_returns_verified':len(methods),
+              'native_receipt_fields_match_implemented_rust_and_all_declarations':native_fields,
+              'native_receipt_nullability_and_lifecycle_inputs_audited':True,
               'session_control_precondition':'topology_revision; audited against both Store paths and all three declarations',
               'vectors':checked,'session_view_fields':fields,'target_session_fields_match_all_languages':True,
               'current_typescript_snapshot_matches':True,'current_python_event_snapshot_matches':True,

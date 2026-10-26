@@ -278,3 +278,18 @@ export async function recoverSaved(
         return;
     if (observed.state === "completed") await original.wait(wait);
 }
+
+// null is unavailable capture; an empty array is an observed empty set.
+export async function nativeReceipts(
+    connection: Connection,
+    from: import("./contract.js").ParticipantId,
+    revision: import("./contract.js").Revision<"stream">,
+    mutations: readonly [import("./contract.js").MutationOptions, import("./contract.js").MutationOptions, import("./contract.js").MutationOptions],
+    wait: WaitOptions,
+): Promise<number | null> {
+    const changed = await (await connection.update({ action: "quality", intervalMs: 250 }, revision, mutations[0])).wait(wait);
+    const selected = await (await connection.streams.subscribe({ selectors: { first: { participant: from }, rest: [] }, expectedStreamRevision: changed.value.streamRevision }, mutations[1])).wait(wait);
+    const observed = selected.value.bindings === null ? null : selected.value.bindings.length;
+    await (await connection.end({ reasonCode: 1000, reason: "Application completed", expectedStreamRevision: selected.value.streamRevision }, mutations[2])).wait(wait);
+    return observed;
+}

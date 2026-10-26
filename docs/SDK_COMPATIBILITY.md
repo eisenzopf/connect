@@ -255,3 +255,23 @@ and reconciliation refuse nonempty payload extensions until those fields are
 part of the durable decision identity. Mutation server failures keep the original
 ID and uncertain acceptance instead of implying that repeating under a new ID
 is safe. Actual effect reconciliation still requires attributed host evidence.
+
+Revision 3 follows the G6-060 native implementation audit. `Connection.update`
+returns `ConnectionUpdateReceipt`, including the scoped Connection, native
+revision/generation and typed codec, gate or quality outcome. Stream selection
+returns `StreamSelectionReceipt`: `bindings` is explicitly nullable when the
+concurrent historical capture was unavailable. A known empty capture is an empty
+collection. Neither result invents Stream handles or grants local physical
+custody. The Rust/TypeScript/Python declarations and original-operation kind
+witnesses use these results consistently.
+
+Subscription inputs accept nonempty sets of explicit Stream or Participant/media
+selectors. Connection codec changes may target a stream subset. Connection end
+retains the application's reason and optional native StreamRevision assertion.
+All three declaration outlines compile a receipt/lifecycle journey. The real
+public Rust crate separately compiles
+`crates/connect-client/examples/native_receipts.rs`; the contract checker audits
+four receipt/parameter field sets against those actual implementation sources.
+This correction changes target declarations, not server wire behavior or SDK
+physical ownership. Evidence is recorded in
+`docs/evidence/gate-6/rust-sdk-contract-alignment.json`.

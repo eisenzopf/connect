@@ -62,3 +62,14 @@ G6-085 supplies the standalone reference with tested curl examples. Cover auth,
 errors, pagination/events, logical operation identity, status/cancel/reconciliation,
 files, admin boundaries and limits. Do not invent a REST resource hierarchy merely
 to duplicate canonical conversation semantics.
+
+## Native receipt refinement, October 26
+
+G6-060 source review refines the frozen declarations to preserve actual captured
+native results. Connection updates return a typed `ConnectionUpdateReceipt`;
+stream subscribe/unsubscribe return `StreamSelectionReceipt` with nullable
+historical binding capture. Explicit Stream/Participant selector sets, codec
+stream subsets and Connection end reason/native-revision assertions match the
+current canonical intent. An unavailable capture stays unavailable; receipt
+observation cannot manufacture local media ownership. See contract revision 3
+in [SDK_COMPATIBILITY.md](../SDK_COMPATIBILITY.md) and the compiled outlines.

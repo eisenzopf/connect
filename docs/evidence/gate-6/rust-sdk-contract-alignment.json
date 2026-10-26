@@ -1,0 +1,74 @@
+{
+  "task": "G6-060",
+  "status": "shared native declaration alignment verified",
+  "checked_at": "2026-10-26T10:17:59.184553+00:00",
+  "contract_revision": 3,
+  "scope": "Shared target declarations and source audit, four static compiler targets and a compile-only actual public Rust example. No product/server wire/runtime behavior changes or new media qualification inferred.",
+  "corrections": [
+    "Connection.update returns ConnectionUpdateReceipt with Connection, native generation/revision and codec/gate/quality outcomes. Original-operation witnesses preserve that exact result family.",
+    "Stream subscribe/unsubscribe return StreamSelectionReceipt with nullable historical binding capture. None/null means unavailable; an empty collection is a known empty set. No invented local Stream set or custody.",
+    "Typed nonempty Stream/Participant selector sets, optional codec stream targets and end reason/optional negotiated revision match actual implemented inputs."
+  ],
+  "verification": {
+    "contract": {
+      "mapped_methods": 25,
+      "kind_witnesses": 22,
+      "receipt_fields": {
+        "NegotiatedStream": [
+          "id",
+          "medium",
+          "direction",
+          "codec",
+          "stream_local_id"
+        ],
+        "CodecObservation": [
+          "parameters",
+          "stream_generation",
+          "connection_generation"
+        ],
+        "ConnectionUpdateReceipt": [
+          "connection",
+          "connection_generation",
+          "stream_revision",
+          "outcome"
+        ],
+        "StreamSelectionReceipt": [
+          "connection",
+          "connection_generation",
+          "stream_revision",
+          "resources_changed",
+          "bindings"
+        ]
+      },
+      "report": ".local/gate-6/sdk-alignment/contract-03/summary.json",
+      "sha256": "5f024246b3b29e05e5af7d68d82937a4f0d8bee3e7256e25e551280a8d4ebb17"
+    },
+    "outlines": {
+      "compiler_targets": 4,
+      "negative_constraints_each": 6,
+      "native_receipt_journey": "Rust/browser TypeScript/Node TypeScript/Python positive outlines",
+      "report": ".local/gate-6/sdk-alignment/outlines-03/summary.json",
+      "sha256": "c96452071b9e46af7ef3153c0af2060247823548de26de6128badc54895d68ae"
+    },
+    "actual_public_example": {
+      "source": "crates/connect-client/examples/native_receipts.rs",
+      "source_sha256": "4b849d323016f8e827539676a30aa0e5b3f40756110127b7d05bd3c3ea4dd6a3",
+      "command": "cargo check --release -p connect-client --example native_receipts",
+      "build_jsonl": ".local/gate-6/sdk-alignment/example-01.jsonl",
+      "sha256": "afaacbabf34e0e06ce6f5ab52bee819ba1150d764693d3805992a5bcfac95084",
+      "status": "passed"
+    },
+    "format_diff_openapi": "passed"
+  },
+  "failed_candidates": [
+    {
+      "report": ".local/gate-6/sdk-alignment/outlines-01/browser-positive.log",
+      "reason": "New shared negotiated-parameter declaration referenced an unnamed Direction alias in TypeScript/Python. Added explicit common direction types; all four targets now pass."
+    }
+  ],
+  "limits": [
+    "The actual example is compile-only; runtime evidence remains the separately recorded real SDK/external-consumer fixtures.",
+    "Historical freeze and runtime checkpoint evidence is preserved. Revision3 supersedes the old generic Connection/StreamSelection target return declarations; there is no compatibility alias or server downgrade.",
+    "This does not qualify installed packages, broader operating profiles, full Gate6 acceptance or publication."
+  ]
+}

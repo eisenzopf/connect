@@ -795,3 +795,18 @@ same effect and never dispatch a second provider request. Revoking its grant
 refuses even an existing application client. Both EdDSA and ES256 pass; evidence
 is in `docs/evidence/gate-6/rust-sdk-tasks.json`. All provider traffic uses an
 isolated loopback fake endpoint; no provider account is contacted.
+
+The shared frozen contract now uses these implemented native receipt types.
+`ConnectionUpdateReceipt` retains the scoped Connection, native generation and
+revision, and the typed codec/gate/quality outcome. `StreamSelectionReceipt`
+retains historical binding observations; `None` means unavailable capture and
+`Some(vec![])` means a known empty set. Neither grants local custody.
+`StreamSelector` supports explicit Stream targets and Participant/media targets;
+codec updates may select a stream subset. Connection end requires its original
+reason and optional negotiated StreamRevision assertion.
+
+`crates/connect-client/examples/native_receipts.rs` compiles against the real
+public crate. The three shared declaration outlines also compile the updated
+selection/update/end journey. Contract revision 3 audits the actual Rust fields
+against all three declarations. It changes no server wire or runtime behavior;
+evidence is in `docs/evidence/gate-6/rust-sdk-contract-alignment.json`.
