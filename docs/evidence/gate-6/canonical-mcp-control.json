@@ -1,0 +1,132 @@
+{
+  "task": "G6-065",
+  "status": "canonical MCP production control checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T11:43:15.060987+00:00",
+  "scope": "Official independent RMCP Streamable HTTP client talks to an owned MCP listener composed with the actual production canonical service/native/HTTP runtime, isolated local macOS arm64. This is public composition qualification, not yet connect-serve MCP configuration, installed agent-host export or actual model/remote/provider qualification.",
+  "implementation": [
+    "29 explicit finite canonical tools use current payload schemas with only reachable definitions. Typed envelope validation rejects malformed fields and retains original optional payload extensions. Requests bounded64KiB; live subscriptions and native offer/answer are not tool operations.",
+    "Authenticated IdentityAccess retains a private validated canonical bearer binding. Same installation/current identity validation precedes the shared canonical HTTP executor, with protocol-floor, assurance, granular resource policy and current revalidation before response. No signature, physical peer, native media custody or task-grant promotion is manufactured.",
+    "Ordinary discovery removes retired generic create/send/history, Session lifecycle, membership add/update/remove, legacy dial/end and request-status paths. Current canonical counterparts carry exact original mutation IDs, resources and revisions. Named application reads/files/receipts and optional Task catalog remain separate.",
+    "Canonical status/envelopes are preserved in MCP structured results. Checked canonical refusal sets MCP isError; ACK/receipt metadata never claims successful audio or provider delivery. Correlation metadata carries original operation/resource IDs without bodies or secrets."
+  ],
+  "verification": {
+    "production": {
+      "rows": [
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 0.6896161660552025,
+          "log": ".local/gate-6/canonical-mcp/production-02-00.log",
+          "sha256": "cca26460f3c9be34d818d7a4216a0e2a5428a14f392627280f8b2b57a677c233"
+        },
+        {
+          "filter": "canonical_http_",
+          "expected": [
+            "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+            "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+            "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+            "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+            "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+            "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts"
+          ],
+          "exit_code": 0,
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 2.9931207911577076,
+          "log": ".local/gate-6/canonical-mcp/production-02-01.log",
+          "sha256": "67de2d5642264ae184f4e3180b471bc96004a5727d85ad0a4f84f8177648a5ee"
+        },
+        {
+          "filter": "sdk_handles::tasks::",
+          "expected": [
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 2.7050027921795845,
+          "log": ".local/gate-6/canonical-mcp/production-02-02.log",
+          "sha256": "0e73710ce072b370cd0be0f7718f6352dc5377b81bbd6133e9ce777df1b9ffcb"
+        }
+      ],
+      "binary_sha256": "cf4ef291e3cd050003e6b98fa5a77043f641b92ed51c970c1a0417d488687e01",
+      "guard_count": 1247,
+      "source_unchanged": true,
+      "driver_sha256": "08084db7cb524812af30bce6266d95b4e296368680781e91d86f384d5711210e"
+    },
+    "production_summary_sha256": "85eef59da9f75841b678fd755209c31d54af89e8bdd8943c3a52b16f377b3391",
+    "new_function_scenes": "EdDSA/ES256: original create replay; Message replay once; matching actual native/HTTP history; baseline snapshot/cursor then finite journal resume; Session original replay and operation status; wrong resource refusal; model actor assertion refused; current credential revocation; all official-client/listener/native/server owners joined.",
+    "contracts": {
+      "report": ".local/gate-6/canonical-mcp/contracts-01.json",
+      "sha256": "160f5e3b04f611a8adaa427edc49834d524a4c9b2eef9e506ce446041623aae7",
+      "vectors": 254,
+      "target_envelopes": 66
+    },
+    "format_openapi_diff": "passed",
+    "library_unit_checks": "MCP library unit checks building in a separate feature graph; not yet a runtime pass.",
+    "build": {
+      "exit_code": 0,
+      "seconds": 11.08416874986142,
+      "source_unchanged": true,
+      "binary_sha256": "cf4ef291e3cd050003e6b98fa5a77043f641b92ed51c970c1a0417d488687e01",
+      "bytes": 245354640,
+      "source_count": 1247,
+      "log_sha256": "a7e0d6b01732b5f7a1eeba1e889a18f255fa2fcd9f835e0aa491cb1ddf7e0828",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified"
+    }
+  },
+  "failed_candidates": [
+    {
+      "record": ".local/gate-6/canonical-mcp/build-01-outcome.json",
+      "reason": "New fixture used old history signatures/Message id field and awaited synchronous close:5 compiler errors; only fixture corrected to current query/msg_id/joined shutdown."
+    },
+    {
+      "records": [
+        ".local/gate-6/canonical-mcp/rejected-outputs-02.json",
+        ".local/gate-6/canonical-mcp/rejected-cli-cache-02.json",
+        ".local/gate-6/canonical-mcp/rejected-outputs-04.json"
+      ],
+      "reason": "Cargo reported success despite rust-objcopy ENOSPC. Tiny non-executable artifacts and cached copies were rejected before execution and preserved privately. No runtime pass inferred."
+    },
+    {
+      "record": ".local/gate-6/canonical-mcp/production-01-summary.json",
+      "reason": "First actual MCP function expected journal events from an initial snapshot query. Fixture corrected to save a baseline cursor before send and explicitly resume after it. Production behavior unchanged."
+    }
+  ],
+  "storage_recovery": [
+    {
+      "audit": ".local/gate-6/canonical-mcp/stopped-archive-audit.json",
+      "sha256": "6f0fedae7d23629e768dcda7da109d9b775434651a011ef037c6fc46d18df721",
+      "identities": 5,
+      "paths": 26,
+      "decoded_bytes": 826711008,
+      "archive_bytes": 268449736,
+      "restoration": "Use exact archived decoded hash, recorded mode and original source paths. No executable identity/data discarded."
+    },
+    {
+      "audit": ".local/gate-6/canonical-mcp/stopped-archive-audit-02.json",
+      "sha256": "b331d96a11e9a98e44471d4ba2447b4a600b0a5b1fee41e31ca754421cae806c",
+      "identities": 32,
+      "paths": 71,
+      "decoded_bytes": 4099656272,
+      "archive_bytes": 1518266622,
+      "restoration": "Use exact archived decoded hash, recorded mode and original source paths. No executable identity/data discarded."
+    }
+  ],
+  "remaining": [
+    "Run the two new schema/parser library tests and existing MCP unit suite; this separate feature graph is currently building.",
+    "Wire owned MCP configuration into canonical connect serve and update regular-agent export/skills to the current tool contract.",
+    "Qualify actual consultation/handoff/move request/status over MCP while independent native media owners enforce decoded audio. Supported actual agent-host/model lanes retain their explicit bounded configuration requirement.",
+    "Finish stdio/CLI control migration and actual OpenAPI endpoint/auth/file/admin parity without compatibility dispatch. Existing one-shot request CLI is already canonical.",
+    "Full G6-065, installed/runtime/profile acceptance, broader Gate6 and publication remain open."
+  ]
+}

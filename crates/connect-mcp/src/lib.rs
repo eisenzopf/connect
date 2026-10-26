@@ -9,6 +9,7 @@
 mod arguments;
 mod auth;
 mod budget;
+mod canonical_tools;
 mod capacity;
 mod catalog;
 mod commands;

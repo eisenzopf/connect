@@ -12,6 +12,7 @@ use rmcp::{model::Tool, ErrorData};
 use serde_json::{Map, Value};
 
 pub(crate) enum ToolOutcome {
+    Canonical(u16, connect_protocol::canonical_http::ReplyBatch),
     Projection(Value),
     Task(TaskOutcome),
     Communication(Box<Outcome>),
@@ -19,6 +20,9 @@ pub(crate) enum ToolOutcome {
 impl ToolOutcome {
     pub fn encode(&self) -> Result<Value> {
         match self {
+            Self::Canonical(status, batch) => {
+                Ok(serde_json::json!({"kind":"canonical", "status":status, "data":batch}))
+            }
             Self::Projection(value) => Ok(value.clone()),
             Self::Task(outcome) => serde_json::to_value(outcome),
             Self::Communication(outcome) => serde_json::to_value(outcome),
@@ -38,6 +42,9 @@ impl ToolOutcome {
             },
             _ => None,
         }
+    }
+    pub fn is_refusal(&self) -> bool {
+        matches!(self, Self::Canonical(status, _) if *status >= 400)
     }
 }
 
@@ -63,7 +70,7 @@ pub(crate) async fn tools(service: &Service, access: &McpAccess) -> Result<Vec<T
 }
 
 pub(crate) async fn execute(
-    service: &Service,
+    service: &std::sync::Arc<Service>,
     access: McpAccess,
     name: &str,
     arguments: Map<String, Value>,
@@ -100,7 +107,9 @@ pub(crate) async fn execute(
                 .into_iter()
                 .find(|spec| spec.name == name && spec.visible(&view))
                 .ok_or_else(unavailable)?;
-            arguments::validate_schema(&spec.schema, &arguments)?;
+            if !matches!(spec.kind, identity_catalog::Kind::Canonical(_)) {
+                arguments::validate_schema(&spec.schema, &arguments)?;
+            }
             correlate(&arguments, correlation);
             if matches!(spec.kind, identity_catalog::Kind::Inspect) {
                 return Ok(Ok(ToolOutcome::Projection(identity_catalog::inspection(
@@ -108,6 +117,10 @@ pub(crate) async fn execute(
                 ))));
             }
             match identity_commands::command(&spec, arguments)? {
+                identity_commands::Command::Canonical(request) => Ok(service
+                    .execute_canonical_identity(identity, *request)
+                    .await
+                    .map(|(status, batch)| ToolOutcome::Canonical(status, batch))),
                 identity_commands::Command::Create(input) => Ok(service
                     .create_identity_task(identity, input)
                     .await
@@ -135,7 +148,15 @@ pub(crate) async fn execute(
 }
 fn correlate(arguments: &Map<String, Value>, correlation: &mut Value) {
     // Only closed-schema correlation IDs, never bodies, credentials or actor claims.
-    for name in ["request_id", "step_id", "task_id", "conversation_id"] {
+    for name in [
+        "request_id",
+        "operation_id",
+        "step_id",
+        "task_id",
+        "conversation_id",
+        "session_id",
+        "connection_id",
+    ] {
         if let Some(value) = arguments.get(name) {
             correlation[name] = value.clone();
         }

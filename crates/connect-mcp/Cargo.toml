@@ -10,6 +10,9 @@ publish = false
 [dependencies]
 connect-protocol.workspace = true
 connect-service.workspace = true
+rvoip-uctp.workspace = true
+chrono.workspace = true
+uuid.workspace = true
 rmcp.workspace = true
 axum.workspace = true
 async-trait.workspace = true

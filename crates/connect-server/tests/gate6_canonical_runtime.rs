@@ -24,6 +24,9 @@ use canonical_listener_fixture::*;
 #[path = "support/external_sdk_consumer.rs"]
 mod external_sdk_consumer;
 
+#[path = "support/canonical_mcp.rs"]
+mod canonical_mcp;
+
 fn payload(kind: &str, value: Value) -> Payload {
     serde_json::from_value(json!({"type":kind,"payload":value})).unwrap()
 }

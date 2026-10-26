@@ -11,6 +11,7 @@ pub struct IdentityAccess {
     credential_id: String,
     identity_id: String,
     installation_id: String,
+    canonical_binding: crate::StoreCredentialBinding,
 }
 impl IdentityAccess {
     /// Authenticated identity for attribution, never a tool-input selector.
@@ -54,10 +55,25 @@ impl Service {
         let store = self.store.clone();
         tokio::task::spawn_blocking(move || {
             let actor = store.authenticate(&token)?;
+            let metadata = store.credential_metadata(&actor.credential_id)?;
+            let principal = crate::authentication::canonical_principal(&metadata)
+                .map_err(|_| Error::forbidden())?;
+            let issued_at = std::time::UNIX_EPOCH
+                .checked_add(std::time::Duration::from_secs(metadata.issued_at as u64))
+                .ok_or_else(Error::forbidden)?;
+            let validated = rvoip_auth_core::bearer::ValidatedBearer::new(
+                principal,
+                Some(actor.credential_id.clone()),
+                Some(issued_at),
+            )
+            .map_err(|_| Error::forbidden())?;
+            let canonical_binding =
+                crate::StoreCredentialBinding::from_validated(&store, &validated)?;
             Ok(IdentityAccess {
                 credential_id: actor.credential_id,
                 identity_id: actor.identity_id,
                 installation_id: store.installation_id()?,
+                canonical_binding,
             })
         })
         .await
@@ -98,6 +114,19 @@ impl Service {
     ) -> Result<Outcome> {
         self.identity_access_view(access.clone()).await?;
         self.execute(access.credential_id, operation).await
+    }
+
+    /// Finite canonical control from a sealed ordinary identity admission. The
+    /// same binding, protocol floor, policy and before/after authority checks as
+    /// bearer HTTP apply. This does not mint a signed peer or native IO custody.
+    pub async fn execute_canonical_identity(
+        self: &std::sync::Arc<Self>,
+        access: IdentityAccess,
+        request: rvoip_uctp::v2::Envelope,
+    ) -> Result<(u16, connect_protocol::canonical_http::ReplyBatch)> {
+        self.identity_access_view(access.clone()).await?;
+        self.execute_canonical_http(access.canonical_binding, request)
+            .await
     }
 
     /// Derive ergonomic optional tracking defaults without granting authority.

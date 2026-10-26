@@ -9,6 +9,7 @@ use rmcp::ErrorData;
 use serde_json::{json, Map, Value};
 
 pub(crate) enum Command {
+    Canonical(Box<rvoip_uctp::v2::Envelope>),
     Operation(Operation),
     Create(TaskCreateDefaults),
 }
@@ -17,6 +18,9 @@ pub(crate) fn command(
     mut arguments: Map<String, Value>,
 ) -> Result<Command, ErrorData> {
     match spec.kind {
+        Kind::Canonical(kind) => crate::canonical_tools::command(kind, arguments)
+            .map(Box::new)
+            .map(Command::Canonical),
         Kind::Membership(action) => {
             let mut change = arguments.clone();
             for field in ["operation_id", "conversation_id", "expected_revision"] {

@@ -88,10 +88,16 @@ impl ServerHandler for Handler {
         };
         let mut result = match result {
             Ok(outcome) => {
+                let refusal = outcome.is_refusal();
                 let wait_pending = outcome.inbox_pending();
-                let mut result = CallToolResult::structured(outcome.encode().map_err(|_| {
+                let value = outcome.encode().map_err(|_| {
                     ErrorData::internal_error("Could not encode communication result", None)
-                })?);
+                })?;
+                let mut result = if refusal {
+                    CallToolResult::structured_error(value)
+                } else {
+                    CallToolResult::structured(value)
+                };
                 if let Some(pending) = wait_pending {
                     correlation["pending"] = json!(pending);
                     if pending {

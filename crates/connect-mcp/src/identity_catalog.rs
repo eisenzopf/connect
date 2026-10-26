@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub(crate) enum Kind {
+    Canonical(&'static str),
     Inspect,
     Operation(&'static str),
     Task(&'static str),
@@ -16,10 +17,10 @@ pub(crate) struct Spec {
     pub name: &'static str,
     pub kind: Kind,
     pub schema: Map<String, Value>,
-    description: String,
-    scope: &'static str,
-    extra_scope: Option<&'static str>,
-    read_only: bool,
+    pub(crate) description: String,
+    pub(crate) scope: &'static str,
+    pub(crate) extra_scope: Option<&'static str>,
+    pub(crate) read_only: bool,
 }
 impl Spec {
     pub fn visible(&self, access: &IdentityAccessView) -> bool {
@@ -55,6 +56,23 @@ pub(crate) fn specs() -> Vec<Spec> {
             .name
             .strip_prefix("connect_")
             .expect("closed catalog prefix");
+        if matches!(
+            operation,
+            "send"
+                | "history"
+                | "session_invite"
+                | "session_accept"
+                | "session_reject"
+                | "session_cancel"
+                | "session_end"
+                | "session_get"
+                | "call_start"
+                | "call_end"
+                | "sip_dial"
+                | "sip_end"
+        ) {
+            continue;
+        }
         let read_only = matches!(
             operation,
             "resolve"
@@ -140,6 +158,9 @@ pub(crate) fn specs() -> Vec<Spec> {
             "conversation.history.share",
         ),
     ] {
+        if matches!(action, "add" | "remove" | "update_role") {
+            continue;
+        }
         tools.push(Spec{name,kind:Kind::Membership(action),schema:identity_schemas::membership(action),description:format!("Explicit conversation membership action {action} under your current named capability. Persist operation_id and original expected_revision for exact retry/status recovery. Role labels grant no credentials or old history."),scope,extra_scope:None,read_only:false});
     }
     for (name, operation, scope, read_only, description) in [
@@ -162,6 +183,9 @@ pub(crate) fn specs() -> Vec<Spec> {
         ("connect_contact_pairing_revoke", "contact_pairing_revoke", "resolve", false, "Revoke your explicitly selected native ownership pairing. Persist request_id for identical retries. Revocation denies subsequent completion replay and does not change conversation membership."),
         ("connect_contact_state", "contact_state", "resolve", true, "Inspect native ownership for an exact permitted peer identity under current authority. verified_native proves a current Connect credential; sms_consent remains false and availability, phone ownership and conversation membership are separate."),
     ] {
+        if matches!(operation, "create" | "close" | "request_status") {
+            continue;
+        }
         tools.push(Spec { name, kind: Kind::Operation(operation), schema: identity_schemas::ordinary(operation),
             description: description.into(), scope, extra_scope: None, read_only });
     }
@@ -181,6 +205,7 @@ pub(crate) fn specs() -> Vec<Spec> {
             description: description.into(), scope,
             extra_scope: (action == "send").then_some("send"), read_only });
     }
+    tools.extend(crate::canonical_tools::specs());
     tools
 }
 
