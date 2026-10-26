@@ -1,19 +1,31 @@
 //! Protected regular-credential installation; no per-task issuance or conversion.
 use crate::{
+    canonical::CanonicalServerConfig,
     cli::{
         init,
         task_access::{codex, read_bounded, require_private},
     },
-    config::ServerConfig,
 };
 use anyhow::{Context, Result};
-use connect_client::ClientConfig;
+use connect_client::canonical::CanonicalClientConfig;
 use connect_protocol::tasks::TASK_PRINCIPAL_PREFIX;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, net::SocketAddr, path::Path};
 
-const PROFILE: &str = "connect-codex-agent-install/1";
+const PROFILE: &str = "connect-codex-agent-install/2";
+const CREDENTIAL_PROFILE: &str = "connect-agent-credential/2";
+
+/// Only the ordinary MCP credential is exported. Native Device/signing keys,
+/// trust paths and endpoints are not agent-host assets or MCP authority.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct AgentCredential {
+    pub profile: String,
+    pub identity_id: String,
+    pub credential_id: String,
+    pub credential: String,
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,7 +41,7 @@ struct Manifest {
 }
 
 pub(super) struct Installation {
-    pub client: ClientConfig,
+    pub client: AgentCredential,
     pub credential_expires_at: i64,
     pub digest: String,
     pub configuration: String,
@@ -45,9 +57,8 @@ pub fn export(
     output: &Path,
 ) -> Result<()> {
     validate_address(address)?;
-    let client = load_client(config_path)?;
-    validate_regular(&client)?;
-    let server = ServerConfig::load(server_path)?;
+    let source = load_source(config_path)?;
+    let server = CanonicalServerConfig::load(server_path)?;
     let mcp = server
         .mcp
         .as_ref()
@@ -57,19 +68,26 @@ pub fn export(
             && mcp.binding.is_none(),
         "Select this installation's regular MCP listener"
     );
-    let actor = connect_store::Store::authenticate_file(&server.database, &client.credential)?;
+    let actor = connect_store::Store::authenticate_file(&server.database, &source.credential)?;
     anyhow::ensure!(
         !actor.permits("admin"),
         "Use a separately issued agent communication credential, not an administrator key"
     );
     anyhow::ensure!(
-        actor.identity_id == client.identity_id && actor.credential_id == client.credential_id,
+        actor.identity_id == source.identity_id,
         "Agent configuration does not match its current credential"
     );
     anyhow::ensure!(
-        actor.permits("send") || actor.permits("history") || actor.permits("inbox"),
-        "Agent credential has no communication access"
+        !actor.scope.operations.is_empty(),
+        "Agent credential has no configured operations"
     );
+    let client = AgentCredential {
+        profile: CREDENTIAL_PROFILE.into(),
+        identity_id: actor.identity_id.clone(),
+        credential_id: actor.credential_id.clone(),
+        credential: source.credential,
+    };
+    validate_regular(&client)?;
     let client_bytes = toml::to_string_pretty(&client)?.into_bytes();
     let uri = format!("http://{address}/mcp");
     let manifest = Manifest {
@@ -138,35 +156,44 @@ fn validate_address(address: SocketAddr) -> Result<()> {
     Ok(())
 }
 
-fn validate_regular(client: &ClientConfig) -> Result<()> {
-    client.validate()?;
+fn validate_regular(client: &AgentCredential) -> Result<()> {
+    connect_protocol::tasks::validate_task_identifier(&client.identity_id)?;
+    connect_protocol::tasks::validate_task_identifier(&client.credential_id)?;
     anyhow::ensure!(
-        !client.credential_id.starts_with(TASK_PRINCIPAL_PREFIX)
+        client.profile == CREDENTIAL_PROFILE
+            && !client.credential_id.starts_with(TASK_PRINCIPAL_PREFIX)
             && client.credential.len() == 64
-            && client.credential.is_ascii(),
+            && client.credential.bytes().all(|b| b.is_ascii_hexdigit()),
         "Use a regular agent credential; task-grant exports keep their separate access mode"
     );
     Ok(())
 }
 
-fn load_client(path: &Path) -> Result<ClientConfig> {
+fn load_client(path: &Path) -> Result<AgentCredential> {
     require_private(path)?;
     let bytes = read_bounded(path)?;
     let text = std::str::from_utf8(&bytes).context("Agent configuration must be UTF-8")?;
-    let mut client: ClientConfig = toml::from_str(text)
+    let client: AgentCredential = toml::from_str(text)
         .map_err(|_| anyhow::anyhow!("Invalid private agent client configuration"))?;
-    if client.trust_certificate.is_relative() {
-        client.trust_certificate = path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(&client.trust_certificate);
-    }
-    client.trust_certificate = client
-        .trust_certificate
-        .canonicalize()
-        .context("Agent trust certificate is missing")?;
-    client.validate()?;
+    validate_regular(&client)?;
     Ok(client)
+}
+
+/// Read credential/Identity assertions from the explicit current native config.
+/// MCP does not use its transport or key files: those stay at their owner. The
+/// selected installation authenticates the token and derives its credential ID.
+pub(super) fn load_source(path: &Path) -> Result<CanonicalClientConfig> {
+    require_private(path)?;
+    let bytes = read_bounded(path)?;
+    let text = std::str::from_utf8(&bytes).context("Agent source must be UTF-8")?;
+    let source: CanonicalClientConfig = toml::from_str(text)
+        .map_err(|_| anyhow::anyhow!("Use a current canonical client configuration"))?;
+    connect_protocol::tasks::validate_task_identifier(&source.identity_id)?;
+    anyhow::ensure!(
+        source.credential.len() == 64 && source.credential.bytes().all(|b| b.is_ascii_hexdigit()),
+        "Use an ordinary credential; a task grant cannot be converted"
+    );
+    Ok(source)
 }
 
 pub(super) fn load(directory: &Path) -> Result<Installation> {

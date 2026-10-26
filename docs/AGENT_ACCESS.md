@@ -1,215 +1,159 @@
-# Give an agent a Connect connection
+# Give an agent a canonical Connect connection
 
-Connect's default agent interface uses one regular, revocable communication
-credential. Configure the identity once, then give its host one MCP URL and that
-key. The agent can communicate across its authorized conversations, use the
-configured tools and track work with task IDs. Routine communication requires
-no per-task grant or five-minute renewal. The owner may still choose a narrow
-task installation for a particular delegation.
+G6-065 is migrating the agent-facing facades. Ordinary MCP access uses one
+current, revocable Identity credential and explicit authorized resources.
+Task tracking and narrowly delegated Task installations remain optional.
+Current qualification and limitations are in
+[evidence/gate-6/canonical-agent-export.json](evidence/gate-6/canonical-agent-export.json).
+Actual-model, live-transition/media, remote and installed package profiles retain
+their separate qualification requirements.
 
-The [installed dc73996 candidate](evidence/gate-4/package-dc73996.json) passes
-all 17 local package checks. Its [actual-model proof](evidence/gate-4/real-model-agent-dc73996.json)
-uses one regular key across two authorized conversations, writes source-backed
-artifacts and questions, then resumes the exact host session after server
-restart to handle a tracked reply and an independent incoming contact. The
-immutable first/resume transcripts contain 30 successful tool calls and zero
-failed calls. A separate public-SDK observer was corrected without new inference
-or answer injection; its original failed reports remain failed. The
-[Gate 4 review](evidence/gate-4/acceptance.html) records that completed baseline.
-Owner-review repairs are now qualified at 709cf82 in the
-[numbered plan](connect-gate-4-implementation.html); earlier results retain their own source; current repaired-source proof is linked below. The public
-[agent journey runbook](AGENT_JOURNEY_QUALIFICATION.md) describes how to repeat
-the actual-model exchange with a selected host and installed candidate.
-Earlier scoped/provider reports retain
-their own source and scope. Complete v0.1 and publication remain in the roadmap.
+## Start a protected local installation
 
-## Set up the identity once
+For a new isolated installation, the canonical bootstrap creates operator,
+reviews and agent configurations, scoped credentials and native Device keys:
 
-Use an existing isolated local installation. Add its independent MCP listener
-in the private server configuration, without a fixed invocation binding:
+```sh
+connect init --directory .local/connect --example review-loop \
+  --bind 127.0.0.1:4433 --http-bind 127.0.0.1:8194
+```
+
+Existing installations keep their state and identifiers. Add an explicit MCP
+listener to the private canonical `server.toml`, then start it:
 
 ```toml
 [mcp]
 bind = "127.0.0.1:8193"
 ```
 
-Create a named agent using the owner's local setup credential:
-
 ```sh
-connect agent-access create-identity \
-  --config .local/connect/operator.toml \
-  --server-config .local/connect/server.toml --alias assistant
-```
-
-The result contains a non-secret identity ID and address. Repeating the same
-owner/alias/request preserves the original identity receipt. A different intent
-or an alias already created by another request produces a conflict. The optional
-`--request-id` overrides the stable `identity-create-ALIAS` setup ID.
-
-Issue the agent's separate communication credential with the existing CLI:
-
-```sh
-connect issue --config .local/connect/operator.toml \
-  --server-config .local/connect/server.toml \
-  --identity-id RETURNED_AGENT_ID --recipients '*' --voice --tasks \
-  --output .local/connect/assistant.toml
-```
-
-The quoted `'*'` allows contacts without maintaining a per-contact list. It
-expands recipients; it does not grant administrator operations. Conversation
-membership, current credential revocation, channel capabilities and reviewed SMS
-rules still apply. `--voice --tasks` adds the named media/work-tracking operations.
-The credential defaults to 30 days; `--expires-days` accepts 1–365 days.
-
-For the `review-loop` demo, initialization already creates `connect:agent@local`.
-Resolve that existing identity instead of creating another alias, then issue a
-new regular credential to a fresh output file. Existing demo files are preserved.
-Owner setup credentials remain separate from the agent connection. Vapi and
-Telnyx master keys stay with configured server workers.
-
-## Install Codex tools and skill
-
-Export the existing agent credential into a new private host directory:
-
-```sh
-connect agent-access export-codex \
-  --config .local/connect/assistant.toml \
-  --server-config .local/connect/server.toml \
-  --mcp-address 127.0.0.1:8193 --output .local/codex-assistant
 connect serve --config .local/connect/server.toml
 ```
 
-Export validates current non-admin authority through a read-only database
-connection. It writes the private `agent.toml`, supplied Connect skill,
-`mcp-override.txt` and completion manifest. It issues no grant and changes no
-existing credential or server state. Completed and interrupted output directories
-are preserved; choose a fresh directory for another installation.
+The ready output reports `mcp_streamable_http=http://127.0.0.1:8193/mcp` without
+secrets. Public MCP bind addresses and provider-origin fixed bindings are
+refused. Ordinary Identity access and separately verified native/host Task grants
+keep their own ceilings. See [developer/canonical-mcp.md](developer/canonical-mcp.md).
 
-Authenticate the selected Codex CLI with your chosen account. Save a private
-UTF-8 prompt file, then run one bounded turn:
+## Export an existing scoped credential
 
-```sh
-connect agent-access run-codex --installation .local/codex-assistant \
-  --prompt-file .local/private-request.txt
-```
-
-The supplied MCP configuration uses `bearer_token_env_var`, required startup and
-bounded tool deadlines from the [official MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
-The launcher supplies `CONNECT_AGENT_CREDENTIAL` privately and approves the
-configured Connect tools without per-action prompts. It inherits the chosen
-model-account location, never unrelated provider/operator keys.
-
-Later, explicitly resume the exact saved host session:
+Use the bootstrap's canonical agent configuration as the credential source:
 
 ```sh
-connect agent-access run-codex --installation .local/codex-assistant
-```
-
-The launcher persists original prompt/run intent before spawn, records the exact
-session UUID and retains it across restart. An interrupted intent cannot be
-replaced, and a missing session requires explicit repair. The shared bounded
-process runner owns cleanup and redacts the agent key from captured events.
-These are explicit invocations; the adapter does not supply automatic model wake.
-
-An existing task-grant installation stays in its original access mode and uses
-`task-access run-codex`. It cannot be converted or silently broadened while
-recovering a saved task/session. Its optional grant/renewal mechanism still works.
-
-## Use the same connection in other hosts
-
-Configure the Streamable HTTP URL `http://127.0.0.1:8193/mcp` and the agent key
-from its protected configuration using the host's bearer-secret mechanism.
-The identity key is the same one used by the SDK or JSON CLI; no additional
-registration or credential layer is required. A Codex configuration has this
-shape, with the bearer stored in the environment rather than in the text:
-
-```toml
-[mcp_servers.connect_agent]
-url = "http://127.0.0.1:8193/mcp"
-bearer_token_env_var = "CONNECT_AGENT_CREDENTIAL"
-required = true
-default_tools_approval_mode = "approve"
-startup_timeout_sec = 10
-tool_timeout_sec = 10
-```
-
-Install the supplied [Connect skill](../skills/connect/SKILL.md) when that host
-supports skills. Other hosts must preserve mutation inputs and report their
-actual continuation mode; this configuration alone does not qualify them.
-
-Ordinary tools select explicit conversation IDs and stable request IDs. Work
-tracking is optional: create/inspect a task and use task-send/wait for a correlated
-question. Authorized tasks can share conversation context while keeping their
-questions and effects distinct. Ending voice preserves the conversation.
-Normal sends, task sends and tracked replies have different schemas and reply
-references; the skill explains those differences. A normal `connect_task_wait`
-returns the native task wrapper: an attributed reply's received conversation
-journal event ID is `data.data.events[*].data.data.event_id`. Use that ID in
-`connect_task_send.reply_to` to authorize and correlate a follow-up. It does not
-implicitly consume the reply's inbox marker. `connect_reply` instead references
-the original tracked question's message ID when answering it.
-
-After durably handling an attributed reply, use the ordinary
-`connect_task_consume_reply` tool when the credential permits
-`task_consume_reply`. Supply `task_id`, a stable `request_id`, the received
-conversation journal `event_id` and the task's `expected_revision` from status
-(`data.data.revision`). Keep these complete inputs unchanged across an uncertain
-receipt. The result is the native task wrapper
-`{kind:"task",data:{kind:"record",data:TaskRecord}}`. A conflicting revision
-requires inspection and explicit reconciliation; a new request ID is not a
-substitute for resolving the first intent. Reading, waiting and sending a
-follow-up never consume a reply automatically. Consumption retains the history
-and releases bounded inbox capacity. Optional narrow task-grant catalogs do not
-expose this owner operation or gain broader authority.
-
-The owner-review repair adds this normal-MCP parity path; its current-source
-qualification passes at 709cf82 in [G4-017](connect-gate-4-implementation.html#G4-017).
-
-## Revoke the agent connection
-
-Use the non-secret credential ID printed by issuance/export:
-
-```sh
-connect revoke --config .local/connect/operator.toml \
-  --server-config .local/connect/server.toml AGENT_CREDENTIAL_ID
-```
-
-Current revocation applies to MCP, SDK, CLI and replay. The key cannot be used to
-recover by switching to the owner's credential. Preserve receipts and original
-logical IDs when reconciling uncertain work. Revocation cannot undo a provider
-operation that was already dispatched.
-
-For expiry or rotation, explicitly issue a new regular credential under owner
-authority. This adapter preserves the old installation and session intent rather
-than replacing its saved credential automatically. Recovering or moving an active
-session to different authority requires a separate explicit procedure.
-
-## Inspect retained work after revocation
-
-The owner's administrator credential does not bypass conversation membership.
-To inspect work retained by the revoked agent, the owner can explicitly issue a
-separate current credential for that **same agent identity**, keep it outside the
-model and use the public task diagnostics:
-
-```sh
-connect issue --config .local/connect/operator.toml \
+connect agent-access export-codex \
+  --config .local/connect/agent.toml \
   --server-config .local/connect/server.toml \
-  --identity-id ORIGINAL_AGENT_ID --recipients '*' --tasks \
-  --output .local/connect/assistant-inspection.toml
-connect task-diagnostics --config .local/connect/assistant-inspection.toml \
-  --task-id SAVED_TASK_ID --codex-installation .local/codex-assistant
+  --mcp-address 127.0.0.1:8193 --output .local/codex-agent
 ```
 
-Current same-owner authority can read/cancel retained tasks and inspect effects
-without reviving the revoked model credential or its old grants. Owner-review
-repairs extend the retained inspection path to its journal and source pages after
-the original backing credential is revoked, expires or the task becomes
-terminal; [G4-024](connect-gate-4-implementation.html#G4-024) records its current qualification.
-The inspection credential must itself be current and authorized. Continuation
-under the original revoked connection remains denied. Host diagnostics report saved session/run
-state for the agent installation; one session may handle several tracked tasks,
-so host-turn completion does not prove that a particular task or effect completed.
+Export reads the selected installation's current credential metadata and verifies
+the source Identity assertion. It refuses administrator, revoked, mismatched and
+Task-grant authority before creating output. Control-only credentials are valid;
+export does not require or add messaging permission. It issues no new credential,
+changes no scope, and preserves the original identity and credential IDs.
 
-Current owner-review qualification: Runtime 709cf82 passes 42 offline phases, 17 installed checks and 32 actual MCP calls with no errors. Qualification controls d64f1b9 combine the reviewed fixtures at 7bdd534 with all 3 hosted jobs. Local macOS arm64 owner review only; Gate 5, community publication and remote deployment remain separate.
+The private installation uses `connect-codex-agent-install/2` and a minimal
+`connect-agent-credential/2` file. Its `agent.toml` contains the MCP credential and
+derived Identity/credential IDs. Device signing keys, TLS trust files, native
+endpoints and operator credentials are not copied. The source's native key
+metadata is not used as MCP authentication or media custody. The generated skill
+assets and MCP configuration are hashed in the completion manifest; existing
+complete or interrupted destinations remain intact.
 
-[offline-709cf82](evidence/gate-4/offline-709cf82.json), [package-709cf82](evidence/gate-4/package-709cf82.json), [real-model-agent-709cf82](evidence/gate-4/real-model-agent-709cf82.json), [review-remediation-709cf82](evidence/gate-4/review-remediation-709cf82.json), [qualification-controls-d64f1b9](evidence/gate-4/qualification-controls-d64f1b9.json)
+Version 1 exports require their original tooling for inspection; the current
+loader refuses their format. It does not convert credentials, overwrite saved
+intent or silently resume an old host under another installation. Keep original
+state and reconcile its work before selecting a fresh installation.
+
+The exported MCP `agent.toml` is not a native or application CLI configuration.
+Canonical JSON CLI calls need the separately configured native source; named
+application/Task calls need their explicit application configuration.
+
+## Run or resume the selected host
+
+The launcher uses the project's pinned supported host profile and verifies its
+version and model-account availability. Record the bounded designated
+host/account/budget and cleanup configuration for actual-model rehearsals in
+G6-093 before invoking that lane. Local fixture checks do not qualify a new host
+version or an actual model turn.
+
+```sh
+connect agent-access run-codex --installation .local/codex-agent \
+  --prompt-file .local/private-request.txt
+connect agent-access run-codex --installation .local/codex-agent
+```
+
+The first call persists the prompt/run intent before spawn; the second explicitly
+resumes its saved session. The launcher supplies `CONNECT_AGENT_CREDENTIAL`
+privately, retains the exact session, bounds and joins its child process, and
+redacts the credential in captured events. It does not refresh authority, replace
+an interrupted intent or install an automatic wake. Its generated configuration
+is defined by the [host configuration generator](../crates/connect-server/src/cli/task_access/codex.rs).
+Other hosts need their own supported secret and continuation mechanism.
+
+## Use current tools and recover original work
+
+Discover the installed schemas and use `connect_inspect` for current identity,
+ceiling and named tools. Canonical communication uses
+`connect_conversation_create`, `connect_message_send`, `connect_message_history`
+and `connect_operation_get`. Keep each complete intention, `operation_id`,
+Message ID, audience and exact Conversation/Session/Connection scope before IO.
+A new physical request does not need a new logical mutation. Query original
+status after uncertainty; a completed control record does not prove decoded
+media, provider delivery, reading or human action.
+
+`connect_conversation_events` returns finite pages with `payload.live:false`.
+The initial read supplies a snapshot/cursor. Resume with `payload.after` from the
+last handled cursor; notifications are hints. Session consultation, handoff and
+device movement use their advertised canonical payloads and topology revisions.
+No tool argument supplies an actor credential, signature or physical media peer.
+
+Named application reads, files and optional Task workflows retain their distinct
+schemas. Task request/step IDs, attributed journal reply events, original question
+Message IDs and explicit reply-consumption revisions are different references.
+Use the installed [Connect skill](../skills/connect/SKILL.md) for these workflows.
+A regular installation cannot adopt a narrow grant during recovery or consume
+another Task's reply merely because it shares a Conversation.
+
+## Revoke or remove
+
+Use the non-secret credential ID printed by export and the explicit trusted
+application configuration for revocation:
+
+```sh
+connect revoke --config .local/connect/operator.application.toml \
+  --operation-id saved-agent-revocation AGENT_CREDENTIAL_ID
+```
+
+Current revocation applies to MCP, SDK, CLI and replay. It does not undo an
+already dispatched effect. Preserve original operation references. Inspection
+uses a separate current credential with actual Conversation/Task authority;
+administrator status alone does not grant private history. The model connection
+cannot substitute that inspection authority after its own revocation.
+
+To remove only a verified current export:
+
+```sh
+connect agent-access remove-codex --installation .local/codex-agent
+```
+
+Removal preserves unrelated files and saved diagnostics. It does not revoke the
+server credential or delete the source configuration. Credential expiry/rotation
+and continuation under different authority require explicit owner action.
+
+## Additional setup and historical qualification
+
+`agent-access create-identity` accepts canonical owner/server configurations and
+reconciles the original owner/alias/request ID. It creates the Identity only;
+credential issuance and any required native endpoint enrollment are separate
+trusted setup. The older generic `issue`/retained-inspection recipes are not a
+qualified canonical workflow; their facade migration remains in G6-065.
+
+Earlier [Gate 4 review](evidence/gate-4/acceptance.html),
+[installed candidate](evidence/gate-4/package-dc73996.json),
+[actual-model baseline](evidence/gate-4/real-model-agent-dc73996.json) and
+[owner-review repairs](evidence/gate-4/review-remediation-709cf82.json) retain their
+recorded source and local scope. They do not establish Gate 6 actual-model,
+remote/provider, current package or publication acceptance. The
+[agent journey runbook](AGENT_JOURNEY_QUALIFICATION.md) retains its own lane and
+configuration requirements.

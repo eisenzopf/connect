@@ -2,10 +2,11 @@
 #![allow(clippy::unwrap_used)]
 use super::*;
 use crate::{
+    canonical::CanonicalServerConfig,
     cli::{credentials::with_task_management, init::private_write},
-    config::{McpConfig, ServerConfig},
+    config::McpConfig,
 };
-use connect_client::ClientConfig;
+use connect_client::canonical::CanonicalClientConfig;
 use connect_protocol::Limits;
 use connect_store::{Scope, Store};
 use std::path::PathBuf;
@@ -13,7 +14,8 @@ use std::path::PathBuf;
 struct Fixture {
     directory: tempfile::TempDir,
     store: Store,
-    client: ClientConfig,
+    client: codex::AgentCredential,
+    native: CanonicalClientConfig,
     config: PathBuf,
     server: PathBuf,
     address: std::net::SocketAddr,
@@ -33,30 +35,62 @@ impl Fixture {
             .unwrap();
         private_write(&root.join("certificate.der"), b"local-test-certificate").unwrap();
         let address = "127.0.0.1:19193".parse().unwrap();
-        let client = ClientConfig {
-            endpoint: "127.0.0.1:19443".parse().unwrap(),
-            server_name: "localhost".into(),
-            trust_certificate: root.join("certificate.der"),
+        let client = codex::AgentCredential {
+            profile: "connect-agent-credential/2".into(),
             credential: key.token,
             identity_id: identity.id,
             credential_id: key.id,
-            timeout_ms: 10_000,
+        };
+        let now = chrono::Utc::now();
+        let native = CanonicalClientConfig {
+            network_profile: Default::default(),
+            endpoint: "127.0.0.1:19443".parse().unwrap(),
+            server_name: "localhost".into(),
+            trust_certificate: root.join("certificate.der"),
+            credential: client.credential.clone(),
+            identity_id: client.identity_id.clone(),
+            device_id: "device".into(),
+            device_kind: "desktop".into(),
+            device_platform: "fixture".into(),
+            signing_key_id: "signer".into(),
+            signing_algorithm: "EdDSA".into(),
+            signing_private_key: root.join("private-device-key-not-exported.der"),
+            server_key_id: "server".into(),
+            server_algorithm: "EdDSA".into(),
+            server_public_key: root.join("server-key-not-exported.der"),
+            server_key_not_before: now - chrono::Duration::seconds(1),
+            server_key_expires_at: now + chrono::Duration::days(30),
+            timeout_ms: 10000,
         };
         let config = root.join("agent.toml");
-        private_write(&config, toml::to_string_pretty(&client).unwrap().as_bytes()).unwrap();
+        private_write(&config, toml::to_string_pretty(&native).unwrap().as_bytes()).unwrap();
         let server = root.join("server.toml");
-        let settings = ServerConfig {
-            bind: client.endpoint,
-            websocket_bind: None,
+        let settings = CanonicalServerConfig {
+            network_profile: Default::default(),
+            webtransport: None,
+            websocket: None,
+            session_reconnect_grace_seconds: 30,
+            bind: native.endpoint,
             database: root.join("state.sqlite3"),
-            certificate: client.trust_certificate.clone(),
-            private_key: root.join("private-key.der"),
+            certificate: native.trust_certificate.clone(),
+            private_key: root.join("server-private-key-not-exported.der"),
+            signing_key_id: "server".into(),
+            signing_algorithm: "EdDSA".into(),
+            signing_private_key: root.join("server-signer-not-exported.der"),
+            signing_key_not_before: now - chrono::Duration::seconds(1),
+            signing_key_expires_at: now + chrono::Duration::days(30),
+            http_bind: None,
             mcp: Some(McpConfig {
                 bind: address,
                 binding: None,
             }),
-            sip: None,
-            webrtc: None,
+            record_https: None,
+            record_retention: Default::default(),
+            user_assurance: vec![],
+            telephone: None,
+            public_vapi: None,
+            provider_voice: None,
+            provider_messages: None,
             limits: Limits::default(),
         };
         private_write(
@@ -68,6 +102,7 @@ impl Fixture {
             directory,
             store,
             client,
+            native,
             config,
             server,
             address,
@@ -100,6 +135,11 @@ fn regular_export_keeps_one_agent_key_without_task_grants_or_admin_secret() {
         fixture.client.credential_id
     );
     assert_eq!(installation.client.credential, fixture.client.credential);
+    let exported = std::fs::read_to_string(output.join("agent.toml")).unwrap();
+    assert!(!exported.contains("signing_private_key"));
+    assert!(!exported.contains("trust_certificate"));
+    assert!(!exported.contains("endpoint"));
+    assert_eq!(installation.client.profile, "connect-agent-credential/2");
     assert!(!output.join("task-grant.json").exists());
     assert!(!output.join("grant-renewal.json").exists());
     let manifest = std::fs::read_to_string(output.join("install.json")).unwrap();
@@ -139,22 +179,44 @@ fn export_rejects_admin_revoked_and_mismatched_authority_before_creating_output(
     assert!(export(&fixture.config, &fixture.server, fixture.address, &output).is_err());
     assert!(!output.exists());
     let fixture = Fixture::ordinary();
-    let mut changed = fixture.client.clone();
+    let mut changed = fixture.native.clone();
     changed.identity_id = uuid::Uuid::new_v4().to_string();
     let path = fixture.directory.path().join("mismatched.toml");
     private_write(&path, toml::to_string_pretty(&changed).unwrap().as_bytes()).unwrap();
     let output = fixture.directory.path().join("mismatched");
     assert!(export(&path, &fixture.server, fixture.address, &output).is_err());
     assert!(!output.exists());
-    let mut narrow = fixture.client.clone();
-    narrow.credential_id =
-        connect_protocol::tasks::task_grant_subject(&uuid::Uuid::new_v4().to_string()).unwrap();
+    let mut narrow = fixture.native.clone();
     narrow.credential = "ctg1.fixture-secret".into();
     let path = fixture.directory.path().join("narrow.toml");
     private_write(&path, toml::to_string_pretty(&narrow).unwrap().as_bytes()).unwrap();
     let output = fixture.directory.path().join("not-broadened");
     assert!(export(&path, &fixture.server, fixture.address, &output).is_err());
     assert!(!output.exists());
+}
+
+#[test]
+fn control_only_export_preserves_scope_without_requiring_or_adding_message_permission() {
+    let operations = vec!["session.handoff".into(), "operation.get".into()];
+    let fixture = Fixture::new(Scope {
+        operations: operations.clone(),
+        recipients: vec!["*".into()],
+    });
+    let before = Store::inspect_snapshot(&fixture.directory.path().join("state.sqlite3")).unwrap();
+    let output = fixture.install();
+    let installed = codex::load(&output).unwrap();
+    assert_eq!(installed.client.credential_id, fixture.client.credential_id);
+    let actor = fixture
+        .store
+        .authenticate(&installed.client.credential)
+        .unwrap();
+    assert_eq!(actor.scope.operations, operations);
+    assert!(!actor.permits("send"));
+    assert!(!actor.permits("admin"));
+    assert_eq!(
+        Store::inspect_snapshot(&fixture.directory.path().join("state.sqlite3")).unwrap(),
+        before
+    );
 }
 
 #[test]

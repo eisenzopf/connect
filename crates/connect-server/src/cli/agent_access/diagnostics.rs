@@ -13,7 +13,7 @@ pub fn inspect(directory: Option<&Path>, owner_id: &str) -> Option<HostObservati
     let directory = directory?;
     let manifest = read_bounded(&directory.join("install.json")).ok()?;
     let manifest: serde_json::Value = serde_json::from_slice(&manifest).ok()?;
-    if manifest["profile"] != "connect-codex-agent-install/1" {
+    if manifest["profile"] != "connect-codex-agent-install/2" {
         return None;
     }
     Some(sample(directory, owner_id))

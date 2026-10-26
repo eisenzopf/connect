@@ -1,7 +1,6 @@
 //! Explicit owner setup reuses identity storage and durable request receipts.
-use crate::{cli::task_access::require_private, config::ServerConfig};
+use crate::canonical::CanonicalServerConfig;
 use anyhow::{Context, Result};
-use connect_client::ClientConfig;
 use std::path::Path;
 
 /// Create a named agent once. Matching recovery uses the existing receipt;
@@ -12,12 +11,11 @@ pub fn create(
     alias: &str,
     request_id: Option<&str>,
 ) -> Result<()> {
-    require_private(config_path)?;
-    let owner = ClientConfig::load(config_path)?;
-    let server = ServerConfig::load(server_path)?;
+    let owner = super::codex::load_source(config_path)?;
+    let server = CanonicalServerConfig::load(server_path)?;
     let actor = connect_store::Store::authenticate_file(&server.database, &owner.credential)?;
     anyhow::ensure!(
-        actor.identity_id == owner.identity_id && actor.credential_id == owner.credential_id,
+        actor.identity_id == owner.identity_id,
         "Owner configuration does not match its current credential"
     );
     actor.require("admin")?;

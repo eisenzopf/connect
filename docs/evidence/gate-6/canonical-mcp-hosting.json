@@ -151,7 +151,7 @@
     }
   ],
   "remaining": [
-    "Migrate regular-agent export from generic ServerConfig assumptions to the canonical configuration and qualify a fresh installed skill/host.",
+    "Canonical regular-agent export, minimal credential assets and fresh installed-credential MCP consumption now pass in canonical-agent-export.json. Actual supported model-host transition qualification remains open.",
     "Qualify MCP consultation/handoff/move controls with independent decoded native media and the required supported host; actual-model/provider lanes need their bounded designated configuration.",
     "Finish stdio and complete OpenAPI facade endpoint/auth/admin/file parity. G6-065 and the full105-task goal remain active; broader profiles/acceptance and publication stay separate."
   ]

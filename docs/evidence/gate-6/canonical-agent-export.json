@@ -1,0 +1,167 @@
+{
+  "task": "G6-065",
+  "status": "canonical regular-agent export and narrow-control checkpoint passed; task in progress",
+  "checked_at": "2026-10-26T12:29:19.032494+00:00",
+  "scope": "Local macOS arm64 current built CLI/library/production service. Fresh canonical source/server configuration, protected MCP credential export, embedded skill integrity, actual MCP consumption/original recovery/restart and permission isolation. No actual model turn, supported model-host tool transition, decoded media/remote/provider/package acceptance or publication.",
+  "implementation": [
+    "Export and trusted identity setup read canonical source/server formats. The selected Store authenticates the ordinary token and derives immutable credential/Identity IDs; the input Identity assertion must agree. No generic profile fallback.",
+    "Version2 installation and minimal connect-agent-credential/2 asset retain only profile, Identity ID, credential ID and bearer. Native Device keys, trust paths, endpoints and operator credentials are not copied. Native key metadata is not MCP authentication/custody; key files need not be read for MCP export.",
+    "Export refuses administrator/revoked/mismatched/Task-grant authority before creating output, preserves exact credential scope and does not require messaging for a control-only holder. Existing complete/interrupted destinations are never replaced.",
+    "Installation load/diagnostics recognize the new explicit format, verify complete asset hashes and retain the original authority/session bindings. Existing host lifecycle/redaction and precise removal semantics remain; old format exports refuse rather than silently convert."
+  ],
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 81.36727762501687,
+      "source_unchanged": true,
+      "binary_sha256": "fd2576c2bbd8565deb93e6f48a4ad3650622a8563cd832ab4cfcf412b5e216d7",
+      "bytes": 246503984,
+      "source_count": 1250,
+      "log_sha256": "040d28d2c12b26f3ca0d60965146db007b7f73422862083af3b2df5d3c7ce330",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "library-test-02": {
+        "sha256": "0d3e8789c0181a840f3ae19acef3470d2427acaa3496ae8dfcf3892b222d9613",
+        "bytes": 94453680
+      },
+      "canonical-cli-02": {
+        "sha256": "ed78148907b78b93e6b471c43a107e00176fcee661db13ded67e750131dbc59d",
+        "bytes": 230465120
+      }
+    },
+    "unit": {
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "log": ".local/gate-6/canonical-agent-export/unit-02.log",
+      "sha256": "e7e3435c8a898e4b7c5870223508b3a60a359da26939250def9a34f720faa781",
+      "binary_sha256": "0d3e8789c0181a840f3ae19acef3470d2427acaa3496ae8dfcf3892b222d9613",
+      "scope": "Real read-only export/state/scope invariants and identity setup; fake Codex child for exact saved-session resume/redaction/preflight failure behavior. No actual-model claim."
+    },
+    "production": {
+      "rows": [
+        {
+          "filter": "canonical_mcp::",
+          "expected": [
+            "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+            "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+            "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+            "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.2798260829877108,
+          "log": ".local/gate-6/canonical-agent-export/production-02-00.log",
+          "sha256": "3e6de7d0e38f03a75a10484138c81c13c2c71b0504185f444011dc5ac8e53b9a"
+        },
+        {
+          "filter": "canonical_http_",
+          "expected": [
+            "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+            "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+            "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+            "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+            "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+            "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts"
+          ],
+          "exit_code": 0,
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 3.040384750114754,
+          "log": ".local/gate-6/canonical-agent-export/production-02-01.log",
+          "sha256": "af08611d3f40dc66d683c7f42d9e024cd3e2d677e1c2e6b75d47a18233ca4c7f"
+        },
+        {
+          "filter": "sdk_handles::tasks::",
+          "expected": [
+            "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+            "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+          ],
+          "exit_code": 0,
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 2.605931208934635,
+          "log": ".local/gate-6/canonical-agent-export/production-02-02.log",
+          "sha256": "8ee45994ed6e40650f57071cb329762f46fcd45e0fff25a7ee5036d21535626e"
+        },
+        {
+          "filter": "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation",
+          "expected": [
+            "installed_canonical_cli_serves_signed_sdk_and_sigterm_releases_installation"
+          ],
+          "exit_code": 0,
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "seconds": 1.7936666659079492,
+          "log": ".local/gate-6/canonical-agent-export/production-02-03.log",
+          "sha256": "2cc21cf6c367f45b0ea4e9acf62e92d515fc784950474e611ab4e9cd14603661"
+        }
+      ],
+      "binary_sha256": "fd2576c2bbd8565deb93e6f48a4ad3650622a8563cd832ab4cfcf412b5e216d7",
+      "guard_count": 1250,
+      "source_unchanged": true,
+      "driver_sha256": "4f2b117a0c23ed8ac900b06f4f42de7953c07d1922ec70d2e00e5c3ed7d76409"
+    },
+    "production_summary_sha256": "c9dbab85920ef415044aaff3f3027383cd0069eed884e01cb978f05163fd850a",
+    "narrow_control": "Actual exported handoff/status-only credential discovers exactly connect_inspect/connect_session_handoff/connect_operation_get. Current revocation refuses its existing MCP client; an independently issued same-Identity credential still exposes its own messaging scope. No parent credential fallback or extra grant was exported.",
+    "fresh_cli_export": {
+      "status": "passed fresh CLI canonical export and actual MCP original recovery across restart",
+      "cli_sha256": "ed78148907b78b93e6b471c43a107e00176fcee661db13ded67e750131dbc59d",
+      "manifest_sha256": "aeff320b1594a0a7cc8c378bdc93fe92e08269fae8fa5ad97d89bedfbed03fd7",
+      "profile": "connect-codex-agent-install/2",
+      "credential_profile": "connect-agent-credential/2",
+      "exported_files": 6,
+      "native_keys_or_trust_paths_copied": false,
+      "source_credential_unchanged": true,
+      "operator_refused_before_output": true,
+      "repeat_export_preserved_assets": true,
+      "remove_preserved_unrelated_and_server_authority": true,
+      "records": [
+        {
+          "run": 0,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        },
+        {
+          "run": 1,
+          "tool_count": 60,
+          "current_export_identity": true,
+          "same_original_completed": true,
+          "message_count": 1,
+          "manifest_unchanged": true,
+          "sigterm_exit": 0
+        }
+      ],
+      "source_unchanged": true,
+      "driver_sha256": "22e68b9be24a1005d30bbf511ee9769c6fa8e10409ddd6d26f2939a032545995",
+      "scope": "Local CLI export, embedded skill hash validation and direct MCP protocol client from the exported credential. No actual model invocation, Codex tool transition, media/provider/remote/package qualification or publication."
+    },
+    "export_summary_sha256": "7b16e008482ca0f09f0b4b7870cd1724b4b514dd527b9c48efd7a90aac8960f9",
+    "cli_fixture_details": "Fresh CLI bootstrap/configured server; export6 protected files and compare all3 embedded skill assets to source hashes. Exact Message/Create replay and completed original status survive same configured endpoint/state/credential restart with one Message. Source credential/manifest stay unchanged; operator export refused before output; repeat export preserves assets; removal preserves unrelated notes/source files/server authority. Both server processes SIGTERM0/stopped.",
+    "source_guard_count": 1250,
+    "source_unchanged": true,
+    "format_diff": "passed"
+  },
+  "development_record": [
+    "Initial canonical format/export implementation passes7 library functions,12 production functions and fresh two-cycle CLI/MCP export/recovery. Source review then identified the inherited send/history/inbox prerequisite excluding legitimate control-only credentials. Final source adds narrow-control coverage, and passes8 library/13 production functions plus a new fresh two-cycle CLI/MCP export.",
+    "A stopped-test lossless archive recovered build headroom. Its intended3GiB threshold assertion did not pass at2956455936 bytes and the outer shell continued into the already-active build. This setup check remains failed in setup-headroom-01.json, not a runtime pass. Both actual builds completed cleanly; strict Cargo outcome, no strip/LLVM warning, executable mode/size/hash and independent APFS seals passed. Source/dependencies/user state were untouched; archive audit preserves decoded hashes/modes/paths."
+  ],
+  "private_setup_records": [
+    ".local/gate-6/canonical-agent-export/setup-headroom-01.json",
+    ".local/gate-6/canonical-agent-export/stopped-archive-audit.json"
+  ],
+  "remaining": [
+    "Run the supported actual agent host against canonical consultation/handoff/movement under the required bounded lane; current exported-credential MCP proof is not an actual-model turn.",
+    "Finish canonical CLI issuance/retained-inspection and stdio migration, plus complete facade OpenAPI/auth/admin/file parity. AGENT_ACCESS.md now distinguishes the working canonical bootstrap/export/revocation path and open generic issuance migration.",
+    "Clarify the embedded skill fallback configuration wording for the minimal MCP credential asset and requalify that asset when changed.",
+    "All105 Gate6 tasks remain the active goal. G6-065 and broader installed/profile/acceptance work remain in progress; publication remains separate."
+  ]
+}

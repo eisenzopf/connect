@@ -280,3 +280,85 @@ async fn canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_d
         .unwrap();
     }
 }
+
+#[tokio::test]
+async fn canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback(
+) {
+    let f = Fixture::with_configured_mcp("EdDSA", &[]).await;
+    let issued = f
+        .server
+        .store
+        .issue(
+            &f.client.identity_id,
+            Scope {
+                operations: vec!["session.handoff".into(), "operation.get".into()],
+                recipients: vec!["*".into()],
+            },
+            chrono::Utc::now().timestamp() + 600,
+        )
+        .unwrap();
+    let mut source = f.client.clone();
+    source.credential = issued.token.clone();
+    let input = f.temp.path().join("control-source.toml");
+    let config = f.temp.path().join("control-server.toml");
+    let output = f.temp.path().join("control-export");
+    connect_server::cli::init::private_write(&input, toml::to_string(&source).unwrap().as_bytes())
+        .unwrap();
+    connect_server::cli::init::private_write(
+        &config,
+        toml::to_string(&f.config).unwrap().as_bytes(),
+    )
+    .unwrap();
+    let address = f.server.mcp_address.unwrap();
+    let destination = output.clone();
+    tokio::task::spawn_blocking(move || {
+        connect_server::cli::agent_access::export(&input, &config, address, &destination)
+    })
+    .await
+    .unwrap()
+    .unwrap();
+    let installed: toml::Value =
+        toml::from_str(&std::fs::read_to_string(output.join("agent.toml")).unwrap()).unwrap();
+    assert_eq!(
+        installed["credential_id"].as_str(),
+        Some(issued.id.as_str())
+    );
+    assert_eq!(
+        installed["credential"].as_str(),
+        Some(issued.token.as_str())
+    );
+    assert!(installed.get("signing_private_key").is_none());
+    let mcp = client(address, installed["credential"].as_str().unwrap()).await;
+    let tools = mcp.list_all_tools().await.unwrap();
+    let names = tools
+        .iter()
+        .map(|t| t.name.as_ref())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        names,
+        std::collections::BTreeSet::from([
+            "connect_inspect",
+            "connect_session_handoff",
+            "connect_operation_get"
+        ])
+    );
+    let admin = f.server.store.authenticate(&f.admin).unwrap();
+    let store = f.server.store.clone();
+    tokio::task::spawn_blocking(move || store.revoke(&admin, &issued.id))
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(mcp.list_all_tools().await.is_err());
+    // The independent same-Identity credential remains available; the installed
+    // narrow credential cannot substitute it after revocation.
+    let independent = client(address, &f.client.credential).await;
+    assert!(independent
+        .list_all_tools()
+        .await
+        .unwrap()
+        .iter()
+        .any(|t| t.name == "connect_message_send"));
+    independent.cancel().await.unwrap();
+    mcp.cancel().await.unwrap();
+    f.server.shutdown().await.unwrap();
+}
