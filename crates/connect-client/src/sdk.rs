@@ -26,6 +26,7 @@
 //! ```
 mod administration;
 mod application_reads;
+mod capabilities;
 mod configuration;
 mod connection_controls;
 mod connection_updates;
@@ -53,6 +54,7 @@ mod snapshot;
 mod streams;
 mod worker;
 pub use administration::{AdministrativeClient, TrustedProvisioningCommand};
+pub use capabilities::{features, Capabilities, CapabilitySnapshot, RuntimeRole, Transport};
 pub use configuration::ClientConfig;
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;

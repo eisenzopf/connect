@@ -7,6 +7,7 @@ mod auth_refresh;
 pub(super) mod native_media;
 mod owned_signaling;
 mod sdk_administration;
+mod sdk_capabilities;
 mod sdk_consultations;
 mod sdk_decisions;
 mod sdk_events;

@@ -1,0 +1,31 @@
+{
+  "task": "G6-060",
+  "status": "component checkpoint; external runtime remains open",
+  "checked_at": "2026-10-26T08:36:25.929441+00:00",
+  "scope": "Local Rust/QUIC interface manifest and structured requirement refusal; not server route discovery, policy refresh or decoded-media qualification.",
+  "verification": {
+    "client": {
+      "passed_functions": 211,
+      "new_functions": 3,
+      "log": ".local/gate-6/sdk-capabilities/client-02.log",
+      "sha256": "0ef43c0377f34c6158fb5dba83670830f93ba2f4c515ad79d580dd3d3c150ae9"
+    },
+    "rustdoc": {
+      "passed_functions": 12,
+      "log": ".local/gate-6/sdk-capabilities/rustdoc-01.log",
+      "sha256": "60976fe7a19930c84bbbeb22fbe5728cbd90baafc04584aef8ad967c9379d844"
+    }
+  },
+  "failed_candidates": [
+    {
+      "log": ".local/gate-6/sdk-capabilities/client-01.log",
+      "passed_functions": 210,
+      "failed_functions": 1,
+      "reason": "Fixture expected Authentication after expiry, but the native owner had already observed expiry and retired, correctly returning Cancelled. Both terminal observations must refuse a live snapshot; corrected test asserts that boundary and ReadOnly certainty."
+    }
+  ],
+  "remaining": [
+    "Fresh external public-crate message/Session/handoff/device-move and decoded-media journey, remaining native lifecycle/recovery, incompatible-server and required Linux/remote/package qualification remain.",
+    "Local interface support is not current server permission or media readiness. Publication remains separate."
+  ]
+}

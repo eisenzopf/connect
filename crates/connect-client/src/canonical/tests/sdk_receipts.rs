@@ -193,6 +193,11 @@ async fn receipt_pages_preserve_channels_epochs_provenance_and_do_not_imply_huma
     let http = http().await;
     let (client, host) = setup(&http).await;
     control(&client).await;
+    client
+        .capabilities()
+        .require(sdk::features::MESSAGE_RECEIPTS, options())
+        .await
+        .unwrap();
     let room = client.conversation_by_id("conv_one".parse().unwrap());
     let receipts = room
         .receipts("good".parse().unwrap(), options())

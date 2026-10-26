@@ -34,6 +34,7 @@ struct NativeConnection {
 // Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
 type NativeCache = std::collections::BTreeMap<ConnectionId, NativeConnection>;
 pub(super) struct Shared {
+    pub(super) authority_expires: chrono::DateTime<chrono::Utc>,
     pub(super) invitations: Arc<super::invitations::Inbox>,
     requests: mpsc::Sender<Command>,
     stop: CancellationToken,
@@ -79,6 +80,9 @@ impl Drop for Shared {
 }
 impl Shared {
     pub(super) fn start(mut peer: CanonicalClient) -> Result<Arc<Self>> {
+        let authority_expires = peer
+            .sdk_authority_expires()
+            .map_err(|e| Error::transport(e, None))?;
         peer.start_signaling_reader()
             .map_err(|e| Error::transport(e, None))?;
         let (media_requests, mut media_receiver) =
@@ -322,6 +326,7 @@ impl Shared {
             peer.shutdown().await
         });
         Ok(Arc::new(Self {
+            authority_expires,
             invitations,
             requests,
             stop,

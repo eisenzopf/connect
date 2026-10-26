@@ -361,6 +361,12 @@ impl CanonicalClient {
         }
         Ok(())
     }
+    /// Local lifetime of the already authenticated current native profile. This
+    /// does not discover routes, refresh authority or create media ownership.
+    pub(crate) fn sdk_authority_expires(&self) -> Result<chrono::DateTime<chrono::Utc>> {
+        self.check_current()?;
+        Ok(self.authenticated_until.min(self.server_key_expires_at))
+    }
     fn pending(&self) -> Result<Pending> {
         self.check_current()?;
         Ok(Pending {

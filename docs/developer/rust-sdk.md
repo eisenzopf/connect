@@ -4,7 +4,7 @@ G6-060 is in progress. `connect_client::sdk` provides owned signed native
 control through `Client`, `Conversation`, `Participant`, `Session` and typed
 `Operation<T>` handles. It composes the configured canonical transport and uses
 one bounded request owner. The remaining Connection/Stream, transition,
-event/capability, raw/admin and media surfaces are still being implemented.
+The remaining native lifecycle and external/package/profile qualification are still in progress.
 
 Creating a handle from an ID grants no authority. Each refresh, mutation and
 original-operation status query checks current server policy. Mutations require
@@ -696,3 +696,28 @@ the same sealed executable. The fixture failure and exact functional scope are
 recorded in `docs/evidence/gate-6/rust-sdk-receipts.json`. Capability helpers,
 external/package and required operating-profile qualification remain open;
 G6-060 remains in progress.
+
+
+## Runtime capabilities
+
+`Client::capabilities()` returns a cloneable owned handle. `refresh(options)`
+reports the actual Rust/QUIC `connect/2` interface and configured optional receipt
+support. It performs no IO and consumes no request slots. `require(feature,
+options)` returns a structured `Unsupported` for unavailable local features;
+invalid names, cancellation, expired authenticated lifetime and retired owners
+remain explicit read-only failures. Exported `features` constants define the
+current interface names. An expiry may already have retired the native owner,
+in which case the snapshot refuses with `Cancelled` rather than returning live
+capabilities.
+
+These are local runtime/interface facts. They do not discover provider routes,
+refresh server permissions, negotiate codecs or grant Connection/Stream custody.
+`native-programmatic-media` means bounded native packet/data IO, not desktop
+capture, a packaged encoder, decoded media readiness or provider delivery. The
+selected transport is QUIC with no fallback reason; optional application reads
+do not turn this client into an HTTP media role. Every actual command and media
+flow still requires current authorization and its own behavior evidence.
+
+The component checkpoint passes 211 client functions and 12 Rustdoc checks.
+External runtime qualification remains open in G6-060; evidence is recorded in
+`docs/evidence/gate-6/rust-sdk-capabilities.json`.

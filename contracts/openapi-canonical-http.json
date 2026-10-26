@@ -275,6 +275,12 @@
           "lifecycle": "Per-wait deadlines/drop/cancellation consume no hint. Close/drop detaches the reader and preserves bounded pending hints for a replacement. Exact known signed cancellation removes only its pending scoped invitation. Client close clears bodies and wakes waits; other healthy control/media/event readers remain independent.",
           "reference": "docs/developer/rust-sdk.md"
         },
+        "x-owned-sdk-runtime-capabilities": {
+          "local": "Rust Client.capabilities refreshes the local interface manifest of its actual owned connect/2 QUIC peer, without network IO, shared request slots or server policy refresh. RuntimeRole is Rust; selected_transport is QUIC and fallback_reason is absent. Optional receipt support reflects explicit application configuration.",
+          "require": "Known feature names describe implemented interface support. Unknown/unavailable features return structured Unsupported. Invalid names/options, cancellation, expired authenticated lifetime and retired owners refuse without mutation or fabricated readiness.",
+          "boundary": "Native programmatic media means bounded packet/data IO, not desktop capture, encoders, codec negotiation, actual decoded flow or provider delivery. Features do not discover routes, delegate permissions or install local media custody. Every actual action still requires current server policy and actual behavior evidence.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-owned-sdk-receipts": {
           "configuration": "Rust sdk.ClientConfig explicitly selects native control plus optional protected loopback application reads with the exact same credential; all config is checked before transport construction. Native Local/Remote trust remains explicit. No canonical HTTP fallback or remote HTTP trust is inferred.",
           "query": "Conversation.receipts uses the existing named MessageReceipts application API, never a retired canonical operation. Every page requires current original-source membership/epoch, audience, permission and receipt preferences. Returned state retains Participant, membership epoch, channel, delivery identity, provenance and observed time; client_reported Read is not proof of human action.",
