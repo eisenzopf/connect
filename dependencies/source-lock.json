@@ -1129,6 +1129,11 @@
       "path": "patches/rvoip/gate6-native-journal-delivery.patch",
       "sha256": "a43057e711a9d7724408008e88c37579f3397a595471471742efcef882e87c05",
       "source": "G6-060 bounded metadata-only operation.updated hints on the original confirmed native physical writer. Exact original scope and recorded routing-only identity; queue metadata only, acquire fresh current permission at actual IO, reserve control capacity, and retire unfinished reliable IO before releasing readers. No result, binding, readiness or media grant."
+    },
+    {
+      "path": "patches/rvoip/gate6-subscription-session-lifecycle.patch",
+      "sha256": "e24c71be70041215646a3d2c002266e580d71edaf0966ea350c85b968e7f0e8b",
+      "source": "G6-060 live Session started/joined/left hints use the existing exact Conversation/request correlation and fresh delivery authority. Apply the live lease deadline, including blocked IO, rather than terminal grace. Two upstream scope/deadline/guard regression functions."
     }
   ]
 }

@@ -103,7 +103,7 @@ async fn public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolat
             Scope::collaboration(vec!["*".into()]),
         );
         let publisher = client(f.client.clone()).await;
-        let peer = client(peer_config).await;
+        let peer = client(peer_config.clone()).await;
         let room = create_room(&publisher, &f.peer.identity_id, "live-events-create").await;
         let mine = owner(&room, &f.client.identity_id).await;
         let theirs = owner(&room, &f.peer.identity_id).await;
@@ -122,6 +122,7 @@ async fn public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolat
         let peer_room = peer.conversation_by_id(room.id().clone());
         let mut peer_events = peer_room.events(None, event_wait());
         peer_events.snapshot().await.unwrap();
+        let peer_baseline = peer_events.cursor().unwrap();
         let first = send(&room, recipients.clone(), 0).await;
         let saved_send = first.reference_json();
         first.wait(options()).await.unwrap();
@@ -132,7 +133,31 @@ async fn public_sdk_live_events_preserve_original_facts_resume_cursor_and_isolat
         );
         assert_eq!(event.data["data"]["body"], "journal message 0");
         let other = until_message(&mut peer_events, "live-event-message-0", None).await;
-        assert_eq!(other.event_id, event.event_id);
+        let peer_actual = f
+            .server
+            .store
+            .conversation_events(
+                &peer_config.credential,
+                room.id().as_str(),
+                connect_protocol::events::EventQuery {
+                    after: Some(peer_baseline.as_str().into()),
+                    limit: Some(100),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let peer_actual = peer_actual
+            .events
+            .iter()
+            .find(|e| e.event_id == other.event_id)
+            .expect("exact participant-specific journal row");
+        assert_eq!(other.revision, peer_actual.revision);
+        assert_eq!(
+            other.source.correlation_id,
+            peer_actual.source.correlation_id
+        );
+        assert_eq!(other.audience[0].participant_id.as_str(), theirs.as_str());
+        assert_eq!(other.data, serde_json::to_value(&peer_actual.data).unwrap());
         assert!(
             other.operation_id.is_none(),
             "another actor cannot inherit private operation correlation"
