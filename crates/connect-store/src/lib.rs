@@ -186,7 +186,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 112;
+pub const SCHEMA_VERSION: u32 = 113;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -544,6 +544,10 @@ impl Store {
             .map_err(|_| Error::storage())?;
         tx.execute_batch(include_str!(
             "../migrations/112_native_stream_snapshots.sql"
+        ))
+        .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!(
+            "../migrations/113_contributed_message_endpoints.sql"
         ))
         .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;

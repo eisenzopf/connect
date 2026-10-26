@@ -560,6 +560,7 @@ async fn setup(algorithm: &str) -> Setup {
     let routes = vec![ProviderMessageEndpoint {
         route_id: "sdk-task-provider".into(),
         connector: "vapi".into(),
+        transport: connect_protocol::provisioning::EndpointTransport::VapiChat,
         endpoint_id,
         source_endpoint_id: None,
         account_credential_id: root.clone(),

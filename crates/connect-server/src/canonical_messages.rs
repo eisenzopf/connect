@@ -2,7 +2,8 @@
 use anyhow::Result;
 use connect_connector_api::Connector;
 use connect_service::Service;
-use connect_store::{DiscoveryRuntime, ProviderMessageEndpoint};
+use connect_store::DiscoveryRuntime;
+pub use connect_store::{ProviderMessageEndpoint, Route as MessageRoute};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, net::SocketAddr, sync::Arc};
 #[derive(Clone, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ impl CanonicalMessagesConfig {
     pub fn validate(&self, capacity: usize) -> Result<()> {
         anyhow::ensure!(
             !self.accounts.is_empty()
-                && self.accounts.len() <= 2
+                && self.accounts.len() <= 16
                 && !self.endpoints.is_empty()
                 && self.endpoints.len() <= capacity.min(512),
             "Invalid canonical message capacity"
@@ -39,8 +40,13 @@ impl CanonicalMessagesConfig {
         let mut routes = BTreeSet::new();
         for a in &self.accounts {
             anyhow::ensure!(
-                matches!(a.connector.as_str(), "vapi" | "telnyx") && accounts.insert(&a.connector),
-                "Select one supported message account per connector"
+                !a.connector.is_empty()
+                    && a.connector.len() <= 64
+                    && a.connector
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b == b'-')
+                    && accounts.insert(&a.connector),
+                "Select one declared message account per connector"
             );
             connect_protocol::transitions::id(&a.secret_reference)?;
         }
@@ -107,12 +113,20 @@ impl Host {
         service: Arc<Service>,
         injected: Option<Vec<Arc<dyn Connector>>>,
         policy: Option<Arc<dyn crate::SmsPolicy>>,
+        routes: Vec<MessageRoute>,
     ) -> Result<Self> {
         config.validate(service.store.limits().connections)?;
         let test_composition = injected.is_some();
         let drivers = match injected {
             Some(drivers) => drivers,
             None => {
+                anyhow::ensure!(
+                    config
+                        .accounts
+                        .iter()
+                        .all(|a| matches!(a.connector.as_str(), "vapi" | "telnyx")),
+                    "Contributed message accounts require an explicit trusted driver"
+                );
                 let mut drivers: Vec<Arc<dyn Connector>> = vec![];
                 for a in &config.accounts {
                     let key = crate::secrets::optional(&a.secret_reference)?.ok_or_else(|| {
@@ -129,7 +143,9 @@ impl Host {
                             "https://api.telnyx.com/v2",
                             &a.secret_reference,
                         )?) as Arc<dyn Connector>,
-                        _ => unreachable!("validated connector"),
+                        _ => anyhow::bail!(
+                            "Contributed message accounts require an explicit trusted driver"
+                        ),
                     });
                 }
                 drivers
@@ -151,11 +167,12 @@ impl Host {
         };
         let expire = !test_composition && config.accounts.iter().any(|a| a.connector == "telnyx")
             || policy.is_some();
-        let worker = crate::providers::Worker::with_endpoint_routes(
+        let worker = crate::providers::Worker::with_configured_endpoint_routes(
             service.clone(),
             drivers,
             config.operator_credential_id.clone(),
             config.endpoints.clone(),
+            routes,
             policy,
             expire,
         )

@@ -80,6 +80,7 @@ fn authorization(
     )?;
     if let Some(binding) = crate::provider_message_endpoints::current(c, &job.route)? {
         crate::provider_message_endpoints::configuration(
+            c,
             &binding,
             configuration.ok_or_else(Error::forbidden)?,
         )?;

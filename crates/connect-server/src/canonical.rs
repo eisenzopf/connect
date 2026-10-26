@@ -157,6 +157,7 @@ pub struct CanonicalConnectors {
     pub messages: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
     pub sms_policy: Option<Arc<dyn crate::SmsPolicy>>,
     pub media: Vec<crate::connector_media::LiveTransport>,
+    pub message_routes: Vec<crate::canonical_messages::MessageRoute>,
 }
 /// Owns the installation, native intake, authenticated peers, idle policy and
 /// optional HTTP facade. Dropping it fences the installation and every peer.
@@ -211,6 +212,7 @@ impl RunningCanonicalServer {
                 messages: drivers,
                 sms_policy: policy,
                 media: vec![],
+                message_routes: vec![],
             },
         ))
         .await
@@ -228,6 +230,7 @@ impl RunningCanonicalServer {
             config,
             connectors.messages,
             connectors.sms_policy,
+            connectors.message_routes,
             &media,
         ))
         .await
@@ -248,10 +251,11 @@ impl RunningCanonicalServer {
         config: CanonicalServerConfig,
         drivers: Option<Vec<Arc<dyn connect_connector_api::Connector>>>,
         policy: Option<Arc<dyn crate::SmsPolicy>>,
+        message_routes: Vec<crate::canonical_messages::MessageRoute>,
         contributed_media: &crate::connector_media::Host,
     ) -> Result<Self> {
         anyhow::ensure!(
-            drivers.is_none() || config.provider_messages.is_some(),
+            (drivers.is_none() && message_routes.is_empty()) || config.provider_messages.is_some(),
             "Message injection requires protected hosting configuration"
         );
         config.validate()?;
@@ -384,8 +388,14 @@ impl RunningCanonicalServer {
             .transpose()?;
         let provider_messages = match &config.provider_messages {
             Some(messages) => Some(
-                crate::canonical_messages::Host::start(messages, service.clone(), drivers, policy)
-                    .await?,
+                crate::canonical_messages::Host::start(
+                    messages,
+                    service.clone(),
+                    drivers,
+                    policy,
+                    message_routes,
+                )
+                .await?,
             ),
             None => None,
         };

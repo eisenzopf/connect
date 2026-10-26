@@ -1,0 +1,105 @@
+{
+  "task": "G6-068",
+  "status": "in-progress; current contributed message stock journeys qualified in the stated local scope",
+  "checked_at": "2026-10-26T19:10:26.892223+00:00",
+  "base_revision": "ca1ad7036562dd992d082647c46aab3091530fb3",
+  "scope": "Darwin arm64 isolated local fixtures. Current public HTTP SDK provisioning, credential issuance and canonical conversation communication plus protected stock process composition. No direct application Store access or modified dispatch in the journey. No real provider/model, remote/Linux/browser, capacity/latency/package/publication or independent acceptance claim.",
+  "schema": 113,
+  "implementation": [
+    "Declare explicit Endpoint transport and bind decoded connector target, selected account reference, current verified Endpoint/Device/member/tenant and route credentials against the registered immutable manifest.",
+    "Acquire exclusive worker ownership, register manifests, create dormant trusted route plans, bind current Endpoints/accounts, then enable routes before recovery and IO. Unknown driver factories require explicit trusted composition.",
+    "Schema113 replaces the old raw-address binding trigger with explicit transport and exact authorized endpoint/decoded-route facts. Prior candidate state remains refused unchanged.",
+    "Public SDK stock journey uses a separate fixture provider ledger; the application never reads or writes its database."
+  ],
+  "verification": {
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 729.4671537911054,
+      "source_unchanged": true,
+      "binary_sha256": "562572e8d509dae5bcbcb718ee07f838b385e565ed29c823acc59d4de48187b1",
+      "bytes": 194443904,
+      "source_count": 1448,
+      "log_sha256": "f1206b7f83cf36c2318631f42514782f6f6422e0c95f2f07cb674f7948194c0a",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "stock-cli-08": {
+        "sha256": "ab8a79a9a5a2d353f921d0dd20237e39e9e2d1348f827b2b4a50ea46e6b6aa14",
+        "bytes": 232507520
+      }
+    },
+    "stock_journeys": {
+      "passed": 2,
+      "exit_code": 0,
+      "seconds": 2.2424512919969857,
+      "binary_sha256": "562572e8d509dae5bcbcb718ee07f838b385e565ed29c823acc59d4de48187b1",
+      "source_unchanged": true,
+      "source_count": 1448,
+      "log_sha256": "35603f0df68a29a21fe758a2bf84db67983b3d05f550d55c2cca9e5495b1f30a",
+      "default_thread_stack": true
+    },
+    "store_components": [
+      {
+        "name": "endpoint",
+        "exit_code": 0,
+        "seconds": 712.3905390000436,
+        "passed": 10,
+        "results": [
+          "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1215 filtered out; finished in 1.45s"
+        ],
+        "log_sha256": "f57b20d7df2c53bae0c21d0cd5b88701a798e1e0271dc35b774d6605133639fc",
+        "source_unchanged": true
+      },
+      {
+        "name": "schema",
+        "exit_code": 0,
+        "seconds": 37.28142495895736,
+        "passed": 4,
+        "results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.69s"
+        ],
+        "log_sha256": "9ed3577f4d2dad8264d530984f6f722e5bd9448f6b8c4cece7bee7227ceb7d3f",
+        "source_unchanged": true
+      }
+    ],
+    "full_store_suite": {
+      "status": "running separately; not yet counted as a pass"
+    },
+    "protected_http": {
+      "status": "passed local protected HTTP OpenAPI checkpoint",
+      "cli_sha256": "ab8a79a9a5a2d353f921d0dd20237e39e9e2d1348f827b2b4a50ea46e6b6aa14",
+      "source_unchanged": true,
+      "protected_samples": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "sigterm_exit": 0,
+      "platform": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "python": "3.14.7"
+      }
+    },
+    "http_summary_sha256": "83f86cab83d791e8e41cf536cc2d584775df74bdf91af4a7f8cde9e98e22d31f",
+    "build_inputs_sha256": "945ecc544a4162a5f8ba2c5d284513f5c7747a3c7486d15e267ac31915287138",
+    "source_guard_count": 1448
+  },
+  "behavior_evidence": {
+    "deduplication": "Exact parent receipt and one retained logical provider effect before and after canonical host/provider restart; duplicate inbound ID commits one visible message.",
+    "privacy": "Public primer reaches provider context; private-to-peer secret is excluded. A scoped peer positively sees public content and cannot see the private request/reply or explicit inbound audience.",
+    "uncertainty": "Original unknown outcome retains one logical effect; identical parent replay preserves receipt; explicit read-only reconciliation observes the original ID.",
+    "withdrawal": "Public Endpoint revocation refuses inbound contact and identical reconciliation before effect replay.",
+    "teardown": "Stock owned shutdown completes after these delivered/reconciled journeys. In-flight cancellation is still required."
+  },
+  "retained_failures": [
+    "Exploratory debug check exhausted disk; rejected derived files removed with audit.",
+    "Initial production test recursion overflow corrected with the existing256 limit used by canonical runtime tests.",
+    "Cargo reported success after objcopy ENOSPC produced tiny nonexecutable outputs; guards rejected them. Only corrupt derived outputs/fingerprint were invalidated before the valid frozen build.",
+    "Initial Store run:1220 passed,2 new helper failures,3 subprocess worker fixtures ignored. New helpers reused a unique identity/conversation binding; they now use separate conversations.",
+    "Initial stock runtime:0 passed,2 failed at startup because the historical raw-address trigger rejected decoded connector targets. Schema113 and current matching tests pass."
+  ],
+  "remaining": [
+    "Full Store terminal regression result.",
+    "Current callback authentication/replay and independent Prism stock public journey.",
+    "Actual in-flight cancellation/teardown and restart during uncertainty with physical dispatch-attempt instrumentation.",
+    "Actual live-media stock public application workflow; component harness and startup registration alone do not satisfy this requirement.",
+    "G6-068 remains in progress and the full105-task objective is unchanged."
+  ]
+}

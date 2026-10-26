@@ -15,6 +15,24 @@ struct Fixture {
 fn fixture() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::initialize(&dir.path().join("state.sqlite3"), Limits::default()).unwrap();
+    for descriptor in [connect_connector_api::VAPI, connect_connector_api::TELNYX] {
+        let mut declaration = connect_connector_api::manifest::Manifest::messaging(descriptor);
+        declaration
+            .configuration
+            .push(connect_connector_api::manifest::ConfigField {
+                name: if descriptor.sms {
+                    "api-key"
+                } else {
+                    "private-key"
+                }
+                .into(),
+                required: true,
+                secret: true,
+            });
+        store
+            .register_connector_manifest(descriptor, &declaration)
+            .unwrap();
+    }
     let human = store.create_identity("human").unwrap().id;
     let bot = store.create_identity("bot").unwrap().id;
     let expires = chrono::Utc::now().timestamp() + 600;
@@ -163,6 +181,7 @@ impl Fixture {
                     &[ProviderMessageEndpoint {
                         route_id: "sms".into(),
                         connector: "telnyx".into(),
+                        transport: connect_protocol::provisioning::EndpointTransport::Sms,
                         endpoint_id: target,
                         source_endpoint_id: Some(source),
                         account_credential_id: self.operator.clone(),

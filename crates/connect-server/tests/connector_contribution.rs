@@ -324,7 +324,14 @@ async fn invalid_or_unready_composition_cannot_persist_contracts_or_claim_work()
         }
         fn manifest(&self) -> Manifest {
             let mut value = Manifest::messaging(self.descriptor());
-            value.video = true;
+            value.media = connect_connector_api::media::MediaSupport::LifecycleFixture {
+                audio: connect_connector_api::manifest::AudioFormat {
+                    codec: "unsupported-video".into(),
+                    sample_rate: 16000,
+                    channels: 1,
+                    frame_ms: 20,
+                },
+            };
             value
         }
         async fn deliver(

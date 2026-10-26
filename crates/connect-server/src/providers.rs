@@ -64,6 +64,37 @@ impl Worker {
         authority: Option<Arc<dyn crate::SmsPolicy>>,
         expire: bool,
     ) -> anyhow::Result<Self> {
+        Self::with_configured_endpoint_routes(
+            service,
+            drivers,
+            operator,
+            bindings,
+            vec![],
+            authority,
+            expire,
+        )
+        .await
+    }
+    /// Protected startup route plans; callers supply public resource IDs, never
+    /// write the application database. All routes remain disabled until bound.
+    pub async fn with_configured_endpoint_routes(
+        service: Arc<Service>,
+        drivers: Vec<Arc<dyn Connector>>,
+        operator: String,
+        bindings: Vec<connect_store::ProviderMessageEndpoint>,
+        routes: Vec<connect_store::Route>,
+        authority: Option<Arc<dyn crate::SmsPolicy>>,
+        expire: bool,
+    ) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            routes.len() <= bindings.len()
+                && routes.iter().enumerate().all(|(i, r)| r.enabled
+                    && routes[..i].iter().all(|old| old.id != r.id)
+                    && bindings
+                        .iter()
+                        .any(|p| p.route_id == r.id && p.connector == r.connector)),
+            "Message route plan differs from selected Endpoint bindings"
+        );
         anyhow::ensure!(
             !bindings.is_empty(),
             "Message hosting requires explicit Endpoint routes"
@@ -89,23 +120,19 @@ impl Worker {
                 .ok_or_else(|| {
                     anyhow::anyhow!("Endpoint route has no configured message account")
                 })?;
-            let field = if p.connector == "vapi" {
-                "private-key"
-            } else {
-                "api-key"
-            };
-            anyhow::ensure!(
-                driver.configuration().get(field)
-                    == Some(&format!("secret:{}", p.secret_reference)),
-                "Endpoint route differs from selected account reference"
-            );
+            driver
+                .manifest()
+                .validate_account_reference(&driver.configuration(), &p.secret_reference)
+                .map_err(|_| {
+                    anyhow::anyhow!("Endpoint route differs from selected account reference")
+                })?;
         }
         Self::compose(
             service,
             drivers,
             authority,
             expire,
-            Some((operator, bindings)),
+            Some((operator, bindings, routes)),
         )
         .await
     }
@@ -114,7 +141,11 @@ impl Worker {
         drivers: Vec<Arc<dyn Connector>>,
         authority: Option<Arc<dyn crate::SmsPolicy>>,
         expire: bool,
-        endpoint_routes: Option<(String, Vec<connect_store::ProviderMessageEndpoint>)>,
+        endpoint_routes: Option<(
+            String,
+            Vec<connect_store::ProviderMessageEndpoint>,
+            Vec<connect_store::Route>,
+        )>,
     ) -> anyhow::Result<Self> {
         let mut registry = connect_connector_api::manifest::Registry::default();
         let mut contracts = Vec::new();
@@ -139,7 +170,7 @@ impl Worker {
         let setup_contracts = contracts.clone();
         let selected_routes = endpoint_routes
             .as_ref()
-            .map(|(_, p)| p.iter().map(|p| p.route_id.clone()).collect::<Vec<_>>());
+            .map(|(_, p, _)| p.iter().map(|p| p.route_id.clone()).collect::<Vec<_>>());
         let role = tokio::task::spawn_blocking(move || -> anyhow::Result<_> {
             let role = setup_store.acquire_provider_worker()?;
             if expire {
@@ -148,8 +179,19 @@ impl Worker {
             for (descriptor, manifest) in &setup_contracts {
                 setup_store.register_connector_manifest(*descriptor, manifest)?;
             }
-            if let Some((operator, bindings)) = &endpoint_routes {
+            if let Some((operator, bindings, routes)) = &endpoint_routes {
+                // The owned worker role excludes another dispatcher. New or
+                // replayed route plans cannot dispatch before current verified
+                // Endpoint/account binding succeeds; refusal leaves them dormant.
+                for route in routes {
+                    let mut dormant = route.clone();
+                    dormant.enabled = false;
+                    setup_store.configure_route(operator, &dormant)?;
+                }
                 setup_store.bind_provider_message_endpoints(operator, bindings)?;
+                for route in routes {
+                    setup_store.configure_route(operator, route)?;
+                }
             }
             setup_store.recover_provider_jobs()?;
             Ok(role)

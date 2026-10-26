@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 pub struct ProviderMessageEndpoint {
     pub route_id: String,
     pub connector: String,
+    pub transport: connect_protocol::provisioning::EndpointTransport,
     pub endpoint_id: String,
     pub source_endpoint_id: Option<String>,
     pub account_credential_id: String,
@@ -35,6 +36,22 @@ fn endpoint(c: &Connection, id: &str) -> Result<Value> {
     let raw:String=c.query_row("SELECT json_object('id',e.id,'identity',e.identity_id,'tenant',e.tenant_id,'revision',e.revision,'address',e.address,'transport',e.transport,'capabilities',json(e.capabilities_json),'secret_ref',e.secret_ref,'owner',e.route_owner_id,'device',e.device_id,'kind',d.kind,'platform',d.platform) FROM endpoints e JOIN identities i ON i.id=e.identity_id AND i.revoked=0 JOIN devices d ON d.id=e.device_id AND d.identity_id=i.id AND d.revoked=0 WHERE e.id=?1 AND e.verification_state='verified'",[id],|r|r.get(0)).map_err(|_|Error::forbidden())?;
     serde_json::from_str(&raw).map_err(|_| Error::storage())
 }
+fn manifest(c: &Connection, connector: &str) -> Result<connect_connector_api::manifest::Manifest> {
+    let raw: String = c
+        .query_row(
+            "SELECT manifest FROM connector_manifests WHERE name=?1",
+            [connector],
+            |r| r.get(0),
+        )
+        .map_err(|_| Error::forbidden())?;
+    let value: connect_connector_api::manifest::Manifest =
+        serde_json::from_str(&raw).map_err(|_| Error::storage())?;
+    value.validate().map_err(|_| Error::forbidden())?;
+    if value.name != connector || !value.messaging {
+        return Err(Error::forbidden());
+    }
+    Ok(value)
+}
 fn facts(c: &Connection, p: &ProviderMessageEndpoint) -> Result<Facts> {
     for id in [
         &p.route_id,
@@ -48,7 +65,7 @@ fn facts(c: &Connection, p: &ProviderMessageEndpoint) -> Result<Facts> {
         connect_protocol::transitions::id(id)?;
     }
     let mut r = route(c, &p.route_id)?;
-    if r.connector != p.connector || !matches!(r.connector.as_str(), "vapi" | "telnyx") {
+    if r.connector != p.connector {
         return Err(Error::forbidden());
     }
     let account = actor_from_connection(c, &p.account_credential_id)?;
@@ -77,13 +94,40 @@ fn facts(c: &Connection, p: &ProviderMessageEndpoint) -> Result<Facts> {
     if target["tenant"] != tenant {
         return Err(Error::forbidden());
     }
-    let transport = if r.connector == "vapi" {
+    let declaration = manifest(c, &p.connector)?;
+    use connect_connector_api::AddressKind;
+    let transport = target["transport"].as_str().ok_or_else(Error::forbidden)?;
+    if transport != p.transport.as_str() {
+        return Err(Error::forbidden());
+    }
+    let sms = match transport {
+        "sms" if declaration.sms && declaration.address == AddressKind::E164Pair => true,
         "vapi-chat"
+            if declaration.context
+                && !declaration.sms
+                && declaration.address == AddressKind::Uuid =>
+        {
+            false
+        }
+        "connector"
+            if !declaration.sms
+                && declaration.address != AddressKind::E164Pair
+                && connect_protocol::provisioning::connector_endpoint_name(
+                    target["address"].as_str().ok_or_else(Error::forbidden)?,
+                )? == p.connector =>
+        {
+            false
+        }
+        _ => return Err(Error::forbidden()),
+    };
+    let target_address = target["address"].as_str().ok_or_else(Error::forbidden)?;
+    let target_matches = if transport == "connector" {
+        connect_protocol::provisioning::connector_endpoint_target(target_address)? == r.target
     } else {
-        "sms"
+        target_address == r.target
     };
     if target["identity"] != r.identity_id
-        || target["address"] != r.target
+        || !target_matches
         || target["transport"] != transport
         || target["owner"] != account.identity_id
         || target["secret_ref"] != p.secret_reference
@@ -93,7 +137,7 @@ fn facts(c: &Connection, p: &ProviderMessageEndpoint) -> Result<Facts> {
     {
         return Err(Error::forbidden());
     }
-    let source = if r.connector == "telnyx" {
+    let source = if sms {
         let source = endpoint(
             c,
             p.source_endpoint_id
@@ -124,7 +168,7 @@ fn facts(c: &Connection, p: &ProviderMessageEndpoint) -> Result<Facts> {
                 |r| r.get(0),
             )
             .map_err(|_| Error::forbidden())?;
-        if !ai {
+        if transport == "vapi-chat" && !ai {
             return Err(Error::forbidden());
         }
         None
@@ -172,19 +216,15 @@ pub(crate) fn account(
     ))
 }
 pub(crate) fn configuration(
+    c: &Connection,
     p: &ProviderMessageEndpoint,
     actual: &BTreeMap<String, String>,
 ) -> Result<()> {
-    let key = if p.connector == "vapi" {
-        "private-key"
-    } else {
-        "api-key"
-    };
-    if actual.get(key) != Some(&format!("secret:{}", p.secret_reference)) {
-        return Err(Error::forbidden());
-    }
-    Ok(())
+    manifest(c, &p.connector)?
+        .validate_account_reference(actual, &p.secret_reference)
+        .map_err(|_| Error::forbidden())
 }
+
 impl Store {
     pub fn require_provider_message_configuration(
         &self,
@@ -193,7 +233,7 @@ impl Store {
     ) -> Result<()> {
         let c = self.connection()?;
         if let Some(p) = current(&c, &route(&c, route_id)?)? {
-            self::configuration(&p, configuration)?;
+            self::configuration(&c, &p, configuration)?;
         }
         Ok(())
     }
@@ -206,7 +246,7 @@ impl Store {
         let c = self.connection()?;
         let (job, _) = crate::connector_observations::authorized_job(&c, job_id, connector)?;
         if let Some(p) = current(&c, &job.route)? {
-            self::configuration(&p, configuration)?;
+            self::configuration(&c, &p, configuration)?;
         }
         Ok(())
     }
@@ -356,6 +396,24 @@ mod tests {
             let s = Arc::new(
                 Store::initialize(&tmp.path().join("state.sqlite3"), Limits::default()).unwrap(),
             );
+            for descriptor in [connect_connector_api::VAPI, connect_connector_api::TELNYX] {
+                let mut declaration =
+                    connect_connector_api::manifest::Manifest::messaging(descriptor);
+                declaration
+                    .configuration
+                    .push(connect_connector_api::manifest::ConfigField {
+                        name: if descriptor.sms {
+                            "api-key"
+                        } else {
+                            "private-key"
+                        }
+                        .into(),
+                        required: true,
+                        secret: true,
+                    });
+                s.register_connector_manifest(descriptor, &declaration)
+                    .unwrap();
+            }
             let root_id = s.create_identity("root").unwrap().id;
             let root = s
                 .issue(&root_id, Scope::operator(), crate::now() + 600)
@@ -421,6 +479,7 @@ mod tests {
             let p = ProviderMessageEndpoint {
                 route_id: "bound".into(),
                 connector: "vapi".into(),
+                transport: connect_protocol::provisioning::EndpointTransport::VapiChat,
                 endpoint_id: endpoint,
                 source_endpoint_id: None,
                 account_credential_id: root.clone(),
@@ -733,6 +792,7 @@ mod tests {
         let mut p = ProviderMessageEndpoint {
             route_id: "sms".into(),
             connector: "telnyx".into(),
+            transport: connect_protocol::provisioning::EndpointTransport::Sms,
             endpoint_id: target,
             source_endpoint_id: None,
             account_credential_id: f.root.clone(),
@@ -776,5 +836,131 @@ mod tests {
         .unwrap();
         assert!(f.s.apply_connector_receipt("vapi", &receipt).is_err());
         assert_eq!(f.count("connector_receipt_events"), 1);
+    }
+    fn contributed(f: &F, name: &str, address: &str) -> ProviderMessageEndpoint {
+        let descriptor = connect_connector_api::Descriptor {
+            conversational: true,
+            ..connect_connector_api::Descriptor::one_way("independent-fixture")
+        };
+        let mut declaration = connect_connector_api::manifest::Manifest::messaging(descriptor);
+        declaration
+            .configuration
+            .push(connect_connector_api::manifest::ConfigField {
+                name: "callback-key".into(),
+                required: true,
+                secret: true,
+            });
+        f.s.register_connector_manifest(descriptor, &declaration)
+            .unwrap();
+        let mut r = route(&f.s.connection().unwrap(), "bound").unwrap();
+        let Outcome::Conversation(room) =
+            f.s.execute(
+                &f.root,
+                &Operation::Create {
+                    request_id: format!("room-{name}"),
+                    request: connect_protocol::conversations::CreateRequest::persistent(vec![f
+                        .ai
+                        .clone()]),
+                },
+            )
+            .unwrap()
+        else {
+            panic!("contributed room")
+        };
+        r.conversation_id = room.id;
+        r.id = name.into();
+        r.connector = "independent-fixture".into();
+        r.target = connect_protocol::provisioning::connector_endpoint_target(address).unwrap();
+        f.s.configure_route(&f.root, &r).unwrap();
+        ProviderMessageEndpoint {
+            route_id: name.into(),
+            connector: "independent-fixture".into(),
+            transport: EndpointTransport::Connector,
+            endpoint_id: ep(
+                &f.s,
+                &f.root,
+                &f.ai,
+                name,
+                EndpointTransport::Connector,
+                address,
+            ),
+            source_endpoint_id: None,
+            account_credential_id: f.root.clone(),
+            secret_reference: "MESSAGE_KEY".into(),
+        }
+    }
+    #[test]
+    fn contributed_endpoint_binds_declared_account_and_rechecks_withdrawal() {
+        let f = F::new();
+        let p = contributed(&f, "custom", "connector://independent-fixture/peer");
+        f.s.bind_provider_message_endpoints(&f.root, &[p.clone()])
+            .unwrap();
+        assert!(f.s.provider_message_endpoint_current(&p).unwrap());
+        f.s.require_provider_message_configuration(
+            &p.route_id,
+            &[("callback-key".into(), "secret:MESSAGE_KEY".into())].into(),
+        )
+        .unwrap();
+        assert!(f
+            .s
+            .require_provider_message_configuration(
+                &p.route_id,
+                &[("api-key".into(), "secret:MESSAGE_KEY".into())].into()
+            )
+            .is_err());
+        assert!(f
+            .s
+            .require_provider_message_configuration(
+                &p.route_id,
+                &[("callback-key".into(), "secret:OTHER_KEY".into())].into()
+            )
+            .is_err());
+        f.s.execute_provisioning(
+            &f.root,
+            ProvisioningCommand::RevokeEndpoint {
+                operation_id: "withdraw-custom".into(),
+                endpoint_id: p.endpoint_id.clone(),
+                expected_revision: 1,
+            },
+        )
+        .unwrap();
+        assert!(f.s.provider_message_endpoint_current(&p).is_err());
+        assert!(f
+            .s
+            .require_provider_message_configuration(
+                &p.route_id,
+                &[("callback-key".into(), "secret:MESSAGE_KEY".into())].into()
+            )
+            .is_err());
+    }
+    #[test]
+    fn contributed_endpoint_refuses_wrong_declaration_transport_and_reference() {
+        let f = F::new();
+        let p = contributed(&f, "custom", "connector://independent-fixture/peer");
+        for changed in [
+            ProviderMessageEndpoint {
+                transport: EndpointTransport::VapiChat,
+                ..p.clone()
+            },
+            ProviderMessageEndpoint {
+                secret_reference: "OTHER_KEY".into(),
+                ..p.clone()
+            },
+            ProviderMessageEndpoint {
+                connector: "vapi".into(),
+                ..p.clone()
+            },
+        ] {
+            assert!(f
+                .s
+                .bind_provider_message_endpoints(&f.root, &[changed])
+                .is_err());
+        }
+        let other = contributed(&f, "wrong-name", "connector://other-fixture/peer");
+        assert!(f
+            .s
+            .bind_provider_message_endpoints(&f.root, &[other])
+            .is_err());
+        f.s.bind_provider_message_endpoints(&f.root, &[p]).unwrap();
     }
 }

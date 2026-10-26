@@ -177,11 +177,13 @@ impl EndpointRuntime {
         let mut profiles = (*self.profiles).clone();
         let mut refs = (*self.secret_refs).clone();
         for p in &bindings {
-            let transport = match p.connector.as_str() {
-                "vapi" => EndpointTransport::VapiChat,
-                "telnyx" => EndpointTransport::Sms,
-                _ => return Err(Error::forbidden()),
-            };
+            let transport = p.transport.clone();
+            if !matches!(
+                transport,
+                EndpointTransport::VapiChat | EndpointTransport::Sms | EndpointTransport::Connector
+            ) {
+                return Err(Error::forbidden());
+            }
             if !profiles.iter().any(|v| v.transport == transport) {
                 profiles.push(EndpointProfile {
                     transport: transport.clone(),
@@ -192,7 +194,7 @@ impl EndpointRuntime {
                 refs.push((transport, p.secret_reference.clone()));
             }
         }
-        if profiles.len() > 8 || refs.len() > 64 {
+        if profiles.len() > 9 || refs.len() > 64 {
             return Err(Error::new(
                 "capacity-exceeded",
                 "Mounted message profile budget exceeded",
@@ -333,7 +335,7 @@ impl EndpointRuntime {
         &self.epoch
     }
     pub fn new(profiles: Vec<EndpointProfile>) -> Result<Self> {
-        if profiles.len() > 8
+        if profiles.len() > 9
             || profiles
                 .iter()
                 .any(|p| p.media.is_empty() || p.media.len() > 6)

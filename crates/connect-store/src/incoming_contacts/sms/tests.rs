@@ -22,6 +22,23 @@ impl F {
         let s = Store::initialize(&tmp.path().join("state.sqlite3"), Limits::default()).unwrap();
         let account = s.create_identity("account").unwrap().id;
         let alice = s.create_identity("alice").unwrap().id;
+        for descriptor in [connect_connector_api::VAPI, connect_connector_api::TELNYX] {
+            let mut declaration = connect_connector_api::manifest::Manifest::messaging(descriptor);
+            declaration
+                .configuration
+                .push(connect_connector_api::manifest::ConfigField {
+                    name: if descriptor.sms {
+                        "api-key"
+                    } else {
+                        "private-key"
+                    }
+                    .into(),
+                    required: true,
+                    secret: true,
+                });
+            s.register_connector_manifest(descriptor, &declaration)
+                .unwrap();
+        }
         let peer = s.create_identity("peer").unwrap().id;
         let observer = s.create_identity("observer").unwrap().id;
         let root = s
@@ -112,6 +129,7 @@ impl F {
             policies.push(ProviderMessageEndpoint {
                 route_id: route.id,
                 connector: "telnyx".into(),
+                transport: connect_protocol::provisioning::EndpointTransport::Sms,
                 endpoint_id: target.clone(),
                 source_endpoint_id: Some(source.clone()),
                 account_credential_id: root.clone(),

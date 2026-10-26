@@ -194,6 +194,7 @@ async fn prepare_inner(sms: bool, overlap: bool) -> Prepared {
     let mut endpoints = vec![ProviderMessageEndpoint {
         route_id: "canonical-vapi".into(),
         connector: "vapi".into(),
+        transport: connect_protocol::provisioning::EndpointTransport::VapiChat,
         endpoint_id: target,
         source_endpoint_id: None,
         account_credential_id: root.credential_id.clone(),
@@ -239,6 +240,7 @@ async fn prepare_inner(sms: bool, overlap: bool) -> Prepared {
         endpoints.push(ProviderMessageEndpoint {
             route_id: "canonical-sms".into(),
             connector: "telnyx".into(),
+            transport: connect_protocol::provisioning::EndpointTransport::Sms,
             endpoint_id: target.clone(),
             source_endpoint_id: Some(source.clone()),
             account_credential_id: root.credential_id.clone(),
@@ -274,6 +276,7 @@ async fn prepare_inner(sms: bool, overlap: bool) -> Prepared {
             endpoints.push(ProviderMessageEndpoint {
                 route_id: "overlapping-sms".into(),
                 connector: "telnyx".into(),
+                transport: connect_protocol::provisioning::EndpointTransport::Sms,
                 endpoint_id: target,
                 source_endpoint_id: Some(source),
                 account_credential_id: root.credential_id.clone(),

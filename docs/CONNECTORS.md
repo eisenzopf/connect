@@ -401,3 +401,51 @@ exposed incomplete schema guidance. This integration repair is distinguished fro
 the original independent authoring in the contributor evidence. The example
 imports only `connect-connector-api`, and its own Cargo workspace builds without
 changes to conversation, routing or authorization code.
+
+## Current canonical message hosting
+
+A contributed message connector can be selected explicitly at protected Rust
+startup. Provision its Identity and `connector` Endpoint through the public
+trusted administration SDK, verify the Endpoint, and issue a narrowed credential
+for the member through `issue_scoped_credential`. Create the Conversation and
+send messages through the canonical SDK. The application does not configure
+routes by writing the Store.
+
+Connector locators have the form `connector://<declared-name>/<encoded-target>`.
+Provisioning canonicalizes the locator and decodes its backend target exactly
+once. The installed address contract validates that target. The locator selects
+no code and authenticates no principal. Connector Endpoints advertise messaging
+only; they do not imply native audio/video/data support. SMS uses the explicit
+SMS profile and retains its account-owned source and enrollment policy.
+
+The owner passes an explicit `CanonicalMessagesConfig` account and verified
+`ProviderMessageEndpoint` binding, including its `transport`, and then supplies
+the driver and `MessageRoute` through `CanonicalConnectors.messages` and
+`CanonicalConnectors.message_routes`. These are protected process-local startup
+inputs. The route contains public Conversation/member/credential IDs and a
+caller-owned immutable policy ID. Its target is the decoded backend target, not
+the entire locator. `incoming_to` is an explicit public Participant audience.
+
+The stock host validates the driver's full manifest and its one required secret
+field against the selected reference. It rejects absent/ambiguous secret slots,
+wrong references, name/transport/address mismatches and unsupported profiles.
+Account custody is separate from the route delegate's message authority. New or
+replayed startup route plans remain dormant until current endpoint/account
+binding succeeds; the owned worker excludes another dispatcher during setup.
+Fresh state uses schema 113 for this binding boundary. Earlier candidate state
+is refused unchanged and requires its matching binary and explicit backup/new
+state procedure. Startup does not silently migrate or downgrade state.
+
+Every dispatch, reconciliation, incoming message and callback rechecks current
+Endpoint/Device/member/account facts and configuration. Registration and URI
+metadata grant neither Conversation authority nor provider reachability.
+
+The current example journey is `crates/connect-server/tests/connector_stock.rs`.
+It bootstraps with the public CLI, uses only public HTTP SDK provisioning and
+canonical communication, and supplies the protected startup composition. Remote
+fixture ledger instrumentation is separate from the application journal. The
+two current local journeys pass private context, parent/inbound replay, restart,
+uncertainty reconciliation and current Endpoint withdrawal. Read the bounded
+[stock workflow evidence](evidence/gate-6/connector-stock.json). Callback, Prism,
+in-flight cancellation and the actual media public application journey remain
+G6-068 work; the implementation plan retains those requirements.
