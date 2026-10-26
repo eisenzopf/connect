@@ -1,0 +1,246 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T23:47:13.885978+00:00",
+  "base_revision": "be4f95c15d3717beb16939649a2aa853f4c04610",
+  "scope": "Local macOS arm64 protected canonical TLS WSS SDP control with actual loopback RTC ICE/DTLS. One G.711 mono stream; complete ICE in SDP. No Core WebRTC media route, browser fallback or acceptance qualification.",
+  "source_inputs": {
+    "crates/connect-server/src/canonical_webrtc.rs": "e1f1ecdee1e731c7dec570fc0963371f057f90e90aea8494b826beb39cbbad9f",
+    "crates/connect-server/src/canonical_webrtc/signaling.rs": "e6206bca46d1c3af29f20b5d343611a990033bfdc27783b24c6336f5a2ed19f3",
+    "crates/connect-server/src/canonical_webrtc/tests.rs": "e479af29fb04b6c9119d63a9d30bd1459df237c82547f4bf596b74a39b61eb8d",
+    "crates/connect-server/tests/support/canonical_websocket_control.rs": "897c073e9d3bf53424fa6168215c70f3188d809a80c88befdde364c6124759ff",
+    "crates/connect-server/tests/support/canonical_websocket_control/webrtc.rs": "3362b38d90992f07f23f940675b69c5fef34784e73dff4992ce04b01f2638a93",
+    "crates/connect-server/tests/support/canonical_webtransport_media.rs": "20eb3860d106d737e2811d67718bd926be381677448865b03d046c10e758b3e1",
+    "crates/connect-service/src/canonical_native.rs": "af9d8c8c2886479ffb65fb5cb6cf13f67768fae4e14f9e290f17019ee6171fff",
+    "crates/connect-service/src/canonical_runtime.rs": "95a60e47e85e454e492f0b7e52fe536f2356367ee4b3e409efdfb28b3f487c58",
+    "crates/connect-service/src/canonical_webrtc.rs": "89fc665c39af5d792e8beb15d475a57d873d1c949eb5bf7c17007fab3a35b9d8",
+    "crates/connect-service/src/lib.rs": "f7b683509c067d413335a108573e26d61e445512eb0d3616004ee378bdb94a49",
+    "crates/connect-service/src/peer_authority.rs": "0649e7366625f21ca4d9a86340e1e3c3e0f807ee94deda89f94416265f8b15ca",
+    "crates/connect-service/src/peer_authority/credential_refresh.rs": "d771eaa3cfa08f6524f8ead94e53aaa223a1c0b3b0ec9b02d0a01ba74cc20929",
+    "crates/connect-service/src/peer_authority/webrtc.rs": "6e59b7eb0ea16a08545e5c1e445297b2c03ff0d65cca15c3eafd8bdf9660c5d6",
+    "dependencies/source-lock.json": "3c00cf8b79c88c78edf74862b8c9e29371aadf428bfff98f04f867f32bdb495b",
+    "patches/rvoip/gate6-webrtc-driver-close-join.patch": "463180b3e3eb7f45c031b8bb75e7cffaef855222ec046ab37c5990254d396419"
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 87.68295129202306,
+    "source_unchanged": true,
+    "source_count": 1791,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-3040a430b3e3a7af",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/server-library-test-09",
+        "sha256": "f24b4e4d8621e9f783903083ea7de28e4f745bca70e4249a6bef2677e450ecf4",
+        "bytes": 106277904
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-d8a5afc4603da809",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/wss-integration-test-09",
+        "sha256": "79572527303a45a0b78600b9443fd1580f7a9c6b7a9bebd87bf9a4d05c6d6ee2",
+        "bytes": 203845312
+      }
+    ],
+    "log_sha256": "abaef4e0055e0ee0f79113adad9039886eb483ec399f94486a7970334179780b"
+  },
+  "ordinary_server_library": {
+    "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_server-21a33fe28737a7c4.rlib",
+    "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/normal-server-lib-09.rlib",
+    "sha256": "5d48c1f685b6437851fc86d29796b33afa3b687c47464fa85865ad2b4ebbdef0",
+    "cfg_test": false,
+    "features": [
+      "test-support"
+    ]
+  },
+  "runtime": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/wss-integration-test-09",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.049320833059028,
+        "log_sha256": "5d51657efcc95341652681e2bd3a5abc88aaf19710e773b0d23c04b2a0f7d142",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.53s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/server-library-test-09",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.251426292117685,
+        "log_sha256": "24a5df02d03623ba8f5e7139905961b1e212ae540be46cc223bffca30c90609d",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.33s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-wss-dispatch/wss-integration-test-09",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.311064624926075,
+        "log_sha256": "aab93c1793f9c040ce6b9bd9e91a43d92a25e0490d799f7f26d6555765ba4ba9",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.27s"
+        ]
+      }
+    ],
+    "source_count": 2384,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
+  "distinct_selected_methods": 20,
+  "scope_counts": {
+    "signed_wss": 12,
+    "rtc_owner": 7,
+    "decoded_webtransport_regression": 1
+  },
+  "source_guards": {
+    "build_count": 1791,
+    "runtime_count": 2384,
+    "build_manifest_sha256": "c467eb7db4324f489945d127c94ec0dc44191ad0035b47900ccfa28d1f2ea1be",
+    "runtime_manifest_sha256": "8fc090676fc619c8db4a9c4369c9e4c02a8460fadadd10ddedc394534aec8a70",
+    "all_unchanged": true
+  },
+  "default_stack": "RUST_MIN_STACK explicitly unset in final runtime and stability checks. No increased-stack workaround.",
+  "stability": {
+    "exit_code": 0,
+    "scope": "Three bounded repetitions of the full 12-method signed WSS cohort after intermittent setup refusal; no additional distinct methods or browser qualification.",
+    "results": [
+      {
+        "iteration": 0,
+        "exit_code": 0,
+        "seconds": 8.44656554190442,
+        "log_sha256": "36851fb8f1c879303c0c51ab9032c2677ba4c47b0a59a6c89bb34e7b757f8892",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.42s"
+        ]
+      },
+      {
+        "iteration": 1,
+        "exit_code": 0,
+        "seconds": 8.612653250107542,
+        "log_sha256": "8efbb1e3000544ea39657c16d9691259b5edb1a3327b9e41088bd02594b7e32f",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.56s"
+        ]
+      },
+      {
+        "iteration": 2,
+        "exit_code": 0,
+        "seconds": 8.517168291844428,
+        "log_sha256": "90f943d053fea74650bbfb110ebeffb84c2fedadd496515a82e9004fa43dd015",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.46s"
+        ]
+      }
+    ],
+    "source_unchanged": true,
+    "artifacts_unchanged": true,
+    "RUST_MIN_STACK": "unset"
+  },
+  "behavior": [
+    "Actual EdDSA and ES256 signed connection.offer/answer through the canonical TLS WSS listener, handler, Store and guarded physical writer; answer retains original CID/SID/Connection/operation/reply scope.",
+    "Engine-selected SDP audio mapping, including actual payload type, agrees with the current canonical stream plan. Altered stream ID, codec or participant refuses before any answer write.",
+    "Exact preparing replay returns original operation state with one effect and no second peer/answer. Physical close joins actual RTC cleanup before durable failure/retirement.",
+    "Current verified Endpoint revocation after SDP/DTLS releases the original reader, retires RTC and preserves unrelated WSS control. Authorized historical replay returns failed history without allocating through the revoked Endpoint.",
+    "Controlled read contention crosses real RTC preparation while retaining the original attempt/effect; unavailable reads respect the original deadline and physical cancellation. This is explicit metadata fault injection, not an actual storage outage.",
+    "SDP/DTLS has no Core Connection and leaves the original operation preparing with no result. No media readiness or success is fabricated.",
+    "Existing actual decoded WebTransport duplex regression passes on the default stack after worker and fixture async boundaries were heap-owned."
+  ],
+  "historical_runs": [
+    {
+      "attempt": "01",
+      "result": "Compile refused a missed credential-refresh Grant initializer. A test-module formatting race also changed one guarded input; no pass claimed."
+    },
+    {
+      "attempt": "02",
+      "result": "9 existing WSS methods passed; 2 new fixture assertions failed (numeric canonical 488 and Store credential ID expected). Corrected fixtures without changing public error/history semantics."
+    },
+    {
+      "attempt": "03/04",
+      "result": "One initial SDP refusal was not captured with payload details; a later diagnostic exposed an incorrect expectation that exact authorized history replay after endpoint revocation must be forbidden. Corrected history expectation; no new Endpoint/media rights granted."
+    },
+    {
+      "attempt": "05",
+      "result": "12 WSS methods passed; 3/4 peer methods passed. Actual UDP rebind after reported close failed. Recorded dependency drain patch fixes abort/detach; ordinary runtime/public RTC evidence is recorded separately."
+    },
+    {
+      "attempt": "06",
+      "result": "11/12 WSS methods passed; an altered-answer case intermittently received 503. The exact original refusal stage was not retained in that run. Bounded read/preflight observation now handles temporary contention without repeating allocation, SDP generation or answer submission."
+    },
+    {
+      "attempt": "07",
+      "result": "12 WSS and 4 peer methods passed. Decoded WebTransport aborted with a default-stack overflow. Worker negotiation futures were heap-owned; the fixture also needed heap-owned HTTP3 authentication. Final unchanged-artifact regression uses the default stack."
+    },
+    {
+      "attempt": "08",
+      "result": "12 WSS and 6 RTC-owner methods passed after bounded metadata waits. The decoded WT fixture still overflowed before first HTTP3 authentication. Heap-owned duplex/authentication fixture futures correct the default-stack fixture path; final09 passes without a stack override."
+    }
+  ],
+  "limits": [
+    "The default server does not install or advertise a WebRTC media route. This is protected Rust signaling composition, not final CLI/browser fallback support.",
+    "Canonical Core media codec/direction/MID/SSRC/channel binding, authorized packet/subscription/data IO, readiness and operation completion remain required.",
+    "Standalone ICE candidate authority, Opus mono/VP8/SCTP profiles, capture integration and old offer-ready dialect removal remain required.",
+    "Actual Chrome/Firefox forced WT/UDP failure, permission/background/loss/transition/uncertainty journeys and Linux/remote hosting qualification remain unrun.",
+    "All Gate 6 acceptance criteria remain unqualified; no full Gate 6 pass is claimed."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-wss-dispatch/",
+  "supporting_checks": {
+    "dependency_preparation": "Pinned source identity, patch digests and prepared content verified.",
+    "rust_format": "pass",
+    "application_http_reference": "current schema/dispatch generation; source/reference scope only",
+    "canonical_http_reference": "current; source/reference scope only",
+    "protected_http_reference": "current; source/reference scope only",
+    "http_inventory": {
+      "declarations": 24,
+      "operations": 25,
+      "uncovered": 0
+    },
+    "plan_integrity": {
+      "done": 53,
+      "in_progress": 4,
+      "not_started": 48,
+      "acceptance_qualified": 0
+    }
+  }
+}

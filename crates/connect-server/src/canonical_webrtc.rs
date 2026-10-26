@@ -1,18 +1,40 @@
 //! Owned WebRTC transport preparation for one durable Connection attempt.
 //! This backend component is not yet a configured canonical signaling/media route.
 use connect_protocol::{provisioning::EndpointTransport, Error, Result};
-use connect_store::{NativeMediaOrigin, NativeOfferLease, Store};
+use connect_store::{NativeMediaOrigin, NativeMediaRead, NativeOfferLease, Store};
 use futures_util::{future::BoxFuture, FutureExt};
 use rvoip_webrtc::{
     peer::{PeerRole, RvoipPeerConnection},
     WebRtcConfig,
 };
-use std::{collections::BTreeMap, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    collections::BTreeMap,
+    str::FromStr,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use tokio::{
     sync::{watch, OwnedSemaphorePermit},
     time::Instant,
 };
 use tokio_util::sync::CancellationToken;
+mod signaling;
+pub use signaling::SignalingHost;
+struct ReadContext {
+    initial: Mutex<Option<Arc<NativeMediaRead>>>,
+    #[cfg(test)]
+    busy_reads: std::sync::atomic::AtomicUsize,
+}
+impl ReadContext {
+    fn new(initial: Option<Arc<NativeMediaRead>>) -> Arc<Self> {
+        Arc::new(Self {
+            initial: Mutex::new(initial),
+            #[cfg(test)]
+            busy_reads: std::sync::atomic::AtomicUsize::new(0),
+        })
+    }
+}
+type InitialRead = Arc<ReadContext>;
 type Completion = futures_util::future::Shared<BoxFuture<'static, Result<()>>>;
 #[derive(Clone)]
 enum State {
@@ -39,6 +61,7 @@ pub struct Peer {
     stop: CancellationToken,
     state: watch::Receiver<State>,
     completion: Completion,
+    initial: InitialRead,
     #[cfg(test)]
     close_gate: CloseGateSlot,
 }
@@ -55,6 +78,28 @@ impl Peer {
         permit: OwnedSemaphorePermit,
         deadline: Instant,
     ) -> Self {
+        Self::start_scoped(
+            store,
+            origin,
+            attempt,
+            config,
+            physical,
+            permit,
+            deadline,
+            ReadContext::new(None),
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn start_scoped(
+        store: Arc<Store>,
+        origin: Arc<NativeMediaOrigin>,
+        attempt: NativeOfferLease,
+        config: WebRtcConfig,
+        physical: &CancellationToken,
+        permit: OwnedSemaphorePermit,
+        deadline: Instant,
+        initial: InitialRead,
+    ) -> Self {
         let stop = physical.child_token();
         let (state_tx, state) = watch::channel(State::Preparing);
         let attempt = Arc::new(attempt);
@@ -69,6 +114,7 @@ impl Peer {
             permit,
             deadline,
             state_tx,
+            initial.clone(),
             #[cfg(test)]
             close_gate.clone(),
         ));
@@ -85,6 +131,7 @@ impl Peer {
             stop,
             state,
             completion,
+            initial,
             #[cfg(test)]
             close_gate,
         }
@@ -105,7 +152,10 @@ impl Peer {
                     if self.stop.is_cancelled() {
                         return Err(Error::forbidden());
                     }
-                    original_sdp(&self.store, &self.origin)?;
+                    bounded_read(&self.stop, deadline, || {
+                        original_sdp(&self.store, &self.origin, &self.initial)
+                    })
+                    .await?;
                     return Ok(answer);
                 }
                 State::Closed(result) => {
@@ -128,7 +178,10 @@ impl Peer {
                     if self.stop.is_cancelled() {
                         return Err(Error::forbidden());
                     }
-                    original_sdp(&self.store, &self.origin)?;
+                    bounded_read(&self.stop, deadline, || {
+                        original_sdp(&self.store, &self.origin, &self.initial)
+                    })
+                    .await?;
                     return Ok(());
                 }
                 State::Closed(result) => {
@@ -152,18 +205,67 @@ impl Peer {
     /// Await the original close worker. Cancellation of one wait cannot take
     /// its join handle or release the capacity permit before actual close.
     pub async fn shutdown(&self) -> Result<()> {
+        self.release_invocation();
         self.stop.cancel();
         self.completion.clone().await
     }
 }
 impl Drop for Peer {
     fn drop(&mut self) {
+        self.release_invocation();
         self.stop.cancel();
     }
 }
 
-fn original_sdp(store: &Store, origin: &NativeMediaOrigin) -> Result<String> {
-    let read = store.try_native_media_read(origin, None)?;
+impl Peer {
+    fn release_invocation(&self) {
+        if let Ok(mut initial) = self.initial.initial.lock() {
+            initial.take();
+        }
+    }
+    async fn source_read(&self, deadline: Instant) -> Result<NativeMediaRead> {
+        bounded_read(&self.stop, deadline, || {
+            source_read(&self.store, &self.origin, &self.initial)
+        })
+        .await
+    }
+}
+fn source_read(
+    store: &Store,
+    origin: &NativeMediaOrigin,
+    initial: &InitialRead,
+) -> Result<NativeMediaRead> {
+    #[cfg(test)]
+    if initial
+        .busy_reads
+        .fetch_update(
+            std::sync::atomic::Ordering::AcqRel,
+            std::sync::atomic::Ordering::Acquire,
+            |n| n.checked_sub(1),
+        )
+        .is_ok()
+    {
+        return Err(Error::new(
+            "authority-busy",
+            "Controlled bounded metadata contention",
+        ));
+    }
+    let held = initial
+        .initial
+        .lock()
+        .map_err(|_| Error::storage())?
+        .clone();
+    match held {
+        Some(held) => store.try_native_media_source_read_under(origin, &held),
+        None => store.try_native_media_read(origin, None),
+    }
+}
+fn original_sdp(
+    store: &Store,
+    origin: &NativeMediaOrigin,
+    initial: &InitialRead,
+) -> Result<String> {
+    let read = source_read(store, origin, initial)?;
     let target = read.target();
     let offer = &target.offer;
     if !read.current()
@@ -221,6 +323,38 @@ fn original_sdp(store: &Store, origin: &NativeMediaOrigin) -> Result<String> {
     }
     Ok(sdp.to_owned())
 }
+/// Retry metadata observation only, never peer allocation or SDP generation.
+/// No reader survives a retry wait, and unavailable metadata grants no IO.
+async fn bounded_read<T>(
+    stop: &CancellationToken,
+    deadline: Instant,
+    mut read: impl FnMut() -> Result<T>,
+) -> Result<T> {
+    loop {
+        if stop.is_cancelled() {
+            return Err(Error::new("closed", "WebRTC peer retired"));
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::new("timeout", "WebRTC metadata deadline"));
+        }
+        match read() {
+            Err(error)
+                if matches!(
+                    error.code.as_str(),
+                    "authority-busy" | "storage-unavailable"
+                ) =>
+            {
+                tokio::select! {
+                    biased;
+                    _ = stop.cancelled() => return Err(Error::new("closed", "WebRTC peer retired")),
+                    _ = tokio::time::sleep_until(deadline) => return Err(Error::new("timeout", "WebRTC metadata deadline")),
+                    _ = tokio::time::sleep(Duration::from_millis(5)) => {},
+                }
+            }
+            result => return result,
+        }
+    }
+}
 fn engine_error() -> Error {
     Error::new("webrtc-failed", "WebRTC peer setup or transport failed")
 }
@@ -234,6 +368,7 @@ async fn worker(
     _permit: OwnedSemaphorePermit,
     deadline: Instant,
     state: watch::Sender<State>,
+    initial: InitialRead,
     #[cfg(test)] close_gate: CloseGateSlot,
 ) -> Result<()> {
     let remaining = attempt.expires_at() - chrono::Utc::now().timestamp();
@@ -245,7 +380,8 @@ async fn worker(
         if origin.offer_record_id()!=attempt.record_id()||origin.connection_id()!=attempt.connection_id()||origin.runtime_connection_id()!=attempt.runtime_connection_id()||origin.generation()!=attempt.generation(){return Err(Error::forbidden());}
         if original_deadline<=Instant::now()||original_deadline>Instant::now()+Duration::from_secs(30){return Err(Error::new("invalid-request","WebRTC preparation requires a bounded original deadline"));}
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
-        let sdp=original_sdp(&store,&origin)?;
+        if config.trickle_ice {return Err(Error::new("unsupported-media-profile","Canonical WebRTC preparation requires complete ICE in SDP"));}
+        let sdp=bounded_read(&stop,deadline,||original_sdp(&store,&origin,&initial)).await?;
         // Keep allocation owned even when the preparing caller goes away.
         let peer=RvoipPeerConnection::new(&config,PeerRole::Answerer).await.map_err(|_|engine_error())?;allocated=Some(peer.clone());
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
@@ -256,7 +392,7 @@ async fn worker(
             answer=peer.accept_offer_and_gather(&sdp)=>answer.map_err(|_|engine_error())?,
         };
         if !answer.starts_with("v=0\r\n") || answer.len()>512*1024 || answer.contains('\0') { return Err(engine_error()); }
-        original_sdp(&store,&origin)?;
+        bounded_read(&stop,deadline,||original_sdp(&store,&origin,&initial)).await?;
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
         state.send_replace(State::Answered(answer.clone()));
         let mut interval=tokio::time::interval(Duration::from_millis(50));interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);

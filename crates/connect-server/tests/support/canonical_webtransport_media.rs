@@ -434,7 +434,7 @@ async fn decoded(
     result.expect("actual authorized decoded WT duplex must reach the other Participant");
 }
 async fn duplex(algorithm: &str) {
-    duplex_mode(algorithm, None).await;
+    Box::pin(duplex_mode(algorithm, None)).await;
 }
 async fn duplex_mode(algorithm: &str, server_end: Option<bool>) {
     static LOGS: std::sync::Once = std::sync::Once::new();
@@ -454,9 +454,9 @@ async fn duplex_mode(algorithm: &str, server_end: Option<bool>) {
     eprintln!("HTTP3 media fixture stage: endpoints and enrollment ready");
     let (cid, initiator, recipient) = accepted(&f, &peer).await;
     eprintln!("HTTP3 media fixture stage: Session accepted");
-    let mut first = Http3Peer::open(&f).await;
+    let mut first = Box::pin(Http3Peer::open(&f)).await;
     eprintln!("HTTP3 media fixture stage: first peer authenticated");
-    let mut second = Http3Peer::open_config(&f, &peer).await;
+    let mut second = Box::pin(Http3Peer::open_config(&f, &peer)).await;
     eprintln!("HTTP3 media fixture stage: second peer authenticated");
     let a = first.offer(&cid, 0).await;
     let b = second.offer(&cid, 1).await;

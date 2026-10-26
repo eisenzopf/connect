@@ -44,6 +44,7 @@ mod canonical_runtime;
 mod canonical_session_codecs;
 mod canonical_session_lifecycle;
 mod canonical_sip_signal;
+pub mod canonical_webrtc;
 pub use canonical_runtime::CanonicalRuntimeSnapshot;
 mod assistant_context;
 mod assistant_observations;

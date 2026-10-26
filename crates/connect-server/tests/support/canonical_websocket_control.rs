@@ -541,3 +541,6 @@ async fn cancelling_host_shutdown_keeps_wss_and_pending_tls_owned() {
     .await
     .unwrap();
 }
+
+#[path = "canonical_websocket_control/webrtc.rs"]
+mod webrtc;

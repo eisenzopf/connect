@@ -408,3 +408,109 @@ async fn foreign_installation_unoffered_media_and_deadline_refuse_with_original_
         caller.close().await.unwrap();
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn transient_metadata_contention_keeps_one_original_peer_and_attempt() {
+    use std::sync::atomic::Ordering;
+    let caller = offerer().await;
+    let mut f = Fixture::new(caller.create_offer_and_gather().await.unwrap());
+    let slots = Arc::new(tokio::sync::Semaphore::new(1));
+    let physical = CancellationToken::new();
+    let context = ReadContext::new(None);
+    context.busy_reads.store(8, Ordering::Release);
+    let peer = Peer::start_scoped(
+        f.store.clone(),
+        f.origin.clone(),
+        f.attempt.take().unwrap(),
+        WebRtcConfig::loopback(),
+        &physical,
+        slots.clone().acquire_owned().await.unwrap(),
+        Instant::now() + Duration::from_secs(5),
+        context.clone(),
+    );
+    let answer = peer
+        .answer_sdp(Instant::now() + Duration::from_secs(3))
+        .await
+        .unwrap();
+    assert_eq!(context.busy_reads.load(Ordering::Acquire), 0);
+    caller.set_remote_answer(&answer).await.unwrap();
+    let (remote, local) = tokio::join!(
+        caller.wait_connected(Duration::from_secs(3)),
+        peer.wait_connected(Instant::now() + Duration::from_secs(3))
+    );
+    remote.unwrap();
+    local.unwrap();
+    let record = f
+        .store
+        .execute_operation_action(
+            &f.credential,
+            connect_protocol::transitions::OperationAction::Get {
+                operation_id: "original-offer".into(),
+            },
+        )
+        .unwrap();
+    assert_eq!(record.effects.len(), 1);
+    assert_eq!(
+        record.state,
+        connect_protocol::transitions::OperationState::Preparing
+    );
+    assert!(record.result.is_none());
+    peer.shutdown().await.unwrap();
+    available(&slots).await;
+    assert!(!physical.is_cancelled());
+    caller.close().await.unwrap();
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn unavailable_metadata_never_outlives_original_deadline_or_physical_source() {
+    use std::sync::atomic::Ordering;
+    let caller = offerer().await;
+    let sdp = caller.create_offer_and_gather().await.unwrap();
+    for cancel in [false, true] {
+        let mut f = Fixture::new(sdp.clone());
+        let slots = Arc::new(tokio::sync::Semaphore::new(1));
+        let physical = CancellationToken::new();
+        let context = ReadContext::new(None);
+        context.busy_reads.store(usize::MAX, Ordering::Release);
+        let deadline = Instant::now() + Duration::from_millis(if cancel { 1000 } else { 40 });
+        let peer = Peer::start_scoped(
+            f.store.clone(),
+            f.origin.clone(),
+            f.attempt.take().unwrap(),
+            WebRtcConfig::loopback(),
+            &physical,
+            slots.clone().acquire_owned().await.unwrap(),
+            deadline,
+            context,
+        );
+        if cancel {
+            physical.cancel();
+        }
+        let error = peer
+            .answer_sdp(Instant::now() + Duration::from_secs(1))
+            .await
+            .unwrap_err();
+        if !cancel {
+            assert_eq!(error.code, "timeout");
+        }
+        peer.shutdown().await.unwrap();
+        available(&slots).await;
+        assert_eq!(peer.original_attempt().operation_id(), "original-offer");
+        assert!(!caller.is_connected());
+        assert_eq!(physical.is_cancelled(), cancel);
+    }
+    caller.close().await.unwrap();
+}
+
+#[test]
+fn signaling_host_refuses_unimplemented_trickle_and_unbounded_or_ambiguous_profiles() {
+    use rvoip_core::capability::CodecInfo;
+    assert!(SignalingHost::new(WebRtcConfig::loopback(), 1).is_err());
+    let mut config = WebRtcConfig::loopback();
+    config.capabilities.audio_codecs = vec![CodecInfo::from_name_with_defaults("g.711-mu")];
+    assert!(SignalingHost::new(config.clone(), 0).is_err());
+    assert!(SignalingHost::new(config.clone(), 513).is_err());
+    let host = SignalingHost::new(config.clone(), 1).unwrap();
+    assert_eq!(host.available_slots(), 1);
+    config.trickle_ice = true;
+    assert!(SignalingHost::new(config, 1).is_err());
+}

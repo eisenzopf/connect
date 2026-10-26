@@ -211,6 +211,7 @@ async fn worker(
         request,
         credential: refresh.next().clone(),
         native_stream_plan: Mutex::new(None),
+        webrtc_answer: Mutex::new(None),
         native_data: Mutex::new(Weak::new()),
     });
     let current = grant.clone();

@@ -32,6 +32,7 @@ pub struct CanonicalRuntimeSnapshot {
     pub replacement_preparations: usize,
 }
 pub(crate) struct Runtime {
+    pub(crate) webrtc: std::sync::OnceLock<Arc<dyn crate::canonical_webrtc::Host>>,
     pub(crate) routes: std::sync::OnceLock<Arc<rvoip_uctp::v2::reachability::ReachabilityRegistry>>,
     pub(crate) invitation_jobs: Mutex<std::collections::BTreeSet<String>>,
     pub(crate) session_reconnect_worker: Mutex<Option<tokio::task::JoinHandle<()>>>,
@@ -194,6 +195,7 @@ impl Runtime {
             Arc::new(Retirement(stop.clone()));
         store.register_runtime_retirement(&retirement)?;
         Ok(Arc::new(Self {
+            webrtc: Default::default(),
             routes: Default::default(),
             invitation_jobs: Mutex::new(Default::default()),
             session_lifecycle_worker: Mutex::new(None),

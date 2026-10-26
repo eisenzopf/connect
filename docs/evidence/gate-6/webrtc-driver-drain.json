@@ -72,8 +72,8 @@
   },
   "runner_limit": "cargo test cannot select dependency dev-tests from this workspace; it rejected the invocation before running a test. An extracted exact runtime test body plus an independent public RTC close loop were compiled with rustc against the sealed production rlib instead.",
   "pending": [
-    "Rebuild and rerun the Connect peer/WSS integration against this dependency patch.",
     "Complete canonical Core media adapter, outgoing ICE authority, browser media profiles and fallback qualification."
   ],
-  "private_evidence": ".local/gate-6/webrtc-wss-dispatch/"
+  "private_evidence": ".local/gate-6/webrtc-wss-dispatch/",
+  "connect_verification": "docs/evidence/gate-6/webrtc-wss-dispatch.json"
 }

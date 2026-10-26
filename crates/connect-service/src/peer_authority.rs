@@ -40,6 +40,7 @@ pub(crate) struct Grant {
     request: PeerAuthorityRequest,
     credential: ValidatedBearer,
     native_stream_plan: Mutex<Option<native_streams::Planned>>,
+    webrtc_answer: Mutex<Option<serde_json::Value>>,
     native_data: Mutex<Weak<crate::canonical_media::data::DataInvocation>>,
 }
 mod credential_refresh;
@@ -47,8 +48,10 @@ mod invitations;
 mod native_data;
 pub(crate) use native_data::{bind as bind_native_data, invocation as native_data_invocation};
 mod native_streams;
+mod webrtc;
 pub(crate) use native_streams::bind_plan as bind_native_stream_plan;
 pub(crate) use native_streams::codec as native_stream_codec;
+pub(crate) use webrtc::bind_answer as bind_webrtc_answer;
 /// Explicit composition only. Unsupported commands receive only Identity/key
 /// proof for a bounded rejection, never a resource grant or stock Core fallback.
 pub struct StorePeerAuthority {
@@ -466,6 +469,7 @@ impl StorePeerAuthority {
                 request,
                 credential,
                 native_stream_plan: Mutex::new(None),
+                webrtc_answer: Mutex::new(None),
                 native_data: Mutex::new(Weak::new()),
             });
             let current = grant.clone();
@@ -626,7 +630,11 @@ impl PeerAuthority for StorePeerAuthority {
         h: &AuthorityLease,
     ) -> Result<AuthorityLease, DispatchError> {
         let grant = self.native_held(c, d, i, h)?;
-        self.native_outgoing(grant, offer, answer, true)?;
+        if offer.original()["payload"]["substrate"] == "websocket+webrtc" {
+            self.webrtc_outgoing(grant, offer, answer)?;
+        } else {
+            self.native_outgoing(grant, offer, answer, true)?;
+        }
         Ok(h.retained())
     }
     fn exchange_request(

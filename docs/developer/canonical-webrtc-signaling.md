@@ -3,9 +3,11 @@
 G6-051 is in progress. The internal TypeScript module
 `browser_webrtc_signaling.ts` implements a signaling owner against the frozen
 `connect/2` envelope shapes. It is not exported from the browser entry point yet.
-The canonical server still refuses this substrate; the older browser voice/video
-entry points still use their historical signaling dialect. This component does
-not establish browser fallback support or media interoperability.
+The default canonical server does not enable a WebRTC media route. Protected
+startup composition can install the limited SDP signaling host described below.
+The older browser voice/video entry points still use their historical signaling
+dialect. These components do not establish browser fallback support or media
+interoperability.
 
 The component borrows the authenticated `BrowserClient` and takes ownership of
 one supplied `RTCPeerConnection`. The caller configures transceivers, channels
@@ -43,10 +45,10 @@ Verification uses controlled peer and WebSocket boundaries. Two signing
 algorithms exercise the actual `BrowserClient`, signature verification and
 canonical frame encoding, without a WebTransport API. These are component tests,
 not TLS/network, installed Chrome/Firefox, Core WebRTC or actual media tests.
-The SDK regression suite has 276 passing tests at this checkpoint.
+The subsequent peer-state correction has 279 passing SDK tests, including
+15 signaling methods; see the separate peer-lifetime evidence.
 
-Next, canonical server dispatch must bind the WebRTC adapter to current service
-authority and durable operation/physical lifetimes. Then integrate capture,
+Next, complete the canonical Core media adapter/controller, then integrate capture,
 track/data routing and the public browser surface, remove the old offer-ready
 dialect, and run forced WT/UDP failure in Chrome and Firefox with the same
 Conversation and transition intents. Current authorization, uncertainty,
@@ -99,8 +101,8 @@ one application m-line. This is transport preparation, not Core stream admission
 codec, direction, MID/SSRC, subscription, media packet and transition authorization
 still require the canonical adapter/controller integration. The component exposes
 no media frame interface. An SDP answer or ICE/DTLS connection cannot complete the
-durable media operation. The default canonical WSS route remains unconnected to
-this component; no new HTTP endpoint or fallback support is advertised.
+durable media operation. The default canonical WSS route does not install this component; no new HTTP
+endpoint or fallback support is advertised.
 
 Four local server-library tests verify actual loopback ICE/DTLS, current endpoint
 revocation while prepared/idle, original attempt custody, refused foreign origins
@@ -111,3 +113,62 @@ port can be rebound. The ordinary library also compiles with `cfg(test)` disable
 These checks use trusted isolated Store admission; they do not qualify signed
 canonical WSS dispatch, browser interoperability or decoded media. Details are in
 [the peer-owner evidence](../evidence/gate-6/webrtc-peer-owner.json).
+
+
+## Protected canonical WSS SDP dispatch
+
+`Service::install_canonical_webrtc` installs one trusted signaling host before the
+first physical admission. Configuration is sealed by that admission. This hook
+is not a public command or JSON configuration field. The server's
+`canonical_webrtc::SignalingHost` composes the existing owned peer with a bounded
+capacity pool. Its initial profile requires exactly one G.711 mono audio codec
+and one logical audio stream. Opus mono, video and SCTP remain implementation
+work; this is not the final Gate 6 browser media profile.
+
+A WebSocket offer enters the same signed canonical handler and Store authority
+as other transports. The exact verified `webrtc` Endpoint is selected, one
+original offer attempt is issued, and its lease is transferred synchronously to
+the host. Exact replay returns the existing operation record without starting a
+second peer or resending an SDP answer. An origin-issuance or capacity refusal
+retains that original lease for attributed cleanup.
+
+The host derives the selected RTP payload mapping from the actual original SDP
+and engine answer. The service independently plans streams against current
+Session acceptance, verified Endpoint capabilities and the authenticated
+principal. Stream identity, medium, direction, codec, clock, channels and
+participant must agree. It binds one immutable answer payload into the current
+invocation grant. The physical signed writer admits exactly that payload with
+the original Conversation, Session, Connection, operation and reply correlation;
+the existing native-prepared datagram policy is unchanged. Standalone ICE
+candidate admission is still required; this path gathers complete ICE in SDP.
+
+The initial RTC preparation borrows the actual originating Store reader through
+the saved origin. It revalidates that exact reader against the Store rather than
+reentering an authority fence already held by the signed command. The tracked
+worker releases every initial reader after answer/refusal, retains the peer after
+answer delivery, releases the original command grant during idle waits, and observes spontaneous peer closure, physical
+retirement, installation stop and the original preparation deadline. It joins
+actual peer close before recording Store retirement. SDP and ICE/DTLS leave the
+operation preparing, with no Core Connection, media-ready result or fabricated
+lifecycle success. The default host continues to advertise control only.
+
+
+Temporary metadata contention grants no IO. RTC setup and answer observations
+wait for fresh read admission within the original preparation/observation deadline,
+and stop on physical retirement. Only reads are retried: SDP creation, peer
+allocation, signed answer submission and the original Store attempt are not
+repeated. The service also bounds originating reader/answer-plan preflight.
+Worker negotiation and HTTP3 fixture authentication futures are heap-owned at
+async composition boundaries. Verification uses the default worker/test stack.
+
+RTC close now uses the recorded dependency patch
+`gate6-webrtc-driver-close-join.patch`. An abort request alone does not confirm
+cleanup: the actual driver must finish destruction before close returns. The
+original handle remains owned if an observer cancels its wait. The separate
+[driver-drain evidence](../evidence/gate-6/webrtc-driver-drain.json) records a
+forced pending UDP destructor and 64 public RTC close/immediate-rebind iterations.
+
+The current protected integration has 20 passing selected methods: 12 WSS,
+7 RTC owner and 1 decoded WebTransport regression. The final run uses
+the default worker stack. Full scope, bounded repetitions, source/artifact guards
+and earlier failures are recorded in [the WSS dispatch evidence](../evidence/gate-6/webrtc-wss-dispatch.json).

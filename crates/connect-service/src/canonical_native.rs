@@ -238,7 +238,7 @@ impl Runtime {
                 ));
             }
             work.spawn(async move {
-                runtime.native_worker(a, physical, credential, tx).await;
+                Box::pin(runtime.native_worker(a, physical, credential, tx)).await;
             });
         }
         rx.await.map_err(|_| Error::storage())?
@@ -250,6 +250,10 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) {
+        if physical.binding.transport() == rvoip_core::Transport::WebSocket {
+            Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
+            return;
+        }
         let native = match self.native_adapter(physical.binding.transport()) {
             Ok(native) => native,
             Err(error) => {
@@ -259,15 +263,14 @@ impl Runtime {
         };
         let mut lease = None;
         let mut stage = "source";
-        let outcome = self
-            .native_start(
-                a.clone(),
-                physical.clone(),
-                &credential,
-                &mut lease,
-                &mut stage,
-            )
-            .await;
+        let outcome = Box::pin(self.native_start(
+            a.clone(),
+            physical.clone(),
+            &credential,
+            &mut lease,
+            &mut stage,
+        ))
+        .await;
         if let Err(error) = &outcome {
             tracing::debug!(stage,code = %error.code, "Native offer did not complete");
         }
