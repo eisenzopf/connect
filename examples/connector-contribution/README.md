@@ -26,7 +26,7 @@ python3 scripts/check-connector-contract.py --manifest-path examples/connector-c
 bash scripts/format.sh --check
 ```
 
-The common harness requires fresh state for every run. It checks 40 mandatory
+The common harness requires fresh state for every run. It checks 44 named
 cases. Focused tests also cover input bounds, host-envelope replay, immediate
 uncertain cancellation and exact audio-frame/terminal behavior. The original
 negative controls invoke the actual adapter with deliberate defects:
@@ -49,3 +49,14 @@ The fixed HMAC key is synthetic fixture setup, never a production credential.
 Video, live providers, network quality, real-time capacity and concurrent
 multi-process ledger writes are outside this exercise. Fixture qualification does
 not establish release readiness or fresh carrier evidence.
+
+
+The current Gate6 stock integration uses the public HTTP SDK for provisioning,
+scoped credential issuance and canonical communication, with protected startup
+account/Endpoint/route composition. See
+`crates/connect-server/tests/connector_prism_stock.rs` and the
+[bounded stock evidence](../../docs/evidence/gate-6/connector-stock-prism.json).
+It counts adapter submissions across uncertain restart, verifies blocked turns,
+read-only reconciliation, exact callback-byte authentication and current replay,
+private context, independent inbound routing and owned shutdown. The earlier
+Gate5 ordinary API integration is historical; no compatibility path is restored.

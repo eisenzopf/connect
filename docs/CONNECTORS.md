@@ -449,3 +449,11 @@ uncertainty reconciliation and current Endpoint withdrawal. Read the bounded
 [stock workflow evidence](evidence/gate-6/connector-stock.json). Callback, Prism,
 in-flight cancellation and the actual media public application journey remain
 G6-068 work; the implementation plan retains those requirements.
+
+The independent Prism adapter also passes its current public SDK stock journey
+in `crates/connect-server/tests/connector_prism_stock.rs`. It verifies original
+uncertainty across restart with actual adapter-call counts, blocking and later
+resumption, exact-byte callback authentication, required read-only reconciliation,
+callback replay/current withdrawal, private context and inbound routing. See
+[Prism stock evidence](evidence/gate-6/connector-stock-prism.json). In-flight
+cancellation and the actual media public application journey remain open.
