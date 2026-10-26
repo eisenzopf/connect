@@ -2,11 +2,23 @@
 use super::selections::{drain, receive, revision, send, stream};
 use super::*;
 use sdk::{Direction, Medium, NativeReconciliationPhase as Phase, StreamSelector};
-async fn observed(target: &sdk::Connection, phase: Phase) -> sdk::NativeReconciliation {
+async fn observed(
+    target: &sdk::Connection,
+    phase: Phase,
+    revision: u64,
+) -> sdk::NativeReconciliation {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
     loop {
         if let Some(status) = target.native_reconciliation().unwrap() {
-            if status.phase == phase {
+            if status.phase == phase
+                && target
+                    .native_negotiation()
+                    .unwrap()
+                    .unwrap()
+                    .stream_revision
+                    .get()
+                    == revision
+            {
                 return status;
             }
         }
@@ -253,7 +265,12 @@ async fn exercise(recording_failure: bool) {
             .unwrap()
             .value;
         if recording_failure {
-            let pending = observed(&target, Phase::AwaitingCompletion).await;
+            let pending = observed(
+                &target,
+                Phase::AwaitingCompletion,
+                before.stream_revision.get(),
+            )
+            .await;
             assert_eq!(
                 target
                     .native_negotiation()
@@ -315,7 +332,7 @@ async fn exercise(recording_failure: bool) {
             db.execute_batch("DROP TRIGGER isolated_sdk_future_record_failure")
                 .unwrap();
         }
-        let status = observed(&target, Phase::Recorded).await;
+        let status = observed(&target, Phase::Recorded, before.stream_revision.get() + 1).await;
         assert!(status.bindings_adopted);
         let operation = status.operation(&subscriber);
         let saved = operation.reference_json();
@@ -436,6 +453,11 @@ async fn exercise(recording_failure: bool) {
                 receipt.stream_revision,
                 "hint must not outrun durable completion"
             );
+            assert_eq!(
+                target.native_reconciliation().unwrap().unwrap().key,
+                status.key,
+                "no routing observation before durable completion"
+            );
             db.execute_batch("DROP TRIGGER isolated_sdk_route_record_failure")
                 .unwrap();
         }
@@ -450,7 +472,7 @@ async fn exercise(recording_failure: bool) {
                         .unwrap()
                         .stream_revision
                         .get()
-                        == receipt.stream_revision.get() + 1
+                        == receipt.stream_revision.get()
                 {
                     break progress;
                 }
@@ -485,10 +507,7 @@ async fn exercise(recording_failure: bool) {
             .unwrap()
             .value;
         assert!(!routed.resources_changed);
-        assert_eq!(
-            routed.stream_revision.get(),
-            receipt.stream_revision.get() + 1
-        );
+        assert_eq!(routed.stream_revision.get(), receipt.stream_revision.get());
         operation.wait(options()).await.unwrap();
         assert_eq!(
             target

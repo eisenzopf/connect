@@ -391,5 +391,8 @@ changed no physical parameters. No binding set is invented and
 retain their original preparation pending explicit physical reconciliation.
 Delivery is advisory; durable cursor catch-up, wider backpressure profiles, other
 automatic negotiation families and the remaining SDK/package/profile scope stay
-open under G6-060. Current routing verification is recorded in
-`docs/evidence/gate-6/rust-sdk-routing-reconciliation.json`.
+open under G6-060. Routing-only commits can preserve both native ports and
+revision; the SDK still observes the new journal identity after a current read.
+All166 client and43 protocol tests pass. Corrected production verification is
+pending after an initial fixture incorrectly expected a revision increment. See
+`docs/evidence/gate-6/rust-sdk-routing-reconciliation-checkpoint.json`.

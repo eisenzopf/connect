@@ -89,5 +89,24 @@
   "remaining": [
     "Resolve and rerun routing-hint production delivery, then run selected SDK/native/writer regressions.",
     "Full G6-060 SDK/package/media/recovery/approved profile scope remains open; all105 tasks remain the objective. No task, acceptance or publication closure."
-  ]
+  ],
+  "follow_up": {
+    "checked_at": "2026-10-26T05:20:37.341689+00:00",
+    "finding": "Actual camera removal keeps negotiated native ports and native revision3. Debug traces show durable completion, queue admission and successful reliable hint output. The old fixture incorrectly required4; SDK also filtered all equal-revision hints.",
+    "correction": "Observe a new routing-only journal identity at the installed revision only if its expected predecessor equals that installed revision. Continue ignoring older outcomes and repeated current keys; require fresh authorized operation.get and matching capture. Camera fixture now expects stable native revision and checks no new observation before durable completion.",
+    "verification": {
+      "client_functions_passed": 166,
+      "protocol_functions_passed": 43,
+      "new_function": "routing_hint_observes_new_journal_identity_when_native_ports_and_revision_are_unchanged",
+      "log": {
+        "path": ".local/gate-6/sdk-routing-reconciliation/client-protocol-04.log",
+        "sha256": "84e8c1968180b1ea5d90e2d664e73bdf3b4b0687ace7ff0905c3029187f1fc7c"
+      }
+    },
+    "production": "Build04 running; corrected production behavior remains unqualified. Diagnostic03 had overlapping runners writing shared output, so its aggregate counts are invalid and are not qualification evidence.",
+    "diagnostic_log": {
+      "path": ".local/gate-6/sdk-routing-reconciliation/production-03-00.log",
+      "sha256": "207996e2df914b87e2dd6bf81b5bd8c5a902a865c890b478ff7dc93793cc0ecd"
+    }
+  }
 }

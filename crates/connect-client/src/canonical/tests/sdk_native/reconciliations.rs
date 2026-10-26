@@ -12,6 +12,8 @@ pub(in crate::canonical) enum Case {
     NoCapture,
     Unsettled,
     Route,
+    RouteEqual,
+    RouteEqualNoCapture,
     RouteDelayed,
     RouteBadRecord,
     RouteBadCounter,
@@ -36,6 +38,8 @@ fn routing(case: Case) -> bool {
     matches!(
         case,
         Case::Route
+            | Case::RouteEqual
+            | Case::RouteEqualNoCapture
             | Case::RouteDelayed
             | Case::RouteBadRecord
             | Case::RouteBadCounter
@@ -52,7 +56,10 @@ fn captured(case: Case) -> Value {
     if routing(case) {
         ports.as_array_mut().unwrap().truncate(3);
     }
-    let mut out = json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":!routing(case),"stream_bindings":if matches!(case,Case::NoCapture|Case::Unsettled|Case::RouteUnsettled|Case::RouteNoCapture) {Value::Null}else{selections::bindings(&ports)},"server_reconciliation":true,"subscription_record_id":"opr_selector"});
+    let mut out = json!({"connection_id":"connection_one","command_type":"stream.reconcile","connection_generation":1,"expected_revision":2,"stream_revision":3,"resources_changed":!routing(case),"stream_bindings":if matches!(case,Case::NoCapture|Case::Unsettled|Case::RouteUnsettled|Case::RouteNoCapture|Case::RouteEqualNoCapture) {Value::Null}else{selections::bindings(&ports)},"server_reconciliation":true,"subscription_record_id":"opr_selector"});
+    if matches!(case, Case::RouteEqual | Case::RouteEqualNoCapture) {
+        out["stream_revision"] = json!(2);
+    }
     if matches!(case, Case::RouteBadBindings) {
         out["stream_bindings"][1]["stream_local_id"] = json!(16);
     }
@@ -61,6 +68,9 @@ fn captured(case: Case) -> Value {
 async fn hint(writer: &mut quinn::SendStream, signer: &Sig9421Signer, case: Case) {
     let later = matches!(case, Case::RouteUnsettled);
     let mut payload = json!({"operation_id":if later {"route-later"}else{"auto-selection"},"record_id":"opr_auto","command_type":"stream.reconcile","expected_revision":if later {3}else{2},"state":"completed","revision":1,"subscription_record_id":"opr_selector","stream_revision":if later {4}else{3},"journal_hint":true,"resources_changed":false});
+    if matches!(case, Case::RouteEqual | Case::RouteEqualNoCapture) {
+        payload["stream_revision"] = json!(2);
+    }
     if matches!(case, Case::RouteUnknownParent) {
         payload["subscription_record_id"] = json!("opr_not_issued");
     }
@@ -661,4 +671,33 @@ async fn recorded_routing_only_null_capture_advances_exact_predecessor_counter_w
     assert!(receipt.bindings.is_none());
     assert!(!receipt.resources_changed);
     close(client, host).await;
+}
+
+#[tokio::test]
+async fn routing_hint_observes_new_journal_identity_when_native_ports_and_revision_are_unchanged() {
+    for case in [Case::RouteEqual, Case::RouteEqualNoCapture] {
+        let (client, c, selector, host, _) = ready(case).await;
+        let status = phase(&c, Phase::Recorded).await;
+        assert_eq!(status.key.operation_id.as_str(), "auto-selection");
+        assert_eq!(status.bindings_adopted, matches!(case, Case::RouteEqual));
+        assert_eq!(count(&c), 3);
+        assert_eq!(
+            c.native_negotiation()
+                .unwrap()
+                .unwrap()
+                .stream_revision
+                .get(),
+            2
+        );
+        let result = status
+            .operation(&client)
+            .wait(options())
+            .await
+            .unwrap()
+            .value;
+        assert!(!result.resources_changed);
+        assert_eq!(result.stream_revision.get(), 2);
+        selector.wait(options()).await.unwrap();
+        close(client, host).await;
+    }
 }

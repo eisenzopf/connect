@@ -234,6 +234,19 @@ pub(super) fn observe(
     }
     Ok(())
 }
+// A routing-only commit can preserve the native revision. Observe that new
+// journal identity only when its predecessor is still installed; older results
+// and repeats of the current observation cannot replace progress.
+fn current_hint(
+    entry: &NativeConnection,
+    key: &OperationKey,
+    hint: &connect_protocol::native_streams::ReconciliationHint,
+) -> bool {
+    let installed = entry.selected.stream_revision.get();
+    (hint.stream_revision > installed
+        || hint.stream_revision == installed && hint.expected_revision == installed)
+        && !entry.reconciliation.as_ref().is_some_and(|s| s.key == *key)
+}
 struct Job {
     key: OperationKey,
     offer: Option<Envelope>,
@@ -318,6 +331,7 @@ impl Driver {
             self.hints.iter().find_map(|(id, hint)| {
                 let entry = exact(&mut cache, &hint.key).ok().flatten()?;
                 (entry.prepared.is_none()
+                    && current_hint(entry, &hint.key, &hint.value)
                     && !self.busy(&hint.key)
                     && entry.selectors.iter().any(|o| {
                         o.completed
@@ -332,7 +346,7 @@ impl Driver {
                 let hint = self.hints.remove(&id).expect("pending hint");
                 let mut cache = cache.lock().map_err(|_| bad(&hint.key))?;
                 if let Some(entry) = exact(&mut cache, &hint.key)? {
-                    if hint.value.stream_revision > entry.selected.stream_revision.get() {
+                    if current_hint(entry, &hint.key, &hint.value) {
                         entry.reconciliation = Some(NativeReconciliation {
                             key: hint.key.clone(),
                             expected_revision: hint.value.expected_revision,
@@ -427,9 +441,7 @@ impl Driver {
         else {
             return Ok(false);
         };
-        if value.stream_revision <= entry.selected.stream_revision.get()
-            || self.jobs.iter().any(|job| job.key == key)
-        {
+        if !current_hint(entry, &key, &value) || self.jobs.iter().any(|job| job.key == key) {
             return Ok(true);
         }
         if !entry.selectors.iter().any(|o| {
