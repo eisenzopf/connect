@@ -377,7 +377,8 @@ impl Store {
             )
             .map_err(|_| Error::storage())?;
         }
-        let result = serde_json::json!({"connection_id":s.connection_id,"replaces":s.source_connection_id,"generation":s.generation,"participant_id":s.participant_id,"membership_epoch":s.membership_epoch,"endpoint_id":s.endpoint_id,"device_id":s.device_id,"readiness":observed["readiness"],"session_revision":revision});
+        let retained_connection_id = rows::request(&row)?.intent.retained().to_owned();
+        let result = serde_json::json!({"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[s.connection_id],"retired_connection_ids":[s.source_connection_id],"conversation_revision":null,"connection_id":s.connection_id,"replaces":s.source_connection_id,"generation":s.generation,"participant_id":s.participant_id,"membership_epoch":s.membership_epoch,"endpoint_id":s.endpoint_id,"device_id":s.device_id,"readiness":observed["readiness"],"session_revision":revision});
         tx.execute(
             "UPDATE operations SET state='completed',result_json=?2 WHERE record_id=?1",
             params![p.record, result.to_string()],

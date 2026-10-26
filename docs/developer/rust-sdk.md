@@ -285,3 +285,34 @@ let observation = session.consultation_return_receipt();
 The qualification evidence for this checkpoint is recorded in
 `docs/evidence/gate-6/rust-sdk-consultations.json`. Handoff, Connection replacement,
 subscriptions and the remaining complete SDK journeys remain G6-060 work.
+
+`Session::handoff` takes explicit source/target Participants, source and retained
+Connections, optional candidate, outgoing disposition and role scope. A
+Conversation role change requires its separate `ConversationRevision`. A typed
+consultation reference contributes its original host record ID; an unobserved ID
+requires an authorized recovery read within the same deadline. The caller's
+`policy_ref` and other extensions keep their original values, including explicit
+nulls and array order. Typed absent optionals are omitted from the wire.
+
+`HandoffResult` records the retained/admitted/retired topology and, when captured,
+the native role change. Participant authority revision, Session topology and
+Conversation revision remain separate observations. `cleanup: pending` does not
+claim that every outgoing resource has finished retiring. An old completed result
+cannot install foreign media or repeat the role change.
+
+`Connection::replace_device` chooses either an Endpoint or an existing candidate
+Connection with `MoveTarget`. Its `MoveResult` reports the captured target handle,
+generation, Participant/membership epoch, Device/Endpoint and topology. The
+server records the retained/admitted/retired IDs with the committed move;
+preparation, readiness or the SDK request cannot substitute for that result.
+Source cleanup and target packet admission retain their current independent
+physical authority. A recovered observation does not acquire the new Device's
+transport or local hop handles.
+
+Both methods return typed original-ID operations even when work is still pending
+or records a failure. Unknown and interrupted states remain observations, and a
+cancelled caller leaves a submitted exchange owned. Saved transition references
+retain the intent context needed to validate historical results. Device movement
+uses Session `TopologyRevision`, independently of stream, resource and generation
+counters. The exact current qualification scope is recorded in
+`docs/evidence/gate-6/rust-sdk-movements.json`.

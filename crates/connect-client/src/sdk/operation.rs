@@ -74,6 +74,8 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    pub session_handoff: OperationKind<HandoffResult>,
+    pub connection_replace: OperationKind<MoveResult>,
     pub session_consult: OperationKind<ConsultationResult>,
     pub session_consult_return: OperationKind<Session>,
     pub connection_update: OperationKind<ConnectionUpdateReceipt>,
@@ -96,6 +98,16 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            session_handoff: OperationKind::new(
+                "session.handoff",
+                movements::decode_handoff,
+                connections::valid_scope,
+            ),
+            connection_replace: OperationKind::new(
+                "connection.replace",
+                movements::decode_move,
+                connections::valid_scope,
+            ),
             session_consult: OperationKind::new(
                 "session.consult",
                 consultations::decode_consult,

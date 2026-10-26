@@ -39,6 +39,19 @@ pub struct ConsultationReturnReceipt {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub(super) enum Continuation {
+    Handoff {
+        retained_connection_id: ConnectionId,
+        source_participant: ParticipantId,
+        target_participant: ParticipantId,
+        candidate: Option<ConnectionId>,
+        role: HandoffRole,
+        outgoing: Outgoing,
+    },
+    Replacement {
+        retained_connection_id: ConnectionId,
+        target: MoveTarget,
+    },
+
     Consultation {
         retained_connection_id: ConnectionId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -50,13 +63,19 @@ pub(super) enum Continuation {
     },
 }
 pub(super) fn is_command(command: &str) -> bool {
-    matches!(command, "session.consult" | "session.consult.return")
+    matches!(
+        command,
+        "session.consult" | "session.consult.return" | "session.handoff" | "connection.replace"
+    )
 }
 pub(super) fn valid_continuation(
     command: &str,
     scope: &OperationScope,
     context: Option<&Continuation>,
 ) -> bool {
+    if matches!(command, "session.handoff" | "connection.replace") {
+        return movements::valid_continuation(command, scope, context);
+    }
     match (command, context) {
         (
             "session.consult",
@@ -162,6 +181,12 @@ pub(super) fn validate_completion(
     key: &OperationKey,
     context: Option<&Continuation>,
 ) -> Result<()> {
+    if matches!(
+        key.command.as_str(),
+        "session.handoff" | "connection.replace"
+    ) {
+        return movements::validate_completion(value, key, context);
+    }
     let w = wire(value, key)?;
     let retained = match context {
         Some(Continuation::Consultation {
@@ -269,7 +294,7 @@ impl Session {
                 }
             },
         };
-        self.submit_consultation(
+        self.submit_transition(
             self.client().operation_kinds().session_consult,
             input.via,
             input.expected_topology_revision,
@@ -279,7 +304,7 @@ impl Session {
         )
         .await
     }
-    async fn submit_consultation<T>(
+    pub(super) async fn submit_transition<T>(
         &self,
         kind: OperationKind<T>,
         via: ConnectionId,
@@ -311,7 +336,10 @@ impl Session {
         };
         command.normalize().map_err(|_| invalid())?;
         let mut payload = serde_json::to_value(&command.intent).map_err(|_| invalid())?;
-        payload.as_object_mut().ok_or_else(invalid)?.remove("type");
+        payload
+            .as_object_mut()
+            .ok_or_else(invalid)?
+            .retain(|key, value| key != "type" && !value.is_null());
         for (name, value) in command.payload_extensions {
             payload[name] = value;
         }
@@ -415,7 +443,7 @@ impl Operation<ConsultationResult> {
             retained_connid: retained_connection_id.as_str().into(),
         };
         session
-            .submit_consultation(
+            .submit_transition(
                 self.client().operation_kinds().session_consult_return,
                 key.scope.connection_id.clone().ok_or_else(invalid)?,
                 expected,

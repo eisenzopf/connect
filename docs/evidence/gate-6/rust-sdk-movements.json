@@ -1,0 +1,53 @@
+{
+  "schema": "connect-gate6-rust-sdk-movements/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T02:16:06.470954+00:00",
+  "base_revision": "5d81daf978cec6285f6d9c9b7d4859139b46200d",
+  "scope": "Public Rust SDK typed handoff and Connection device replacement. Current checkpoint qualifies signed client fixtures only; real listener/audio rehearsal build is running. Local macOS arm64 functional scope.",
+  "implementation": [
+    "Session.handoff preserves explicit Participants, outgoing disposition, separate Session/Conversation revisions, optional candidate and original consultation record. Saved context checks completed topology and role observations without granting foreign media custody.",
+    "Connection.replace_device selects an Endpoint or candidate Connection and validates the captured target generation, membership epoch, Device/Endpoint and retained/admitted/retired topology. Both native and telephone Store commit projections now capture topology from the original intent and actual committed source/target.",
+    "Absent typed transition optionals are omitted from the wire; explicitly null extensions and array order are preserved. Unknown and interrupted requests preserve logical operation identity and owned transport work.",
+    "HTTP/OpenAPI reference includes native handoff and replacement completion shapes."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 140,
+      "failed_functions": 0,
+      "new_functions": 8,
+      "log": ".local/gate-6/rust-sdk-movements/client-05.log",
+      "log_sha256": "d5034aa69f65674a6a699c441e579607603ee56f70bf4b1e3c9fbb8359d9664b",
+      "scope": "Complete client suite; new signed fixtures exercise role scopes/dispositions, target choice, recovery/cancellation, failed operations and malformed captured metadata."
+    },
+    "inputs": {
+      "path": ".local/gate-6/rust-sdk-movements/inputs-01.json",
+      "sha256": "1b7d2cab94d1e2a1de11b96ed7c4352380c386344713e26c4356fd83e9540f1a",
+      "guarded_source_inputs": 1323,
+      "unchanged": true
+    },
+    "production": {
+      "status": "pending",
+      "detail": "Current-source production no-run build is compiling service dependencies. New SDK controller fixtures are committed but have not yet run."
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": ".local/gate-6/rust-sdk-movements/client-02.log",
+      "result": "New test compile required avoiding a Debug bound on Completion; corrected."
+    },
+    {
+      "log": ".local/gate-6/rust-sdk-movements/client-03.log",
+      "result": "Transition typed None fields serialized as null violated wire alternatives before I/O; fixed omission. The fixture waiting for nonexistent I/O was terminated and bounded."
+    },
+    {
+      "log": ".local/gate-6/rust-sdk-movements/client-04.log",
+      "result": "139 passed, one failed because the fake failed status also carried a success result. Fixture corrected before final 140-function pass."
+    }
+  ],
+  "remaining": [
+    "Production listener/audio handoff and replacement qualification is pending; no real movement claim at this checkpoint.",
+    "Subscribe/unsubscribe and full SDK API/event/configuration, reliable data, transition custody and server-initiated reconciliation, packaged consumers, both-ends SDK and approved remote/Linux profiles remain.",
+    "G6-060 remains in progress; no Gate acceptance, performance or publication claim."
+  ]
+}

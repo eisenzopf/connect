@@ -788,3 +788,6 @@ mod handoff;
 mod preparation;
 #[path = "groups/replacement.rs"]
 mod replacement;
+
+#[path = "groups/sdk_movements.rs"]
+mod sdk_movements;

@@ -88,6 +88,24 @@ async fn exercise_replacement_mode(
     movement: bool,
     deferred_projection: bool,
 ) {
+    exercise_replacement_with_sdk(
+        allocate,
+        start_media,
+        reject_answer,
+        movement,
+        deferred_projection,
+        None,
+    )
+    .await
+}
+pub(super) async fn exercise_replacement_with_sdk(
+    allocate: bool,
+    start_media: bool,
+    reject_answer: bool,
+    movement: bool,
+    deferred_projection: bool,
+    sdk_algorithm: Option<&'static str>,
+) {
     let cases = if deferred_projection {
         vec![(false, false, false)]
     } else if movement {
@@ -120,7 +138,18 @@ async fn exercise_replacement_mode(
             cid,
             sh,
             th,
-        } = codecs::setup().await;
+        } = if let Some(algorithm) = sdk_algorithm {
+            codecs::setup_started(
+                Fixture::with_native_end_scope(algorithm, 16).await,
+                (),
+                "codec-target-offer",
+                "codec-source-offer",
+            )
+            .await
+            .0
+        } else {
+            codecs::setup().await
+        };
         let room = clients[1]
             .list_conversations(Default::default())
             .await
@@ -245,7 +274,27 @@ async fn exercise_replacement_mode(
             },
             payload_extensions: Default::default(),
         };
-        let public_root = controller.transition(command.clone()).await.unwrap();
+        let sdk_probe = if sdk_algorithm.is_some() {
+            Some(super::sdk_movements::replacement(&f, &command, &key.token).await)
+        } else {
+            None
+        };
+        let public_root = if sdk_probe.is_some() {
+            controller
+                .operation_get(
+                    &command.operation_id,
+                    CommandScope {
+                        conversation_id: Some(cid.clone()),
+                        session_id: Some(command.session_id.clone()),
+                        connection_id: command.connection_id.clone(),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap()
+        } else {
+            controller.transition(command.clone()).await.unwrap()
+        };
         let prepared = wait_prepared(&f, &key.id, &command.operation_id).await;
         assert_eq!(prepared.state, OperationState::Preparing);
         assert!(prepared.result.is_none());
@@ -258,9 +307,14 @@ async fn exercise_replacement_mode(
         );
         let current = f.server.service.canonical_runtime_snapshot().unwrap();
         assert_eq!(current.replacement_preparations, 1);
-        assert_eq!(current.connections, baseline.connections);
-        assert_eq!(current.physical_peers, baseline.physical_peers);
-        assert_eq!(current.live_sessions, baseline.live_sessions);
+        let before = sdk_probe.as_ref().map(|p| p.baseline).unwrap_or((
+            baseline.connections,
+            baseline.physical_peers,
+            baseline.live_sessions,
+        ));
+        assert_eq!(current.connections, before.0);
+        assert_eq!(current.physical_peers, before.1);
+        assert_eq!(current.live_sessions, before.2);
         let c = rusqlite::Connection::open(&f.config.database).unwrap();
         let (plan,observation):(String,String)=c.query_row("SELECT n.plan_json,s.observation_json FROM native_replacements n JOIN native_replacement_steps s ON s.operation_record_id=n.operation_record_id AND s.phase='prepare'",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
         let plan: Value = serde_json::from_str(&plan).unwrap();
@@ -565,6 +619,13 @@ async fn exercise_replacement_mode(
                     );
                     tokio::time::sleep(Duration::from_millis(20)).await;
                 }
+                if let Some(probe) = sdk_probe {
+                    let value = status(&f, &key.id, &command.operation_id)
+                        .await
+                        .result
+                        .unwrap();
+                    super::sdk_movements::replacement_completed(&f, probe, &command, &value).await;
+                }
                 wait_slots(&f, 1).await;
                 let until = tokio::time::Instant::now() + Duration::from_secs(5);
                 loop {
@@ -627,6 +688,15 @@ async fn exercise_replacement_mode(
                 );
                 tokio::time::sleep(Duration::from_millis(20)).await;
             };
+            if let Some(probe) = sdk_probe {
+                super::sdk_movements::replacement_completed(
+                    &f,
+                    probe,
+                    &command,
+                    done.result.as_ref().unwrap(),
+                )
+                .await;
+            }
             assert_eq!(done.effects.len(), 7);
             assert!(done
                 .effects
@@ -916,6 +986,9 @@ async fn exercise_replacement_mode(
             .await;
         }
         let terminal = status(&f, &key.id, &command.operation_id).await;
+        if let Some(probe) = sdk_probe {
+            super::sdk_movements::replacement_stopped(probe, terminal.state).await;
+        }
         assert_eq!(
             terminal.effects.len(),
             if start_media && !reject_answer {

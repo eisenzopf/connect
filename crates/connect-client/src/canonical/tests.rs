@@ -8,6 +8,7 @@ pub(super) mod native_media;
 mod owned_signaling;
 mod sdk_consultations;
 mod sdk_decisions;
+mod sdk_movements;
 mod sdk_multiplex;
 mod sdk_native;
 mod sdk_worker;
@@ -69,6 +70,7 @@ pub(super) enum Fault {
     SdkNative(sdk_native::Case),
     SdkDecision(sdk_decisions::Case),
     SdkConsultation(sdk_consultations::Case),
+    SdkMovement(sdk_movements::Case),
     ForeignScope,
     ReplyCount,
     ReplyBytes,
@@ -129,6 +131,12 @@ pub(super) async fn controlled(
         let mut bytes = vec![0; u32::from_be_bytes(prefix) as usize];
         reader.read_exact(&mut bytes).await.unwrap();
         let request = Envelope::parse(&bytes).unwrap();
+        if let Fault::SdkMovement(case) = fault {
+            sdk_movements::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
+            connection.closed().await;
+            server.close(0u32.into(), b"SDK movement fixture complete");
+            return;
+        }
         if let Fault::SdkConsultation(case) = fault {
             sdk_consultations::emit(case, request, &mut writer, &mut reader, &signer, &signal)
                 .await;

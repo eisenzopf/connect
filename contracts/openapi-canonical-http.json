@@ -352,6 +352,16 @@
           },
           "observation": "Server receipt does not confirm delivery to another peer or trigger automatic codec renegotiation. Local listener qualification and unresolved checks are recorded separately in auxiliary-native-capability-delivery.json."
         },
+        "x-movement-completion": {
+          "handoff-schema": {
+            "$ref": "#/components/schemas/NativeHandoffCompletion"
+          },
+          "replacement-schema": {
+            "$ref": "#/components/schemas/NativeReplacementCompletion"
+          },
+          "authority": "Current-authorized original operation reads expose captured local results. Actual preparation, confirmed resources, movement, recording and media remain separate boundaries. Historical completion never adopts another peer or revives a retired target.",
+          "scope": "Native/telephone movement records exact retained/admitted/retired topology alongside actual target and original source. Physical media still requires current route custody."
+        },
         "x-transition-receipt-identity": {
           "fields": [
             "operation_id",
@@ -5389,6 +5399,193 @@
           "counts"
         ],
         "additionalProperties": false
+      },
+      "NativeHandoffRoleObservation": {
+        "type": "object",
+        "properties": {
+          "participant_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "role_scope": {
+            "enum": [
+              "session",
+              "conversation"
+            ]
+          },
+          "outgoing": {
+            "enum": [
+              "leave",
+              "observe"
+            ]
+          },
+          "source_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "target_participant": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "cleanup": {
+            "enum": [
+              "pending",
+              "not_requested"
+            ]
+          }
+        },
+        "required": [
+          "participant_revision",
+          "role_scope",
+          "outgoing",
+          "source_participant",
+          "target_participant",
+          "cleanup"
+        ],
+        "additionalProperties": false
+      },
+      "NativeHandoffCompletion": {
+        "type": "object",
+        "properties": {
+          "retained_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "admitted_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "retired_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "session_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "conversation_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "native_handoff": {
+            "$ref": "#/components/schemas/NativeHandoffRoleObservation"
+          }
+        },
+        "required": [
+          "retained_connection_ids",
+          "admitted_connection_ids",
+          "retired_connection_ids",
+          "session_revision",
+          "conversation_revision"
+        ],
+        "additionalProperties": false,
+        "description": "Captured topology and optional native role fact. Native participant authority revision, Session topology revision and Conversation revision are distinct. Cleanup pending is historical local progress; this receipt grants no media ownership."
+      },
+      "NativeReplacementCompletion": {
+        "type": "object",
+        "properties": {
+          "retained_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "admitted_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "minItems": 1,
+            "maxItems": 1,
+            "uniqueItems": true
+          },
+          "retired_connection_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WireIdentifier"
+            },
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "session_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "conversation_revision": {
+            "type": "null"
+          },
+          "connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "replaces": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "generation": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "participant_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "membership_epoch": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "endpoint_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "readiness": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "retained_connection_ids",
+          "admitted_connection_ids",
+          "retired_connection_ids",
+          "session_revision",
+          "conversation_revision",
+          "connection_id",
+          "replaces",
+          "generation",
+          "participant_id",
+          "membership_epoch",
+          "endpoint_id",
+          "device_id",
+          "readiness"
+        ],
+        "additionalProperties": false,
+        "description": "Captured committed native/telephone replacement. Retained/admitted/retired IDs are recorded with the move, never inferred from readiness or SDK input. The replaced source is retired, the admitted ID equals connection_id, and all IDs across the three sets are distinct. Generation and membership epoch are observations, not media grants or resource revisions."
       },
       "NativeCodecBinding": {
         "type": "object",

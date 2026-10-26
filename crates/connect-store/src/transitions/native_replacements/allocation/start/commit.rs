@@ -398,7 +398,8 @@ impl Store {
             )
             .map_err(|_| Error::storage())?;
         }
-        let result = serde_json::json!({"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":ready["readiness"],"session_revision":topology_revision});
+        let retained_connection_id = rows::request(&row)?.intent.retained().to_owned();
+        let result = serde_json::json!({"retained_connection_ids":[retained_connection_id],"admitted_connection_ids":[target.connection.connection_id],"retired_connection_ids":[source],"conversation_revision":null,"connection_id":target.connection.connection_id,"replaces":source,"generation":target.connection.generation,"participant_id":target.connection.participant_id,"membership_epoch":target.connection.membership_epoch,"endpoint_id":target.connection.endpoint_id,"device_id":target.device_id,"readiness":ready["readiness"],"session_revision":topology_revision});
         tx.execute(
             "UPDATE operations SET state='completed',result_json=?2 WHERE record_id=?1",
             params![p.record, result.to_string()],

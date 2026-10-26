@@ -22,13 +22,32 @@ async fn handoff_case(
     role_scope: RoleScope,
     initial_activation: bool,
 ) {
+    handoff_case_with_sdk(disposition, role_scope, initial_activation, None).await
+}
+pub(super) async fn handoff_case_with_sdk(
+    disposition: OutgoingDisposition,
+    role_scope: RoleScope,
+    initial_activation: bool,
+    sdk_algorithm: Option<&'static str>,
+) {
     let codecs::Running {
         f,
         mut clients,
         cid,
         sh,
         th,
-    } = codecs::setup().await;
+    } = if let Some(algorithm) = sdk_algorithm {
+        codecs::setup_started(
+            Fixture::with_native_end_scope(algorithm, 16).await,
+            (),
+            "codec-target-offer",
+            "codec-source-offer",
+        )
+        .await
+        .0
+    } else {
+        codecs::setup().await
+    };
     let room = clients[1]
         .list_conversations(Default::default())
         .await
@@ -277,7 +296,12 @@ async fn handoff_case(
         ))
         .unwrap();
     }
-    controller.transition(command.clone()).await.unwrap();
+    let sdk_probe = if sdk_algorithm.is_some() {
+        Some(super::sdk_movements::handoff(&f, &command, &key.token, &group).await)
+    } else {
+        controller.transition(command.clone()).await.unwrap();
+        None
+    };
     let record = wait_state(&f, &key.id, &command.operation_id, true).await;
     let wire = controller
         .operation_get(
@@ -295,6 +319,15 @@ async fn handoff_case(
     assert_eq!(wire["result"], record.result.as_ref().unwrap().clone());
     assert_eq!(record.effects.len(), 1);
     assert_eq!(record.effects[0].attempt, 1);
+    if let Some(probe) = sdk_probe {
+        super::sdk_movements::handoff_completed(
+            &f,
+            probe,
+            &command,
+            record.result.as_ref().unwrap(),
+        )
+        .await;
+    }
     if let Some(flow_count) = initial_flow_count {
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         tokio::time::timeout(Duration::from_secs(5), async {

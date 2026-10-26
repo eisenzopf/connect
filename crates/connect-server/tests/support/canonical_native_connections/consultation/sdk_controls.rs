@@ -19,7 +19,11 @@ pub(super) struct Probe {
     operation: sdk::Operation<sdk::ConsultationResult>,
     config: CanonicalClientConfig,
 }
-fn controller_config(f: &Fixture, token: &str, index: usize) -> CanonicalClientConfig {
+pub(in crate::canonical_native_connections::consultation) fn controller_config(
+    f: &Fixture,
+    token: &str,
+    index: usize,
+) -> CanonicalClientConfig {
     let mut config = party_with_scope(
         f,
         &f.client.identity_id,

@@ -34,6 +34,7 @@ mod decisions;
 mod error;
 mod ids;
 mod media;
+mod movements;
 mod native_negotiation;
 mod operation;
 mod participants;
@@ -61,6 +62,10 @@ pub use decisions::{DecisionReceipt, ReconcileOutcome};
 pub use error::{CanonicalProblem, Certainty, Error, ErrorKind, Result};
 pub use ids::*;
 pub use media::MediaStats;
+pub use movements::{
+    HandoffCleanup, HandoffInput, HandoffResult, HandoffRole, HandoffRoleChange, HandoffRoleScope,
+    MoveBindingObservation, MoveInput, MoveResult, MoveTarget, Outgoing,
+};
 pub use operation::{
     Completion, Operation, OperationKey, OperationKind, OperationKinds, OperationReference,
     OperationScope, OperationSnapshot,
