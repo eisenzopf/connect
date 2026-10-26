@@ -84,14 +84,27 @@ async fn public_sdk_incoming_invitations_keep_original_metadata_and_decide_witho
             let hint = incoming.next().await.unwrap().unwrap();
             assert_eq!(hint.from_participant, from);
             assert_eq!(hint.to_participant, to);
-            assert_eq!(
+            let database = rusqlite::Connection::open_with_flags(
+                &f.config.database,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            )
+            .unwrap();
+            let source:String=database.query_row("SELECT id FROM session_invitation_sources WHERE conversation_id=?1 AND session_id=?2 AND operation_id=?3",rusqlite::params![room.id().as_str(),original.id().as_str(),format!("sdk-incoming-original-{index}")],|r|r.get(0)).unwrap();
+            assert_eq!(hint.operation_id.as_str(), source);
+            assert_ne!(
                 hint.operation_id.as_str(),
-                format!("sdk-incoming-original-{index}")
+                format!("sdk-incoming-original-{index}"),
+                "callee correlation must not be relabeled as the caller's private mutation ID"
             );
+            drop(database);
             assert_eq!(hint.source.kind, "session.invite");
             assert_eq!(hint.source.correlation_id, hint.operation_id.as_str());
             assert_eq!(hint.capabilities_offer, caps);
             assert_eq!(hint.intent, "synchronous-engagement");
+            assert_eq!(
+                std::mem::discriminant(&hint.medium),
+                std::mem::discriminant(&medium)
+            );
             assert_eq!(hint.session.id(), original.id());
             assert_eq!(hint.session.conversation_id(), room.id());
             assert!(hint.session.receipt_snapshot().is_none());
@@ -147,7 +160,12 @@ async fn public_sdk_incoming_invitations_keep_original_metadata_and_decide_witho
             incoming.close().await.unwrap();
             assert!(incoming.next().await.unwrap().is_none());
         }
-        let counts=f.server.store.connection().unwrap().query_row("SELECT (SELECT COUNT(*) FROM native_connection_lifetimes),(SELECT COUNT(*) FROM sessions WHERE state IN ('invited','accepted','active'))",[],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,i64>(1)?))).unwrap();
+        let database = rusqlite::Connection::open_with_flags(
+            &f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let counts=database.query_row("SELECT (SELECT COUNT(*) FROM native_connection_lifetimes),(SELECT COUNT(*) FROM sessions WHERE state IN ('invited','accepted','active'))",[],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,i64>(1)?))).unwrap();
         assert_eq!(counts,(0,0),"metadata/decisions cannot allocate native ownership and all logical Sessions are terminal");
         callee.close(options()).await.unwrap();
         caller.close(options()).await.unwrap();

@@ -29,6 +29,8 @@ pub struct IncomingInvitation {
     pub session: Session,
     pub from_participant: ParticipantId,
     pub to_participant: ParticipantId,
+    /// Stable server invitation source correlation, distinct from the caller
+    /// mutation ID. Use a separately saved ID for your ordinary decision.
     pub operation_id: OperationId,
     pub source: EventSource,
     pub medium: SessionMedium,

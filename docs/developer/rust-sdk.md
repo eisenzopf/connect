@@ -519,7 +519,10 @@ same owned native peer. The worker retains signed invitations that arrive before
 a reader attaches. A callee obtains the scoped Session handle, original invitation
 operation ID, inviter and target Participant IDs, medium, intent and capability
 offer from `IncomingInvitation`; it needs no copied Conversation or Session ID.
-Its source identifies `session.invite` and the original logical invitation ID.
+Its `operation_id` is the stable server invitation source correlation carried on
+the received wire envelope. It is distinct from the caller's private mutation ID
+and from your decision mutation ID. `source` identifies `session.invite` and that
+same original source correlation.
 Debug output omits the intent and capability offer.
 
 An invitation is an original metadata hint. It can become stale after cancellation,

@@ -2,11 +2,11 @@
   "schema": "connect-gate6-rust-sdk-invitations/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T07:11:32.126417+00:00",
+  "checked_at": "2026-10-26T07:13:50.026853+00:00",
   "base_revision": "7b745dc1",
   "scope": "Typed owned incoming native invitation metadata. Component checkpoint; actual-server fixtures building, no production acceptance claimed.",
   "implementation": [
-    "One lazy InvitationStream per Client including clones receives actual signed server session.invite metadata on the existing owned reader, including arrivals before reader attachment. Callees obtain original scoped Session, from/to Participants, original operation and medium/intent/capabilities without copied IDs. Source identifies canonical session.invite and the original logical invitation ID.",
+    "One lazy InvitationStream per Client including clones receives actual signed server session.invite metadata on the existing owned reader, including arrivals before reader attachment. Callees obtain original scoped Session, from/to Participants, original operation and medium/intent/capabilities without copied IDs. Source identifies canonical session.invite and the original logical invitation ID. The received operation_id is the stable server invitation source correlation, distinct from the caller private mutation ID and the separately saved decision mutation ID.",
     "Hints grant no native custody or acceptance. Applications refresh Session state and use separately persisted ordinary accept/reject operation IDs with current topology and authorization. No reader mutation, automatic decision or native allocation occurs.",
     "32 hints/1MiB encoded payload per physical inbox;256 immutable logical identities with4 bounded wire cancellation references each. Same-intent fresh wire replay is suppressed before and after application return. Malformed or changed metadata and sticky overflow clear retained bodies/fail only this inbox while other control remains live.",
     "Per-wait timeout/drop/cancel consumes nothing. Reader close/drop releases local exclusivity and preserves bounded pending hints for a replacement. Exact signed known cancellation correlation/scope removes only that pending hint. Client close clears bodies and wakes waits."
@@ -23,9 +23,17 @@
       "scope": "Signed pre-attachment queued delivery, original metadata and redacted Debug, dropped/expired/cancelled waits, close/drop/replacement and one-reader conflict, client shutdown, exact/mismatched cancellation, malformed/changed source, count/encoded-byte overflow and no repeat after application return."
     },
     "production": {
-      "status": "pending",
+      "status": "candidate-03-building",
       "new_functions": 2,
-      "scope": "Implemented both-algorithm fixtures for six media intents and explicit fresh accept/reject without copied callee IDs; stale cancellation/membership removal, independent reader replacement, zero native custody, terminal logical Sessions and joined shutdown. Runtime is pending."
+      "prior_result": {
+        "passed_functions": 1,
+        "failed_functions": 1,
+        "report": {
+          "path": ".local/gate-6/sdk-invitations/production-02-summary.json",
+          "sha256": "7b927644948100eb2ebec6e7bf899786b543c1a4f98f9ca63ced777fc6c24aea"
+        }
+      },
+      "scope": "Both-algorithm stale cancel/removal passes. Corrected exact stable server-source-ID comparison, six-media accept/reject and complete regression run remain pending."
     },
     "dependencies": {
       "path": ".local/gate-6/sdk-invitations/dependencies-01.log",
@@ -33,10 +41,17 @@
     },
     "inputs": {
       "manifest": {
-        "path": ".local/gate-6/sdk-invitations/inputs-01.json",
-        "sha256": "37ac52490e0e606823908085512c460d47fd87fa91654dcbd88bd8d56b907fdd"
+        "path": ".local/gate-6/sdk-invitations/inputs-03.json",
+        "sha256": "edf579dacf3112160930983ac4c7ceebe512ddd39cc12daed68dc1df2bd91fe9"
       },
       "guarded_inputs": 1354
+    },
+    "rustdoc": {
+      "passed_functions": 7,
+      "log": {
+        "path": ".local/gate-6/sdk-invitations/rustdoc.log",
+        "sha256": "60f4fe8e4dd519ca841a500244472586f0b2c934998831a23cd325775f5a6fa7"
+      }
     }
   },
   "failed_or_superseded_runs": [
@@ -46,6 +61,20 @@
         "sha256": "d1612c763116ec60cc7acdc580be3e2a6499b4671afb519e4fb2a97a14346062"
       },
       "observation": "Changed-duplicate fixture initially changed both original and repeated bodies, so it did not represent an immutable-identity mismatch. Corrected the initial body; all189 functions pass in03."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-invitations/build-01.log",
+        "sha256": "12969cf7d897effb340fc1fd5b466c72866ad572cac9e9a4550a94b9e2eecc06"
+      },
+      "observation": "New evidence fixture attempted the private Store.connection method. Replaced only evidence reads with an independent read-only SQLite connection; application behavior still uses the public SDK."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/sdk-invitations/production-02-summary.json",
+        "sha256": "7b927644948100eb2ebec6e7bf899786b543c1a4f98f9ca63ced777fc6c24aea"
+      },
+      "observation": "Stale cancellation/removal passes both algorithms. Main fixture wrongly expected the private caller mutation ID in the callee header, which correctly carries the stable server invitation source ID (sinv). Corrected the assertion against the actual immutable source row and explicitly documented the three distinct IDs; no server correlation or authorization changed."
     }
   ],
   "remaining": [
