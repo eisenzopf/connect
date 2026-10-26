@@ -8,6 +8,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+async-trait.workspace = true
 reqwest.workspace = true
 connect-protocol.workspace = true
 rvoip-quic.workspace = true

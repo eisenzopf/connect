@@ -122,6 +122,23 @@ pub fn manifest() -> Manifest {
     m.limits.media_queue_frames = QUEUE_CAPACITY as u16;
     m
 }
+/// The companion public-SDK host enrolls its own signed native Endpoint. Its
+/// native binding is distinct from installing this backend's InProcessAi adapter
+/// in a Core. Neither declaration grants the host Conversation authority.
+pub fn native_host_manifest() -> Manifest {
+    let mut m = manifest();
+    m.name = "independent-live-native-host".into();
+    if let MediaSupport::Live {
+        binding, controls, ..
+    } = &mut m.media
+    {
+        *binding = LiveBinding::SignedNativeEndpoint;
+        *controls = [LiveControl::End].into();
+    }
+    // Four backend frames plus the SDK bridge's one pending device frame.
+    m.limits.media_queue_frames = (QUEUE_CAPACITY + 1) as u16;
+    m
+}
 impl Adapter {
     pub async fn open(remote: Arc<Remote>) -> Result<Arc<Self>> {
         let owner = {

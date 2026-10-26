@@ -993,7 +993,7 @@
     }
   ],
   "inputs": {
-    "Cargo.lock": "7927b0fa065c7fa09793b546554612c07e498e53dee870d2f85aad2de66043e4",
+    "Cargo.lock": "95da687f4630fbad030733ee29bf774d8b3835d3ff678e2f0a9d2913933aa0b0",
     "Cargo.toml": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
     "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",

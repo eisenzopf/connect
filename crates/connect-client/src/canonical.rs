@@ -1011,9 +1011,11 @@ mod tests;
 
 mod handoff_audio;
 mod owned_signaling;
+mod pcmu_bridge;
 mod private_audio;
 mod public_audio;
 pub use handoff_audio::PreparedHandoffNativeAudio;
+pub use pcmu_bridge::{PcmuBridgeExit, PcmuBridgeReport, PcmuDevice, PublicPcmuBridge};
 pub use private_audio::PrivateNativeAudio;
 pub use public_audio::PublicNativeAudio;
 

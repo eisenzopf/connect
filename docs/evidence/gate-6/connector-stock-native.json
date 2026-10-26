@@ -1,0 +1,139 @@
+{
+  "task": "G6-068",
+  "status": "in-progress; bounded public native SDK device-host journey qualified",
+  "checked_at": "2026-10-26T20:25:05.453772+00:00",
+  "base_revision": "975493caed60b1cdf6bf9c6c3ac9874806813258",
+  "scope": "Local macOS arm64 isolated stock server, public HTTP SDK administration and Session controls, own signed QUIC Endpoints and actual native PCMU audio. The independent backend is a local synthetic device, with no application Store access or dispatch replacement. No network provider or model result.",
+  "source_inputs": {
+    "crates/connect-client/src/canonical/pcmu_bridge.rs": "e117f37a945d759c525f55010483f66cca5321fd531688e6f403c5d66a1ddd41",
+    "crates/connect-client/src/canonical.rs": "34561fad94e94e34e230410c1090970e7d6f54ab4c2e6c08620a4c4e6d567502",
+    "crates/connect-client/Cargo.toml": "f559e3d07afd6485a655dd8a315a954afce22b275e0d8adac933b8e84782b12f",
+    "crates/connect-server/tests/connector_media_stock.rs": "f8fa33a316394a1010301c487fa65f1ed2a6505e6310371dabc82fc9fb0c1466",
+    "crates/connect-server/tests/support/connector_stock_setup.rs": "ad21ecedc383033d987c9be03b28371e64eb0576d296704371017bf1803decc4",
+    "examples/media-connector-template/src/lib.rs": "d041a0ef8969e07b7b63ba9bb98efaeca277a4c004140332224a7a406480528a",
+    "Cargo.lock": "95da687f4630fbad030733ee29bf774d8b3835d3ff678e2f0a9d2913933aa0b0",
+    "dependencies/source-lock.json": "5df243147f3e79708d3bb757b1c365d191084fa60a845f5fbbf2c1f1dce1861a"
+  },
+  "implementation": [
+    "PublicPcmuBridge owns the already negotiated public native peer and explicitly selected PcmuDevice. PCMU is 8kHz mono, 160 bytes/20ms. It holds one pending device frame and bounds writes/cleanup; native substrate queues retain their separate SDK limits.",
+    "SignedNativeEndpoint host manifest is distinct from the InProcessAi backend transport manifest. Local device custody grants no Conversation permission. Endpoint enrollment, explicit Session acceptance and current authorized stream selection occur through public interfaces.",
+    "Drain keeps its original join handle across caller cancellation, caches terminal reports and failed worker joins, and separately reports native/device cleanup. Drop requests stop; it is not cleanup proof. No command retry, alternate substrate or automatic reconnect is introduced."
+  ],
+  "verification": {
+    "production_build": {
+      "exit_code": 0,
+      "seconds": 2.119626292027533,
+      "source_unchanged": true,
+      "binary_sha256": "fd91f5283037984ecc44d9b8ccf9ecbb465ecd0294534607a9818161e08ec43c",
+      "bytes": 194095264,
+      "source_count": 1454,
+      "log_sha256": "a76c07779632c753955219d4ac4c1b6110d77c3f28b7826e2ca12165333f72f1",
+      "seal": "independent APFS clone; distinct inode, full decoded hash verified",
+      "stock-cli-31": {
+        "sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+        "bytes": 232474976
+      }
+    },
+    "native_runtime": {
+      "exit_code": 0,
+      "seconds": 5.8484542078804225,
+      "binary_sha256": "fd91f5283037984ecc44d9b8ccf9ecbb465ecd0294534607a9818161e08ec43c",
+      "source_unchanged": true,
+      "source_count": 1454,
+      "log_sha256": "87cdf9436d23da8f5bf9c96b3dcbd8ddfd17cda30e7408443716a45b1fa361e0",
+      "default_thread_stack": true,
+      "passed": 4,
+      "input_sha256": "d0cec6676190c9b7d02cd0770c9d2e66ac9b2b8eef60b30da15b49acf0966d73"
+    },
+    "client_components": [
+      {
+        "name": "unit",
+        "exit_code": 0,
+        "seconds": 164.60809295787476,
+        "source_unchanged": true,
+        "passed": 221,
+        "results": [
+          "test result: ok. 221 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 45.17s"
+        ],
+        "log_sha256": "8017a44179ff531382b976f7e6d4d97026d0de406f84e1c730e34f4840c3f25e"
+      },
+      {
+        "name": "rustdoc",
+        "exit_code": 0,
+        "seconds": 22.79275979101658,
+        "source_unchanged": true,
+        "passed": 12,
+        "results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s"
+        ],
+        "log_sha256": "83eeaaab8c11a2a81c40970af3eb80864d88ffa0d595649ac4d70fdcfdb9767b"
+      }
+    ],
+    "client_source_guard": {
+      "count": 174,
+      "sha256": "8b316f15c31ad3858a2f2dd2ed361cf2a989530fdb3dfb83812d63c88e3b7ac1",
+      "still_unchanged": true
+    },
+    "current_messaging_regression": {
+      "aggregate_qualification": "All selected production targets compiled successfully with unchanged source.",
+      "source_count": 1454,
+      "source_unchanged": true,
+      "input_sha256": "d0cec6676190c9b7d02cd0770c9d2e66ac9b2b8eef60b30da15b49acf0966d73",
+      "runs": [
+        {
+          "name": "connector_stock",
+          "exit_code": 0,
+          "seconds": 0.7815477079711854,
+          "binary_sha256": "37eaa90c0c3a6b1045073c65fab0f314fafeee858fa044e37fed2dce8c902d00",
+          "bytes": 194413552,
+          "log_sha256": "4482abb2c2e3bec8f1aa89aa00e1de5aac8314b77418ce0a967df37a1c588eaa",
+          "source_unchanged": true,
+          "results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s"
+          ]
+        },
+        {
+          "name": "connector_prism_stock",
+          "exit_code": 0,
+          "seconds": 1.0937716669868678,
+          "binary_sha256": "d2b3e4f9cde7b19c0dbbb9481641b6910c319fd0c9c3939cde8b45d8a8186fe8",
+          "bytes": 194722368,
+          "log_sha256": "e14f3a773f40b7beeba2f942b2be60cc8d3644e82825f63cf5c481fa2465738b",
+          "source_unchanged": true,
+          "results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s"
+          ]
+        }
+      ]
+    },
+    "protected_http": {
+      "protected_samples": 280,
+      "schema_checked": 280,
+      "setup_only": [],
+      "sigterm_exit": 0,
+      "cli_sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+      "summary_sha256": "c35dad70d4fee6d93dea46a570da06825c2c87f7db7c8cc6464817ddbec5c0bd",
+      "build_inputs_sha256": "d0cec6676190c9b7d02cd0770c9d2e66ac9b2b8eef60b30da15b49acf0966d73"
+    }
+  },
+  "behaviors": [
+    "Actual root-to-device PCMU marker decodes in the independent adapter and the reverse fixture marker decodes in the SDK receiver; repeated original local admission retains one effect.",
+    "Cancelling an in-flight bridge drain retains the same cleanup worker. A later drain observes both resources drained, replays the report and calls the device drain once. Retired local original admission cannot reactivate.",
+    "Malformed real device frames produce InvalidFrame, zero submissions and confirmed cleanup of the actual signed native peer/device.",
+    "A deliberate device receive panic requests cancellation. Repeated bridge drains return Transport without repolling a completed failed join or claiming successful cleanup.",
+    "A valid enrolled third peer is refused before entering an uninvited Session. The same peer positively decodes its own authorized Session while the original root continues decoding the fixture; forty isolated decoded frames exclude the positive fixture marker.",
+    "Both existing local message functions and both Prism functions pass on the current shared setup and current service permissions."
+  ],
+  "retained_failures": [
+    "Initial production strip ran out of disk; aggregate qualification was rejected. Closed generated cache variants were losslessly archived with decoded hashes/modes/closure audits, and the current production targets rebuilt successfully.",
+    "Initial native setup omitted explicit subscriptions, exposing the named stream-credential floor bug; the separate credential checkpoint fixes and verifies that floor without event rights.",
+    "Initial assertions sampled startup silence; the final tests wait for actual markers and continuously pace positive-control sources while checking isolation. The exclusion assertion remains active for every observed isolated frame.",
+    "Standalone service feature-graph compilation was interrupted, and the component runner timed out waiting for its build lock; neither is counted as a pass. The shared credential regression passed in the production server graph.",
+    "The first HTTP attempt used a Python without jsonschema and failed before runtime. The existing validation environment completed the current 280-case run."
+  ],
+  "remaining": [
+    "Final G6-068 clause audit, refreshed independently exported source kit and current component harness qualification.",
+    "Stock native uncertainty/reconnect and current-withdrawal coverage beyond the bounded lifecycle/privacy cases recorded here.",
+    "No Linux x86_64, remote/native/browser, real provider, package, performance or acceptance qualification. Publication remains separate."
+  ]
+}

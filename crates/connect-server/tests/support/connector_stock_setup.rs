@@ -37,6 +37,7 @@ pub(super) struct Setup {
     pub(super) cid: String,
     pub(super) root_pid: String,
     pub(super) ai_pid: String,
+    pub(super) peer_pid: String,
     pub(super) route: MessageRoute,
     pub(super) remote: PathBuf,
     pub(super) endpoint_id: String,
@@ -200,7 +201,7 @@ pub(super) async fn setup(connector: &str, account_reference: &str) -> Setup {
             &room.id,
             "excluded-secret-message",
             MessageDraft::text(
-                MessageAudience::Participants(vec![peer_pid]),
+                MessageAudience::Participants(vec![peer_pid.clone()]),
                 "exclude-from-connector-secret",
             ),
         )
@@ -246,6 +247,7 @@ pub(super) async fn setup(connector: &str, account_reference: &str) -> Setup {
         cid: room.id,
         root_pid,
         ai_pid,
+        peer_pid,
         route,
         remote,
         endpoint_id,

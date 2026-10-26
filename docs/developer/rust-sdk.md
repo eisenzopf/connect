@@ -869,3 +869,37 @@ Actual eligible hint drops are counted; cursor resumption recovers the original
 routing record before return while decoded audio continues with one effect and
 no new parameters. All1380 guarded inputs stayed unchanged. Exact scope is recorded in
 `docs/evidence/gate-6/rust-sdk-journal-catchup.json`.
+
+## An owned public PCMU device host
+
+`canonical::PublicPcmuBridge` consumes an already negotiated
+`PublicNativeAudio` and an explicitly selected `Arc<dyn PcmuDevice>`. The caller
+first enrolls its own signed native Endpoint, accepts the intended Session and
+selects authorized sources with `subscribe_audio`. A manifest or Connection ID
+cannot construct that peer. Native exchange continues through the ordinary SDK
+and server media policy; the bridge grants no Conversation or provider authority.
+
+`PcmuDevice` supplies mono PCMU at 8 kHz in 160-byte, 20 ms frames. The bridge
+holds at most one pending device frame and paces submissions at 20 ms. Device
+writes have a bounded deadline. Malformed frames and failed IO stop the worker;
+it does not invent silence, retry commands, select another substrate or reconnect
+with rewritten operation IDs. Submission counters count accepted IO calls, not
+remote decoding or an AI response.
+
+Device receive/send must be cancellation safe. `cancel` must be idempotent,
+nonblocking and fence new local work. `drain` must observe the original local
+workers even when an earlier drain wait was cancelled. The bridge's own
+`drain(&self)` keeps its original join handle across cancellation and returns the
+same terminal report on later calls. Inspect `cleanup_confirmed()`; a returned
+report can explicitly record unconfirmed native or device cleanup. Drop requests
+stop and leaves the owned task to close both resources; it is not cleanup proof.
+
+The independent media template declares two distinct profiles:
+`manifest()` describes its `InProcessAi` backend transport, while
+`native_host_manifest()` describes the separately enrolled signed native host.
+The latter advertises PCMU, local end control, no context export and five buffered
+device frames per direction (four backend frames plus one bridge frame). Native
+substrate queues are governed by the SDK separately. It is not the backend's Core
+transport installation contract. The current public workflow is exercised in
+`crates/connect-server/tests/connector_media_stock.rs` using SDK provisioning,
+Session controls, native negotiation and actual codec bytes.

@@ -18,8 +18,8 @@ bash scripts/format.sh --check
 ```
 
 The source dependencies select the repository's pinned public rvoip interfaces.
-Installed kit/export and full stock application journeys remain separate
-G6-068 work. The protected server composition uses `LiveTransport::new` with this
+Exported kit component qualification and stock application journeys have
+separate G6-068 evidence. The protected server composition uses `LiveTransport::new` with this
 same `Arc<Adapter>` and its `LiveMediaLifecycle` implementation; server-side
 startup/teardown tests qualify that narrow installation path separately. This standalone component is not qualification of a network
 transport, provider, browser, remote host, capacity, latency or crash persistence.
@@ -94,5 +94,31 @@ in a separate module/package. Preserve the harness's exact permits and operation
 IDs. Keep the actual codec, queue and unsupported profile declarations truthful;
 use a separate profile for other codecs or inbound behavior. Read the
 [executable profile](../../contracts/connectors/live-fixture-v1.md). Component
-reports complement the stock canonical-host startup/cleanup tests; full current
-application workflows and exported kit qualification remain G6-068 work.
+reports complement the stock canonical-host startup/cleanup tests; current public
+application workflows and exported kit source snapshots retain separate G6-068
+evidence.
+
+## Public native host
+
+`native_host_manifest()` is a separate `SignedNativeEndpoint` profile for an
+owned public SDK host. It describes PCMU audio, end control, no text/context
+export and five bounded device frames per direction (four backend frames plus
+one bridge frame). Native substrate queues are governed by the SDK separately. `manifest()` continues to describe the
+`InProcessAi` backend adapter. Use that transport manifest when installing the
+adapter in a Core; the signed native host manifest does not satisfy that binding.
+
+The companion host uses `connect_client::canonical::PublicPcmuBridge` and its
+`PcmuDevice` interface. It enrolls its own signed QUIC Endpoint through public
+administration, explicitly accepts the Session and selects permitted audio
+sources through `PublicNativeAudio::subscribe_audio`. The adapter is the local
+synthetic source/sink; its local lifecycle permit does not grant Conversation
+rights. All actual communication uses the enrolled native SDK peer and current
+server media policy. No Store access or dispatch replacement is needed.
+
+The bridge owns the native peer and local device, paces one pending PCMU frame,
+stops on malformed frames or failed IO, and cancels both resources before bounded
+cleanup. Its `drain(&self)` retains the original worker across cancellation of the
+wait. Check both cleanup fields in the terminal report; Drop alone proves only a
+stop request. See `crates/connect-server/tests/connector_media_stock.rs` for the
+current executable public-client workflow. This simulated local device is not a
+live provider, model, browser or remote-host qualification.
