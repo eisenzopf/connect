@@ -175,8 +175,13 @@ pub(super) async fn replacement(
     let client = Client::connect(config.clone(), "tnt_default".parse().unwrap())
         .await
         .unwrap();
-    // Authentication can ACK before runtime registration is visible. Establish
-    // the controller's own peer before asserting preparation allocates no peer.
+    // The runtime binds a control peer on its first authorized command, not
+    // authentication. Use a read to establish it before the allocation baseline.
+    client
+        .conversation_by_id(command.conversation_id.parse().unwrap())
+        .refresh(options())
+        .await
+        .unwrap();
     let until = tokio::time::Instant::now() + Duration::from_secs(3);
     let before = loop {
         let current = f.server.service.canonical_runtime_snapshot().unwrap();
