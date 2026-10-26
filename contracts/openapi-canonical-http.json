@@ -259,6 +259,29 @@
             "replay": "Original policy and reference stay immutable. Superseded unstarted targets perform no IO; submitted effects retain uncertainty and never resubmit. Captured actual successes may record after cancellation without restoring an old policy."
           }
         },
+        "x-native-reliable-data-sdk": {
+          "command": "message.send",
+          "scope": [
+            "cid",
+            "sid",
+            "connid",
+            "operation_id"
+          ],
+          "transport": "Signed current owned native physical peer only; HTTP submission remains explicitly unsupported (501). Current operation.get and cancellation remain available.",
+          "result": {
+            "$ref": "#/components/schemas/NativeDataAcceptance"
+          },
+          "formats": {
+            "json": "application/json with utf8 body encoding",
+            "binary": "application/octet-stream with canonical base64 body encoding",
+            "maximum_decoded_body_bytes": 65536,
+            "reliability": "reliable_ordered"
+          },
+          "sdk": "Stream.send_data preserves caller message and operation IDs; data_send saved references have full Connection scope and are distinct from conversation message_send. Fresh authorized recovery observes admission without owning a native Stream. Signed incoming message.send names the receiver local Stream label; exact owned scope, format, direction and addressed Participant are checked before queueing.",
+          "queues": "At most32 messages per receiving Stream,256 messages and1MiB decoded body bytes overall. Local overflow clears and fails that binding with ResyncRequired; new binding generation/format is needed to reset it. Other control and Streams remain usable. The physical signaling reader has its separate bounded framing queue and terminal transport errors remain explicit.",
+          "lifecycle": "Clones consume one shared ordered queue. Local receive cancellation/deadline consumes no message. A submitted send cancellation preserves original uncertainty; status/replay never creates another logical send. Ended/changed bindings refuse or discard old-generation queued bodies; close wakes receivers and clears queues.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-native-selection-result": {
           "schema": {
             "$ref": "#/components/schemas/NativeSelectionResult"
@@ -5476,6 +5499,28 @@
             }
           }
         ]
+      },
+      "NativeDataAcceptance": {
+        "type": "object",
+        "properties": {
+          "connection_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "message_id": {
+            "$ref": "#/components/schemas/WireIdentifier"
+          },
+          "core_queue_admission": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "connection_id",
+          "message_id",
+          "core_queue_admission"
+        ],
+        "additionalProperties": false,
+        "description": "Historical local Core queue admission for a signed native Connection-scoped message.send. Neither a recipient write nor remote application consumption; operation.get requires current authorization and cannot acquire native custody."
       },
       "SessionCodecReconciliationReference": {
         "type": "object",

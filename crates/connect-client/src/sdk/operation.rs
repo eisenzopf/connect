@@ -74,6 +74,8 @@ impl<T> OperationKind<T> {
     }
 }
 pub struct OperationKinds {
+    /// Native reliable data: full Connection scope, distinct from Conversation messages.
+    pub data_send: OperationKind<DataAcceptance>,
     /// Read-only recovery of a server-created receive reconciliation.
     pub stream_reconcile: OperationKind<StreamSelectionReceipt>,
     pub stream_subscribe: OperationKind<StreamSelectionReceipt>,
@@ -102,6 +104,7 @@ pub struct OperationKinds {
 impl OperationKinds {
     pub(super) fn new() -> Self {
         Self {
+            data_send: OperationKind::new("message.send", data::decode, connections::valid_scope),
             stream_reconcile: OperationKind::new(
                 "stream.reconcile",
                 selections::decode,

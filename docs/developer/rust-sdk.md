@@ -396,3 +396,54 @@ revision; the SDK still observes the new journal identity after a current read.
 All 166 client, 43 protocol, 181 targeted Store functions and 23 selected production
 functions pass in the recorded local scope. Verification and earlier failures
 are recorded in `docs/evidence/gate-6/rust-sdk-routing-reconciliation.json`.
+
+## Native reliable data
+
+An owned negotiated `json` or `binary` Stream provides `send_data` and
+`receive_data`. Use caller-persisted message and operation IDs. JSON uses a typed
+`serde_json::Value` and `application/json` with `utf8`; binary preserves bytes
+through canonical base64 and `application/octet-stream`. Both use
+`reliable_ordered` with a maximum decoded body of 64 KiB.
+
+```rust,no_run
+# async fn data(stream: connect_client::sdk::Stream, target: connect_client::sdk::ParticipantId) -> connect_client::sdk::Result<()> {
+use connect_client::sdk::{DataPayload, MutationOptions, NonEmpty, RequestOptions};
+use std::time::Duration;
+let wait = RequestOptions::new(Duration::from_secs(10))?;
+let send = stream.send_data(
+    "saved-message".parse()?,
+    NonEmpty { first: target, rest: vec![] },
+    DataPayload::Json(serde_json::json!({"sequence": 1})),
+    MutationOptions { operation_id: "saved-data-send".parse()?, request: wait.clone(), extensions: None },
+).await?;
+let saved = send.reference_json(); // Persist original scope and identity.
+let admission = send.wait(wait.clone()).await?.value;
+let _ = (saved, admission); // Core queue admission, not recipient consumption.
+let received = stream.receive_data(wait).await?;
+let _ = (received.message_id, received.from, received.payload);
+# Ok(()) }
+```
+
+Recover a full Connection-scoped send with `operation_kinds().data_send`.
+Conversation `message_send` references use a different scope. A fresh Client can
+observe a saved data operation under current authorization; it cannot use that
+receipt to send or receive on another physical peer's Stream.
+
+Cloned Stream handles consume one ordered queue. Queues hold at most 32 messages
+per Stream, 256 messages and 1 MiB of decoded body bytes overall. On overflow,
+the affected binding discards its pending bodies and returns `ResyncRequired`
+until a new binding generation or format is negotiated. `Client::data_stats`
+reports overflow, malformed/unowned frames and discarded old-binding bodies.
+Other control and Stream queues continue. Physical signaling framing has a
+separate bounded queue; its terminal transport errors remain observable.
+
+Receive cancellation and deadlines consume no queued message. A submitted send
+that loses its caller wait keeps the original uncertain operation; recover it
+under the same IDs. Connection end or a changed binding prevents old queued
+bodies from being consumed; Client close wakes receivers and releases queues.
+Debug output redacts message bodies.
+
+The implementation is in progress under G6-060. Signed component and production
+verification is being recorded in
+`docs/evidence/gate-6/rust-sdk-reliable-data.json`; full SDK packaging, event
+streams and operating-profile qualification remain open.

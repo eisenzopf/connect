@@ -30,6 +30,7 @@ mod connections;
 mod consultations;
 mod control;
 mod conversations;
+mod data;
 mod decisions;
 mod error;
 mod ids;
@@ -60,6 +61,7 @@ pub use consultations::{
 pub use conversations::{
     Conversation, ConversationSnapshot, MessageAcceptance, ParticipantSnapshot,
 };
+pub use data::{DataAcceptance, DataAcceptanceBoundary, DataPayload, DataStats, ReceivedData};
 pub use decisions::{DecisionReceipt, ReconcileOutcome};
 pub use error::{CanonicalProblem, Certainty, Error, ErrorKind, Result};
 pub use ids::*;

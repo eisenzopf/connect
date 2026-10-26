@@ -2,6 +2,7 @@
 use super::*;
 mod codecs;
 mod controls;
+mod data;
 mod reconciliations;
 mod selections;
 use crate::canonical::{CanonicalClient, CommandScope, ReplyBatch};
@@ -38,6 +39,7 @@ pub(super) struct Shared {
     slots: Arc<Semaphore>,
     native: Arc<std::sync::Mutex<NativeCache>>,
     media: Arc<media::Inbox>,
+    data: Arc<data::Inbox>,
     media_requests: mpsc::Sender<MediaCommand>,
     task: Mutex<Option<tokio::task::JoinHandle<crate::Result<()>>>>,
 }
@@ -80,6 +82,8 @@ impl Shared {
             mpsc::channel::<MediaCommand>(media::SEND_CAPACITY);
         let media = Arc::new(media::Inbox::default());
         let owned_media = media.clone();
+        let data = Arc::new(data::Inbox::default());
+        let owned_data = data.clone();
         let (requests, mut receiver) = mpsc::channel::<Command>(REQUEST_CAPACITY);
         let stop = CancellationToken::new();
         let stopping = stop.clone();
@@ -122,6 +126,7 @@ impl Shared {
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        match owned_data.frame(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.frame(&mut peer,&owned_native,&owned_media,&frame)=>result};
                         match reconciliation {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         match reconciliations.hint(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
@@ -239,6 +244,8 @@ impl Shared {
                             let busy=busy || command.key.as_ref().is_some_and(|key|reconciliations.busy(key));
                             if busy {let _=command.reply.send(Err(Error::request(ErrorKind::Conflict,command.key.as_ref(),false)));continue;}
                         }
+                        let data_check=data::send_key(&command.kind,&command.scope,&command.payload).and_then(|key|match key {Some(key)=>data::check_send(&owned_native,&key,&command.payload),None=>Ok(())});
+                        if let Err(error)=data_check {let _=command.reply.send(Err(Error::request(error.kind,command.key.as_ref(),false)));continue;}
                         if command.native {
                             let count=match owned_native.lock(){Ok(cache)=>cache.len(),Err(_)=>break ErrorKind::Protocol};
                             if count+active.iter().filter(|p|p.native.is_some()).count()>=NATIVE_CONNECTION_CAPACITY {
@@ -274,6 +281,7 @@ impl Shared {
             };
             owned_closed.store(true, Ordering::Release);
             owned_media.end();
+            owned_data.end();
             media_receiver.close();
             while let Some(command) = media_receiver.recv().await {
                 let _ = command.reply.send(Err(Error::media(failure, false)));
@@ -303,6 +311,7 @@ impl Shared {
             slots,
             native,
             media,
+            data,
             media_requests,
             task: Mutex::new(Some(task)),
         }))
@@ -464,6 +473,12 @@ impl Shared {
         }
         if options.signal.is_cancelled() {
             return Err(Error::request(ErrorKind::Cancelled, key, false));
+        }
+        if let Some(stream) = data::send_key(kind, &scope, &payload)
+            .map_err(|e| Error::request(e.kind, key, false))?
+        {
+            data::check_send(&self.native, &stream, &payload)
+                .map_err(|e| Error::request(e.kind, key, false))?;
         }
         // Validate before queuing; optional extensions remain original payload data.
         let mut envelope = serde_json::json!({"v":2,"id":"sdk-validation","ts":chrono::Utc::now(),"type":kind,"payload":payload});

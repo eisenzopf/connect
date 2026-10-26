@@ -1,0 +1,77 @@
+{
+  "schema": "connect-gate6-rust-sdk-reliable-data/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T05:40:59.212029+00:00",
+  "base_revision": "52f08068d3c6befb5da56b5300d2a03aa1603167",
+  "scope": "Typed owned SDK reliable data implementation checkpoint. Component tests pass; actual both-ends production qualification is running and no runtime pass is claimed yet.",
+  "implementation": [
+    "Stream.send_data preserves explicit original message/operation IDs, exact owned scope/label, negotiated JSON or binary format and reliable_ordered delivery. Local preflight and worker dispatch both recheck current owned binding/direction. data_send references are separate from Conversation message_send by their full Connection scope.",
+    "Signed incoming message.send is demultiplexed before unmatched control retention. Exact owned Conversation/Session/Connection/Stream, receive direction, addressed local Participant, source attribution, format and bounded payload are required. Fresh status recovery cannot acquire native custody.",
+    "Clones share ordered bounded queues:32 messages per Stream,256 globally and1MiB decoded bodies. Local overflow clears and fails the binding with ResyncRequired until a binding generation/format changes; other control remains usable. Current binding checks discard retired/changed queued bodies. Close releases queues and wakes receivers. Debug output redacts payloads.",
+    "DataAcceptance proves only the recorded Core queue admission. Submitted caller cancellation keeps original uncertain recovery, without publishing another logical message. HTTP reference documents native-only submission and current-authorized status."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 172,
+      "new_functions": 6,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/client-06.log",
+        "sha256": "011a01595c4c40ba3405de15f8e06ab7147481dafd8211016f0dbb09e23be63c"
+      },
+      "scope": "Signed JSON/binary/exact binary bytes, original-ID unknown recovery, cancellation before/after submission, clone/deadline queue ownership, bounded sticky overflow with other control, foreign/malformed/unowned refusal and connection cleanup."
+    },
+    "production": {
+      "status": "running",
+      "scope": "Two new functions across EdDSA/ES256 and JSON/binary, concurrent decoded PCMU, forced journal failure, replay/fresh-client custody and one effect; existing native data and SDK regressions follow."
+    },
+    "openapi": {
+      "path": ".local/gate-6/sdk-reliable-data/openapi-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "dependencies": {
+      "path": ".local/gate-6/sdk-reliable-data/dependencies-final.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "inputs": {
+      "path": ".local/gate-6/sdk-reliable-data/inputs-02.json",
+      "sha256": "7f2948cc061433fe513733e92c562ecff5bec4a189e8b53c9253fa89dca9ff80"
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/client-02.log",
+        "sha256": "a150064f53ad9389918af7ceed43c22728eae8dbfb61654053823740367038f7"
+      },
+      "observation": "New fixtures omitted optional native end revision and borrowed a temporary operation across join. Corrected fixture compilation."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/client-03.log",
+        "sha256": "b91a7ea7fd36267da81955afad9a365d6584d6d806d15b73a90aa3be2365abe5"
+      },
+      "observation": "New API/fixture used utf-8 instead of the actual wire enum utf8. Corrected against pinned protocol source."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/client-04.log",
+        "sha256": "37b925c351c43cfe77fd448b85439fb42b1376fbac1301f46303eb9ac3e2733b"
+      },
+      "observation": "Negative fixture injected structurally invalid base64 and correctly retired framing. Replaced with a valid wire envelope carrying unsupported native content type."
+    },
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-reliable-data/client-05.log",
+        "sha256": "23a7a52729d19d348064ce6106daa1013e7b0fd7463656a55ce391e7f3b7fed6"
+      },
+      "observation": "Negative fixture used a delivery class outside the wire schema. Replaced with a wire-valid but unsupported native threading field; every fixture frame is now validated before signing."
+    }
+  ],
+  "remaining": [
+    "Complete actual production checks and public documented snippet compilation.",
+    "G6-060 remains in progress: event/invitation streams, receipts, capability/config/raw/admin surfaces, remaining automatic negotiation/capture recovery, full external package and both-ends journeys, incompatible-server/restart/cleanup and approved Linux/remote profiles.",
+    "All105 Gate6 tasks remain the objective. No task/acceptance, performance, whole default-suite or publication closure."
+  ]
+}

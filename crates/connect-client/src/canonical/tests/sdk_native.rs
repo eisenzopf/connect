@@ -1,6 +1,7 @@
 //! Real signed native frames exercise the SDK's two-leg owned negotiation.
 use super::*;
 mod codecs;
+mod data;
 mod end;
 mod reconciliations;
 mod selections;
@@ -11,6 +12,7 @@ use crate::sdk::{
 #[derive(Clone, Copy)]
 pub(in crate::canonical) enum Case {
     Mixed,
+    Data(data::Case),
     Selection(selections::Case),
     Reconciliation(reconciliations::Case),
     Codec(codecs::Case),
@@ -124,6 +126,9 @@ pub(super) async fn emit(
         {"strm_id":"video","kind":"video","direction":"sendonly","stream_local_id":8,"codec":{"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":96}}},
         {"strm_id":"data","kind":"data","direction":"sendrecv","stream_local_id":9,"codec":{"name":"json","params":{"reliability":"reliable_ordered"}}}
     ]);
+    if matches!(case, Case::Data(data::Case::Binary)) {
+        streams[2]["codec"]["name"] = json!("binary");
+    }
     if matches!(case, Case::WrongDirection) {
         streams[0]["direction"] = json!("sendrecv");
     }
@@ -200,7 +205,9 @@ pub(super) async fn emit(
     let query = read(reader).await;
     assert_eq!(query.kind(), "operation.get");
     status(writer, signer, &query, "completed").await;
-    if let Case::Codec(case) = case {
+    if let Case::Data(case) = case {
+        data::emit(case, reader, writer, signer, signal).await;
+    } else if let Case::Codec(case) = case {
         codecs::emit(
             connection,
             case,
