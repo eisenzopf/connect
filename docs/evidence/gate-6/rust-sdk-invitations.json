@@ -2,9 +2,9 @@
   "schema": "connect-gate6-rust-sdk-invitations/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T07:13:50.026853+00:00",
+  "checked_at": "2026-10-26T07:18:33.691362+00:00",
   "base_revision": "7b745dc1",
-  "scope": "Typed owned incoming native invitation metadata. Component checkpoint; actual-server fixtures building, no production acceptance claimed.",
+  "scope": "Owned typed incoming native invitation metadata qualified in the recorded local macOS arm64 functional scope. G6-060 and all105 tasks remain open; no whole-suite, package/runtime parity, operating-profile, acceptance or publication closure.",
   "implementation": [
     "One lazy InvitationStream per Client including clones receives actual signed server session.invite metadata on the existing owned reader, including arrivals before reader attachment. Callees obtain original scoped Session, from/to Participants, original operation and medium/intent/capabilities without copied IDs. Source identifies canonical session.invite and the original logical invitation ID. The received operation_id is the stable server invitation source correlation, distinct from the caller private mutation ID and the separately saved decision mutation ID.",
     "Hints grant no native custody or acceptance. Applications refresh Session state and use separately persisted ordinary accept/reject operation IDs with current topology and authorization. No reader mutation, automatic decision or native allocation occurs.",
@@ -17,26 +17,58 @@
       "new_signed_functions": 7,
       "failed_functions": 0,
       "log": {
-        "path": ".local/gate-6/sdk-invitations/client-03.log",
-        "sha256": "5987b179506c8039bcf99c3db8ae44e0c192d3efb6dd5f8fa18f4bdb385e2e0b"
+        "path": ".local/gate-6/sdk-invitations/client-05.log",
+        "sha256": "44c89b8897f891b5d2bb1bd904c40589c3dc37bea7199a21acb2b4baefdd67a0"
       },
       "scope": "Signed pre-attachment queued delivery, original metadata and redacted Debug, dropped/expired/cancelled waits, close/drop/replacement and one-reader conflict, client shutdown, exact/mismatched cancellation, malformed/changed source, count/encoded-byte overflow and no repeat after application return."
     },
     "production": {
-      "status": "candidate-03-building",
+      "status": "passed",
+      "passed_functions": 19,
+      "failed_functions": 0,
       "new_functions": 2,
-      "prior_result": {
-        "passed_functions": 1,
-        "failed_functions": 1,
-        "report": {
-          "path": ".local/gate-6/sdk-invitations/production-02-summary.json",
-          "sha256": "7b927644948100eb2ebec6e7bf899786b543c1a4f98f9ca63ced777fc6c24aea"
-        }
+      "new_function_algorithm_scenes": 4,
+      "media_intent_scenes": 12,
+      "report": {
+        "path": ".local/gate-6/sdk-invitations/production-03-summary.json",
+        "sha256": "cea7549d35adea96c092f0e1d976fd8cfb153e3158bb460e3d4825e9b96c16dd"
       },
-      "scope": "Both-algorithm stale cancel/removal passes. Corrected exact stable server-source-ID comparison, six-media accept/reject and complete regression run remain pending."
+      "sealed_binary_sha256": "59e5abd532069f1b555d8d6a728c96bf5a362f99e55bf1dd4f1e72e280577ba9",
+      "profile": "Release with connect-store,connect-service,connect-server opt-level0; other packages release defaults. Functional scope only.",
+      "results": [
+        {
+          "filter": "sdk_handles::invitations::",
+          "skip": null,
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 2,
+          "failed_functions": 0,
+          "elapsed_seconds": 7.079276250209659,
+          "log": ".local/gate-6/sdk-invitations/production-03-00.log",
+          "log_sha256": "3b158f872abff93ddedbb0f8de51e59c74846d876398b65f2d00233b35c9bbfe"
+        },
+        {
+          "filter": "sdk_handles::",
+          "skip": "sdk_handles::invitations::",
+          "exit_code": 0,
+          "timeout": false,
+          "passed_functions": 17,
+          "failed_functions": 0,
+          "elapsed_seconds": 182.80292308400385,
+          "log": ".local/gate-6/sdk-invitations/production-03-01.log",
+          "log_sha256": "97539b94a807bd59954aee808052f35f0478b857b67088437767b0d6bda67ebd"
+        }
+      ],
+      "scope": "Two new SDK functions across both signing algorithms, plus17 existing SDK regression functions including durable events/data/media/controls/reconciliation. No whole suite or remote/performance qualification.",
+      "behaviors": [
+        "All six media intents preserve original from/to, exact server invitation source correlation, medium, intent, capability offer and scoped Session. The callee obtains IDs from the real invitation stream. Independent read-only evidence compares the source ID to its immutable original Store row, distinct from the private caller mutation ID.",
+        "Applications refresh current Session state, then accept/reject with separately saved decision IDs and current topology. Three accept/end and three reject journeys per algorithm leave no live logical Sessions and zero native_connection_lifetimes rows. Reader close/drop does not accept or allocate media.",
+        "A previously delivered cancelled hint cannot revive its Session. Current membership removal refuses stale refresh and accept. Local reader cancellation/replacement preserves ordinary control, and server shutdown joins pending notification work within the actual10-second bound.",
+        "Seventeen existing SDK functions pass on current sealed bytes, including both-ends decoded media, journal recovery, data, codecs, live journal renewal/restart, receive selections and owned teardown."
+      ]
     },
     "dependencies": {
-      "path": ".local/gate-6/sdk-invitations/dependencies-01.log",
+      "path": ".local/gate-6/sdk-invitations/dependencies-03.log",
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "inputs": {
@@ -44,13 +76,47 @@
         "path": ".local/gate-6/sdk-invitations/inputs-03.json",
         "sha256": "edf579dacf3112160930983ac4c7ceebe512ddd39cc12daed68dc1df2bd91fe9"
       },
-      "guarded_inputs": 1354
+      "guarded_inputs": 1354,
+      "unchanged": true
     },
     "rustdoc": {
       "passed_functions": 7,
       "log": {
-        "path": ".local/gate-6/sdk-invitations/rustdoc.log",
-        "sha256": "60f4fe8e4dd519ca841a500244472586f0b2c934998831a23cd325775f5a6fa7"
+        "path": ".local/gate-6/sdk-invitations/rustdoc-03.log",
+        "sha256": "674c4d9c059775211970d400fe0b210a87e61cce267e38fc76df4e6dcd95a2e6"
+      }
+    },
+    "contracts": {
+      "schema_vectors": 254,
+      "scope": "Schema/source contract checks only, not runtime evidence.",
+      "log": {
+        "path": ".local/gate-6/sdk-invitations/contracts-03.log",
+        "sha256": "e43e11ecd99c350cd6f873ada9f63faf99678cdfe75592333b580abe9b64d626"
+      }
+    },
+    "documented_public_example": {
+      "report": {
+        "path": ".local/gate-6/sdk-invitations/example-summary.json",
+        "sha256": "891b4e030873b77d89406b24bdbcfe48e744095b679354c162183d41a359e3e5"
+      },
+      "source": {
+        "path": ".local/gate-6/sdk-invitations/sdk-example.rs",
+        "sha256": "78aebd96c2786f15b60d188b299d71c5f48ea2da47e51e590994ab94bd8e23a5"
+      },
+      "scope": "Actual public invitation Rustdoc snippet compiled as a separate crate against the final SDK rlib. Metadata compilation only; full packaged external runtime remains open."
+    },
+    "checks": {
+      "dependencies-03.log": {
+        "path": ".local/gate-6/sdk-invitations/dependencies-03.log",
+        "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      "format-check-03.log": {
+        "path": ".local/gate-6/sdk-invitations/format-check-03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "openapi-check-03.log": {
+        "path": ".local/gate-6/sdk-invitations/openapi-check-03.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       }
     }
   },
@@ -78,9 +144,12 @@
     }
   ],
   "remaining": [
-    "Current production, final source-bound client/Rustdoc, independently compiled example and contract/reference checks are pending.",
-    "G6-060 receipt/capability/config/raw/admin surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible versions and approved Linux/remote profiles remain.",
-    "Inbox overflow does not promise replay after a fresh peer; authoritative pending-work discovery/reconciliation remains the application boundary. Production saturation/forced partial IO/performance are not qualified.",
+    "G6-060 receipt/capability/config/raw/admin surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible-server and approved Linux/remote profiles remain.",
+    "Inbox overflow/duplicate/count/byte/cancellation boundaries have signed component coverage. Production saturation, forced partial IO and broader performance profiles remain unqualified. Fresh peers do not promise invitation replay; applications reconcile authoritative pending work.",
     "All105 tasks remain the goal. No whole task/gate/acceptance/publication closure."
-  ]
+  ],
+  "scratch_preservation": {
+    "path": ".local/gate-6/sdk-invitations/scratch-compression.json",
+    "sha256": "c680322ec1c5de425eea05bc8b31439ee1b858bb9185d8a0817c5f4f86c435b7"
+  }
 }

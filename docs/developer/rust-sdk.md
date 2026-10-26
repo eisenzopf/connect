@@ -550,6 +550,10 @@ That failure persists for this physical Client: reopening a reader does not pret
 to recover missed notifications. Use authoritative discovery and current snapshots
 to reconcile pending work; a fresh peer alone is not a promise of notification replay.
 
-Component and actual-server checks for this G6-060 surface are recorded in
+The local functional checkpoint passes 189 client tests, seven Rustdoc checks,
+254 contract vectors, the independently compiled public invitation example and
+19 selected production functions. The two new production functions cover both
+signing algorithms, all six media intents, explicit decisions, stale cancellation
+and membership refusal, and joined cleanup. Evidence and failed candidates are in
 `docs/evidence/gate-6/rust-sdk-invitations.json`. Full SDK/package and operating-profile
 qualification remains open.
