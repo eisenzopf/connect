@@ -649,3 +649,44 @@ server restart with one durable Message. Twenty-two prior SDK regression
 functions passed on identical SDK/runtime sources; the corrected new fixture was
 rerun separately. The initial randomized-cursor fixture failure and exact scope
 are retained in `docs/evidence/gate-6/rust-sdk-raw.json`. G6-060 remains in progress.
+
+
+## Explicit configuration and receipt reads
+
+`sdk::ClientConfig` contains `control: CanonicalClientConfig`, `tenant_id` and an
+optional `application: ApplicationClientConfig`. `Client::connect_configured`
+validates every configuration before constructing transports. The application
+endpoint must explicitly select the existing protected loopback HTTP profile and
+use exactly the native credential. It serves named application reads and never
+replaces or retries canonical control. `Client::connect` and
+`from_authenticated_peer` continue to select native control alone; their receipt
+helper returns `Unsupported` without attempting HTTP.
+
+`ClientConfig::load` reads TOML synchronously and resolves native certificate and
+key paths relative to that file. Its native Local/Remote endpoint and pinned
+trust rules are unchanged. Config Debug omits credentials and key paths. A remote
+native configuration does not imply remote HTTP support; the application API's
+loopback restriction remains explicit.
+
+`Conversation::receipts(message_id, options)` drains current-authorized named
+receipt pages under one absolute deadline. It returns `DeliveryObservation`
+values retaining Participant, membership epoch, channel, delivery ID, state,
+provenance and observed time. An accepted provider observation cannot upgrade a
+native observation. A `Read` state with `client_reported` provenance does not
+establish human action. The query does not report delivery/read or send a Message.
+Each page rechecks current authority/preferences; the result is not an atomic
+snapshot across pages. A later refusal, bad scope, malformed observation,
+duplicate group/cursor, cancellation or exhaustion returns an error with no
+partial result.
+
+One independently owned application worker bounds active/queued reads to 16 and
+keeps signed control independent of slow HTTP. Reads may be cancelled safely,
+without abandoning canonical exchanges or creating mutation uncertainty. At most
+256 pages, 4096 observations and 2 MiB encoded receipt data are accumulated; each
+page has at most 100 facts. Client clones share the owner. `close` signals and
+joins both owners, retaining cleanup joins across cancelled/timed-out cleanup.
+No extra HTTP query begins after the native owner retires.
+
+The component checkpoint passes 208 client functions, including eight new tests.
+Real-server current-preference/epoch/restart qualification is pending in
+`docs/evidence/gate-6/rust-sdk-receipts.json`. G6-060 remains in progress.

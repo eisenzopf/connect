@@ -168,7 +168,7 @@ fn decode(value: Value, _client: &Client, key: &OperationKey) -> Result<Value> {
     }
     Ok(value)
 }
-fn application_error(error: crate::ClientError, key: &OperationKey) -> Error {
+pub(super) fn application_error(error: crate::ClientError, key: Option<&OperationKey>) -> Error {
     if let crate::ClientError::Application(problem) = error {
         let problem = match problem.code.as_str() {
             "stale-revision" => connect_protocol::canonical_http::Problem {
@@ -202,14 +202,18 @@ fn application_error(error: crate::ClientError, key: &OperationKey) -> Error {
             _ => ErrorKind::Application,
         };
         let certainty = if problem.code >= 500 && problem.code != 501 {
-            Certainty::Uncertain
+            if key.is_some() {
+                Certainty::Uncertain
+            } else {
+                Certainty::ReadOnly
+            }
         } else {
             Certainty::Refused
         };
         Error {
             kind,
             certainty,
-            operation: Some(key.clone()),
+            operation: key.cloned(),
             problem: Some(CanonicalProblem {
                 code: problem.code.into(),
                 category: problem.category,
@@ -218,7 +222,7 @@ fn application_error(error: crate::ClientError, key: &OperationKey) -> Error {
             observation: None,
         }
     } else {
-        Error::transport(error, Some(key))
+        Error::transport(error, key)
     }
 }
 struct Submission {
@@ -273,7 +277,7 @@ impl OwnedApplication {
                 let result = application
                     .provision_with_cancel(request.command, stopping.clone())
                     .await
-                    .map_err(|e| application_error(e, &request.key));
+                    .map_err(|e| application_error(e, Some(&request.key)));
                 let _ = request.reply.send(result);
             }
             receive.close();

@@ -1,0 +1,38 @@
+{
+  "task": "G6-060",
+  "checked_at": "2026-10-26T08:21:45.950504+00:00",
+  "status": "component checkpoint; real-server qualification pending",
+  "scope": "Explicit SDK configuration and bounded named application receipt reads; local macOS arm64 functional evidence only.",
+  "verification": {
+    "client": {
+      "passed_functions": 208,
+      "new_functions": 8,
+      "log": ".local/gate-6/sdk-receipts/client-03.log",
+      "log_sha256": "18dbc77df0ec63f811b718235c521ea2bb6bbb0b04b12e0a6b0e8b4c8fd1814b"
+    },
+    "production": {
+      "status": "pending",
+      "planned_functions": 2,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "behaviors": [
+        "Actual explicit config/TOML/restart and current source receipt state/epoch/channel/provenance.",
+        "Current receipt preferences, removal and new membership epoch cannot inherit old source evidence."
+      ]
+    }
+  },
+  "failed_candidates": [
+    {
+      "log": ".local/gate-6/sdk-receipts/client-02.log",
+      "passed_functions": 206,
+      "failed_functions": 1,
+      "reason": "Configuration fixture assumed Cargo tests run at workspace root. Temporary files now explicitly use workspace .local from CARGO_MANIFEST_DIR; product configuration behavior was unaffected."
+    }
+  ],
+  "remaining": [
+    "Capability snapshot/require, remaining native recovery, full packaged external journey, incompatible-server and required approved Linux/remote profiles remain.",
+    "Named application HTTP is explicitly loopback only; no remote HTTP trust or provider delivery qualification is inferred. Publication remains separate."
+  ]
+}

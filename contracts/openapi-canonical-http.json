@@ -275,6 +275,13 @@
           "lifecycle": "Per-wait deadlines/drop/cancellation consume no hint. Close/drop detaches the reader and preserves bounded pending hints for a replacement. Exact known signed cancellation removes only its pending scoped invitation. Client close clears bodies and wakes waits; other healthy control/media/event readers remain independent.",
           "reference": "docs/developer/rust-sdk.md"
         },
+        "x-owned-sdk-receipts": {
+          "configuration": "Rust sdk.ClientConfig explicitly selects native control plus optional protected loopback application reads with the exact same credential; all config is checked before transport construction. Native Local/Remote trust remains explicit. No canonical HTTP fallback or remote HTTP trust is inferred.",
+          "query": "Conversation.receipts uses the existing named MessageReceipts application API, never a retired canonical operation. Every page requires current original-source membership/epoch, audience, permission and receipt preferences. Returned state retains Participant, membership epoch, channel, delivery identity, provenance and observed time; client_reported Read is not proof of human action.",
+          "bounds": "One independently owned serial HTTP reader with16 active/queued requests. All receipt pages share one absolute caller deadline, at most256 pages/4096 observations/2MiB encoded data,100 facts per page. Bad scope/provenance/counters, repeated cursors/groups and later refusal discard the accumulated result. Per-page current policy is not an atomic multi-page snapshot.",
+          "lifecycle": "Native control-only clients explicitly return Unsupported for receipt reads. Read cancellation disposes its separate HTTP transaction without changing original native mutation certainty. No new application read starts after native retirement. Client.close signals both owners and retains their joins across cleanup cancellation/timeouts. No implicit reporting or Message send occurs.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-owned-sdk-raw-canonical": {
           "transport": "Rust Client.raw uses its existing signed native peer and bounded owned request queue. No HTTP fallback or older dialect is selected.",
           "validation": "validate checks the current schema and one MiB envelope bound. Local validation is not signature verification, authorization or media ownership. to_json retains original optional fields; Debug omits private bodies.",

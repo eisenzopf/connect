@@ -15,6 +15,7 @@ mod sdk_movements;
 mod sdk_multiplex;
 mod sdk_native;
 mod sdk_raw;
+mod sdk_receipts;
 mod sdk_worker;
 mod step_up;
 use auth_refresh::RefreshReply;

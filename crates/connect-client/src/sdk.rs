@@ -25,6 +25,8 @@
 //! # Ok(()) }
 //! ```
 mod administration;
+mod application_reads;
+mod configuration;
 mod connection_controls;
 mod connection_updates;
 mod connections;
@@ -43,6 +45,7 @@ mod native_negotiation;
 mod operation;
 mod participants;
 mod raw;
+mod receipts;
 mod reconciliations;
 mod selections;
 mod sessions;
@@ -50,6 +53,7 @@ mod snapshot;
 mod streams;
 mod worker;
 pub use administration::{AdministrativeClient, TrustedProvisioningCommand};
+pub use configuration::ClientConfig;
 pub use connect_protocol::conversations::ConversationPolicy;
 pub use connect_protocol::provisioning::IdentityKind;
 pub use connect_protocol::transitions::OperationState;
@@ -85,6 +89,7 @@ pub use operation::{
 };
 pub use participants::Participant;
 pub use raw::{RawCanonical, ValidatedEnvelope};
+pub use receipts::{DeliveryObservation, DeliveryState};
 pub use reconciliations::{NativeReconciliation, NativeReconciliationPhase};
 pub use selections::{StreamSelectionReceipt, StreamSelector};
 use serde_json::Value;
@@ -129,6 +134,7 @@ pub struct MutationOptions {
 pub struct Client {
     shared: Arc<worker::Shared>,
     tenant_id: TenantId,
+    application: Option<Arc<application_reads::OwnedReads>>,
 }
 impl Client {
     pub async fn connect(
@@ -148,6 +154,7 @@ impl Client {
         Ok(Self {
             shared: worker::Shared::start(peer)?,
             tenant_id,
+            application: None,
         })
     }
     pub fn conversation_by_id(&self, id: ConversationId) -> Conversation {
@@ -166,7 +173,17 @@ impl Client {
         Operation::new(self.clone(), reference)
     }
     pub async fn close(&self, options: RequestOptions) -> Result<()> {
-        self.shared.close(options).await
+        options.validate()?;
+        if let Some(application) = &self.application {
+            let (application, native) = tokio::join!(
+                application.close(options.clone()),
+                self.shared.close(options)
+            );
+            application?;
+            native
+        } else {
+            self.shared.close(options).await
+        }
     }
     async fn request(
         &self,
