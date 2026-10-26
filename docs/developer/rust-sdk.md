@@ -511,3 +511,42 @@ after restart. Verification and earlier failures are recorded in
 `docs/evidence/gate-6/rust-sdk-events.json`. Incoming
 invitation and receipt convenience APIs, remaining SDK surfaces, complete external
 packaging and operating-profile qualification remain open.
+
+## Incoming invitations
+
+`Client::incoming_invitations(options)` creates a lazy `InvitationStream` on the
+same owned native peer. The worker retains signed invitations that arrive before
+a reader attaches. A callee obtains the scoped Session handle, original invitation
+operation ID, inviter and target Participant IDs, medium, intent and capability
+offer from `IncomingInvitation`; it needs no copied Conversation or Session ID.
+Its source identifies `session.invite` and the original logical invitation ID.
+Debug output omits the intent and capability offer.
+
+An invitation is an original metadata hint. It can become stale after cancellation,
+a decision or membership removal. Refresh `hint.session` before deciding, then use
+`Session::accept` or `reject` with the fresh topology revision and your separately
+persisted decision operation ID. These ordinary mutations enforce current authority.
+Receiving or refreshing a hint never creates a Connection, accepts a Session or
+acquires native media custody. The journal and current authorized snapshot govern
+actual state.
+
+There is one active invitation reader per Client, including its clones; a second
+reader returns `Conflict`. Each wait has its configured timeout. Dropping a wait,
+local cancellation or timeout consumes no pending hint. Close or drop detaches the
+reader; a replacement can receive retained pending hints. Reader cancellation does
+not cancel ordinary control, media or another durable event source. Client close
+clears retained bodies and wakes the reader.
+
+The inbox holds at most 32 invitations and 1 MiB of encoded invitation payloads,
+plus 256 immutable logical identities with four bounded cancellation correlations
+each. Identical original invitations with a fresh wire ID are suppressed. Changed
+metadata under the same identity fails the inbox. A signed cancellation removes a
+pending hint only when its exact known wire reference and logical scope match.
+Overflow clears retained bodies and reports `ResyncRequired`, leaving control live.
+That failure persists for this physical Client: reopening a reader does not pretend
+to recover missed notifications. Use authoritative discovery and current snapshots
+to reconcile pending work; a fresh peer alone is not a promise of notification replay.
+
+Component and actual-server checks for this G6-060 surface are recorded in
+`docs/evidence/gate-6/rust-sdk-invitations.json`. Full SDK/package and operating-profile
+qualification remains open.

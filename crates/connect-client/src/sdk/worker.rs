@@ -34,6 +34,7 @@ struct NativeConnection {
 // Keep bounded retired metadata so a later offer cannot reuse a peer hop handle.
 type NativeCache = std::collections::BTreeMap<ConnectionId, NativeConnection>;
 pub(super) struct Shared {
+    pub(super) invitations: Arc<super::invitations::Inbox>,
     requests: mpsc::Sender<Command>,
     stop: CancellationToken,
     pub(super) closed: Arc<AtomicBool>,
@@ -84,6 +85,8 @@ impl Shared {
             mpsc::channel::<MediaCommand>(media::SEND_CAPACITY);
         let media = Arc::new(media::Inbox::default());
         let owned_media = media.clone();
+        let invitations = Arc::new(super::invitations::Inbox::default());
+        let owned_invitations = invitations.clone();
         let data = Arc::new(data::Inbox::default());
         let owned_data = data.clone();
         let (requests, mut receiver) = mpsc::channel::<Command>(REQUEST_CAPACITY);
@@ -135,6 +138,7 @@ impl Shared {
                         if matches!(frame.kind(), "auth.bye" | "identity.assurance-changed") {
                             break ErrorKind::Authentication;
                         }
+                        if owned_invitations.frame(&frame) {continue;}
                         match events.frame(&mut peer,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         match owned_data.frame(&owned_native,&frame) {Ok(true)=>continue,Ok(false)=>(),Err(error)=>break error.kind}
                         let reconciliation=tokio::select! {biased;_=stopping.cancelled()=>break ErrorKind::Cancelled,result=reconciliations.frame(&mut peer,&owned_native,&owned_media,&frame)=>result};
@@ -293,6 +297,7 @@ impl Shared {
             owned_closed.store(true, Ordering::Release);
             owned_media.end();
             owned_data.end();
+            owned_invitations.end(failure);
             events.end(failure);
             media_receiver.close();
             while let Some(command) = media_receiver.recv().await {
@@ -317,6 +322,7 @@ impl Shared {
             peer.shutdown().await
         });
         Ok(Arc::new(Self {
+            invitations,
             requests,
             stop,
             closed,

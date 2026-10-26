@@ -35,6 +35,7 @@ mod decisions;
 mod error;
 mod events;
 mod ids;
+mod invitations;
 mod media;
 mod movements;
 mod native_negotiation;
@@ -69,6 +70,7 @@ pub use events::{
     AudienceMember, Cursor, EventSnapshot, EventSource, EventStream, JournalEvent, SnapshotFact,
 };
 pub use ids::*;
+pub use invitations::{IncomingInvitation, InvitationStream};
 pub use media::MediaStats;
 pub use movements::{
     HandoffCleanup, HandoffInput, HandoffResult, HandoffRole, HandoffRoleChange, HandoffRoleScope,

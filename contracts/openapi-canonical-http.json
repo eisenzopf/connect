@@ -268,6 +268,13 @@
           "cancellation": "Dropping a next wait preserves owned initialization and in-flight framing. Per-next timeout consumes no queued fact. Reader close/cancel stops local delivery and renewal; the existing bounded server lease expires without an invented unsubscribe command. Client close wakes all readers.",
           "reference": "docs/developer/rust-sdk.md"
         },
+        "x-owned-sdk-incoming-invitations": {
+          "native": "The owned Rust Client receives actual signed server session.invite metadata on its existing peer; no media Connection, Conversation subscription or manually copied callee IDs are required. There is no HTTP push inbox or implicit transport downgrade.",
+          "authority": "The original invitation ID, from/to Participants, medium, intent and capability offer are hints. Refresh current Session state before a separately identified ordinary session.accept/reject mutation; current membership/topology/source/action checks remain mandatory. Notification receipt never accepts or acquires media custody.",
+          "bounds": "One active reader per Client,32 queued hints,1MiB encoded invitation payload,256 immutable logical identities and four bounded cancellation correlations per identity. Duplicate original metadata is suppressed across fresh wire IDs; changed original metadata or malformed scope fails only the invitation inbox. Overflow explicitly requires authoritative resynchronization and cannot be cleared by merely reopening a reader.",
+          "lifecycle": "Per-wait deadlines/drop/cancellation consume no hint. Close/drop detaches the reader and preserves bounded pending hints for a replacement. Exact known signed cancellation removes only its pending scoped invitation. Client close clears bodies and wakes waits; other healthy control/media/event readers remain independent.",
+          "reference": "docs/developer/rust-sdk.md"
+        },
         "x-native-reliable-data-sdk": {
           "command": "message.send",
           "scope": [

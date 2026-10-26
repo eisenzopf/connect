@@ -5,6 +5,8 @@ mod codec_updates;
 mod data;
 #[path = "sdk_handles/events.rs"]
 mod events;
+#[path = "sdk_handles/invitations.rs"]
+mod invitations;
 #[path = "sdk_handles/media.rs"]
 mod media;
 #[path = "sdk_handles/reconciliations.rs"]

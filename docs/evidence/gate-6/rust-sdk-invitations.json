@@ -1,0 +1,57 @@
+{
+  "schema": "connect-gate6-rust-sdk-invitations/1",
+  "task": "G6-060",
+  "status": "in-progress",
+  "checked_at": "2026-10-26T07:11:32.126417+00:00",
+  "base_revision": "7b745dc1",
+  "scope": "Typed owned incoming native invitation metadata. Component checkpoint; actual-server fixtures building, no production acceptance claimed.",
+  "implementation": [
+    "One lazy InvitationStream per Client including clones receives actual signed server session.invite metadata on the existing owned reader, including arrivals before reader attachment. Callees obtain original scoped Session, from/to Participants, original operation and medium/intent/capabilities without copied IDs. Source identifies canonical session.invite and the original logical invitation ID.",
+    "Hints grant no native custody or acceptance. Applications refresh Session state and use separately persisted ordinary accept/reject operation IDs with current topology and authorization. No reader mutation, automatic decision or native allocation occurs.",
+    "32 hints/1MiB encoded payload per physical inbox;256 immutable logical identities with4 bounded wire cancellation references each. Same-intent fresh wire replay is suppressed before and after application return. Malformed or changed metadata and sticky overflow clear retained bodies/fail only this inbox while other control remains live.",
+    "Per-wait timeout/drop/cancel consumes nothing. Reader close/drop releases local exclusivity and preserves bounded pending hints for a replacement. Exact signed known cancellation correlation/scope removes only that pending hint. Client close clears bodies and wakes waits."
+  ],
+  "verification": {
+    "client": {
+      "passed_functions": 189,
+      "new_signed_functions": 7,
+      "failed_functions": 0,
+      "log": {
+        "path": ".local/gate-6/sdk-invitations/client-03.log",
+        "sha256": "5987b179506c8039bcf99c3db8ae44e0c192d3efb6dd5f8fa18f4bdb385e2e0b"
+      },
+      "scope": "Signed pre-attachment queued delivery, original metadata and redacted Debug, dropped/expired/cancelled waits, close/drop/replacement and one-reader conflict, client shutdown, exact/mismatched cancellation, malformed/changed source, count/encoded-byte overflow and no repeat after application return."
+    },
+    "production": {
+      "status": "pending",
+      "new_functions": 2,
+      "scope": "Implemented both-algorithm fixtures for six media intents and explicit fresh accept/reject without copied callee IDs; stale cancellation/membership removal, independent reader replacement, zero native custody, terminal logical Sessions and joined shutdown. Runtime is pending."
+    },
+    "dependencies": {
+      "path": ".local/gate-6/sdk-invitations/dependencies-01.log",
+      "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "inputs": {
+      "manifest": {
+        "path": ".local/gate-6/sdk-invitations/inputs-01.json",
+        "sha256": "37ac52490e0e606823908085512c460d47fd87fa91654dcbd88bd8d56b907fdd"
+      },
+      "guarded_inputs": 1354
+    }
+  },
+  "failed_or_superseded_runs": [
+    {
+      "log": {
+        "path": ".local/gate-6/sdk-invitations/client-02.log",
+        "sha256": "d1612c763116ec60cc7acdc580be3e2a6499b4671afb519e4fb2a97a14346062"
+      },
+      "observation": "Changed-duplicate fixture initially changed both original and repeated bodies, so it did not represent an immutable-identity mismatch. Corrected the initial body; all189 functions pass in03."
+    }
+  ],
+  "remaining": [
+    "Current production, final source-bound client/Rustdoc, independently compiled example and contract/reference checks are pending.",
+    "G6-060 receipt/capability/config/raw/admin surfaces, remaining native recovery, full packaged external/both-ends journeys, incompatible versions and approved Linux/remote profiles remain.",
+    "Inbox overflow does not promise replay after a fresh peer; authoritative pending-work discovery/reconciliation remains the application boundary. Production saturation/forced partial IO/performance are not qualified.",
+    "All105 tasks remain the goal. No whole task/gate/acceptance/publication closure."
+  ]
+}

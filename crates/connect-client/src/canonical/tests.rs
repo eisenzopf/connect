@@ -9,6 +9,7 @@ mod owned_signaling;
 mod sdk_consultations;
 mod sdk_decisions;
 mod sdk_events;
+mod sdk_invitations;
 mod sdk_movements;
 mod sdk_multiplex;
 mod sdk_native;
@@ -68,6 +69,7 @@ fn canonical_cursor_facts_bind_outer_resources_to_the_authoritative_journal_even
 pub(super) enum Fault {
     SdkWorker(sdk_worker::Traffic),
     SdkEvents(sdk_events::Case),
+    SdkInvitation(sdk_invitations::Case),
     SdkMultiplex(sdk_multiplex::Case),
     SdkNative(sdk_native::Case),
     SdkDecision(sdk_decisions::Case),
@@ -171,6 +173,12 @@ pub(super) async fn controlled(
             sdk_multiplex::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
             connection.closed().await;
             server.close(0u32.into(), b"SDK multiplex fixture complete");
+            return;
+        }
+        if let Fault::SdkInvitation(case) = fault {
+            sdk_invitations::emit(case, request, &mut writer, &mut reader, &signer, &signal).await;
+            connection.closed().await;
+            server.close(0u32.into(), b"SDK invitation fixture complete");
             return;
         }
         if let Fault::SdkEvents(case) = fault {
