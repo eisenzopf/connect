@@ -323,6 +323,7 @@ impl StorePeerAuthority {
                 })
             }
             Payload::SessionConsult(_)
+            | Payload::SessionConsultReturn(_)
             | Payload::SessionHandoff(_)
             | Payload::ConnectionReplace(_) => {
                 let Ok(Some(command)) = crate::canonical_transitions::command(e) else {

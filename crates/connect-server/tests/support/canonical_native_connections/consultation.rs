@@ -6,6 +6,8 @@ mod capabilities;
 mod record_erasure;
 #[path = "consultation/record_links.rs"]
 mod record_links;
+#[path = "consultation/sdk_controls.rs"]
+mod sdk_controls;
 use connect_protocol::transitions::{HoldTreatment, TransitionCommand, TransitionIntent};
 #[tokio::test]
 async fn production_consultation_admits_confirmed_native_ready_routes_without_claiming_media_switch(
@@ -296,6 +298,7 @@ async fn production_private_capability_delivery_uses_only_actual_private_connect
 enum Auxiliary {
     Capability(&'static str),
     Dtmf(&'static str),
+    Sdk(&'static str),
 }
 #[tokio::test]
 async fn production_private_dtmf_excludes_remote_and_same_participant_public_peer_and_replay_cannot_publish_after_return(
@@ -326,6 +329,10 @@ async fn private_candidate_case_with_auxiliary_checks(
     verify_links: bool,
     auxiliary: Option<Auxiliary>,
 ) {
+    let sdk_algorithm = match auxiliary {
+        Some(Auxiliary::Sdk(a)) => Some(a),
+        _ => None,
+    };
     let capability_algorithm = match auxiliary {
         Some(Auxiliary::Capability(a)) => Some(a),
         _ => None,
@@ -358,7 +365,7 @@ async fn private_candidate_case_with_auxiliary_checks(
             .0
     } else if let Some(algorithm) = dtmf_algorithm {
         codecs::setup_started_dtmf(Fixture::with_native_dtmf_scope(algorithm, 12).await, true).await
-    } else if let Some(algorithm) = capability_algorithm {
+    } else if let Some(algorithm) = capability_algorithm.or(sdk_algorithm) {
         let f = Fixture::with_native_end_scope(algorithm, 12).await;
         codecs::setup_started(f, (), "codec-target-offer", "codec-source-offer")
             .await
@@ -539,10 +546,17 @@ async fn private_candidate_case_with_auxiliary_checks(
         },
         payload_extensions: Default::default(),
     };
+    let sdk_probe = if sdk_algorithm.is_some() {
+        Some(sdk_controls::submit(&f, &command, &credential.token).await)
+    } else {
+        None
+    };
     let admitted = if provider.is_some_and(provider::Case::automatic) {
         None
     } else {
-        controller.transition(command.clone()).await.unwrap();
+        if sdk_probe.is_none() {
+            controller.transition(command.clone()).await.unwrap();
+        }
         let store = f.server.store.clone();
         let key = credential.id.clone();
         let id = command.operation_id.clone();
@@ -828,6 +842,9 @@ async fn private_candidate_case_with_auxiliary_checks(
             for client in probes {
                 client.shutdown().await.unwrap();
             }
+            if let Some(probe) = sdk_probe {
+                probe.client.close(sdk_controls::options()).await.unwrap();
+            }
             f.server.shutdown().await.unwrap();
             return;
         }
@@ -894,13 +911,14 @@ async fn private_candidate_case_with_auxiliary_checks(
             if return_to_public {
                 let operator = f.server.store.authenticate(&f.admin).unwrap();
                 f.server.store.revoke(&operator, &credential.id).unwrap();
-                perform_return(
+                perform_return_with_sdk(
                     &f,
                     &cid,
                     origin.record_id(),
                     revision(),
                     false,
                     vec!["codec-source", "private-consultant"],
+                    sdk_probe.as_ref().map(|p| p.reference.clone()),
                 )
                 .await;
                 let c = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -932,6 +950,9 @@ async fn private_candidate_case_with_auxiliary_checks(
             wait_slots(&f, 0).await;
             for client in probes {
                 client.shutdown().await.unwrap();
+            }
+            if let Some(probe) = sdk_probe {
+                probe.client.close(sdk_controls::options()).await.unwrap();
             }
             f.server.shutdown().await.unwrap();
             return;
@@ -978,6 +999,9 @@ async fn private_candidate_case_with_auxiliary_checks(
             serde_json::from_value(record.result.clone().unwrap()).unwrap();
         assert_eq!(completion.admitted_connection_ids, ["private-consultant"]);
         assert_eq!(completion.session_revision, command.expected_revision + 1);
+        if let Some(probe) = &sdk_probe {
+            sdk_controls::completed(&f, probe, completion.session_revision).await;
+        }
         let mut competing = command.clone();
         competing.operation_id = "second-private-context".into();
         competing.expected_revision = completion.session_revision;
@@ -1025,13 +1049,14 @@ async fn private_candidate_case_with_auxiliary_checks(
         probes.swap(0, 1);
         probes.swap(0, 2);
         if return_to_public {
-            let _returned = perform_return(
+            let _returned = perform_return_with_sdk(
                 &f,
                 &cid,
                 origin.record_id(),
                 revision(),
                 true,
                 vec!["private-consultant"],
+                sdk_probe.as_ref().map(|p| p.reference.clone()),
             )
             .await;
             wait_slots(&f, 2).await;
@@ -1071,6 +1096,9 @@ async fn private_candidate_case_with_auxiliary_checks(
                 &remote_snapshot_key,
             )
             .await;
+        }
+        if let Some(probe) = sdk_probe {
+            probe.client.close(sdk_controls::options()).await.unwrap();
         }
         let replay = if verify_records {
             Some(
@@ -1141,6 +1169,18 @@ async fn perform_return(
     continuing: bool,
     retired: Vec<&str>,
 ) -> serde_json::Value {
+    perform_return_with_sdk(f, cid, parent, expected_revision, continuing, retired, None).await
+}
+
+async fn perform_return_with_sdk(
+    f: &Fixture,
+    cid: &str,
+    parent: &str,
+    expected_revision: u64,
+    continuing: bool,
+    retired: Vec<&str>,
+    sdk_reference: Option<serde_json::Value>,
+) -> serde_json::Value {
     let mut grant = Scope::collaboration(vec!["*".into()]);
     grant.operations.push("session.consult.return".into());
     let store = f.server.store.clone();
@@ -1151,6 +1191,21 @@ async fn perform_return(
     .await
     .unwrap()
     .unwrap();
+    let sdk_return = if let Some(reference) = sdk_reference {
+        Some(
+            sdk_controls::restore(
+                f,
+                &return_key.token,
+                reference,
+                expected_revision,
+                continuing,
+                &retired,
+            )
+            .await,
+        )
+    } else {
+        None
+    };
     let mut cfg = canonical_http_config(f);
     cfg.credential = return_key.token.clone();
     let mut return_client = CanonicalHttpClient::open(cfg).await.unwrap();
@@ -1166,10 +1221,12 @@ async fn perform_return(
         },
         payload_extensions: Default::default(),
     };
-    return_client
-        .transition(return_command.clone())
-        .await
-        .unwrap();
+    if sdk_return.is_none() {
+        return_client
+            .transition(return_command.clone())
+            .await
+            .unwrap();
+    }
     let deadline = tokio::time::Instant::now() + Duration::from_secs(35);
     let returned = loop {
         let store = f.server.store.clone();
@@ -1227,6 +1284,12 @@ async fn perform_return(
         .unwrap()
         .unwrap();
     assert!(return_client.transition(return_command).await.is_err());
+    if let Some((client, operation)) = sdk_return {
+        assert!(
+            matches!(operation.status(sdk_controls::options()).await,Err(e) if e.certainty==connect_client::sdk::Certainty::Refused)
+        );
+        client.close(sdk_controls::options()).await.unwrap();
+    }
     returned
 }
 

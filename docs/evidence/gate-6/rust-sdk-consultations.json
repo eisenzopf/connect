@@ -2,14 +2,15 @@
   "schema": "connect-gate6-rust-sdk-consultations/1",
   "task": "G6-060",
   "status": "in-progress",
-  "checked_at": "2026-10-26T01:38:42.140791+00:00",
-  "base_revision": "63a1ced5071fb5c6c35207e2a2562ff929023f52",
-  "scope": "Typed consultation/return SDK control and saved reference checkpoint. Controlled signed QUIC and schema checks pass; actual private-media production rehearsal remains pending.",
+  "checked_at": "2026-10-26T01:54:53.003808+00:00",
+  "base_revision": "c286e01eccad92f37b23c7f9f9c0bf02ceede713",
+  "scope": "Public Rust SDK consultation/return control through actual signed native listeners, retained original operation/record identity, private audio and restoration with fresh current authority. Native media endpoints use the independent public Canonical client; this does not qualify both-ends SDK media or complete G6-060. Local macOS arm64 functional scope.",
   "implementation": [
     "Session.consult preserves the original logical operation ID, explicit source/retained Connection, normalized private participant set, hold treatment and TopologyRevision. Typed completion handles observe topology and grant no physical ownership.",
     "Saved typed consultation references retain original source/retained Connection and the observed host-issued OperationRecordId. return_to_retained uses the saved record for a new named mutation under fresh host authority. Only an as-yet unknown record requires a current-authorized read. Recovered observations enrich saved references, changed host identity refuses before connection observations apply, and the client never guesses a record from a logical operation ID.",
     "Host transition admission and operation.get provide original command_type and expected_revision alongside record_id. SDK status checks the command and mandatory original identity before accepting topology. Invalid/missing continuation context refuses locally.",
-    "Returned Session exposes captured parent record, retained/retired topology and remote_continuing. Remote EOF may settle with a retired remote leg and false continuing observation. Caller cancellation preserves owned in-flight requests."
+    "Returned Session exposes captured parent record, retained/retired topology and remote_continuing. Remote EOF may settle with a retired remote leg and false continuing observation. Caller cancellation preserves owned in-flight requests.",
+    "Signed session.consult.return now enters the Store-backed guarded transition dispatcher, preserving its exact original request, current named permission, signature/Device/key/credential, source scope and endpoint/member fences. Previously this installed command fell through the signed rejection path while HTTP return was available."
   ],
   "verification": {
     "client": {
@@ -48,15 +49,19 @@
         "path": ".local/gate-6/rust-sdk-consultations/client-05.log",
         "sha256": "e6fb4185b27d04322b1c6cff6d4323ac45dadfc31015fde589310ad8a8ee07f8"
       },
-      "new_functions": 8
+      "new_functions": 8,
+      "final_source_equivalence": {
+        "path": ".local/gate-6/rust-sdk-consultations/client-final-source-equivalence.json",
+        "sha256": "0034afcc0596ca58f8d6eabe56ea6c9d5674cf449d6ff6833c22b92e59121591"
+      }
     },
     "contracts": {
       "report": {
-        "path": ".local/gate-6/rust-sdk-consultations/contracts.json",
+        "path": ".local/gate-6/rust-sdk-consultations/contracts-final.json",
         "sha256": "dade08d5313279f7f3a365beba955fc32ec8d6ca22957be6d4c1e8e98a25ca6b"
       },
       "log": {
-        "path": ".local/gate-6/rust-sdk-consultations/contracts.log",
+        "path": ".local/gate-6/rust-sdk-consultations/contracts-final.log",
         "sha256": "4b04bd7cfae2f9d81f386d4317448cacb6123f95c67a81135a13d86a44c3f228"
       },
       "schema_vectors": 237,
@@ -67,14 +72,158 @@
       "sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
     },
     "format": {
-      "path": ".local/gate-6/rust-sdk-consultations/format-11.log",
+      "path": ".local/gate-6/rust-sdk-consultations/format-13.log",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "manifest": {
-      "path": ".local/gate-6/rust-sdk-consultations/inputs-05.json",
-      "sha256": "c91cdc78c156da5ba05c82f6aa65e9f8b99507ee9cff7b246fe37a6a2cb2cd97"
+      "path": ".local/gate-6/rust-sdk-consultations/inputs-07.json",
+      "sha256": "e5920a815114d33c8eeb3b1f60081579f21c800c97c7fd81a97de41e03a3cb2f"
     },
-    "guarded_source_inputs": 1320
+    "guarded_source_inputs": 1320,
+    "rustdoc": {
+      "log": {
+        "path": ".local/gate-6/rust-sdk-consultations/rustdoc-02.log",
+        "sha256": "e3a3b8aceeb5128021fcf44c7fa972fd2dca0ec77bcb6f3f2bb16bd8646d6b1d"
+      },
+      "passed_functions": 5,
+      "failed_functions": 0
+    },
+    "production": {
+      "results": [
+        {
+          "filter": "sdk_controls::",
+          "exit_code": 0,
+          "passed_functions": 2,
+          "elapsed_seconds": 47.222631542012095,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-00.log",
+          "log_sha256": "56d1adb492cab06966c7964d23ce352deaaaa2b3fcfb1d58e290aff762eda20d"
+        },
+        {
+          "filter": "sdk_handles::",
+          "exit_code": 0,
+          "passed_functions": 8,
+          "elapsed_seconds": 33.9317731668707,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-01.log",
+          "log_sha256": "ce2374a8b6348078443328d6951556d8e45edf5a54c319f2681f99110566fa36"
+        },
+        {
+          "filter": "production_consultation_admits_confirmed_native_ready_routes_without_claiming_media_switch",
+          "exit_code": 0,
+          "passed_functions": 1,
+          "elapsed_seconds": 1.9095098748803139,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-02.log",
+          "log_sha256": "78fe4ef970812608ee805652edb31bb027246746a152ea09664b4f0c290f8eca"
+        },
+        {
+          "filter": "production_private_consultation_return_restores_original_audio_with_fresh_permission",
+          "exit_code": 0,
+          "passed_functions": 1,
+          "elapsed_seconds": 19.261123083066195,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-03.log",
+          "log_sha256": "6c770d0b5e91907506b9a6920fd5220bcfa8e9c58927232ca33c784171b2be9d"
+        },
+        {
+          "filter": "production_private_consultation_return_after_remote_eof_settles_without_claiming_a_call",
+          "exit_code": 0,
+          "passed_functions": 1,
+          "elapsed_seconds": 3.1923666249495,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-04.log",
+          "log_sha256": "bba1a8eb2183d8be7d14f98807410d6949deecfa52b3c0e36729e3f779cab2b9"
+        },
+        {
+          "filter": "production_private_consultation_captured_result_survives_recording_outage_without_reapplication",
+          "exit_code": 0,
+          "passed_functions": 1,
+          "elapsed_seconds": 31.039029375184327,
+          "log": ".local/gate-6/rust-sdk-consultations/production-06-05.log",
+          "log_sha256": "cf23b9954be095d5e40167f9bcb43a9689ea70885a66cf2c51ae1356a84fe73a"
+        }
+      ],
+      "binary_sha256": "ad4278e28aef980c08522985ae44a3c3ad74a31bbba59175de7090ca6104eb16",
+      "sealed_binary_sha256": "ad4278e28aef980c08522985ae44a3c3ad74a31bbba59175de7090ca6104eb16",
+      "build_jsonl_sha256": "cc088290f1a02e169064463380adfe508afae44d55aecc9ea8eb2c8ec2aee04a",
+      "build_log_sha256": "4b779678368f19cdae2006f0f6699b9d746ef9d63bdd60106105439dccf58da8",
+      "inputs_manifest": ".local/gate-6/rust-sdk-consultations/inputs-07.json",
+      "inputs_manifest_sha256": "e5920a815114d33c8eeb3b1f60081579f21c800c97c7fd81a97de41e03a3cb2f",
+      "guarded_source_inputs": 1320,
+      "inputs_unchanged": true,
+      "driver_sha256": "f927c93a83323081238a47ca867addb3cc47e849b7da13567c6ef9eb01b7028e",
+      "profile": "release with connect-store,connect-service,connect-server opt-level0; other packages use release defaults. Functional scope only; no performance claim.",
+      "passed": true,
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/production-06-summary.json",
+        "sha256": "2827245c8a49fcf51ff157568f5ca8c37713c2f9f84ce09a11475c338b609a8b"
+      },
+      "passed_functions": 14,
+      "failed_functions": 0,
+      "new_sdk_functions": 2,
+      "new_sdk_algorithm_scenes": 4,
+      "total_algorithm_scenes": 24,
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "scope": "Two new SDK controller functions across both algorithms, eight existing SDK functions across both algorithms, and four existing native/HTTP functions under EdDSA. Repeated/scope-specific scenes are not additional unique functions or performance proof.",
+      "behaviors": [
+        "SDK consultation admission remains Accepted/preparing until actual trusted native preparation and managed private audience work. Actual private candidate input is decoded before completion; primary/private non-silent audio reaches only the allowed managed audience, while remote/public exclusion assertions remain enforced.",
+        "Typed completed topology retains original source/remote and admits one candidate. Original-ID replay and fresh-client restoration return the same stable host record and one native attempt without installing foreign media ownership.",
+        "A controller with consultation permission but without return permission receives a current refusal before any durable return row. Actual private audio continues after the refusal.",
+        "After revoking the original execution credential, a separately enrolled current controller with only the named return permission uses the saved host record and submits one new return operation. The managed scene restores original audio; captured retired IDs and topology revision are checked, and existing effect replay/current revocation checks remain enforced.",
+        "After actual remote EOF, an original uncertain consultation can be restored with remote_continuing false and both candidate/remote recorded retired. The host settles the original consultation without inventing a continuing call.",
+        "Eight SDK regression functions continue to qualify messaging, membership, Sessions, decisions, concurrent status, native offers/end/controls/codecs, authorized metadata/restart and independent FFmpeg audio/video decoding in their existing scope. Existing HTTP/native admission, fresh return, EOF settlement and recording-outage recovery also pass."
+      ],
+      "observations": [
+        "SDK return EdDSA:remote_continuing=false,topology=4,retired=2,fresh_permission_original_record",
+        "SDK return ES256:remote_continuing=false,topology=4,retired=2,fresh_permission_original_record",
+        "SDK consultation EdDSA:completed_topology=4,original_record,fresh_observation_without_custody,one_native_attempt",
+        "SDK return EdDSA:remote_continuing=true,topology=5,retired=1,fresh_permission_original_record",
+        "SDK consultation ES256:completed_topology=4,original_record,fresh_observation_without_custody,one_native_attempt",
+        "SDK return ES256:remote_continuing=true,topology=5,retired=1,fresh_permission_original_record"
+      ]
+    },
+    "public_consumer_example": {
+      "exit_code": 0,
+      "command": [
+        "rustc",
+        "--crate-name",
+        "sdk_consultation_example",
+        "--crate-type",
+        "lib",
+        "--emit=metadata",
+        "--edition=2021",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-consultations/sdk-example.rs",
+        "--extern",
+        "connect_client=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_client-7d89339598305414.rlib",
+        "-L",
+        "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+        "-o",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rust-sdk-consultations/sdk-example.rmeta"
+      ],
+      "sdk_rlib_sha256": "0fdae5818acc63f98f042e1ae11de02722b8c266528fd021db882659197bd21f",
+      "example_source_sha256": "bafa6a94b4f77ee65edfdac98250052c11ef5667de0a69927455ac13299397e4",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Separate public SDK consumer snippet compilation; not a packaged external-crate journey or runtime/media qualification.",
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/example-summary.json",
+        "sha256": "a3f0dc2eff8f05dcc34de9ccbda906a311583dd7cffb3312f6c42e3ca2ab692f"
+      }
+    },
+    "checks": {
+      "final_format": {
+        "path": ".local/gate-6/rust-sdk-consultations/format-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "schema_generation": {
+        "path": ".local/gate-6/rust-sdk-consultations/schema-generation-check.log",
+        "sha256": "1497795f452ca20872630ced63c26934eb9c7ecd72994496ca39267db67c90ff"
+      },
+      "openapi_event_reference": "passed",
+      "plan_integrity": {
+        "path": ".local/gate-6/rust-sdk-consultations/plan-integrity-final.json",
+        "sha256": "939066bf65b51c29861b6ec4a1e6a161673af20e52c5d628618024dd6b970d8c"
+      },
+      "diff": "passed"
+    }
   },
   "failed_or_superseded_runs": [
     {
@@ -118,11 +267,42 @@
         "sha256": "8f6ea20399436dad9dead531ae2fba005f8d393ec5b015b8900336b773c12827"
       },
       "result": "Updated identity persistence and immutable-record regressions; final132 client functions and3x8 signed consultation repetitions pass. Actual production rerun is pending."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/production-04-summary.json",
+        "sha256": "0cd117288778546305f2acb514ef8320ecf31938eee430e9fe28e8d23ec8d653"
+      },
+      "result": "0/2. Saved record bypassed the unnecessary parent read, but signed return was still refused before admission."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/production-05-summary.json",
+        "sha256": "faa24d54c353d3172a5c40a99dffde92778a1395fa51cda7062d2c656f7638cb"
+      },
+      "result": "0/2. Bounded diagnostics established fresh credential active,403 forbidden and zero return operation rows. The same current native/HTTP return passed in http-return-boundary.log. This isolated the missing signed transition-authority dispatcher variant; final source adds the command to the existing guarded path."
+    },
+    {
+      "report": {
+        "path": ".local/gate-6/rust-sdk-consultations/signed-return-authority-correction.json",
+        "sha256": "6b6b69646f3bedf686829af133902bcf786e0c9fca9ac4ff1531cf386b23981d"
+      },
+      "result": "Actual positive fresh-return and missing-return-permission zero-row fixtures qualify the classifier correction."
     }
   ],
   "remaining": [
-    "Actual managed consultation/return with independently decoded private/restored media and fresh authority is still building; no production result is claimed yet.",
-    "G6-060 remains in progress. Handoff, Connection replacement, Stream subscriptions, server-initiated reconciliation, reliable data I/O, full event/capability/config/raw/admin APIs, complete external-package and both-ends SDK media journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain.",
-    "No task, Gate6 acceptance, performance or publication completion claim."
+    "G6-060 remains in progress with18of22 directly mapped mutation kinds implemented. Handoff, Connection replacement and Stream subscribe/unsubscribe remain.",
+    "Complete transition binding/custody reconciliation, server-initiated reconciliation, reliable data I/O, full event/capability/config/raw/admin APIs, complete external-package and both-ends SDK media journeys, incompatible-server/abrupt-crash and approved remote/Linux profiles remain unqualified.",
+    "No whole-task, Gate6 acceptance, whole Store, performance, remote-provider or publication claim."
+  ],
+  "scratch_cleanup": [
+    {
+      "path": ".local/gate-6/rust-sdk-consultations/failed-production-scratch-cleanup.json",
+      "sha256": "d748ccb082ba2ec4e01447a2ec6aa98b85f8e0fbfc637cfa2a216ee8ee45a3cb"
+    },
+    {
+      "path": ".local/gate-6/rust-sdk-consultations/failed-production-scratch-cleanup-02.json",
+      "sha256": "093b102098c65c09b8088a91b226dbb704f4a18c38c97437c78af3ead902bbc4"
+    }
   ]
 }
