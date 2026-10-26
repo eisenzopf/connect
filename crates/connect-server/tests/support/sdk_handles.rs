@@ -23,6 +23,8 @@ mod runtime_controls;
 mod selections;
 #[path = "sdk_handles/stream_metadata.rs"]
 mod stream_metadata;
+#[path = "sdk_handles/tasks.rs"]
+mod tasks;
 use super::*;
 use connect_client::sdk::{
     self, Client, ConversationPolicy, MutationOptions, NonEmpty, RequestOptions,

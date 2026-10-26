@@ -775,3 +775,23 @@ checks change test sources only; previously qualified product bytes remain
 unchanged. Exact evidence is in
 `docs/evidence/gate-6/rust-sdk-compatibility.json`. G6-060 remains in progress for
 final contract and lifecycle requirements review.
+
+
+## Optional Task-to-provider workflows
+
+Canonical participant communication composes with the named `ApplicationClient`
+Task APIs. A trusted backend issues a bounded native Task grant through the
+protected task-access exchange; an invocation calls `negotiate_task` before
+executing its typed Task command. Task authority does not replace the signed
+participant credential or turn an application operation into canonical control.
+Provider workers require an explicitly provisioned and verified AI Endpoint,
+current delegate, Conversation membership, account reference and route custody.
+
+The current public-client fixture qualifies restricted and history-authorized
+Task context, independently attributed replies, original-intent replay and
+current-grant refusal. A provider that accepts before withholding its receipt
+leaves an Uncertain effect. Restart and repeated original intent retain that
+same effect and never dispatch a second provider request. Revoking its grant
+refuses even an existing application client. Both EdDSA and ES256 pass; evidence
+is in `docs/evidence/gate-6/rust-sdk-tasks.json`. All provider traffic uses an
+isolated loopback fake endpoint; no provider account is contacted.

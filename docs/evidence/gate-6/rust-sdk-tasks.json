@@ -1,0 +1,56 @@
+{
+  "task": "G6-060",
+  "status": "verified current public SDK and application Task-to-provider checkpoint",
+  "checked_at": "2026-10-26T10:10:21.290734+00:00",
+  "scope": "Two selected production listener functions, each EdDSA/ES256. SDK creates the Conversation and sends the private context Message; named explicit ApplicationClient Task operations manage grants, invocation, inbox, recall and status. One loopback fake Vapi endpoint is the only provider target. Functional local macOS arm64, with Store/service/server opt-level0 and other release defaults. No performance, legacy-suite, remote/provider-account or whole-task closure.",
+  "verification": {
+    "production": {
+      "exit_code": 0,
+      "elapsed_seconds": 4.205580082954839,
+      "source_count": 1377,
+      "inputs_unchanged": true,
+      "server_binary_sha256": "e3aba8ce3b27abc17a2e51c49341b82301e299966810075144fe5c7d3bab90a9",
+      "log": ".local/gate-6/sdk-tasks/production-04.log",
+      "log_sha256": "5e9f690f6e5970b5ea1d65b1a815209f23a35d59fa96dd0c38f2a7b7696d3d28",
+      "build_jsonl_sha256": "0b3646e977f8d7087a9f90f27a0160051272410aca9366520c855ed5e3fa60b9",
+      "driver_sha256": "d24fb60094587330cbc4ab4d627e8158f5d0ea798336c88c790288b7af3cc8d7"
+    },
+    "passed_functions": 2,
+    "algorithm_scenes": 4,
+    "source_manifest": ".local/gate-6/sdk-tasks/inputs-04.json",
+    "manifest_sha256": "f34b7efc7e2fd7fc1b1abc1ee03b539186dbc0b24bff44e6e7996db93be47ef3",
+    "format_and_diff": "passed",
+    "prior_client_suite": "213 functions and12 Rustdoc checks in rust-sdk-compatibility.json; product sources unchanged in this fixture-only increment"
+  },
+  "behaviors": [
+    "Current typed SDK private context send and current signed message.history compose with ApplicationClient; no retired ConnectClient.create/send/history dispatcher is restored. Explicit task/1 invocation remains its named application contract.",
+    "Actual verified AI Endpoint, delegate credential, selected provider account reference, membership and route owner are required at worker admission. The initialized human agent is not used as an AI provider.",
+    "Protected native Task grant issuance is separate from canonical participant control. Send/Inbox-only and Send/Inbox/History grants produce separate attributed replies. A narrow grant cannot Recall or export history; its provider request has no assistantOverrides or previousChatId.",
+    "The history-authorized request includes the original SDK Message and conversation-journal provenance. Both grant invocations use fresh provider context rather than borrowing a route-wide previous chat. Replays retain original Message/reply correlation and create exactly two provider POST effects, two jobs and five visible Messages total.",
+    "A fake provider independently counts remote acceptance before withholding its receipt. Worker shutdown retains one Uncertain effect; normal server restart, fresh SDK/Application clients and repeated original intent retain the same effect ID and one provider job without redispatch. Signed history retains one original context Message and one task Message.",
+    "Send-only grant cannot inspect EffectGet metadata; a separately authorized owner can. Protected revocation causes HTTP authentication refusal even on the existing ApplicationClient. Accepted remote count stays one. All owned workers, SDK clients and servers are explicitly joined."
+  ],
+  "failed_candidates": [
+    {
+      "build": ".local/gate-6/sdk-tasks/build-01.jsonl",
+      "reason": "New fixture used incorrect ValidatedEnvelope accessor and shadowed its worker helper. Corrected public to_json/kind access, current message.history response parsing and helper name."
+    },
+    {
+      "report": ".local/gate-6/sdk-tasks/production-01-summary.json",
+      "reason": "Fixture attempted provider admission for initialized human Identity. Existing verified Vapi Endpoint policy correctly refused; setup now explicitly provisions an AI Identity."
+    },
+    {
+      "report": ".local/gate-6/sdk-tasks/production-02-summary.json",
+      "reason": "Fixture capability discovery named the old human alias outside the new Conversation. Corrected to its actual provisioned AI contact."
+    },
+    {
+      "report": ".local/gate-6/sdk-tasks/production-03-summary.json",
+      "reason": "Both context scenes passed; restart scene expected forbidden after grant revocation. HTTP authentication correctly returned unauthorized. Final assertion checks that actual current-authority refusal; send-only metadata access still requires forbidden."
+    }
+  ],
+  "remaining": [
+    "Frozen declaration audit found Connection.update and stream selection return/input drift from the implemented typed receipts. Correct the shared declaration/contract examples before G6-060 closure.",
+    "Historical gate4_provider_tasks, gate4_task_uncertainty and gate4_vapi_pending_continuation are not claimed as passing or wholly migrated. This selected current-SDK lane supplies the carried-forward context/reply and uncertainty/restart evidence; snapshot-restore and pending media continuations retain their own scopes.",
+    "All105 tasks remain the objective. Required remote/Linux/provider and installed SDK parity remain in their assigned tasks; publication remains separate."
+  ]
+}
