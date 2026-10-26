@@ -10,6 +10,8 @@ cargo fmt --manifest-path examples/connector-template/Cargo.toml "$@"
 
 cargo fmt --manifest-path examples/connector-contribution/Cargo.toml "$@"
 
+cargo fmt --manifest-path examples/media-connector-template/Cargo.toml "$@"
+
 cargo fmt --manifest-path examples/rust-sdk-journey/Cargo.toml "$@"
 
 # Declaration-only shared SDK contract fixtures live outside Cargo workspaces.

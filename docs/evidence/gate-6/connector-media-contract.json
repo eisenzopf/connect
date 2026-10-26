@@ -1,14 +1,15 @@
 {
   "task": "G6-067",
-  "status": "Manifest v2, trusted composition and selected current production runtime checks passed; full hook/independent live fixture qualification pending",
-  "checked_at": "2026-10-26T16:54:27.434876+00:00",
+  "status": "Manifest v2, selected production composition and independent actual media fixture pass; generic owned server installation pending",
+  "checked_at": "2026-10-26T17:11:42.001978+00:00",
   "base_revision": "e9a7186d331ab48108006a3cc8c48719697123cf",
-  "scope": "Local Darwin arm64 contract/API/provider mapping, two deterministic PCM lifecycle fixtures, selected actual production adapter/registration/assistant/telephone startup and recovery checks, and current CLI/HTTP. No independent live transport fixture pass, actual provider account/model-host/browser/Linux/remote/package/publication or acceptance claim.",
+  "scope": "Local Darwin arm64 contract/API/provider mapping, two deterministic PCM lifecycle fixtures, selected actual production adapter/registration/assistant/telephone startup and recovery checks, and current CLI/HTTP. Independent in-process PCMU ConnectionAdapter/MediaStream fixture; no actual provider account/model-host/browser/Linux/remote/package/publication or acceptance claim.",
   "implementation": [
     "Replace manifest v1 audio/video fields with a strict v2 union: unsupported, PCM lifecycle fixture or live binding. No version-1 fallback or implicit media capability. Retain normalized message/voice observations, configuration references, immutable registration and protected host responsibilities.",
     "Describe direct rvoip Transport adapters separately from enrolled signed native Endpoint hosts. Bound unique codec-family catalogs; negotiated-only media refuses static readiness claims. Explicit liveness, inbound handoff, terminal fallback, staged origination and replacement guarantees constrain runtime binding. Context and recording remain current host policies.",
     "Trusted server composition derives runtime facts from the existing real ConnectionAdapter interface without provider-name branches. Canonical SIP startup validates its supplied adapter and records its immutable declaration; canonical Vapi native startup records a separate PCMU/native/context profile after existing Endpoint/key/source checks. Telephone API and SMS stay media-unsupported.",
-    "Migrate both standalone lifecycle fixtures and the API-only export/checker to v2. A fixture exchange cannot satisfy a live runtime claim. New contract tests cover runtime/binding mismatch, codec refusal, negotiated-only readiness, restart policy drift and closed fields."
+    "Migrate both standalone lifecycle fixtures and the API-only export/checker to v2. A fixture exchange cannot satisfy a live runtime claim. New contract tests cover runtime/binding mismatch, codec refusal, negotiated-only readiness, restart policy drift and closed fields.",
+    "Add the independently buildable public-interface media fixture: bounded actual PCMU source and decoder, staged host effect custody, original full-intent replay, generation guards, explicit unsupported inbound/media controls, atomic Core lifecycle queue and terminal cancellation/drain ownership. No Connect Store/service dependency."
   ],
   "verification": {
     "api": {
@@ -541,6 +542,30 @@
       "cli_sha256": "b40c8e2bbce5641eb6fa806306ec72beb2117afb707e4522740bf497dbd9c4c6",
       "private_summary_sha256": "23836981a806487861cf75b340a94659d0a1a1ddac4f380553f5565a0bb6eb2a",
       "sigterm_exit": 0
+    },
+    "independent_media_fixture": {
+      "build_exit": 0,
+      "seconds": 1.7648272078949958,
+      "guarded_inputs": 436,
+      "test_exit": 0,
+      "binary_sha256": "bf4280366dd441eb67d74c5dc561c540b0624e329b738134eaeda49df05d929a",
+      "log_sha256": "945b204c40a5aadbfd29cf66db60e49f49b0d5a105f5497864d9d0f13c66db6f",
+      "input_manifest_sha256": "8cfa024e74f976cfbd71da914fc795e16466d17deee04d008e8b219f3eebaff6",
+      "source_unchanged": true,
+      "passed": 8,
+      "tests": [
+        "actual_duplex_pcmu_decodes_speaker_markers_and_owned_end_stops_both_queues",
+        "cancelling_drain_retains_the_original_join_for_cleanup_retry",
+        "capabilities_and_receipt_retention_refuse_unsupported_or_excess_work_before_effect",
+        "closed_terminal_queue_uses_owned_fallback_and_restart_keeps_original_effect",
+        "guarded_core_registers_atomic_outbound_fixture_and_host_cancel_is_terminal",
+        "revocation_expiry_and_backpressure_fence_media_instead_of_inventing_health",
+        "staged_admission_uses_current_effect_custody_and_exact_original_intent",
+        "stale_buffered_generation_is_discarded_at_the_actual_decode"
+      ],
+      "profile": "local Darwin arm64, in-process outbound-only PCMU fixture",
+      "limitations": "No process crash persistence, provider or model response, network transport, browser/Linux/remote, latency/capacity, installed kit or stock canonical-host admission qualification. Generic owned host installation remains open.",
+      "prior_attempts": "First compile failed on missing required renegotiate_media, then explicit unsupported implementation passed seven component tests. Final frozen run adds guarded Core registration and permanent host cancellation; prior logs retained privately."
     }
   },
   "inputs": {

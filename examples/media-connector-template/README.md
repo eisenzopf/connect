@@ -1,0 +1,68 @@
+# Independent live-media contract fixture
+
+This is an explicitly simulated, in-process media transport. It implements the
+public rvoip `ConnectionAdapter` and `MediaStream` interfaces and the Connect v2
+connector manifest. It uses no Connect Store/service internals, provider account,
+SIP call or wire authentication shortcut. Its generated speaker marker is fixture
+audio; it is not an AI response or human speech.
+
+From prepared repository sources:
+
+```sh
+bash scripts/prepare-dependencies.sh
+cargo test --offline --locked --release \
+  --manifest-path examples/media-connector-template/Cargo.toml \
+  --target-dir .local/gate-6/media-connector-template-target \
+  -- --test-threads=1
+bash scripts/format.sh --check
+```
+
+The source dependencies select the repository's pinned public rvoip interfaces.
+Installed kit/export and stock Connect application integration remain separate
+G6-068 work. This standalone component is not qualification of a network
+transport, provider, browser, remote host, capacity, latency or crash persistence.
+
+`Adapter::open` owns one fixture backend. The caller retains `Remote` across an
+in-process adapter restart; it models the remote provider's retained original
+effects independently of Connect's authoritative journal. New ownership waits for
+old worker cleanup. The eight-entry receipt table never evicts an old operation
+to make uncertain work appear new. A stopped original ID is observed and cannot
+silently produce another route.
+
+Trusted composition supplies `Admission` through rvoip's typed `OriginateContext`,
+including the original operation ID and a `DispatchPermit`. These options have no
+wire/serde representation. The host must retain its real current policy fences
+and resources in the permit's authority implementation. IDs, manifest metadata,
+codec declarations and fixture input never supply conversation authority.
+
+Origination is dormant and replays the same complete intent and Connection ID.
+Activation requires one current effect admission, across every permit clone, and
+starts at most one owned worker. Read-only custody cannot create an effect.
+Media keeps checking current host custody after buffering. Generation-aware
+`PeerMediaFrame` entries acquire their delivery guard after dequeueing and retain
+it through the actual decode; stale speaking generations are discarded.
+
+The profile supports outbound PCMU only: 8 kHz mono, 160 encoded bytes per 20 ms
+frame. Its source generates a known positive marker; its sink independently
+decodes the caller's marker. Inbound admission, video, data, messages, DTMF,
+renegotiation, transfer and wire principal authentication are explicitly
+unsupported. Queue capacity is four frames; source backpressure stops the route
+with a failure observation instead of growing memory or reporting healthy media.
+Quality remains unmeasured.
+
+The guarded Core consumes the atomic orchestrator event queue directly. This
+outbound-only adapter never creates or emits inbound routes, and its manifest
+never advertises inbound admission. Its atomic handoff guarantee cannot be used
+to infer inbound support. A second subscription cannot steal the first receiver.
+
+`Adapter::cancel` permanently closes admission under the same lock as origination
+and activation; `drain` also closes admission. End and drain fence the route and observe the original worker handle. Cancellation
+of a drain keeps that handle for the next cleanup attempt. Drop requests stop;
+it is not clean-teardown proof. A saturated or closed terminal queue uses the
+installed rvoip lifecycle fallback after liveness is retired.
+
+The component tests exercise staged/replayed intent, real duplex PCMU decoding,
+receiver reservation rollback, stale buffered generations, current revocation and
+expiry, bounded queues, terminal fallback, in-process restart, unsupported media,
+receipt capacity and cancellation-safe cleanup. None of these checks turns a
+manifest or an ACK into proof of delivery to a real external participant.

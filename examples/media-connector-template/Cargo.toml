@@ -1,0 +1,23 @@
+[package]
+name = "connect-media-connector-template"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97.1"
+publish = false
+
+[workspace]
+
+[dependencies]
+connect-connector-api = { path = "../../crates/connect-connector-api" }
+rvoip-core = { path = "../../.deps/rvoip/crates/foundation/rvoip-core", features = ["opus"] }
+rvoip-core-traits = { path = "../../.deps/rvoip/crates/foundation/rvoip-core-traits" }
+codec-core = { package = "rvoip-codec-core", path = "../../.deps/rvoip/crates/media/codec-core" }
+async-trait = "0.1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio-util = "0.7"
+bytes = "1"
+chrono = "0.4"
+serde_json = "1"
+
+[lints.rust]
+unsafe_code = "forbid"
