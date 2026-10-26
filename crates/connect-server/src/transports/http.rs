@@ -196,6 +196,7 @@ impl Listener {
                 .merge(super::canonical_http::router(state.clone()))
                 .merge(super::record_mutations::router(state.clone()))
                 .merge(super::user_delegation::router(state.clone()))
+                .merge(super::credential_issuance::router(state.clone()))
                 .merge(access)
                 .merge(administration)
                 .route(

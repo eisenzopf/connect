@@ -1,8 +1,8 @@
 {
   "status": "Source route/reference inventory only; runtime schemas and authorization need separate evidence.",
   "scope": "All current route/route_service/nest/nest_service declarations in Connect server and MCP source, plus explicit configured canonical transport mounts. Framework-generated methods and all /v1/operations body variants are not independently qualified by path coverage.",
-  "declarations": 23,
-  "explicit_http_operations": 24,
+  "declarations": 24,
+  "explicit_http_operations": 25,
   "parameter_matching": "Only placeholder names are normalized. Original source path and every referenced path spelling remain recorded.",
   "routes": [
     {
@@ -49,6 +49,25 @@
               "path": "/v2/discovery",
               "method": "get",
               "pointer": "/paths/~1v2~1discovery/get"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/credential_issuance.rs",
+      "line": 29,
+      "registration": "route",
+      "path": "/v2/credentials",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-protected-http.json",
+              "path": "/v2/credentials",
+              "method": "post",
+              "pointer": "/paths/~1v2~1credentials/post"
             }
           ]
         }
@@ -383,7 +402,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 201,
+      "line": 202,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
       "operations": [
@@ -413,7 +432,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 205,
+      "line": 206,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
       "operations": [
@@ -531,7 +550,7 @@
     "contracts/openapi-membership.json": "1e9419b22f0f071854e2b9214ffc82e94f92e058c96a079d6adde6dffb2f0de0",
     "contracts/openapi-messages.json": "ca02f82ec9ab04a8173dfac1cc752802d2b7d8647562079738c8b507beef0b8a",
     "contracts/openapi-operations.json": "44f0b8eee7f90fab4977867e39a125f98a72aa5e74b998e937da81637e07a5e4",
-    "contracts/openapi-protected-http.json": "628dcdae5989e76a73ecf4b6cfcd6b277eeb407d4dbdf280735bbaad8974c861",
+    "contracts/openapi-protected-http.json": "1bc98ea100168bacf626a69e741a38ab2612710b773e7112422cf4761062e993",
     "contracts/openapi-provider-observations.json": "0f8a9ca465126bb7da41c325b385e69ee9709b4a77fbe1b38796a8bbd78a73b1",
     "contracts/openapi-provisioning.json": "a68fedffed7bf0fa949ec383651c2a2ad9cb6093e035e24477b86307c2446bb0",
     "contracts/openapi-record-mutations.json": "31e79a18676ac0a0f54cf53b5d8ca293b3def6d1826964f5e5b29e251f0b1809",
@@ -542,7 +561,8 @@
     "crates/connect-server/src/canonical_websocket.rs": "d27445f3986dc4f0f5911f5999001848bd39d9c18a4b2e637464fc436fca8873",
     "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
-    "crates/connect-server/src/transports/http.rs": "9c78d1f2e0540436d81562dc1701f7a634f3cf10d508335a7173eb35e4547076",
+    "crates/connect-server/src/transports/credential_issuance.rs": "1eabe094a64a9260414d16ba0f18d824c26126f4c9575a476d3826ba0c2f7ee1",
+    "crates/connect-server/src/transports/http.rs": "ef5e5540ff1cfd7bfc59b773b370820465845d70f42fdd2ea811523c489c1ff1",
     "crates/connect-server/src/transports/record_https.rs": "99fe394b55ca31712ee293d6f752e25c4840c98c31253e3d341e69c842ca00e5",
     "crates/connect-server/src/transports/record_mutations.rs": "49a9ccc35833669aa405ea105d2c0126173c5937055f5bb849f25ee416cc1113",
     "crates/connect-server/src/transports/user_delegation.rs": "de833cdafbb9dbed59c21a5d0f8d482b991eeade37b56b55fe516259be957a66"

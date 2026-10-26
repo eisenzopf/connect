@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render protected Task access and raw artifact HTTP routes; no runtime proof."""
+"""Render protected issuance, Task access and raw artifact HTTP; no runtime proof."""
 import argparse
 import copy
 import json
@@ -102,6 +102,49 @@ def render():
            "x-handler-deadline-seconds": 5, "x-cache-control": "no-store",
            "x-automatic-retries": 0}))
     raw_ident = dict(type="string", pattern=r"^[A-Za-z0-9._~-]{1,128}$")
+    issuance_unix = dict(type="integer", minimum=1, maximum=9007199254740991)
+    operation = dict(type="string", pattern=r"^[A-Za-z0-9_.:-]{1,128}$",
+                     **{"not": {"enum": ["admin", "credential.delegate"]}})
+    issuance_operations = dict(type="array", minItems=1, maxItems=64, items=operation)
+    issuance_recipients = dict(type="array", maxItems=128, items=raw_ident)
+    schemas["CredentialIssueRequest"] = obj(dict(
+        operation_id=raw_ident, identity_id=raw_ident, operations=issuance_operations,
+        recipients=issuance_recipients, expires_at=issuance_unix))
+    schemas["CredentialIssueRequest"]["description"] = (
+        "Persist this complete original intent before IO. Operations and recipients are literal sets; "
+        "ordering and duplicates normalize after raw item-count bounds. Expiry must be future, "
+        "within365days of server now and no later than the current administrator expiry. "
+        "No caller-selected issuer, installation, user assurance or inherited administrator scope.")
+    issuance_fields = copy.deepcopy(schemas["CredentialIssueRequest"]["properties"])
+    issuance_fields["operations"]["uniqueItems"] = True
+    issuance_fields["recipients"]["uniqueItems"] = True
+    issuance_fields.update({name:dict(type="string", format="uuid") for name in
+                           ["credential_id", "issuer_identity_id", "issuer_credential_id", "installation_id"]})
+    issuance_fields.update(issued_at=issuance_unix, credential=dict(
+        type="string", pattern=r"^[0-9a-f]{64}$",
+        description="Intended protected exchange only; do not log or expose to model input."))
+    schemas["CredentialIssueOutcome"] = obj(issuance_fields)
+    schemas["CredentialIssueResponse"] = envelope("connect/2", "CredentialIssueOutcome")
+    issuance_headers = {name:dict(schema=dict(const=value)) for name,value in
+                        [("Cache-Control","no-store"),("Pragma","no-cache"),("Connection","close")]}
+    issuance_responses = {str(code):{**json_response(text,"CredentialIssueResponse"),
+                                     "headers":copy.deepcopy(issuance_headers)} for code,text in {
+        200:"Current original independently scoped credential. Secret delivery ends at admission deadline, credential/issuer expiry, cancellation or socket close.",
+        400:"Invalid JSON/content type/closed shape/bounded intent, or unsupported HTTP version/upgrade.",
+        401:"Missing/malformed/duplicate Authorization, Task/model grant, expired or revoked ordinary credential.",
+        403:"Host/origin/provider-header refusal, missing owned socket custody, nonadministrator or current tenant/scope/recipient/expiry ceiling denied.",
+        409:"Changed original intent/issuer or operation ID reused by another command.",
+        410:"Original receipt tombstoned; no replacement credential is minted.",
+        413:"JSON body exceeds65536 bytes after administrator admission.",
+        429:"Shared response/admission or durable receipt capacity exhausted.",
+        503:"Storage/authority unavailable, incomplete reconciliation or interrupted observation; preserve the original intent and issuer.",
+    }.items()}
+    issuance = dict(post=dict(operationId="issueScopedCredential",security=[dict(bearerAuth=[])],
+        description="Protected loopback administrator exchange, absent from webhook-only hosting. Requires closing HTTP/1.1 with owned socket custody. Reserve shared capacity, validate Host matching concrete listener or localhost:port, refuse Origin/X-Call-ID/X-Chat-ID/Upgrade, and authenticate current ordinary administrator before JSON parsing. Admission and handler share one five-second absolute deadline. Current issuer/target/recipient fences remain owned through physical response IO, even after Body EOS. Exact replay with original current issuer and normalized intent returns the same credential ID/secret/issued time/absolute expiry. Changed authority or revoked/expired child never issues a replacement. A running transaction may commit after observation ends; explicit replay reconciles. The child is independent administrative authority, without human-consent claims or parent-revocation chaining. Native Device/signing-key enrollment is separate; no automatic retry or renewal.",
+        requestBody=dict(required=True,content={"application/json":dict(schema=ref("CredentialIssueRequest"))}),
+        responses=issuance_responses,
+        **{"x-max-request-bytes":65536,"x-total-deadline-seconds":5,"x-automatic-retries":0,
+           "x-response-custody":"Physical closing HTTP/1.1 socket; shared capacity retained with authority until IO ends."}))
     path_parameters = [dict(name=name, **{"in": "path"}, required=True, schema=raw_ident)
                        for name in ["conversation_id", "artifact_id"]]
     def query(name, schema):
@@ -143,9 +186,9 @@ def render():
         "x-automatic-retries": 0,
     }
     return json.dumps(dict(openapi="3.1.0", info=dict(
-        title="Connect protected Task access and raw artifact HTTP", version="connect/2",
+        title="Connect protected issuance, Task access and raw artifact HTTP", version="connect/2",
         description="Current local application listener extensions. Task-access wire profile is connect-task-access/1; artifact control rejections/metadata use connect-control/1 and downloads use raw bytes. Separate canonical/provisioning/attachment-link/record references retain their own contracts. Generation is not runtime/profile qualification."),
-        paths={"/v1/task-access": task,
+        paths={"/v2/credentials": issuance, "/v1/task-access": task,
                "/v1/conversations/{conversation_id}/artifacts/{artifact_id}": raw},
         components=dict(securitySchemes=dict(bearerAuth=dict(type="http", scheme="bearer")), schemas=schemas)), indent=2) + "\n"
 

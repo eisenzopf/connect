@@ -695,5 +695,6 @@ async fn credential_revocation_correlates_immutable_target_and_requires_revoked_
     }
 }
 
+mod credential_issuance;
 mod incoming_contacts;
 mod user_delegation;

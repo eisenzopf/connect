@@ -22,8 +22,29 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+/// The physical writer retains this owner even after Hyper consumes Body bytes.
+pub(super) trait ProtectedResponse: Send {
+    fn status(&self) -> u16;
+    fn body(&self) -> connect_protocol::Result<&[u8]>;
+    fn deadline(&self) -> Instant;
+    fn current(&self) -> bool;
+}
+impl ProtectedResponse for CanonicalHttpRecordResponse {
+    fn status(&self) -> u16 {
+        self.status()
+    }
+    fn body(&self) -> connect_protocol::Result<&[u8]> {
+        self.body()
+    }
+    fn deadline(&self) -> Instant {
+        self.deadline()
+    }
+    fn current(&self) -> bool {
+        self.current()
+    }
+}
 struct Held {
-    response: CanonicalHttpRecordResponse,
+    response: Box<dyn ProtectedResponse>,
     _capacity: Arc<OwnedSemaphorePermit>,
 }
 #[derive(Default)]
@@ -52,9 +73,9 @@ impl Custody {
     pub(super) fn cancellation(&self) -> CancellationToken {
         self.cancellation.child_token()
     }
-    pub(super) fn install(
+    pub(super) fn install<R: ProtectedResponse + 'static>(
         &self,
-        response: CanonicalHttpRecordResponse,
+        response: R,
         capacity: Arc<OwnedSemaphorePermit>,
     ) -> Result<(u16, Vec<u8>), Error> {
         let mut state = self.state.lock().map_err(|_| Error::storage())?;
@@ -64,7 +85,7 @@ impl Custody {
         let status = response.status();
         let bytes = response.body()?.to_vec();
         state.held = Some(Held {
-            response,
+            response: Box::new(response),
             _capacity: capacity,
         });
         if let Some(waker) = state.waker.take() {

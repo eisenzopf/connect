@@ -1,11 +1,281 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Connect protected Task access and raw artifact HTTP",
+    "title": "Connect protected issuance, Task access and raw artifact HTTP",
     "version": "connect/2",
     "description": "Current local application listener extensions. Task-access wire profile is connect-task-access/1; artifact control rejections/metadata use connect-control/1 and downloads use raw bytes. Separate canonical/provisioning/attachment-link/record references retain their own contracts. Generation is not runtime/profile qualification."
   },
   "paths": {
+    "/v2/credentials": {
+      "post": {
+        "operationId": "issueScopedCredential",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Protected loopback administrator exchange, absent from webhook-only hosting. Requires closing HTTP/1.1 with owned socket custody. Reserve shared capacity, validate Host matching concrete listener or localhost:port, refuse Origin/X-Call-ID/X-Chat-ID/Upgrade, and authenticate current ordinary administrator before JSON parsing. Admission and handler share one five-second absolute deadline. Current issuer/target/recipient fences remain owned through physical response IO, even after Body EOS. Exact replay with original current issuer and normalized intent returns the same credential ID/secret/issued time/absolute expiry. Changed authority or revoked/expired child never issues a replacement. A running transaction may commit after observation ends; explicit replay reconciles. The child is independent administrative authority, without human-consent claims or parent-revocation chaining. Native Device/signing-key enrollment is separate; no automatic retry or renewal.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current original independently scoped credential. Secret delivery ends at admission deadline, credential/issuer expiry, cancellation or socket close.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON/content type/closed shape/bounded intent, or unsupported HTTP version/upgrade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/malformed/duplicate Authorization, Task/model grant, expired or revoked ordinary credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Host/origin/provider-header refusal, missing owned socket custody, nonadministrator or current tenant/scope/recipient/expiry ceiling denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed original intent/issuer or operation ID reused by another command.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Original receipt tombstoned; no replacement credential is minted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body exceeds65536 bytes after administrator admission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Shared response/admission or durable receipt capacity exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage/authority unavailable, incomplete reconciliation or interrupted observation; preserve the original intent and issuer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialIssueResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-total-deadline-seconds": 5,
+        "x-automatic-retries": 0,
+        "x-response-custody": "Physical closing HTTP/1.1 socket; shared capacity retained with authority until IO ends."
+      }
+    },
     "/v1/task-access": {
       "post": {
         "operationId": "protectedTaskAccess",
@@ -866,6 +1136,180 @@
                 "properties": {
                   "Ok": {
                     "$ref": "#/components/schemas/ArtifactOutcome"
+                  }
+                },
+                "required": [
+                  "Ok"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "Err": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                },
+                "required": [
+                  "Err"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "profile",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "CredentialIssueRequest": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "identity_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+              "not": {
+                "enum": [
+                  "admin",
+                  "credential.delegate"
+                ]
+              }
+            }
+          },
+          "recipients": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "operation_id",
+          "identity_id",
+          "operations",
+          "recipients",
+          "expires_at"
+        ],
+        "additionalProperties": false,
+        "description": "Persist this complete original intent before IO. Operations and recipients are literal sets; ordering and duplicates normalize after raw item-count bounds. Expiry must be future, within365days of server now and no later than the current administrator expiry. No caller-selected issuer, installation, user assurance or inherited administrator scope."
+      },
+      "CredentialIssueOutcome": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "identity_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+              "not": {
+                "enum": [
+                  "admin",
+                  "credential.delegate"
+                ]
+              }
+            },
+            "uniqueItems": true
+          },
+          "recipients": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            },
+            "uniqueItems": true
+          },
+          "expires_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "credential_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issuer_identity_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issuer_credential_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "installation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issued_at": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "credential": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Intended protected exchange only; do not log or expose to model input."
+          }
+        },
+        "required": [
+          "operation_id",
+          "identity_id",
+          "operations",
+          "recipients",
+          "expires_at",
+          "credential_id",
+          "issuer_identity_id",
+          "issuer_credential_id",
+          "installation_id",
+          "issued_at",
+          "credential"
+        ],
+        "additionalProperties": false
+      },
+      "CredentialIssueResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect/2"
+          },
+          "result": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "Ok": {
+                    "$ref": "#/components/schemas/CredentialIssueOutcome"
                   }
                 },
                 "required": [

@@ -6,8 +6,11 @@ use std::{net::SocketAddr, path::Path, time::Duration};
 use tokio_util::sync::CancellationToken;
 
 mod administration;
+#[path = "application/credential_issuance.rs"]
+mod issuance;
 mod records;
 mod user_delegation;
+pub use connect_protocol::credential_issuance;
 pub use connect_protocol::record_mutations;
 mod incoming_routing;
 pub use connect_protocol::incoming_contacts;

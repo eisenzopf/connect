@@ -7,7 +7,7 @@ OpenAPI path. This avoids treating `/v2/records/{id}/mutations` and its document
 `{uuid}` spelling as different endpoints. MCP and configured WSS/WebTransport
 mounts reference protocol/configuration metadata separately.
 
-The inventory checks23 declarations and24 explicit HTTP operations. Path
+The inventory checks24 declarations and25 explicit HTTP operations. Path
 coverage alone does not qualify every `/v1/operations` body variant, response,
 authorization case, profile or framework-generated method. Runtime evidence
 remains attached to its particular contract and gate task.
@@ -16,13 +16,45 @@ remains attached to its particular contract and gate task.
 | --- | --- |
 | Canonical command/status/event batches | [canonical HTTP](../../contracts/openapi-canonical-http.json) |
 | Trusted Identity/participant/Device/key/endpoint provisioning | [provisioning](../../contracts/openapi-provisioning.json) |
-| Protected Task grant issuance/revocation and base artifact bytes | [protected HTTP](../../contracts/openapi-protected-http.json) |
+| Protected scoped credential issuance, Task grants and base artifact bytes | [protected HTTP](../../contracts/openapi-protected-http.json) |
 | Attachment control, links and receipt observations | [attachments](../../contracts/openapi-attachments.json) |
 | Record redaction/deletion | [record mutations](../../contracts/openapi-record-mutations.json) |
 
 Other named API families are linked per route in the inventory. Repeated
 `/v1/operations` references describe different families; they are not a blanket
 claim that retired ordinary communication variants remain supported.
+
+## Scoped credential issuance
+
+`POST /v2/credentials` accepts a typed `CredentialIssueRequest` with the original
+operation ID, target Identity, literal operation/recipient sets and absolute Unix
+expiry. A current ordinary administrator must permit the target, recipients and
+operations in the same tenant. Expiry cannot exceed the issuer's expiry or365days.
+The request cannot issue administrator, wildcard or consent-delegation authority.
+Caller-selected issuer, installation and human-assurance fields are refused.
+
+Save the complete request before IO. Exact normalized replay under the original
+current issuer recovers the same credential ID, bearer, issued time and expiry.
+Changed intent or issuer conflicts; a revoked/expired child cannot be replaced by
+replaying its old operation. The journal stores secret-free intent and a receipt;
+the verifier and receipt commit atomically. Administrative issuance creates an
+independent credential and does not claim human consent or a parent-revocation
+delegation relationship.
+
+The protected response uses `connect/2`. This route requires owned closing
+HTTP/1.1 socket delivery, the concrete listener Host or `localhost:port`, and no
+Origin, provider binding headers or Upgrade. Current administrator admission
+precedes the64KiB JSON body limit/decoding. One five-second absolute deadline
+covers admission, body and handler. Successful delivery retains authority and
+shared capacity until physical socket IO ends, including after Body EOS; expiry,
+disconnect and shutdown release it. Responses set `no-store`, `no-cache` and
+`Connection: close`. An interrupted observation can leave a committed receipt:
+recover with the original request rather than minting a new logical credential.
+
+The [application SDK](application-sdk.md) exposes explicit issuance. Device and
+signing-key enrollment remain separate trusted provisioning operations before
+native admission. The old CLI issuance command has not yet been migrated to this
+recovery/enrollment workflow.
 
 ## Protected Task access
 

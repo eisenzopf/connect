@@ -43,6 +43,25 @@ current-state replay and failure recovery. `connect revoke` now uses that same
 service and application config with a required `--operation-id`; see
 [credential revocation](credential-revocation.md).
 
+`ApplicationClient::issue_scoped_credential` accepts
+`application::credential_issuance::CredentialIssueRequest` and returns the
+protected typed outcome. Persist the original operation ID, target Identity,
+operation/recipient sets and absolute expiry before calling. The method uses the
+explicit ordinary administrator application configuration; Task mode refuses it.
+It checks the response profile, exact normalized intent, server-derived IDs,
+issued time, expiry and secret shape. The cancellable variant shares the bounded
+application transaction and does not retry automatically or substitute authority.
+Store the returned child bearer privately; do not print the serialized outcome
+or expose it to model input. Debug output is redacted.
+
+An interrupted call is reconciled by explicitly repeating the saved request with
+the same current issuer and installation endpoint. A changed issuer or intent
+conflicts, and revoked/expired authority never refreshes the credential. The
+child has independent administrative issuance semantics without a human consent
+claim. Native use requires a separately provisioned fresh Device and signing-key
+binding for the returned child credential ID, followed by actual native
+admission. See the [HTTP contract](server-http.md) for delivery custody and limits.
+
 Default `connect request` reads a bounded SDK `canonical::Command` from stdin:
 
 ```sh

@@ -374,6 +374,46 @@ def main():
                 operator["credential"],body=revoke_owner,expected=200,contract=("provisioning","/v2/credentials/{id}/revoke"))
             assert "Ok" in owner_revoked["result"]
             raw_put("artifact-current-authority-on-original-replay",agent["credential"],"chunk~first",0,content[:8],401)
+            credential_request=dict(operation_id="protected-credential-original",identity_id=agent["identity_id"],
+                operations=["operation.get"],recipients=[reviews["identity_id"]],expires_at=int(time.time())+180)
+            def credential(case,request=credential_request,token=None,**kwargs):
+                return exchange(case,"POST","/v2/credentials",token or operator["credential"],body=request,
+                    contract=("protected","/v2/credentials"),**kwargs)
+            _,issued,_,headers=credential("credential-issue",expected=200)
+            scoped=issued["result"]["Ok"]
+            assert scoped["identity_id"]==agent["identity_id"]
+            assert scoped["issuer_identity_id"]==operator["identity_id"]
+            assert headers["connection"]=="close" and headers["pragma"]=="no-cache"
+            _,replayed,_,_=credential("credential-original-replay",expected=200)
+            assert replayed==issued
+            equivalent=copy.deepcopy(credential_request);equivalent["operations"]*=2
+            assert credential("credential-normalized-replay",equivalent,expected=200)[1]==issued
+            changed=copy.deepcopy(credential_request);changed["expires_at"]+=1
+            credential("credential-changed-intent",changed,expected=409)
+            credential("credential-narrow-cannot-issue",token=scoped["credential"],expected=403)
+            credential("credential-model-grant-refused",token=grant["bearer"],expected=401)
+            for key,value in [("Origin","http://localhost"),("X-Call-ID","not-proof"),("X-Chat-ID","not-proof"),("Host","foreign.invalid")]:
+                credential("credential-header-"+key.lower(),headers=[(key,value)],expected=403)
+            credential("credential-duplicate-authorization",headers=[("Authorization","Bearer "+operator["credential"])],expected=401)
+            for change in ["admin","credential.delegate","*"]:
+                invalid=copy.deepcopy(credential_request);invalid["operations"]=[change]
+                credential("credential-scope-"+change.replace("*","wildcard"),invalid,expected=400,request_valid=False)
+            invalid=copy.deepcopy(credential_request);invalid["user_id"]="synthetic"
+            credential("credential-synthetic-user",invalid,expected=400,request_valid=False)
+            expired=copy.deepcopy(credential_request);expired["expires_at"]=int(time.time())-1
+            credential("credential-expired-intent",expired,expected=403)
+            for case,body,token,content_type,status in [
+                ("credential-malformed-json",b"{",operator["credential"],"application/json",400),
+                ("credential-no-json-type",b"{}",operator["credential"],"text/plain",400),
+                ("credential-oversized-json",b" "*65537,operator["credential"],"application/json",413),
+                ("credential-auth-before-json",b"{","invalid","application/json",401),
+            ]:
+                exchange(case,"POST","/v2/credentials",token,raw=body,headers=[("Content-Type",content_type)],
+                    contract=("protected","/v2/credentials"),request_valid=False,expected=status)
+            revoke_child=dict(type="revoke_credential",operation_id="revoke-issued-child",credential_id=scoped["credential_id"])
+            exchange("credential-revoke-child","POST",f'/v2/credentials/{scoped["credential_id"]}/revoke',operator["credential"],
+                body=revoke_child,contract=("provisioning","/v2/credentials/{id}/revoke"),expected=200)
+            credential("credential-current-child-revocation",expected=401)
             child.send_signal(signal.SIGTERM)
             assert child.wait(timeout=15) == 0
             assert b"stopped" in (directory / "serve.log").read_bytes()
@@ -385,7 +425,7 @@ def main():
                 assert sock.connect_ex(("127.0.0.1", mcp_port)) != 0, "MCP listener remained after shutdown"
             assert all(sha(ROOT / p) == h for p, h in inputs.items())
             assert all(sha(ROOT / p) == h for p, h in source_guard.items())
-            for source in [operator, reviews, agent]:
+            for source in [operator, reviews, agent, scoped]:
                 assert source["credential"].encode() not in (directory / "serve.log").read_bytes() + (directory / "serve.err").read_bytes()
             required={"grant-issue","grant-original-replay","grant-changed-intent","model-grant-cannot-issue",
                 "task-duplicate-authorization","task-no-authorization","provider-binding-refused",
@@ -397,7 +437,10 @@ def main():
                 "artifact-query-unknown","grant-revocation-refuses-original",
                 "artifact-current-recipient-revocation","artifact-owner-remains-current",
                 "artifact-current-authority-on-original-replay"}
-            assert len(rows)>=52 and len({row["case"] for row in rows})==len(rows)
+            required.update({"credential-issue","credential-original-replay","credential-normalized-replay",
+                "credential-changed-intent","credential-narrow-cannot-issue","credential-model-grant-refused",
+                "credential-synthetic-user","credential-auth-before-json","credential-current-child-revocation"})
+            assert len(rows)>=74 and len({row["case"] for row in rows})==len(rows)
             assert required<={row["case"] for row in rows},"mandatory behavior evidence missing"
             summary.update(status="passed local protected HTTP OpenAPI checkpoint", source_unchanged=True,
                            reference_inputs=source_guard, protected_samples=len(rows), schema_checked=sum(v["schema_checked"] for v in rows),
