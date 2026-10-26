@@ -23,7 +23,9 @@ mod conversations;
 mod cursor;
 mod events;
 pub use events::{SessionObservationActivity, SessionObservationSource};
+mod credential_issuance;
 mod identity;
+pub use credential_issuance::IssuedScopedCredential;
 mod installation_ownership;
 pub use installation_ownership::{
     InstallationOwnership, ProviderWorkerOwnership, RuntimeRetirementSignal,
