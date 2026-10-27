@@ -4,7 +4,8 @@ G6-051 is in progress. The internal TypeScript module
 `browser_webrtc_signaling.ts` implements a signaling owner against the frozen
 `connect/2` envelope shapes. It is not exported from the browser entry point yet.
 The default canonical server does not enable a WebRTC media route. Protected
-startup composition can install the bounded mono Opus/G.711 staged media host.
+startup composition can install bounded mono Opus/G.711 audio or explicitly opt
+into one duplex audio plus VP8 camera staged media host.
 The older browser voice/video entry points still use their historical signaling
 dialect. These components do not establish browser fallback support or media
 interoperability.
@@ -611,5 +612,49 @@ type compile failure and its corrected sealed checks are retained.
 Signed build05 also exposed intermittent unknown restoration and audio loss
 following video-only mute. This metadata defect is independently established;
 those historical outcomes are not conclusively attributed here. The corrected
-full signed Opus/VP8 host is being rebuilt and remains separately unqualified.
+full signed Opus/VP8 host has the separately bounded local evidence recorded below.
 G6-051 and the wider browser/fallback/timing/hosting/package scopes stay open.
+
+
+## Signed canonical audio/video hosting
+
+`SignalingHost` can now explicitly admit one duplex mono audio stream plus one
+VP8 camera. The AV configuration requires an exact VP8/90000 capability. Original
+logical IDs, kinds, duplex directions, active SDP sections and distinct MIDs must
+match; the actual answer preserves their section identity and carries the exact
+negotiated codec/PT per original logical stream. Extra data, missing video,
+duplicate MIDs and AV offered to an audio-only host refuse and retire the original
+resources. Default startup still requires deliberate host installation.
+
+Exact current video sources reuse one compatible negotiated receiver port through
+Core's existing-port planner. Source and target keep their own stable logical IDs;
+unsubscribe resolves the actual installed route from the source ID. No new
+receiver port or format is synthesized. Audio participant pins remain supported;
+future non-audio participant selectors explicitly refuse in this bounded profile.
+Two new Core cases and all 37 media-scene methods pass (the new cases are included).
+
+The [signed AV fixture](../../crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs)
+and [evidence](../evidence/gate-6/webrtc-canonical-signed-av.json) use the current
+production server/service/client/media graph with real isolated Store policy and
+signed WSS. Both EdDSA and ES256 carry actual encoded Opus and distinct synthetic
+VP8 pictures across four Core ports. Receiver-side libopus and FFmpeg's native VP8
+decoder identify the opposite source. The service reserves ports from the exact selected program; its selectors and gates
+use confirmed negotiated audio/video bindings. Video unsubscribe/restoration and
+publication mute/unmute preserve
+both audio directions, reverse video and original peer allocation. No media is
+received before explicit subscription; all original resources join before capacity
+refund. Existing signed audio/control and native WebTransport regressions remain
+separate recorded checks. The decoded-picture lane is explicitly ignored by
+default and was run with bounded local synthetic sources and a named decoder.
+All 31 distinct Connect methods pass; both signed AV methods also pass in two
+additional paired cohorts. Repeats do not increase the distinct method count.
+Earlier unknown restoration/audio-loss failures remain recorded. The current
+worker-readiness fix has its own causal control; these finite local repetitions
+do not qualify the full failure/browser/remote matrix.
+
+This fixed duplex profile does not qualify real capture, motion, actual SR/A/V
+synchronization, other directions or nonempty VP8 fmtp. Public browser migration,
+installed Chrome/Firefox, permissions/background/resume/reoffer/DTMF/data, private
+consultation/handoff/preparation, complete
+forced fallback, Linux/remote and packages remain required. G6-051 remains in
+progress and no Gate 6 acceptance is promoted.

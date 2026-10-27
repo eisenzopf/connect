@@ -1,0 +1,583 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "scope": "Explicit opt-in signed WSS/Store/Core/RTC hosting of one duplex mono Opus audio plus one VP8 camera on local macOS arm64, two participants and real isolated Store policy. Synthetic supplied encoded source content and independent decoder; no physical camera, installed browser or complete fallback qualification.",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "executed_at": "2026-10-27T14:18:09.045291+00:00",
+  "source_revision_before_checkpoint": "90b0c860abd2ca9bf211ceb732bb57e1ce040e82",
+  "implementation": [
+    "SignalingHost retains one bounded supported mono audio codec and admits AV only when require_vp8_audio_video_profile is explicitly enabled with one exact VP8/90000/channels0/no-fmtp capability. Trickle, ambiguous/unsupported codec configuration and unbounded capacity still refuse. Default server does not install or advertise a media host.",
+    "The original immutable Store offer must declare exactly one duplex logical audio stream or, for the explicit AV host, one audio and one video stream, with distinct original IDs. Actual active SDP kinds/counts/directions must match; AV requires distinct bounded MIDs. No unoffered data, duplicate media or implicit AV opt-in.",
+    "Actual answer m-sections must preserve original index/kind/protocol/MID and active status with duplex direction. Audio uses the bounded actual offer/answer profile including Opus SDP /2 versus logical mono. Video uses the actual VP8/RTX profile. Per-stream answer retains each original logical ID/order and exact selected codec/rate/channels/PT. This response still grants no source readiness, media success or receive subscription.",
+    "The service reserves one or two Core ports from the exact selected program, replacing the fixed audio-only capacity. Subscription selectors and early Store diagnostics use actual confirmed Audio/Video kinds, while exact original bindings and no-renegotiation checks remain. Gates can target either medium independently under their original signed lease.",
+    "Core existing-port planning maps exact current direct sources onto one compatible already confirmed sink per medium, preserving distinct source and receiver IDs and original formats/directions. Source-ID unsubscribe resolves only actual installed Core routes, so a local receiver ID cannot accidentally clear a different source. Ambiguous sinks and future non-audio participant selectors refuse; the generic native resource planner is unchanged.",
+    "Activated IO readiness follows original monotonic worker lifetime instead of failure to acquire a setup metadata mutex. Activation still requires installed handles after actual port readiness; a captured pre-spawn guard covers exit/drop/abort-before-first-poll. Original joins remain in setup, and late ready observations cannot resurrect cancelled workers. This metadata cannot grant media permission.",
+    "Existing service answer binding, current signed scope/Endpoint/role/participant checks, original attempt identity, Core reservation/controller, physical-peer capacity and joined cleanup remain on the same paths. The AV backend is the previously guarded canonical ingress/egress/clock/repair implementation; no alternate direct media bypass."
+  ],
+  "verification": {
+    "runs": {
+      "av-10": [
+        {
+          "generated_rgb": [
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-blue-during-video-mute.rgb",
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-receives-blue.rgb",
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-restores-blue.rgb",
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-continues-red.rgb",
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-receives-red.rgb",
+            "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-red-after-unmute.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-blue-during-video-mute.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-receives-blue.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-restores-blue.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-continues-red.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-receives-red.rgb",
+            "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-red-after-unmute.rgb"
+          ],
+          "exit_code": 0,
+          "seconds": 9.711698666913435,
+          "log_sha256": "7c2cd2e28bff905f9377ec17e826a2d0c3fc80c26a6ffe21bb43ebabca6a2b9e",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 8.24s"
+          ],
+          "changed_inputs": []
+        }
+      ],
+      "av-stress-11": [
+        {
+          "generated_rgb": [
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-blue-during-video-mute.rgb",
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-receives-blue.rgb",
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-restores-blue.rgb",
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-continues-red.rgb",
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-receives-red.rgb",
+            "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-red-after-unmute.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-blue-during-video-mute.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-receives-blue.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-restores-blue.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-continues-red.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-receives-red.rgb",
+            "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-red-after-unmute.rgb"
+          ],
+          "exit_code": 0,
+          "seconds": 7.838495540898293,
+          "log_sha256": "1229c2b03e822ae513507fc4f193de7b02e07a642cb7ce26187dad60b8d083b7",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 7.83s"
+          ],
+          "changed_inputs": []
+        }
+      ],
+      "av-stress-12": [
+        {
+          "generated_rgb": [
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-blue-during-video-mute.rgb",
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-receives-blue.rgb",
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-restores-blue.rgb",
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-continues-red.rgb",
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-receives-red.rgb",
+            "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-red-after-unmute.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-blue-during-video-mute.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-receives-blue.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-restores-blue.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-continues-red.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-receives-red.rgb",
+            "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-red-after-unmute.rgb"
+          ],
+          "exit_code": 0,
+          "seconds": 9.6241547500249,
+          "log_sha256": "4129b2829823f7c1b21cf52e1aee790d0b9d467d0c5f2c8ef85850a5b8514629",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 9.58s"
+          ],
+          "changed_inputs": []
+        }
+      ],
+      "refusal-03": [
+        {
+          "generated_rgb": [],
+          "exit_code": 0,
+          "seconds": 1.395978583022952,
+          "log_sha256": "4cb194f4a6f9961cc713108967169bb3bd964a1c61232e64a219130a329edcfc",
+          "test_results": [
+            "test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 60 filtered out; finished in 1.34s"
+          ],
+          "changed_inputs": []
+        }
+      ],
+      "regression-03": [
+        {
+          "generated_rgb": [],
+          "exit_code": 0,
+          "seconds": 51.853155750082806,
+          "log_sha256": "85afc298a064b725df2da836649edca4e3ef711fcd42b2c87fbd04d5b8780492",
+          "test_results": [
+            "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 51.80s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "generated_rgb": [],
+          "exit_code": 0,
+          "seconds": 39.496742834104225,
+          "log_sha256": "7bc861b584c3d5283d9ba99ec2e02d1851ae2bc963a3a96359866bd0f46447f1",
+          "test_results": [
+            "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 39.46s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "generated_rgb": [],
+          "exit_code": 0,
+          "seconds": 4.339206374948844,
+          "log_sha256": "b45e4324bd1500a6da21e8bcddc7b4ec5ef2f7f982c79c15e3d77144dfa23d07",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 4.32s"
+          ],
+          "changed_inputs": []
+        }
+      ]
+    },
+    "worker_health_methods": 3,
+    "worker_health_evidence": "docs/evidence/gate-6/webrtc-worker-health.json",
+    "worker_health_patch_sha256": "42db3149b95f609231e327727c00eff2c9e798b990c60a3483a40e79bbccb09d",
+    "core_existing_port_scene_methods": 37,
+    "new_core_existing_port_methods_included": 2,
+    "core_checks": [
+      {
+        "name": "core-harness-build-02",
+        "exit_code": 0,
+        "seconds": 0.4817732088267803,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-build-02",
+        "exit_code": 0,
+        "seconds": 14.07347391708754,
+        "log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-existing-ports-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.5566730420105159,
+        "log_sha256": "0ca6d77090edd9a01eb1766c8b58911ae079eb840b779345ed00f28febc0e842",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 538 filtered out; finished in 0.01s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-scene-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.3174502910114825,
+        "log_sha256": "ae57ea1fb3d6144ff9327f0598526eb52f5d6679cd24f0bc22e7c3eca7a3c6c3",
+        "results": [
+          "test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 503 filtered out; finished in 0.28s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      }
+    ],
+    "core_input_manifest_sha256": "8b0a6b5c4009c0fc8bcc0f6eccb216e2744a1cf60e8a224fc48e05978a43ccbb",
+    "existing_port_patch_sha256": "f96d21254717708440848caeb658484435bb55094de509752fec54c720832ac9",
+    "build": {
+      "exit_code": 0,
+      "seconds": 643.1597269580234,
+      "source_count": 5209,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "b64d009cdd6d8ebb00bb112f5442e909890bd990fe416903e11c26d88bd95b57"
+    },
+    "artifact": {
+      "sha256": "a13240af80f1bfbfb4d53ec0b50af28a16191a89f908b17f54bfff6255091462",
+      "bytes": 214300352
+    },
+    "source_input_count": 5370,
+    "guard_status": "All final source, dependency-source, source-lock/patch, SDK source/dist/Node fixture, source-frame, decoder and original/sealed executable input hashes unchanged during passing runtime checks.",
+    "decoded_signed_wss_images": {
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e66bc17ecb48adf37d1eae80ea64440fa7bae873247d0f6f4fdc977ce70274aa"
+      },
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "410e4c7180850bc77d1fce88a02a0d4bb1d2f9826c0939c5f492dcf267ae463b"
+      },
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "6ed0a494035d0b88aba6e172cd8902b4c179d97c13f708525b781c894e031116"
+      },
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "a65b98a61148cf72ab3caac1560272ba96c5bd7f0513b94d01ffab4f81c79e4f"
+      },
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "83e46fc05c252609df1cbc4867de759e96b1dfcb5624551cb492d99b40c9d4ce"
+      },
+      "signed-ES256-d2cd52bb-213e-4561-a77f-67cd733c1f35/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "10544b44f41cbbbcea9631193f072e22f8bd948bd25a206494682579d6c52e39"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "4a61a84d43dac9512196dd9eebd27d5da8411ff325ac69e1b1ea99682185d791"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e26cef730e2ee2933c954b25c7e7cf79b017d285900c3319dda39770ba537280"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "19ac6b51df5b1e3bdcfe8303f7d33e55a8fa119f2d349a61b64bbb7808adfd05"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "1461a2e4d61224e40052ee50757d24ee1537bbba39dff2c79ab70a4f5273d355"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "46f6cd715595b338f608eb364917c1c742b1528382cc58175795961555e66f47"
+      },
+      "signed-EdDSA-9645fd0f-e9c8-4d56-9a42-74bea98ccf90/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "10544b44f41cbbbcea9631193f072e22f8bd948bd25a206494682579d6c52e39"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "ba9fbb3c0c1a0117a83d3f7b26d29fa520b8bfe8eff59b24b3740c71643ab33b"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e26cef730e2ee2933c954b25c7e7cf79b017d285900c3319dda39770ba537280"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "542f1b2df6c922e2bfc7a502ffd3c9d75cb222d1e33ab96b5e41221b914f6c7b"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "8367ab37304c3cfebdbe1551fb14bc11c015cbb36b98743bd4a54f1e7f123410"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "46f6cd715595b338f608eb364917c1c742b1528382cc58175795961555e66f47"
+      },
+      "signed-EdDSA-4f88f868-6980-4377-b1d9-859d79cea124/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "b941dfc7d9724b2f761b072b6f39bec1c98cdc82628ef7144e05afd98b13d1ed"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "ba9fbb3c0c1a0117a83d3f7b26d29fa520b8bfe8eff59b24b3740c71643ab33b"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e26cef730e2ee2933c954b25c7e7cf79b017d285900c3319dda39770ba537280"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "542f1b2df6c922e2bfc7a502ffd3c9d75cb222d1e33ab96b5e41221b914f6c7b"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "8367ab37304c3cfebdbe1551fb14bc11c015cbb36b98743bd4a54f1e7f123410"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "46f6cd715595b338f608eb364917c1c742b1528382cc58175795961555e66f47"
+      },
+      "signed-ES256-8a8c00f9-963d-4123-b59c-87b58425001d/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "b941dfc7d9724b2f761b072b6f39bec1c98cdc82628ef7144e05afd98b13d1ed"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "cb983faa43e340c434bd175db341cfce6ba3463320c6d2167593a1e6f6da22ac"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "410e4c7180850bc77d1fce88a02a0d4bb1d2f9826c0939c5f492dcf267ae463b"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "dd61b90874feb49ba2e7d20f917546edd71fe31eddbda1ffec8b98b843ccae66"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "9eab75741833980fb8687f5ac27141864faa1c26baf755adfdfdd22af82aba40"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "d33589079b0579b4faec8c27cf7db56e2c43fa856455ce271a495aba8c02ccc8"
+      },
+      "signed-ES256-d6190048-82b0-40ae-85fe-c73d0b1f446f/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "dd97f100e68179f5fe3e93f789529fd15ee681ea191010a235a2aa95a8867792"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-blue-during-video-mute.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e66bc17ecb48adf37d1eae80ea64440fa7bae873247d0f6f4fdc977ce70274aa"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-receives-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "e26cef730e2ee2933c954b25c7e7cf79b017d285900c3319dda39770ba537280"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/alice-restores-blue.rgb": {
+        "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+        "mean_rgb": [
+          0.0,
+          0.0,
+          255.0
+        ],
+        "ivf_sha256": "6ed0a494035d0b88aba6e172cd8902b4c179d97c13f708525b781c894e031116"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-continues-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "8367ab37304c3cfebdbe1551fb14bc11c015cbb36b98743bd4a54f1e7f123410"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-receives-red.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "d33589079b0579b4faec8c27cf7db56e2c43fa856455ce271a495aba8c02ccc8"
+      },
+      "signed-EdDSA-4b902c9e-1c04-43ea-a94a-e601a90a547e/bob-red-after-unmute.rgb": {
+        "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+        "mean_rgb": [
+          254.0,
+          0.0,
+          0.0
+        ],
+        "ivf_sha256": "d5c3726858e9e2e4eb3fb2ca15d37dd1339da9180a6dbc035f75e84117ed18b5"
+      }
+    },
+    "ffmpeg_binary_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+    "source_frames": {
+      "red": {
+        "encoded_bytes": 64,
+        "sha256": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+        "width": 64,
+        "height": 64
+      },
+      "blue": {
+        "encoded_bytes": 64,
+        "sha256": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566",
+        "width": 64,
+        "height": 64
+      }
+    },
+    "media_behavior": "Both EdDSA and ES256 use actual 48kHz/20ms/32kbit-target mono Opus encoding with independent receiver-side libopus decoding and tone/cadence checks. Distinct red/blue 64x64 VP8 keyframes sent every60ms cross four actual Core ports and real ICE/DTLS/SRTP; FFmpeg native VP8 decodes received IVF. Video-only unsubscribe/reselection and publication mute/unmute preserve newly received duplex audio/reverse video and original peer allocations; all peers/ports/routes and capacity join before cleanup finishes.",
+    "distinct_connect_methods": 31,
+    "signed_av_paired_runs": 3,
+    "signed_av_method_executions": 6,
+    "repeat_scope": "Two distinct signed AV methods run in three independent paired cohorts, including all original assertions each time. Repeats do not increase the31 distinct Connect method count. Core37 includes the two new Core methods; those are not counted twice.",
+    "current_stability_observation": "All three current paired cohorts pass with normal logging, exact current source/sealed executable guards and no input drift. This finite local repetition supports the recorded fixed-profile scope; it does not qualify the complete fault/browser/remote acceptance matrix or conclusively reconstruct the earlier05 failures."
+  },
+  "failures_and_recovery": [
+    "The first dependency build began while the new fixture requested video-only Session medium. Corrected the fixture to the canonical voice+video medium, strengthened post-withdrawal fresh-packet assertions, and clarified a comment while dependencies were compiling. The first build also failed to compile the fixture because write_rtp required a non-imported low-level trait. Switched to the existing public inherent write_rtp_with_extensions entry point. The first build has source drift and a compile failure, so it is not counted as verification; final build captures stable corrected inputs.",
+    "Stable build04 corrected admission but both AV methods refused video selection: the generic planner requested a new source-named receiver rather than the existing negotiated WebRTC port. Added a separate Core existing-port planner; the fixture uses participant audio plus an exact current video source. The new Core tests initially used a fixture lookup that assumes equal source/target names; corrected the lookup to the actual camera-target controller port without relaxing behavioral assertions. Both new cases and all37 media-scene methods pass (new two included).",
+    "Stable build02 failed both AV admission methods before decoding. Diagnostic build03 identifies Model(Capacity): the service still configured only one Core port. The selected-program capacity and audio-only subscription/gate restrictions were corrected in the service. No source-clock race was established as this failure cause; upstream sources were unchanged.",
+    "Stable signed build05 completed both signature journeys in a diagnostic cohort, but separate runs exposed an unknown video restoration and later Opus loss during video-only mute. These failures are retained. The former worker-readiness try-lock predicate independently fails a held-metadata control; monotonic worker lifetime and pre-spawn guard checks correct that defect. A fixture handle-return-type compile error was corrected without relaxing behavior. The final current signed build/runs are recorded separately; passing reruns of05 are not treated as proof that its failures disappeared.",
+    "Verified idle old debug incremental compiler intermediates were discarded to make room for the current full Root graph. The private inventory and deletion audit retain exact paths/sizes/mtimes; source, retained libraries/executables, previous proofs, credentials/state and raw logs were preserved."
+  ],
+  "private_evidence": {
+    "directory": ".local/gate-6/rtc-signed-av/",
+    "build_inputs_sha256": "c23cbbed3794c758d18dec41945aa3ad25c9353d5192556bd98af823108fc6e3",
+    "runtime_manifests": {
+      "av-10": "96d41264b4d0bcf8ce8557c9e405aca74c88321ab576b19a6791ffb8a3c61695",
+      "av-stress-11": "02d462cdf049c87a94e1a5c9dab6b4f475584213e0eb3372a1f95ec6abfb94e0",
+      "av-stress-12": "02d462cdf049c87a94e1a5c9dab6b4f475584213e0eb3372a1f95ec6abfb94e0",
+      "refusal-03": "02d462cdf049c87a94e1a5c9dab6b4f475584213e0eb3372a1f95ec6abfb94e0",
+      "regression-03": "67ee54f46752fe185feb86b49dd1cf52c049a03e5a326b77e559afed882065ea"
+    }
+  },
+  "reproduce": {
+    "fixture_dir_env": "CONNECT_GATE6_AV_FIXTURE_DIR: isolated directory containing generated red.vp8/blue.vp8 from webrtc-canonical-av.json",
+    "decoder_env": "CONNECT_GATE6_FFMPEG: absolute local FFmpeg binary",
+    "explicit_ignored_tests": "gate6_canonical_webtransport canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_ --ignored --nocapture --test-threads=1",
+    "profile_refusal_tests": "canonical_websocket_control::webrtc::subscriptions::av:: without --ignored",
+    "default_scope": "Default tests require no camera/account/provider. Decoded-picture tests are an explicit ignored local decoder lane; their actual run is recorded separately."
+  },
+  "remaining": [
+    "Current evidence covers a fixed duplex audio/VP8 profile, synthetic static keyframes and real local Store/signed WSS. Broader directions, nonempty VP8 fmtp/browser defaults, motion/camera, actual SR/A-V synchronization and clock retirement remain open.",
+    "Future non-audio participant/wildcard selectors are explicitly unsupported in this bounded fixed-port lane. Complete their resource/reconciliation behavior before broader fallback qualification. Exact current video source selection is the verified lane.",
+    "Migrate public browser voice/video from offer-ready to canonical signaling, then run installed Chrome/Firefox, permissions/background/resume/reoffer/DTMF/data and complete forced WT/UDP fallback/recovery.",
+    "RTC private consultation/handoff/preparation source and target profiles still require the full same-transition fallback integration; current RtcInvocation explicitly refuses those scopes.",
+    "SCTP/data, Linux x86_64, named authorized remote/provider profiles and package/release qualification remain required. No model/account/provider run in this checkpoint.",
+    "All105-task goal remains active. No Gate6 acceptance is promoted to qualified."
+  ]
+}

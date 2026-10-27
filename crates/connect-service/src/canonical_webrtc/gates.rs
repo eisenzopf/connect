@@ -35,11 +35,11 @@ impl Runtime {
         if bindings.is_empty()
             || bindings
                 .iter()
-                .any(|b| b.negotiated.requested.medium != Medium::Audio)
+                .any(|b| !matches!(b.negotiated.requested.medium, Medium::Audio | Medium::Video))
         {
             return Err(Error::new(
                 "unsupported-media-profile",
-                "RTC gate profile requires confirmed audio bindings",
+                "RTC gate profile requires confirmed audio/VP8 bindings",
             ));
         }
         // Wire directions belong to the endpoint, while Core owns the reversed

@@ -88,9 +88,30 @@ impl Runtime {
         source: &NativeStreamProjection,
     ) -> Result<MediaSubscriptionPlan> {
         let member = proof(a)?.native_member().ok_or_else(Error::forbidden)?.0;
-        // The typed UCTP parser and Connect intent validator have already
-        // validated selector shape, bounds and duplicates. The installed RTC
-        // profile maps only audio onto its existing negotiated mixed port.
+        let controller = self
+            .webrtc
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .adapter()
+            .staged_controller(id)
+            .ok_or_else(Error::forbidden)?;
+        let negotiated: BTreeSet<_> = controller
+            .active_bindings()
+            .iter()
+            .map(|b| b.negotiated.requested.medium)
+            .collect();
+        if negotiated.is_empty()
+            || negotiated
+                .iter()
+                .any(|m| !matches!(m, Medium::Audio | Medium::Video))
+        {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "RTC subscriptions require confirmed audio/VP8 ports",
+            ));
+        }
+        // Select only media on the original confirmed ports. ParticipantAll
+        // includes their actual negotiated kinds, never an implicit new port.
         let input = match a.envelope().payload() {
             Payload::StreamSubscribe(input) => {
                 if input
@@ -106,17 +127,25 @@ impl Runtime {
                         (Some(id), None, None) => selections
                             .push(MediaSelection::Stream(StreamId::from_string(id.as_str()))),
                         (None, Some(id), kinds) => {
-                            if kinds
-                                .as_ref()
-                                .is_some_and(|k| k.len() != 1 || k[0] != "audio")
-                            {
-                                return Err(Error::new(
-                                    "unsupported-media-profile",
-                                    "RTC subscription profile supports audio only",
-                                ));
-                            }
+                            let media = match kinds {
+                                Some(kinds) => kinds
+                                    .iter()
+                                    .map(|kind| match kind.as_str() {
+                                        "audio" if negotiated.contains(&Medium::Audio) => {
+                                            Ok(Medium::Audio)
+                                        }
+                                        "video" if negotiated.contains(&Medium::Video) => {
+                                            Ok(Medium::Video)
+                                        }
+                                        _ => Err(Error::new(
+                                            "unsupported-media-profile",
+                                            "RTC selector requires an unnegotiated medium",
+                                        )),
+                                    })
+                                    .collect::<Result<BTreeSet<_>>>()?,
+                                None => negotiated.clone(),
+                            };
                             let participant = ParticipantId::from_string(id.as_str());
-                            let media = BTreeSet::from([Medium::Audio]);
                             selections.push(if kinds.is_none() {
                                 MediaSelection::ParticipantAll { participant, media }
                             } else {
@@ -159,7 +188,7 @@ impl Runtime {
         }
         let plan = self
             .core
-            .plan_staged_media_selection(
+            .plan_staged_media_selection_on_existing_ports(
                 &SessionId::from_string(source.connection.connection.session_id.clone()),
                 id,
                 expected,
@@ -180,7 +209,8 @@ impl Runtime {
         if plan.requires_reconciliation()
             || plan.desired().len() != bindings.len()
             || plan.desired().iter().any(|s| {
-                s.medium != Medium::Audio || !bindings.iter().any(|b| &b.negotiated.requested == s)
+                !matches!(s.medium, Medium::Audio | Medium::Video)
+                    || !bindings.iter().any(|b| &b.negotiated.requested == s)
             })
         {
             return Err(Error::new(
@@ -292,7 +322,22 @@ impl Runtime {
                     store.validate_native_subscription_sources_with_peer(
                         &credential,
                         proof(&a)?,
-                        &["audio".into()],
+                        &plan
+                            .as_ref()
+                            .and_then(|p| match p {
+                                Plan::RtcSubscriptions(p) => Some(p.desired()),
+                                _ => None,
+                            })
+                            .ok_or_else(Error::forbidden)?
+                            .iter()
+                            .map(|s| match s.medium {
+                                Medium::Audio => Ok("audio".to_owned()),
+                                Medium::Video => Ok("video".to_owned()),
+                                _ => Err(Error::forbidden()),
+                            })
+                            .collect::<Result<BTreeSet<_>>>()?
+                            .into_iter()
+                            .collect::<Vec<_>>(),
                     )?;
                 }
                 let sid = SessionId::from_string(source.connection.connection.session_id.clone());

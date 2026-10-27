@@ -1,5 +1,7 @@
 //! Real WSS/Store/Core RTC audio, with explicit subscriptions and wire decoding.
 use super::*;
+#[path = "av.rs"]
+mod av;
 #[path = "gates.rs"]
 mod gates;
 #[path = "opus.rs"]

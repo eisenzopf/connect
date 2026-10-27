@@ -380,6 +380,15 @@ impl Runtime {
                 .participant_revision(&SessionId::from_string(origin.session_id().to_owned()))
                 .map_err(|_| Error::forbidden())?,
         };
+        // Bound the controller by this exact selected program, rather than
+        // the former single-audio constant or an untrusted advertised ceiling.
+        let maximum_ports = entry.plan.selected().len();
+        if !(1..=2).contains(&maximum_ports) {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "RTC requires one audio stream and an optional VP8 camera",
+            ));
+        }
         let (controller, activation) = host
             .adapter()
             .configure_media(
@@ -387,7 +396,7 @@ impl Runtime {
                 a.principal().clone(),
                 ConversationId::from_string(origin.conversation_id().to_owned()),
                 self.media.clone(),
-                1,
+                maximum_ports,
                 &invocation,
             )
             .map_err(|_| Error::forbidden())?;

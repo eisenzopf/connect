@@ -25,6 +25,14 @@ async fn provision(f: &Fixture) -> String {
     provision_config(f, &f.client, 0).await
 }
 async fn provision_config(f: &Fixture, config: &CanonicalClientConfig, index: usize) -> String {
+    provision_media_config(f, config, index, &["audio"]).await
+}
+async fn provision_media_config(
+    f: &Fixture,
+    config: &CanonicalClientConfig,
+    index: usize,
+    kinds: &[&str],
+) -> String {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
         .server
@@ -41,7 +49,7 @@ async fn provision_config(f: &Fixture, config: &CanonicalClientConfig, index: us
                 },
                 transport: EndpointTransport::Webrtc,
                 address: format!("https://localhost/webrtc/{index}"),
-                capabilities: vec!["audio".into()],
+                capabilities: kinds.iter().map(|k| (*k).into()).collect(),
                 secret_ref: None,
             },
         )

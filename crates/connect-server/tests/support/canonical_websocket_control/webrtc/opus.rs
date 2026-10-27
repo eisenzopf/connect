@@ -9,7 +9,7 @@ fn config() -> WebRtcConfig {
     c
 }
 
-fn producer(
+pub(super) fn producer(
     peer: &Arc<RvoipPeerConnection>,
     hz: f32,
 ) -> (CancellationToken, tokio::task::JoinHandle<u64>) {
@@ -85,7 +85,7 @@ async fn receiving(
     (stream, rx)
 }
 
-async fn tone(
+pub(super) async fn tone(
     rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>,
     expected_hz: f32,
     absent: bool,
