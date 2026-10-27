@@ -3,6 +3,7 @@
  */
 import { pathToFileURL } from "node:url";
 import process from "node:process";
+import {connectFirefoxBidi} from "./browser_bidi_adapter.mjs";
 import {createPrivateKey,webcrypto} from "node:crypto";
 import http from "node:http";
 import fs from "node:fs/promises";
@@ -13,7 +14,7 @@ import { combineAudioEnvelopeSync } from "./audio_envelope.mjs";
 import { acceptancePolicy, audioVideoAcceptance } from "./acceptance_policy.mjs";
 import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
-import { installPeerDiagnostics, browserFailure } from "./browser_failure.mjs";
+import { installPeerDiagnostics, installControlDiagnostics, browserFailure } from "./browser_failure.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
 
 let input = "";
@@ -42,7 +43,9 @@ for(const participant of spec.participants){
 }
 for(const port of [spec.assetPort,spec.debugPort])if(port!==undefined&&(!Number.isInteger(port)||port<1||port>65535))
     throw Error("Use an explicit bounded local fixture port");
-const { chromium } = await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright");
+spec.browser??="chrome";
+if(!["chrome","firefox"].includes(spec.browser))throw Error("Unknown designated installed browser");
+const chromium=spec.browser==="firefox"?undefined:(await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright")).chromium;
 spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
 if(Boolean(spec.muteRecovery)!==(spec.profileMode==="mute") || (spec.muteRecovery&&spec.seconds<20))
@@ -102,7 +105,9 @@ const cleanup=()=>cleanupPromise??=(async()=>{
 })();
 process.once("SIGTERM",()=>{cleanup().finally(()=>process.exit(1));});
 try {
-    browser=spec.debugPort!==undefined?await chromium.connectOverCDP(`http://127.0.0.1:${spec.debugPort}`):
+    browser=spec.browser==="firefox"?
+        await connectFirefoxBidi(process.env.CONNECT_PUPPETEER_MODULE,spec.debugPort):
+        spec.debugPort!==undefined?await chromium.connectOverCDP(`http://127.0.0.1:${spec.debugPort}`):
         await chromium.launch({headless:true,executablePath:process.env.CONNECT_CHROME_BINARY,
             args:["--autoplay-policy=no-user-gesture-required","--disable-background-timer-throttling","--disable-renderer-backgrounding"]});
     const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
@@ -110,11 +115,51 @@ try {
         const page = await context.newPage();
         observedPages.push(page);
         await page.addInitScript(installPeerDiagnostics);
+        await page.addInitScript(installControlDiagnostics);
         await page.goto(spec.baseURL + "/examples/conversation-client/");
+        // Exercise normal sticky user activation for AudioContext in both runtimes.
+        await page.mouse.click(1,1);
         await page.evaluate(async ({ configuration, frequency, sourceId }) => {
-            const { BrowserVideoSession } = await import("/sdk/typescript/dist/browser.js");
+            const { BrowserVideoSession, BrowserClient } = await import("/sdk/typescript/dist/browser.js");
             const {canonicalMediaClient}=await import("/examples/conversation-client/canonical-media.js");
-            const control=await canonicalMediaClient(configuration);
+            let fallback=null;
+            if(configuration.fallbackProbe){
+                const probe=configuration.fallbackProbe,url=new URL(probe.url);
+                if(typeof WebTransport!=="function"||url.protocol!=="https:"||!["127.0.0.1","localhost","[::1]"].includes(url.hostname)
+                    ||url.username||url.password||url.search||!Number.isInteger(probe.timeoutMs)||probe.timeoutMs<100||probe.timeoutMs>2000)
+                    throw Error("Actual bounded loopback WebTransport probe required");
+                const algorithm=name=>name==="EdDSA"?{name:"Ed25519"}:name==="ES256"?{name:"ECDSA",namedCurve:"P-256"}:null;
+                const key=await crypto.subtle.importKey("jwk",configuration.signing.jwk,algorithm(configuration.signing.algorithm),false,["sign"]);
+                const trust=await crypto.subtle.importKey("jwk",configuration.server.jwk,algorithm(configuration.server.algorithm),false,["verify"]);
+                const started=performance.now();let opened,errorCode;
+                try {
+                    opened=await BrowserClient.open({transport:"webtransport",url:probe.url,timeoutMs:probe.timeoutMs,
+                        credential:configuration.credential,identityId:configuration.identityId,device:configuration.device,
+                        signing:{algorithm:configuration.signing.algorithm,keyId:configuration.signing.keyId,key},
+                        server:{algorithm:configuration.server.algorithm,keyId:configuration.server.keyId,key:trust,
+                            notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt}});
+                }catch(error){errorCode=error?.code??"unclassified";}
+                finally{opened?.close();}
+                if(opened||!["timeout","transport"].includes(errorCode))throw Error("Designated UDP blackhole did not cause the expected physical WebTransport refusal");
+                fallback={transport:"webtransport",status:"refused",error_code:errorCode,seconds:(performance.now()-started)/1000,
+                    original_timeout_ms:probe.timeoutMs,application_mutations_attempted:0,replayed_originals:[]};
+            }
+            const control=await canonicalMediaClient(configuration).catch(error=>{throw Error(`Canonical WSS open failed: ${error?.code??"unclassified"}`)});
+            for(const original of configuration.fallbackOriginals??[]){
+                if(!fallback)throw Error("Original transport-switch replay requires its actual failed WebTransport probe");
+                const terminalType={"message.send":"ack","session.invite":"operation.updated","session.accept":"operation.updated"}[original.type];
+                if(!terminalType)throw Error("Unknown original fixture replay command");
+                const frames=await control.client.request(original.type,original.payload,original.scope,{timeoutMs:5000,terminalType}).catch(error=>{throw Error(`Original ${original.type} replay failed: ${error?.code??"unclassified"}`)});
+                const status=await control.client.operationStatus(original.scope.cid,original.scope.operation_id,{timeoutMs:5000}).catch(error=>{throw Error(`Original ${original.type} status failed: ${error?.code??"unclassified"}`)});
+                if(status.state!=="completed")throw Error("Original preaccepted operation is not completed on WSS");
+                if(original.type==="message.send"){
+                    const details=frames.find(frame=>frame.type==="ack")?.payload.details;
+                    if(details?.kind!=="accepted"||details.data?.message_id!==original.payload.msg_id
+                        ||details.data?.request_id!==original.scope.operation_id||details.data?.conversation_id!==original.scope.cid)
+                        throw Error("WSS did not preserve the original accepted message receipt");
+                }
+                fallback.replayed_originals.push({type:original.type,operation_id:original.scope.operation_id,state:status.state});
+            }
             const {markerCells,classifySourceFrame,sourceIdentityReport}=await import("/_qualification/source-identity.mjs");
             const identityCells=markerCells(sourceId);
             const {spectralTone}=await import("/_qualification/audio-spectrum.mjs");
@@ -180,7 +225,7 @@ try {
                 observation.last=key; video.requestVideoFrameCallback(decoded);
             };
             video.requestVideoFrameCallback(decoded);
-            window.videoFixture={session,control,video,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
+            window.videoFixture={session,control,video,fallback,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
         }, { configuration,frequency:spec.sourceToneHz?.[index]??440+index*220,
             sourceId:spec.sourceIds?.[index]??index });
         return page;
@@ -386,6 +431,7 @@ try {
             expected_audio_frequency_hz:expected,av_sync:sync,
             av_acceptance:audioVideoAcceptance(sync,spec.profileMode,spec.seconds),recovery,elapsed_seconds:observedElapsed};
     });
+    const fallback=await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.fallback)));
     const closeAt=performance.now();
     const release=page=>page.evaluate(async()=>{
         const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
@@ -396,7 +442,7 @@ try {
         const f=window.videoFixture, options=f.control.options;
         if(typeof terminal.operationId!=="string" || !Number.isSafeInteger(terminal.expectedRevision))throw Error("Explicit original Session end operation/revision required");
         await f.control.client.request("session.end",{by_participant:options.participantId,reason_code:200,reason:"fixture-complete"},
-            {cid:options.conversationId,sid:options.sessionId,operation_id:terminal.operationId,expected_revision:terminal.expectedRevision});
+            {cid:options.conversationId,sid:options.sessionId,operation_id:terminal.operationId,expected_revision:terminal.expectedRevision},{terminalType:"operation.updated"});
         const state=await f.control.client.operationStatus(options.conversationId,terminal.operationId);
         if(state.state!=="completed")throw Error("Original Session end is not confirmed complete");
     },spec.terminal);
@@ -421,7 +467,7 @@ try {
         &&o.av_sync.audio_envelope?.status==="observer-valid"&&o.av_acceptance.status==="passed"
         &&o.recovery.every(item=>item.status==="passed"))&&teardown<5&&ended.every(Boolean)&&pairedTermination.status!=="failed";
     console.log(JSON.stringify({status:passed?"passed":"failed",profile:"connect-video-vp8/1",acceptance_policy:acceptancePolicy,
-        browser:browser.version(),observations,teardown_seconds:teardown,paired_termination:pairedTermination,
+        browser:browser.version(),fallback,observations,teardown_seconds:teardown,paired_termination:pairedTermination,
         ended_unix_seconds:Date.now()/1000}));
     if(!passed)process.exitCode=1;
 } catch (error) {

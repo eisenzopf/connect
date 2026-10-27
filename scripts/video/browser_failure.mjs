@@ -60,11 +60,28 @@ export async function browserFailure(pages, error) {
                 page.evaluate(() => globalThis.connectPeerDiagnostics?.() ?? {unavailable: true}),
                 new Promise((_, reject) => setTimeout(() => reject(Error()), 1000)),
             ]);
-            return {participant: index, ...value};
+            const control=await page.evaluate(()=>globalThis.connectControlDiagnostics?.()??{unavailable:true});
+            return {participant: index, ...value,control};
         } catch { return {participant: index, unavailable: true}; }
     }));
     return {status: "failed", profile: "connect-video-vp8/1", phase: "browser-participation",
         error_class: ["Error", "TimeoutError", "ConnectError"].includes(error?.name) ? error.name : "OtherError",
         observations: [], peer_diagnostics: peerDiagnostics,
         diagnostic_scope: "bounded native RTCPeerConnection/DTLS state events and description-presence flags; no SDP, ICE candidates, keys, credentials or media content"};
+}
+
+/** Bounded wire correlation metadata; no payloads, signatures or addresses. */
+export function installControlDiagnostics(){
+    const NativeSocket=globalThis.WebSocket,frames=[];
+    const record=(direction,body)=>{
+        if(frames.length>=128||typeof body!=="string"||body.length>65536)return;
+        try{const frame=JSON.parse(body);frames.push({direction,type:frame.type,id:frame.id,
+            in_reply_to:frame.in_reply_to,cid:frame.cid,sid:frame.sid,connid:frame.connid,
+            operation_id:frame.operation_id,expected_revision:frame.expected_revision});}catch{}
+    };
+    globalThis.WebSocket=class extends NativeSocket{
+        constructor(...args){super(...args);this.addEventListener("message",event=>record("received",event.data));}
+        send(...args){record("sent",args[0]);return super.send(...args);}
+    };
+    globalThis.connectControlDiagnostics=()=>({frame_bound:128,frames});
 }

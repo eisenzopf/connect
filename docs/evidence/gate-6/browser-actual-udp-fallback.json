@@ -1,0 +1,448 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T18:16:49.690221+00:00",
+  "scope": "Actual installed-browser UDP refusal and original signed WSS intents; local synthetic sources, normal private CA trust. Chrome EdDSA full clean AV passes; Firefox ICE fails before measurement. No gate or acceptance completion.",
+  "implementation": [
+    "Owned per-participant loopback UDP blackholes receive original native WebTransport QUIC Initial traffic; no replacement WebTransport or media API. The failed probe sends no application mutation.",
+    "Explicit WSS open reuses the same participant credential, signing identity and server trust. Original preaccepted message, Session invite and Session accept IDs and payloads replay; current completed operation status and exact accepted message receipt are checked.",
+    "Original accepted message remains one row, two journal rows and one completed operation after the transition. Both browser publishers complete journal admission before original receive selection.",
+    "Public Puppeteer WebDriver BiDi adapter controls pinned Firefox 158.0.1 with acceptInsecureCerts:false; native browser media, observers, source identity and thresholds remain unchanged.",
+    "Fixture optional Session identifiers are omitted per current schema. Literal null caused pre-dispatch uncorrelated errors in retained attempts24\u201327; explicit operation.updated request completion is used for Session commands.",
+    "Node child, browser process group, UDP blackhole tasks, Core routes/slots, server shutdown and original listeners have owned cleanup. Bounded control diagnostics retain envelope correlation metadata only, no payload/SDP/signatures/credentials."
+  ],
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 3.986875250004232,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5217,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-28",
+      "sha256": "8b0e0268667a9c8296a48fefdb8f06cdcda58dc5281c5f3d9203359264ba8b9f",
+      "bytes": 214784672
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "173f8e948046fbcbb3e3986ea6fdea9c3562e6a0ffe2fcfb8d6b38cb6fba4d42"
+  },
+  "runs": [
+    {
+      "label": "chrome-udp-valid-session-28",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 65.69193033315241,
+      "guards_closed_unchanged": true,
+      "hashes": {
+        "inputs.json": "7ffee084fe2f520f471603f8c88b40e4a6c530cd174ec33f1f1b7fcd1f1d2769",
+        "browser-result.jsonl": "23b4f3515956e0c6f1ce078f3573b79047cc7d57149c951fedb7932b3812f643",
+        "test.log": "798b51ccba1f68c54925bf6b4e5483bfb130b524362c8637ee5fb74cb7374607",
+        "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+      },
+      "transport_switch": {
+        "actual_loopback_quic_initial_datagrams": [
+          6,
+          6
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "browser": "155.0.8059.85",
+      "fallback": [
+        {
+          "transport": "webtransport",
+          "status": "refused",
+          "error_code": "timeout",
+          "seconds": 1.002800000190735,
+          "original_timeout_ms": 1000,
+          "application_mutations_attempted": 0,
+          "replayed_originals": [
+            {
+              "type": "message.send",
+              "operation_id": "browser-original-message-op",
+              "state": "completed"
+            },
+            {
+              "type": "session.invite",
+              "operation_id": "browser-invite",
+              "state": "completed"
+            }
+          ]
+        },
+        {
+          "transport": "webtransport",
+          "status": "refused",
+          "error_code": "timeout",
+          "seconds": 1.0021999998092652,
+          "original_timeout_ms": 1000,
+          "application_mutations_attempted": 0,
+          "replayed_originals": [
+            {
+              "type": "session.accept",
+              "operation_id": "browser-accept",
+              "state": "completed"
+            }
+          ]
+        }
+      ],
+      "paired_termination": {
+        "status": "passed",
+        "seconds": 0.07699295799999527,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 0.10949737500000628,
+      "participants": [
+        {
+          "seconds": 60.00759983062744,
+          "decoded_fps": 29.946206898327308,
+          "changing_fps": 25.413447701696796,
+          "video_packets_lost": 0,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 0,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 27.699999928472607,
+            "p95_abs_skew_ms": 71.89999985694939
+          }
+        },
+        {
+          "seconds": 60.00760006904602,
+          "decoded_fps": 29.929542223543088,
+          "changing_fps": 25.380118489118107,
+          "video_packets_lost": 0,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 0,
+          "av_sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 25.29999995231691,
+            "p95_abs_skew_ms": 69.80000019073529
+          }
+        }
+      ]
+    },
+    {
+      "label": "firefox-udp-valid-session-29",
+      "status": "failed",
+      "exit_code": 101,
+      "seconds": 15.938132792012766,
+      "guards_closed_unchanged": true,
+      "hashes": {
+        "inputs.json": "e86f38f6105ad98e9dac01ece2388c0c288a17ead4f6670e97eefeea8bfd398a",
+        "browser-result.jsonl": "5feb0397ea9269f877878a05d748a4d190fda533ab8a17013c3ef53e90c1fc06",
+        "test.log": "5cd1004a380d0ef77da9b52a9d8b45e2d8a51d133139b36301d9f99f2ed8b8cf",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "transport-switch.json": "f4087690d81b9b52f07b5d3a65e29fc559dcc3a1ccc2b19f21c4e218253d0b4b"
+      },
+      "transport_switch": {
+        "actual_loopback_quic_initial_datagrams": [
+          24,
+          24
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "failure": {
+        "phase": "browser-participation",
+        "error_class": "OtherError",
+        "native_peer_events": [
+          [
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "new",
+              "dtls": [],
+              "elapsed_ms": 2226
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "new",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 2228
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "gathering",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 2229
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 2229
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 2251
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 2251
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "failed"
+              ],
+              "elapsed_ms": 7258
+            },
+            {
+              "connection": "failed",
+              "ice": "failed",
+              "gathering": "complete",
+              "dtls": [
+                "failed"
+              ],
+              "elapsed_ms": 7258
+            }
+          ],
+          [
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "new",
+              "dtls": [],
+              "elapsed_ms": 1335
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "new",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 1340
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "gathering",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 1340
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 1341
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 1367
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "new"
+              ],
+              "elapsed_ms": 1368
+            },
+            {
+              "connection": "new",
+              "ice": "new",
+              "gathering": "complete",
+              "dtls": [
+                "failed"
+              ],
+              "elapsed_ms": 6369
+            },
+            {
+              "connection": "failed",
+              "ice": "failed",
+              "gathering": "complete",
+              "dtls": [
+                "failed"
+              ],
+              "elapsed_ms": 6369
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "regressions": {
+    "example_lifecycle": "7/7 Node methods pass",
+    "media_measurements": "56/56 Python methods pass including browser failure telemetry and independent adversarial observer checks"
+  },
+  "remaining": [
+    "Firefox real ICE failure must be diagnosed and repaired before claiming fallback media. BiDi10s transport-call deadline masked original SDK timeout; this is a failed run, not an AV pass.",
+    "Chrome ES256 uninstrumented, Firefox ES256, impairment/mute/data, Linux/remote and broader profiles remain required.",
+    "Prior single measured Chrome wrong-frequency audio sample and native post-mute Opus timeout remain unresolved; later clean pass does not erase those failures.",
+    "No account/model/provider execution in this browser checkpoint. Authorized model host rehearsal was separately completed once."
+  ],
+  "qualification": "53/105 tasks done, four in progress, zero acceptance-qualified; task counts unchanged.",
+  "audio_diagnostic": {
+    "status": "failed",
+    "algorithm": "ES256",
+    "scope": "Private instrumented variation retains original source, received analyser, threshold and verdict; not an uninstrumented qualification. Adds read-only counterpart source analyser and actual RTP counters, bounded original receiver PCM/spectrum capture.",
+    "guards_closed_unchanged": true,
+    "seconds": 65.69089458300732,
+    "hashes": {
+      "summary.json": "6f9f693f5ccc18954698be6be1c0501c46c84e367b43cc9524e7f64d4dec9970",
+      "inputs.json": "56fdd5a70225fa9169025a1d21a1ae58b310fd8c21a714b94d126b5bf15573ee",
+      "browser-result.jsonl": "f5c2a6c9ebd9e18696403ea4a684b0a82ebff3f6d411e7c09320c592fe1e1710",
+      "test.log": "440313a4910153c99423837ae6a270c0c4f2327aec042cf1961b6b1a60e2f7b6",
+      "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+      "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+    },
+    "private_pcm_sha256": "8356fd29c1138fd6dad0ee594c72b5748afcb912e77b219621a5fcc3cf56875a",
+    "witness_events": 1,
+    "failed_measurement": {
+      "participant": 0,
+      "unix_seconds": 1793124986.398,
+      "expected_hz": 660,
+      "reported_hz": 703.125,
+      "rms": 0.20207829136337382
+    },
+    "source_ring": "All four actual source samples report656.25Hz, including the pulse. Receiver RTP packetsLost remains0; concealedSamples20217, concealmentEvents26, insertedSamples4501 and removedSamples1162 are unchanged between the preceding snapshot and failure.",
+    "causal_replay": "Computing the standard Blackman-window DFT directly on the original2048receiver samples exactly reproduces each recorded analyser bin (including -46.6731dB at656.25Hz and -45.8389dB at703.125Hz). A rectangular-window DFT of those same bytes peaks at656.25Hz (-23.4751dB) rather than703.125Hz (-26.8881dB). This localizes the reported bin excursion to the windowed spectral peak around the pulse; no observer change or requalification yet.",
+    "transport_switch": {
+      "actual_loopback_quic_initial_datagrams": [
+        6,
+        6
+      ],
+      "forced_fallback": true,
+      "original_message_counts": [
+        1,
+        2,
+        1
+      ],
+      "original_message_counts_preserved": true
+    },
+    "ownership": {
+      "browser_kind": "chrome",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    }
+  },
+  "firefox_candidate_diagnostic": {
+    "status": "failed",
+    "scope": "Private read-only local/remote candidate classes; no browser preferences, SDP or media changes. Automation command budget15s; original SDK budgets unchanged.",
+    "guards_closed_unchanged": true,
+    "hashes": {
+      "inputs.json": "443c45cda13b5ff238490a488d44f158c4773a3f0775fce5fa7f4bee651860d9",
+      "browser-result.jsonl": "eb0e3858cdb76d474ca26bf0e4ccaec3a5c2d005206f9b9649ffd3587f6998e1",
+      "test.log": "d627b0d189636c32dc06464ecfe6f22f6e20edf9acda13dc0d6485454358a5c7",
+      "runner.log": "0dd0b7ba227324955c1d0d6c4f72656ff8d67281cd722c18b5834348f17f2939"
+    },
+    "observation": "Both original peers gather16mDNS host candidate lines and accept2loopback remote candidate lines, then native ICE/DTLS fails around5s. This does not establish whether resolution, candidate filtering or socket routing is causal.",
+    "ownership": {
+      "browser_kind": "firefox",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    }
+  }
+}

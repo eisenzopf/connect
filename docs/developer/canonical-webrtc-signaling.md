@@ -864,3 +864,24 @@ route, then attaches playback. The existing source, independent observers,
 private state belong under `.local/`. This fixture currently exposes a decoded
 video throughput failure; see the installed-browser evidence. It is not a
 passing browser/fallback qualification.
+
+
+### Actual installed-browser UDP fallback checkpoint
+
+The explicit `canonical_webrtc_browser` integration lane now owns two real UDP
+blackholes. Each browser makes a normal WebTransport connection attempt with its
+participant identity and server trust, then opens canonical WSS after the bounded
+physical failure. The original accepted message, Session invite and Session accept
+retain their logical operation IDs. WSS responses and current operation status
+confirm the original effects; database counts check that message/journal effects
+were not repeated. This fixture does not replace the WebTransport or media APIs.
+
+Installed Chrome155 EdDSA passed the original60-second identified duplex Opus/VP8
+profile after this transition, including paired terminal delivery and owned cleanup.
+The Firefox158.0.1 BiDi lane passed signed WSS control recovery but failed native ICE
+before measurement. It remains a failed media run. See
+[`browser-actual-udp-fallback.json`](../evidence/gate-6/browser-actual-udp-fallback.json)
+for frozen inputs, digests, counts and limits. Optional Session identifier fields
+are omitted according to the current wire schema; sending literal null is invalid.
+The full browser/algorithm/profile matrix and the earlier audio failures remain
+open. G6-050/G6-051 and acceptance are unchanged.
