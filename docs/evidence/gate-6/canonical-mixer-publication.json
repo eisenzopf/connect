@@ -144,5 +144,25 @@
     "in_progress": 4,
     "not_started": 48,
     "acceptance_qualified": 0
+  },
+  "selected_local_browser_matrix": {
+    "profile_record": "docs/decisions/015-gate-6-operating-profile.md",
+    "recorded_before_runtime": true,
+    "chrome": "155.0.8059.85",
+    "firefox": "158.0.1",
+    "firefox_driver": "public WebDriver BiDi/Puppeteer25.16.0",
+    "signing_algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "scope": "normal trust, owned local synthetic endpoints and STUN; original frozen60s source/observers/thresholds; matrix not yet run",
+    "unqualified_historical_target": "Firefox141/Playwright1490 original manifest not executed"
+  },
+  "additional_closed_netlog_preservation": {
+    "files": 258,
+    "original_bytes": 596003098,
+    "archive_bytes": 59029435,
+    "manifest_sha256": "24bf9ac432eb71920b842ceb6de9cb8ef9bc18cd8b97ab55c0e1f1ee2d02a69b",
+    "scope": "Completed source-guarded browser-SDK diagnostic netlogs only, no live lsof owner; exact streaming decompression/SHA/mode/owner/time/xattrs and restoration paths retained. Source, credentials/state/CA unchanged."
   }
 }

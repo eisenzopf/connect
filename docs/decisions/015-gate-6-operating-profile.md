@@ -27,6 +27,18 @@ measurements and record its actual CDP version in each report. The original
 Linux, native interoperation and named remote/provider profiles retain their
 separate qualification requirements; no media threshold changes are made.
 
+October 27 local fallback measurement update: select the installed, code-signature
+verified Firefox158.0.1 with public WebDriver BiDi/Puppeteer25.16.0 for the next
+normal-trust macOS arm64 fallback matrix. The initial Firefox141/Playwright1490
+manifest target remains an unexecuted historical planning target. Local Firefox
+uses independent visible native windows, a fresh owned profile/CA trust and an
+explicit owned loopback STUN fixture; its loopback ICE test preference remains
+recorded in each browser profile. Native address obfuscation and normal TLS
+validation remain enabled. Chrome remains155.0.8059.85. These target selections
+do not change source content, capture/draw cadence, observers, thresholds or the
+60second window. Prior failed audio observations remain failures. Linux/remote,
+physical devices and provider lanes still require their own named execution.
+
 Native endpoint TLS verifies configured server identity and trust. Hosted HTTP
 requires HTTPS, WSS and HTTP/3 with declared origins and trusted proxy policy.
 Provision short-lived scoped participant/device credentials through a trusted
