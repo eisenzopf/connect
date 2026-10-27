@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect concepts and terminology</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
+<a class="dev-skip" href="#main">Skip to content</a>
+<!-- CONNECT:NAV:START -->
+<nav class="dev-nav" aria-label="Developer documentation"><div class="dev-shell"><ul>
+<li><a href="../start/index.html#install">Install</a></li>
+<li><a href="../start/index.html#first-message">First message</a></li>
+<li><a href="../reference/index.html#voice">Voice and video</a></li>
+<li><a href="../reference/index.html#handoff">Handoff</a></li>
+<li><a href="../tutorials/parley.html">Parley tutorial</a></li>
+<li><a href="index.html">Concepts</a></li>
+<li><a href="../hosting/index.html">Hosting</a></li>
+<li><a href="../reference/index.html">SDK and HTTP reference</a></li>
+<li><a href="../../CONTRIBUTING.md">Contribute</a></li>
+<li><a href="../engineering/index.html">Engineering</a></li>
+</ul></div></nav>
+<!-- CONNECT:NAV:END -->
+<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Concepts</p><h1>One model across communication channels.</h1><p class="dev-lead">Keep durable conversation state, live interaction and current authority distinct.</p></header>
+<main id="main" tabindex="-1" class="dev-shell"><section class="dev-section"><h2>Shared vocabulary</h2>
+<!-- CONNECT:TERMS:START -->
+<table><caption>Shared Connect terminology</caption><tbody>
+<tr><th scope="row">Connect</th><td>The communications server and public SDKs. Applications use this boundary instead of constructing media bridges or calling provider communications APIs.</td></tr>
+<tr><th scope="row">UCTP</th><td>The shared control and media protocol. Protocol conformance is separate from a successful SDK request.</td></tr>
+<tr><th scope="row">rvoip</th><td>The reusable protocol, transport and media engine beneath Connect. It is not an application-side bridge API.</td></tr>
+<tr><th scope="row">Parley</th><td>The reference coordination scenario. Its goals, travel data, prompts and business approval policy belong to the example.</td></tr>
+<tr><th scope="row">Conversation</th><td>The durable container for Participants, Messages and Sessions. Ending voice does not by itself close it.</td></tr>
+<tr><th scope="row">Participant</th><td>An Identity&#x27;s appearance in one Conversation. Membership, role, Session presence and current permission are separate.</td></tr>
+<tr><th scope="row">Message</th><td>An attributed durable communication with an explicit recipient audience. Acceptance is distinct from delivery, reading and a reply.</td></tr>
+<tr><th scope="row">Session</th><td>A live interaction inside a Conversation. Acceptance and negotiated media readiness are different observations.</td></tr>
+<tr><th scope="row">Connection</th><td>A Participant&#x27;s negotiated leg in a Session. A device move replaces this leg while preserving the Participant.</td></tr>
+<tr><th scope="row">Stream</th><td>A negotiated audio, video, screen or data flow carried by a Connection. Transport connectivity alone does not prove usable media.</td></tr>
+<tr><th scope="row">Identity / Device / Endpoint</th><td>A durable tenant-scoped entity; its physical or software device; and a provisioned reachable binding with capabilities, verification and freshness.</td></tr>
+<tr><th scope="row">Operation</th><td>An observable logical action with a saved ID. An uncertain effect is recovered under that original ID and current authority.</td></tr>
+<tr><th scope="row">Handoff / device movement</th><td>Handoff changes Participant responsibility and the selected media audience. Device movement changes one Participant&#x27;s leg. Both preserve the retained remote leg when committed.</td></tr>
+</tbody></table>
+<!-- CONNECT:TERMS:END -->
+</section><section class="dev-section"><h2>Follow the contract</h2><p>This terminology map follows the <a href="../decisions/013-gate-6-model.md">current model decision</a> and <a href="../../contracts/connect-uctp.md">canonical protocol mapping</a>. The <a href="connect-baseline.html">earlier baseline</a> retains its original scope; accepted Gate 6 lifecycle changes are described in the current decision.</p><p>Application business approval and Connect authorization are separate. Preserve saved logical operation IDs through uncertainty; current authority is checked again on replay. Neither a label nor a copied handle grants permission.</p><p class="dev-status">The full lifecycle concepts guide, contract-traced diagrams and failed-move walkthrough are G6-083 work. This page provides the shared vocabulary and its source map.</p></section></main>
+<footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../reference/index.html">API reference</a></footer></body></html>

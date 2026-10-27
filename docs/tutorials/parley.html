@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parley — a progressive Connect example</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
+<a class="dev-skip" href="#main">Skip to content</a>
+<!-- CONNECT:NAV:START -->
+<nav class="dev-nav" aria-label="Developer documentation"><div class="dev-shell"><ul>
+<li><a href="../start/index.html#install">Install</a></li>
+<li><a href="../start/index.html#first-message">First message</a></li>
+<li><a href="../reference/index.html#voice">Voice and video</a></li>
+<li><a href="../reference/index.html#handoff">Handoff</a></li>
+<li><a href="parley.html">Parley tutorial</a></li>
+<li><a href="../concepts/index.html">Concepts</a></li>
+<li><a href="../hosting/index.html">Hosting</a></li>
+<li><a href="../reference/index.html">SDK and HTTP reference</a></li>
+<li><a href="../../CONTRIBUTING.md">Contribute</a></li>
+<li><a href="../engineering/index.html">Engineering</a></li>
+</ul></div></nav>
+<!-- CONNECT:NAV:END -->
+<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Parley</p><h1>Grow a conversation into coordinated follow-through.</h1><p class="dev-lead">The example owns travel data, prompts and approval policy. Its communications use Connect's public client boundary.</p></header>
+<main id="main" tabindex="-1" class="dev-shell"><section class="dev-section"><h2>The progression</h2><ol>
+<li><strong>Chat and context:</strong> start one Conversation and send an attributed task to the assistant.</li>
+<li><strong>Voice:</strong> speak with the assistant, finish that Session and gather an attributed itinerary from the booker.</li>
+<li><strong>Organizer contact:</strong> ask privately for call permission, distinguish delivery from reply, then invite the organizer.</li>
+<li><strong>Private consultation:</strong> retain the organizer leg while consulting the owner. Decline returns without takeover.</li>
+<li><strong>Human takeover:</strong> require current owner consent and the assistant action before transferring responsibility.</li>
+<li><strong>Device movement:</strong> keep the current leg usable until the selected phone confirms the configured DTMF digit and media is ready.</li>
+<li><strong>Follow-up and recovery:</strong> end voice, retain history, approve an exact proposal and send separate updates under saved logical IDs.</li>
+</ol></section><section class="dev-section"><h2>What you can inspect now</h2><p>The <a href="../../examples/parley-on-connect/README.md">shared scenario and fixture guide</a> covers seventeen stages, an optional observer, two consultation paths, synthetic speaker markers, local SIP/RTP and HTTP SMS fixtures. Fixture model output is explicitly simulated. Fixture/live bindings select the same stage definition; selecting a path does not satisfy consent or media gates.</p><p class="dev-status">The installed public-SDK app and executed tutorial checkpoints are not complete. G6-072–G6-080 build and qualify the application; G6-084 provides the runnable progressive tutorial afterward. This outline is not a completed application rehearsal or authorization to contact a provider.</p></section><section class="dev-section"><h2>Prepare to adapt it</h2><p>Read <a href="../concepts/index.html">the shared model</a>, <a href="../reference/index.html#handoff">consultation and handoff</a>, and <a href="../reference/index.html">SDK/reference boundaries</a>. No application should read Connect's store or construct an rvoip bridge.</p></section></main><footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../start/index.html#first-message">Start with a first message</a></footer></body></html>

@@ -1,0 +1,235 @@
+{
+  "task": "G6-081",
+  "status": "done for approved local documentation structure scope",
+  "recorded_at": "2026-10-27T22:34:30.476689+00:00",
+  "base_revision": "5da2e79f",
+  "scope": "Developer information structure and local entry pages; no external website deployment, new release, runtime/media acceptance, installed quickstart or full docs qualification.",
+  "implementation": [
+    "Developer goals and matching-version choice lead README and docs/index.html. Install, first message, voice, handoff, hosting, SDK/HTTP reference and contribution have direct entry links.",
+    "One navigation.json supplies ten shared routes and scope descriptions,13terminology entries and11source/generated reference links. Generator owns navigation blocks in repository Markdown and seven HTML pages, plus vocabulary/reference blocks. --check refuses drift or invalid local targets.",
+    "Earlier entry plans/releases/proof moved to docs/engineering/index.html with all87original historical links preserved and relative paths repaired; all nine prior entry anchors remain at docs/index.html. Existing plan/evidence source paths are unchanged.",
+    "Published v0.1/macOS demo, current pre-alpha source, shared Parley scenario/fixtures and unqualified browser/remote/install profiles are distinguished. Full installed docs/tutorial/reference/hosting work remains in its owned dependency tasks.",
+    "README uses separate application HTTP configurations for health/resolve and no longer launches the review-loop app that awaits signed SDK migration. CONTRIBUTING enters through current protocol/reference and identifies historical CI scope.",
+    "Keyboard check found skip-to-content scrolling without main focus. All seven HTML pages now have one focusable main landmark; actual Tab/Return moves from visible skip link into main content. Both developer and engineering entry progress stay synchronized."
+  ],
+  "verification": {
+    "navigation": {
+      "check": true,
+      "routes": 10,
+      "html_pages": 7,
+      "local_links_checked": 262,
+      "changed": [],
+      "scope": "Local navigation/target integrity; no runtime or external-link qualification."
+    },
+    "public_loopback_routes": {
+      "scope": "Owned loopback preview; ten public navigation routes respond, ignored private state refuses. No external website requests.",
+      "routes": [
+        {
+          "route": "install",
+          "status": 200,
+          "bytes": 4094,
+          "sha256": "d0a5571ea52462b010eb80639a813e5c76fb6c7eb6b9eb5f3c3e42fc36c59411"
+        },
+        {
+          "route": "first-message",
+          "status": 200,
+          "bytes": 4094,
+          "sha256": "d0a5571ea52462b010eb80639a813e5c76fb6c7eb6b9eb5f3c3e42fc36c59411"
+        },
+        {
+          "route": "voice",
+          "status": 200,
+          "bytes": 5651,
+          "sha256": "56626384d843cb8a817abff3b082f513d50ef6663f28494377dae6e0f54a2692"
+        },
+        {
+          "route": "handoff",
+          "status": 200,
+          "bytes": 5651,
+          "sha256": "56626384d843cb8a817abff3b082f513d50ef6663f28494377dae6e0f54a2692"
+        },
+        {
+          "route": "parley",
+          "status": 200,
+          "bytes": 3773,
+          "sha256": "5ce3baa35f82613c3abc83dcb9cf557e3228d55af1172311698d605624b209e7"
+        },
+        {
+          "route": "concepts",
+          "status": 200,
+          "bytes": 4884,
+          "sha256": "62715eb180e1def3af704bfadf2a9bf86771e0c2583b507e0a800350b51632b1"
+        },
+        {
+          "route": "hosting",
+          "status": 200,
+          "bytes": 2874,
+          "sha256": "69d08a7927a333015e48fae00fa1c831970735bff9dfc7ca64bada980e3ddd5c"
+        },
+        {
+          "route": "reference",
+          "status": 200,
+          "bytes": 5651,
+          "sha256": "56626384d843cb8a817abff3b082f513d50ef6663f28494377dae6e0f54a2692"
+        },
+        {
+          "route": "contribute",
+          "status": 200,
+          "bytes": 4461,
+          "sha256": "2ca13108dfbd51da8893539e003495dd4fe29c03c1b40ab100171c3900c3a303"
+        },
+        {
+          "route": "engineering",
+          "status": 200,
+          "bytes": 17142,
+          "sha256": "993a90abc997a3c939172f201df13ebd4ce8e3ab055d410a4c49c2edb1254ca6"
+        }
+      ],
+      "private_path_status": 404
+    },
+    "structure": {
+      "scope": "Local page structure, old anchor retention and historical engineering link preservation. Not full accessibility or external-link qualification.",
+      "pages": [
+        {
+          "page": "docs/index.html",
+          "unique_ids": 10,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/start/index.html",
+          "unique_ids": 4,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/concepts/index.html",
+          "unique_ids": 1,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/hosting/index.html",
+          "unique_ids": 1,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/tutorials/parley.html",
+          "unique_ids": 1,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/reference/index.html",
+          "unique_ids": 3,
+          "h1": 1,
+          "focusable_main": true
+        },
+        {
+          "page": "docs/engineering/index.html",
+          "unique_ids": 10,
+          "h1": 1,
+          "focusable_main": true
+        }
+      ],
+      "preserved_entry_anchors": [
+        "build",
+        "decisions",
+        "entry",
+        "gate-6",
+        "gates",
+        "proof",
+        "release",
+        "start",
+        "v0.1-publication"
+      ],
+      "preserved_engineering_links": 87
+    },
+    "source_cli_smoke": {
+      "scope": "Current exact CLI source setup smoke only, isolated loopback state; no provider/model, published demo or clean installed quickstart execution.",
+      "artifact_sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+      "steps": [
+        {
+          "name": "init",
+          "exit_code": 0,
+          "seconds": 1.857457207981497,
+          "stdout_sha256": "c9b70ea50f682a4f4d134ec1794738b9e18e645dc04e1a288190bb67751b2ad5",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "health",
+          "exit_code": 0,
+          "seconds": 0.011991749983280897,
+          "stdout_sha256": "c9fe2c71255b2029f858aa9e3a6a0d53686d6b51430f513c075eef8c390df2ca",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "resolve",
+          "exit_code": 0,
+          "seconds": 0.011671458836644888,
+          "stdout_sha256": "ab31318db7a53a91edb6696cb15eae2ae0a224edf0510c6fa102dd392ca6cf37",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "owned_server_exit_code": 0,
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    },
+    "visual": {
+      "surface": "ChatGPT in-app browser; owned loopback public-file preview",
+      "jpeg_dimensions": [
+        664,
+        839
+      ],
+      "home_sha256": "bc7a7d1965c836c024f4a226e21e773aaedb3f88011649734b206115b2b61388",
+      "focus_image_sha256": "cc9dfe414fbd39fc70397b78a569dc57b3ea9c7b6a15ea8eb1ed6c0607b1b4cb",
+      "home_accessibility_state_sha256": "ebac907b658169ccbf9f673a25e2bb34b656ef0a3c8f25473f64f2a944bd02c1",
+      "skip_accessibility_state_sha256": "bb69a99608027e171240d6c15023484ddd1055ffe1982f664b8b3443e76590ee",
+      "observed": "Rendered developer entry and first-message destination; visible first Tab focus; Return targets main. Current55/105 state observed. No clipping seen in the664px entry viewport.",
+      "desktop_mobile_full_matrix_run": false
+    },
+    "preview_cleanup": {
+      "owned_process_exit_code": 143,
+      "reason": "Intentional SIGTERM of the verified owned Python loopback preview after browser checks; owned tab closed.",
+      "manifest_sha256": "efffbd7533916d13aa9018752d39d938b6b39f09517e2f053047c68ea45e51a8"
+    }
+  },
+  "published_first_conversation_basis": {
+    "path": "docs/evidence/gate-5/v0.1-qualification.json",
+    "sha256": "ec0ab1b248031eab382e4867002eb76a9b4ad81b1f78619eb8909b229f2f5b63",
+    "retained_case": "installed-public-setup passed2.235s",
+    "fresh_published_demo_execution": false,
+    "scope": "Existing published-version instructions/results, not current Gate6 source or a new clean installed quickstart pass."
+  },
+  "source_inputs_sha256": {
+    "README.md": "4c535bc1870aba1fe66c69490f3089de46d3b6d3471b1b75c87d95cd4e5a5f54",
+    "CONTRIBUTING.md": "2ca13108dfbd51da8893539e003495dd4fe29c03c1b40ab100171c3900c3a303",
+    "docs/README.md": "0fbefc4733c995b9311927b2305eab9ed8a0844963383092c3d0e15a5f783c66",
+    "docs/DOCUMENTATION.md": "33672622127c5e90a67fdb63d4343ab01584d3f58331a3289db85a5329d126c8",
+    "docs/navigation.json": "cda9858cb2b5a550617e2bd88b0015b5146cbaee0011b7b0c2a994745adced5e",
+    "docs/developer-docs.css": "294e91c5c928032478a4612d2c95295e93e308711c06a09bfa3d75662e27da0d",
+    "docs/index.html": "f3a83c95fbff330788ef37e911359e494078b0b30e5a47ff9c4a009ac66dff7c",
+    "docs/start/index.html": "d0a5571ea52462b010eb80639a813e5c76fb6c7eb6b9eb5f3c3e42fc36c59411",
+    "docs/concepts/index.html": "62715eb180e1def3af704bfadf2a9bf86771e0c2583b507e0a800350b51632b1",
+    "docs/hosting/index.html": "69d08a7927a333015e48fae00fa1c831970735bff9dfc7ca64bada980e3ddd5c",
+    "docs/tutorials/parley.html": "5ce3baa35f82613c3abc83dcb9cf557e3228d55af1172311698d605624b209e7",
+    "docs/reference/index.html": "56626384d843cb8a817abff3b082f513d50ef6663f28494377dae6e0f54a2692",
+    "docs/engineering/index.html": "6d1bedfa7116b72008fcde80203f9297a87c854320a7ce343dcd941f08b5f486",
+    "scripts/generate-developer-navigation.py": "f7b2b0a1a48d7a42427ab81058ce15398df3a3fe6444bddf908030db82f5b359",
+    "scripts/sync-gate6-progress.py": "1e2a074ef28da1c4538de03cd27c9c456163ec349c0b2c959653ff947d358140",
+    "scripts/check-gate6-progress.py": "8d5749c925e29286acfa95ac1432c2f4a55fab50b8a19e795e686ca169130dfb"
+  },
+  "private_report_hashes": {
+    "http-navigation.json": "e8b4d1cb902a2cd4caaa5d431f411b26723067a71e44539142daee6b7dc82054",
+    "structure-summary.json": "c21a512436b4b3f4d42c017c287f69a1d64f2cbfc82199cb10a2d4bad147aa2f",
+    "source-smoke-summary.json": "8df3264d1ce071a111dc7141da4db853625f3c8e4106db8c431e2f3faa50da98"
+  },
+  "not_qualified": [
+    "G6-082 clean installed first-conversation execution; README smoke used an exact retained source-built CLI and isolated loopback state. Cargo was not rebuilt for this documentation change.",
+    "Full lifecycle diagrams/G6-083, executed progressive tutorial/G6-084, complete rendered and installed references/G6-085, and Linux/provider hosting guide/G6-086.",
+    "Complete contribution/operations guidance/G6-087/G6-088, actual public website change set/G6-089 and full internal/external link, accessibility/responsive/example/claim audit/G6-090.",
+    "No actual model/account/provider calls, current native/browser failure repair, Linux/remote qualification, Gate6 acceptance promotion or publication."
+  ],
+  "source_inputs_unchanged_at_completion": true
+}

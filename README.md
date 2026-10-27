@@ -4,62 +4,70 @@
 
 An open communications server and SDK from [Rudeless](https://rudeless.ai). One interface to reach out and be reached.
 
-## Status
+## Build with Connect
+
+Start with a local conversation, then add addressed messages, retained history
+and live media. Your app owns its goals and approval policy; Connect provides
+the authorized communications boundary.
+
+<!-- CONNECT:NAV:START -->
+[Install](docs/start/index.html#install) · [First message](docs/start/index.html#first-message) · [Voice and video](docs/reference/index.html#voice) · [Handoff](docs/reference/index.html#handoff) · [Parley tutorial](docs/tutorials/parley.html) · [Concepts](docs/concepts/index.html) · [Hosting](docs/hosting/index.html) · [SDK and HTTP reference](docs/reference/index.html) · [Contribute](CONTRIBUTING.md) · [Engineering](docs/engineering/index.html)
+<!-- CONNECT:NAV:END -->
+
+The [developer documentation](docs/index.html) separates the published local
+release from current development source. The [Parley progression](docs/tutorials/parley.html)
+shows how chat, calls, consultation, human takeover and follow-up fit together.
+Its shared scenario and deterministic fixtures are available; the installed app
+and runnable tutorial checkpoints remain under implementation.
+
+## Choose the matching version
 
 **[Connect v0.1 is published](https://github.com/eisenzopf/connect/releases/tag/v0.1)**
 with version `0.1.0` binaries for local macOS arm64, SDKs, examples, complete
 source, recovery fixtures, checksums and a qualification supplement. All six
 release assets were independently downloaded over public HTTPS and rehashed.
 
-The implementation checklists for Gates 1–5 are complete within their recorded
-scopes. The owner approved publication with disclosed performance exceptions:
-a hosted QUIC stress recovery measured 2.76 seconds against a 2-second target,
-and the two-browser test exceeded its combined process-memory budget. That
-memory total includes two Chrome instances and test helpers; it is not the
-Connect server's standalone RAM usage. Failed results and unrun follow-up
-checks remain explicit; the rebuilt package is not described as fully passing.
+Read its [release notes and disclosed exceptions](docs/releases/v0.1.md) and
+[matching installation guide](docs/LOCAL_RELEASE.md). No remote-server deployment
+or live provider operation is part of this release.
 
-Read the [release notes](docs/releases/v0.1.md),
-[qualification results](docs/evidence/gate-5/v0.1-qualification.json) and
-[publication record](docs/evidence/gate-5/v0.1-publication.json).
-Earlier [Gate 5 alpha evidence](docs/GATE5_OWNER_HANDOFF.md) and
-[Gate 4 qualification](docs/evidence/gate-4/acceptance.html) retain their exact
-source/model/provider scopes. No remote-server deployment or live provider
-operation is part of this release.
+Current Gate 6 source has a breaking pre-alpha API. The typed Rust SDK has local
+source qualification; unified browser/Node/Python packages, remote hosting and
+the full application journey remain in progress. Browser and native private-audio
+findings remain open. Use [current source references](docs/reference/index.html)
+and their named scopes; published v0.1 instructions do not qualify this source.
+Plans, historical releases and proof are in [Engineering](docs/engineering/index.html).
 
 ## Local development
 
-The qualified development host is macOS arm64 with Rust 1.97.1, Node 22+,
-Python 3.11+, Apple command-line developer tools and Homebrew. Install the native
-Opus dependency before Cargo; the audited upstream sources are prepared next:
+Use the repository's pinned Rust toolchain and the
+[development prerequisites](docs/DEVELOPING.md). Local source setup currently
+targets macOS arm64. Prepare the audited dependencies before Cargo:
 
 ```sh
 brew install opus pkgconf
 bash scripts/prepare-dependencies.sh
-cargo build --locked -p connect-server -p connect-review-loop --bins
-./target/debug/connect init --directory .local/demo --example review-loop
+cargo build --locked -p connect-server --bin connect
+./target/debug/connect init --directory .local/demo --example review-loop \
+  --bind 127.0.0.1:4433 --http-bind 127.0.0.1:4434
 ./target/debug/connect serve --config .local/demo/server.toml
 # In another terminal:
-./target/debug/connect health --config .local/demo/operator.toml
-./target/debug/connect resolve --config .local/demo/reviews.toml connect:agent@local
+./target/debug/connect health --config .local/demo/operator.application.toml
+./target/debug/connect resolve --config .local/demo/reviews.application.toml connect:agent@local
 ```
 
-See [the developer guide](docs/DEVELOPING.md) for the workspace layout and checks,
-and [the gate documentation index](docs/index.html#gates) for
-progress and verification evidence. The retained Gate 4 source build and installed local candidate both pass the native messaging
-journey. The sample agent is deterministic; no provider account is required.
-
-## What we're building
-
-Connect will let applications and AI agents exchange messages, share files, and communicate over voice and video through a shared API. The server will bring conversations, media, and connectors into one process. The SDK will make those capabilities straightforward to use.
-
-An application will be able to use Connect to communicate outward and expose the same interface so other applications and agents can reach it.
-
-The server and SDK come first. A reference client will let people try conversations, test capabilities, and see the SDK in use.
+This enrolls communication identities with separate native and HTTP configuration.
+It does not run the older review-loop app, whose signed SDK migration remains
+open. See [current bootstrap](docs/developer/canonical-bootstrap.md) and
+[the workspace guide](docs/DEVELOPING.md). For the published provider-free
+message/reply/history demo, use [its matching first run](docs/start/index.html#first-message).
 
 ## A shared protocol
 
-Connect will build on [rvoip](https://github.com/eisenzopf/rvoip) and [UCTP](https://rudeless.ai/uctp), with QUIC as the preferred native transport. Reliable streams will carry control traffic and datagrams will carry live media. UCTP will provide a common conversation model across transports.
+Connect builds on [rvoip](https://github.com/eisenzopf/rvoip) and
+[UCTP](https://rudeless.ai/uctp). Reliable control, negotiated media and durable
+application state have separate responsibilities. See the
+[shared vocabulary](docs/concepts/index.html) and [protocol reference map](docs/reference/index.html).
 
 Our ambition extends beyond this server: independent developers and service providers should be able to implement UCTP and communicate through the same open protocol.
 

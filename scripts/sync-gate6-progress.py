@@ -47,11 +47,12 @@ def main():
         milestone['status'] = 'done' if all(item['status'] == 'done' for item in items) else ('in-progress' if any(item['status'] != 'not-started' for item in items) else 'not-started')
     roadmap['updated'] = today
     save(roadmap_path, roadmap)
-    path = ROOT / 'docs/index.html'
-    text = path.read_text()
-    text = re.sub(r'implementation authorized · \d+/105 tasks', f'implementation in progress · {completed}/105 tasks complete', text)
-    text = re.sub(r'implementation in progress · \d+/105 tasks complete', f'implementation in progress · {completed}/105 tasks complete', text)
-    path.write_text(text)
+    for relative in ('docs/index.html', 'docs/engineering/index.html'):
+        path = ROOT / relative
+        text = path.read_text()
+        text = re.sub(r'implementation authorized · \d+/105 tasks', f'implementation in progress · {completed}/105 tasks complete', text)
+        text = re.sub(r'implementation in progress · \d+/105 tasks complete', f'implementation in progress · {completed}/105 tasks complete', text)
+        path.write_text(text)
     path = ROOT / 'docs/connect-roadmap.html'
     text = path.read_text()
     text = text.replace('<strong>105 not-started tasks and 28 acceptance criteria</strong>', f'<strong id="gate6-progress">{progress}</strong>')

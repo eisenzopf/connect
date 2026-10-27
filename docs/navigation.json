@@ -1,0 +1,43 @@
+{
+  "profile": "connect-developer-navigation/1",
+  "routes": [
+    { "id": "install", "label": "Install", "href": "start/index.html#install", "scope": "Published v0.1 on local macOS arm64; current source setup is separate." },
+    { "id": "first-message", "label": "First message", "href": "start/index.html#first-message", "scope": "Published provider-free conversation demo; installed Gate 6 quickstart pending." },
+    { "id": "voice", "label": "Voice and video", "href": "reference/index.html#voice", "scope": "Development media guides; browser qualification remains open." },
+    { "id": "handoff", "label": "Handoff", "href": "reference/index.html#handoff", "scope": "Development consultation, handoff and movement guides with current limits." },
+    { "id": "parley", "label": "Parley tutorial", "href": "tutorials/parley.html", "scope": "Shared scenario and deterministic fixtures; runnable installed tutorial pending." },
+    { "id": "concepts", "label": "Concepts", "href": "concepts/index.html", "scope": "Model and terminology; full lifecycle teaching material follows separately." },
+    { "id": "hosting", "label": "Hosting", "href": "hosting/index.html", "scope": "Local source operation; Linux deployment qualification and guide pending." },
+    { "id": "reference", "label": "SDK and HTTP reference", "href": "reference/index.html", "scope": "Current source guides, generated contracts and published-version references." },
+    { "id": "contribute", "label": "Contribute", "href": "../CONTRIBUTING.md", "scope": "Server, SDK, connector and protocol contribution entry." },
+    { "id": "engineering", "label": "Engineering", "href": "engineering/index.html", "scope": "Release history, plans, decisions and scoped verification evidence." }
+  ],
+  "terms": [
+    { "name": "Connect", "meaning": "The communications server and public SDKs. Applications use this boundary instead of constructing media bridges or calling provider communications APIs." },
+    { "name": "UCTP", "meaning": "The shared control and media protocol. Protocol conformance is separate from a successful SDK request." },
+    { "name": "rvoip", "meaning": "The reusable protocol, transport and media engine beneath Connect. It is not an application-side bridge API." },
+    { "name": "Parley", "meaning": "The reference coordination scenario. Its goals, travel data, prompts and business approval policy belong to the example." },
+    { "name": "Conversation", "meaning": "The durable container for Participants, Messages and Sessions. Ending voice does not by itself close it." },
+    { "name": "Participant", "meaning": "An Identity's appearance in one Conversation. Membership, role, Session presence and current permission are separate." },
+    { "name": "Message", "meaning": "An attributed durable communication with an explicit recipient audience. Acceptance is distinct from delivery, reading and a reply." },
+    { "name": "Session", "meaning": "A live interaction inside a Conversation. Acceptance and negotiated media readiness are different observations." },
+    { "name": "Connection", "meaning": "A Participant's negotiated leg in a Session. A device move replaces this leg while preserving the Participant." },
+    { "name": "Stream", "meaning": "A negotiated audio, video, screen or data flow carried by a Connection. Transport connectivity alone does not prove usable media." },
+    { "name": "Identity / Device / Endpoint", "meaning": "A durable tenant-scoped entity; its physical or software device; and a provisioned reachable binding with capabilities, verification and freshness." },
+    { "name": "Operation", "meaning": "An observable logical action with a saved ID. An uncertain effect is recovered under that original ID and current authority." },
+    { "name": "Handoff / device movement", "meaning": "Handoff changes Participant responsibility and the selected media audience. Device movement changes one Participant's leg. Both preserve the retained remote leg when committed." }
+  ],
+  "references": [
+    { "label": "Typed Rust SDK", "href": "developer/rust-sdk.md", "scope": "Source implementation and recorded local verification; installable candidates are separate." },
+    { "label": "Node canonical HTTP foundation", "href": "developer/canonical-node-http.md", "scope": "Finite loopback controls; full typed Node SDK remains planned." },
+    { "label": "Browser canonical client", "href": "developer/browser-canonical-client.md", "scope": "Development implementation; complete WT/fallback qualification remains open." },
+    { "label": "Shared SDK target contract", "href": "../contracts/sdk-gate-6-api.json", "scope": "Design contract for supported languages, not a claim that every package is shipped." },
+    { "label": "Server HTTP guide and endpoint inventory", "href": "developer/server-http.md", "scope": "Current source HTTP contract, authentication, files and recovery." },
+    { "label": "Canonical control OpenAPI", "href": "../contracts/openapi-canonical-http.json", "scope": "Generated finite canonical HTTP commands and replies." },
+    { "label": "Application HTTP OpenAPI", "href": "../contracts/openapi-application-http.json", "scope": "Generated named application operations and schemas." },
+    { "label": "Protected HTTP OpenAPI", "href": "../contracts/openapi-protected-http.json", "scope": "Protected administration, files and provider boundaries." },
+    { "label": "Endpoint inventory", "href": "../contracts/http-endpoints.json", "scope": "Machine-readable supported routes and methods." },
+    { "label": "Canonical UCTP mapping", "href": "../contracts/connect-uctp.md", "scope": "Protocol model and contract boundaries; independent conformance remains separately qualified." },
+    { "label": "Published v0.1 SDK guide", "href": "SDK.md", "scope": "Earlier API generation; use with matching published binaries, not as current Gate 6 source instructions." }
+  ]
+}

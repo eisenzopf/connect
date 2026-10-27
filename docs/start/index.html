@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Start a Connect conversation</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
+<a class="dev-skip" href="#main">Skip to content</a>
+<!-- CONNECT:NAV:START -->
+<nav class="dev-nav" aria-label="Developer documentation"><div class="dev-shell"><ul>
+<li><a href="index.html#install">Install</a></li>
+<li><a href="index.html#first-message">First message</a></li>
+<li><a href="../reference/index.html#voice">Voice and video</a></li>
+<li><a href="../reference/index.html#handoff">Handoff</a></li>
+<li><a href="../tutorials/parley.html">Parley tutorial</a></li>
+<li><a href="../concepts/index.html">Concepts</a></li>
+<li><a href="../hosting/index.html">Hosting</a></li>
+<li><a href="../reference/index.html">SDK and HTTP reference</a></li>
+<li><a href="../../CONTRIBUTING.md">Contribute</a></li>
+<li><a href="../engineering/index.html">Engineering</a></li>
+</ul></div></nav>
+<!-- CONNECT:NAV:END -->
+<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Start</p><h1>Start with messages and retained history.</h1><p class="dev-lead">Choose a published runtime or the current development source before following its commands.</p></header>
+<main id="main" tabindex="-1" class="dev-shell">
+<section id="install" class="dev-section"><h2>Install the published local package</h2><p>The published v0.1 package targets macOS arm64. Follow <a href="../LOCAL_RELEASE.md">installation and checksum verification</a>, then select the extracted executable. Read its <a href="../releases/v0.1.md">release exceptions and prerequisites</a>.</p><p>These instructions describe that published API generation. They do not install a Gate 6 SDK candidate or configure a remote server.</p></section>
+<section id="first-message" class="dev-section"><h2>Exchange a message and reply</h2><p>The published provider-free demo starts its own local server, exchanges messages and files through the native public client, restarts, and verifies retained history. Use a fresh writable directory:</p>
+<pre><code>CONNECT=/absolute/path/to/extracted-runtime/bin/connect
+"$CONNECT" --version
+"$CONNECT" setup demo --directory ./connect-demo --bind 127.0.0.1:0</code></pre>
+<p>Expect a JSON result for the deterministic demo. This is simulated local participation, not an actual model or provider call. The <a href="../SETUP.md">matching setup guide</a> explains state permissions, failures and recovery. Existing state must not be overwritten.</p>
+<p class="dev-status">The clean installed Gate 6 first-conversation quickstart is still planned in G6-082. Its commands and timing have not been qualified by this documentation structure change.</p></section>
+<section id="source" class="dev-section"><h2>Work with the current source</h2><p>Use <a href="../developer/canonical-bootstrap.md">signed initialization and serving</a>, <a href="../developer/rust-sdk.md">the typed Rust SDK</a> and <a href="../developer/application-sdk.md">explicit application configuration</a>. Native and HTTP configurations are distinct; neither silently selects a fallback.</p><p>The review-loop initialization preset currently enrolls communication identities; the earlier review-loop app still awaits its signed SDK migration. Follow the <a href="../DEVELOPING.md">workspace build/check guide</a> for development, rather than running the published demo against an unrelated source binary.</p></section>
+<section class="dev-section"><h2>Continue with your app</h2><p><a href="../concepts/index.html">Learn the model</a>, then explore <a href="../reference/index.html#voice">voice and video</a> or the <a href="../tutorials/parley.html">Parley progression</a>. Media readiness requires actual decoded media; a command ACK or an answered call alone does not prove it.</p></section>
+</main><footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../engineering/index.html">Release history and evidence</a></footer></body></html>

@@ -6471,7 +6471,7 @@
         "G6-101",
         "G6-103"
       ],
-      "observation": "3/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "4/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-14"
       ],
@@ -6480,6 +6480,7 @@
         "contracts/uctp-vectors/",
         "docs/decisions/016-gate-6-sdk.md",
         "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/developer-documentation-structure.json",
         "docs/evidence/gate-6/reference-scenario-shared-path.json",
         "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/test-design.json",
@@ -7105,11 +7106,13 @@
         "G6-103",
         "G6-104"
       ],
-      "observation": "0/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "1/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-15"
       ],
-      "implementation_evidence": []
+      "implementation_evidence": [
+        "docs/evidence/gate-6/developer-documentation-structure.json"
+      ]
     },
     {
       "id": "A6-25",

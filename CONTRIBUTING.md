@@ -1,9 +1,13 @@
 # Contributing to Connect
 
-Connect is an experimental server and SDK. Start with [the architecture](docs/ARCHITECTURE.md),
-[the wire contract](contracts/connect-control-v1.md), and [the developer guide](docs/DEVELOPING.md).
-The supported qualification host is macOS arm64 with the pinned Rust toolchain,
-Node 22+ and Python 3.11+. Other platforms are not qualified yet.
+Connect is an experimental server and SDK. Start with the
+[developer documentation](docs/index.html), [current protocol mapping](contracts/connect-uctp.md),
+[source API references](docs/reference/index.html) and [workspace guide](docs/DEVELOPING.md).
+The [operating profile](docs/decisions/015-gate-6-operating-profile.md) records
+current tool/platform targets separately from measured qualification. Current
+source results retain their local macOS arm64 scopes; Linux/remote qualification
+remains open. The Gate 4/5 CI and recovery procedures below retain their named
+historical scopes and do not qualify the current Gate 6 candidate.
 
 Install the native media build dependency on this host with
 `brew install opus pkgconf`. The Opus Rust binding uses `pkg-config` to find
@@ -52,6 +56,8 @@ edits. Do not test a migration against someone's working database.
 
 Public review does not imply a production-ready release. Reviewed SMS,
 Connect-carried media, agent tools and task continuation are qualified within
-the recorded local topology. The full connector kit, video and broader platform
-qualification remain planned. Read the [Gate 4 review](docs/evidence/gate-4/acceptance.html)
+the recorded local topology. The [connector kit](docs/CONNECTORS.md) has
+[current local source qualification](docs/evidence/gate-6/connector-template-audit.json).
+Installed candidates, broader platform and complete browser/media qualification
+remain separate. Use the [current engineering evidence](docs/engineering/index.html#gate-6)
 and its explicit limits before expanding a claim.

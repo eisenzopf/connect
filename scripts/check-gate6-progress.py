@@ -65,7 +65,8 @@ def main():
     counts = collections.Counter(task['status'] for task in tasks.values())
     assert gate['completed_task_count'] == counts['done']
     assert gate['in_progress_task_count'] == counts['in-progress']
-    assert f"{counts['done']}/105 tasks complete" in (ROOT / 'docs/index.html').read_text()
+    for relative in ('docs/index.html', 'docs/engineering/index.html'):
+        assert f"{counts['done']}/105 tasks complete" in (ROOT / relative).read_text(), relative
     print(json.dumps({'scope': 'Plan integrity only; no runtime qualification.', 'tasks': dict(counts),
                       'criteria': len(criteria), 'requirements': len(acceptance['requirements']),
                       'done_evidence_paths_exist': True, 'dependency_graph': 'acyclic'}))

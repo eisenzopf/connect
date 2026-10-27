@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect SDK, HTTP and protocol reference</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
+<a class="dev-skip" href="#main">Skip to content</a>
+<!-- CONNECT:NAV:START -->
+<nav class="dev-nav" aria-label="Developer documentation"><div class="dev-shell"><ul>
+<li><a href="../start/index.html#install">Install</a></li>
+<li><a href="../start/index.html#first-message">First message</a></li>
+<li><a href="index.html#voice">Voice and video</a></li>
+<li><a href="index.html#handoff">Handoff</a></li>
+<li><a href="../tutorials/parley.html">Parley tutorial</a></li>
+<li><a href="../concepts/index.html">Concepts</a></li>
+<li><a href="../hosting/index.html">Hosting</a></li>
+<li><a href="index.html">SDK and HTTP reference</a></li>
+<li><a href="../../CONTRIBUTING.md">Contribute</a></li>
+<li><a href="../engineering/index.html">Engineering</a></li>
+</ul></div></nav>
+<!-- CONNECT:NAV:END -->
+<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Reference</p><h1>Find the right interface.</h1><p class="dev-lead">Use the public SDK for app communication, HTTP for finite controls, and UCTP for independent protocol implementations.</p></header>
+<main id="main" tabindex="-1" class="dev-shell"><section class="dev-section"><h2>Source guides and generated contracts</h2><p>These links share one versioned navigation map. Generated OpenAPI and SDK target contracts describe their named interface; they do not imply installed package parity, complete browser media qualification or an HTTP live-media channel.</p>
+<!-- CONNECT:REFERENCES:START -->
+<ul>
+<li><a href="../developer/rust-sdk.md">Typed Rust SDK</a> — Source implementation and recorded local verification; installable candidates are separate.</li>
+<li><a href="../developer/canonical-node-http.md">Node canonical HTTP foundation</a> — Finite loopback controls; full typed Node SDK remains planned.</li>
+<li><a href="../developer/browser-canonical-client.md">Browser canonical client</a> — Development implementation; complete WT/fallback qualification remains open.</li>
+<li><a href="../../contracts/sdk-gate-6-api.json">Shared SDK target contract</a> — Design contract for supported languages, not a claim that every package is shipped.</li>
+<li><a href="../developer/server-http.md">Server HTTP guide and endpoint inventory</a> — Current source HTTP contract, authentication, files and recovery.</li>
+<li><a href="../../contracts/openapi-canonical-http.json">Canonical control OpenAPI</a> — Generated finite canonical HTTP commands and replies.</li>
+<li><a href="../../contracts/openapi-application-http.json">Application HTTP OpenAPI</a> — Generated named application operations and schemas.</li>
+<li><a href="../../contracts/openapi-protected-http.json">Protected HTTP OpenAPI</a> — Protected administration, files and provider boundaries.</li>
+<li><a href="../../contracts/http-endpoints.json">Endpoint inventory</a> — Machine-readable supported routes and methods.</li>
+<li><a href="../../contracts/connect-uctp.md">Canonical UCTP mapping</a> — Protocol model and contract boundaries; independent conformance remains separately qualified.</li>
+<li><a href="../SDK.md">Published v0.1 SDK guide</a> — Earlier API generation; use with matching published binaries, not as current Gate 6 source instructions.</li>
+</ul>
+<!-- CONNECT:REFERENCES:END -->
+</section><section id="voice" class="dev-section"><h2>Voice and video</h2><p>Start with <a href="../developer/media-profiles.md">media profiles</a>, <a href="../developer/canonical-media.md">native media</a> and <a href="../developer/browser-canonical-client.md">browser control/media</a>. Capability detection, permission, negotiation and decoded media are distinct. MCP/JSON CLI control output contains no audio frames.</p><p class="dev-status">The development browser WT/WSS/WebRTC tasks remain open. Retained native private-audio and browser audio failures remain unresolved; later passing diagnostics do not erase them. See the <a href="../evidence/gate-6/facade-scope-audit.json">current private-audio finding</a> and <a href="../engineering/index.html#gate-6">current plan</a>. Published v0.1 media has its own <a href="../releases/v0.1.md">release scope and exceptions</a>.</p></section>
+<section id="handoff" class="dev-section"><h2>Consultation, handoff and device movement</h2><p>Use <a href="../developer/native-consultation.md">private consultation</a>, <a href="../developer/native-handoff.md">handoff</a>, <a href="../../contracts/connect-transitions.md">transition contracts</a> and <a href="../developer/telephone-replacement.md">telephone replacement</a>. Keep the retained remote leg and original operation identity; recover uncertainty through current-authorized status.</p><p>Handoff changes responsibility and audience. Device movement replaces a Participant's leg. Invitation acceptance is not business consent, and a candidate answer does not replace the configured confirmation or actual media checks.</p></section>
+<section class="dev-section"><h2>Reference publication status</h2><p>The complete rendered HTTP/SDK/protocol reference with installed curl/snippet execution is G6-085 work. This index makes the existing source references and generated contracts discoverable without claiming that later qualification.</p></section></main><footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../engineering/index.html">Engineering evidence</a></footer></body></html>
