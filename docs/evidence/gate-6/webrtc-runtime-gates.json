@@ -1,0 +1,265 @@
+{
+  "task": "G6-051",
+  "status": "Local signed RTC runtime gates verified; task remains in progress",
+  "based_on": "b6b30df8",
+  "scope": "Local macOS arm64 signed WSS, Store, actual Core/RTC G.711 audio; isolated synthetic fixtures and default stacks. No model-host/account/provider invocation or publication. Component Core harness opt0; integration release graph Core opt3 and Connect store/service/server opt0, selected test stripping disabled.",
+  "implementation": [
+    "Signed connection.update hold/resume/mute/unmute uses the exact original current WSS PeerAdmission, WebRTC Endpoint, runtime Connection/generation and Store stream-command lease. It does not select a native transport adapter or borrow native negotiation authority.",
+    "A separate immutable invocation plan retains the exact validated action, actual audio stream IDs and expected revision. Core receives only this held gate intent under current owner authority. Endpoint hold directions map to the reversed server port; inactive hold pauses both directions without reallocating or renegotiating resources.",
+    "Original Core gate control waits for the scene metadata slot under its existing credential/control cutoff, cancellation and shutdown. Current authority and exact revision are checked after acquisition and before the one quiescent commit. Genuine conflicts and uncertain outcomes are never automatically retried.",
+    "Only returned Core success and its captured logical gate states can produce the original lease gate receipt. Durable metadata recovery retains that receipt, not live command readers or permission to repeat IO. Current completed replay returns the historical original result/effect and cannot reset later gate state."
+  ],
+  "behavior": [
+    "Both EdDSA/ES256 new real signed RTC journeys first complete the existing actual marked duplex/subscription/replay/stale/unsubscribe/reselect path.",
+    "A same-credential foreign physical WSS peer cannot execute the original gate; the original peer then completes that logical operation with one effect/attempt. A live peer controlling its own RTC connection without connection.update scope is refused, without changing its revision.",
+    "Stale revision, unavailable stream and unsupported quality update are explicitly refused while the original decoded duplex and revision stay current.",
+    "Source mute suppresses only publication and preserves reverse playback; unmute restores identified decoded duplex. Endpoint recvonly hold suppresses its publication and preserves playback; sendonly preserves publication and suppresses playback. Inactive hold silences both; each resume restores both markers.",
+    "Current mute replay while muted and superseded mute replay after resume return the exact original receipt/effect without a new Core revision or restoring old mute state.",
+    "Actual transport IDs, stream-local handles, stream/Connection generations, negotiated bindings, opening budgets, two original routes and two total RTC allocations stay unchanged. The final explicit end completes using the later gate revision, joins/releases only the original route, replays its one end effect and leaves WSS control usable."
+  ],
+  "verification": {
+    "core_component_methods": 40,
+    "component_causal_proof": {
+      "original": {
+        "name": "core-unit-runtime-02",
+        "exit_code": 101,
+        "expected_exit_code": 101,
+        "seconds": 0.5553982499986887,
+        "arguments": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-gates/core-unit-tests-02",
+          "staged_streams::tests::gate_slot::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "log_sha256": "6ff871042b595880a18073d601a61c3f7a4199bde2cb144048131727601315fb",
+        "results": [
+          "test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 525 filtered out; finished in 0.00s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      "fixed": {
+        "exit_code": 0,
+        "seconds_including_compile": 15.37963862484321,
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 525 filtered out; finished in 0.04s"
+        ],
+        "executable_sha256": "cce9b746651486132eef7017604996aee441276110b16b4af848c931f615383a",
+        "runtime_log_sha256": "29d7fe309e038f102a90440514fd913172ed62a9a919340c28389a52fda35424",
+        "build_log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec"
+      },
+      "different_production_sources": [
+        "src/staged_streams.rs"
+      ],
+      "fixture_sha256": "8d59d5cadd953d950e0caa79ca67d6e6737238022098aff23054220733d82b9e",
+      "identical_dependency_artifact_count": 29,
+      "scope": "All three controlled slot cases fail on the original implementation and pass on the correction with identical fixtures/dependency artifacts. Two existing native gate and35 media-scene regressions also pass."
+    },
+    "main_selected_methods": 23,
+    "main": [
+      {
+        "exit_code": 0,
+        "seconds": 46.06197016686201,
+        "log_sha256": "adee5b96928548ca2b2d83f2c112b157a8da2ddf86cccdeeef00cd7f64fb4ad6",
+        "test_results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 44.52s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.74360008398071,
+        "log_sha256": "e1c3c1daea9d8bcf3226db71ee1664c5177c01b004a267476a9b850fc13e8b48",
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 39.70s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.321202249964699,
+        "log_sha256": "f7b25ef1c009e8d9b6794b49cab8a3d7a91fde475e8494362df66bd2c83c6885",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 55 filtered out; finished in 4.31s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa"
+      }
+    ],
+    "quiet_rtc_rounds": [
+      {
+        "round": 1,
+        "exit_code": 0,
+        "seconds": 44.96286749979481,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 44.93s"
+        ],
+        "log_sha256": "85f6cb444732bb8aab593c03b3d8d88577a390910c2923c0d3850ceb00918d3b",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 2,
+        "exit_code": 0,
+        "seconds": 45.40724308299832,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 45.36s"
+        ],
+        "log_sha256": "1d6852be0e98df03ee831894531811a3ecf7daf63f0aec4d0d9de169aa892a40",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 3,
+        "exit_code": 0,
+        "seconds": 48.12776816706173,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 48.11s"
+        ],
+        "log_sha256": "95830eda1c1be2c2bebb15e48e63a60373b21c015f464016b5d85fc81413ba24",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 4,
+        "exit_code": 0,
+        "seconds": 43.576562125002965,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 43.53s"
+        ],
+        "log_sha256": "bd6fa1ea7456d1b6808c18700de9357dec9b870e8b262107fa1df1c809bb895e",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      }
+    ],
+    "native_regression_methods": 6,
+    "native_regressions": [
+      {
+        "exit_code": 0,
+        "seconds": 62.772473625140265,
+        "results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 61.02s"
+        ],
+        "log_sha256": "989f29c0af00a31273b0d5064d8bccfdd2bbd5ac91c88a160ffc01e7ed080a97",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::gates::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.276909291977063,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.23s"
+        ],
+        "log_sha256": "ebefce67e83fa098f545eda69f035b188cb431e78a99d941ad29c2dbf21103e1",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.413729124935344,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.38s"
+        ],
+        "log_sha256": "5a279632ac874b89dd7f9b00ad171dd9dd19866de1f13fee634c639eea57e488",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_native_stream_captured_commit_recovers_storage_without_retaining_original_readers_or_reapplying"
+      }
+    ],
+    "native_scope": "Both native EdDSA/ES256 gate journeys, mute across codec replacement, captured gate receipt recovery after storage failure/writer/cancel, actual subscription replay and captured subscription receipt recovery. No full native/browser/remote/release qualification inferred.",
+    "root_build": {
+      "exit_code": 0,
+      "seconds": 1211.7400742918253,
+      "source_count": 5161,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "be01f2a0b9b78bd813b78f62adbf0476959ea7d8d49aaf8e779a5df37e28117f",
+      "artifact": {
+        "sha256": "db3a67759c8e3b9cf051adb1fb5471285a378867aec643d7d5ea7e7fda27c064",
+        "bytes": 213322576
+      }
+    },
+    "native_build": {
+      "exit_code": 0,
+      "seconds": 18.59835037495941,
+      "source_count": 5161,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "da41614acc03a43dd65913686632ebe8060a6ac955efe964a57e69a27479a46a",
+      "artifact": {
+        "sha256": "f3bdb31a1201a39760957982e1847fb16a46eec838af9b6e1c75f71251ed3746",
+        "bytes": 259499144
+      }
+    },
+    "cli_artifact_health": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+      "sha256": "863c57e9bb17ff0c49c7486dd5beda98a325245ccb7781409de37e98afccfc33",
+      "bytes": 234368640,
+      "mach_o_executable": true
+    },
+    "runtime_input_count": 5317,
+    "runtime_manifest_sha256": "f66ea626b8af3bd0c56b4d4c9f5a3737bc05fa7159bc78a204bc81901d52891e",
+    "environment": "Main warns plus error-only canonical_webrtc::streams debug; quiet and native warn; default stacks, ignored local TMPDIR."
+  },
+  "patch": {
+    "path": "patches/rvoip/gate6-original-gate-control-slot.patch",
+    "sha256": "44a31dd0bc9690cb28edb45eef04885f9aba9417a570477463a3d376fff96899"
+  },
+  "development_record": [
+    "Initial current-graph component suite3+2+35 passed. First negative-harness attempt began as Cargo was replacing the old Core rlib; it stopped before compilation on missing input. It then waited for the same live build dependency artifacts rather than restarting Cargo. The final exact-dependency pair reproduces0/3 original cases and passes3/3 fixed cases; these original failures are intentional causal controls.",
+    "Closed proof binaries are compressed losslessly with decoded SHA/mode/mtime manifests. The first archive attempt exhausted space before verification; its partial archive alone was discarded after checking the intact raw proof. Byte-identical closed prepared sources were consolidated with APFS COW while preserving contents/modes/mtimes; no credentials, state, logs, .git or active source content changed. This recovered479141888 bytes before verified proof compression.",
+    "Production sources stay frozen through the full Root/native builds and all runtime checks. No fixture thresholds, authorization checks or logical IDs were changed to obtain a passing runtime result. No stripping warning or malformed CLI output in this build."
+  ],
+  "private_evidence": {
+    ".local/gate-6/rtc-gates/paired-gate-slot-evidence.json": "99e4348cadbc6789534a31ff262b5b36741875bb01e7471b50c575cc4830fa68",
+    ".local/gate-6/rtc-gates/core-tests-current-graph-summary.json": "352abf8fce593487e8d061649765db009b34f0821b2a097fd9235a87b7a68bb1",
+    ".local/gate-6/rtc-gates/build-01-summary.json": "6463863705e745aed702257acf0b66b72c7032b9bd9a3b19c8a8303117f7bad8",
+    ".local/gate-6/rtc-gates/native-build-01-summary.json": "da728fbab3bd711cf520270f51725921fec55de55f06a2e0b0e50e796f7d7039",
+    ".local/gate-6/rtc-gates/runtime-01-summary.json": "cc18d63c1771f15e9511c8d6a260eebc8c72fd0dc012dc421f8ccb6af7c14870",
+    ".local/gate-6/rtc-gates/quiet-01-summary.json": "287ed0cdee0fe6b889289cb1d5b251336b722e9fb4d75f3b7cbe624a1e4887da",
+    ".local/gate-6/rtc-gates/native-runtime-01-summary.json": "e83d513f3960ee1483187f2c66ecf37919406ae4c8c819ddac890dee13010c25",
+    ".local/gate-6/rtc-gates/closed-proof-archives.json": "d6c05c35ace7a7d90f8d847cdcf5c567d0fbd52ed40021129579d7c67747b43f",
+    ".local/gate-6/rtc-gates/source-cow-custody.json": "8012db6c40d7f0e2c38bf12331233e6f2b8a2d7a068a782b78e35c8e7961d7cc"
+  },
+  "remaining": [
+    "G6-051 remains in progress. Broader RTC service failure/deadline/pending-write cases, multiConnection roles, quality/query/reconciliation, reoffers/codec updates, DTMF and credential refresh remain required.",
+    "Opus/VP8/data and associated ICE/MID/SSRC/source clocks, actual Chrome/Firefox forced fallback, Linux/remote hosting, packages and independent full acceptance remain required. The default browser media advertisement is unchanged."
+  ],
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

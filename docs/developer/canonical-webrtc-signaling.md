@@ -381,3 +381,28 @@ Core scene methods pass. The unchanged signed journey passes all21 selected
 RTC/WSS/WebTransport methods, four quiet six-method RTC repetitions and two
 native QUIC regressions. Full G6-051 media/browser/hosting/package and acceptance
 qualification remains open.
+
+
+## Signed RTC runtime gates
+
+The protected RTC audio profile accepts signed `connection.update` actions
+`hold`, `resume`, `mute` and `unmute` on the original WSS peer and confirmed
+Connection. The current named permission, exact Endpoint/runtime generation,
+expected stream revision and Store command lease remain mandatory. Unknown
+streams and unsupported quality/codec actions are explicit refusals. Gates use
+Core's held control and drain admitted IO before committing; they retain the
+original negotiated ports and opening budgets without another SDP offer.
+
+Mute suppresses the endpoint's publication while preserving playback. Hold
+directions describe the endpoint: `recvonly` preserves playback, `sendonly`
+preserves publication, and `inactive` pauses both. Resume restores both allowed
+directions. The receipt captures Core's returned historical gate states.
+Completed replay needs current authority and never reinstates superseded gates.
+
+The [runtime gate evidence](../evidence/gate-6/webrtc-runtime-gates.json) records
+both signing algorithms, independently decoded audio through each edge, source
+and permission refusals, replay, unchanged bindings/allocations and subsequent
+original-resource termination. All23 selected RTC/WSS/WebTransport methods,
+four quiet eight-method RTC rounds,40 Core component methods and six native
+regressions pass. Service failure/deadline and broader media/browser/hosting
+profiles remain separate qualifications; G6-051 remains in progress.

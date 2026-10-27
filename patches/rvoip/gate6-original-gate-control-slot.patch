@@ -1,0 +1,133 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/gate_slot.rs
+@@ -0,0 +1,94 @@
++//! Original gate ownership while the scene tick holds the controller slot.
++use super::*;
++async fn poll_once<F: std::future::Future>(f: std::pin::Pin<&mut F>) -> std::task::Poll<F::Output> {
++    let mut f = f;
++    std::future::poll_fn(|cx| std::task::Poll::Ready(f.as_mut().poll(cx))).await
++}
++#[tokio::test]
++async fn original_gate_waits_for_scene_slot_and_fences_pre_gate_packets() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Audio]).await;
++    let id = desired(Medium::Audio).logical_id;
++    let ids = [id.clone()].into_iter().collect();
++    let port = f.aa.port(Medium::Audio);
++    let original = port.binding().clone();
++    let mut input = f.a.take_ingress(&id).unwrap();
++    port.try_publish(&frame(&port, 160)).unwrap();
++    let stale = receive(&mut input).await;
++    let tick = f.a.inflight.clone().try_acquire_owned().unwrap();
++    let mut command = Box::pin(f.a.set_media_gate(1, &ids, StreamGateAction::Mute, deadline()));
++    assert!(poll_once(command.as_mut()).await.is_pending());
++    assert_eq!(f.a.revision(), 1);
++    drop(tick);
++    let (revision, streams) = command.await.unwrap();
++    assert_eq!(revision, 2);
++    assert!(streams[0].source_muted);
++    assert!(port.try_publish(&frame(&port, 320)).is_err());
++    f.a.set_media_gate(2, &ids, StreamGateAction::Unmute, deadline())
++        .await
++        .unwrap();
++    assert!(stale.try_forward_to(&f.b, &id).is_err());
++    assert_eq!(port.binding().transport_id, original.transport_id);
++    assert_eq!(port.binding().stream_local_id, original.stream_local_id);
++    assert_eq!(f.a.stream_open_budget().0, 1);
++}
++#[tokio::test]
++async fn original_gate_slot_wait_obeys_deadline_and_shutdown_without_commit() {
++    for shutdown in [false, true] {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Audio]).await;
++        let ids = [desired(Medium::Audio).logical_id].into_iter().collect();
++        let tick = f.a.inflight.clone().try_acquire_owned().unwrap();
++        let mut command = Box::pin(f.a.set_media_gate(
++            1,
++            &ids,
++            StreamGateAction::Mute,
++            tokio::time::Instant::now() + Duration::from_millis(30),
++        ));
++        assert!(poll_once(command.as_mut()).await.is_pending());
++        if shutdown {
++            f.a.shutdown.cancel();
++        }
++        let result = command.await;
++        assert!(
++            if shutdown {
++                matches!(result, Err(StreamControlError::Cancelled))
++            } else {
++                matches!(result, Err(StreamControlError::Deadline))
++            },
++            "{result:?}"
++        );
++        drop(tick);
++        assert_eq!(f.a.revision(), 1);
++    }
++}
++#[tokio::test]
++async fn original_gate_slot_wait_preserves_current_authority_and_real_revision_conflicts() {
++    for revoke in [false, true] {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Audio]).await;
++        let ids = [desired(Medium::Audio).logical_id].into_iter().collect();
++        let tick = f.a.inflight.clone().try_acquire_owned().unwrap();
++        let mut first = Box::pin(f.a.set_media_gate(1, &ids, StreamGateAction::Mute, deadline()));
++        assert!(poll_once(first.as_mut()).await.is_pending());
++        let mut original =
++            Box::pin(f.a.set_media_gate(1, &ids, StreamGateAction::Pause, deadline()));
++        assert!(poll_once(original.as_mut()).await.is_pending());
++        if revoke {
++            f.policy.0.write().await.revoked.insert("alice".into());
++        }
++        drop(tick);
++        if revoke {
++            assert!(matches!(first.await, Err(StreamControlError::Authority)));
++            assert!(matches!(original.await, Err(StreamControlError::Authority)));
++            assert_eq!(f.a.revision(), 1);
++        } else {
++            assert_eq!(first.await.unwrap().0, 2);
++            assert!(matches!(
++                original.await,
++                Err(StreamControlError::Model(MediaTransitionError::Conflict))
++            ));
++            assert_eq!(f.a.revision(), 2);
++        }
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2817,3 +2817,5 @@
+ mod packet_expiry;
+ 
+ mod private_outbound;
++
++mod gate_slot;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2726,11 +2726,16 @@
+         if deadline <= tokio::time::Instant::now() {
+             return Err(StreamControlError::Deadline);
+         }
+-        let _flight = self
+-            .inflight
+-            .clone()
+-            .try_acquire_owned()
+-            .map_err(|_| MediaTransitionError::Conflict)?;
++        // Scene adoption briefly takes this slot without changing the gate
++        // revision. Keep this original control/expiry instead of mistaking a
++        // metadata tick for a conflicting mutation. Exact current authority
++        // and revision are checked again after acquisition and before commit.
++        let _flight = tokio::select! { biased;
++            _=cancelled.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=self.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++            slot=self.inflight.clone().acquire_owned()=>slot.map_err(|_|StreamControlError::Cancelled)?,
++        };
+         self.check_credential_snapshot(&credential)?;
+         let ports = {
+             let state = self.state.lock().unwrap_or_else(|p| p.into_inner());

@@ -45,6 +45,10 @@ fn engine_error(error: ParticipantControlError) -> Error {
         _ => Error::forbidden(),
     }
 }
+enum RtcOutcome {
+    Subscriptions(u64),
+    Gates(u64, Vec<rvoip_core::stream_lifecycle::LogicalStream>),
+}
 impl Runtime {
     fn rtc_stream_source(
         &self,
@@ -192,10 +196,16 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: String,
     ) -> Result<Reply> {
-        if !matches!(
-            a.envelope().payload(),
-            Payload::StreamSubscribe(_) | Payload::StreamUnsubscribe(_) | Payload::ConnectionEnd(_)
-        ) {
+        let gates = a.envelope().kind() == "connection.update"
+            && connect_protocol::native_gates::is_gate(&a.envelope().original()["payload"]);
+        if !gates
+            && !matches!(
+                a.envelope().payload(),
+                Payload::StreamSubscribe(_)
+                    | Payload::StreamUnsubscribe(_)
+                    | Payload::ConnectionEnd(_)
+            )
+        {
             return Err(Error::new(
                 "unsupported-media-profile",
                 "RTC stream command is not installed",
@@ -271,8 +281,12 @@ impl Runtime {
                 let (id, source) = self.rtc_stream_source(&a, &physical, &credential)?;
                 let plan = if ending {
                     None
+                } else if a.envelope().kind() == "connection.update" {
+                    Some(Plan::RtcGates(self.rtc_gate_plan(&a, &id, &source)?))
                 } else {
-                    Some(self.rtc_subscription_plan(&a, &id, &source)?)
+                    Some(Plan::RtcSubscriptions(
+                        self.rtc_subscription_plan(&a, &id, &source)?,
+                    ))
                 };
                 if matches!(a.envelope().payload(), Payload::StreamSubscribe(_)) {
                     store.validate_native_subscription_sources_with_peer(
@@ -327,12 +341,8 @@ impl Runtime {
                 store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
                 plan.clone()
                     .map(|plan| {
-                        self.media.stream_invocation(
-                            a.clone(),
-                            Plan::RtcSubscriptions(plan),
-                            &lease,
-                            deadline,
-                        )
+                        self.media
+                            .stream_invocation(a.clone(), plan, &lease, deadline)
                     })
                     .transpose()
             })
@@ -348,10 +358,19 @@ impl Runtime {
             let outcome = tokio::select! {
                 biased;
                 _=self.stop.cancelled()=>Err(Error::forbidden()),
-                r=self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref()))=>r.map_err(engine_error),
+                r=async {
+                    match plan {
+                        Plan::RtcSubscriptions(plan) => self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref())).await.map(RtcOutcome::Subscriptions).map_err(engine_error),
+                        Plan::RtcGates(plan) => {
+                            let controller = self.webrtc.get().and_then(|h| h.adapter().staged_controller(&id)).ok_or_else(Error::forbidden)?;
+                            controller.set_media_gate_with_held(plan.expected, &plan.streams, plan.action, deadline, invocation.clone()).await.map(|(revision, streams)| RtcOutcome::Gates(revision, streams)).map_err(|error| engine_error(ParticipantControlError::Media(error)))
+                        }
+                        _ => Err(Error::forbidden()),
+                    }
+                }=>r,
             };
             drop(invocation);
-            let revision = match outcome {
+            let observed = match outcome {
                 Ok(r) => r,
                 Err(error) => {
                     tracing::debug!(?error, "RTC original stream effect requires reconciliation");
@@ -359,20 +378,40 @@ impl Runtime {
                     return;
                 }
             };
-            let projection = self
-                .webrtc
-                .get()
-                .and_then(|h| h.adapter().staged_controller(&id))
-                .and_then(|c| {
-                    if c.revision() != revision {
-                        return None;
+            match observed {
+                RtcOutcome::Gates(revision, streams) => {
+                    match crate::canonical_native_streams::gate_streams(
+                        &streams,
+                        lease.generation(),
+                    ) {
+                        Ok(streams) => lease.gates_committed(revision, streams),
+                        Err(error) => {
+                            let _ =
+                                tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
+                            tracing::debug!(?error, "RTC gate observation could not be captured");
+                            return;
+                        }
                     }
-                    let bindings = c.active_bindings();
-                    (c.revision() == revision)
-                        .then(|| crate::canonical_native_streams::codec_bindings(&bindings).ok())
-                        .flatten()
-                });
-            lease.committed(revision, false, projection)
+                }
+                RtcOutcome::Subscriptions(revision) => {
+                    let projection = self
+                        .webrtc
+                        .get()
+                        .and_then(|h| h.adapter().staged_controller(&id))
+                        .and_then(|c| {
+                            if c.revision() != revision {
+                                return None;
+                            }
+                            let bindings = c.active_bindings();
+                            (c.revision() == revision)
+                                .then(|| {
+                                    crate::canonical_native_streams::codec_bindings(&bindings).ok()
+                                })
+                                .flatten()
+                        });
+                    lease.committed(revision, false, projection)
+                }
+            }
         } else {
             // The lease and original RTC route remain owned across the actual
             // close/join. Only its returned success plus confirmed absence may

@@ -68,6 +68,14 @@ pub(super) fn other_caps_with_end(
     capabilities: Vec<String>,
     end: bool,
 ) -> CanonicalClientConfig {
+    other_caps_with_permissions(f, capabilities, end, &[])
+}
+pub(super) fn other_caps_with_permissions(
+    f: &Fixture,
+    capabilities: Vec<String>,
+    end: bool,
+    excluded: &[&str],
+) -> CanonicalClientConfig {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let mut scope = Scope::collaboration(vec!["*".into()]);
     scope
@@ -76,6 +84,9 @@ pub(super) fn other_caps_with_end(
     if end {
         scope.operations.push("connection.end".into());
     }
+    scope
+        .operations
+        .retain(|operation| !excluded.contains(&operation.as_str()));
     let issued = f
         .server
         .store

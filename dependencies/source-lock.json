@@ -1174,6 +1174,11 @@
       "path": "patches/rvoip/gate6-subscription-source-contention.patch",
       "source": "G6-051 one original guarded subscription waits for the scene tick slot and yields only on definite precommit source-state metadata backpressure. Preserve exact plan/revision, current authority and original credential/cancellation/deadline; release scene/state/policy guards before waiting. Never retry committed effects, uncertain outcomes or real revision conflicts. Deterministic actual-source/tick-slot recovery, deadline, cancellation, withdrawal and revision-conflict tests.",
       "sha256": "e291e515e2a26b2fdc94951d62334860e9839368ca29c7f88026847ca6549aa8"
+    },
+    {
+      "path": "patches/rvoip/gate6-original-gate-control-slot.patch",
+      "source": "G6-051 original media gate control waits for transient scene adoption slot under its existing credential/control deadline, cancellation and shutdown. Recheck current authority and exact revision before commit, preserve quiescent IO/binding custody, never retry an uncertain result. Controlled slot recovery, deadline/shutdown, authority withdrawal and true concurrent conflict fixtures.",
+      "sha256": "44a31dd0bc9690cb28edb45eef04885f9aba9417a570477463a3d376fff96899"
     }
   ]
 }

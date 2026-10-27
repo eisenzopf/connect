@@ -9,15 +9,24 @@ pub(crate) enum Plan {
     RtcSubscriptions(rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan),
     Codecs(NativeOfferPlan),
     Gates(rvoip_uctp::v2::native_control::NativeControlPlan),
+    RtcGates(RtcGatePlan),
 }
 impl Plan {
     pub(crate) fn media(&self) -> Option<&NativeOfferPlan> {
         match self {
             Self::Subscriptions(p) => Some(p.media()),
             Self::Codecs(p) => Some(p),
-            Self::Gates(_) | Self::RtcSubscriptions(_) => None,
+            Self::Gates(_) | Self::RtcGates(_) | Self::RtcSubscriptions(_) => None,
         }
     }
+}
+
+/// Exact RTC wire gate intent; it carries no authorization or native adapter grant.
+#[derive(Clone)]
+pub(crate) struct RtcGatePlan {
+    pub expected: u64,
+    pub streams: BTreeSet<rvoip_core::ids::StreamId>,
+    pub action: rvoip_core::stream_lifecycle::StreamGateAction,
 }
 
 #[derive(Clone)]
@@ -240,6 +249,17 @@ impl Policy {
                 {
                     ()
                 }
+                _ => return Err(StreamControlError::Authority),
+            },
+            Plan::RtcGates(plan) => match intent {
+                MediaControlIntent::Gate {
+                    expected,
+                    streams,
+                    action,
+                } if *expected == i.revision
+                    && *expected == plan.expected
+                    && *streams == &plan.streams
+                    && *action == plan.action => {}
                 _ => return Err(StreamControlError::Authority),
             },
             Plan::Subscriptions(plan) => check_plan(plan, intent)?,

@@ -72,7 +72,7 @@ enum Observed {
     Codecs(rvoip_uctp::v2::native_negotiation::NativeOfferOutcome),
     Gates(rvoip_uctp::v2::native_control::NativeControlOutcome),
 }
-fn gate_streams(
+pub(crate) fn gate_streams(
     streams: &[rvoip_core::stream_lifecycle::LogicalStream],
     connection_generation: u64,
 ) -> Result<Vec<connect_protocol::native_gates::GateStream>> {

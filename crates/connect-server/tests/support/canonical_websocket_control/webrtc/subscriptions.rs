@@ -1,5 +1,7 @@
 //! Real WSS/Store/Core RTC audio, with explicit subscriptions and wire decoding.
 use super::*;
+#[path = "gates.rs"]
+mod gates;
 use rvoip_core::participant::ParticipantRole;
 use rvoip_core::{adapter::ConnectionAdapter, ids::StreamId, stream::MediaStream};
 use tokio::sync::mpsc;
@@ -266,8 +268,8 @@ async fn inaudible(rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>) {
         }
     }
 }
-async fn scenario(algorithm: &str, end: bool, roles: bool) {
-    if roles {
+async fn scenario(algorithm: &str, end: bool, roles: bool, gates: bool) {
+    if roles || gates {
         let _ = tracing_subscriber::fmt()
             .with_env_filter(
                 tracing_subscriber::EnvFilter::try_from_default_env()
@@ -281,7 +283,16 @@ async fn scenario(algorithm: &str, end: bool, roles: bool) {
         .service
         .install_canonical_webrtc(host.clone())
         .unwrap();
-    let other = canonical_webtransport_media::other(&f);
+    let other = if gates {
+        canonical_webtransport_media::other_caps_with_permissions(
+            &f,
+            vec!["audio".into()],
+            false,
+            &["connection.update"],
+        )
+    } else {
+        canonical_webtransport_media::other(&f)
+    };
     provision_config(&f, &f.client, 0).await;
     let endpoint = provision_config(&f, &other, 1).await;
     let (cid, initiator, recipient) = canonical_webtransport_media::accepted(&f, &other).await;
@@ -624,13 +635,29 @@ async fn scenario(algorithm: &str, end: bool, roles: bool) {
         audible(&mut audio_a, -1).await;
         audible(&mut audio_b, 1).await;
     }
+    if gates {
+        gates::run(
+            &f,
+            &host,
+            &mut first,
+            &mut second,
+            &other,
+            &cid,
+            &controllers[0],
+            &controllers[1],
+            &mut audio_a,
+            &mut audio_b,
+        )
+        .await;
+    }
+    let final_revision = controllers[0].revision();
     if end {
         let request = scoped(
             &cid,
             0,
             "connection.end",
             "rtc-end-a",
-            4,
+            final_revision,
             json!({"reason_code":0,"reason":"designated local fixture complete"}),
         );
         command(&mut first, request.clone()).await;
@@ -677,14 +704,14 @@ async fn scenario(algorithm: &str, end: bool, roles: bool) {
                 0,
                 "connection.end",
                 "rtc-denied-end-a",
-                4,
+                final_revision,
                 json!({"reason_code":0,"reason":"no end scope"}),
             ),
             "forbidden",
             403,
         )
         .await;
-        assert_eq!(controllers[0].revision(), 4);
+        assert_eq!(controllers[0].revision(), final_revision);
         audible(&mut audio_a, -1).await;
         audible(&mut audio_b, 1).await;
         let store = f.server.store.clone();
@@ -714,7 +741,7 @@ async fn scenario(algorithm: &str, end: bool, roles: bool) {
         })
         .await
         .unwrap();
-        assert_eq!(controllers[0].revision(), 4);
+        assert_eq!(controllers[0].revision(), final_revision);
         assert_eq!(host.adapter().total_allocations(), 2);
         assert!(host.adapter().is_connection_live(&ids[0]));
     }
@@ -736,25 +763,34 @@ async fn scenario(algorithm: &str, end: bool, roles: bool) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_eddsa() {
-    scenario("EdDSA", false, false).await;
+    scenario("EdDSA", false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_es256() {
-    scenario("ES256", false, false).await;
+    scenario("ES256", false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_eddsa() {
-    scenario("EdDSA", true, false).await;
+    scenario("EdDSA", true, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_es256() {
-    scenario("ES256", true, false).await;
+    scenario("ES256", true, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_eddsa() {
-    scenario("EdDSA", false, true).await;
+    scenario("EdDSA", false, true, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_es256() {
-    scenario("ES256", false, true).await;
+    scenario("ES256", false, true, false).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_runtime_gates_fence_decoded_duplex_and_replay_eddsa() {
+    scenario("EdDSA", true, false, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_runtime_gates_fence_decoded_duplex_and_replay_es256() {
+    scenario("ES256", true, false, true).await;
 }
