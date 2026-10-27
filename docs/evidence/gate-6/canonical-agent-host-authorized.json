@@ -1,0 +1,223 @@
+{
+  "task": "G6-065",
+  "status": "in-progress",
+  "checked_at": "2026-10-27T01:13:59.125855+00:00",
+  "base_revision": "688db7f4",
+  "scope": "One explicitly human-authorized actual Codex0.164.0-alpha.11.1 model-host rehearsal on existing authenticated account, local macOS arm64. Synthetic signed native QUIC/PCMU conference; session-scoped Observe handoff, EdDSA. No PSTN/SMS/communication or voice-provider endpoint exercised.",
+  "authorization": {
+    "source": "Direct human reply: Authorize this bounded host rehearsal",
+    "maximum_host_invocations": 1,
+    "maximum_host_seconds": 120,
+    "account_reference": "existing authenticated local Codex account; account files/credentials not inspected or copied",
+    "approved_model_execution": true,
+    "host_invocations_observed": 1,
+    "automatic_resume_or_replacement": false
+  },
+  "host_preflight": {
+    "checked_at": "2026-10-27T01:03:49.949898+00:00",
+    "version": "codex-cli 0.164.0-alpha.11.1",
+    "binary": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+    "sha256": "a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e",
+    "matches_approved_sha256": true,
+    "account_status_exit": 0,
+    "account_reference": "existing authenticated local Codex account; no account file or credential inspected/copied",
+    "model_started": false
+  },
+  "source_inputs": {
+    "crates/connect-server/tests/support/canonical_agent_rehearsal.rs": "5164a33ab9405d9f042e093e85f39dd52fe4728e177b7d27d59d505a780d6b9a",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "8f10f33003cd88bcdba92caf97b1cca7bb3a9d7e359cde4a46ee5beb842aab5f",
+    "crates/connect-server/src/cli/agent_access/host.rs": "d5c840ac06829b2510545c5454d233ffa0abb757da83f8a9133469ee16447610",
+    "crates/connect-server/src/cli/agent_access/preflight.rs": "150e59da33f22fa561e721312c12f8b26e1efb5e37c9373a83d50c0ec9180ab0",
+    "crates/connect-server/src/cli/task_access/codex_host/process.rs": "01c7c9df8777072466f31a9eb5a055260c51c692e18b45686ac045d1eccf4aa4",
+    "crates/connect-server/src/cli/task_access/codex_host/child.rs": "97424741b330b034e9ee6d282e100ebac056bb312d00ac94cddedc6ca0c21993",
+    "dependencies/source-lock.json": "b65e6a7e17365665c0c87a2ab3b5e62ffe7306170808711bd3ea15f9195921eb"
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 14.306986291194335,
+    "source_unchanged": true,
+    "source_count": 2132,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_runtime",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-3040a430b3e3a7af",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/agent-host-authorized-20261026/server-library-test-02",
+        "sha256": "bb46f48860ee6dfc1e7ecb69c355a5f94832b9a1321afbe500ff6d02126aa7ad",
+        "bytes": 106380880
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-172247673856f855",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/agent-host-authorized-20261026/runtime-test-02",
+        "sha256": "a9e4916bb8b720a938159013af3162a4cb629ca1fcf96ee405e303f21c10cba6",
+        "bytes": 251706032
+      }
+    ],
+    "log_sha256": "df1a74d8c127c8b701278ef49badec0a4f838630ec4f6c04461c16a5c3db7734"
+  },
+  "runtime": {
+    "exit_code": 0,
+    "seconds": 47.63520604092628,
+    "source_count": 4012,
+    "changed_inputs": [],
+    "test_executable_unchanged": true,
+    "log_sha256": "e195d54053f57578ade246cd6c602ce8caf7a315f694e688af00a52b03a0d855",
+    "test_result": [
+      "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 47.48s"
+    ],
+    "host_retry_started": false
+  },
+  "actual_trace_audit": {
+    "actual_model_turn": true,
+    "completed": true,
+    "attempts": 1,
+    "host_session_retained": true,
+    "session_sha256": "9022706ae63e5c41077c469281b3626668befca090ec22d3f81755856a18234c",
+    "event_types": {
+      "thread.started": 1,
+      "turn.started": 1,
+      "item.completed": 4,
+      "item.started": 2,
+      "turn.completed": 1
+    },
+    "completed_item_types": {
+      "agent_message": 2,
+      "mcp_tool_call": 2
+    },
+    "mcp_tools": [
+      {
+        "server": "connect_agent",
+        "tool": "connect_session_handoff",
+        "status": "completed"
+      },
+      {
+        "server": "connect_agent",
+        "tool": "connect_operation_get",
+        "status": "completed"
+      }
+    ],
+    "exact_original_handoff_calls": 1,
+    "handoff_arguments_match": true,
+    "status_calls": 1,
+    "outcome": {
+      "actual_model_turn": true,
+      "mode": "codex",
+      "native_handoff_audio_roles_original_replay_and_joined_cleanup": true,
+      "profile": "connect-agent-host-outcome/1"
+    },
+    "unexpected_mcp_tools": [],
+    "status_arguments_match_exact_original": true,
+    "status_tool_error": false,
+    "original_status_http": 200,
+    "original_status_path": "/data/envelopes/0/payload",
+    "original_status_state": "completed",
+    "original_record_sha256": "e15cdf8a87ef5d70267001055a387409dd88ffffb0a0e92cb8c620703c6b959a",
+    "model_report_metadata_only": true,
+    "no_command_or_file_tool_items": true,
+    "listener_reclaim": [
+      {
+        "listener": "native_quic",
+        "original_address_reclaimed": true
+      },
+      {
+        "listener": "http3",
+        "original_address_reclaimed": true
+      },
+      {
+        "listener": "mcp_http",
+        "original_address_reclaimed": true
+      }
+    ]
+  },
+  "prompt_sha256": "f78b58785f7bfa4d1eb98a10ed396a3eb9a4788a265aea366695992e16c305aa",
+  "credential_permissions": [
+    "session.handoff",
+    "operation.get"
+  ],
+  "control_and_media_evidence": [
+    "One real completed host turn with retained original session, exactly one matching connect_agent.connect_session_handoff item with the protected saved arguments and one connect_operation_get item with exact saved original scope/operation arguments.",
+    "The actual status tool response is HTTP200 with completed state and an original record. The model explicitly says decoded audio was not verified; it does not turn metadata into audio proof.",
+    "Independent native assertions check marked decoded PCMU audience/role handoff, observer cannot publish, continued media after originating read intervals, outgoing observer EOF, original-record replay and one physical attempt.",
+    "Every native peer shuts down, physical slots return to zero and the original server shutdown joins. Native QUIC, HTTP3 and MCP HTTP original listener addresses were independently rebound afterward.",
+    "Raw prompt, actual JSONL, credentials, native state/configuration and resumable host/session records remain private under ignored .local. Temporary installation input/server config files were removed before host start."
+  ],
+  "verification_limits": [
+    "One bounded actual model-host scene is separate from prior protocol-only, 8-scene MCP handoff and other facade evidence. It is not a claim of every facade/profile or Gate6 acceptance.",
+    "The complete worker took47.635seconds, below the120second host budget. No second model execution or resumed turn was attempted.",
+    "The host uses only regular scoped credential; its tool output contains control metadata, not media frames. Actual media is independently checked by native fixtures.",
+    "The task still has retained facade-positive/profile and Task/provider regression work; this result closes the actual supported-host request/observe subrequirement only.",
+    "Linux, remote/provider, telephone/browser profiles and publication are not qualified by this local rehearsal."
+  ],
+  "historical_build_failure": {
+    "build": "01",
+    "result": "ENOSPC while linking current runtime target; no model started and no runtime pass claimed. Older closed proof artifacts were gzip-preserved with restored-content SHA checks; the exact stale regenerable runtime cache was removed, then unchanged sources built successfully in build02.",
+    "outcome": {
+      "exit_code": 101,
+      "seconds": 12.76477708411403,
+      "source_unchanged": true,
+      "source_count": 2132,
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--lib",
+        "--test",
+        "gate6_canonical_runtime",
+        "--no-run",
+        "--message-format=json"
+      ]
+    },
+    "preservation_manifest_sha256": "d79832178770170d4ee59d76f336422479489526b04a45b41528fde40d4eb91a"
+  },
+  "private_evidence_hashes": {
+    "authorized-config.json": "bf796d3b10cc4b35e593c5c6a27dfe24354738b741c97e32e8422ffd324bf9e4",
+    "bounded-authorized-plan.json": "651d3b3fa2ac83bb55680ae0e1a11f5362c116d66524148363562b12c2e0e1c1",
+    "runtime-inputs.json": "7c6d66bba24971b513f35f31ae8faf7a78915f7db3a3669373b8fa20a6fa8185",
+    "runtime.log": "e195d54053f57578ade246cd6c602ce8caf7a315f694e688af00a52b03a0d855",
+    "trace-audit.json": "d4dd9bacba5c9fb09da86d7cd8ca53c2837010e89a27a73d5f3bfccb82ac5ba3",
+    "listener-reclaim.json": "0b90563f990044a37ca7ca348f4b0ea26826080699635c1eff4d4bb60a67643e",
+    "single-launch.json": "d79b05ec8a99a84555a5d0e9488059ac9cc95c4d90c393d53fab64a951a1cab2"
+  },
+  "private_rehearsal_hashes": {
+    "prompt.txt": "f78b58785f7bfa4d1eb98a10ed396a3eb9a4788a265aea366695992e16c305aa",
+    "host-probe.json": "33deba104e0b68bbc67d3f4fc5e7c73f221c3f72f9b48bb61007aa9dd5216943",
+    "outcome.json": "910e94653428642b9c17cb70afc96fb0bb2fa463a5db4c0013c40871f7d20793",
+    "native-state.json": "5be712412188d6f2c646fb4b9a6e982e62a9afb5b39d607f6f4cc13e73574275",
+    "installation/host-state.json": "e12c1d4a7290741c458dd50344d2c15ca9894a4b79989b76d97c93b8e9b114ad"
+  },
+  "actual_redacted_jsonl_sha256": "8fe8b31c696f1f3bcdeb6188d680baedfdc7994e428aa1d6f5c938680555c158",
+  "private_evidence": ".local/gate-6/agent-host-authorized-20261026/",
+  "publication": "Not performed; separate action."
+}

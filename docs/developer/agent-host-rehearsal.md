@@ -89,3 +89,26 @@ model session, prompt, operation and process handle for inspection/reconciliatio
 Do not start another model session or repeat the mutation to conceal uncertainty.
 Publication, remote/provider/telephone/browser profiles and Gate 6 acceptance
 remain separate actions and evidence.
+
+
+## Recorded actual host result
+
+On October 26, 2026 the owner explicitly authorized one 120-second Codex
+0.164.0-alpha.11.1 rehearsal on the existing local account. The current sealed
+worker passed in 47.6 seconds. Its real JSONL contains one exact handoff tool call
+and one exact original-operation status read, returning `completed`. No shell,
+file or unrelated MCP tool items occurred. The model reported metadata and
+explicitly declined to claim decoded-audio verification.
+
+Independent native assertions passed for marked decoded PCMU, audience and role
+handoff, observer publication refusal, continued media after read expiry,
+original receipt replay, one physical attempt and joined cleanup. The native
+QUIC, HTTP3 and MCP HTTP listener addresses were reclaimable afterward. The
+original prompt/session, native state and redacted JSONL remain under ignored
+`.local/`; no replacement or resumed model turn was started.
+
+See [the bounded actual-host evidence](../evidence/gate-6/canonical-agent-host-authorized.json).
+This fulfills the actual supported-host request/observe subrequirement locally.
+Remaining facade/profile work, remote/provider/telephone/browser qualification
+and Gate 6 acceptance remain open. This one authorization does not authorize
+another model rehearsal.
