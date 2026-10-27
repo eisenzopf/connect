@@ -1,0 +1,251 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T18:48:00.592342+00:00",
+  "scope": "Repair installed Firefox fixture observation: visible independent windows, actual100ms audio deadlines, current numeric snapshot copies across BiDi. Current full60sAV remains FAILED solely on video rate/freshness profile; no source/codec/threshold/deadline reduction.",
+  "implementation": [
+    "Use public Puppeteer createBrowserContext/newPage({type:window,background:false}) to retain independent normally trusted receiver windows. Both native documents must report visible at fixture setup. No visibility API override.",
+    "Audio content samples follow their configured100ms deadlines on actual performance.now(). Native10ms marker callbacks continue unchanged. Late callbacks yield one actual sample and expose the original gap; no backfill or generated timestamp. Original spectral tone, RMS,35Hz identity limit and90percent coverage minimum remain unchanged.",
+    "Copy the current worker numeric object into outbound fixture metadata. Original getStats/worker values are retained; absent current snapshots stay absent. No positive cache. The installed BiDi serializer omits repeated object references; a separate value copy survives."
+  ],
+  "units": {
+    "observer_methods": 57,
+    "sampling_clock_cases": 3,
+    "checks": "All57original/extended Python measurement methods pass, including3Node clock cases:10/12/13/16ms callback cadences produce600actual samples over60s; late/invalid/backwards callbacks cannot fabricate samples.",
+    "log_sha256": "102254757fa24babb5b7b630db525cd22d4121525d99af62fc858fad9ad1c2b9"
+  },
+  "bidi_value_boundary": {
+    "summary": {
+      "node_exit": 0,
+      "original_firefox_pid_joined": true,
+      "changed_inputs": [],
+      "files": {
+        "trust.json": "57f2155a833aa58477cf92173844130f106599324ff64d52babe14172517a0cc",
+        "firefox.log": "a4df27352fa6238e926ea40c4d89368943ecc40abc7d096d2f282eed6d986152",
+        "node.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result.jsonl": "ec06b200508c1929b5ce1e5463bd996c3aeb5985fb14a9e648dfa51f6c5d70c0",
+        "inputs.json": "daacc0c99ab0e0672662507094afc7c14dfb276a657c55af6afe418ad1909e2e"
+      }
+    },
+    "result": {
+      "visibility": [
+        "visible",
+        "visible"
+      ],
+      "aliases": {
+        "first": {
+          "observedFrames": 7
+        }
+      },
+      "distinct": {
+        "first": {
+          "observedFrames": 7
+        },
+        "second": {
+          "observedFrames": 7
+        }
+      }
+    },
+    "scope": "Public native BiDi automation smoke with synthetic numeric object, not media evidence. Original browser PID joined, guarded files unchanged. Both native independent windows visible."
+  },
+  "firefox": {
+    "status": "failed",
+    "browser": "firefox/158.0.1",
+    "seconds": 66.45905925007537,
+    "guards_closed_unchanged": true,
+    "hashes": {
+      "inputs.json": "b3eec1278229c7a6ec44f8e0ab4c36ffff4b2d20b46ef2f928b9e66d78cb817e",
+      "browser-result.jsonl": "ad4f4ebfe09692532c0fcbe4db2d814c513ddf6bb68b16dfbed83dbf36951d8a",
+      "test.log": "d838ec6747b3465ee7420ffd2126d423a22d2ab29c5d80a2d438d338c1090de9",
+      "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+      "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+      "stun.json": "ce6feb57886284dd235a4e511fd6a7fdbb2844fdfbd3ab70d83488240779c3b1"
+    },
+    "transport_switch": {
+      "actual_loopback_quic_initial_datagrams": [
+        28,
+        28
+      ],
+      "forced_fallback": true,
+      "original_message_counts": [
+        1,
+        2,
+        1
+      ],
+      "original_message_counts_preserved": true
+    },
+    "stun": {
+      "bounded_numeric_headers": [
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        }
+      ],
+      "owned_loopback_only": true,
+      "successful_binding_responses": 8
+    },
+    "participants": [
+      {
+        "seconds": 60.00699996948242,
+        "decoded_fps": 18.831136377000693,
+        "changing_fps": 17.5146233028564,
+        "rendered_frames": 1131,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "passed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_sync": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": 0,
+        "worker_deltas": {
+          "observedFrames": 1140,
+          "observedKeyframes": 61,
+          "keyframeRequests": 61,
+          "keyframeCompletions": 61,
+          "keyframeFailures": 0
+        },
+        "source_draws_per_second": 29.113270133292225
+      },
+      {
+        "seconds": 60.00600004196167,
+        "decoded_fps": 18.998100176695797,
+        "changing_fps": 17.548245163211117,
+        "rendered_frames": 1140,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "passed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_sync": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": 0,
+        "worker_deltas": {
+          "observedFrames": 1131,
+          "observedKeyframes": 61,
+          "keyframeRequests": 61,
+          "keyframeCompletions": 61,
+          "keyframeFailures": 0
+        },
+        "source_draws_per_second": 29.047095270158575
+      }
+    ],
+    "paired_termination": {
+      "status": "passed",
+      "seconds": 0.08035725000000093,
+      "limit_seconds": 5,
+      "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+    },
+    "teardown_seconds": 0.13384029099999314,
+    "ownership": {
+      "browser_kind": "firefox",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    }
+  },
+  "capture_diagnostic": {
+    "summary": {
+      "node_exit": 0,
+      "original_firefox_pid_joined": true,
+      "changed_inputs": [],
+      "files": {
+        "trust.json": "6d0a866b11cca79b761a655c452725aeaf5651ea157cabfa34a91719aff668c8",
+        "firefox.log": "cc761677bafe74786f33be1a7654ea664707f282a56b0f53499d02e86d539f2e",
+        "node.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "result.jsonl": "54392fef882c20a0e7550bec7417b9cc67b3e0eff48a32343fbeebef441da81e",
+        "inputs.json": "0d6c1d28d15745f4e796cc5060313494a142a2ee1f355d4bcc948afd7391761b"
+      }
+    },
+    "result": {
+      "visibility": "visible",
+      "seconds": 10.003,
+      "source_draws": 251,
+      "automatic_frames": 186,
+      "default_frames": 251,
+      "automatic_settings": {
+        "height": 360,
+        "width": 640
+      },
+      "default_settings": {
+        "height": 360,
+        "width": 640
+      },
+      "scope": "native same-canvas capture/renderer comparison only; no codec, RTC, Core or quality qualification"
+    },
+    "scope": "Same native canvas, draw timer, independent automatic capture streams and native visible video rendering. captureStream(30) yields186frames while native default capture yields251frames from251source draws in10.003seconds. This isolates a capture sampling difference before any codec/RTC/Core path; not full media qualification. No SDK capture change made yet.",
+    "manual_probe": "Prior private49probe explicitly refused: native Firefox track lacks requestFrame. No manual-capture pass.",
+    "next": "Preserve the actual source canvas/images/draw clock. Investigate eliminating redundant native capture sampling while imposing30fps on the original sender before media can start; verify actual bounds and both browsers rather than weakening24fps acceptance."
+  },
+  "retained_failures": [
+    "ES25643setup failed because public Target.opener is unsupported in this BiDi implementation. ES25644URL-target matching timed out. Both owned Node/browser/server/listener scopes retired.",
+    "ES25645native popup windows +deadline clock restored visibility and600audio samples, but video remained18fps, two tone samples failed in one direction, and aliased final worker fields were absent. No ES256fullAV pass.",
+    "Alias smoke46had an incorrect private import path and failed before connecting; original browser joined. Corrected47passes.",
+    "Current EdDSA48passes600/600identifiedaudio per direction,61worker keyframe requests/completions per direction with0failures, source identity, AV sync, original operation recovery and paired termination. Video18.83/19.00fps still fails the unchanged24fps profile."
+  ],
+  "qualification": "53/105done,4in progress,48not started;0acceptance-qualified. G6-050/G6-051 remain open. Current ES256, Chrome after fixture changes, impairment/mute/data, hosting and prior native audio issues remain required."
+}

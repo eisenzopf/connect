@@ -374,6 +374,14 @@ class MediaMeasurements(unittest.TestCase):
         self.assertEqual(observed[0]['maximum_snapshot_observation_gap_seconds'], 6)
         self.assertIn('do not bound inter-keyframe gaps', observed[0]['scope'])
 
+    def test_audio_sampling_follows_real_deadlines_without_filling_missing_samples(self):
+        result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--test',
+            '--test-reporter=tap', str(pathlib.Path(__file__).with_name('audio_sample_clock.test.mjs'))],
+            capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for count in ('# tests 3', '# pass 3', '# fail 0', '# cancelled 0', '# skipped 0'):
+            self.assertIn(count + '\n', result.stdout)
+
     def test_spectral_received_audio_identity_survives_pulse_envelope_and_phase_shift_without_expected_tone_bias(self):
         module = (pathlib.Path(__file__).parents[1] / 'video/audio_spectrum.mjs').resolve().as_uri()
         code = """import{spectralTone}from MODULE;const n=2048,rate=48000;

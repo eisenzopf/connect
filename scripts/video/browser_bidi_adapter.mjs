@@ -17,7 +17,9 @@ export async function connectFirefoxBidi(modulePath, port) {
             async newContext(){
                 const context=await browser.createBrowserContext();
                 return {close:()=>context.close(),async newPage(){
-                    const page=await context.newPage();
+                    // Separate visible windows keep both independent decoders
+                    // observable; a background Firefox tab can suspend rVFC.
+                    const page=await context.newPage({type:"window",background:false});
                     return {mouse:page.mouse,addInitScript:fn=>page.evaluateOnNewDocument(fn),
                         goto:url=>page.goto(url),evaluate:(fn,arg)=>page.evaluate(fn,arg)};
                 }};

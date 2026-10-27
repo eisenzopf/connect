@@ -355,3 +355,23 @@ signature verification in an in-process socket fixture. Installed WSS hosting,
 canonical WebRTC media/ICE and actual Chrome/Firefox fallback remain G6-051 work.
 This control option does not select the older browser-only signaling dialect.
 See `docs/evidence/gate-6/browser-fallback-control.json`.
+
+
+### Current installed Firefox observation
+
+The isolated canonical browser lane uses independent native visible windows via
+Puppeteer's public `newPage({type: "window", background: false})`. Audio identity
+sampling follows actual100ms deadlines instead of counting ten nominal10ms
+callbacks. Delayed callbacks create no catch-up samples and retain their actual
+timestamps, so the existing coverage/gap checks still detect missing evidence.
+The original tone/RMS and24fps video limits are unchanged.
+
+The installed BiDi value boundary omits repeated object aliases. The fixture now
+copies each current numeric worker snapshot before returning it beside getStats,
+preserving values without filling in missing observations. The latestEdDSA run
+passes identified audio, worker/keyframe activation, AV sync, original WSS
+operation recovery and terminal cleanup. Video remains below profile at about19fps.
+A separate same-canvas native capture probe isolates a sampling-rate difference
+before the codec or Core path; the SDK capture implementation is unchanged here.
+See [Firefox observation evidence](../evidence/gate-6/browser-firefox-observation.json).
+G6-050/G6-051 and acceptance remain open.

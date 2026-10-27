@@ -73,6 +73,10 @@ if(spec.root) {
                 response.writeHead(200,{"Content-Type":"text/javascript"});
                 response.end(await fs.readFile(new URL("./audio_spectrum.mjs",import.meta.url)));return;
             }
+            if(request.method==="GET"&&url.pathname==="/_qualification/audio-sample-clock.mjs"){
+                response.writeHead(200,{"Content-Type":"text/javascript"});
+                response.end(await fs.readFile(new URL("./audio_sample_clock.mjs",import.meta.url)));return;
+            }
             if(request.method!=="GET" || !(url.pathname.startsWith("/examples/conversation-client/") || url.pathname.startsWith("/sdk/typescript/dist/"))) throw Error("asset denied");
             const name=path.resolve(root,"."+decodeURIComponent(url.pathname)+(url.pathname.endsWith("/")?"index.html":""));
             const actual=await fs.realpath(name);
@@ -230,6 +234,8 @@ try {
             sourceId:spec.sourceIds?.[index]??index });
         return page;
     }));
+    const visibility=await Promise.all(pages.map(page=>page.evaluate(()=>document.visibilityState)));
+    if(visibility.some(state=>state!=="visible"))throw Error("Original browser fixture receiver must be visible");
     // Both original publishers must be durably admitted before either
     // receiver selects its counterpart. An SDP answer alone is insufficient.
     await Promise.all(pages.map(page=>page.evaluate(async()=>{
@@ -253,6 +259,8 @@ try {
     await Promise.all(pages.map(page=>page.evaluate(async()=>{
         const f=window.videoFixture;
         const {AudioEnvelope}=await import("/_qualification/audio-envelope.mjs");
+        const {audioSampleClock}=await import("/_qualification/audio-sample-clock.mjs");
+        const sampleDue=audioSampleClock();
         f.audioEnvelope=new AudioEnvelope();
         if(f.session.remoteStream.getAudioTracks().length!==1)throw Error("No independent remote audio track");
         const source=f.audio.createMediaStreamSource(f.session.remoteStream);
@@ -266,7 +274,7 @@ try {
             const rms=Math.sqrt(values.reduce((s,v)=>s+v*v,0)/values.length);
             const observedAt=performance.now();
             if(f.audioEnvelope.sample(observedAt/1000,rms))f.observation.audioEdges.push(observedAt);
-            if(f.observation.audioTicks++%10===0 && f.observation.audioSamples.length<2000) {
+            if(sampleDue(observedAt) && f.observation.audioSamples.length<2000) {
                 const frequencySamples=new Float32Array(f.frequencyAnalyser.fftSize);
                 f.frequencyAnalyser.getFloatTimeDomainData(frequencySamples);
                 const spectrum=new Float32Array(f.frequencyAnalyser.frequencyBinCount);f.frequencyAnalyser.getFloatFrequencyData(spectrum);
@@ -307,7 +315,10 @@ try {
                 target_bitrate_bits_per_second:finite(outgoing.targetBitrate),
                 remote_packets_lost:Number.isSafeInteger(outgoing.remotePacketsLost)?outgoing.remotePacketsLost:undefined,
                 remote_fraction_lost:finite(outgoing.remoteFractionLost),remote_round_trip_time_seconds:finite(outgoing.remoteRoundTripTimeSeconds),
-                available_outgoing_bitrate_bits_per_second:finite(outgoing.availableOutgoingBitrate),worker:outgoing.worker,
+                available_outgoing_bitrate_bits_per_second:finite(outgoing.availableOutgoingBitrate),
+                // BiDi drops repeated object aliases. Copy the current numeric
+                // snapshot so it survives beside the same getStats result.
+                worker:outgoing.worker?{...outgoing.worker}:undefined,
                 quality_limit:["none","cpu","bandwidth","other"].includes(outgoing.qualityLimit)?outgoing.qualityLimit:undefined};
         };
         f.recordIce=stats=>{
