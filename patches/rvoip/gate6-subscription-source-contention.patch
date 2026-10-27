@@ -1,0 +1,1076 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_subscriptions.rs
+@@ -1,5 +1,5 @@
+ //! Retained audio selection intent. Grants are rederived for every frame.
+-use super::audience::{same_rules, AudioAudienceRule};
++use super::audience::{AudioAudienceRule, same_rules};
+ use super::media_scene::{GuardedMediaScene, SceneMember};
+ use super::*;
+ use crate::ids::ParticipantId;
+@@ -224,10 +224,12 @@
+     }
+     pub(super) fn add_new_source_rule(&self, rule: AudioAudienceRule) {
+         let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+-        assert!(!state
+-            .rules
+-            .iter()
+-            .any(|old| old.group.operation == rule.group.operation));
++        assert!(
++            !state
++                .rules
++                .iter()
++                .any(|old| old.group.operation == rule.group.operation)
++        );
+         state.rules.push(rule);
+     }
+     pub(super) fn initial_rules(&self, rules: Vec<AudioAudienceRule>) {
+@@ -543,11 +545,22 @@
+                         None => source.current_descriptor(target_state, true),
+                     }
+                 } else {
+-                    let state = source
+-                        .controller
+-                        .state
+-                        .try_lock()
+-                        .map_err(|_| MediaTransitionError::Conflict)?;
++                    let state =
++                        source
++                            .controller
++                            .state
++                            .try_lock()
++                            .map_err(|error| match error {
++                                // A packet metadata reader has not changed either
++                                // routing revision. The original precommit command
++                                // can yield after releasing scene/controller locks.
++                                std::sync::TryLockError::WouldBlock => {
++                                    StreamControlError::Backpressure
++                                }
++                                std::sync::TryLockError::Poisoned(_) => {
++                                    MediaTransitionError::Conflict.into()
++                                }
++                            })?;
+                     source.current_descriptor(&state, true)
+                 };
+                 let descriptor = match (request, descriptor) {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/media_subscriptions.rs
+@@ -96,6 +96,23 @@
+     }
+     controller.check_credential_snapshot(credential)
+ }
++// Wait only after a definite precommit metadata collision. Callers have
++// released scene/state/policy guards and still own the original inflight slot,
++// plan, credentials and cutoff. No authority lease is shared across the wait.
++async fn metadata_wait(
++    shutdown: CancellationToken,
++    cancel: CancellationToken,
++    control_cancel: CancellationToken,
++    deadline: tokio::time::Instant,
++) -> ControlResult<()> {
++    tokio::select! { biased;
++        _=cancel.cancelled()=>Err(StreamControlError::Cancelled),
++        _=shutdown.cancelled()=>Err(StreamControlError::Cancelled),
++        _=control_cancel.cancelled()=>Err(StreamControlError::Cancelled),
++        _=tokio::time::sleep_until(deadline)=>Err(StreamControlError::Deadline),
++        _=tokio::time::sleep(Duration::from_millis(2))=>Ok(())
++    }
++}
+ pub(super) async fn change(
+     controller: Arc<StreamController>,
+     scene: Option<&GuardedMediaScene>,
+@@ -117,12 +134,18 @@
+     if let Some(direct) = &change.direct {
+         direct_subscriptions::validate(direct)?;
+     }
+-    let _flight = controller
+-        .inflight
+-        .clone()
+-        .try_acquire_owned()
+-        .map_err(|_| MediaTransitionError::Conflict)?;
+     let credential = controller.credential_snapshot();
++    let deadline = StreamController::command_deadline(&credential.principal, deadline);
++    // The scene tick also takes this slot for metadata adoption. A busy slot
++    // proves neither a routing revision conflict nor an applied effect. Wait
++    // within this original command; exact expected revision/current authority
++    // are still checked after acquisition and immediately before commit.
++    let _flight = tokio::select! { biased;
++        _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++        _=controller.shutdown.cancelled()=>return Err(StreamControlError::Cancelled),
++        _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++        slot=controller.inflight.clone().acquire_owned()=>slot.map_err(|_| StreamControlError::Cancelled)?,
++    };
+     let scope = controller.scope(&credential.principal, MediaPurpose::Control);
+     let intent = if change.selection.is_some() {
+         MediaControlIntent::Subscriptions {
+@@ -151,53 +174,7 @@
+         deadline,
+         &cancel,
+     )?;
+-    let (audio, direct) = with_member(scene, &controller, |member| {
+-        validate_members(member, &change)?;
+-        if let Some(selection) = &change.selection {
+-            selection.validate_scope(
+-                scene.ok_or(StreamControlError::NotReady)?,
+-                &controller,
+-                expected,
+-            )?;
+-        }
+-        let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
+-        StreamController::check(&scope, lease.authority())?;
+-        if state.closed {
+-            return Err(StreamControlError::Cancelled);
+-        }
+-        state
+-            .model
+-            .check_routing(&lease.authority().current(), expected)?;
+-        let _selection_receive = if let Some(selection) = &change.selection {
+-            let (members, _) = member.ok_or(StreamControlError::NotReady)?;
+-            selection.receive(members, &controller, &scope, control.as_ref())?
+-        } else {
+-            Vec::new()
+-        };
+-        let audio = change
+-            .audio
+-            .as_ref()
+-            .map(|change| {
+-                let (members, target) = member.ok_or(StreamControlError::NotReady)?;
+-                AudioPlan::prepare(
+-                    scene.ok_or(StreamControlError::NotReady)?,
+-                    members,
+-                    target,
+-                    &state,
+-                    &scope,
+-                    lease.authority(),
+-                    change,
+-                    control.as_ref(),
+-                    None,
+-                )
+-            })
+-            .transpose()?;
+-        let direct = change
+-            .direct
+-            .as_ref()
+-            .map(|change| controller.prepare_direct(&state, &scope, change, control.as_ref(), None))
+-            .transpose()?;
++    let (audio, direct) = loop {
+         invocation(
+             &controller,
+             &credential,
+@@ -205,8 +182,80 @@
+             deadline,
+             &cancel,
+         )?;
+-        Ok((audio, direct))
+-    })?;
++        let prepared = with_member(scene, &controller, |member| {
++            validate_members(member, &change)?;
++            if let Some(selection) = &change.selection {
++                selection.validate_scope(
++                    scene.ok_or(StreamControlError::NotReady)?,
++                    &controller,
++                    expected,
++                )?;
++            }
++            let state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++            let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
++            StreamController::check(&scope, lease.authority())?;
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            state
++                .model
++                .check_routing(&lease.authority().current(), expected)?;
++            let _selection_receive = if let Some(selection) = &change.selection {
++                let (members, _) = member.ok_or(StreamControlError::NotReady)?;
++                selection.receive(members, &controller, &scope, control.as_ref())?
++            } else {
++                Vec::new()
++            };
++            let audio = change
++                .audio
++                .as_ref()
++                .map(|change| {
++                    let (members, target) = member.ok_or(StreamControlError::NotReady)?;
++                    AudioPlan::prepare(
++                        scene.ok_or(StreamControlError::NotReady)?,
++                        members,
++                        target,
++                        &state,
++                        &scope,
++                        lease.authority(),
++                        change,
++                        control.as_ref(),
++                        None,
++                    )
++                })
++                .transpose()?;
++            let direct = change
++                .direct
++                .as_ref()
++                .map(|change| {
++                    controller.prepare_direct(&state, &scope, change, control.as_ref(), None)
++                })
++                .transpose()?;
++            invocation(
++                &controller,
++                &credential,
++                control.as_ref(),
++                deadline,
++                &cancel,
++            )?;
++            Ok((audio, direct))
++        });
++        match prepared {
++            Err(StreamControlError::Backpressure) => {
++                metadata_wait(
++                    controller.shutdown.clone(),
++                    cancel.clone(),
++                    control
++                        .as_ref()
++                        .map(|c| c.cancellation.clone())
++                        .unwrap_or_default(),
++                    deadline,
++                )
++                .await?
++            }
++            result => break result?,
++        }
++    };
+     let tickets = audio
+         .as_ref()
+         .map_or_else(Vec::new, |p| p.tickets())
+@@ -231,54 +280,7 @@
+             result=tokio::time::timeout_at(deadline,ticket.quiesce())=>result.map_err(|_|StreamControlError::Deadline)?.ok_or(MediaTransitionError::Conflict)?,
+         });
+     }
+-    with_member(scene, &controller, |member| {
+-        validate_members(member, &change)?;
+-        let mut state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
+-        let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
+-        StreamController::check(&scope, lease.authority())?;
+-        if state.closed {
+-            return Err(StreamControlError::Cancelled);
+-        }
+-        let _audio_receive = if let Some(audio) = &audio {
+-            let (members, target) = member.ok_or(StreamControlError::NotReady)?;
+-            audio.validate(
+-                scene.ok_or(StreamControlError::NotReady)?,
+-                members,
+-                target,
+-                &state,
+-                &scope,
+-                lease.authority(),
+-                control.as_ref(),
+-                None,
+-            )?
+-        } else {
+-            Vec::new()
+-        };
+-        let _direct_receive = direct
+-            .as_ref()
+-            .map(|p| p.validate(&controller, &state, &scope, control.as_ref(), None))
+-            .transpose()?;
+-        // Both programs remain locked through the one model revision commit.
+-        // No new media admission can see one half of a mixed change.
+-        let _selection_receive = if let Some(selection) = &change.selection {
+-            let (members, _) = member.ok_or(StreamControlError::NotReady)?;
+-            selection.receive(members, &controller, &scope, control.as_ref())?
+-        } else {
+-            Vec::new()
+-        };
+-        let mut selection_commit = change
+-            .selection
+-            .as_ref()
+-            .map(|p| {
+-                p.lock(
+-                    scene.ok_or(StreamControlError::NotReady)?,
+-                    &controller,
+-                    expected,
+-                )
+-            })
+-            .transpose()?;
+-        let mut audio_commit = audio.as_ref().map(|p| p.lock()).transpose()?;
+-        let mut direct_commit = direct.as_ref().map(|p| p.lock(&controller)).transpose()?;
++    loop {
+         invocation(
+             &controller,
+             &credential,
+@@ -286,27 +288,98 @@
+             deadline,
+             &cancel,
+         )?;
+-        let changed = change.selection.as_ref().is_some_and(|p| p.changed())
+-            || audio.as_ref().is_some_and(|p| p.changed())
+-            || direct.as_ref().is_some_and(|p| p.changed());
+-        let revision =
+-            state
+-                .model
+-                .commit_routing(&lease.authority().current(), expected, changed)?;
+-        if let (Some(plan), Some(commit)) = (&audio, audio_commit.as_mut()) {
+-            commit.commit(plan);
+-        }
+-        if let (Some(plan), Some(commit)) = (&direct, direct_commit.as_mut()) {
+-            commit.commit(plan);
+-        }
+-        if let Some(commit) = selection_commit.as_mut() {
+-            commit.commit();
+-        }
+-        if let Some(scene) = scene {
+-            scene.selection_changed.notify_waiters();
+-        }
+-        Ok(revision)
+-    })
++        let committed = with_member(scene, &controller, |member| {
++            validate_members(member, &change)?;
++            let mut state = controller.state.lock().unwrap_or_else(|p| p.into_inner());
++            let lease = control_read(controller.policy.as_ref(), &scope, control.as_ref())?;
++            StreamController::check(&scope, lease.authority())?;
++            if state.closed {
++                return Err(StreamControlError::Cancelled);
++            }
++            let _audio_receive = if let Some(audio) = &audio {
++                let (members, target) = member.ok_or(StreamControlError::NotReady)?;
++                audio.validate(
++                    scene.ok_or(StreamControlError::NotReady)?,
++                    members,
++                    target,
++                    &state,
++                    &scope,
++                    lease.authority(),
++                    control.as_ref(),
++                    None,
++                )?
++            } else {
++                Vec::new()
++            };
++            let _direct_receive = direct
++                .as_ref()
++                .map(|p| p.validate(&controller, &state, &scope, control.as_ref(), None))
++                .transpose()?;
++            // Both programs remain locked through the one model revision commit.
++            // No new media admission can see one half of a mixed change.
++            let _selection_receive = if let Some(selection) = &change.selection {
++                let (members, _) = member.ok_or(StreamControlError::NotReady)?;
++                selection.receive(members, &controller, &scope, control.as_ref())?
++            } else {
++                Vec::new()
++            };
++            let mut selection_commit = change
++                .selection
++                .as_ref()
++                .map(|p| {
++                    p.lock(
++                        scene.ok_or(StreamControlError::NotReady)?,
++                        &controller,
++                        expected,
++                    )
++                })
++                .transpose()?;
++            let mut audio_commit = audio.as_ref().map(|p| p.lock()).transpose()?;
++            let mut direct_commit = direct.as_ref().map(|p| p.lock(&controller)).transpose()?;
++            invocation(
++                &controller,
++                &credential,
++                control.as_ref(),
++                deadline,
++                &cancel,
++            )?;
++            let changed = change.selection.as_ref().is_some_and(|p| p.changed())
++                || audio.as_ref().is_some_and(|p| p.changed())
++                || direct.as_ref().is_some_and(|p| p.changed());
++            let revision =
++                state
++                    .model
++                    .commit_routing(&lease.authority().current(), expected, changed)?;
++            if let (Some(plan), Some(commit)) = (&audio, audio_commit.as_mut()) {
++                commit.commit(plan);
++            }
++            if let (Some(plan), Some(commit)) = (&direct, direct_commit.as_mut()) {
++                commit.commit(plan);
++            }
++            if let Some(commit) = selection_commit.as_mut() {
++                commit.commit();
++            }
++            if let Some(scene) = scene {
++                scene.selection_changed.notify_waiters();
++            }
++            Ok(revision)
++        });
++        match committed {
++            Err(StreamControlError::Backpressure) => {
++                metadata_wait(
++                    controller.shutdown.clone(),
++                    cancel.clone(),
++                    control
++                        .as_ref()
++                        .map(|c| c.cancellation.clone())
++                        .unwrap_or_default(),
++                    deadline,
++                )
++                .await?
++            }
++            result => return result,
++        }
++    }
+ }
+ 
+ /// Staged alongside the real media candidate. Owns no publication permission;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -102,10 +102,12 @@
+         .collect::<Vec<_>>();
+     assert_eq!(apply(&s, clear()).await.unwrap(), revision + 2);
+     for packet in queued {
+-        assert!(packet
+-            .deliver(|_| async { panic!("old mixed routing reached IO") })
+-            .await
+-            .is_err());
++        assert!(
++            packet
++                .deliver(|_| async { panic!("old mixed routing reached IO") })
++                .await
++                .is_err()
++        );
+     }
+     publish(&s, 4);
+     silent(&mut out);
+@@ -124,73 +126,82 @@
+         desired(Medium::Screen).logical_id,
+     );
+     wrong.source.logical = StreamId::from_string("unknown");
+-    assert!(apply(
+-        &s,
+-        MediaSubscriptionChange {
+-            selection: None,
+-            audio: Some(AudioSubscriptionChange::Clear),
+-            direct: Some(DirectSubscriptionChange::Subscribe(vec![wrong]))
+-        }
+-    )
+-    .await
+-    .is_err());
+-    assert!(apply(
+-        &s,
+-        MediaSubscriptionChange {
+-            selection: None,
+-            audio: Some(AudioSubscriptionChange::Subscribe(vec![
+-                AudioSubscription::Stream(MediaStreamRef {
+-                    connection: s.f.a.connection.clone(),
+-                    logical: StreamId::from_string("missing")
+-                })
+-            ])),
+-            direct: Some(DirectSubscriptionChange::Clear)
+-        }
+-    )
+-    .await
+-    .is_err());
++    assert!(
++        apply(
++            &s,
++            MediaSubscriptionChange {
++                selection: None,
++                audio: Some(AudioSubscriptionChange::Clear),
++                direct: Some(DirectSubscriptionChange::Subscribe(vec![wrong]))
++            }
++        )
++        .await
++        .is_err()
++    );
++    assert!(
++        apply(
++            &s,
++            MediaSubscriptionChange {
++                selection: None,
++                audio: Some(AudioSubscriptionChange::Subscribe(vec![
++                    AudioSubscription::Stream(MediaStreamRef {
++                        connection: s.f.a.connection.clone(),
++                        logical: StreamId::from_string("missing")
++                    })
++                ])),
++                direct: Some(DirectSubscriptionChange::Clear)
++            }
++        )
++        .await
++        .is_err()
++    );
+     let foreign = setup().await;
+-    assert!(apply(
+-        &s,
+-        MediaSubscriptionChange {
+-            selection: None,
+-            audio: Some(AudioSubscriptionChange::Clear),
+-            direct: Some(DirectSubscriptionChange::Subscribe(vec![
+-                DirectSubscription::new(
+-                    &foreign.f.a,
+-                    desired(Medium::Video).logical_id.clone(),
+-                    desired(Medium::Video).logical_id
+-                )
+-            ]))
+-        }
+-    )
+-    .await
+-    .is_err());
++    assert!(
++        apply(
++            &s,
++            MediaSubscriptionChange {
++                selection: None,
++                audio: Some(AudioSubscriptionChange::Clear),
++                direct: Some(DirectSubscriptionChange::Subscribe(vec![
++                    DirectSubscription::new(
++                        &foreign.f.a,
++                        desired(Medium::Video).logical_id.clone(),
++                        desired(Medium::Video).logical_id
++                    )
++                ]))
++            }
++        )
++        .await
++        .is_err()
++    );
+     assert_eq!(before, s.f.b.revision());
+     publish(&s, 5);
+     heard_all(&mut out, 5).await;
+-    assert!(s
+-        .scene
+-        .change_media_subscriptions(
+-            &s.f.b.connection,
+-            before - 1,
+-            clear(),
+-            deadline(),
+-            CancellationToken::new(),
+-            None
+-        )
+-        .await
+-        .is_err());
+-    assert!(apply(
+-        &s,
+-        MediaSubscriptionChange {
+-            selection: None,
+-            audio: None,
+-            direct: None
+-        }
+-    )
+-    .await
+-    .is_err());
++    assert!(
++        s.scene
++            .change_media_subscriptions(
++                &s.f.b.connection,
++                before - 1,
++                clear(),
++                deadline(),
++                CancellationToken::new(),
++                None
++            )
++            .await
++            .is_err()
++    );
++    assert!(
++        apply(
++            &s,
++            MediaSubscriptionChange {
++                selection: None,
++                audio: None,
++                direct: None
++            }
++        )
++        .await
++        .is_err()
++    );
+     s.f.policy.0.write().await.private = true;
+     assert!(apply(&s, mixed(&s)).await.is_err());
+     s.f.policy.0.write().await.private = false;
+@@ -475,18 +486,19 @@
+     });
+     tokio::time::sleep(Duration::from_millis(10)).await;
+     let before = policy.fresh.load(Ordering::Acquire);
+-    assert!(s
+-        .scene
+-        .change_media_subscriptions(
+-            &held.target,
+-            held.expected,
+-            clear(),
+-            deadline(),
+-            CancellationToken::new(),
+-            Some(&held)
+-        )
+-        .await
+-        .is_err());
++    assert!(
++        s.scene
++            .change_media_subscriptions(
++                &held.target,
++                held.expected,
++                clear(),
++                deadline(),
++                CancellationToken::new(),
++                Some(&held)
++            )
++            .await
++            .is_err()
++    );
+     assert_eq!(s.f.b.revision(), held.expected);
+     assert_eq!(
+         s.scene
+@@ -642,9 +654,11 @@
+     }
+     assert_eq!(s.f.b.revision(), before);
+     assert_eq!(s.f.b.active_bindings().len(), 1);
+-    assert!(tokio::time::timeout(Duration::from_millis(20), &mut update)
+-        .await
+-        .is_err());
++    assert!(
++        tokio::time::timeout(Duration::from_millis(20), &mut update)
++            .await
++            .is_err()
++    );
+     s.f.ba.release.notify_one();
+     update.await.unwrap().unwrap();
+     drop(held);
+@@ -678,21 +692,21 @@
+     let mut audio = s.f.ba.port(Medium::Audio).take_egress().unwrap();
+     let held = held_resources(&s, receiver_plan(&s)).await;
+     s.f.ba.mode.store(2, Ordering::Release);
+-    assert!(s
+-        .f
+-        .b
+-        .change_selected_and_subscriptions(
+-            before,
+-            held.selected.as_ref().unwrap(),
+-            &BTreeSet::new(),
+-            s.scene.clone(),
+-            &held.change,
+-            deadline(),
+-            CancellationToken::new(),
+-            Arc::new(held.clone())
+-        )
+-        .await
+-        .is_err());
++    assert!(
++        s.f.b
++            .change_selected_and_subscriptions(
++                before,
++                held.selected.as_ref().unwrap(),
++                &BTreeSet::new(),
++                s.scene.clone(),
++                &held.change,
++                deadline(),
++                CancellationToken::new(),
++                Arc::new(held.clone())
++            )
++            .await
++            .is_err()
++    );
+     let failed = s.f.ba.port(Medium::Video).binding().stream_local_id;
+     assert_eq!(s.f.b.revision(), before);
+     assert_eq!(s.f.b.active_bindings().len(), 1);
+@@ -720,12 +734,12 @@
+     drop(held);
+     assert_eq!(s.f.b.revision(), before + 1);
+     assert_ne!(s.f.ba.port(Medium::Video).binding().stream_local_id, failed);
+-    assert!(s
+-        .f
+-        .b
+-        .active_bindings()
+-        .iter()
+-        .any(|b| b.transport_id == old.transport_id));
++    assert!(
++        s.f.b
++            .active_bindings()
++            .iter()
++            .any(|b| b.transport_id == old.transport_id)
++    );
+ }
+ 
+ fn future_video(s: &Scene) -> crate::staged_streams::subscription_plan::MediaSelectionChange {
+@@ -744,8 +758,8 @@
+         .unwrap()
+ }
+ #[tokio::test]
+-async fn participant_future_selection_commits_without_ports_and_revalidates_before_materializing_video(
+-) {
++async fn participant_future_selection_commits_without_ports_and_revalidates_before_materializing_video()
++ {
+     use crate::staged_streams::subscription_plan::MediaSelectionChange;
+     let s = Scene::new(&[Medium::Audio]).await;
+     let budget = s.f.b.stream_open_budget();
+@@ -784,9 +798,11 @@
+     assert_eq!(s.f.b.revision(), 2);
+     assert_eq!(s.f.b.stream_open_budget(), budget);
+     s.f.policy.0.write().await.private = true;
+-    assert!(apply(&s, planned(&s, &future_video(&s)).routing().clone())
+-        .await
+-        .is_err());
++    assert!(
++        apply(&s, planned(&s, &future_video(&s)).routing().clone())
++            .await
++            .is_err()
++    );
+     assert_eq!(s.f.b.revision(), 2);
+     s.f.policy.0.write().await.private = false;
+ }
+@@ -934,14 +950,16 @@
+         .await
+         .unwrap();
+     let foreign = Scene::new(&[Medium::Audio]).await;
+-    assert!(apply(
+-        &foreign,
+-        planned(&s, &MediaSelectionChange::Reconcile)
+-            .routing()
+-            .clone()
+-    )
+-    .await
+-    .is_err());
++    assert!(
++        apply(
++            &foreign,
++            planned(&s, &MediaSelectionChange::Reconcile)
++                .routing()
++                .clone()
++        )
++        .await
++        .is_err()
++    );
+     s.scene.remove(&s.f.a.connection);
+     s.f.a.retire();
+     let mut next = owner("alice");
+@@ -1072,12 +1090,14 @@
+         .await
+         .deliver(|frame| async move {
+             let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-            assert!(codec
+-                .decode(&frame.payload)
+-                .unwrap()
+-                .samples
+-                .iter()
+-                .any(|x| x.abs() > 1000));
++            assert!(
++                codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .any(|x| x.abs() > 1000)
++            );
+             Ok(())
+         })
+         .await
+@@ -1096,12 +1116,14 @@
+         let _ = frame
+             .deliver(|frame| async move {
+                 let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-                assert!(codec
+-                    .decode(&frame.payload)
+-                    .unwrap()
+-                    .samples
+-                    .iter()
+-                    .all(|x| x.abs() <= 1000));
++                assert!(
++                    codec
++                        .decode(&frame.payload)
++                        .unwrap()
++                        .samples
++                        .iter()
++                        .all(|x| x.abs() <= 1000)
++                );
+                 Ok(())
+             })
+             .await;
+@@ -1111,9 +1133,11 @@
+         &MediaSelectionChange::Subscribe(vec![MediaSelection::Stream(stream)]),
+     );
+     apply(&s, plan.routing().clone()).await.unwrap();
+-    assert!(s.scene.selections.lock().unwrap()[&s.f.b.connection]
+-        .participants
+-        .contains_key(s.f.a.origin_member.participant()));
++    assert!(
++        s.scene.selections.lock().unwrap()[&s.f.b.connection]
++            .participants
++            .contains_key(s.f.a.origin_member.participant())
++    );
+     for timestamp in [102, 103] {
+         if timestamp == 103 {
+             let revision = s.f.b.revision();
+@@ -1133,12 +1157,14 @@
+             .await
+             .deliver(|frame| async move {
+                 let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-                assert!(codec
+-                    .decode(&frame.payload)
+-                    .unwrap()
+-                    .samples
+-                    .iter()
+-                    .any(|x| x.abs() > 1000));
++                assert!(
++                    codec
++                        .decode(&frame.payload)
++                        .unwrap()
++                        .samples
++                        .iter()
++                        .any(|x| x.abs() > 1000)
++                );
+                 Ok(())
+             })
+             .await
+@@ -1284,12 +1310,14 @@
+     use crate::staged_streams::subscription_plan::*;
+     let s = wildcard_scene().await;
+     let source = s.f.a.clone();
+-    assert!(std::thread::spawn(move || {
+-        let _held = source.state.lock().unwrap();
+-        panic!("controlled source-state poison");
+-    })
+-    .join()
+-    .is_err());
++    assert!(
++        std::thread::spawn(move || {
++            let _held = source.state.lock().unwrap();
++            panic!("controlled source-state poison");
++        })
++        .join()
++        .is_err()
++    );
+     let input = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
+         participant: s.f.a.origin_member.participant().clone(),
+         media: BTreeSet::from([Medium::Audio]),
+@@ -1367,3 +1395,236 @@
+         2
+     );
+ }
++
++fn audio_only(s: &Scene) -> MediaSubscriptionChange {
++    MediaSubscriptionChange {
++        selection: None,
++        audio: Some(AudioSubscriptionChange::Subscribe(vec![
++            AudioSubscription::Stream(MediaStreamRef {
++                connection: s.f.a.connection.clone(),
++                logical: desired(Medium::Audio).logical_id,
++            }),
++        ])),
++        direct: None,
++    }
++}
++
++#[tokio::test]
++async fn original_audio_subscription_waits_for_source_metadata_then_commits_once() {
++    let s = Scene::new(&[Medium::Audio]).await;
++    let mut output = s.f.ba.port(Medium::Audio).take_egress().unwrap();
++    let revision = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let source = s.f.a.state.lock().unwrap();
++    let mut original = Box::pin(s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        audio_only(&s),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    ));
++    let first = std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx))).await;
++    assert!(
++        first.is_pending(),
++        "source metadata collision must yield within the same command: {first:?}"
++    );
++    assert_eq!(s.f.b.revision(), revision);
++    assert!(output.try_recv().is_err());
++    drop(source);
++    assert_eq!(original.await.unwrap(), revision + 1);
++    assert_eq!(s.f.b.revision(), revision + 1);
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++    s.publish(Medium::Audio, 160);
++    s.scene.tick();
++    outgoing(&mut output)
++        .await
++        .deliver(|frame| async move {
++            use rvoip_media_core::codec::factory::CodecFactory;
++            let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
++            assert!(
++                codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .any(|sample| *sample > 1000)
++            );
++            Ok(())
++        })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn original_audio_subscription_metadata_wait_obeys_original_deadline_and_cancellation() {
++    for cancelled in [false, true] {
++        let s = Scene::new(&[Medium::Audio]).await;
++        let revision = s.f.b.revision();
++        let mut output = s.f.ba.port(Medium::Audio).take_egress().unwrap();
++        let cancel = CancellationToken::new();
++        let source = s.f.a.state.lock().unwrap();
++        let mut original = Box::pin(s.scene.change_media_subscriptions(
++            &s.f.b.connection,
++            revision,
++            audio_only(&s),
++            tokio::time::Instant::now() + Duration::from_millis(30),
++            cancel.clone(),
++            None,
++        ));
++        assert!(
++            std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx)))
++                .await
++                .is_pending()
++        );
++        if cancelled {
++            cancel.cancel();
++        }
++        let result = original.await;
++        assert!(
++            if cancelled {
++                matches!(result, Err(StreamControlError::Cancelled))
++            } else {
++                matches!(result, Err(StreamControlError::Deadline))
++            },
++            "{result:?}"
++        );
++        drop(source);
++        assert_eq!(s.f.b.revision(), revision);
++        s.publish(Medium::Audio, 160);
++        s.scene.tick();
++        assert!(
++            output.try_recv().is_err(),
++            "uncommitted subscription reached IO"
++        );
++    }
++}
++
++#[tokio::test]
++async fn original_audio_subscription_metadata_wait_rechecks_authority_before_commit() {
++    let s = Scene::new(&[Medium::Audio]).await;
++    let revision = s.f.b.revision();
++    let source = s.f.a.state.lock().unwrap();
++    let mut original = Box::pin(s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        audio_only(&s),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    ));
++    assert!(
++        std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx)))
++            .await
++            .is_pending()
++    );
++    // No policy reader survives the metadata backoff, so this writer enters.
++    s.f.policy.0.write().await.revoked.insert("bob".into());
++    drop(source);
++    assert!(matches!(original.await, Err(StreamControlError::Authority)));
++    assert_eq!(s.f.b.revision(), revision);
++}
++
++#[tokio::test]
++async fn original_audio_subscription_waits_for_tick_slot_then_commits_once() {
++    let s = Scene::new(&[Medium::Audio]).await;
++    let revision = s.f.b.revision();
++    let mut output = s.f.ba.port(Medium::Audio).take_egress().unwrap();
++    let tick = s.f.b.inflight.clone().try_acquire_owned().unwrap();
++    let mut original = Box::pin(s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        audio_only(&s),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    ));
++    let first = std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx))).await;
++    assert!(
++        first.is_pending(),
++        "busy tick slot must not become a revision conflict: {first:?}"
++    );
++    assert_eq!(s.f.b.revision(), revision);
++    drop(tick);
++    assert_eq!(original.await.unwrap(), revision + 1);
++    assert_eq!(s.f.b.revision(), revision + 1);
++    s.publish(Medium::Audio, 160);
++    s.scene.tick();
++    outgoing(&mut output)
++        .await
++        .deliver(|_| async { Ok(()) })
++        .await
++        .unwrap();
++}
++
++#[tokio::test]
++async fn original_audio_subscription_slot_wait_obeys_deadline_and_cancellation() {
++    for cancelled in [false, true] {
++        let s = Scene::new(&[Medium::Audio]).await;
++        let revision = s.f.b.revision();
++        let cancel = CancellationToken::new();
++        let tick = s.f.b.inflight.clone().try_acquire_owned().unwrap();
++        let mut original = Box::pin(s.scene.change_media_subscriptions(
++            &s.f.b.connection,
++            revision,
++            audio_only(&s),
++            tokio::time::Instant::now() + Duration::from_millis(30),
++            cancel.clone(),
++            None,
++        ));
++        assert!(
++            std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx)))
++                .await
++                .is_pending()
++        );
++        if cancelled {
++            cancel.cancel();
++        }
++        let result = original.await;
++        assert!(
++            if cancelled {
++                matches!(result, Err(StreamControlError::Cancelled))
++            } else {
++                matches!(result, Err(StreamControlError::Deadline))
++            },
++            "{result:?}"
++        );
++        drop(tick);
++        assert_eq!(s.f.b.revision(), revision);
++    }
++}
++
++#[tokio::test]
++async fn original_audio_subscription_slot_wait_keeps_real_revision_conflicts() {
++    let s = Scene::new(&[Medium::Audio]).await;
++    let revision = s.f.b.revision();
++    let tick = s.f.b.inflight.clone().try_acquire_owned().unwrap();
++    // Queue the competing command first: Tokio reserves the released permit
++    // for its first waiter even before that future is polled again.
++    let mut concurrent = Box::pin(apply(&s, audio_only(&s)));
++    assert!(
++        std::future::poll_fn(|cx| std::task::Poll::Ready(concurrent.as_mut().poll(cx)))
++            .await
++            .is_pending()
++    );
++    let mut original = Box::pin(s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        audio_only(&s),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    ));
++    assert!(
++        std::future::poll_fn(|cx| std::task::Poll::Ready(original.as_mut().poll(cx)))
++            .await
++            .is_pending()
++    );
++    drop(tick);
++    assert_eq!(concurrent.await.unwrap(), revision + 1);
++    assert!(matches!(
++        original.await,
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert_eq!(s.f.b.revision(), revision + 1);
++}

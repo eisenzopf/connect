@@ -1,6 +1,6 @@
 {
   "task": "G6-051",
-  "status": "partial checkpoint; role projection implemented; repeat stability unresolved",
+  "status": "partial; local role projection and subscription contention recovery verified; G6-051 remains in progress",
   "based_on": "548be339",
   "scope": "Local macOS arm64 stock signed WSS, Store, Core and RTC G.711. No account/model-host/provider invocation.",
   "implementation": [
@@ -130,12 +130,6 @@
       "Controlled actual registry and activation mutex exclusion reproduce failures before fixes and pass identical signed fixtures after fixes; no grants or IO escape through test hooks."
     ]
   },
-  "unresolved": [
-    "Main 21-method run (6 RTC, 14 existing WSS, 1 decoded WebTransport) and both native QUIC regressions pass, but quiet repeat fails 5/6 at rtc-reselect-a Unknown. This is not a stability pass.",
-    "Narrow logging on unchanged candidate07 passes first round then fails 5/6 at rtc-select-b Unknown with Core Model(Conflict), mapped to subscription revision conflict. Original uncertain effect is never resubmitted or inferred successful from controller state. Investigate source-state metadata contention in guarded audio validation.",
-    "Both role methods pass the main run; a later diagnostic role method hits the same pre-role stream control conflict. Full task and acceptance remain unqualified.",
-    "RTC lifecycle/reoffer/DTMF/query/reconciliation/refresh, multiConnection and failure/deadline cases, Opus/video/data, installed browser forced fallback, Linux/remote/package profiles and full acceptance remain required."
-  ],
   "history": [
     {
       "candidate": "01",
@@ -189,5 +183,24 @@
     "in_progress": 4,
     "not_started": 48,
     "acceptance_qualified": 0
+  },
+  "historical_verification_snapshot": "Candidate07 before the follow-up Core contention correction. Its passing main run and failed repetitions remain historical evidence.",
+  "checkpoint_b30_unresolved": [
+    "Main 21-method run (6 RTC, 14 existing WSS, 1 decoded WebTransport) and both native QUIC regressions pass, but quiet repeat fails 5/6 at rtc-reselect-a Unknown. This is not a stability pass.",
+    "Narrow logging on unchanged candidate07 passes first round then fails 5/6 at rtc-select-b Unknown with Core Model(Conflict), mapped to subscription revision conflict. Original uncertain effect is never resubmitted or inferred successful from controller state. Investigate source-state metadata contention in guarded audio validation.",
+    "Both role methods pass the main run; a later diagnostic role method hits the same pre-role stream control conflict. Full task and acceptance remain unqualified.",
+    "RTC lifecycle/reoffer/DTMF/query/reconciliation/refresh, multiConnection and failure/deadline cases, Opus/video/data, installed browser forced fallback, Linux/remote/package profiles and full acceptance remain required."
+  ],
+  "unresolved": [
+    "G6-051 remains in progress. Broader RTC lifecycle/reoffer/DTMF/query/reconciliation/credential refresh, multiConnection and explicit service failure/deadline cases remain required.",
+    "Opus/video/data and ICE/MID/SSRC/source-clock profiles, installed Chrome/Firefox forced fallback, Linux/remote hosting and package/full acceptance qualification are not established by these local G.711 cases."
+  ],
+  "follow_up_resolution": {
+    "evidence": "docs/evidence/gate-6/webrtc-subscription-contention.json",
+    "core_scene_methods_passed": 35,
+    "main_integration_methods_passed": 21,
+    "quiet_rtc_rounds": 4,
+    "quiet_rtc_methods_per_round": 6,
+    "native_quic_methods_passed": 2
   }
 }

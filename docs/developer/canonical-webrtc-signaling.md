@@ -369,8 +369,15 @@ and activation metadata exclusion no longer establishes withdrawn authority;
 fresh authority and actual resource checks still follow after unlocking.
 
 The [current role checkpoint](../evidence/gate-6/webrtc-current-roles.json) records
-controlled negative/fixed cases, a passing 21-method run and two native
-regressions. Quiet repetition still exposes original RTC subscription outcomes
-recorded as uncertain after a Core conflict. Those outcomes are retained and
-never resubmitted. Repeat stability and G6-051 remain unqualified while this
-control contention is investigated.
+controlled negative/fixed cases and the original failed repetitions. The
+[subscription contention correction](../evidence/gate-6/webrtc-subscription-contention.json)
+keeps one original command while waiting for the scene tick slot or source
+metadata before commit. It preserves the original deadline, cancellation,
+current authorization and exact revision. A genuine revision conflict remains a
+conflict; uncertain operations are never resubmitted.
+
+The same six component cases fail on the original implementation; all35 fixed
+Core scene methods pass. The unchanged signed journey passes all21 selected
+RTC/WSS/WebTransport methods, four quiet six-method RTC repetitions and two
+native QUIC regressions. Full G6-051 media/browser/hosting/package and acceptance
+qualification remains open.

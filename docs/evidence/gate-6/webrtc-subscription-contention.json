@@ -1,0 +1,294 @@
+{
+  "task": "G6-051",
+  "status": "Local current-role/routing contention checkpoint verified; full task remains in progress",
+  "based_on": "b30a0393",
+  "scope": "Local macOS arm64, isolated synthetic fixtures. No additional account/model-host/provider invocation or publication. Manual Core component harness opt0; actual integration graph release Core opt3 and Connect store/service/server opt0, selected test stripping disabled; default stacks.",
+  "implementation": [
+    "One original guarded subscription waits for the scene tick control slot under its original caller deadline, credential expiry, cancellation and controller shutdown. It retains the exact expected revision; a distinct concurrent commit still produces a real conflict.",
+    "Source-state WouldBlock is definite precommit metadata backpressure, not a revision conflict. Original prepare/commit validation releases scene/controller/policy guards before a2ms cancellable wait, then rechecks current owner/receiver authority, credentials, scope, resources and expected revision.",
+    "The original command retains its inflight slot and exact plan through precommit backoff. Committed mutations, revision conflicts, poison, terminal authority failures and uncertain service effects are not automatically retried. Existing journal identity, receipt and resource custody remain unchanged.",
+    "The stock signed RTC journey fixture is byte-identical to b30a0393. Source and slot negative/fixed component fixtures are identical; only two production subscription files differ."
+  ],
+  "patch": {
+    "path": "patches/rvoip/gate6-subscription-source-contention.patch",
+    "sha256": "e291e515e2a26b2fdc94951d62334860e9839368ca29c7f88026847ca6549aa8"
+  },
+  "causal_verification": {
+    "production_differences": [
+      {
+        "path": "src/staged_streams/audio_subscriptions.rs",
+        "fixed_sha256": "207af21cd4b9cfd6d0b468feceff55802980438625773bb756a10985d1e04d1d",
+        "original_sha256": "201e6841df5c7e77c62878328d78f7382a03ed2060a5e36187f7436231dc3bff"
+      },
+      {
+        "path": "src/staged_streams/media_subscriptions.rs",
+        "fixed_sha256": "8a3e24678c9a9acdbb5cd6d5e26435f6da263121135c2275cfe280455c545a6e",
+        "original_sha256": "6c5180e7e15640605e54392178d50ade978afb64745b2cf801f34e9b55eb70a8"
+      }
+    ],
+    "fixture_sha256": "343547efbc903a74a2d8d67bf64bf9fdb463d06d98b3f19b66ac5c41b17629a9",
+    "cases": [
+      "original_audio_subscription_waits_for_source_metadata_then_commits_once",
+      "original_audio_subscription_metadata_wait_obeys_original_deadline_and_cancellation",
+      "original_audio_subscription_metadata_wait_rechecks_authority_before_commit",
+      "original_audio_subscription_waits_for_tick_slot_then_commits_once",
+      "original_audio_subscription_slot_wait_obeys_deadline_and_cancellation",
+      "original_audio_subscription_slot_wait_keeps_real_revision_conflicts"
+    ],
+    "original_negative": {
+      "name": "core-unit-runtime-07",
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "seconds": 0.5647202921099961,
+      "log_sha256": "a4ccf16f4a9da1660ef5b15a108c85ce8ab045de7cbd92a9e9ec828736981358",
+      "results": [
+        "test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 519 filtered out; finished in 0.01s"
+      ],
+      "changed_source_inputs": [],
+      "changed_libraries": []
+    },
+    "fixed_scene_suite": {
+      "exit_code": 0,
+      "seconds": 0.3252603749278933,
+      "results": [
+        "test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 490 filtered out; finished in 0.26s"
+      ],
+      "log_sha256": "66d9179b1013c5036af982a22f20e358ef694a82a8b40ce27166accffb3d9c68",
+      "changed_source_inputs": [],
+      "artifact_unchanged": true
+    },
+    "scope": "All six held-source/tick-slot cases fail against the original two production files and pass against the fix. All35 media-scene methods pass, including mixed audio/direct routing, exclusions, receiver preparation and current authorization. Component tests do not establish RTC video/data support."
+  },
+  "integration_verification": {
+    "main": [
+      {
+        "exit_code": 0,
+        "seconds": 29.08213029196486,
+        "log_sha256": "32b3744e1499fb014e715adb9be9ff10cde92389584f950e10d58706042a2f1d",
+        "test_results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 27.67s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.883807707810774,
+        "log_sha256": "ee415c27a2ff3b2ce794bd0c3b40f125ba89dcd251196e6caa794afce40d6134",
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 39.87s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.378440042026341,
+        "log_sha256": "29dd51ef7df54cbcd46e9453442c8b9f8ec9f181754ac2f1ff936660db700a06",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 4.32s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa"
+      }
+    ],
+    "quiet_rtc_repetitions": [
+      {
+        "round": 1,
+        "exit_code": 0,
+        "seconds": 27.46756320889108,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 27.40s"
+        ],
+        "log_sha256": "27533540cf0992ca93d11da4efccc436a99df90e43270bcf815a596534c5b626",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 2,
+        "exit_code": 0,
+        "seconds": 28.13764112489298,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 28.08s"
+        ],
+        "log_sha256": "95c1b79bd622ba9600590d7c254b7e462e825ba766dc5ba1a6d373812791f1e2",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 3,
+        "exit_code": 0,
+        "seconds": 28.177392832934856,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 28.12s"
+        ],
+        "log_sha256": "1ec73162ba1d151889685d1b8fc089a5a6c7079e835a1f72b96cde2a7a991000",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 4,
+        "exit_code": 0,
+        "seconds": 27.33887237496674,
+        "environment": {
+          "RUST_LOG": "warn",
+          "RUST_MIN_STACK": "unset",
+          "TMPDIR": "ignored local runtime-state"
+        },
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 27.30s"
+        ],
+        "log_sha256": "a162b75b4f66bdd9e63a88c5474014aef3fd20025d914cf2d8c6cfe3ec16d6fa",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      }
+    ],
+    "native_quic_regressions": [
+      {
+        "exit_code": 0,
+        "seconds": 6.997732999967411,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.26s"
+        ],
+        "log_sha256": "da94247c93c63e7083b7fcf03e2d8c856041a0bd795249fc9efc520778327b08",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.4330981250386685,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.37s"
+        ],
+        "log_sha256": "2ca6862378dc67835082ddeb6361e5700ed7561a1a0ea15467626b08921f393c",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_native_stream_captured_commit_recovers_storage_without_retaining_original_readers_or_reapplying"
+      }
+    ],
+    "main_environment": "warn,connect_service::canonical_webrtc::streams=debug (error-only diagnostic target); quiet repeats and native use warn; default stacks; ignored local TMPDIR.",
+    "runtime_input_count": 5313,
+    "runtime_input_manifest_sha256": "5c1cfd4c7b6ffd2704dc0859f06eef8bd74fb43d21933108e557b239957b1051",
+    "rtc_fixture_sha256": "9bbc7b2f14e735cf7f953b3036f438359e639b0ba5e13a290c9f149036bcd8a8",
+    "root_build": {
+      "exit_code": 0,
+      "seconds": 1228.6892112910282,
+      "source_count": 5157,
+      "changed_inputs": [],
+      "log_sha256": "0275956a21a61eecdc50932050241e06c326c2987910e77b2278895449d0aad1",
+      "artifact": {
+        "sha256": "08277d69f5687790b8fa127a9e0b83db839999b571947700acf0d5bbe556479c",
+        "bytes": 213154640
+      }
+    },
+    "native_build": {
+      "exit_code": 0,
+      "seconds": 17.362175833201036,
+      "source_count": 5157,
+      "changed_inputs": [],
+      "log_sha256": "390144e42146480fa8683e8b323d9018c3dc6645c516a3dfc9751ceb7dfbd827",
+      "artifact": {
+        "sha256": "90c5de7f7430d80d3788f9deb24a1c2a0bfc7b19c57d59c79f916bd1265b744e",
+        "bytes": 259447592
+      }
+    }
+  },
+  "postbuild_test_correction": {
+    "reason": "Promote the independently compiled/passing FIFO fixture correction after both release builds are sealed. Only cfg(test) source and its recorded patch/source-lock metadata change. Every production Rust file, contract, SDK input and integration fixture remains byte-identical; the Core release compiler dep-info excludes this test module. No release behavior is inferred from a changed production input.",
+    "changes": [
+      {
+        "path": ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs",
+        "build_snapshot_sha256": "4fb3f3670d7caf7ca4f79f20785508a1cbce27972915987ae5fdec6604ab62c6",
+        "final_sha256": "343547efbc903a74a2d8d67bf64bf9fdb463d06d98b3f19b66ac5c41b17629a9"
+      },
+      {
+        "path": "dependencies/source-lock.json",
+        "build_snapshot_sha256": "d1476429d9826b48f1bfd08ebf04cfdd75e40d9cb98ddbdc0f8c35be7aad3baf",
+        "final_sha256": "e8d8ecd03af30a2d8cb30b21331bfc8c7bb34f80dc29a7e69ba44e4d8387a8ae"
+      },
+      {
+        "path": "patches/rvoip/gate6-subscription-source-contention.patch",
+        "build_snapshot_sha256": "a9cd4c17be2d748e7b8fc6ba330e067efd3dab00ef58b8c64ce9977bc656af2a",
+        "final_sha256": "e291e515e2a26b2fdc94951d62334860e9839368ca29c7f88026847ca6549aa8"
+      }
+    ],
+    "core_release_depinfo": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_core-18d14d1c659f5c4a.d",
+      "sha256": "41f0d245e856fc4c913726ac57179b478544eeba43d8d0bd59f02194713b3f3c",
+      "corrected_test_is_excluded": true
+    },
+    "all_152_core_rust_sources_match_tested_corrected_unit_source": true,
+    "final_guard_sha256": "150d7dfaa4f657298f46439ad034440622bc0dd3c3e331ebc28f05faf622846b"
+  },
+  "cli_repair": {
+    "reason": "Cargo debug stripping failed on ENOSPC and produced an invalid1120-byte CLI. A bin-only Cargo repair selected an alternative feature graph and was deliberately stopped. Direct rustc then reused exact current Root dependency artifacts, without stripping; no production source changed.",
+    "seconds": 2.004343041917309,
+    "artifact": {
+      "sha256": "e991550c47551c620eecd865a8ac28e58382badb993a0d45b3480e83b803bd9f",
+      "bytes": 240237216,
+      "mach_o_executable": true,
+      "version_output": "connect 0.1.0"
+    },
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "Executable health/version only; not a normal Cargo CLI/package behavior pass."
+  },
+  "development_record": {
+    "core_test_attempt01": "Root cannot test a nonmember package requiring dev dependencies; no compilation/test pass",
+    "core_test_attempt02": "Upstream default LTO/debug independent dependency graph deliberately interrupted, exact derived files archived losslessly; no test qualification",
+    "root_build01": "Retained compile failure: generic async helper borrowed non-Sync authority lease across await. Fixed with inline precommit checks and token-only wait.",
+    "root_build02": "Deliberately interrupted after Core and UCTP compile, before service rebuild, to address separately identified scene tick inflight try-acquire false conflict. No runtime qualification.",
+    "unit_watchers": "Stopped only while waiting for Root dependency artifacts; no unit compilation or test began.",
+    "prepare_v2": "Pinned archive cache symlinks correctly refused. Replaced cache aliases with regular COW copies of same verified archives, resumed same new destination and passed preparation. No source identity bypass.",
+    "next": "Root03: same source-state backpressure/token-only waits plus original bounded inflight acquisition and six real source/tick-slot regression methods.",
+    "root_build03": "Deliberately interrupted: broad script suffix replacement also changed target-directory date, starting an unintended cache. No source change or runtime qualification. Final runner uses explicit unchanged target path; future substitutions are filename-specific.",
+    "unit_fixture_failure": "Initial scoped unit run23/24: the last fixture tried to overtake a queued FIFO waiter and reached Deadline. Corrected only the test queue order; all35 scene methods pass and the same corrected fixture reproduces six original implementation failures.",
+    "root04": "Guarded build completes1228.7s with5157 unchanged snapshot inputs. Selected test executable is valid. CLI strip warning/invalid artifact is retained and separately repaired. Native build17.4s reuses current graph; cached CLI warning is not a second independent failure.",
+    "test_only_promotion": "Both integration executables were sealed before promoting the independently tested FIFO fixture correction. Only cfg(test) source, its patch and source-lock changed. The release dep-info excludes that unit module; every production file remains byte-identical, and the final prepared Core Rust sources exactly match the tested corrected unit source. Runtime then checks all5313 final Rust/SDK source/distribution inputs without changes."
+  },
+  "private_evidence": {
+    ".local/gate-6/rtc-routing-contention/build-04-summary.json": "5001e4f19113a86278e6ce49f78b716c92c2b1a07c01d0d75218bc298efd4287",
+    ".local/gate-6/rtc-routing-contention/native-build-04-summary.json": "59696122e285d701353b7388ebdca34ddba6fb25b2435eda42b2d1bc55866227",
+    ".local/gate-6/rtc-routing-contention/paired-source-and-slot-contention.json": "defa54e3dcfd477cd4d2328e67b65ed9d6056a0c10e1830afe1c308b00c30d54",
+    ".local/gate-6/rtc-routing-contention/core-tests-corrected-summary.json": "4f253567977b47431ee379f587b2498c01a1c57faccbb4569458aafd68f47a48",
+    ".local/gate-6/rtc-routing-contention/core-test-production-equivalence.json": "6d184c5c746e0c0fe68338c99eb982cdb08e903aa55c5b377ab33b007af9237c",
+    ".local/gate-6/rtc-routing-contention/cli-direct-summary-04.json": "cfa1608cadb915367635ab4133ba3e6bda59bb8b8ebdb77f547bc46d16ebcb81",
+    ".local/gate-6/rtc-routing-contention/postbuild-test-only-correction.json": "9692a998d4d157f01eb4e3d8b059df61c55dbf63183adc76a99faaa7b1e0b2e1",
+    ".local/gate-6/rtc-routing-contention/runtime-04-summary.json": "b4d79ba06ead1acf67a3e60d49244e570f55f081fb166ecf310aaa45258d04d3",
+    ".local/gate-6/rtc-routing-contention/quiet-04-summary.json": "f7a880b52041ee66de4133dbd459270f4fb377aa10ead643fd47994735529c22",
+    ".local/gate-6/rtc-routing-contention/native-runtime-04-summary.json": "807c9635f578f6b0d8fb3c40acd18e9745cda2b3d27cc418fd7cc817f0f785d4"
+  },
+  "remaining": [
+    "G6-051 remains in progress. Broader RTC lifecycle/reoffer/DTMF/query/reconciliation/credential refresh, multiConnection and explicit service failure/deadline cases remain required.",
+    "Opus/video/data and ICE/MID/SSRC/source-clock profiles, installed Chrome/Firefox forced fallback, Linux/remote hosting and package/full acceptance qualification are not established by these local G.711 cases.",
+    "The ordinary Cargo CLI stripping step failed on ENOSPC; its1120-byte non-executable output is retained. The repaired current-graph CLI is independently compiled without stripping and passes --version only. No full release/package/CLI behavior qualification is inferred."
+  ],
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}
