@@ -8,7 +8,7 @@ import { timeoutValue } from "./protocol.js";
 import { ConnectError } from "./errors.js";
 import { identifier } from "./uctp_wire.js";
 import { voiceDiagnostics, } from "./browser_voice_stats.js";
-import { constrainVideoCapture, startVideoTransform, stopVideoWorker, configureVideoSender, } from "./browser_video_setup.js";
+import { constrainVideoCapture, startVideoTransform, stopVideoWorker, configureVideoSender, addBoundedVideoSender, } from "./browser_video_setup.js";
 import { videoDiagnostics, } from "./browser_video_stats.js";
 /** An unsuccessful open retains its original offer for authoritative status recovery.
  * This snapshot can contain private SDP; keep it in application-owned private state. */
@@ -195,11 +195,15 @@ export class BrowserVoiceSession {
                 else
                     await session.bound(constrainVideoCapture(session.localStream, budget.remaining()), budget);
             }
-            // Attach the encoded transform in the same task as addTrack. Awaiting
+            // Attach the encoded transform in the same task as sender creation. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
             session.peer = new RTCPeerConnection(iceConfiguration);
-            for (const track of session.localStream.getTracks())
-                session.peer.addTrack(track, session.localStream);
+            for (const track of session.localStream.getTracks()) {
+                if (track.kind === "video")
+                    addBoundedVideoSender(session.peer, track, session.localStream);
+                else
+                    session.peer.addTrack(track, session.localStream);
+            }
             if (video)
                 session.videoWorker = startVideoTransform(session.peer);
             session.peer.ontrack = (event) => {

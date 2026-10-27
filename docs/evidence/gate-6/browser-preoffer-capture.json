@@ -1,0 +1,390 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T19:02:55.049888+00:00",
+  "scope": "Original canvas frame preservation and original pre-offer video encoding bounds. Actual normal Firefox and Chrome video recover to29fps; complete clean AV remains FAILED for isolated audio observations.",
+  "implementation": [
+    "Original native canvas.captureStream() preserves canvas changes without a redundant frameRequestRate sampling clock. The same canvas, images, geometry and application draw timing remain; no scaling, rewriting, timestamp offset, source slowing or acceptance reduction.",
+    "Original video transceiver is created sendrecv with its original track/stream and one sendEncoding bounded to30fps,1000000bps and scaleResolutionDownBy1. Current native getParameters must retain all bounds and the original track before any offer; otherwise local ownership retires without submitting a logical operation.",
+    "Encoded transform attaches in the same synchronous task as sender creation. Camera/supplied capture constraints still complete before peer creation. Negotiated sender configuration retains its existing bounded update after answer.",
+    "Canvas dimensions/track ownership and resize refusal remain. Raw native canvas rate metadata may exceed30 and is preserved honestly; the original encoder owns the output bound. No legacy fallback or replacement source."
+  ],
+  "unit_verification": {
+    "targeted_methods": 71,
+    "broader_associated_methods": 89,
+    "broader_scope": "Voice, canvas, canonical signaling, video keyframe adapter, stats/worker and example lifecycle Node tests; all pass against compiled TypeScript dist.",
+    "log_sha256": "043509488c627d0e76d8e846e7e4ae7ce70cc18591cc50171272dba0c1ae719d",
+    "new_assertions": [
+      "Before-offer single30fps/1Mbps/original-resolution encoding and track/stream identity",
+      "Unretained/extra/inflated encoding refuses without an offer or extra worker and retires capture",
+      "No queued sender bypass before transform attachment",
+      "Canvas capture has no additional sample clock and does not misreport native60fps metadata as output30fps"
+    ],
+    "retained_failure": "New negative unit52initially assumed zero historical offers across two opens, producing a synthetic assertion error. Corrected53checks the existing original offer count stays unchanged;71targeted and89broader methods pass. No production compatibility branch added."
+  },
+  "native_binary": {
+    "build_summary_sha256": "6781ecbf2fc3419c3bf4e840057f674b4d9d1666b7e5d9aa2d3a5147c03f7b20",
+    "sealed_sha256": "27d12e50adc45eba3eb76b220434311685b184f201a52827639c9f30014a5882",
+    "scope": "Existing unchanged native binary; each runtime manifest separately guards current SDK sources/dist, example, scripts, modules and installed browser."
+  },
+  "clean_runs": [
+    {
+      "label": "firefox-preoffer-canvas-52",
+      "complete_verdict": "failed",
+      "seconds": 66.37560145789757,
+      "guards_closed_unchanged": true,
+      "hashes": {
+        "inputs.json": "ddc0a626e5d3e7b624138074ce480034103a72b7b0535570b9a78506d2941650",
+        "browser-result.jsonl": "833b5223f5a3e442a7a7ca59ec846909e800411562359157e86912e99b8dfde9",
+        "test.log": "2c8b768aa592befe5d6f3d31248e7130389f8e36a0ce27b1c51156f515e0efa2",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+      },
+      "participants": [
+        {
+          "seconds": 60.00499987602234,
+          "decoded_fps": 29.047579428401814,
+          "changing_fps": 25.93117245587678,
+          "source_draws_per_second": 29.09757526218564,
+          "outbound_fps": 29.080909984257698,
+          "video_packets_lost": 0,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "failed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 3
+        },
+        {
+          "seconds": 60.00600004196167,
+          "decoded_fps": 28.98043526953859,
+          "changing_fps": 25.53078023745435,
+          "source_draws_per_second": 29.097090270623564,
+          "outbound_fps": 29.06376027031357,
+          "video_packets_lost": 1,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 0
+        }
+      ],
+      "transport_switch": {
+        "actual_loopback_quic_initial_datagrams": [
+          28,
+          28
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "paired_termination": {
+        "status": "passed",
+        "seconds": 0.02965350000000035,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 0.07952091699999438,
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "label": "chrome-preoffer-canvas-54",
+      "complete_verdict": "failed",
+      "seconds": 65.71040220791474,
+      "guards_closed_unchanged": true,
+      "hashes": {
+        "inputs.json": "fca3208f9c6fa1106993a3b5556e44cb09389b594ca39b5a1f762e7c4d6cea55",
+        "browser-result.jsonl": "dd83f68731887679b6f46653efe313363bbcb50f096766e291f463ecd2f0b6a6",
+        "test.log": "8ed9c1061212f7c53e5327fc502112c71b6f3a1a35ce7e79e8840c74d9dd8119",
+        "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+      },
+      "participants": [
+        {
+          "seconds": 60.005900144577026,
+          "decoded_fps": 29.747074799299007,
+          "changing_fps": 25.214187210834396,
+          "source_draws_per_second": 30.29702071995832,
+          "outbound_fps": 29.99705021778051,
+          "video_packets_lost": 1,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "failed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 1
+        },
+        {
+          "seconds": 60.00589990615845,
+          "decoded_fps": 29.88039514121149,
+          "changing_fps": 25.197522283051743,
+          "source_draws_per_second": 30.297020840336025,
+          "outbound_fps": 29.99705033696636,
+          "video_packets_lost": 1,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "bad_audio_samples": 0
+        }
+      ],
+      "transport_switch": {
+        "actual_loopback_quic_initial_datagrams": [
+          6,
+          6
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "paired_termination": {
+        "status": "passed",
+        "seconds": 0.05384041699999943,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 0.09833108299999731,
+      "ownership": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    }
+  ],
+  "instrumented_audio_run": {
+    "label": "firefox-es256-preoffer-audio-witness-55",
+    "complete_verdict": "failed",
+    "seconds": 66.38471562508494,
+    "guards_closed_unchanged": true,
+    "hashes": {
+      "inputs.json": "862caefe7fbd06e12c28b565e544f9f2d59eed673d415b434b7475cd1d490122",
+      "browser-result.jsonl": "97c6d92faaad1fcd83f18833784370c1f959d34d453900b1a4675e0979a506d5",
+      "test.log": "cd9f4cd16bdd64e97d3a8ee4411665299a9ed39d66c355e2abd142437b76f07d",
+      "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+      "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+    },
+    "participants": [
+      {
+        "seconds": 60.00599980354309,
+        "decoded_fps": 29.06376038579103,
+        "changing_fps": 26.01406534530952,
+        "source_draws_per_second": 29.09709038623345,
+        "outbound_fps": 29.09709038623345,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "failed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_sync": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": 1
+      },
+      {
+        "seconds": 60.00600004196167,
+        "decoded_fps": 29.080425270468567,
+        "changing_fps": 26.097390242724227,
+        "source_draws_per_second": 29.06376027031357,
+        "outbound_fps": 29.080425270468567,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "passed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_sync": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": 0
+      }
+    ],
+    "transport_switch": {
+      "actual_loopback_quic_initial_datagrams": [
+        28,
+        28
+      ],
+      "forced_fallback": true,
+      "original_message_counts": [
+        1,
+        2,
+        1
+      ],
+      "original_message_counts_preserved": true
+    },
+    "paired_termination": {
+      "status": "passed",
+      "seconds": 0.06187454099999741,
+      "limit_seconds": 5,
+      "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+    },
+    "teardown_seconds": 0.1080479159999959,
+    "ownership": {
+      "browser_kind": "firefox",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    }
+  },
+  "audio_witness": {
+    "private_pcm_sha256": "a3e3f446d11f4e37a9829e9aad1fd61f7aac4a3d0fdf7bfb3917b9e1102e2393",
+    "events": 1,
+    "scope": "Private original decoded PCM/spectrum plus source ring and actual RTP counter metadata. Additional source analyser is a diagnostic variation; no full profile qualification.",
+    "failure": {
+      "expected_hz": 660,
+      "observed_hz": 609.375,
+      "rms": 0.015295835826432212,
+      "unix_seconds": 1793127285.008
+    },
+    "observations": "Source ring stays656.25Hz. Native receiver packetsLost stays0; since the preceding snapshot concealedSamples rises68254to70335, concealmentEvents75to77 and insertedSamples5462to5752. First direct PCM autocorrelation maximum is lag73(~657.53Hz), confidence~.788. These observations do not prove a single cause and do not change the public observer.",
+    "next": "Trace original audio arrival/RTP timestamp/pacing around decoder concealment before changing audio implementation or observer."
+  },
+  "overrate_boundary": {
+    "scope": "Explicit private10second source-over-rate variation, not the unchanged60second clean qualification. Same geometry/images; source draw interval doubled only for this separate output-bound test.",
+    "result": {
+      "label": "firefox-original-sender-overrate-60",
+      "complete_verdict": "passed",
+      "seconds": 16.41003437503241,
+      "guards_closed_unchanged": true,
+      "hashes": {
+        "inputs.json": "c20dc7237e52a2c74e744fa63edd73ea70a5ceeee33e55fa34f91e5c1486a5ab",
+        "browser-result.jsonl": "d10701aedb800081826143724f76ad1cefc15bb5f1b296335ada42b76ea8d07b",
+        "test.log": "6551eb940b4cf407f99cf89876da99bc819958e1cd9169e124753d8a6c26da33",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "transport-switch.json": "f4087690d81b9b52f07b5d3a65e29fc559dcc3a1ccc2b19f21c4e218253d0b4b"
+      },
+      "participants": [
+        {
+          "seconds": 10.00600004196167,
+          "decoded_fps": 29.9820106677898,
+          "changing_fps": 26.783929529892223,
+          "source_draws_per_second": 57.56546048215642,
+          "outbound_fps": 29.9820106677898,
+          "video_packets_lost": 0,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 100,
+          "bad_audio_samples": 0
+        },
+        {
+          "seconds": 10.005000114440918,
+          "decoded_fps": 29.98500715327219,
+          "changing_fps": 26.88655641410073,
+          "source_draws_per_second": 57.471263710438365,
+          "outbound_fps": 29.98500715327219,
+          "video_packets_lost": 0,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 100,
+          "bad_audio_samples": 0
+        }
+      ],
+      "transport_switch": {
+        "actual_loopback_quic_initial_datagrams": [
+          24,
+          24
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "paired_termination": {
+        "status": "passed",
+        "seconds": 0.03885370800000055,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 0.08116808300000047,
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    "observation": "Source57.57/57.47fps yields29.98/29.99fps encoded and decoded. No output limit relaxation. Its passed short diagnostic verdict is not a clean60pass.",
+    "first_attempt": {
+      "status": "infrastructure-failed",
+      "cause": "ENOSPC while browser fixture wrote ownership evidence and parent wrote its summary; no media qualification or pass. Test process terminal after3.00s.",
+      "test_log_sha256": "e40da7b58d4b71df15167b3975e2e9c593bd97c6706a14bb1ab66c39b6b860c9",
+      "source_guard_rechecked_after_space_recovery": true,
+      "changed_inputs": []
+    }
+  },
+  "resource_recovery": {
+    "scope": "Closed proof executable39and25original browser profiles only. Original file bytes/links verified before unlink. Server journals/state, CA/key files and raw logs outside profiles retained.",
+    "proof_archive_manifest_sha256": "e5f870ee9ace5d9b09ee4eb194b97aabec2266a716003926bf8e699c0f6ef3d0",
+    "closed_profile_summary_sha256": "07c7a69e8eb3fcfb156cd0fb30608b2d23cd38ac64ec19ce1215b5b7e71b7dd0",
+    "profiles": 25,
+    "original_bytes": 1920815100,
+    "archive_bytes": 1121815747,
+    "all_roundtrip_verified": true,
+    "initial_attempts": "Archive57stopped before writing because os.listxattr is unavailable in this Python. Archive58stopped with ENOSPC before any original unlink; partial generated archive hash/size retained before pruning. Darwin metadata read uses libc in successful59; file owner/mode/mtime/xattrs are retained in private sidecar manifests. Closed proof39was temporarily archived to D2 and returned to internal storage after verified copy. No source or original state loss."
+  },
+  "qualification": "53/105done,4in progress,48not started;0acceptance-qualified. Current video recovery is measured. Clean audio, native post-mute audio, wider matrix/profiles/hosting and remaining DAG tasks stay open. No model/account/provider execution in this checkpoint."
+}

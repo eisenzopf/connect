@@ -17,9 +17,9 @@ async function fixture(run){
  Object.assign(state,{canvas:new Canvas(),audio,derived,input:new Stream([audio])});
  try{return await run(state);}finally{for(const [key,d]of descriptors)if(d)Object.defineProperty(globalThis,key,d);else delete globalThis[key];}
 }
-test('explicit canvas capture owns a bounded output without camera settings or input mutation',()=>fixture(f=>{
+test('explicit canvas capture preserves native source frames without an extra sampling clock',()=>fixture(f=>{
  const capture=boundedCanvasVideoCapture(f.input,f.canvas,e=>f.errors.push(e));
- assert.deepEqual(f.rates,[30]);assert.equal(capture.stream.getAudioTracks()[0],f.audio);assert.equal(capture.stream.getVideoTracks()[0],f.derived);
+ assert.deepEqual(f.rates,[undefined]);assert.equal(capture.stream.getAudioTracks()[0],f.audio);assert.equal(capture.stream.getVideoTracks()[0],f.derived);
  assert.deepEqual(f.input.getTracks(),[f.audio]);assert.deepEqual(f.observed.options,{attributes:true,attributeFilter:['width','height']});
  capture.close();capture.close();assert.equal(f.stops,1);assert.equal(f.disconnects,1);assert.equal(f.errors.length,0);
 }));
@@ -33,9 +33,9 @@ test('invalid canvas dimensions refuse before any output allocation',()=>fixture
  }assert.deepEqual(f.rates,[]);assert.equal(f.stops,0);
 }));
 test('contradictory actual output settings refuse and release the newly owned track',()=>fixture(f=>{
- for(const settings of [{width:1280},{height:720},{frameRate:31},{frameRate:NaN},{frameRate:0}]){
+ for(const settings of [{width:1280},{height:720},{frameRate:NaN},{frameRate:0}]){
    f.settings=settings;f.derived.readyState='live';assert.throws(()=>boundedCanvasVideoCapture(f.input,f.canvas,()=>{}),{code:'unsupported-media-profile'});
- }assert.equal(f.stops,5);
+ }assert.equal(f.stops,4);
 }));
 test('partial observer or stream construction failure retires every derived resource',()=>fixture(f=>{
  f.observeFailure=true;assert.throws(()=>boundedCanvasVideoCapture(f.input,f.canvas,()=>{}),{code:'unsupported-media-profile'});assert.equal(f.stops,1);assert.equal(f.disconnects,1);
@@ -55,4 +55,11 @@ test('invalid explicit canvas selections refuse before capture ownership',()=>fi
    await assert.rejects(BrowserVoiceSession.open(client,{...options,...altered}),{code:'invalid-request'});
  f.canvas.width=641;await assert.rejects(BrowserVoiceSession.open(client,options),{code:'invalid-request'});
  assert.deepEqual(f.rates,[]);assert.equal(f.stops,0);
+}));
+
+test('native canvas rate metadata is not misrepresented as the bounded sender rate',()=>fixture(f=>{
+ f.settings={width:640,height:360,frameRate:60};
+ const capture=boundedCanvasVideoCapture(f.input,f.canvas,()=>{});
+ assert.equal(capture.stream.getVideoTracks()[0].getSettings().frameRate,60);
+ assert.deepEqual(f.rates,[undefined]);capture.close();assert.equal(f.stops,1);
 }));

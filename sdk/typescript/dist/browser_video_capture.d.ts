@@ -2,8 +2,8 @@ export interface CanvasVideoCapture {
     readonly stream: MediaStream;
     close(): void;
 }
-/** Canvas tracks do not uniformly implement camera constraints. Reopen their
- * actual canvas with an SDK-owned explicit frameRequestRate instead. No scaling,
+/** Capture original canvas changes without adding another sampling clock.
+ * The original sender owns the30fps output bound before signaling. No scaling,
  * frame rewriting, timestamp offset or claim about decoded playback is added.
  */
 export declare function boundedCanvasVideoCapture(input: MediaStream, canvas: HTMLCanvasElement, fail: (error: Error) => void): CanvasVideoCapture;

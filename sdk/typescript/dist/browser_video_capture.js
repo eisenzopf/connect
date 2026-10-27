@@ -1,7 +1,7 @@
 import { ConnectError } from "./errors.js";
-const unsupported = () => new ConnectError("unsupported-media-profile", "Canvas capture must retain bounded dimensions and an owned 30 fps output");
-/** Canvas tracks do not uniformly implement camera constraints. Reopen their
- * actual canvas with an SDK-owned explicit frameRequestRate instead. No scaling,
+const unsupported = () => new ConnectError("unsupported-media-profile", "Canvas capture must retain bounded dimensions and original native frames");
+/** Capture original canvas changes without adding another sampling clock.
+ * The original sender owns the30fps output bound before signaling. No scaling,
  * frame rewriting, timestamp offset or claim about decoded playback is added.
  */
 export function boundedCanvasVideoCapture(input, canvas, fail) {
@@ -28,9 +28,9 @@ export function boundedCanvasVideoCapture(input, canvas, fail) {
             track.stop();
     };
     try {
-        // The standard frameRequestRate bounds capture even when getSettings()
-        // omits frameRate. Source images and dimensions stay on the same canvas.
-        owned = canvas.captureStream(30);
+        // An independent frameRequestRate can discard changing source frames.
+        // Preserve native canvas changes; the sender enforces the output rate.
+        owned = canvas.captureStream();
         const tracks = owned.getTracks(), track = owned.getVideoTracks()[0];
         if (tracks.length !== 1 || !track || track.readyState !== "live")
             throw unsupported();
@@ -39,8 +39,7 @@ export function boundedCanvasVideoCapture(input, canvas, fail) {
             (settings.height !== undefined && settings.height !== height) ||
             (settings.frameRate !== undefined &&
                 (!Number.isFinite(settings.frameRate) ||
-                    settings.frameRate <= 0 ||
-                    settings.frameRate > 30)))
+                    settings.frameRate <= 0)))
             throw unsupported();
         observer = new MutationObserver(() => {
             if (!closed &&

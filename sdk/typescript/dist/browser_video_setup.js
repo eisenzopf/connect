@@ -1,6 +1,27 @@
 import { ConnectError } from "./errors.js";
 import { keyframeAdapter, stopVideoWorker } from "./browser_video_keyframes.js";
 export { stopVideoWorker } from "./browser_video_keyframes.js";
+/** Bound the original video encoding before an offer can activate media. */
+export function addBoundedVideoSender(peer, track, stream) {
+    const transceiver = peer.addTransceiver(track, {
+        direction: "sendrecv",
+        streams: [stream],
+        sendEncodings: [
+            {
+                maxFramerate: 30,
+                maxBitrate: 1_000_000,
+                scaleResolutionDownBy: 1,
+            },
+        ],
+    });
+    const encodings = transceiver.sender.getParameters().encodings;
+    if (transceiver.sender.track !== track ||
+        encodings?.length !== 1 ||
+        encodings[0].maxFramerate !== 30 ||
+        encodings[0].maxBitrate !== 1_000_000 ||
+        encodings[0].scaleResolutionDownBy !== 1)
+        throw new ConnectError("unsupported-media-profile", "Original video sender did not retain its bounded encoding");
+}
 /** Constrain application-supplied capture as well as getUserMedia capture. */
 export async function constrainVideoCapture(stream, timeoutMs) {
     const track = stream.getVideoTracks()[0];

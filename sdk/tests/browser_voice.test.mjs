@@ -278,8 +278,8 @@ test('video capture awaits finish before sender creation so queued bypass cannot
         const stream={getTracks:()=>[state.track,video],getVideoTracks:()=>[video]};
         class Sender {
             static getCapabilities(){return{codecs:[{mimeType:'video/VP8'}]};}
-            constructor(track){this.track=track;this.transform=null;}
-            getParameters(){return{encodings:[{}]};} async setParameters(){}
+            constructor(track,encodings=[{}]){this.track=track;this.transform=null;this.encodings=encodings;}
+            getParameters(){return{encodings:structuredClone(this.encodings)};} async setParameters(){}
         }
         class Peer extends PeerBase {
             senders=[];
@@ -289,20 +289,31 @@ test('video capture awaits finish before sender creation so queued bypass cannot
                 if(track.kind==='video')queueMicrotask(()=>{state.bypassed=!sender.transform;});
                 return sender;
             }
+            addTransceiver(track,init){
+                assert.equal(track.kind,'video');assert.equal(init.direction,'sendrecv');
+                assert.equal(state.offers.length,state.expectedExistingOffers??0);assert.equal(init.streams[0].getVideoTracks()[0],video);
+                assert.deepEqual(init.sendEncodings,[{maxFramerate:30,maxBitrate:1_000_000,scaleResolutionDownBy:1}]);
+                state.initialVideoEncoding=structuredClone(init.sendEncodings);
+                const sender=new Sender(track,state.ignoreInitialBounds?[{}]:structuredClone(init.sendEncodings));this.senders.push(sender);
+                queueMicrotask(()=>{state.bypassed=!sender.transform;});return {sender};
+            }
             getTransceivers(){return this.senders.map(sender=>({sender,setCodecPreferences(){}}));}
             getSenders(){return this.senders;}
         }
         const replacements={RTCRtpSender:Sender,RTCRtpScriptTransform:class {},RTCPeerConnection:Peer,
-            Worker:class {terminate(){state.workerStopped=true;}}};
+            Worker:class {constructor(){state.workerCreations=(state.workerCreations??0)+1;}terminate(){state.workerStopped=true;}}};
         for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:replacements[name]});
         try {
             const session=await BrowserVideoSession.open(state.client,intent({video:true,inputStream:stream}),{timeoutMs:200});
-            assert.equal(state.bypassed,false);assert.equal(state.offers.length,1);
+            assert.equal(state.bypassed,false);assert.equal(state.offers.length,1);assert.equal(state.initialVideoEncoding[0].maxFramerate,30);
             await session.end("video-end",1);assert.equal(session.savedEnd.scope.operation_id,"video-end");assert.ok(state.trackStopped&&state.videoStopped&&state.workerStopped);
-            state.trackStopped=false;state.videoStopped=false;
+            state.trackStopped=false;state.videoStopped=false;state.ignoreInitialBounds=true;state.expectedExistingOffers=1;
+            await assert.rejects(open(state,{video:true,inputStream:stream},200),{code:'unsupported-media-profile'});
+            assert.equal(state.offers.length,1);assert.equal(state.workerCreations,1);assert.equal(state.peerCreations,2);
+            assert.ok(state.trackStopped&&state.videoStopped);state.ignoreInitialBounds=false;
             state.constraintsFinished=false;video.applyConstraints=async()=>{throw Error('controlled constraints refusal');};
             await assert.rejects(open(state, {video:true,inputStream:stream}, 200));
-            assert.equal(state.constraintsFinished,false);assert.equal(state.peerCreations,1);assert.ok(state.trackStopped&&state.videoStopped);
+            assert.equal(state.constraintsFinished,false);assert.equal(state.peerCreations,2);assert.ok(state.trackStopped&&state.videoStopped);
         } finally {
             for(const name of names){const descriptor=originals.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
         }
@@ -457,3 +468,18 @@ test('invalid or excessive ICE services refuse before capture and keep error det
     for(const iceServers of invalid)await assert.rejects(open(state,{iceServers}),error=>error.code==='invalid-request'&&!error.message.includes('private-secret'));
     assert.equal(state.microphoneRequests,0);assert.equal(state.peer,undefined);assert.equal(state.offers.length,0);
 }));
+
+
+test('original video sender refuses unretained or excessive initialization bounds',async()=>{
+    const {addBoundedVideoSender}=await import('../typescript/dist/browser_video_setup.js');
+    const track={kind:'video'},stream={};
+    const valid={maxFramerate:30,maxBitrate:1_000_000,scaleResolutionDownBy:1};
+    let supplied;
+    const peer=encodings=>({addTransceiver(actual,init){assert.equal(actual,track);supplied=init;return{sender:{track,getParameters:()=>({encodings})}};}});
+    addBoundedVideoSender(peer([{...valid}]),track,stream);
+    assert.equal(supplied.streams[0],stream);assert.equal(supplied.direction,'sendrecv');
+    for(const encodings of [undefined,[],[{}],[{...valid,maxFramerate:60}],[{...valid,maxBitrate:2_000_000}],
+        [{...valid,scaleResolutionDownBy:2}],[{...valid},{...valid}]])
+        assert.throws(()=>addBoundedVideoSender(peer(encodings),track,stream),{code:'unsupported-media-profile'});
+    assert.throws(()=>addBoundedVideoSender({addTransceiver(){return{sender:{track:{},getParameters:()=>({encodings:[valid]})}};}},track,stream),{code:'unsupported-media-profile'});
+});

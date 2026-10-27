@@ -32,6 +32,7 @@ import {
     startVideoTransform,
     stopVideoWorker,
     configureVideoSender,
+    addBoundedVideoSender,
 } from "./browser_video_setup.js";
 import {
     videoDiagnostics,
@@ -45,8 +46,8 @@ export interface BrowserVoiceOptions
     /** A live one-audio or one-audio/one-video stream. Ownership transfers after validation.
      * Clone tracks first to retain a source. Omit to acquire microphone/camera capture. */
     inputStream?: MediaStream;
-    /** Explicit canvas source for video. SDK owns captureStream(30); inputStream
-     * supplies audio only. Canvas images stay on their original canvas. */
+    /** Explicit canvas source for video. The original sender is bounded to30fps
+     * before signaling; inputStream supplies audio only. Images stay on this canvas. */
     videoCanvas?: HTMLCanvasElement;
     /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
@@ -328,11 +329,18 @@ export class BrowserVoiceSession {
                         budget,
                     );
             }
-            // Attach the encoded transform in the same task as addTrack. Awaiting
+            // Attach the encoded transform in the same task as sender creation. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
             session.peer = new RTCPeerConnection(iceConfiguration);
-            for (const track of session.localStream.getTracks())
-                session.peer.addTrack(track, session.localStream);
+            for (const track of session.localStream.getTracks()) {
+                if (track.kind === "video")
+                    addBoundedVideoSender(
+                        session.peer,
+                        track,
+                        session.localStream,
+                    );
+                else session.peer.addTrack(track, session.localStream);
+            }
             if (video) session.videoWorker = startVideoTransform(session.peer);
             session.peer.ontrack = (event) => {
                 if (session.closed) return;

@@ -7,11 +7,11 @@ export interface CanvasVideoCapture {
 const unsupported = () =>
     new ConnectError(
         "unsupported-media-profile",
-        "Canvas capture must retain bounded dimensions and an owned 30 fps output",
+        "Canvas capture must retain bounded dimensions and original native frames",
     );
 
-/** Canvas tracks do not uniformly implement camera constraints. Reopen their
- * actual canvas with an SDK-owned explicit frameRequestRate instead. No scaling,
+/** Capture original canvas changes without adding another sampling clock.
+ * The original sender owns the30fps output bound before signaling. No scaling,
  * frame rewriting, timestamp offset or claim about decoded playback is added.
  */
 export function boundedCanvasVideoCapture(
@@ -47,9 +47,9 @@ export function boundedCanvasVideoCapture(
         for (const track of owned?.getTracks() ?? []) track.stop();
     };
     try {
-        // The standard frameRequestRate bounds capture even when getSettings()
-        // omits frameRate. Source images and dimensions stay on the same canvas.
-        owned = canvas.captureStream(30);
+        // An independent frameRequestRate can discard changing source frames.
+        // Preserve native canvas changes; the sender enforces the output rate.
+        owned = canvas.captureStream();
         const tracks = owned.getTracks(),
             track = owned.getVideoTracks()[0];
         if (tracks.length !== 1 || !track || track.readyState !== "live")
@@ -60,8 +60,7 @@ export function boundedCanvasVideoCapture(
             (settings.height !== undefined && settings.height !== height) ||
             (settings.frameRate !== undefined &&
                 (!Number.isFinite(settings.frameRate) ||
-                    settings.frameRate <= 0 ||
-                    settings.frameRate > 30))
+                    settings.frameRate <= 0))
         )
             throw unsupported();
         observer = new MutationObserver(() => {

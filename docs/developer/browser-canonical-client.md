@@ -375,3 +375,25 @@ A separate same-canvas native capture probe isolates a sampling-rate difference
 before the codec or Core path; the SDK capture implementation is unchanged here.
 See [Firefox observation evidence](../evidence/gate-6/browser-firefox-observation.json).
 G6-050/G6-051 and acceptance remain open.
+
+
+### Original video sender bounds and canvas frames
+
+The SDK now sets the original video transceiver's send encoding to30fps,1Mbps
+and original resolution before an offer can activate media. It checks that the
+native sender retained the original track and bounds; refusal retires owned
+capture without submitting an offer. The encoded transform still attaches in the
+same synchronous task. Existing camera capture constraints and negotiated sender
+configuration remain in place.
+
+Native canvas changes are captured without another frameRequestRate sampler.
+The canvas, images and application draw clock are unchanged. The original encoder
+owns the output-rate limit; raw preview/capture rate metadata is not presented as
+a30fps output guarantee. Geometry/resize/ownership checks remain. In a separate
+10-second boundary probe, a57.5fps original canvas source produced about29.98fps
+at the sender and receiver. That short probe is not a clean60qualification.
+
+Current installed Firefox and Chrome clean runs decode about29fps and pass motion,
+worker/keyframe and AV-sync checks. They still fail complete AV on isolated audio
+frequency observations. See [pre-offer capture evidence](../evidence/gate-6/browser-preoffer-capture.json)
+for the original failures, current source guards and bounded verification.
