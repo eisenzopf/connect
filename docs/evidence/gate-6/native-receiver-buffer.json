@@ -956,5 +956,35 @@
         "sha256": "7ad8525204c0f23f9a6bcabf68ae5285ea6ca0b5aa7b00fa2aa6df9d0e86dd5e"
       }
     ]
+  },
+  "targeted_followup": {
+    "label": "chrome-audio-witness-es256-77",
+    "scope": "One explicitly private current SDK80ms ChromeES256 diagnostic with original-source/receiver PCM witness on a failed tone and bounded native RTP/server TRACE metadata. Distinct instrumentation run; not a normal operating-profile qualification.",
+    "runtime_exit_code": 0,
+    "seconds": 65.68643808295019,
+    "guards_unchanged": true,
+    "verdict": "passed",
+    "bad_audio_samples": [
+      0,
+      0
+    ],
+    "witness_events": 0,
+    "witness_errors": [],
+    "audio_timing_rows": {
+      "source-read": 6297,
+      "core-publish": 6291,
+      "driver-write": 6075
+    },
+    "trimmed_pending_chunks": 195,
+    "interpretation": "No failing audio event occurred, so no counterpart source or receiver failure witness exists. Timing/refusal/trim counts in this passing run do not establish the cause of the retained normal ChromeES256 failure. No causal repair or additional normal pass is inferred.",
+    "private_diagnostics_retained": true,
+    "hashes": {
+      "summary.json": "b6e7fc1c5c87d339ee9cac5689fe0a46f2b7b87878524ca1d179dbd94b88bb41",
+      "inputs.json": "810aee475c1072e77bb484f9ce43f9c91f446fb1c335bc331b9142b2d1ee5eca",
+      "test.log": "f7647de713bcb4778083eb4d8f697d37b0937dfe2eb419532d4e2c1287eab34d",
+      "browser-result.jsonl": "9a8679595072c4f1658151571478989c4b65e49c9a6d3c356b2021678ab523e6",
+      "decoded-audio/synthetic-audio-witnesses.json": "a9167488bd47b05584175338c5dfda970f6e182de59d273255ebcd35140ad9a5",
+      "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd"
+    }
   }
 }
