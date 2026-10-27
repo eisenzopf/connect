@@ -33,6 +33,26 @@ export async function canonicalMediaClient(configuration, selection = {}) {
         signing: {algorithm: signing.algorithm, keyId: signing.keyId, key},
         server: {algorithm: server.algorithm, keyId: server.keyId, key: trust, notBefore: server.notBefore, expiresAt: server.expiresAt},
     });
+    // Canonical reachability expires after 60 seconds without a signed
+    // keepalive, independently of live RTP. Own one renewal with this peer.
+    const keepalive = new AbortController();
+    let keepaliveTimer, live = true;
+    client.onClose(() => {
+        live = false;
+        clearTimeout(keepaliveTimer);
+        keepalive.abort();
+    });
+    const renew = async () => {
+        if (!live) return;
+        try {
+            await client.keepAlive({timeoutMs: 5000, signal: keepalive.signal});
+        } catch (error) {
+            if (live) client.close(error);
+            return;
+        }
+        if (live) keepaliveTimer = setTimeout(renew, 20000);
+    };
+    if (live) keepaliveTimer = setTimeout(renew, 20000);
     const receiveSelection = configuration.subscribe && structuredClone(configuration.subscribe);
     const scope = {cid: options.conversationId, sid: options.sessionId, connid: options.connectionId};
     let receiving;

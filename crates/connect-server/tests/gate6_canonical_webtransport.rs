@@ -451,3 +451,6 @@ mod canonical_webtransport_mixed;
 
 #[path = "support/canonical_websocket_control.rs"]
 mod canonical_websocket_control;
+
+#[path = "support/canonical_webrtc_browser.rs"]
+mod canonical_webrtc_browser;

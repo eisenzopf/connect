@@ -1,0 +1,346 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T17:10:48.098040+00:00",
+  "scope": "Installed Chrome155 normal private CA trust, actual signed WSS/Store/Core/WebRTC, two synthetic browser audio/canvas sources and unchanged60second clean observers. One distinct ignored browser method remains failing, not qualification.",
+  "build": {
+    "exit_code": 0,
+    "seconds": 3.703902249922976,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5215,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-18",
+      "sha256": "0f469f75127b6085ad4e48fcd300198373f543814346a399a2e59c8361df6319",
+      "bytes": 214583952
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "c4bfa5fcc6761cfbe75b09a5d8b71c5e0885478aba7efb1e7892a2c39b1ee09f"
+  },
+  "fixture_corrections": "Private key normalization stays inside Node; parent owns Chrome PID/profile, explicit asset origin and signed stable IDs. Both original publisher journal completions precede receive selection, then playback attach. Fixed profile uses Participant audio and exact original video stream; future-video Participant selector explicitly refuses. No source, threshold, time alignment or independent observer weakening.",
+  "keepalive": {
+    "behavior": "Example owns one signed renewal every20s,5s request bound, no overlap, timer/request cancelled on original client close, current-authority refusal closes peer without retry. RTP alone does not renew60s canonical reachability.",
+    "component_methods": 7,
+    "new_methods_included": 3,
+    "prior_body_control": "Exact previously committed helper with only relocated SDK import passes4 existing methods and failsall3 new renewal methods.",
+    "current_log_sha256": "9ee62a7533f25842cf07dfbd69516b4ddf63d3a2578f2b0c79c1b46a4c24ec69",
+    "prior_log_sha256": "38447d56c820d805aab09e508b24f25b5ebdd65ec947e860a86858c05cf1dc5f",
+    "actual_after_60seconds": "Prior run counterpart terminal fails; corrected run counterpart terminal passes80.55ms and whole local teardown111.83ms. Actual original Session end operation is completed; both routes/slots retire, server joins, original three listener addresses reclaim."
+  },
+  "browser_runs": [
+    {
+      "label": "chrome-clean-14",
+      "seconds": 18.289833082817495,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 16.81s"
+      ],
+      "summary_sha256": "0ab092837195b6f0bebc64115667e91d8021acee0441a8a4bf47be489fa2e9ba",
+      "report_sha256": "42e77afdb8df0d0b509a1a4e056746b68765bd0955845eb1cc635376e42c5790",
+      "guard_closed_unchanged": true
+    },
+    {
+      "label": "chrome-clean-15",
+      "seconds": 3.2057404171209782,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 1.72s"
+      ],
+      "summary_sha256": "33a955fd4c4584b543c13caf42794de034e013b8518bcaed2697355d233ffadd",
+      "report_sha256": "2c3f24be30ef1203865144c0923cdddec0b68c82b82fc48e30e304037c6749e1",
+      "guard_closed_unchanged": true,
+      "ownership": {
+        "original_listener_addresses_reclaimed": 3,
+        "owned_chrome_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "label": "chrome-admission-16",
+      "seconds": 1.810561208985746,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 1.79s"
+      ],
+      "summary_sha256": "124c63ebdb92b34c7a274ef44fd7d96f0d71eee5bb60e58bd61f05733ae86567",
+      "report_sha256": "c7d6510c9dc62d39027d6ef919ab91ef65ead26160c8cf727a560a40e7c2774a",
+      "guard_closed_unchanged": true,
+      "ownership": {
+        "original_listener_addresses_reclaimed": 3,
+        "owned_chrome_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "label": "chrome-admission-diagnostic-17",
+      "seconds": 1.7140561249107122,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 1.69s"
+      ],
+      "summary_sha256": "967da258d6175c63659f7415c37081ceef7cc4a5863394ccfca257354abfdd50",
+      "report_sha256": "c2f62e8ccce897c556bb6d0d7946ffb83636f738f88b5547edbcbbc7bc641c5c",
+      "guard_closed_unchanged": true,
+      "ownership": {
+        "original_listener_addresses_reclaimed": 3,
+        "owned_chrome_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "label": "chrome-explicit-video-18",
+      "seconds": 70.51308504212648,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 69.03s"
+      ],
+      "summary_sha256": "419cf12eaf9d378e668d1a1d0d06ab699512f1c9de136af8e65f796941f859e7",
+      "report_sha256": "c1803e842d9a0762d143a290abe7a11d96adc68882cf6d19c9c114a169d3816e",
+      "guard_closed_unchanged": true,
+      "ownership": {
+        "original_listener_addresses_reclaimed": 3,
+        "owned_chrome_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "server_shutdown_joined": true
+      },
+      "status": "failed",
+      "browser": "155.0.8059.85",
+      "paired_termination": {
+        "status": "failed",
+        "seconds": 4.506232707999996,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 4.592539457999999,
+      "participants": [
+        {
+          "seconds": 60.01260018348694,
+          "decoded": 1241,
+          "decoded_fps": 20.678990682051356,
+          "changing": 1064,
+          "changing_fps": 17.729610061001324,
+          "video_packets": 3568,
+          "video_packets_lost": 47,
+          "width": 640,
+          "height": 360,
+          "codec": "video/VP8",
+          "checks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "wrong_source_frames": 0,
+          "sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 30.799999952316526,
+            "p95_abs_skew_ms": 75.4000000953674
+          },
+          "source": {
+            "frames": 1792,
+            "packets": 3649,
+            "bytes": 3232444
+          }
+        },
+        {
+          "seconds": 60.01260018348694,
+          "decoded": 1137,
+          "decoded_fps": 18.946021277592582,
+          "changing": 959,
+          "changing_fps": 15.979977489191985,
+          "video_packets": 3597,
+          "video_packets_lost": 59,
+          "width": 640,
+          "height": 360,
+          "codec": "video/VP8",
+          "checks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "wrong_source_frames": 0,
+          "sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 25.19999992847488,
+            "p95_abs_skew_ms": 62.5
+          },
+          "source": {
+            "frames": 1794,
+            "packets": 3610,
+            "bytes": 3203445
+          }
+        }
+      ],
+      "original_operations": [
+        [
+          "browser-offer-0",
+          "completed"
+        ],
+        [
+          "browser-offer-1",
+          "completed"
+        ],
+        [
+          "browser-select-0",
+          "completed"
+        ],
+        [
+          "browser-select-1",
+          "completed"
+        ],
+        [
+          "browser-session-end",
+          "completed"
+        ]
+      ]
+    },
+    {
+      "label": "chrome-keepalive-19",
+      "seconds": 64.57565474999137,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 66 filtered out; finished in 64.52s"
+      ],
+      "summary_sha256": "168e84d6fb63706820d72785876eae09e68f3c5119e8e6d7ad3cc61185b92892",
+      "report_sha256": "add341bbf01a99b46733c59b310e665a314284ff0fc2f82b3ba218e4dff77f6c",
+      "guard_closed_unchanged": true,
+      "ownership": {
+        "original_listener_addresses_reclaimed": 3,
+        "owned_chrome_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "server_shutdown_joined": true
+      },
+      "status": "failed",
+      "browser": "155.0.8059.85",
+      "paired_termination": {
+        "status": "passed",
+        "seconds": 0.08054908299999806,
+        "limit_seconds": 5,
+        "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+      },
+      "teardown_seconds": 0.11183287500000005,
+      "participants": [
+        {
+          "seconds": 60.00690007209778,
+          "decoded": 1068,
+          "decoded_fps": 17.797953213993843,
+          "changing": 910,
+          "changing_fps": 15.164922682335577,
+          "video_packets": 3637,
+          "video_packets_lost": 60,
+          "width": 640,
+          "height": 360,
+          "codec": "video/VP8",
+          "checks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "wrong_source_frames": 0,
+          "sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 17.499999999998295,
+            "p95_abs_skew_ms": 70.59999990463339
+          },
+          "source": {
+            "frames": 1800,
+            "packets": 3647,
+            "bytes": 3227729
+          }
+        },
+        {
+          "seconds": 60.00699996948242,
+          "decoded": 1072,
+          "decoded_fps": 17.864582474464374,
+          "changing": 908,
+          "changing_fps": 15.131567991430646,
+          "video_packets": 3580,
+          "video_packets_lost": 68,
+          "width": 640,
+          "height": 360,
+          "codec": "video/VP8",
+          "checks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_acceptance": "passed"
+          },
+          "audio_samples": 600,
+          "wrong_source_frames": 0,
+          "sync": {
+            "status": "passed",
+            "median_abs_skew_ms": 26.29999995231813,
+            "p95_abs_skew_ms": 49.89999985694915
+          },
+          "source": {
+            "frames": 1798,
+            "packets": 3690,
+            "bytes": 3269420
+          }
+        }
+      ],
+      "original_operations": [
+        [
+          "browser-offer-0",
+          "completed"
+        ],
+        [
+          "browser-offer-1",
+          "completed"
+        ],
+        [
+          "browser-select-0",
+          "completed"
+        ],
+        [
+          "browser-select-1",
+          "completed"
+        ],
+        [
+          "browser-session-end",
+          "completed"
+        ]
+      ]
+    }
+  ],
+  "failures_retained": {
+    "build12": "Public session-command Outcome enum not destructured; compile fails beforebrowser.",
+    "build13": "Fixture borrows partially moved server; compile fails beforebrowser.",
+    "build14": "Built unchanged5215inputs. Both peersconnectICE/DTLS but fixture attaches playback before receive selection; no measuredmediawindow.",
+    "run15": "Counterpart original offer not yetadmitted at first selection; not-found then cleanup.",
+    "run16and17": "Allpublishersadmitted but futureParticipantvideo is unsupported on fixed RTC sinks; both original selection records fail. Diagnostic is not an added distinct method.",
+    "current_video": "Evenwith keepalive terminalfix, both directionsdecode~18fps andchange~15fps below original24fps. Actual sourceencodes~30fps and receives zero sender-side loss reports, while browserreceiversobserve60/68missingvideo RTPpackets. Location/cause is not yet established. Identity/audio/motion/worker/AVsync subchecks pass, but complete browser verdict remains failed."
+  },
+  "remaining": "Find actual canonical video packet refusal/loss path and preserve original age/permission/custody bounds; qualify corrected clean media, real WT/UDP failure and same-intent WSS continuation, Chrome/Firefox transitions and wider profiles. Prior nativepost-muteaudiofailure remains open. G6-051/all105/acceptance remain active."
+}

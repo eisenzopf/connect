@@ -3,6 +3,7 @@
  */
 import { pathToFileURL } from "node:url";
 import process from "node:process";
+import {createPrivateKey,webcrypto} from "node:crypto";
 import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -23,6 +24,24 @@ for await (const chunk of process.stdin) {
 const spec = JSON.parse(input);
 if (!Array.isArray(spec.participants) || ![1,2].includes(spec.participants.length) || !spec.terminal)
     throw Error("Canonical browser qualification requires explicit signed participant configurations, subscriptions and a stable Session end; bearer-only legacy fixture migration is unsupported");
+// Protected local fixture key material is normalized inside this private
+// process before WebCrypto imports it in the actual page. Never log this spec.
+for(const participant of spec.participants){
+    if(participant.signing?.privatePkcs8){
+        participant.signing.jwk=createPrivateKey({key:Buffer.from(participant.signing.privatePkcs8,"base64url"),format:"der",type:"pkcs8"}).export({format:"jwk"});
+        delete participant.signing.privatePkcs8;
+    }
+    if(participant.server?.publicRaw){
+        const algorithm=participant.server.algorithm==="EdDSA"?{name:"Ed25519"}:
+            participant.server.algorithm==="ES256"?{name:"ECDSA",namedCurve:"P-256"}:null;
+        if(!algorithm)throw Error("Unknown fixture server signing algorithm");
+        const key=await webcrypto.subtle.importKey("raw",Buffer.from(participant.server.publicRaw,"base64url"),algorithm,true,["verify"]);
+        participant.server.jwk=await webcrypto.subtle.exportKey("jwk",key);
+        delete participant.server.publicRaw;
+    }
+}
+for(const port of [spec.assetPort,spec.debugPort])if(port!==undefined&&(!Number.isInteger(port)||port<1||port>65535))
+    throw Error("Use an explicit bounded local fixture port");
 const { chromium } = await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright");
 spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
@@ -59,7 +78,7 @@ if(spec.root) {
             response.writeHead(200,{"Content-Type":actual.endsWith(".js")?"text/javascript":actual.endsWith(".css")?"text/css":"text/html"});response.end(bytes);
         }catch {response.writeHead(404);response.end("asset unavailable");}
     });
-    await new Promise(resolve=>assets.listen(0,"127.0.0.1",resolve));
+    await new Promise((resolve,reject)=>{assets.once("error",reject);assets.listen(spec.assetPort??0,"127.0.0.1",resolve)});
     spec.baseURL=`http://127.0.0.1:${assets.address().port}`;
 }
 for (const address of [spec.baseURL, ...spec.participants.map(p=>p.url)]) {
@@ -72,18 +91,20 @@ if (!Number.isInteger(spec.seconds) || spec.seconds < 1 || spec.seconds > 120 ||
 for(const tones of [spec.sourceToneHz,spec.expectedToneHz])if(tones!==undefined&&(!Array.isArray(tones)
     ||tones.length!==spec.participants.length||tones.some(value=>!Number.isFinite(value)||value<100||value>3000)))
     throw new Error("Generated/expected audio requires an identifiable 100–3000 Hz tone per participant");
-const browser = await chromium.launch({ headless: true, executablePath: process.env.CONNECT_CHROME_BINARY,
-    args: ["--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "--disable-renderer-backgrounding"] });
+let browser;
 const contexts = [];
 const observedPages = [];
 let cleanupPromise;
 const cleanup=()=>cleanupPromise??=(async()=>{
     await Promise.allSettled(contexts.map(context=>context.close()));
-    await browser.close();
+    await browser?.close();
     if(assets)await new Promise(resolve=>assets.close(resolve));
 })();
 process.once("SIGTERM",()=>{cleanup().finally(()=>process.exit(1));});
 try {
+    browser=spec.debugPort!==undefined?await chromium.connectOverCDP(`http://127.0.0.1:${spec.debugPort}`):
+        await chromium.launch({headless:true,executablePath:process.env.CONNECT_CHROME_BINARY,
+            args:["--autoplay-policy=no-user-gesture-required","--disable-background-timer-throttling","--disable-renderer-backgrounding"]});
     const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
         const context = await browser.newContext(); contexts.push(context);
         const page = await context.newPage();
@@ -137,7 +158,7 @@ try {
             const video=document.createElement("video"); video.muted=true; video.autoplay=true;
             video.style.cssText="position:fixed;inset:0;width:640px;height:360px;z-index:10000";
             document.body.append(video);
-            await session.attach(video);
+
             const sample=document.createElement("canvas"); sample.width=8;sample.height=8;
             const pixels=sample.getContext("2d",{willReadFrequently:true});
             pixels.imageSmoothingEnabled=false; // Sample uniform marker centres, without neighboring background blend.
@@ -164,9 +185,24 @@ try {
             sourceId:spec.sourceIds?.[index]??index });
         return page;
     }));
+    // Both original publishers must be durably admitted before either
+    // receiver selects its counterpart. An SDP answer alone is insufficient.
+    await Promise.all(pages.map(page=>page.evaluate(async()=>{
+        const {client,options}=window.videoFixture.control,until=performance.now()+10000;
+        for(;;){
+            if(performance.now()>=until)throw Error("Original publisher admission is not confirmed complete");
+            const status=await client.operationStatus(options.conversationId,options.operationId,{timeoutMs:Math.max(1,until-performance.now())});
+            if(status.state==="completed")return;
+            if(["failed","cancelled"].includes(status.state))throw Error("Original publisher admission failed or was cancelled");
+            await new Promise(resolve=>setTimeout(resolve,20));
+        }
+    })));
     // The canonical host grants no implicit receive selection. Apply only the
     // caller's original explicit intents after all physical peers have answered.
     await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.control.receive())));
+    // The canonical route has explicit receive admission; playback can become
+    // ready only after those original selections have completed.
+    await Promise.all(pages.map(page=>page.evaluate(()=>{const f=window.videoFixture;return f.session.attach(f.video)})));
     // Initial negotiation does not count toward the clean 60-second window.
     await new Promise(resolve=>setTimeout(resolve,1500));
     await Promise.all(pages.map(page=>page.evaluate(async()=>{

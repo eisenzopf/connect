@@ -85,7 +85,15 @@ A participant still needs an enrolled signing Device, a verified WebRTC
 Endpoint with the actual media capabilities, current authorization and an
 accepted Session. Submit an original scoped `connection.offer`, observe its
 journal completion, then apply an explicit original receive selection. The
-configuration alone does not establish a live Connection or media consumption.
+configuration alone does not establish a live Connection or media consumption. Participant audio selectors can retain future audio intent; this fixed RTC
+profile requires selecting the counterpart's original video stream ID explicitly.
+A future-video Participant selector requires renegotiation and refuses with
+`unsupported-media-profile`.
+
+The example owns one signed `auth.keepalive` every 20 seconds, with a five-second
+request bound and at most one pending renewal. Media RTP does not renew the
+60-second control reachability registration. Closing the original client cancels
+its timer/request; a renewal refusal closes that peer without retrying a mutation.
 WSS uses normal platform TLS trust; isolated qualification profiles are described
 in [browser-profile-trust.md](browser-profile-trust.md). Server HTTP operation
 and status semantics remain in [canonical-http.md](canonical-http.md), with
@@ -838,3 +846,21 @@ work. Their directional meaning must follow
 [RFC7587](https://www.rfc-editor.org/rfc/rfc7587.html#section-7.1) and
 [RFC7741](https://www.rfc-editor.org/rfc/rfc7741.html#section-6.2.2), retaining actual
 mono/packet/source bounds. G6-051 and the full105-task objective remain open.
+
+
+## Installed Chrome fixture
+
+The ignored `canonical_webrtc_browser::canonical_chrome_signed_av_normal_trust_clean_eddsa`
+integration test uses an explicit installed Chrome and Node runtime, private
+Playwright module, and absolute private output directory through
+`CONNECT_GATE6_CHROME`, `CONNECT_GATE6_NODE`, `CONNECT_PLAYWRIGHT_MODULE`, and
+`CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS`. It imports its fresh CA into a new
+private browser profile, configures the production host and exact asset origin,
+then enrolls two signed participants through the common isolated fixture.
+
+It waits for both original publisher operations before selecting either receive
+route, then attaches playback. The existing source, independent observers,
+60-second clean thresholds and original Session end remain intact. Reports and
+private state belong under `.local/`. This fixture currently exposes a decoded
+video throughput failure; see the installed-browser evidence. It is not a
+passing browser/fallback qualification.

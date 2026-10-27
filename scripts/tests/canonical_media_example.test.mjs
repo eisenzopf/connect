@@ -16,9 +16,12 @@ const configuration={identityId:"synthetic-identity",credential:"synthetic-crede
     subscribe:{operationId:"original-receive",expectedRevision:1,subscriptions:[{strm_id:"original-source"}]}};
 
 async function fixture(client, run, config=configuration){
+    const listeners=new Set(),close=client.close?.bind(client);
+    client.onClose=callback=>{listeners.add(callback);return()=>listeners.delete(callback)};
+    client.close=error=>{close?.(error);for(const listener of listeners)listener(error);listeners.clear()};
     const open=BrowserClient.open;BrowserClient.open=async()=>client;
     try {await run(await canonicalMediaClient(config));}
-    finally {BrowserClient.open=open;}
+    finally {client.close();BrowserClient.open=open;}
 }
 
 test("example observes original offer completion before one original receive submission",async()=>{
@@ -64,5 +67,36 @@ test("unknown receive effect only polls its original operation and never resubmi
         async request(){requests++}},async control=>{
         await control.receive();await control.receive();assert.equal(requests,1);
         assert.deepEqual(ids,["original-offer","original-receive","original-receive"]);
+    });
+});
+
+
+test("example owns one signed keepalive and cancels it with the original peer",async t=>{
+    t.mock.timers.enable({apis:["setTimeout"]});
+    let calls=0,resolve,signal;
+    await fixture({keepAlive(options){calls++;assert.equal(options.timeoutMs,5000);signal=options.signal;return new Promise(done=>{resolve=done})}},async control=>{
+        t.mock.timers.tick(19999);assert.equal(calls,0);
+        t.mock.timers.tick(1);assert.equal(calls,1);assert.equal(signal.aborted,false);
+        t.mock.timers.tick(60000);assert.equal(calls,1,"no overlapping renewal while one is pending");
+        control.client.close();assert.equal(signal.aborted,true);resolve();await Promise.resolve();
+        t.mock.timers.tick(60000);assert.equal(calls,1,"closed peer never renews again");
+    });
+});
+
+test("keepalive authority refusal closes the original peer without retry",async t=>{
+    t.mock.timers.enable({apis:["setTimeout"]});let calls=0,closed=0;
+    await fixture({async keepAlive(){calls++;throw Error("current authority refused")},close(error){if(error){closed++;assert.match(error.message,/authority refused/)}}},async()=>{
+        t.mock.timers.tick(20000);await Promise.resolve();await Promise.resolve();
+        assert.equal(calls,1);assert.equal(closed,1);
+        t.mock.timers.tick(60000);assert.equal(calls,1);
+    });
+});
+
+test("successful renewal schedules only the next bounded peer keepalive",async t=>{
+    t.mock.timers.enable({apis:["setTimeout"]});let calls=0;
+    await fixture({async keepAlive(){calls++}},async()=>{
+        t.mock.timers.tick(20000);await Promise.resolve();assert.equal(calls,1);
+        t.mock.timers.tick(19999);assert.equal(calls,1);
+        t.mock.timers.tick(1);await Promise.resolve();assert.equal(calls,2);
     });
 });
