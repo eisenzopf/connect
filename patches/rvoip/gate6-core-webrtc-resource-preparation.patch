@@ -1,0 +1,848 @@
+diff --git a/crates/foundation/rvoip-core/src/adapter.rs b/crates/foundation/rvoip-core/src/adapter.rs
+--- a/crates/foundation/rvoip-core/src/adapter.rs
++++ b/crates/foundation/rvoip-core/src/adapter.rs
+@@ -1,3 +1,4 @@
++use crate::DataMessage;
+ use crate::capability::{CapabilityDescriptor, NegotiatedCodecs};
+ use crate::commands::{AudioSource, MuteDirection};
+ use crate::connection::Transport;
+@@ -6,7 +7,6 @@
+ use crate::ids::ConnectionId;
+ use crate::message::Message;
+ use crate::stream::MediaStream;
+-use crate::DataMessage;
+ use std::fmt;
+ use std::sync::{Arc, OnceLock};
+ use tokio::sync::mpsc;
+@@ -14,13 +14,13 @@
+ pub use rvoip_core_traits::adapter::{
+     AdapterEvent, AdapterKind, ConnectionHandle, EndReason, ExternalConnectionReference,
+     ExternalConnectionReferenceError, InboundAssertedIdentity, InboundConnectionContext,
+-    InboundContextError, InboundRoutingHint, InboundSignalingMetadata, OriginateContext,
+-    OriginateRequest, OutboundActivation, PlaybackCompletionSender, PlaybackHandle,
+-    PlaybackOutcome, PlaybackWaitError, RejectReason, SignatureHeaders, TransferStatus,
+-    TransferTarget, TrustedSignalingMetadata, TrustedSignalingProvenance,
++    InboundContextError, InboundRoutingHint, InboundSignalingMetadata,
+     MAX_EXTERNAL_CONNECTION_REFERENCES, MAX_EXTERNAL_REFERENCE_KIND_BYTES,
+     MAX_EXTERNAL_REFERENCE_VALUE_BYTES, MAX_INBOUND_ASSERTED_IDENTITY_BYTES,
+-    MAX_INBOUND_ROUTING_HINT_BYTES,
++    MAX_INBOUND_ROUTING_HINT_BYTES, OriginateContext, OriginateRequest, OutboundActivation,
++    PlaybackCompletionSender, PlaybackHandle, PlaybackOutcome, PlaybackWaitError, RejectReason,
++    SignatureHeaders, TransferStatus, TransferTarget, TrustedSignalingMetadata,
++    TrustedSignalingProvenance,
+ };
+ pub use rvoip_core_traits::ids::TransferAttemptId;
+ 
+@@ -286,6 +286,27 @@
+         ))
+     }
+ 
++    /// Separate WebRTC resource preparation. It cannot use native datagram
++    /// context or assert readiness. Core reserves IDs/quota before this hook.
++    fn supports_peer_webrtc_preparation(&self) -> bool {
++        false
++    }
++    fn prepare_peer_webrtc_connection(
++        &self,
++        _request: &crate::orchestrator::peer_native::WebRtcConnectionRequest,
++    ) -> Result<ConnectionHandle> {
++        Err(RvoipError::NotImplemented(
++            "WebRTC peer preparation is unsupported",
++        ))
++    }
++    fn is_peer_webrtc_preparation_current(
++        &self,
++        _connection: &ConnectionId,
++        _peer: &Arc<crate::peer_admission::PeerAdmission>,
++    ) -> bool {
++        false
++    }
++
+     /// Opt in only for exact Core-reserved, synchronous dormant replacement
+     /// allocation. No signaling, callbacks, events or detached work is allowed
+     /// before this hook returns. Failure cleanup must cover partial allocation.
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/peer_native.rs
+@@ -110,6 +110,55 @@
+         self.cancellation.clone()
+     }
+ }
++/// WebRTC has a distinct preparation entrypoint and typed context hook. It
++/// shares Core resource accounting, never a native datagram media assertion.
++#[derive(Clone, PartialEq, Eq)]
++pub struct PeerWebRtcIntent {
++    pub session: SessionId,
++    pub connection: ConnectionId,
++}
++pub struct WebRtcConnectionRequest(NativeConnectionRequest);
++impl WebRtcConnectionRequest {
++    pub fn session(&self) -> &SessionId {
++        &self.0.intent.session
++    }
++    pub fn connection(&self) -> &ConnectionId {
++        &self.0.intent.connection
++    }
++    pub fn peer(&self) -> &Arc<PeerAdmission> {
++        self.0.peer()
++    }
++    pub fn participant(&self) -> &ParticipantId {
++        self.0.participant()
++    }
++    pub fn frozen_member(&self) -> &Membership {
++        self.0.frozen_member()
++    }
++    pub fn frozen_endpoint(&self) -> &EndpointBinding {
++        self.0.frozen_endpoint()
++    }
++    pub fn context<T: Any + Send + Sync>(&self) -> Option<Arc<T>> {
++        self.0.context()
++    }
++    pub fn cancellation(&self) -> CancellationToken {
++        self.0.cancellation()
++    }
++}
++#[must_use = "drop retires this WebRTC candidate"]
++pub struct PreparedPeerWebRtcConnection(PreparedPeerNativeConnection);
++impl PreparedPeerWebRtcConnection {
++    pub fn connection_id(&self) -> &ConnectionId {
++        self.0.connection_id()
++    }
++    pub fn retain(
++        self,
++        principal: &AuthenticatedPrincipal,
++        lease: &dyn PeerNativeAuthorityLease,
++    ) -> std::result::Result<ConnectionId, PeerNativeError> {
++        self.0.retain(principal, lease)
++    }
++}
++
+ /// An unretained candidate retires on drop, including caller cancellation.
+ /// Retention leaves a Connecting, peer-owned route; readiness and Participant
+ /// admission remain separate checked operations.
+@@ -120,6 +169,7 @@
+     intent: PeerNativeIntent,
+     scope: NativePreparationScope,
+     retained: bool,
++    webrtc: bool,
+ }
+ impl PreparedPeerNativeConnection {
+     pub fn connection_id(&self) -> &ConnectionId {
+@@ -136,12 +186,13 @@
+             .lock()
+             .expect("external projection lock poisoned");
+         let registry = core.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
+-        core.check_native_authority(
++        core.check_peer_preparation_authority(
+             &self.peer,
+             principal,
+             &self.intent,
+             lease.authority(),
+             &registry,
++            self.webrtc,
+         )?;
+         if !self.scope.matches(
+             &self.intent.session,
+@@ -163,7 +214,11 @@
+             return Err(PeerNativeError::Closed);
+         }
+         if !core.adapter(self.intent.transport).is_ok_and(|a| {
+-            a.is_peer_native_preparation_current(&self.intent.connection, &self.peer)
++            if self.webrtc {
++                a.is_peer_webrtc_preparation_current(&self.intent.connection, &self.peer)
++            } else {
++                a.is_peer_native_preparation_current(&self.intent.connection, &self.peer)
++            }
+         }) {
+             return Err(PeerNativeError::Closed);
+         }
+@@ -213,21 +268,26 @@
+             }
+         }
+     }
+-    fn check_native_authority(
++    fn check_peer_preparation_authority(
+         &self,
+         peer: &PeerAdmission,
+         principal: &AuthenticatedPrincipal,
+         intent: &PeerNativeIntent,
+         authority: &PeerNativeAuthority,
+         registry: &peer_sessions::PeerSessionRegistry,
++        webrtc: bool,
+     ) -> std::result::Result<(), PeerNativeError> {
+         if !identifier(intent.connection.as_str()) || !identifier(intent.session.as_str()) {
+             return Err(PeerNativeError::Conflict);
+         }
+-        if !matches!(
+-            intent.transport,
+-            Transport::Quic | Transport::WebTransport | Transport::WebSocket
+-        ) {
++        if if webrtc {
++            intent.transport != Transport::WebRtc
++        } else {
++            !matches!(
++                intent.transport,
++                Transport::Quic | Transport::WebTransport | Transport::WebSocket
++            )
++        } {
+             return Err(PeerNativeError::Unsupported);
+         }
+         if !authority.may_prepare || authority.endpoint.transport() != intent.transport {
+@@ -288,13 +348,62 @@
+         context: Arc<dyn Any + Send + Sync>,
+         replacement_nonce: Option<u128>,
+     ) -> std::result::Result<PreparedPeerNativeConnection, PeerNativeError> {
++        self.prepare_peer_connection_inner(
++            peer,
++            principal,
++            intent,
++            lease,
++            context,
++            replacement_nonce,
++            false,
++        )
++    }
++    /// Protected endpoint authority is held through synchronous dormant
++    /// allocation. Only this path can prepare Transport::WebRtc; the native
++    /// entrypoint still rejects it before any resource reservation/allocation.
++    pub fn prepare_peer_webrtc_connection(
++        self: &Arc<Self>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        intent: PeerWebRtcIntent,
++        lease: &dyn PeerNativeAuthorityLease,
++        context: Arc<dyn Any + Send + Sync>,
++    ) -> std::result::Result<PreparedPeerWebRtcConnection, PeerNativeError> {
++        self.prepare_peer_connection_inner(
++            peer,
++            principal,
++            PeerNativeIntent {
++                session: intent.session,
++                connection: intent.connection,
++                transport: Transport::WebRtc,
++            },
++            lease,
++            context,
++            None,
++            true,
++        )
++        .map(PreparedPeerWebRtcConnection)
++    }
++    fn prepare_peer_connection_inner(
++        self: &Arc<Self>,
++        peer: Arc<PeerAdmission>,
++        principal: &AuthenticatedPrincipal,
++        intent: PeerNativeIntent,
++        lease: &dyn PeerNativeAuthorityLease,
++        context: Arc<dyn Any + Send + Sync>,
++        replacement_nonce: Option<u128>,
++        webrtc: bool,
++    ) -> std::result::Result<PreparedPeerNativeConnection, PeerNativeError> {
+         self.ensure_operational_event_stream_healthy()
+             .map_err(|_| PeerNativeError::Closed)?;
+         let adapter = self
+             .adapter(intent.transport)
+             .map_err(|_| PeerNativeError::Unsupported)?;
+-        if !adapter.supports_peer_native_preparation()
+-            || !adapter.lifecycle_capabilities().authoritative_liveness
++        if !(if webrtc {
++            adapter.supports_peer_webrtc_preparation()
++        } else {
++            adapter.supports_peer_native_preparation()
++        }) || !adapter.lifecycle_capabilities().authoritative_liveness
+         {
+             return Err(PeerNativeError::Unsupported);
+         }
+@@ -305,7 +414,9 @@
+                 .lock()
+                 .expect("external projection lock poisoned");
+             let registry = self.peer_sessions.lock().unwrap_or_else(|p| p.into_inner());
+-            self.check_native_authority(&peer, principal, &intent, authority, &registry)?;
++            self.check_peer_preparation_authority(
++                &peer, principal, &intent, authority, &registry, webrtc,
++            )?;
+             let _ids = self
+                 .connection_registry_lock
+                 .lock()
+@@ -398,6 +509,7 @@
+                     endpoint: authority.endpoint.endpoint().clone(),
+                 },
+                 retained: false,
++                webrtc,
+             };
+             let request = NativeConnectionRequest {
+                 intent: intent.clone(),
+@@ -416,9 +528,12 @@
+                 Err(PeerNativeError::Closed)
+             } else {
+                 std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+-                    let handle = adapter
+-                        .prepare_peer_native_connection(&request)
+-                        .map_err(|_| PeerNativeError::Adapter)?;
++                    let handle = if webrtc {
++                        adapter.prepare_peer_webrtc_connection(&WebRtcConnectionRequest(request))
++                    } else {
++                        adapter.prepare_peer_native_connection(&request)
++                    }
++                    .map_err(|_| PeerNativeError::Adapter)?;
+                     let c = &handle.connection;
+                     if c.id != intent.connection
+                         || c.session_id != intent.session
+@@ -427,7 +542,11 @@
+                         || c.direction != Direction::Inbound
+                         || c.state != ConnectionState::Connecting
+                         || !c.streams.is_empty()
+-                        || !adapter.is_peer_native_preparation_current(&intent.connection, &peer)
++                        || !(if webrtc {
++                            adapter.is_peer_webrtc_preparation_current(&intent.connection, &peer)
++                        } else {
++                            adapter.is_peer_native_preparation_current(&intent.connection, &peer)
++                        })
+                     {
+                         Err(PeerNativeError::Adapter)
+                     } else {
+diff --git a/crates/webrtc/rvoip-webrtc/Cargo.toml b/crates/webrtc/rvoip-webrtc/Cargo.toml
+--- a/crates/webrtc/rvoip-webrtc/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc/Cargo.toml
+@@ -67,6 +67,7 @@
+ rtc.workspace = true
+ 
+ tokio = { workspace = true }
++tokio-util = { workspace = true }
+ async-trait.workspace = true
+ futures.workspace = true
+ bytes.workspace = true
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -0,0 +1,450 @@
++//! Core-reserved canonical WebRTC resources. Dormant allocation is distinct
++//! from SDP/DTLS, staged media readiness and participant admission.
++use crate::{
++    WebRtcConfig,
++    peer::{PeerRole, RvoipPeerConnection},
++};
++use dashmap::DashMap;
++use futures::{
++    FutureExt,
++    future::{BoxFuture, Shared},
++};
++use rvoip_core::{
++    adapter::*,
++    capability::{CapabilityDescriptor, NegotiatedCodecs},
++    connection::{Connection, ConnectionState, Direction, Transport, TransportHandle},
++    error::{Result, RvoipError},
++    identity::IdentityAssurance,
++    ids::*,
++    message::Message,
++    orchestrator::peer_native::WebRtcConnectionRequest,
++    peer_admission::PeerAdmission,
++    stream::MediaStream,
++};
++use std::sync::{
++    Arc, Mutex, OnceLock, Weak,
++    atomic::{AtomicUsize, Ordering},
++};
++use tokio::sync::mpsc;
++use tokio_util::sync::CancellationToken;
++#[derive(Clone)]
++enum AllocationError {
++    Construction,
++    Worker,
++}
++type Allocation =
++    Shared<BoxFuture<'static, std::result::Result<Arc<RvoipPeerConnection>, AllocationError>>>;
++type Completion = Shared<BoxFuture<'static, std::result::Result<(), String>>>;
++struct Owner {
++    peer: Weak<PeerAdmission>,
++    connection: ConnectionId,
++    cancel: CancellationToken,
++}
++/// Created by the trusted WSS factory before Core reservation. No wire body
++/// can construct the Core request or substitute this original owner/context.
++pub struct WebRtcPhysicalBinding {
++    accepted_peer: Weak<PeerAdmission>,
++    lifetime: CancellationToken,
++    owner: Mutex<Option<Owner>>,
++    allocation: Mutex<Option<Allocation>>,
++    completion: OnceLock<Completion>,
++}
++impl WebRtcPhysicalBinding {
++    pub fn new(peer: &Arc<PeerAdmission>, physical: CancellationToken) -> Arc<Self> {
++        Arc::new(Self {
++            accepted_peer: Arc::downgrade(peer),
++            lifetime: physical.child_token(),
++            owner: Mutex::new(None),
++            allocation: Mutex::new(None),
++            completion: OnceLock::new(),
++        })
++    }
++    fn bind(
++        &self,
++        peer: &Arc<PeerAdmission>,
++        id: &ConnectionId,
++        cancel: CancellationToken,
++    ) -> Result<()> {
++        if self.lifetime.is_cancelled()
++            || peer.is_closed()
++            || !Weak::ptr_eq(&self.accepted_peer, &Arc::downgrade(peer))
++        {
++            return Err(RvoipError::AdmissionRejected("WebRTC physical peer closed"));
++        }
++        let mut owner = self.owner.lock().unwrap_or_else(|p| p.into_inner());
++        if owner.is_some() {
++            return Err(RvoipError::AdmissionRejected(
++                "WebRTC physical binding already reserved",
++            ));
++        }
++        *owner = Some(Owner {
++            peer: Arc::downgrade(peer),
++            connection: id.clone(),
++            cancel,
++        });
++        Ok(())
++    }
++    fn current(&self, peer: &Arc<PeerAdmission>, id: &ConnectionId) -> bool {
++        !self.lifetime.is_cancelled()
++            && !peer.is_closed()
++            && self
++                .owner
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .is_some_and(|o| {
++                    o.connection == *id
++                        && !o.cancel.is_cancelled()
++                        && Weak::ptr_eq(&o.peer, &Arc::downgrade(peer))
++                })
++    }
++    fn owner_current(&self) -> bool {
++        !self.lifetime.is_cancelled()
++            && self
++                .owner
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .is_some_and(|o| {
++                    !o.cancel.is_cancelled() && o.peer.upgrade().is_some_and(|p| !p.is_closed())
++                })
++    }
++    /// Starts at most once, only AFTER the Core callback reserved this context.
++    /// The original spawned allocation lives outside any result observation.
++    pub fn start_peer(&self, config: WebRtcConfig, role: PeerRole) -> Result<()> {
++        let mut slot = self.allocation.lock().unwrap_or_else(|p| p.into_inner());
++        let owner = self.owner.lock().unwrap_or_else(|p| p.into_inner());
++        if self.lifetime.is_cancelled()
++            || owner.as_ref().is_none_or(|o| {
++                o.cancel.is_cancelled() || o.peer.upgrade().is_none_or(|p| p.is_closed())
++            })
++        {
++            return Err(RvoipError::AdmissionRejected(
++                "Core WebRTC reservation required",
++            ));
++        }
++        if slot.is_some() {
++            return Err(RvoipError::InvalidState(
++                "WebRTC allocation already started",
++            ));
++        }
++        let runtime = tokio::runtime::Handle::try_current()
++            .map_err(|_| RvoipError::InvalidState("WebRTC allocation runtime unavailable"))?;
++        let lifetime = self.lifetime.clone();
++        let route_cancel = owner.as_ref().unwrap().cancel.clone();
++        let task = runtime.spawn(async move {
++            let peer = RvoipPeerConnection::new(&config, role)
++                .await
++                .map_err(|_| AllocationError::Construction)?;
++            if lifetime.is_cancelled() || route_cancel.is_cancelled() {
++                peer.close().await.map_err(|_| AllocationError::Worker)?;
++                return Err(AllocationError::Construction);
++            }
++            Ok(peer)
++        });
++        *slot = Some(
++            async move { task.await.unwrap_or(Err(AllocationError::Worker)) }
++                .boxed()
++                .shared(),
++        );
++        Ok(())
++    }
++    pub async fn peer(&self, deadline: tokio::time::Instant) -> Result<Arc<RvoipPeerConnection>> {
++        if !self.owner_current() {
++            return Err(RvoipError::AdmissionRejected(
++                "WebRTC physical peer retired",
++            ));
++        }
++        let original = self
++            .allocation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .clone()
++            .ok_or(RvoipError::InvalidState("WebRTC allocation not started"))?;
++        let result = tokio::time::timeout_at(deadline, original)
++            .await
++            .map_err(|_| RvoipError::InvalidState("WebRTC allocation observation deadline"))?;
++        if !self.owner_current() {
++            return Err(RvoipError::AdmissionRejected(
++                "WebRTC physical peer retired",
++            ));
++        }
++        match result {
++            Ok(p) => Ok(p),
++            Err(AllocationError::Construction) => {
++                Err(RvoipError::InvalidState("WebRTC construction failed"))
++            }
++            Err(AllocationError::Worker) => Err(RvoipError::InvalidState(
++                "WebRTC allocation ownership unconfirmed",
++            )),
++        }
++    }
++    /// Confirm original allocation and actual RTC driver destruction. A dropped
++    /// observer cannot discard either original join or release Core quota.
++    pub async fn shutdown(&self) -> Result<()> {
++        self.lifetime.cancel();
++        let completion = self.completion.get_or_init(|| {
++            let allocation = self
++                .allocation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .clone();
++            let task = tokio::spawn(async move {
++                if let Some(allocation) = allocation {
++                    match allocation.await {
++                        Ok(peer) => peer.close().await.map_err(|e| e.to_string())?,
++                        // The constructor starts its driver only at its final
++                        // success boundary; a returned construction error owns
++                        // no started peer. A missing task result is unconfirmed.
++                        Err(AllocationError::Construction) => {}
++                        Err(AllocationError::Worker) => {
++                            return Err("WebRTC allocation join unconfirmed".into());
++                        }
++                    }
++                }
++                Ok(())
++            });
++            async move {
++                task.await
++                    .unwrap_or_else(|_| Err("WebRTC close join unconfirmed".into()))
++            }
++            .boxed()
++            .shared()
++        });
++        completion
++            .clone()
++            .await
++            .map_err(|_| RvoipError::InvalidState("WebRTC cleanup unconfirmed"))
++    }
++}
++impl Drop for WebRtcPhysicalBinding {
++    fn drop(&mut self) {
++        self.lifetime.cancel();
++        if self.completion.get().is_some() {
++            return;
++        }
++        if let Some(allocation) = self
++            .allocation
++            .get_mut()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++        {
++            if let Ok(runtime) = tokio::runtime::Handle::try_current() {
++                runtime.spawn(async move {
++                    if let Ok(peer) = allocation.await {
++                        let _ = peer.close().await;
++                    }
++                });
++            }
++        }
++    }
++}
++struct Route {
++    binding: Arc<WebRtcPhysicalBinding>,
++    peer: Weak<PeerAdmission>,
++    cancel: CancellationToken,
++}
++impl Drop for Route {
++    fn drop(&mut self) {
++        self.cancel.cancel();
++    }
++}
++/// Explicit canonical resource adapter. It has no legacy signaling/outbound
++/// fallback and does not advertise staged media until that backend is installed.
++pub struct CanonicalWebRtcAdapter {
++    routes: DashMap<ConnectionId, Arc<Route>>,
++    allocated: AtomicUsize,
++    events: mpsc::Sender<OrchestratorAdapterEvent>,
++    receiver: Mutex<Option<mpsc::Receiver<OrchestratorAdapterEvent>>>,
++    lifecycle: AdapterLifecycleSinkSlot,
++}
++impl CanonicalWebRtcAdapter {
++    pub fn new() -> Arc<Self> {
++        let (tx, rx) = mpsc::channel(64);
++        Arc::new(Self {
++            routes: DashMap::new(),
++            allocated: AtomicUsize::new(0),
++            events: tx,
++            receiver: Mutex::new(Some(rx)),
++            lifecycle: Default::default(),
++        })
++    }
++    pub fn route_count(&self) -> usize {
++        self.routes.len()
++    }
++    pub fn total_allocations(&self) -> usize {
++        self.allocated.load(Ordering::Acquire)
++    }
++}
++#[async_trait::async_trait]
++impl ConnectionAdapter for CanonicalWebRtcAdapter {
++    fn transport(&self) -> Transport {
++        Transport::WebRtc
++    }
++    fn kind(&self) -> AdapterKind {
++        AdapterKind::Substrate
++    }
++    fn lifecycle_capabilities(&self) -> AdapterLifecycleCapabilities {
++        AdapterLifecycleCapabilities {
++            authoritative_liveness: true,
++            terminal_fallback: true,
++            ..Default::default()
++        }
++    }
++    fn install_lifecycle_sink(&self, s: Arc<dyn AdapterLifecycleSink>) -> Result<()> {
++        self.lifecycle
++            .install(s)
++            .map_err(|_| RvoipError::InvalidState("WebRTC lifecycle sink already installed"))
++    }
++    fn supports_peer_webrtc_preparation(&self) -> bool {
++        true
++    }
++    fn prepare_peer_webrtc_connection(
++        &self,
++        request: &WebRtcConnectionRequest,
++    ) -> Result<ConnectionHandle> {
++        if request.frozen_endpoint().transport() != Transport::WebRtc {
++            return Err(RvoipError::AdmissionRejected("WebRTC Endpoint required"));
++        }
++        let binding =
++            request
++                .context::<WebRtcPhysicalBinding>()
++                .ok_or(RvoipError::AdmissionRejected(
++                    "original WebRTC physical context required",
++                ))?;
++        binding.bind(request.peer(), request.connection(), request.cancellation())?;
++        let id = request.connection().clone();
++        let route = Arc::new(Route {
++            binding,
++            peer: Arc::downgrade(request.peer()),
++            cancel: request.cancellation(),
++        });
++        match self.routes.entry(id.clone()) {
++            dashmap::mapref::entry::Entry::Vacant(e) => {
++                e.insert(route);
++            }
++            _ => return Err(RvoipError::InvalidState("WebRTC route ID conflicts")),
++        };
++        self.allocated.fetch_add(1, Ordering::AcqRel);
++        Ok(ConnectionHandle::new(Connection {
++            id,
++            session_id: request.session().clone(),
++            participant_id: request.participant().clone(),
++            transport: Transport::WebRtc,
++            direction: Direction::Inbound,
++            state: ConnectionState::Connecting,
++            capabilities: Default::default(),
++            negotiated_codecs: Default::default(),
++            streams: vec![],
++            messaging_enabled: false,
++            transport_handle: TransportHandle(Arc::new(())),
++            opened_at: chrono::Utc::now(),
++            closed_at: None,
++        }))
++    }
++    fn is_peer_webrtc_preparation_current(
++        &self,
++        id: &ConnectionId,
++        peer: &Arc<PeerAdmission>,
++    ) -> bool {
++        self.routes.get(id).is_some_and(|r| {
++            !r.cancel.is_cancelled()
++                && Weak::ptr_eq(&r.peer, &Arc::downgrade(peer))
++                && r.binding.current(peer, id)
++        })
++    }
++    fn is_connection_live(&self, id: &ConnectionId) -> bool {
++        self.routes.contains_key(id)
++    }
++    async fn originate(&self, _: OriginateRequest) -> Result<ConnectionHandle> {
++        Err(RvoipError::NotImplemented(
++            "canonical WebRTC requires Core preparation",
++        ))
++    }
++    async fn accept(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented(
++            "canonical WebRTC staged admission required",
++        ))
++    }
++    async fn reject(&self, id: ConnectionId, _: RejectReason) -> Result<()> {
++        self.end(id, EndReason::Normal).await
++    }
++    async fn end(&self, id: ConnectionId, reason: EndReason) -> Result<()> {
++        let route = self.routes.get(&id).map(|r| r.value().clone());
++        if let Some(route) = route {
++            route.cancel.cancel();
++            route.binding.shutdown().await?;
++            if self
++                .routes
++                .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
++                .is_some()
++            {
++                self.lifecycle
++                    .queue_or_deliver_orchestrator_terminal(
++                        &self.events,
++                        AdapterEvent::Ended {
++                            connection_id: id,
++                            reason,
++                        },
++                    )
++                    .await;
++            }
++        }
++        Ok(())
++    }
++    async fn hold(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical WebRTC hold"))
++    }
++    async fn resume(&self, _: ConnectionId) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical WebRTC resume"))
++    }
++    async fn transfer(&self, _: ConnectionId, _: TransferTarget) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical WebRTC transfer"))
++    }
++    async fn streams(&self, id: ConnectionId) -> Result<Vec<Arc<dyn MediaStream>>> {
++        if !self.routes.contains_key(&id) {
++            return Err(RvoipError::ConnectionNotFound(id));
++        }
++        Ok(vec![])
++    }
++    async fn send_message(&self, _: ConnectionId, _: Message) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical WebRTC data"))
++    }
++    async fn send_dtmf(&self, _: ConnectionId, _: &str, _: u32) -> Result<()> {
++        Err(RvoipError::NotImplemented("canonical WebRTC DTMF"))
++    }
++    async fn renegotiate_media(
++        &self,
++        _: ConnectionId,
++        _: CapabilityDescriptor,
++    ) -> Result<NegotiatedCodecs> {
++        Err(RvoipError::NotImplemented(
++            "canonical WebRTC staged media required",
++        ))
++    }
++    async fn verify_request_signature(
++        &self,
++        _: ConnectionId,
++        _: SignatureHeaders,
++    ) -> Result<IdentityAssurance> {
++        Err(RvoipError::NotImplemented(
++            "canonical signatures require authenticated dispatch",
++        ))
++    }
++    fn subscribe_events(&self) -> mpsc::Receiver<AdapterEvent> {
++        legacy_normalized_event_receiver(self.subscribe_orchestrator_events(), 64)
++    }
++    fn subscribe_orchestrator_events(&self) -> mpsc::Receiver<OrchestratorAdapterEvent> {
++        self.receiver
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .unwrap_or_else(|| {
++                let (_, rx) = mpsc::channel(1);
++                rx
++            })
++    }
++    fn capabilities(&self) -> CapabilityDescriptor {
++        Default::default()
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/lib.rs b/crates/webrtc/rvoip-webrtc/src/lib.rs
+--- a/crates/webrtc/rvoip-webrtc/src/lib.rs
++++ b/crates/webrtc/rvoip-webrtc/src/lib.rs
+@@ -40,8 +40,8 @@
+ pub mod client;
+ 
+ pub use adapter::{
+-    WebRtcAdapter, WebRtcMetrics, WebRtcTransportHandle, ADAPTER_EVENT_CAP,
+-    MAX_INBOUND_ADMISSION_CONFIRMATION_TIMEOUT,
++    ADAPTER_EVENT_CAP, MAX_INBOUND_ADMISSION_CONFIRMATION_TIMEOUT, WebRtcAdapter, WebRtcMetrics,
++    WebRtcTransportHandle,
+ };
+ pub use config::{
+     IceServerConfig, Nat1To1CandidateType, OpusSettings, UdpPortRangeConfig, WebRtcConfig,
+@@ -51,14 +51,14 @@
+ #[cfg(feature = "tls-rustls")]
+ pub use originate::WebRtcTlsClientTrust;
+ pub use originate::{
+-    StaticWebRtcBearerCredentialProvider, WebRtcAudioCodec, WebRtcBearerCredential,
+-    WebRtcBearerCredentialProvider, WebRtcIceExchangePolicy, WebRtcOriginateContext,
+-    WebRtcOriginateContextError, WebRtcSignalingMode, WebRtcTargetPolicy,
+-    MAX_WEBRTC_ORIGINATE_PREOPENED_DATA_CHANNELS,
++    MAX_WEBRTC_ORIGINATE_PREOPENED_DATA_CHANNELS, StaticWebRtcBearerCredentialProvider,
++    WebRtcAudioCodec, WebRtcBearerCredential, WebRtcBearerCredentialProvider,
++    WebRtcIceExchangePolicy, WebRtcOriginateContext, WebRtcOriginateContextError,
++    WebRtcSignalingMode, WebRtcTargetPolicy,
+ };
+ pub use peer::{
+-    connect_loopback, DataChannelOptions, IceCandidateLog, LocalIceEvent, PeerRole,
+-    RvoipDataChannel, RvoipPeerConnection, WebRtcFeatureSupport,
++    DataChannelOptions, IceCandidateLog, LocalIceEvent, PeerRole, RvoipDataChannel,
++    RvoipPeerConnection, WebRtcFeatureSupport, connect_loopback,
+ };
+ pub use sdp::{sdp_has_inline_ice_candidates, sdp_has_media_line, sdp_indicates_simulcast};
+ pub use webrtc::peer_connection::{RTCIceCandidate, RTCIceCandidateInit};
+@@ -70,9 +70,13 @@
+ 
+ #[cfg(feature = "client")]
+ pub use client::{
+-    run_audio, Answer, AudioPacing, AudioSink, AudioSource, CallTarget, ComprehensiveReport,
++    Answer, AudioPacing, AudioSink, AudioSource, CallTarget, ComprehensiveReport,
+     CountingAudioSink, FixtureAudioSource, IceCandidate, NegotiationAction, NullAudioSink, Offer,
+     PerfectNegotiation, SessionHandle, SessionMedium, Signaler, SignalingPool, WebRtcClient,
++    run_audio,
+ };
+ #[cfg(all(feature = "client", feature = "signaling-ws"))]
+ pub use client::{WsSignaler, WsSignalerConfig};
++
++/// Core-reserved canonical WebRTC resource ownership.
++pub mod canonical;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -119,6 +119,12 @@
+         let local_video_ssrc = Arc::clone(&channels.local_video_ssrc);
+         let handler = ConnectionHandler::new(channels);
+         let sender_clock = rtc::interceptor::SenderClockHandle::default();
++        let primary_audio_encoding =
++            builder::configured_audio_codecs(&config.opus_settings, &config.capabilities)?
++                .into_iter()
++                .next()
++                .ok_or(WebRtcError::IncompatibleCapabilities)?
++                .rtp_codec;
+         let pc = builder::build_peer_connection_inner(
+             config,
+             handler,
+@@ -127,12 +133,6 @@
+         )
+         .await?;
+         let gather_timeout = Duration::from_secs(config.gather_timeout_secs);
+-        let primary_audio_encoding =
+-            builder::configured_audio_codecs(&config.opus_settings, &config.capabilities)?
+-                .into_iter()
+-                .next()
+-                .ok_or(WebRtcError::IncompatibleCapabilities)?
+-                .rtp_codec;
+ 
+         Ok(Arc::new(Self {
+             source_clock,

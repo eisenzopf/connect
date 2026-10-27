@@ -1154,6 +1154,11 @@
       "path": "patches/rvoip/gate6-peer-audio-codec-binding.patch",
       "source": "G6-051 share configured primary codec table across engine/track/SSRC clock construction. Derive Core egress from actual stable connected peer SDP, selected payload/format and peer-owned track/SSRC; retain physical peer and reject ambiguous mappings. This does not establish canonical Core admission/readiness.",
       "sha256": "0b7130da55ec31cee74e07b01d4d6d218f6109f8ad781aadd19a41d5c4ec59fb"
+    },
+    {
+      "path": "patches/rvoip/gate6-core-webrtc-resource-preparation.patch",
+      "source": "G6-051 explicit typed Core WebRTC resource preparation and adapter. Preserve strict native entrypoint; reserve never-reused ID/physical quotas before dormant callback and actual RTC allocation. Bind exact verified Endpoint/owner/context; retain original allocation and close joins through cancellation. No SDP/DTLS media readiness or default advertisement.",
+      "sha256": "a063e33932ccc2b2390f20d99976e94bf364c7f38baa9d7011da05bec4eb12ca"
     }
   ]
 }
