@@ -1,0 +1,198 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "base_revision": "b2cde704",
+  "checked_at": "2026-10-27T04:32:33.520046+00:00",
+  "scope": "Local macOS arm64 ordinary production Core/RTC/WebRTC libraries. Real loopback ICE/DTLS/SRTP and decoded PCMU at dynamic PT109; isolated current policy deliberately panics once in actual RTC ingress. No Store/browser/provider or package qualification.",
+  "source_inputs": {
+    "dependencies/source-lock.json": "10993282a15ae4a71a71e9a268294fc49a4cd694b60af395342676fa97671f4c",
+    "Cargo.lock": "6b8421b32ed000a141390be9b00cd61cb85b59b9828d49895ce123ee93871b72",
+    "patches/rvoip/gate6-webrtc-staged-core-media.patch": "851ad63f3deaf4776279fb760ab36dc9668234da3f08f562007d6fd3a0320d67",
+    "docs/evidence/gate-6/webrtc-worker-readiness-probe.rs": "2a26b85063c42de056c0f0e7d479a3359ad9b8b9a669e9885f25150fcadaccc4",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical/media.rs": "0b125a8fa418f516d156e9da9d2a4a0deb76b02e461c1274285891c425d43115",
+    ".deps/rvoip/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs": "1192d9065add0306aec6f00e7a502d01a835d9e933d23e6e092df3e73385e846"
+  },
+  "baseline": {
+    "exit_code": 101,
+    "timeout": false,
+    "seconds": 3.306247957982123,
+    "arguments": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-worker-readiness/probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-worker-readiness/baseline-01-probe",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+      "--extern",
+      "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+      "--extern",
+      "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "886b1a167b0ab22bd388516072965deeb06a3629e0229ede219950a2080db420",
+    "executable_sha256": "49300d735ead3032cec9675283aa1105cccb417ad421dbdc9f4822978f78ce01",
+    "log_sha256": "3716304d3e5a06ff593eb3fd61315a254d7b6d9a6f48971d9b4c8b8bf3658dee",
+    "checks": [
+      "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+      "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+      "PASS explicit current Core participant subscriptions authorize both receive directions",
+      "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+      "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+      "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+      "PASS original RTC drivers and all Core port resources close before quota refund"
+    ],
+    "changed_inputs": []
+  },
+  "baseline_behavior_source_sha256": "886b1a167b0ab22bd388516072965deeb06a3629e0229ede219950a2080db420",
+  "same_fixture_behavior_body_before_and_after_fix": true,
+  "only_changed_normal_library": [
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib"
+  ],
+  "build": {
+    "exit_code": 0,
+    "seconds": 127.67524449992925,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 5147,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-456d973275220a3b",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-worker-readiness/server-library-test-01",
+      "sha256": "f6781a2cc1824cafd13cf62190ea3779509f82090f86bbf2ce025fa0a81bf6a4",
+      "bytes": 106434400
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "39f7870a645c86e88fb0d4676d8e6e8d645046ae32e0653f7cdf11416e72dc33"
+  },
+  "runtime": {
+    "exit_code": 0,
+    "timeout": false,
+    "seconds": 2.2737189170438796,
+    "arguments": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "docs/evidence/gate-6/webrtc-worker-readiness-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-worker-readiness/fixed-01-probe",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+      "--extern",
+      "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+      "--extern",
+      "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "2a26b85063c42de056c0f0e7d479a3359ad9b8b9a669e9885f25150fcadaccc4",
+    "executable_sha256": "f9282d4f03a8946eff3404684a211531c32d726279f0323b9d7e7fcc027f6295",
+    "log_sha256": "788b0e82d8824db46b55ba4d471800109167bee5ae4fb06fdbfc2f5a46d4dfa7",
+    "checks": [
+      "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+      "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+      "PASS explicit current Core participant subscriptions authorize both receive directions",
+      "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+      "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+      "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+      "PASS original RTC drivers and all Core port resources close before quota refund",
+      "PASS actual ingress worker failure invalidates current media readiness while retaining peer quota and capacity until original joined cleanup"
+    ],
+    "changed_inputs": []
+  },
+  "existing_server_regressions": {
+    "exit_code": 0,
+    "seconds": 3.4061465829145163,
+    "arguments": [
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-worker-readiness/server-library-test-01",
+      "canonical_webrtc::tests::",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "log_sha256": "697a54926c43231c9d44682655cb736d963c6072f5e0b94efb68da8538046de3",
+    "test_results": [
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.36s"
+    ],
+    "changed_inputs": [],
+    "artifact_unchanged": true
+  },
+  "implementation": [
+    "A job-lifetime guard invalidates readiness and cancels its resource lifetime on ordinary return, unwind or task destruction. It never confirms cleanup or releases quota/capacity.",
+    "Ingress/egress worker panic is caught as CleanupUnconfirmed, readiness is cleared before metadata locks, and the exact protected terminal callback retires that original Core port. Its original JoinHandle remains owned for cleanup.",
+    "Current activation rechecks the sealed exact bindings against adapter-owned ready/stop flags and registered unfinished original tasks with nonblocking metadata access. It cannot promote cached readiness after a worker exits.",
+    "The source actor has a lifetime guard as well; its cached source-ready watch cannot remain current after actor destruction. Original close joins and parent-driver destruction remain the cleanup authority."
+  ],
+  "behavior": [
+    "Before the change, the actual injected ingress worker panic left current activation usable for the entire one-second observation window while RTC stayed connected. The same fixture still completed original driver/port cleanup; only the stale-readiness assertion failed.",
+    "After the change, the same behavior body reports eight passing groups, including withdrawal of current activation after that actual ingress fault. Both RTC parents remain connected at the observation, the other peer remains current, and the affected original peer charge/host slot remain held until original joined cleanup.",
+    "The prior actual resource preparation/refusal/recovery, participant original-operation replay, explicit receive selection, decoded duplex, fresh publication withdrawal/restoration and observer/speaking role groups continue to pass.",
+    "The fixture domain tag contains no grant. Every retained packet source/target read independently reacquires current state; the tag distinguishes the actual ingress fault from the separate conference mixer task. The continued withdrawal/restoration checks verify current denial is not bypassed."
+  ],
+  "verification_limits": [
+    "One actual ingress panic is deliberately injected. Source-actor panic/abort and pending driver-write failure are not separately fault-injected here; no pass is claimed for those additional cases.",
+    "Current confirmation is for the initial exact G711 resource batch. Genuine later media reconfiguration needs its own current committed-resource view and remains wider G6-051 work.",
+    "The clean library/test build and seven owned-RTC server regressions qualify the named local scopes only. The earlier stripped/package artifact warning remains unresolved; this does not qualify packaging.",
+    "Canonical Store/WSS media composition, Opus/VP8/data/source-clock/MID/SSRC/ICE, installed Chrome/Firefox forced fallback, Linux x86_64 and bounded named G6-093 remote/provider lanes remain required. No Gate6 acceptance is promoted; publication remains separate."
+  ],
+  "dependency_preparation": {
+    "verified": true,
+    "terminal_before_adoption": true,
+    "identical_source_files_only_mtime_restoration_and_APFS_sharing": true,
+    "manifest_sha256": "487b387b817e2c55f1f74e43cc8938982b14b54a955e400d483488a1e842889f"
+  },
+  "private_evidence": ".local/gate-6/webrtc-worker-readiness/"
+}

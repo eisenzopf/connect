@@ -255,7 +255,7 @@ diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/r
 new file mode 100644
 --- /dev/null
 +++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
-@@ -0,0 +1,746 @@
+@@ -0,0 +1,777 @@
 +//! Owned initial canonical audio ports on one actual RTC peer. No signaling
 +//! answer or remote declaration alone establishes a source/sink resource.
 +use super::*;
@@ -340,6 +340,20 @@ new file mode 100644
 +    ready: watch::Receiver<Option<std::result::Result<Arc<Source>, ()>>>,
 +    done: Done,
 +}
++// Resource lifetime only. Panic/abort must invalidate readiness; this does
++// not acknowledge cleanup or release any original join/capacity owner.
++struct JobLifetime {
++    ready: Option<Arc<AtomicBool>>,
++    stop: CancellationToken,
++}
++impl Drop for JobLifetime {
++    fn drop(&mut self) {
++        if let Some(ready) = &self.ready {
++            ready.store(false, Ordering::Release);
++        }
++        self.stop.cancel();
++    }
++}
 +struct Setup {
 +    closing: bool,
 +    tasks: Vec<JoinHandle<ControlResult<()>>>,
@@ -369,11 +383,18 @@ new file mode 100644
 +        let port = self.port.clone();
 +        let stop = self.stop.clone();
 +        setup.tasks.push(tokio::spawn(async move {
-+            let result = f.await;
++            let _lifetime = JobLifetime {
++                ready: Some(ready.clone()),
++                stop: stop.clone(),
++            };
++            let result = std::panic::AssertUnwindSafe(f)
++                .catch_unwind()
++                .await
++                .unwrap_or(Err(StreamControlError::CleanupUnconfirmed));
++            ready.store(false, Ordering::Release);
 +            {
 +                let mut state = state.lock().unwrap_or_else(|p| p.into_inner());
 +                state.closing = true;
-+                ready.store(false, Ordering::Release);
 +            }
 +            if !stop.is_cancelled() {
 +                stop.cancel();
@@ -520,6 +541,10 @@ new file mode 100644
 +            let stop = self.lifetime.clone();
 +            let ports = self.ports.clone();
 +            let task = tokio::spawn(async move {
++                let _lifetime = JobLifetime {
++                    ready: None,
++                    stop: stop.clone(),
++                };
 +                let result =
 +                    source_loop(peer, payload_type, format, stop.clone(), ports, &tx).await;
 +                if tx.borrow().is_none() {
@@ -570,6 +595,11 @@ new file mode 100644
 +                    p.ready.load(Ordering::Acquire)
 +                        && !p.stop.is_cancelled()
 +                        && same_binding(&p.binding, b)
++                        && p.setup.try_lock().is_ok_and(|setup| {
++                            !setup.closing
++                                && !setup.tasks.is_empty()
++                                && setup.tasks.iter().all(|task| !task.is_finished())
++                        })
 +                })
 +            })
 +    }
@@ -984,15 +1014,16 @@ new file mode 100644
 +            .backend
 +            .upgrade()
 +            .ok_or(StreamControlError::Cancelled)?;
-+        if !backend.current() {
-+            return Err(StreamControlError::Cancelled);
-+        }
-+        self.prepared
++        let prepared = self
++            .prepared
 +            .lock()
 +            .unwrap_or_else(|p| p.into_inner())
-+            .as_ref()
-+            .ok_or(StreamControlError::NotReady)?
-+            .current(current)
++            .clone()
++            .ok_or(StreamControlError::NotReady)?;
++        if !backend.confirms(prepared.bindings()) {
++            return Err(StreamControlError::NotReady);
++        }
++        prepared.current(current)
 +    }
 +    fn confirmed_generation(&self) -> Option<u64> {
 +        self.prepared
