@@ -8,6 +8,7 @@ mod consultation_joins;
 mod consultation_presence;
 mod consultation_reads;
 mod consultation_returns;
+mod consultation_sql_contention;
 mod handoff_custody;
 mod handoff_lifetimes;
 mod handoff_preparation;

@@ -1,0 +1,49 @@
+{
+  "task": "G6-065",
+  "recorded_at": "2026-10-27T23:13:40.625079+00:00",
+  "base_revision": "ed580e1bcb8e03a6088ce89f2b88611443869303",
+  "status": "Reproduced SQL contention fixed; original intermittent native handoff finding remains open.",
+  "scope": "Local macOS arm64 Store behavior under isolated synthetic SQL contention. No model/account/provider/remote execution or Gate 6 task/acceptance promotion.",
+  "problem": "Native consultation completion used blocking command SQL both while rederiving held authority and before its immediate transaction. SQL mutex or SQLite writer contention therefore retained Identity/Conversation write fences and excluded fresh private packet readers even though independent WAL packet observers could read committed state.",
+  "change": "Use existing immediate try_connection in both derivation passes and the final transaction. Contention releases authority with authority-busy or storage-unavailable; the existing service metadata loop retries the same captured receipt within its original five-second completion budget, without another Core submission. All topology, receipt, decoded readiness, current authority and lifetime checks remain.",
+  "controlled_before": {
+    "executable_sha256": "423633b149b67f6c0cb304d2287099e218ffd4f6b7f954eee0766db928203267",
+    "exit_code": 101,
+    "cases": 2,
+    "expected_failures": 2,
+    "observed": "Both calls remained blocked while SQL was held; current private packet reads were refused and the outside participant remained refused.",
+    "guarded_inputs": 616,
+    "changed_inputs": [],
+    "raw_log_sha256": "737b0e3725c85eb505aa249f862e9c0d83b7636b872c347344950c43964e0e07"
+  },
+  "controlled_after": {
+    "executable_sha256": "acf660b4c12f60fae5cfd877ec9ab44d0551ed42a3ce98077663ac41b72d563e",
+    "cases": 2,
+    "passed": 2,
+    "failed": 0,
+    "observed": "Both calls returned before the 200ms observation bound with SQL still held; fresh private packet authority succeeded in both directions and the outside participant remained refused. The original Operation stayed preparing, then the same captured receipt completed/replayed identically with revision 4, one attempt, one confirmed effect and one private lifetime.",
+    "raw_log_sha256": "8c54d6fcf1debfe94cbb44ad59bfc16a64d3c1a88837dc54f855d11da765c380",
+    "changed_inputs": []
+  },
+  "test_design": "Mutex case observes an actual queued Conversation writer before occupying SQL and releasing its preceding Conversation reader. SQLite case holds an isolated raw BEGIN IMMEDIATE transaction. SQL is released and workers joined before all outcome assertions. No production pause hooks or media assertion changes.",
+  "exploratory_attempts": [
+    "Initial test compilation required move ownership of the channel sender.",
+    "Initial mutex fixture held a full media reader and watched the later Conversation scope; completion correctly queued first on an earlier Identity scope, so this harness observation failed. The retained final negative observes a Conversation-only held interval and fails on the intended SQL wait. These initial attempts are not product qualification."
+  ],
+  "additional_verification": {
+    "store_regressions": "running; not yet qualified",
+    "native_mcp_handoff": "current server rebuild running; not yet qualified"
+  },
+  "limitations": [
+    "Controlled SQL contention is proven; no failed-event snapshot yet ties it to the earlier unexplained one-frame native reverse-audio failure.",
+    "No current physical audio or full facade/task qualification is claimed by these Store tests."
+  ],
+  "source_inputs": {
+    "crates/connect-store/src/transitions/native_consultations.rs": "da1b8e2d0667778beaaa35d2396816f9decd375ea376c159f30649c0b0dacabc",
+    "crates/connect-store/src/connection_control/tests.rs": "d3c7c5a4585471a151ddb54cdf06651b91e34b75966f2dd8a5e28b77ae4b7989",
+    "crates/connect-store/src/connection_control/tests/consultation_sql_contention.rs": "42c46414c6f0edf45507d02203a184ca89d33652ddac9d049d19e4c6e6f11a57",
+    "crates/connect-service/src/canonical_consultation.rs": "ffe24deb0cc27b903b15309c3c069d68c02dab6e2f5f938b9616f036f733293c",
+    "Cargo.lock": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5"
+  },
+  "private_evidence": ".local/gate-6/consultation-sql-contention"
+}

@@ -184,10 +184,14 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
+        // Completion shares authority scopes with live packet readers. Refuse
+        // SQL contention in both derivation passes and the final transaction;
+        // waiting here would turn a metadata retry into a media blackout. The
+        // service retries this same captured receipt within its original budget.
         let held = self.stable_authority(
             &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
             || {
-                let c = self.connection()?;
+                let c = self.try_connection()?;
                 let row = rows::by_record(&c, &receipt.record)?;
                 let mut scopes = admission::row_scopes(&row)?;
                 if row.record.state != OperationState::Completed {
@@ -203,7 +207,7 @@ impl Store {
                 crate::AuthorityScope::merged(&scopes)
             },
         )?;
-        let mut c = self.connection()?;
+        let mut c = self.try_connection()?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
