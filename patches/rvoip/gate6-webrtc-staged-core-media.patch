@@ -255,7 +255,7 @@ diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/r
 new file mode 100644
 --- /dev/null
 +++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
-@@ -0,0 +1,777 @@
+@@ -0,0 +1,816 @@
 +//! Owned initial canonical audio ports on one actual RTC peer. No signaling
 +//! answer or remote declaration alone establishes a source/sink resource.
 +use super::*;
@@ -1033,6 +1033,45 @@ new file mode 100644
 +            .committed_generation()
 +    }
 +}
++
++impl Backend {
++    pub(super) async fn initial_resources(
++        &self,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++    ) -> ControlResult<()> {
++        if self.lifetime.is_cancelled() || !self.physical.owner_current() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let peer = tokio::select! {biased;
++            _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++            p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?,
++        };
++        tokio::select! {biased;
++            _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++            r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
++        }
++        let (format, pt, receive, send) = tokio::time::timeout_at(deadline, shape(&peer))
++            .await
++            .map_err(|_| StreamControlError::Deadline)??;
++        if !receive && !send {
++            return Err(StreamControlError::Unsupported);
++        }
++        if receive {
++            // Start/reuse the original actor. It may observe a real source but
++            // dispatches nothing until an actual Core port is active. Its
++            // original join remains owned by Backend through every observer.
++            self.source_ready(peer, pt, &format, deadline, &cancel)
++                .await?;
++        }
++        if !self.current() || cancel.is_cancelled() || tokio::time::Instant::now() >= deadline {
++            return Err(StreamControlError::Cancelled);
++        }
++        Ok(())
++    }
++}
 diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
 --- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
 +++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
@@ -1330,6 +1369,34 @@ diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-w
              if self
                  .routes
                  .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
+@@ -448,3 +628,27 @@
+         Default::default()
+     }
+ }
++
++impl CanonicalWebRtcAdapter {
++    pub async fn wait_initial_media(
++        &self,
++        id: &ConnectionId,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++    ) -> rvoip_core::staged_streams::ControlResult<()> {
++        use rvoip_core::staged_streams::StreamControlError;
++        let backend = {
++            let route = self.routes.get(id).ok_or(StreamControlError::Authority)?;
++            let installed = route
++                .installation
++                .lock()
++                .map_err(|_| StreamControlError::Authority)?;
++            installed
++                .as_ref()
++                .ok_or(StreamControlError::NotReady)?
++                .backend
++                .clone()
++        };
++        backend.initial_resources(deadline, cancel).await
++    }
++}
 diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
 --- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
 +++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs

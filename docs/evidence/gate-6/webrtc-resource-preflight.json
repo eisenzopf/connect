@@ -1,0 +1,101 @@
+{
+  "task": "G6-051",
+  "date": "2026-10-26",
+  "status": "in-progress",
+  "scope": "Normal-production-library RTC resource preflight and existing isolated actual Core/decoded-media regression. The policy fixture is independent of Store/WSS; no durable readiness or installed-browser pass.",
+  "patch": {
+    "path": "patches/rvoip/gate6-webrtc-staged-core-media.patch",
+    "sha256": "63f06e7852c70ef3b4e46474ebadba17978ba0a5803337c127a4be391b6445b6",
+    "source_lock_sha256": "ff2410112287434ce8e5a1046d7ff442ec01075d088e19440d2b14c7cd141963"
+  },
+  "probe": {
+    "path": "docs/evidence/gate-6/webrtc-admission-probe.rs",
+    "sha256": "684228e49290cadcfac6c7460a4506d111618179f14ea5fd6f3724b9b721c3b5"
+  },
+  "production_inputs": {
+    "docs/evidence/gate-6/webrtc-admission-probe.rs": "684228e49290cadcfac6c7460a4506d111618179f14ea5fd6f3724b9b721c3b5",
+    "dependencies/source-lock.json": "ff2410112287434ce8e5a1046d7ff442ec01075d088e19440d2b14c7cd141963",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib": "4edc0d61f42cd1d9cad523977f0a7ab2282e6c0faaf37eab8efb692aa7de2b2c",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib": "633f46c04ad9fe6d12215b1c41f890719c4738a796e5e98a6f9483cfc8077b4e",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib": "8d268c62bede5d4030179feb63381c20e1925008723e13464fdcf698894e4152",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib": "d250d413ecbe95ecdada6d76c0f50ce9516aaf34ebf5d7755757b6d5ae501b05",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib": "d66c98e50c9e14d079e4621c94558002177b3b974e0ab037875a4590a3168202",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib": "9cda4a4afaca6f888c7b352435656cbbe20977b732094346d08e292ddb94e10a",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib": "beeb709bf32fbedf58a2fcb82077ec1676ea00f51d42fe44861346e76d898b62",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib": "3ef7b89639bfe2e5e241cec0c54ed3d6cc1006e288884e5a900f007cd71f4e79",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib": "d679585ca01302e45025a5f86b411d58fad0898bfec291566ab268ece74af7eb",
+    "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib": "b113bcd3dda00113e4ad9e01937fbc1a7e344bb63f91d90b910686a897a02d93"
+  },
+  "verification": {
+    "exit_code": 0,
+    "timeout": false,
+    "seconds": 2.48799837497063,
+    "arguments": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "docs/evidence/gate-6/webrtc-admission-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-admission/current-01-probe",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+      "--extern",
+      "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+      "--extern",
+      "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "684228e49290cadcfac6c7460a4506d111618179f14ea5fd6f3724b9b721c3b5",
+    "executable_sha256": "9dcc098f97bab6a83c17305b5515ee3c4b5789df1155c15a11f35f45c8c69e8f",
+    "log_sha256": "73149b72e71f56aa84f25bb0f469b6372b7e8ce2c89cf7ade832dda7a1d7dec0",
+    "checks": [
+      "PASS alice: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+      "PASS alice: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+      "PASS bob: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+      "PASS bob: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+      "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+      "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+      "PASS explicit current Core participant subscriptions authorize both receive directions",
+      "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+      "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+      "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+      "PASS original RTC drivers and all Core port resources close before quota refund",
+      "PASS actual ingress worker failure invalidates current media readiness while retaining peer quota and capacity until original joined cleanup"
+    ],
+    "changed_inputs": []
+  },
+  "behavior": [
+    "wait_initial_media clones the exact installed Backend before suspension; no adapter registry reader is retained during actual network waits.",
+    "A connected RTC parent without primary RTP refuses resource readiness. Cancellation of an observer retains the original SourceJob and cleanup custody; retry reuses that original source.",
+    "Actual primary RTP on the same source satisfies the preflight without creating, activating or publishing any Core port. Preactivation frames are discarded. Sink-only media does not require a fabricated incoming source.",
+    "All existing actual staged Core admission/replay, explicit subscriptions, independently decoded duplex, current permission withdrawal/restoration, role transitions, original cleanup and actual ingress-worker-failure groups pass in the same probe."
+  ],
+  "evidence_limits": [
+    "The source-actor panic/abort and pending-write faults are not separately injected by this fixture.",
+    "The new ordinary WebRTC library compiled successfully in the current Root dependency graph; the encompassing Connect service/server build is still running and is not counted as a pass.",
+    "Fresh Store continuation and service admission are being wired independently. The full Opus/video/data, source-clock/ICE/MID/SSRC, browser forced-fallback, Linux/remote, package and acceptance scope remains required."
+  ],
+  "preparation": {
+    "terminal_verified": true,
+    "prepared_root": "/Users/jonathaneisenzopf/.local/share/connect/deps-webrtc-admission-20261026",
+    "private_adoption_manifest_sha256": "106deed750d8ac24e8895fd01655cd30209fba8500d10a5aab21ada97f945fd0",
+    "note": "Only byte-identical files share old storage and timestamps after terminal source-lock verification."
+  }
+}
