@@ -8,6 +8,7 @@ use super::*;
 /// The ten-millisecond retry window accommodates current metadata derivation at
 /// a policy-clock edge, while remaining below one twenty-millisecond audio frame.
 /// It bounds retry admission, not the duration of an individual Store read.
+#[cfg(test)]
 fn packet_read<T>(
     mut read: impl FnMut() -> connect_protocol::Result<T>,
 ) -> connect_protocol::Result<T> {
@@ -33,34 +34,50 @@ impl Policy {
         scope: &MediaScope<'_>,
         held: Option<Arc<NativeMediaRead>>,
     ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
-        if let Some(target) = self.initial_target(scope.connection)? {
+        // Share the existing packet-read retry budget across leaf registry and
+        // Store acquisition. Retry no readiness, activation or authority result.
+        let until = std::time::Instant::now() + std::time::Duration::from_millis(10);
+        if let Some(target) =
+            super::packet_metadata::read_until(until, || self.initial_target(scope.connection))?
+        {
             return target.current(scope);
         }
-        if let Some(target) = self.telephone_target(scope.connection)? {
+        if let Some(target) =
+            super::packet_metadata::read_until(until, || self.telephone_target(scope.connection))?
+        {
             return target.current(scope);
         }
-        if let Some(target) = self.replacement_target(scope.connection)? {
+        if let Some(target) =
+            super::packet_metadata::read_until(until, || self.replacement_target(scope.connection))?
+        {
             return target.current(scope);
         }
-        let entry = self.entry(scope.connection)?;
+        let entry = super::packet_metadata::read_until(until, || self.entry(scope.connection))?;
         self.scope(scope, &entry).map_err(|error|{tracing::trace!(target:"connect_service::canonical_packet",connection=entry.origin.connection_id(),?error,"Native packet scope refused");error})?;
         if let MediaPurpose::Receive { source } = scope.purpose {
-            if let Some(initial) = self.initial_target(&source.connection)? {
+            if let Some(initial) = super::packet_metadata::read_until(until, || {
+                self.initial_target(&source.connection)
+            })? {
                 return initial.native_receive(scope, source, &entry);
             }
-            if let Some(telephone) = self.telephone_target(&source.connection)? {
+            if let Some(telephone) = super::packet_metadata::read_until(until, || {
+                self.telephone_target(&source.connection)
+            })? {
                 return telephone.native_receive(scope, source, &entry);
             }
         }
         let source = match scope.purpose {
-            MediaPurpose::Receive { source } => Some((source, self.entry(&source.connection)?)),
+            MediaPurpose::Receive { source } => Some((
+                source,
+                super::packet_metadata::read_until(until, || self.entry(&source.connection))?,
+            )),
             _ => None,
         };
         let started = std::time::Instant::now();
         if let (Some(held), Some((descriptor, source))) = (held.as_deref(), source.as_ref()) {
             source_matches(descriptor, source, held.target())?;
         }
-        let result = packet_read(|| match (held.as_deref(), source.as_ref()) {
+        let result = packet_read_until(until, || match (held.as_deref(), source.as_ref()) {
             (Some(held), Some((_, source))) => {
                 // The opaque context must be this actual source binding, not
                 // another grant that happens to cover the same Conversation.

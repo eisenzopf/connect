@@ -3,6 +3,7 @@ pub(crate) mod credential_refresh;
 pub(crate) mod data;
 pub(crate) mod data_writes;
 pub(crate) mod handoff;
+mod packet_metadata;
 mod packets;
 pub(crate) mod preparation;
 pub(crate) mod reconciliation;

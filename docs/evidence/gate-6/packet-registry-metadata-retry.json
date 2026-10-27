@@ -1,0 +1,239 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T17:57:58.509244+00:00",
+  "scope": "Bounded known-registry metadata recheck in shared native packet policy. Current installed Chrome video throughput passes; overall clean AV remains FAILED for one measured wrong-frequency audio sample.",
+  "implementation": "Only initial/telephone/replacement/native registry lookups whose NotReady is exclusively mutex WouldBlock retry. All share the existing10ms packet-read retry budget with Store acquisition. Each attempt releases the registry guard; current Store/credential/role/source/readiness/activation checks and original200ms packet age remain in place. No blanket NotReady retry, cached positive authority, codec/source/observer/threshold change or repeated IO.",
+  "units": {
+    "new_methods": 4,
+    "scope": "Exact original private metadata module compiled against normal Core library; real concurrent Mutex release, withdrawal, cutoff and poison. Not a full service unit suite.",
+    "checks": [
+      {
+        "name": "unit-build",
+        "exit_code": 0,
+        "seconds": 0.2100479588843882,
+        "changed_inputs": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "test_results": []
+      },
+      {
+        "name": "units",
+        "exit_code": 0,
+        "seconds": 0.32277470803819597,
+        "changed_inputs": [],
+        "log_sha256": "3d8d7f6c36f9cf601f7051cf5f543c763636bb2bdae74527558601ec7ce1d019",
+        "test_results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ]
+      }
+    ]
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 646.0286629579496,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5217,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-23",
+      "sha256": "f62692d6c503863dbd35fccafa64df5955ecb8ba78f0819b39f2484ea20aa555",
+      "bytes": 214594208
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "7cef0812d007777af0f0ebae56dcf192804ba7a42928ab1e0dd9dd4cd3d095e2"
+  },
+  "native_verification": {
+    "distinct_existing_methods": 33,
+    "passed": 33,
+    "checks": [
+      {
+        "name": "registry-native-av-23",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 7.892943958984688,
+            "log_sha256": "20b5114cef1dc27f8d32452cf0d09b2f91d5d288de0981507055d8654d785204",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 7.86s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "registry-configured-av-23",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 9.120390540920198,
+            "log_sha256": "7ad0a1e6272cc8b2bc317158d799b078b2d008bd2570bf644a945ad39760ae86",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 9.10s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "registry-refusal-23",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 1.3573397090658545,
+            "log_sha256": "4a7821f4eb3953a1808e12ef8359ba663b2eea8f9e81d60e51ce7031271c5ce7",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 61 filtered out; finished in 1.32s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "registry-regression-23",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 52.51028666715138,
+            "log_sha256": "89dd3faef84b1e3b527545a4a75f80063ddc91569aad56c3105598aeceb39f8b",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 55 filtered out; finished in 52.47s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 39.32811399991624,
+            "log_sha256": "d94d9e89fb46a02a5070e8797fe8c298abde0a8c297a950a18f22e24b31bc38e",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 39.28s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 4.322912500007078,
+            "log_sha256": "a292898522238b668c4f43bd9748841dfb2cb16c08f04e32896b0c7590a99296",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 4.29s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ]
+  },
+  "browser": {
+    "distinct_existing_methods": 1,
+    "complete_verdict": "failed",
+    "seconds": 66.05544758308679,
+    "result_sha256": "0e3da57cf32cd7bc92dc54e1179fcb47a4370dd6bdd24a2c1cce6c78e2b3c886",
+    "log_sha256": "12bb232a08fff663d0b8c8e71254bad1d61bdfe6d5de2d907b9af334eb248a7a",
+    "input_manifest_sha256": "f3ea6cfc3fed6c310bb84dc2f246ed2e3f839f33c56ca157a289d25d2f173fc4",
+    "guards_closed_unchanged": true,
+    "participants": [
+      {
+        "seconds": 60.0113000869751,
+        "decoded_fps": 29.91103337868843,
+        "changing_fps": 25.495198367350028,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "failed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": [
+          {
+            "unix_seconds": 1793123336.8816,
+            "rms": 0.258425330933648,
+            "frequency_hz": 703.125
+          }
+        ],
+        "expected_audio_frequency_hz": 660,
+        "sync": {
+          "status": "passed",
+          "median_abs_skew_ms": 16.950000047682323,
+          "p95_abs_skew_ms": 55.99999999999916
+        }
+      },
+      {
+        "seconds": 60.01110005378723,
+        "decoded_fps": 29.844478744678035,
+        "changing_fps": 25.361974678615283,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "passed",
+          "motion_profile": "passed",
+          "worker_pipeline": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 600,
+        "bad_audio_samples": [],
+        "expected_audio_frequency_hz": 440,
+        "sync": {
+          "status": "passed",
+          "median_abs_skew_ms": 25.950000047682664,
+          "p95_abs_skew_ms": 80.89999985694885
+        }
+      }
+    ],
+    "paired_termination": {
+      "status": "passed",
+      "seconds": 0.07660149999999703,
+      "limit_seconds": 5,
+      "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+    },
+    "teardown_seconds": 0.10824945799999841,
+    "ownership": {
+      "original_listener_addresses_reclaimed": 3,
+      "owned_chrome_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    },
+    "packet_refusal_rows": [
+      "rvoip_webrtc::canonical::media: RTC original packet path refused medium=Video stage=\"core-publish\" count=1 reason=NotReady",
+      "rvoip_webrtc::canonical::media: RTC original packet path refused medium=Video stage=\"original-driver-write\" count=1 reason=OutcomeUnknown"
+    ]
+  },
+  "comparison": "Previous frozen Root20 source with same normal Chrome media/observers failed24fps video while repeatedly refusing Core ingress NotReady. CurrentRoot23 decodes29.91/29.84fps, changes25.50/25.36fps and loses0/0video packets. This qualifies this measured video recovery only, not the whole AV profile.",
+  "remaining_audio": "One of600measured samples for the660Hz receiver is703.125Hz at Unix1793123336.8816, RMS0.2584253; neighboring samples return to the expected tone. Startup zero samples are outside the measured window. The other440Hz direction passesall600points. Preserve this failed verdict; capture bounded original decoded PCM/spectrum and actual source observations before changing the audio path or observer. Prior native post-mute audio timeout also remains unresolved.",
+  "failures_retained": {
+    "accidental_build22": "Run-label replacement accidentally changed the cache year20261024to22261024. Only that owned Cargo child was interrupted; no source failure or binary/test pass. All338361359bytes of the new closed regenerable cache were manifested and pruned; intended cache was retained. CorrectedRoot23 records its exact intended target directory.",
+    "proof_archives": "Four closed proof executables11/14/15/18 were losslessly archived with byte/hash/mode/mtime and verified roundtrip. Initial zstd flag ordering failed before any original unlink; corrected archive uses verified bytes. Source/state/logs remain. See local-proof-compression-20261027-03.json."
+  },
+  "qualification": "53/105tasks done; G6-050/G6-051 remain in progress and acceptance unqualified. Actual forced WT/UDP failure, Chrome/Firefox original-intent transition matrix, remaining audio/profile/impairment and later DAG tasks remain required. Private staged fixtures have not run."
+}

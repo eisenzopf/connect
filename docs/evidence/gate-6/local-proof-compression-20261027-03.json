@@ -1,0 +1,52 @@
+{
+  "scope": "Only closed task proof executables archived losslessly after original-byte roundtrip and inactive lsof checks. Source, private state, logs and active inputs retained.",
+  "initial_attempt": "zstd output flag was placed after --; it failed before any original unlink. Any resulting default archive is independently roundtrip-verified before reuse.",
+  "free_bytes_before": 1630236672,
+  "artifacts": [
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-11",
+      "original_sha256": "87c8bf321e86a456f21c1316affafa43b056a4bef01edc25195eb943dbf8b0f9",
+      "original_bytes": 214408160,
+      "mode": 493,
+      "mtime_ns": 1793120193613865756,
+      "archive": ".local/gate-6/proof-archives-20261027-03/wss-integration-test-11.zst",
+      "archive_sha256": "4dce289343796c212964514190bc8c8732c52192870909c5cad2345cda8c5518",
+      "archive_bytes": 46839084,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-14",
+      "original_sha256": "4fec45e7cf65c2833a6e3933be0fda4026f611c7a1fde6f850087f56bff95163",
+      "original_bytes": 214566992,
+      "mode": 493,
+      "mtime_ns": 1793120431602714630,
+      "archive": ".local/gate-6/proof-archives-20261027-03/wss-integration-test-14.zst",
+      "archive_sha256": "95598a0b99fdb4b55bd620a6139536002306faac05210dc42d863fca4927d987",
+      "archive_bytes": 46921211,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-15",
+      "original_sha256": "a629fc4b04de551184894c2c36a885ee7c3100bff6735111fb199e49c4531ef7",
+      "original_bytes": 214583920,
+      "mode": 493,
+      "mtime_ns": 1793120490126411141,
+      "archive": ".local/gate-6/proof-archives-20261027-03/wss-integration-test-15.zst",
+      "archive_sha256": "7e7818d53054912384cb1f71491bb1ea0314fb11781c284f40dbdda7ac744317",
+      "archive_bytes": 46926428,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-18",
+      "original_sha256": "0f469f75127b6085ad4e48fcd300198373f543814346a399a2e59c8361df6319",
+      "original_bytes": 214583952,
+      "mode": 493,
+      "mtime_ns": 1793120683918873275,
+      "archive": ".local/gate-6/proof-archives-20261027-03/wss-integration-test-18.zst",
+      "archive_sha256": "508d837f5b54c60c5d4709e3ece15c275932d99dba72bd227c183ec5b7d58762",
+      "archive_bytes": 46925390,
+      "roundtrip_verified": true
+    }
+  ],
+  "free_bytes_after": 2345439232
+}
