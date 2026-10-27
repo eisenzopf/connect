@@ -993,7 +993,7 @@
     }
   ],
   "inputs": {
-    "Cargo.lock": "95da687f4630fbad030733ee29bf774d8b3835d3ff678e2f0a9d2913933aa0b0",
+    "Cargo.lock": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5",
     "Cargo.toml": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
     "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
@@ -1049,7 +1049,7 @@
     "crates/connect-protocol/tests/conversation_control.rs": "7d3c41934d97499a567f35e4576b6782c1d366eb8c9104e09895514f7b391546",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "ef5e5540ff1cfd7bfc59b773b370820465845d70f42fdd2ea811523c489c1ff1",
-    "dependencies/source-lock.json": "b65e6a7e17365665c0c87a2ab3b5e62ffe7306170808711bd3ea15f9195921eb",
+    "dependencies/source-lock.json": "da81b82d66e040df863ab5f6f03a61763104d3cf461012c7474c3f6f3e31005a",
     "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135"
   }
 }

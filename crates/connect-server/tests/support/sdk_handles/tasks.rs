@@ -92,7 +92,7 @@ async fn create_task(
                     recipients: vec![setup.ai.clone()],
                     sms_enrollments: vec![],
                 },
-                expires_at: chrono::Utc::now().timestamp() + 600,
+                expires_at: setup.application.expires_at.timestamp(),
                 initiating_event_id: None,
             },
         },
@@ -113,7 +113,7 @@ async fn create_task(
                     external_id: id.into(),
                 },
                 operations: permissions,
-                expires_at: chrono::Utc::now().timestamp() + 300,
+                expires_at: record.expires_at.min(chrono::Utc::now().timestamp() + 300),
             },
         },
     )
@@ -131,6 +131,67 @@ async fn invocation(
     let mut app = application(&setup.application.clone().with_task_grant(grant).unwrap()).await;
     assert_eq!(app.negotiate_task(&record.id).await.unwrap().id, record.id);
     app
+}
+
+#[tokio::test]
+async fn canonical_application_task_lifetime_stays_within_issuing_authority_after_clock_boundary() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let setup = setup(algorithm).await;
+        let authority = setup
+            .f
+            .server
+            .store
+            .authenticate(&setup.application.credential)
+            .unwrap();
+        // Cross the fixture's 600-second credential construction boundary.
+        // A later relative TTL must not extend the original authority.
+        tokio::time::timeout(Duration::from_secs(3), async {
+            while chrono::Utc::now().timestamp() <= authority.expires_at - 600 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let (record, grant) = create_task(
+            &setup,
+            "sdk-task-clock-boundary",
+            vec![TaskPermission::Send],
+        )
+        .await;
+        assert!(record.expires_at <= authority.expires_at);
+        assert!(grant.grant.expires_at <= record.expires_at);
+
+        let mut owner = application(&setup.application).await;
+        owner
+            .negotiate_tasks("connect:sdk-task-ai@local", Some(setup.room.id().as_str()))
+            .await
+            .unwrap();
+        let rejected = owner
+            .execute(
+                Operation::Task {
+                    request: Box::new(TaskRequest::new(TaskCommand::Create {
+                        request_id: "sdk-task-overlong".into(),
+                        definition: TaskDefinition {
+                            conversation_id: record.conversation_id.clone(),
+                            scope: record.scope.clone(),
+                            expires_at: authority.expires_at + 1,
+                            initiating_event_id: None,
+                        },
+                    })),
+                }
+                .try_into()
+                .unwrap(),
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(rejected, ClientError::Application(error) if error.code == "forbidden"));
+        // Definite admission refusal must not create a Task or reserve its ID.
+        let (bounded, _) =
+            create_task(&setup, "sdk-task-overlong", vec![TaskPermission::Send]).await;
+        assert!(bounded.expires_at <= authority.expires_at);
+        setup.client.close(options()).await.unwrap();
+        setup.f.server.shutdown().await.unwrap();
+    }
 }
 
 #[tokio::test]

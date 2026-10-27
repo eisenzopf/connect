@@ -1,0 +1,167 @@
+{
+  "task": "G6-065",
+  "status": "Retained Task/provider fixture finding resolved; wider facade task remains in progress pending completion audit.",
+  "recorded_at": "2026-10-27T21:29:50.649653+00:00",
+  "base_revision": "4fb39e79",
+  "scope": "Local macOS arm64 stock server/public application SDK/CLI and bounded local fake Vapi endpoint only. No actual model, provider account, telephone, remote or publication execution.",
+  "problem": "The fixture issued its owner credential for600seconds, then built a Task expiry as a later now+600. Crossing a wall-clock second exceeded original credential authority, so legitimate TaskCreate admission returned forbidden before provider work. The old generic unwrap obscured which Task command failed.",
+  "production_policy": "Unchanged. Store Task definition and continuation enforce current issuer expiry/permissions/audience. No authorization retry, renewed credential, longer issuer TTL or ignored forbidden response.",
+  "change": [
+    "Fixture Task expiry uses the existing application authority deadline. Native grant expiry is bounded by the saved Task deadline.",
+    "One new real-listener test crosses the actual credential construction clock boundary, proves lawful Task/grant admission, rejects a Task one second beyond actual backing authority, and proves the definite rejection did not reserve its request ID. Both EdDSA/ES256 scenes pass.",
+    "Developer guidance preserves absolute deadlines with the original intent rather than recomputing relative lifetimes."
+  ],
+  "before": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 16.749290250008926,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5223,
+      "changed_inputs": [],
+      "artifact": {
+        "sha256": "92b1a7ef866def6de207f86d57dc56bfb0eb35b20f3eb369c6aa83a183fe02e0",
+        "bytes": 265216648
+      },
+      "summary_sha256": "2bd68513f157ec33ed65d0b85542f5e784e273a6b98921539bd757dcc0a1fda2",
+      "diagnostic_warning": "Retained Cargo cached CLI debug-stripping ENOSPC warning; integration artifacts load independently. See explicit CLI cache followup."
+    },
+    "runtime": {
+      "exit_code": 101,
+      "seconds": 2.4280162500217557,
+      "changed_inputs": [],
+      "log_sha256": "5d1be9349bbd490bc21a7432d5afa41c8e5861b18ab24707bc9ba5ed8cd10834",
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 348 filtered out; finished in 0.68s"
+      ],
+      "cli_sha256": "ec09142720c1211fbcb0fb448cd703fb2a7dceae3ae9e95230be1429c7cec33e"
+    },
+    "expected_error": {
+      "command": "TaskCommand::Create",
+      "code": "forbidden"
+    },
+    "independent_of_cli": "The failing boundary path initializes in-process and uses public HTTP TaskCreate; it does not launch the damaged CLI.",
+    "executable_preservation_sha256": "58b62d43ca193e2e4147f52e8f9f996e46bc03eb926712f6e4271102c7ac5769"
+  },
+  "after": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 13.451523791998625,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5223,
+      "changed_inputs": [],
+      "artifact": {
+        "sha256": "66e0c9a899ebf50bb4a76a9192afdd7a9a593e73b97300f8f40d0d6dfcb54152",
+        "bytes": 265216648
+      },
+      "summary_sha256": "8f6f0c8578a807b661b575baf54097f39df9516b00e82f3c566751c58587c6d4",
+      "diagnostic_warning": "Retained Cargo cached CLI debug-stripping ENOSPC warning; integration artifacts load independently. See explicit CLI cache followup."
+    },
+    "runtime": {
+      "scope": "Current SDK Task cohort with bounded local fake Vapi HTTP endpoint, original uncertainty/restart test, deterministic clock-boundary case, CLI Task grant and diagnostics. No actual model, provider-account or external provider endpoint calls.",
+      "exit_code": 0,
+      "seconds": 7.669763291953132,
+      "expected": [
+        "sdk_handles::tasks::canonical_application_diagnostics_retains_metadata_after_grant_revocation_and_rechecks_the_reader",
+        "sdk_handles::tasks::canonical_application_stdio_task_grant_keeps_exact_bootstrap_permissions_and_current_revocation",
+        "sdk_handles::tasks::canonical_application_task_lifetime_stays_within_issuing_authority_after_clock_boundary",
+        "sdk_handles::tasks::public_sdk_task_provider_context_grants_and_replies_use_current_communication_without_legacy_dispatch",
+        "sdk_handles::tasks::public_sdk_task_provider_uncertainty_survives_restart_without_redispatch_and_rechecks_revocation"
+      ],
+      "test_result": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 7.61s"
+      ],
+      "changed_inputs": [],
+      "cli_sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+      "guarded_inputs": 5224,
+      "artifact_sha256": "66e0c9a899ebf50bb4a76a9192afdd7a9a593e73b97300f8f40d0d6dfcb54152",
+      "log_sha256": "23023460a35ddcfc97ebc006caebd3216df3d0ff3edbd8962e6f9c1055d8b8ca"
+    },
+    "test_scenarios": "Five methods each cover both signing algorithms. Original fake-provider context/reply and uncertainty/restart/current-revocation tests, actual CLI Task grant/diagnostics tests, and new clock-boundary case all pass. Provider acceptance remains exactly once with original uncertain effect recovery.",
+    "test_source_sha256": "6bb99fcd125335ed4fb45371689516f5d946a31d578a7306f6fcda1c697be521"
+  },
+  "schema_reference": {
+    "initial_check": "Failed because Cargo.lock and dependencies/source-lock.json fingerprints were stale after earlier upstream patches. No schema shape difference.",
+    "classified_changes": {
+      "changed_json_pointers": [
+        "/x-connect-generation-inputs/Cargo.lock",
+        "/x-connect-generation-inputs/dependencies/source-lock.json"
+      ],
+      "semantic_schema_changes": false
+    },
+    "regenerated": [
+      "contracts/openapi-application-http.json",
+      "contracts/application-http-dispatch.json",
+      "contracts/http-endpoints.json"
+    ],
+    "serde_checks": 98,
+    "schemas": 225,
+    "dispatch_cases": 69,
+    "task_cases": 16,
+    "source_unchanged": true,
+    "summary_sha256": "bc702ff0f350f4e809b2727659b38d2a8939633746676c0af8dd8b27e1603099",
+    "scope": "Actual bounded serde codec/schema agreement plus current source inventory, not new HTTP business/media qualification.",
+    "initial_environment": "System Python lacked jsonschema; existing isolated validation-env interpreter used without installing packages."
+  },
+  "cache_preservation": {
+    "manifest_sha256": "b844f8fa41062a0fa0520ce7e18661e6337d12145162805af9716b9aae87701a",
+    "entries": 10,
+    "original_bytes": 731230032,
+    "archive_bytes": 147166433,
+    "roundtrip_verified": true,
+    "scope": "Only closed generated old compiler-cache libraries, no live file owner; current build cache/source/state/logs unchanged.",
+    "initial_failed_archive": "Oversized debug-library compression hit ENOSPC before original removal. Incomplete derived output removed after recording hash/size; original retained. An attempted source write refused and git diff confirmed no modification before retry.",
+    "failed_attempt_sha256": "be8e8f8ebe7ad3e43ba4ec550e53a6e6ed04f566d63804d71e9ee46f1fc60973"
+  },
+  "remaining": [
+    "Audit full G6-065 facade operation/permission/audience/recovery/error/schema/host scope before marking task done.",
+    "Gate6 browser audio finding, transport/hosting/SDK/application and all required independent profiles/acceptance remain open."
+  ]
+}

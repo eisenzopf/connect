@@ -91,5 +91,23 @@
       }
     ],
     "scope": "Only closed generated noncurrent executables, no live lsof owner, lossless compressed bytes/hash/mode/mtime retained; current dependency libraries/source/private installation state/logs retained."
+  },
+  "cache_republication_followup": {
+    "problem": "Cargo republished its latent damaged hashed dependency binary after root CLI was repaired. Replace both exact matching corrupt artifacts with the same full-source CLI71. Unrelated old graph binaries unchanged. Original corrupt2992bytes retained in prior failure proof.",
+    "repaired_targets": [
+      "release/connect",
+      "release/deps/connect-521a0c55d335bf99"
+    ],
+    "original_corrupt_sha256": "ec09142720c1211fbcb0fb448cd703fb2a7dceae3ae9e95230be1429c7cec33e",
+    "repaired_sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+    "same_complete_source_relink": "Original full CLI71 artifact, unchanged production sources/dependency libraries. Only exact matching corrupt cache entries replaced.",
+    "cargo_after_repair": {
+      "bin_fresh": true,
+      "root_and_hashed_cache_sha256_agree": true,
+      "warning_scope": "Cargo replays the previous cached objcopy warning for a fresh binary; this warning is retained rather than reported as a new successful strip."
+    },
+    "actual_cli_regressions": "Current SDK Task grant and retained diagnostics child-CLI methods pass as part of the five-method source-frozen cohort.",
+    "evidence": "docs/evidence/gate-6/task-fixture-authority-deadline.json",
+    "private_repair_record_sha256": "a3cbdc73765a0e7bf42b42b6660e838c2763a36ce3fa6d0570132cc168b61abb"
   }
 }

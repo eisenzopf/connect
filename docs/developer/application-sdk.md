@@ -103,6 +103,12 @@ deadline includes response streaming, is limited by original credential expiry,
 and cannot be renewed by ready chunks. Cancellation or timeout leaves acceptance
 unknown. Retry the saved operation ID and intent; the SDK performs no logical retry.
 
+Task expiry must stay within the issuer's original credential deadline; a grant
+must also expire no later than its Task. Derive these absolute deadlines from
+the existing authority ceilings and save them with the original intent.
+Recomputing a relative lifetime later can exceed the issuer's authority even
+when only one second has elapsed. Replay preserves the original deadlines.
+
 Tasks require explicit discovery through permitted capabilities or a read of the
 known bound task. `ApplicationClient::negotiate_tasks` and `negotiate_task` do not
 mint authority. CLI task requests require `--application` plus `--task-address` or
