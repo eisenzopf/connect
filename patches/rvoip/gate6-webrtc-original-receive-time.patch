@@ -1,0 +1,1014 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/lib.rs b/crates/webrtc/rvoip-rtc/src/lib.rs
+--- a/crates/webrtc/rvoip-rtc/src/lib.rs
++++ b/crates/webrtc/rvoip-rtc/src/lib.rs
+@@ -157,7 +157,7 @@
+ //!     // 3. poll_read() - Get incoming application messages (RTP/RTCP/data)
+ //!     while let Some(message) = pc.poll_read() {
+ //!         match message {
+-//!             RTCMessage::RtpPacket(track_id, rtp_packet) => {
++//!             RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+ //!                 println!("Received RTP packet on track {track_id}");
+ //!                 // Process RTP packet
+ //!             }
+@@ -583,7 +583,7 @@
+ //!
+ //! // Receive RTP packets
+ //! while let Some(message) = pc.poll_read() {
+-//!     if let RTCMessage::RtpPacket(track_id, rtp_packet) = message {
++//!     if let RTCMessage::RtpPacket(track_id, rtp_packet, _) = message {
+ //!         println!("RTP packet on track {}: {} bytes",
+ //!             track_id, rtp_packet.payload.len());
+ //!         
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/event/track_event.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/event/track_event.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/event/track_event.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/event/track_event.rs
+@@ -148,7 +148,7 @@
+ ///     // Poll incoming media
+ ///     while let Some(message) = peer_connection.poll_read() {
+ ///         match message {
+-///             RTCMessage::RtpPacket(track_id, rtp) => {
++///             RTCMessage::RtpPacket(track_id, rtp, _) => {
+ ///                 println!("RTP packet from track {:?}: {} bytes", track_id, rtp.payload.len());
+ ///             }
+ ///             RTCMessage::RtcpPacket(receiver_id, rtcp) => {
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/mod.rs
+@@ -238,9 +238,11 @@
+                 }
+                 RTCMessageInternal::Rtp(RTPMessage::TrackPacket(track_packet)) => {
+                     match track_packet.packet {
+-                        Packet::Rtp(packet) => {
+-                            Some(RTCMessage::RtpPacket(track_packet.track_id, packet))
+-                        }
++                        Packet::Rtp(packet) => Some(RTCMessage::RtpPacket(
++                            track_packet.track_id,
++                            packet,
++                            msg.now,
++                        )),
+                         Packet::Rtcp(packet) => {
+                             Some(RTCMessage::RtcpPacket(track_packet.track_id, packet))
+                         }
+@@ -269,7 +271,7 @@
+                     data_channel_event: DataChannelEvent::Message(data_channel_message),
+                 }))
+             }
+-            RTCMessage::RtpPacket(_track_id, rtp_packet) => {
++            RTCMessage::RtpPacket(_track_id, rtp_packet, _) => {
+                 RTCMessageInternal::Rtp(RTPMessage::Packet(Packet::Rtp(rtp_packet)))
+             }
+             RTCMessage::RtcpPacket(_track_id, rtcp_packet) => {
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/message/mod.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/message/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/message/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/message/mod.rs
+@@ -54,7 +54,7 @@
+ //!
+ //! # fn send_media(track_id: MediaStreamTrackId, rtp_packet: rtp::Packet) {
+ //! // Create a message
+-//! let message = RTCMessage::RtpPacket(track_id, rtp_packet);
++//! let message = RTCMessage::RtpPacket(track_id, rtp_packet, std::time::Instant::now());
+ //!
+ //! // Send through peer connection
+ //! // peer_connection.send_message(message)?;
+@@ -71,7 +71,7 @@
+ //!
+ //! # fn receive_messages(message: RTCMessage) {
+ //! match message {
+-//!     RTCMessage::RtpPacket(track_id, packet) => {
++//!     RTCMessage::RtpPacket(track_id, packet, _) => {
+ //!         // Decode and render media
+ //!         println!("Received media for track {:?}", track_id);
+ //!     }
+@@ -118,7 +118,7 @@
+ //! };
+ //!
+ //! // Send media
+-//! let message = RTCMessage::RtpPacket(track_id, rtp_packet);
++//! let message = RTCMessage::RtpPacket(track_id, rtp_packet, std::time::Instant::now());
+ //! // peer_connection.send_message(message)?;
+ //! # }
+ //! ```
+@@ -173,7 +173,7 @@
+ //! fn process_messages(messages: Vec<RTCMessage>) {
+ //!     // Process only media messages
+ //!     for msg in messages.iter() {
+-//!         if matches!(msg, RTCMessage::RtpPacket(_, _)) {
++//!         if matches!(msg, RTCMessage::RtpPacket(_, _, _)) {
+ //!             println!("Processing media packet");
+ //!         }
+ //!     }
+@@ -197,7 +197,7 @@
+ //! // Send multiple packets efficiently
+ //! let messages: Vec<RTCMessage> = packets
+ //!     .into_iter()
+-//!     .map(|packet| RTCMessage::RtpPacket(track_id.clone(), packet))
++//!     .map(|packet| RTCMessage::RtpPacket(track_id.clone(), packet, std::time::Instant::now()))
+ //!     .collect();
+ //!
+ //! // for msg in messages {
+@@ -262,7 +262,7 @@
+ ///
+ /// # fn example(track_id: MediaStreamTrackId, rtp_packet: rtp::Packet) {
+ /// // Create an RTP message for a specific track
+-/// let message = RTCMessage::RtpPacket(track_id, rtp_packet);
++/// let message = RTCMessage::RtpPacket(track_id, rtp_packet, std::time::Instant::now());
+ ///
+ /// // Send through peer connection (sans-I/O)
+ /// // peer_connection.send_message(message)?;
+@@ -316,7 +316,7 @@
+ ///
+ /// # fn handle_message(message: RTCMessage) {
+ /// match message {
+-///     RTCMessage::RtpPacket(track_id, rtp_packet) => {
++///     RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+ ///         println!("Received RTP for track {:?}", track_id);
+ ///         // Process media packet (decode, render, etc.)
+ ///     }
+@@ -339,7 +339,7 @@
+ /// use rtc::peer_connection::message::RTCMessage;
+ ///
+ /// fn is_media_message(message: &RTCMessage) -> bool {
+-///     matches!(message, RTCMessage::RtpPacket(_, _) | RTCMessage::RtcpPacket(_, _))
++///     matches!(message, RTCMessage::RtpPacket(_, _, _) | RTCMessage::RtcpPacket(_, _))
+ /// }
+ ///
+ /// fn is_data_message(message: &RTCMessage) -> bool {
+@@ -363,7 +363,7 @@
+ ///
+ /// # fn example(message: RTCMessage) {
+ /// match message {
+-///     RTCMessage::RtpPacket(track_id, packet) => {
++///     RTCMessage::RtpPacket(track_id, packet, _) => {
+ ///         println!("RTP sequence: {}, timestamp: {}",
+ ///                  packet.header.sequence_number,
+ ///                  packet.header.timestamp);
+@@ -435,14 +435,16 @@
+     /// use rtc::media_stream::MediaStreamTrackId;
+     ///
+     /// # fn example(track_id: MediaStreamTrackId, rtp_packet: rtp::Packet) {
+-    /// let message = RTCMessage::RtpPacket(track_id, rtp_packet);
+-    ///
+-    /// if let RTCMessage::RtpPacket(tid, packet) = message {
++    /// let message = RTCMessage::RtpPacket(track_id, rtp_packet, std::time::Instant::now());
++    ///
++    /// if let RTCMessage::RtpPacket(tid, packet, _) = message {
+     ///     println!("Track: {:?}, Sequence: {}", tid, packet.header.sequence_number);
+     /// }
+     /// # }
+     /// ```
+-    RtpPacket(MediaStreamTrackId, rtp::Packet),
++    /// Local event time: original UDP receive for read events, request creation
++    /// for outbound writes. It does not assert remote capture time.
++    RtpPacket(MediaStreamTrackId, rtp::Packet, std::time::Instant),
+ 
+     /// RTCP packet(s) for a specific media track.
+     ///
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+@@ -520,8 +520,11 @@
+ 
+         bind_outbound_packet_to_encoding(&mut packet, codecs, encodings)?;
+         let track_id = sender.track().track_id().to_string();
+-        self.peer_connection
+-            .handle_write(RTCMessage::RtpPacket(track_id, packet))
++        self.peer_connection.handle_write(RTCMessage::RtpPacket(
++            track_id,
++            packet,
++            std::time::Instant::now(),
++        ))
+     }
+ 
+     /// Writes RTCP packets to the network.
+diff --git a/crates/webrtc/rvoip-rtc/tests/data_channels_close_by_webrtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/data_channels_close_by_webrtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/data_channels_close_by_webrtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/data_channels_close_by_webrtc_interop.rs
+@@ -263,7 +263,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(channel_id, data_channel_message) => {
+                     let data =
+diff --git a/crates/webrtc/rvoip-rtc/tests/data_channels_create_interop.rs b/crates/webrtc/rvoip-rtc/tests/data_channels_create_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/data_channels_create_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/data_channels_create_interop.rs
+@@ -250,7 +250,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(channel_id, data_channel_message) => {
+                     let _dc = rtc_pc
+diff --git a/crates/webrtc/rvoip-rtc/tests/data_channels_interop.rs b/crates/webrtc/rvoip-rtc/tests/data_channels_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/data_channels_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/data_channels_interop.rs
+@@ -231,7 +231,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(channel_id, data_channel_message) => {
+                     let mut dc = rtc_pc
+diff --git a/crates/webrtc/rvoip-rtc/tests/ice_restart_by_webrtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/ice_restart_by_webrtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/ice_restart_by_webrtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/ice_restart_by_webrtc_interop.rs
+@@ -254,7 +254,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(_channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8_lossy(&data_channel_message.data);
+@@ -380,7 +380,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(_channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8_lossy(&data_channel_message.data);
+@@ -538,7 +538,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(_channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8_lossy(&data_channel_message.data);
+@@ -610,7 +610,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(_channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8_lossy(&data_channel_message.data);
+diff --git a/crates/webrtc/rvoip-rtc/tests/interceptor_rtcp_reports_interop.rs b/crates/webrtc/rvoip-rtc/tests/interceptor_rtcp_reports_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/interceptor_rtcp_reports_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/interceptor_rtcp_reports_interop.rs
+@@ -257,7 +257,7 @@
+ 
+         // Process reads
+         while let Some(message) = rtc_pc.poll_read() {
+-            if let RTCMessage::RtpPacket(_track_id, rtp_packet) = message {
++            if let RTCMessage::RtpPacket(_track_id, rtp_packet, _) = message {
+                 let count = received_packets_clone.fetch_add(1, Ordering::SeqCst) + 1;
+                 log::info!(
+                     "RTC received reflected RTP packet #{} (seq: {})",
+@@ -810,7 +810,7 @@
+         }
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+-            if let RTCMessage::RtpPacket(_, _) = message {
++            if let RTCMessage::RtpPacket(_, _, _) = message {
+                 received_packets_clone.fetch_add(1, Ordering::SeqCst);
+             }
+         }
+diff --git a/crates/webrtc/rvoip-rtc/tests/media_rejection_interop.rs b/crates/webrtc/rvoip-rtc/tests/media_rejection_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/media_rejection_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/media_rejection_interop.rs
+@@ -331,7 +331,7 @@
+ 
+         // Process reads
+         while let Some(message) = rtc_pc.poll_read() {
+-            if let RTCMessage::RtpPacket(_track_id, rtp_packet) = message {
++            if let RTCMessage::RtpPacket(_track_id, rtp_packet, _) = message {
+                 video_packets_received += 1;
+                 if video_packets_received == 1 || video_packets_received.is_multiple_of(10) {
+                     log::info!(
+diff --git a/crates/webrtc/rvoip-rtc/tests/offer_answer_rtc2rtc.rs b/crates/webrtc/rvoip-rtc/tests/offer_answer_rtc2rtc.rs
+--- a/crates/webrtc/rvoip-rtc/tests/offer_answer_rtc2rtc.rs
++++ b/crates/webrtc/rvoip-rtc/tests/offer_answer_rtc2rtc.rs
+@@ -225,7 +225,7 @@
+ 
+         while let Some(message) = offer_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8(data_channel_message.data.to_vec())?;
+@@ -278,7 +278,7 @@
+ 
+         while let Some(message) = answer_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_, _) => {}
++                RTCMessage::RtpPacket(_, _, _) => {}
+                 RTCMessage::RtcpPacket(_, _) => {}
+                 RTCMessage::DataChannelMessage(channel_id, data_channel_message) => {
+                     let msg_str = String::from_utf8(data_channel_message.data.to_vec())?;
+diff --git a/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_simulcast.rs b/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_simulcast.rs
+--- a/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_simulcast.rs
++++ b/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_simulcast.rs
+@@ -362,7 +362,7 @@
+         // Poll read - receive RTP packets on answerer
+         while let Some(message) = answerer_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+                     // Get the receiver for this track
+                     let receiver_id = *track_id2_receiver_id
+                         .get(&track_id)
+diff --git a/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_unicast.rs b/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_unicast.rs
+--- a/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_unicast.rs
++++ b/crates/webrtc/rvoip-rtc/tests/one_media_section_rtc_to_rtc_unicast.rs
+@@ -304,7 +304,7 @@
+         // Poll read - receive RTP packets on answerer
+         while let Some(message) = answerer_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+                     // Get the receiver for this track
+                     let receiver_id = *track_id2_receiver_id
+                         .get(&track_id)
+diff --git a/crates/webrtc/rvoip-rtc/tests/reflect_rtc_to_webrtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/reflect_rtc_to_webrtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/reflect_rtc_to_webrtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/reflect_rtc_to_webrtc_interop.rs
+@@ -306,7 +306,7 @@
+         // Process rtc reads (reflected packets from webrtc)
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(_track_id, rtp_packet, _) => {
+                     let mut count = received_packets_clone.lock().await;
+                     *count += 1;
+                     log::info!(
+diff --git a/crates/webrtc/rvoip-rtc/tests/reflect_webrtc_to_rtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/reflect_webrtc_to_rtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/reflect_webrtc_to_rtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/reflect_webrtc_to_rtc_interop.rs
+@@ -295,7 +295,7 @@
+ 
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, mut rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, mut rtp_packet, _) => {
+                     let receiver_id = *track_id2_receiver_id
+                         .get(&track_id)
+                         .ok_or(Error::ErrRTPReceiverNotExisted)?;
+diff --git a/crates/webrtc/rvoip-rtc/tests/rtcp_processing_interop.rs b/crates/webrtc/rvoip-rtc/tests/rtcp_processing_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/rtcp_processing_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/rtcp_processing_interop.rs
+@@ -361,7 +361,7 @@
+         // Process reads - check for RTCP packets
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(_track_id, rtp_packet, _) => {
+                     rtp_packets_received += 1;
+                     if rtp_packets_received.is_multiple_of(10) {
+                         log::info!(
+@@ -630,7 +630,7 @@
+         // Process reads
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(_track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(_track_id, rtp_packet, _) => {
+                     rtp_packets_received += 1;
+                     if rtp_packets_received.is_multiple_of(10) {
+                         log::info!(
+diff --git a/crates/webrtc/rvoip-rtc/tests/save_to_disk_vpx_interop.rs b/crates/webrtc/rvoip-rtc/tests/save_to_disk_vpx_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/save_to_disk_vpx_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/save_to_disk_vpx_interop.rs
+@@ -354,7 +354,7 @@
+         // Process RTP packets received by rtc
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, _rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, _rtp_packet, _) => {
+                     let receiver_id = {
+                         let map = track_id2_receiver_id.lock().await;
+                         map.get(&track_id).copied()
+diff --git a/crates/webrtc/rvoip-rtc/tests/simulcast_rtc_to_rtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/simulcast_rtc_to_rtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/simulcast_rtc_to_rtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/simulcast_rtc_to_rtc_interop.rs
+@@ -386,7 +386,7 @@
+         // Poll read - receive RTP packets on answerer
+         while let Some(message) = answerer_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+                     // Get the receiver for this track
+                     let receiver_id = *track_id2_receiver_id
+                         .get(&track_id)
+diff --git a/crates/webrtc/rvoip-rtc/tests/simulcast_webrtc_to_rtc_interop.rs b/crates/webrtc/rvoip-rtc/tests/simulcast_webrtc_to_rtc_interop.rs
+--- a/crates/webrtc/rvoip-rtc/tests/simulcast_webrtc_to_rtc_interop.rs
++++ b/crates/webrtc/rvoip-rtc/tests/simulcast_webrtc_to_rtc_interop.rs
+@@ -462,7 +462,7 @@
+         // Poll read - receive application messages
+         while let Some(message) = rtc_pc.poll_read() {
+             match message {
+-                RTCMessage::RtpPacket(track_id, rtp_packet) => {
++                RTCMessage::RtpPacket(track_id, rtp_packet, _) => {
+                     // Get the receiver for this track
+                     let receiver_id = *track_id2_receiver_id
+                         .get(&track_id)
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+@@ -15,12 +15,20 @@
+     pub(super) inserted: Instant,
+ }
+ impl ReceivedAudio {
+-    pub fn new(packet: rtp::Packet, now: Instant) -> Self {
++    /// Preserve original local UDP receipt across every event/reorder wait.
++    pub fn new(packet: rtp::Packet, received_at: Instant) -> Self {
+         Self {
+             packet,
+             source_clock: None,
+-            captured_at: Utc::now(),
+-            inserted: now,
++            captured_at: Utc::now()
++                .checked_sub_signed(
++                    chrono::Duration::from_std(
++                        Instant::now().saturating_duration_since(received_at),
++                    )
++                    .unwrap_or(chrono::Duration::MAX),
++                )
++                .unwrap_or(DateTime::<Utc>::MIN_UTC),
++            inserted: received_at,
+         }
+     }
+ }
+@@ -170,10 +178,12 @@
+         let mut queue = AudioReorder::default();
+         queue.push(packet(65534, now), now);
+         assert!(queue.push(packet(0, now), now).packets.is_empty());
+-        assert!(queue
+-            .expire(now + Duration::from_millis(99))
+-            .packets
+-            .is_empty());
++        assert!(
++            queue
++                .expire(now + Duration::from_millis(99))
++                .packets
++                .is_empty()
++        );
+         assert_eq!(sequences(&queue.expire(now + GAP_WAIT)), [0]);
+         let late = queue.push(packet(65535, now), now + GAP_WAIT);
+         assert!(late.packets.is_empty());
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/pump.rs b/crates/webrtc/rvoip-webrtc/src/media/pump.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/pump.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/pump.rs
+@@ -1,7 +1,7 @@
+ //! RTP frame pumps between webrtc-rs tracks and rvoip-core channels.
+ 
++use std::sync::Arc;
+ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+-use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ 
+ use rtc::statistics::report::RTCStatsReport;
+@@ -13,7 +13,7 @@
+ #[cfg(test)]
+ use rtc::shared::marshal::Unmarshal;
+ use rtc::shared::marshal::{Marshal, MarshalSize};
+-use tokio::sync::{mpsc, Notify};
++use tokio::sync::{Notify, mpsc};
+ use tokio::task::JoinHandle;
+ use tracing::warn;
+ use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+@@ -447,9 +447,10 @@
+             };
+             let now = Instant::now();
+             let released = match event {
+-                Some(TrackRemoteEvent::OnRtpPacket(packet)) => {
++                Some(TrackRemoteEvent::OnRtpPacket(packet, received_at)) => {
+                     stats.record_packet();
+-                    let mut received = super::audio_reorder::ReceivedAudio::new(packet, now);
++                    let mut received =
++                        super::audio_reorder::ReceivedAudio::new(packet, received_at);
+                     if let Some(lease) = &clock_lease {
+                         if dtmf_decoder.accepts_payload_type(received.packet.header.payload_type) {
+                             if !lease.permits_supplemental() {
+@@ -479,9 +480,7 @@
+                 );
+             }
+             for received in released.packets {
+-                let age = (Utc::now() - received.captured_at)
+-                    .to_std()
+-                    .unwrap_or_default();
++                let age = Instant::now().saturating_duration_since(received.inserted);
+                 let remaining = Duration::from_millis(200).saturating_sub(age);
+                 if remaining.is_zero() {
+                     stats.frames_dropped.fetch_add(1, Ordering::Relaxed);
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/video.rs b/crates/webrtc/rvoip-webrtc/src/media/video.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/video.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video.rs
+@@ -13,11 +13,11 @@
+     stream::{MediaFrame, StreamKind},
+ };
+ use std::{
+-    sync::{atomic::AtomicUsize, Arc},
++    sync::{Arc, atomic::AtomicUsize},
+     time::Duration,
+ };
+ use tokio::{
+-    sync::{mpsc, Notify},
++    sync::{Notify, mpsc},
+     task::JoinHandle,
+ };
+ use webrtc::media_stream::{
+@@ -131,7 +131,7 @@
+                 event = tokio::time::timeout(wait, track.poll()) => match event { Ok(Some(event)) => event, _ => continue },
+             };
+             match event {
+-                TrackRemoteEvent::OnRtpPacket(packet) => {
++                TrackRemoteEvent::OnRtpPacket(packet, received_at) => {
+                     let (gap, out_of_order) = observed_source
+                         .filter(|(ssrc, _)| *ssrc == packet.header.ssrc)
+                         .map(|(_, last)| {
+@@ -154,7 +154,8 @@
+                         continue;
+                     }
+                     let now = std::time::Instant::now();
+-                    let mut received = super::video_reorder::ReceivedPacket::new(packet, now);
++                    let mut received =
++                        super::video_reorder::ReceivedPacket::new(packet, received_at);
+                     if let Some(lease) = &clock_lease {
+                         received.source_clock = lease.capture(received.packet.header.ssrc);
+                         if lease.required && received.source_clock.is_none() {
+@@ -191,8 +192,8 @@
+         }
+     }
+     for received in output.packets {
+-        let age = (Utc::now() - received.received_at).num_milliseconds();
+-        if age > 200 {
++        let age = std::time::Instant::now().saturating_duration_since(received.inserted);
++        if age >= Duration::from_millis(200) {
+             if let Some(collector) = collector {
+                 collector.stale_discard(QueueStage::WebRtcVideoReorder);
+             }
+@@ -209,7 +210,7 @@
+             }
+         };
+         if let Some(collector) = collector {
+-            collector.forwarded_age(QueueStage::WebRtcVideoReorder, age);
++            collector.forwarded_age(QueueStage::WebRtcVideoReorder, age.as_millis() as i64);
+             if padding {
+                 collector.webrtc_video_padding();
+             }
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs b/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/video_reorder.rs
+@@ -13,15 +13,23 @@
+     pub packet: rtp::Packet,
+     pub source_clock: Option<rvoip_core::stream::MediaSourceClock>,
+     pub received_at: DateTime<Utc>,
+-    inserted: Instant,
++    pub(super) inserted: Instant,
+ }
+ impl ReceivedPacket {
+-    pub fn new(packet: rtp::Packet, now: Instant) -> Self {
++    /// Preserve original local UDP receipt across every event/reorder wait.
++    pub fn new(packet: rtp::Packet, received_at: Instant) -> Self {
+         Self {
+             packet,
+             source_clock: None,
+-            received_at: Utc::now(),
+-            inserted: now,
++            received_at: Utc::now()
++                .checked_sub_signed(
++                    chrono::Duration::from_std(
++                        Instant::now().saturating_duration_since(received_at),
++                    )
++                    .unwrap_or(chrono::Duration::MAX),
++                )
++                .unwrap_or(DateTime::<Utc>::MIN_UTC),
++            inserted: received_at,
+         }
+     }
+ }
+@@ -171,10 +179,12 @@
+         let mut reorder = PacketReorder::default();
+         assert_eq!(sequences(reorder.push(packet(65534, 7, now), now)), [65534]);
+         assert!(reorder.push(packet(0, 7, now), now).packets.is_empty());
+-        assert!(reorder
+-            .expire(now + REORDER_DELAY - Duration::from_nanos(1))
+-            .packets
+-            .is_empty());
++        assert!(
++            reorder
++                .expire(now + REORDER_DELAY - Duration::from_nanos(1))
++                .packets
++                .is_empty()
++        );
+         let expired = reorder.expire(now + REORDER_DELAY);
+         assert_eq!(expired.expired, 1);
+         assert_eq!(sequences(expired), [0]);
+@@ -231,10 +241,12 @@
+                 let mut reorder = PacketReorder::default();
+                 assert_eq!(reorder.push(packet(base, now), now).packets.len(), 1);
+                 for offset in 3..=66 {
+-                    assert!(reorder
+-                        .push(packet(base.wrapping_add(offset), now), now)
+-                        .packets
+-                        .is_empty());
++                    assert!(
++                        reorder
++                            .push(packet(base.wrapping_add(offset), now), now)
++                            .packets
++                            .is_empty()
++                    );
+                 }
+                 assert_eq!(reorder.pending.len(), REORDER_LIMIT);
+                 let released = reorder.push(packet(base.wrapping_add(incoming_offset), now), now);
+diff --git a/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs b/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
+--- a/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
++++ b/crates/webrtc/rvoip-webrtc/tests/dtmf_wire.rs
+@@ -13,10 +13,10 @@
+ use rvoip_core::capability::CodecInfo;
+ use rvoip_core::ids::StreamId;
+ use rvoip_core::stream::MediaStream;
+-use rvoip_webrtc::media::dtmf::{send_dtmf, OutboundDtmfNegotiation, TelephoneEventCodec};
++use rvoip_webrtc::WebRtcConfig;
++use rvoip_webrtc::media::dtmf::{OutboundDtmfNegotiation, TelephoneEventCodec, send_dtmf};
+ use rvoip_webrtc::media::from_tracks_with_dtmf_codecs;
+-use rvoip_webrtc::peer::{connect_loopback, PeerRole, RvoipPeerConnection};
+-use rvoip_webrtc::WebRtcConfig;
++use rvoip_webrtc::peer::{PeerRole, RvoipPeerConnection, connect_loopback};
+ use webrtc::media_stream::track_remote::TrackRemoteEvent;
+ 
+ const TELEPHONE_EVENT_PT: u8 = 101;
+@@ -113,7 +113,7 @@
+                         else {
+                             continue;
+                         };
+-                        if let TrackRemoteEvent::OnRtpPacket(pkt) = event {
++                        if let TrackRemoteEvent::OnRtpPacket(pkt, _) = event {
+                             if pkt.header.payload_type == TELEPHONE_EVENT_PT {
+                                 if let Some((ev, eoe, vol, dur)) = decode_event(&pkt.payload) {
+                                     cap.lock().push((
+@@ -246,7 +246,7 @@
+                 let captured = Arc::clone(&captured_for_watcher);
+                 pollers.push(tokio::spawn(async move {
+                     loop {
+-                        let Some(TrackRemoteEvent::OnRtpPacket(packet)) =
++                        let Some(TrackRemoteEvent::OnRtpPacket(packet, _)) =
+                             tokio::time::timeout(Duration::from_millis(100), track.poll())
+                                 .await
+                                 .ok()
+@@ -289,9 +289,11 @@
+     assert!(!events.is_empty(), "expected PT110 packets on the wire");
+     assert!(events.iter().all(|(event, ..)| *event == 6));
+     assert!(events.first().is_some_and(|event| event.3));
+-    assert!(events
+-        .iter()
+-        .any(|(_, end, duration, _, _, _)| { *end && *duration == 5_760 }));
++    assert!(
++        events
++            .iter()
++            .any(|(_, end, duration, _, _, _)| { *end && *duration == 5_760 })
++    );
+     assert!(
+         events
+             .iter()
+@@ -397,14 +399,11 @@
+             panic!("unsupported negotiated suffix requested a prefix grant");
+         }
+     }
+-    assert!(rvoip_webrtc::media::dtmf::send_dtmf_authorized(
+-        &sender,
+-        "6*",
+-        121,
+-        Arc::new(NoPrefix)
+-    )
+-    .await
+-    .is_err());
++    assert!(
++        rvoip_webrtc::media::dtmf::send_dtmf_authorized(&sender, "6*", 121, Arc::new(NoPrefix))
++            .await
++            .is_err()
++    );
+     // The remote track is opened by the first DTMF RTP packet. Start its
+     // waiter before sending, then give the public media constructor ownership
+     // of that one track so it can decode the queued PT 110 packets itself.
+@@ -595,7 +594,7 @@
+                 let captured = Arc::clone(&captured_for_watcher);
+                 pollers.push(tokio::spawn(async move {
+                     loop {
+-                        let Some(TrackRemoteEvent::OnRtpPacket(packet)) =
++                        let Some(TrackRemoteEvent::OnRtpPacket(packet, _)) =
+                             tokio::time::timeout(Duration::from_millis(100), track.poll())
+                                 .await
+                                 .ok()
+@@ -699,8 +698,8 @@
+         tokio::time::timeout(Duration::from_millis(ms), async {
+             loop {
+                 match track.poll().await {
+-                    Some(TrackRemoteEvent::OnRtpPacket(p)) if p.header.payload_type == pt => {
+-                        return Some(p)
++                    Some(TrackRemoteEvent::OnRtpPacket(p, _)) if p.header.payload_type == pt => {
++                        return Some(p);
+                     }
+                     None => return None,
+                     _ => {}
+@@ -745,7 +744,7 @@
+ mod owned_authority {
+     use super::*;
+     use rvoip_core::dtmf::{DtmfWriteAuthority, DtmfWriteError, DtmfWriteLease, DtmfWriteScope};
+-    use rvoip_webrtc::{media::dtmf::send_dtmf_authorized, WebRtcError};
++    use rvoip_webrtc::{WebRtcError, media::dtmf::send_dtmf_authorized};
+     use std::sync::atomic::{AtomicUsize, Ordering};
+     use tokio::sync::RwLock;
+ 
+@@ -808,7 +807,7 @@
+                         let output = output.clone();
+                         pollers.spawn(async move {
+                             while let Some(event) = track.poll().await {
+-                                if let TrackRemoteEvent::OnRtpPacket(packet) = event {
++                                if let TrackRemoteEvent::OnRtpPacket(packet, _) = event {
+                                     output.lock().push(packet);
+                                 }
+                             }
+@@ -865,9 +864,11 @@
+             .expect("loopback");
+         let capture = Capture::start(receiver.clone());
+         let policy = Policy::new(false);
+-        assert!(send_dtmf_authorized(&sender, "1x", 121, policy.clone())
+-            .await
+-            .is_err());
++        assert!(
++            send_dtmf_authorized(&sender, "1x", 121, policy.clone())
++                .await
++                .is_err()
++        );
+         assert_eq!(
+             policy.calls.load(Ordering::Acquire),
+             0,
+@@ -1081,8 +1082,8 @@
+     }
+ }
+ #[tokio::test]
+-async fn actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority(
+-) {
++async fn actual_srtp_received_source_routes_through_core_with_exact_timing_and_fresh_signal_authority()
++ {
+     use rvoip_core::{adapter::ConnectionAdapter, dtmf::*};
+     let _ = rustls::crypto::ring::default_provider().install_default();
+     let core = rvoip_core::Orchestrator::new(rvoip_core::Config::default());
+@@ -1136,15 +1137,16 @@
+         allowed: Arc::new(tokio::sync::RwLock::new(false)),
+         calls: Default::default(),
+     });
+-    assert!(core
+-        .route_dtmf(
++    assert!(
++        core.route_dtmf(
+             &route,
+             policy.clone(),
+             Default::default(),
+             tokio::time::Instant::now() + Duration::from_secs(2)
+         )
+         .await
+-        .is_err());
++        .is_err()
++    );
+     assert_eq!(policy.calls.load(std::sync::atomic::Ordering::Acquire), 0);
+     *policy.allowed.write().await = true;
+     core.route_dtmf(
+@@ -1166,7 +1168,7 @@
+     }]);
+     let delivered = tokio::time::timeout(Duration::from_secs(3), async {
+         loop {
+-            if let Some(TrackRemoteEvent::OnRtpPacket(packet)) = track.poll().await {
++            if let Some(TrackRemoteEvent::OnRtpPacket(packet, _)) = track.poll().await {
+                 if let Some(event) = decoder
+                     .decode_packet(
+                         packet.header.ssrc,
+@@ -1190,15 +1192,16 @@
+         .subscribe_dtmf_source(&core, source_id.clone())
+         .unwrap();
+     assert!(sub.recv().await.is_none());
+-    assert!(core
+-        .route_dtmf(
++    assert!(
++        core.route_dtmf(
+             &route,
+             policy.clone(),
+             Default::default(),
+             tokio::time::Instant::now() + Duration::from_secs(1)
+         )
+         .await
+-        .is_err());
++        .is_err()
++    );
+     drop(replacement);
+     core.end_connection(source_id, rvoip_core::adapter::EndReason::Normal)
+         .await
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/broadcast/broadcast.rs b/crates/webrtc/rvoip-webrtc-stack/examples/broadcast/broadcast.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/broadcast/broadcast.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/broadcast/broadcast.rs
+@@ -90,7 +90,7 @@
+         let broadcast_tx = self.broadcast_tx.clone();
+         self.runtime.spawn(Box::pin(async move {
+             while let Some(evt) = track.poll().await {
+-                if let TrackRemoteEvent::OnRtpPacket(packet) = evt {
++                if let TrackRemoteEvent::OnRtpPacket(packet, _) = evt {
+                     let _ = broadcast_tx.send(packet);
+                 }
+             }
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/reflect/reflect.rs b/crates/webrtc/rvoip-webrtc-stack/examples/reflect/reflect.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/reflect/reflect.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/reflect/reflect.rs
+@@ -94,7 +94,7 @@
+             );
+             // Read RTP packets being sent to webrtc-rs
+             while let Some(evt) = track.poll().await {
+-                if let TrackRemoteEvent::OnRtpPacket(mut packet) = evt {
++                if let TrackRemoteEvent::OnRtpPacket(mut packet, _) = evt {
+                     packet.header.ssrc = *output_track
+                         .ssrcs()
+                         .await
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/rtp-forwarder/rtp-forwarder.rs b/crates/webrtc/rvoip-webrtc-stack/examples/rtp-forwarder/rtp-forwarder.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/rtp-forwarder/rtp-forwarder.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/rtp-forwarder/rtp-forwarder.rs
+@@ -130,7 +130,7 @@
+             // Forward packets using the pre-built socket
+             let mut buf = vec![0u8; 1500];
+             while let Some(evt) = track.poll().await {
+-                if let TrackRemoteEvent::OnRtpPacket(mut packet) = evt {
++                if let TrackRemoteEvent::OnRtpPacket(mut packet, _) = evt {
+                     // Re-tag payload type so downstream tools see what they expect
+                     packet.header.payload_type = payload_type;
+ 
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-h26x/save-to-disk-h26x.rs b/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-h26x/save-to-disk-h26x.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-h26x/save-to-disk-h26x.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-h26x/save-to-disk-h26x.rs
+@@ -126,7 +126,7 @@
+             let audio_writer = Arc::clone(&self.audio_writer);
+             self.runtime.spawn(Box::pin(async move {
+                 while let Some(evt) = track.poll().await {
+-                    if let TrackRemoteEvent::OnRtpPacket(packet) = evt {
++                    if let TrackRemoteEvent::OnRtpPacket(packet, _) = evt {
+                         let mut guard = audio_writer.lock().unwrap();
+                         if let Some(ref mut w) = *guard
+                             && let Err(err) = w.write_rtp(&packet)
+@@ -154,7 +154,7 @@
+             let video_writer = Arc::clone(&self.video_writer);
+             self.runtime.spawn(Box::pin(async move {
+                 while let Some(evt) = track.poll().await {
+-                    if let TrackRemoteEvent::OnRtpPacket(packet) = evt {
++                    if let TrackRemoteEvent::OnRtpPacket(packet, _) = evt {
+                         let mut guard = video_writer.lock().unwrap();
+                         if let Some(ref mut w) = *guard
+                             && let Err(err) = w.write_rtp(&packet)
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-vpx/save-to-disk-vpx.rs b/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-vpx/save-to-disk-vpx.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-vpx/save-to-disk-vpx.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/save-to-disk-vpx/save-to-disk-vpx.rs
+@@ -127,7 +127,7 @@
+             let audio_writer = Arc::clone(&self.audio_writer);
+             self.runtime.spawn(Box::pin(async move {
+                 while let Some(evt) = track.poll().await {
+-                    if let TrackRemoteEvent::OnRtpPacket(packet) = evt {
++                    if let TrackRemoteEvent::OnRtpPacket(packet, _) = evt {
+                         let mut guard = audio_writer.lock().unwrap();
+                         if let Some(ref mut w) = *guard
+                             && let Err(err) = w.write_rtp(&packet)
+@@ -155,7 +155,7 @@
+             let video_writer = Arc::clone(&self.video_writer);
+             self.runtime.spawn(Box::pin(async move {
+                 while let Some(evt) = track.poll().await {
+-                    if let TrackRemoteEvent::OnRtpPacket(packet) = evt {
++                    if let TrackRemoteEvent::OnRtpPacket(packet, _) = evt {
+                         let mut guard = video_writer.lock().unwrap();
+                         if let Some(ref mut w) = *guard
+                             && let Err(err) = w.write_rtp(&packet)
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/simulcast/simulcast.rs b/crates/webrtc/rvoip-webrtc-stack/examples/simulcast/simulcast.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/simulcast/simulcast.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/simulcast/simulcast.rs
+@@ -121,7 +121,7 @@
+                             println!("No output track for rid={rid}");
+                         }
+                     }
+-                    TrackRemoteEvent::OnRtpPacket(mut packet) => {
++                    TrackRemoteEvent::OnRtpPacket(mut packet, _) => {
+                         let ssrc = packet.header.ssrc;
+                         if let Some((output_track, out_ssrc)) = ssrc_map.get(&ssrc) {
+                             trace!(
+diff --git a/crates/webrtc/rvoip-webrtc-stack/examples/swap-tracks/swap-tracks.rs b/crates/webrtc/rvoip-webrtc-stack/examples/swap-tracks/swap-tracks.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/examples/swap-tracks/swap-tracks.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/examples/swap-tracks/swap-tracks.rs
+@@ -133,7 +133,7 @@
+                         }));
+                     }
+ 
+-                    TrackRemoteEvent::OnRtpPacket(mut pkt) => {
++                    TrackRemoteEvent::OnRtpPacket(mut pkt, _) => {
+                         let orig_ts = pkt.header.timestamp;
+                         // Compute delta BEFORE the active-track check, exactly
+                         // as sansio does with receiver_last_timestamp — so the
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_remote/mod.rs
+@@ -15,7 +15,8 @@
+     OnMute,
+     OnUnmute,
+ 
+-    OnRtpPacket(rtp::Packet),
++    /// Packet and original monotonic local UDP receive time, preserved through queues.
++    OnRtpPacket(rtp::Packet, std::time::Instant),
+     OnRtcpPacket(Vec<Box<dyn rtcp::Packet>>),
+ }
+ 
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/outbound_rtx_tests.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/outbound_rtx_tests.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/outbound_rtx_tests.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/outbound_rtx_tests.rs
+@@ -262,7 +262,7 @@
+         let mut packets = Vec::new();
+         loop {
+             match track.poll().await {
+-                Some(TrackRemoteEvent::OnRtpPacket(packet)) => {
++                Some(TrackRemoteEvent::OnRtpPacket(packet, _)) => {
+                     packets.push(packet);
+                     if packets.iter().any(|p| p.header.sequence_number == 11) {
+                         break packets;
+@@ -281,7 +281,7 @@
+     let _ = timeout(Duration::from_millis(150), async {
+         loop {
+             match track.poll().await {
+-                Some(TrackRemoteEvent::OnRtpPacket(p)) => packets.push(p),
++                Some(TrackRemoteEvent::OnRtpPacket(p, _)) => packets.push(p),
+                 None => break,
+                 _ => {}
+             }
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/track_ready_tests.rs
+@@ -139,7 +139,9 @@
+         timeout(Duration::from_secs(2), async {
+             loop {
+                 match track.poll().await {
+-                    Some(TrackRemoteEvent::OnRtpPacket(packet)) => break Some(packet.header.ssrc),
++                    Some(TrackRemoteEvent::OnRtpPacket(packet, _)) => {
++                        break Some(packet.header.ssrc);
++                    }
+                     None | Some(TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError) => {
+                         break None;
+                     }
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -137,7 +137,8 @@
+                                          socket: Arc<dyn AsyncUdpSocket>,
+                                          mut buf: Vec<u8>| async move {
+             let (n, peer_addr) = socket.recv_from(&mut buf).await?;
+-            Ok::<_, std::io::Error>((n, local_addr, peer_addr, idx, buf))
++            let received_at = Instant::now();
++            Ok::<_, std::io::Error>((n, local_addr, peer_addr, idx, buf, received_at))
+         };
+ 
+         // Create initial set of futures in FuturesUnordered
+@@ -251,11 +252,11 @@
+                 // Incoming network packet from any socket
+                 result = socket_recv_futures.next().fuse() => {
+                     match result {
+-                        Some(Ok((n, local_addr, peer_addr, idx, buf))) => {
++                        Some(Ok((n, local_addr, peer_addr, idx, buf, received_at))) => {
+                             trace!("Received {} bytes from {} to {}", n, peer_addr, local_addr);
+ 
+                             if let Err(err) = self.handle_read(TaggedBytesMut {
+-                                now: Instant::now(),
++                                now: received_at,
+                                 transport: TransportContext {
+                                     local_addr,
+                                     peer_addr,
+@@ -774,10 +775,13 @@
+                     );
+                 }
+             }
+-            RTCMessage::RtpPacket(track_id, packet) => {
++            RTCMessage::RtpPacket(track_id, packet, received_at) => {
+                 let track_remotes = self.inner.track_remote_events_tx.lock().await;
+                 if let Some(evt_tx) = track_remotes.get(&track_id) {
+-                    if let Err(err) = evt_tx.0.try_send(TrackRemoteEvent::OnRtpPacket(packet)) {
++                    if let Err(err) = evt_tx
++                        .0
++                        .try_send(TrackRemoteEvent::OnRtpPacket(packet, received_at))
++                    {
+                         error!(
+                             "Failed to send RtpPacket to track remote {}: {:?}",
+                             track_id, err
+diff --git a/crates/webrtc/rvoip-webrtc-stack/tests/simulcast_rtc_to_webrtc_interop.rs b/crates/webrtc/rvoip-webrtc-stack/tests/simulcast_rtc_to_webrtc_interop.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/tests/simulcast_rtc_to_webrtc_interop.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/tests/simulcast_rtc_to_webrtc_interop.rs
+@@ -75,7 +75,7 @@
+                         let rid = init.rid.as_deref().unwrap_or("").to_string();
+                         log::info!("WebRTC track opened: rid={rid} ssrc={}", init.ssrc);
+                     }
+-                    TrackRemoteEvent::OnRtpPacket(pkt) => {
++                    TrackRemoteEvent::OnRtpPacket(pkt, _) => {
+                         let ssrc = pkt.header.ssrc;
+                         let _ = tx.try_send(format!("ssrc:{ssrc}"));
+                     }

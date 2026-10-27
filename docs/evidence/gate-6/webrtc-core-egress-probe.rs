@@ -708,7 +708,7 @@ async fn exercise() {
     let remote = bounded(bor.recv()).await.unwrap();
     let received = bounded(async {
         loop {
-            if let Some(TrackRemoteEvent::OnRtpPacket(p)) = remote.poll().await {
+            if let Some(TrackRemoteEvent::OnRtpPacket(p, _)) = remote.poll().await {
                 break p;
             }
         }

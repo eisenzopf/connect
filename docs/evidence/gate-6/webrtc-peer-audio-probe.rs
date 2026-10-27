@@ -548,7 +548,7 @@ async fn exercise(name: &str, mime: &str, pt: u8) {
     let remote = bounded(aor.recv()).await.unwrap();
     let first = bounded(async {
         loop {
-            if let Some(TrackRemoteEvent::OnRtpPacket(p)) = remote.poll().await {
+            if let Some(TrackRemoteEvent::OnRtpPacket(p, _)) = remote.poll().await {
                 break p;
             }
         }
@@ -574,7 +574,7 @@ async fn exercise(name: &str, mime: &str, pt: u8) {
     write.cancel_and_drain().await.unwrap();
     let second = bounded(async {
         loop {
-            if let Some(TrackRemoteEvent::OnRtpPacket(p)) = remote.poll().await {
+            if let Some(TrackRemoteEvent::OnRtpPacket(p, _)) = remote.poll().await {
                 break p;
             }
         }

@@ -1159,6 +1159,11 @@
       "path": "patches/rvoip/gate6-core-webrtc-resource-preparation.patch",
       "source": "G6-051 explicit typed Core WebRTC resource preparation and adapter. Preserve strict native entrypoint; reserve never-reused ID/physical quotas before dormant callback and actual RTC allocation. Bind exact verified Endpoint/owner/context; retain original allocation and close joins through cancellation. No SDP/DTLS media readiness or default advertisement.",
       "sha256": "a063e33932ccc2b2390f20d99976e94bf364c7f38baa9d7011da05bec4eb12ca"
+    },
+    {
+      "path": "patches/rvoip/gate6-webrtc-original-receive-time.patch",
+      "source": "G6-051 preserve original monotonic UDP receipt through RTC read/event queues and derive media frame age from that receipt. Outbound RTP stamps local request creation separately. Update breaking event consumers/docs; never refresh stale audio/video/DTMF on application poll. No canonical readiness or remote-capture claim.",
+      "sha256": "18416382b5f0b578ad31535a5c59279d53853a776247fc502b37c6c2581aba49"
     }
   ]
 }
