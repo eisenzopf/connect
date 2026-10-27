@@ -1144,6 +1144,11 @@
       "path": "patches/rvoip/gate6-deferred-owned-rtp.patch",
       "sha256": "b0397a21f28c7ec6835e3acdf3f36eed334aea87076e8af7eeeb71a201a197c3",
       "source": "G6-051 deferred driver-owned primary G.711 RTP submission. Queue metadata/producers without permission; authorize/supply one packet at actual bounded socket IO. Preserve the original receipt worker outside cancelled observations, explicitly drain callback/IO before cleanup, reject unsupported retaining pipelines and never report producer-only success as delivery. Canonical Core/browser integration remains separate."
+    },
+    {
+      "path": "patches/rvoip/gate6-core-owned-audio-egress.patch",
+      "source": "G6-051 exact Core-port audio egress through deferred RTC driver producer. Core QueuedMedia::deliver owns fresh authority through actual socket IO; queue waits own no reader. Serialize with existing audio/DTMF sequence state before enqueue, retain original write/drain outside observation. No media-ready or cleanup claim; canonical adapter integration remains required.",
+      "sha256": "3480310ec79445e68a3805c3c47aa564b25e4c600de47af59ff9c2763e40b83b"
     }
   ]
 }

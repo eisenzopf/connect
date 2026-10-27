@@ -1,0 +1,360 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-27T00:49:39.812115+00:00",
+  "base_revision": "f9b39984",
+  "scope": "Local macOS arm64 exact Core port queue -> production CoreAudioEgress -> actual RTC ICE/DTLS/SRTP and socket/receipt custody. Isolated relationship/policy and synthetic capture adapters; no canonical Store media route, production port-cleanup integration, browser or acceptance qualification.",
+  "source_inputs": {
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs": "4843ce56564af0742a1c9994c0bbfce785299f89fae46e40990595eeccc9b1a5",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/stream_lifecycle.rs": "e394ff51549707ad1f4075c280fa3b480ec33636566614855e9348bd23ec5b17",
+    ".deps/rvoip/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs": "6b03b23651f066ffce73473f6b8129f81b7671b6cd108a6cf957254cbbe60f5a",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs": "57b3c2eb12ce21c25cc999cb9ec4a8a9a83cfa3d0c5a71905f786b5130686711",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs": "2f8e9b7b016f8d185ebe4d206b8d57e7d009cfd51c4e8539cca8d6fbf655509c",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/mod.rs": "78b3704f42c9496f48a9528cb523890308e7eba491b493589fb3162c4d22f5aa",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/outbound.rs": "5a9db55e8ff4927152419ecf5ae1e8d3fe88fb11fc001a90b0d0514fe84ed2d9",
+    "dependencies/source-lock.json": "0a0aa803dc6ac62a624cb4e1a0352140a80163b3e34f6ee6a45de4f6da6ca012",
+    "docs/evidence/gate-6/webrtc-core-egress-probe.rs": "820f055f537c7ee2e91de70a6b3a83ee6b86c982edf746a0b169772212531710",
+    "patches/rvoip/gate6-core-owned-audio-egress.patch": "3480310ec79445e68a3805c3c47aa564b25e4c600de47af59ff9c2763e40b83b"
+  },
+  "dependency_preparation": {
+    "previous": "/Users/jonathaneisenzopf/.local/share/connect/deps-core-owned-audio-20261026-v3",
+    "current": "/Users/jonathaneisenzopf/.local/share/connect/deps-core-owned-audio-20261026-v5",
+    "unchanged_mtimes": 4117,
+    "preparation_terminal_verified_before_switch": true
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 103.12375583383255,
+    "source_unchanged": true,
+    "source_count": 1917,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-3040a430b3e3a7af",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/server-library-test-05",
+        "sha256": "169beafc8a2b9dd62ed8a6cb601e4db200ce838aeae63b97d80f04d5b42aee5c",
+        "bytes": 106380528
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-d8a5afc4603da809",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/wss-integration-test-05",
+        "sha256": "02fd326477886fc956f127b2cb14335e101524077afae66c6cd7a5cafb4e2f70",
+        "bytes": 203938448
+      }
+    ],
+    "log_sha256": "d6f3ac582bc7d3d0c581c05e72c17a5a2c0c02e60471e0a402c0026c662ba332"
+  },
+  "connect_regressions": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/wss-integration-test-05",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.18566458299756,
+        "log_sha256": "d27d9ddadd16fd8e7da35e99a1df57d9c5498df10a2d45a50dd105f9ced7aa82",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.64s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/server-library-test-05",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.2721789579372853,
+        "log_sha256": "9474b14ee30b04b86a3a1026c63f57697abb8ea5a59d41a153071ea63ec05d6e",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.35s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/wss-integration-test-05",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.312123459065333,
+        "log_sha256": "7bb71108365f4d5e558feefaccb7fc26dc53cad984ef1a52925ad6210e6f356f",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.25s"
+        ]
+      }
+    ],
+    "source_count": 2506,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
+  "core_driver_probe": {
+    "exit_code": 0,
+    "seconds": 1.200859084026888,
+    "compile_command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-core-egress-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/probe-final-05",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-e885d22a2ab0b98f.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "820f055f537c7ee2e91de70a6b3a83ee6b86c982edf746a0b169772212531710",
+    "executable_sha256": "e1b757eb1c8d2440295b2f77f99b8104fc201b210d1c5809540616917573e6c4",
+    "log_sha256": "18318e3586752ffeb385b146b75e5c0648c8d4bd4ec3b5f0255f6a0436998908",
+    "artifacts": [
+      {
+        "name": "webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/normal-webrtc-05.rlib",
+        "sha256": "1af57d6a46239dc58fd69fd5af8905a88a01ec2661dd6b879e4da0763ad2ed62",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "runtime-tokio"
+        ]
+      },
+      {
+        "name": "rtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/normal-rtc-05.rlib",
+        "sha256": "07729aa0f6f167b3fb2ebd8216452629bafd28f6ca02f74b1978b5a7deaec870",
+        "cfg_test": false,
+        "features": []
+      },
+      {
+        "name": "rvoip_core",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/normal-rvoip_core-05.rlib",
+        "sha256": "54bc8a5e3d7ab53bbe53dd6f7c4794a8c673c700774b41c25ea8487748cab66b",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ]
+      },
+      {
+        "name": "rvoip_webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-e885d22a2ab0b98f.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/normal-rvoip_webrtc-05.rlib",
+        "sha256": "6c422d24740a855e2474c9686c77608ae257df2a65878b7a74115f0c5f61cfa4",
+        "cfg_test": false,
+        "features": [
+          "client",
+          "comprehensive",
+          "default",
+          "signaling-ws"
+        ]
+      }
+    ],
+    "input_count": 9,
+    "unchanged_inputs": true,
+    "unchanged_source_count": 1917,
+    "source_unchanged": true,
+    "checks": [
+      "PASS a negotiated sibling codec/PT cannot silently retarget Core audio onto a different encoding",
+      "PASS exact production Core port queue delivers expected packet through actual ICE/DTLS/SRTP",
+      "PASS Core source and target revocation after enqueue refuse before UDP with no queued reader",
+      "PASS production Core source/target metadata retries preserve original packet and release all readers between attempts",
+      "PASS cancelled result observation retains original IO and both actual Core permission leases until driver destroys UDP future before releasing them",
+      "PASS original frame/write deadline destroys pending UDP before actual Core leases, original drain confirms, no late packet",
+      "PASS same Core queue and RTC peer deliver subsequent authorized frame after cancelled/expired writes",
+      "PASS Core original queued-frame age cannot be refreshed by a new submission deadline",
+      "PASS replaced original Core source generation fences old queued bytes before UDP",
+      "PASS dropped egress preserves the original shared SSRC timeline through pending write ownership and rebind",
+      "PASS replacement Core source delivers on unchanged target and RTC peer",
+      "PASS missing original driver receipt remains unconfirmed; actual parent RTC close destroys pending IO before actual Core permission release"
+    ]
+  },
+  "ordinary_server_library": {
+    "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_server-21a33fe28737a7c4.rlib",
+    "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-egress/normal-server-lib-05.rlib",
+    "sha256": "2c96e0eec9168de7d4a1ad948639df26c9a3220c5badf2efb61d4859cbecd301",
+    "cfg_test": false,
+    "features": [
+      "test-support"
+    ]
+  },
+  "implementation": [
+    "CoreAudioEgress consumes only one exact AdapterMediaPort egress receiver; no arbitrary queued-frame/payload/source permission API. Static G.711 mono format must match the actual local track encoding.",
+    "Waits for queue and shared audio/DTMF sequence ownership retain no Core permission. The deferred producer calls actual QueuedMedia::deliver inside the RTC driver, retaining current source and target authority through socket IO under original frame age, cancellation and route generation.",
+    "Pending producer retains the existing shared writer independently of egress lifetime. Dropping egress and rebinding while IO is pending cannot reset the SSRC sequence timeline.",
+    "Driver destroys an uninvoked producer and its sequence custody before acknowledging refusal. Missing original driver receipt remains unconfirmed even after parent RTC close independently confirms its own resource destruction.",
+    "Owned primary RTP may not silently remap requested PT to another encoding. This path refuses a negotiated sibling codec/PT that would otherwise be rewritten by the ordinary legacy packet binder."
+  ],
+  "historical_failures": [
+    {
+      "scope": "Initial production module build01",
+      "result": "Compile-time u16/u8 channel comparison failed; corrected with explicit u16 conversion. No build pass claimed.",
+      "outcome": {
+        "exit_code": 101,
+        "seconds": 8.07846241700463,
+        "source_unchanged": true,
+        "source_count": 1794,
+        "command": [
+          "cargo",
+          "test",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--message-format=json"
+        ]
+      }
+    },
+    {
+      "scope": "Initial Core replacement fixture",
+      "result": "The fixture attempted an empty desired-stream plan and received Model(Capacity). It now performs actual source-port replacement with capacity for the old/new binding. A later strict fixture assertion expected only Refused, but the bounded retired-copy path may also end DeadlineBeforeWrite; both definite pre-write refusals are accepted while no UDP send is required. These initial full probe attempts are not passes.",
+      "logs": [
+        {
+          "name": "probe-runtime-03.log",
+          "sha256": "b2cf998ebffe6bf9d67c43766d505ce1b367248840626f82c41cd08ff1f20f3e"
+        },
+        {
+          "name": "probe-runtime-04.log",
+          "sha256": "67da47debb9fb739dabbc479f2d6232c26b9c843d6b68bb27c2e4584f5b7fe30"
+        }
+      ]
+    },
+    {
+      "scope": "Wire sequence custody regression before final fix",
+      "result": "Dropping egress while IO was pending allowed a rebind to create another writer. Actual UDP RTP sequence list was [1,2,3,2,3], expected [1,2,3,6,7]. Fixed by retaining Arc<OutboundAudioRtpWriter> in the original deferred producer.",
+      "log_sha256": "168c34c208f3a700928a4ab5d4acaddee68070cbc714f518ab9dd5aa21f937af"
+    },
+    {
+      "scope": "Exact encoding/PT regression before final fix",
+      "result": "An inconsistent Core candidate using negotiated sibling PCMA PT8 with a PCMU encoding was silently remapped and reported Ok. Final driver refuses any PT change during encoding binding before starting a wire submission.",
+      "log_sha256": "4b049e34c4e009498cf7fe10d089c49b8992b21c1c0ce2bf1572966c9919b4f2"
+    },
+    {
+      "scope": "Dependency preparation and prototype build03",
+      "result": "Verification was started before another preparation finished; the original preparer encountered an archive directory collision, and incomplete timestamp preservation triggered an unnecessary cold rebuild. Its final link failed with ENOSPC; no runtime pass claimed. Final v5 preparation was terminal and verified before adoption, with content-identical timestamps restored only afterward. Older proof executables/rlibs were compressed losslessly with restored-content digest checks.",
+      "outcome": {
+        "exit_code": 101,
+        "seconds": 761.237845167052,
+        "source_unchanged": true,
+        "source_count": 1800,
+        "command": [
+          "cargo",
+          "test",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--message-format=json"
+        ]
+      },
+      "preservation_manifests": [
+        {
+          "name": "previous-proof-archive.json",
+          "sha256": "76902900b4123599352caf142a94fb4a6671c06324c8f780d2c93b1b9268a8ff"
+        },
+        {
+          "name": "closed-proof-archive-04.json",
+          "sha256": "b1d08afb93d60f9d095749103be13fed1d8c8a4d5d5d956d82792de348630ffc"
+        }
+      ]
+    }
+  ],
+  "verification_limits": [
+    "Twelve PASS lines are assertion groups in one external program compiled against four sealed ordinary cfg(test)=false production libraries from the exact server Cargo graph. They are separate from the 20 Connect test methods.",
+    "Core controllers, QueuedMedia admission/delivery and adapter egress are production code. Relationship admission/current MediaPolicy, synthetic G.711 capture, and metadata-only port readiness/cleanup are explicit isolated fixtures. They are not Store authentication, canonical admission, real capture hardware, production port cleanup or browser media evidence.",
+    "Retired original copies may terminate Refused or DeadlineBeforeWrite; neither may send. Replacement bytes subsequently deliver on the unchanged target and RTC peer.",
+    "Shared sequence and timestamp state is reused with existing audio/DTMF code. This probe checks actual wire sequence custody across a pending-write rebind; it does not qualify a complete audio+DTMF interleaving journey.",
+    "No Opus/VP8/SCTP, source-clock/report translation, retaining repair, installed browser, Linux/remote profile, full canonical media lifecycle or default media advertisement is qualified.",
+    "Root Cargo cannot select dependency dev-tests. The checked-in probe uses the ordinary public library API and rustc; it is not reported as upstream Cargo unit tests.",
+    "Delivered audio is PCMU/8000/1 with exact plaintext RTP payload comparison. PCMA is a negotiated sibling negative case; no positive PCMA, decoded PCM rendering or hardware capture/playback is qualified."
+  ],
+  "pending": [
+    "Select actual configured/negotiated audio track and clock in RvoipPeerConnection: its current Opus/48000 constructor fails this G.711 binder closed. Retain the shared RTP writer for the physical track lifetime independent of Core port retirement.",
+    "Install the canonical Core adapter/controller with exact participant/Connection/generation/codec/direction/MID/SSRC mapping, ingress, owned port pumps, original drain and real readiness before Store operation completion.",
+    "Complete source clock/report timing, Opus/VP8/data and current canonical ICE authorization; integrate public capture/routing and remove the old offer-ready dialect.",
+    "Run approved Chrome/Firefox forced WT/UDP failure and Conversation/transition journeys preserving accepted/uncertain dial/message IDs; qualify Linux/remote profiles using bounded G6-093 configuration."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-core-egress/",
+  "publication": "Not performed; separate action."
+}

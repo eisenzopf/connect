@@ -207,3 +207,43 @@ peer. These are driver-boundary checks. The probe does not implement or qualify
 Core `QueuedMedia`, canonical media admission/readiness, Opus/VP8/SCTP, installed
 browsers, or the complete fallback journey. See
 [the scoped evidence](../evidence/gate-6/webrtc-owned-rtp.json).
+
+
+## Core port audio egress
+
+`rvoip_webrtc::media::core_audio::CoreAudioEgress` consumes the egress receiver
+belonging to one exact Core `AdapterMediaPort`. It accepts no arbitrary queued
+frame, payload, stream ID or source permission. Binding checks the Core audio
+format against the actual track encoding; each write is independently checked
+against the current negotiated RTC sender by the driver. A selected sibling
+codec cannot silently rewrite the requested payload type.
+
+`submit_next` waits for that port's queued frame and the existing shared
+audio/DTMF sequence owner without retaining a Core reader. Its deferred producer
+calls the production `QueuedMedia::deliver` inside the RTC driver. Fresh source
+and target authorization, original frame age, cancellation and route generations
+therefore cover the actual socket future. Sequence and timestamp allocation
+happens only inside that guarded call. Unknown submissions burn their sequence
+and are never automatically repeated. A pending write retains the shared writer
+even if the queue owner is dropped, so rebinding cannot restart the SSRC timeline.
+
+The physical adapter must retain its existing shared RTP writer for the complete
+track lifetime, independently of port retirement. The caller must register
+exact-port cleanup before binding and retain every
+returned original `OwnedRtpWrite` through `cancel_and_drain`. This component does
+not own physical peer shutdown or report stream readiness. A missing original
+driver receipt remains unconfirmed cleanup even if another owner subsequently
+closes the physical peer. The driver destroys uninvoked producers and their
+sequence custody before acknowledging definite pre-write refusal.
+
+This is the initial G.711 mono egress implementation. It is not installed in the
+canonical server adapter yet. In particular, the current `RvoipPeerConnection`
+audio-track constructor still uses an Opus encoding/48 kHz writer even for a
+single G.711 profile; the new binder refuses that mismatch. Selecting the actual
+configured/negotiated track and clock, ingress, owned port pumps and cleanup,
+Core adapter/controller admission and actual readiness are still required before
+canonical media can be enabled. Opus/VP8/data and browser qualification remain
+open. The [Core egress probe](../evidence/gate-6/webrtc-core-egress-probe.rs) uses
+actual Core controllers/queues and a real RTC pair with isolated policy and
+synthetic capture fixtures; its [evidence](../evidence/gate-6/webrtc-core-egress.json)
+keeps those limits explicit.

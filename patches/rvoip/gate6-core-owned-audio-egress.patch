@@ -1,0 +1,307 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+@@ -482,11 +482,15 @@
+             return Err(Error::ErrRTPTransceiverCodecUnsupported);
+         }
+         let clock = codec.rtp_codec.clock_rate;
++        let requested_payload_type = packet.header.payload_type;
+         bind_outbound_packet_to_encoding(
+             &mut packet,
+             &parameters.rtp_parameters.codecs,
+             &parameters.encodings,
+         )?;
++        if packet.header.payload_type != requested_payload_type {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
+         Ok((packet, clock))
+     }
+ 
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -0,0 +1,166 @@
++//! Exact Core-port egress through the actual RTC driver's guarded socket call.
++//!
++//! This component does not report readiness or own peer/port shutdown. The staged
++//! adapter must register cleanup before binding, retain each returned original
++//! write owner, and call cancel_and_drain before acknowledging port cleanup.
++use super::outbound::{OutboundAudioRtpState, OutboundAudioRtpWriter};
++use rvoip_core::{
++    staged_streams::{AdapterMediaPort, ControlResult, QueuedMedia, StreamControlError},
++    stream::StreamKind,
++    stream_lifecycle::{MediaFormat, Medium},
++};
++use std::{
++    sync::{Arc, Mutex},
++    time::Instant,
++};
++use tokio::sync::{OwnedMutexGuard, mpsc};
++use webrtc::media_stream::{
++    Track,
++    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
++};
++
++/// Consumes only the receiver belonging to one exact Core port. Callers cannot
++/// substitute a queued frame, frame bytes, stream ID or source authorization.
++pub struct CoreAudioEgress {
++    output: mpsc::Receiver<QueuedMedia>,
++    writer: Arc<OutboundAudioRtpWriter>,
++    payload_type: u8,
++}
++impl CoreAudioEgress {
++    /// Validate static format/track identity before taking the exact port queue.
++    /// The driver independently checks the current negotiated sender/PT/direction
++    /// for every packet. This metadata observation grants no media permission.
++    pub async fn bind(
++        port: &AdapterMediaPort,
++        track: Arc<TrackLocalStaticRTP>,
++        ssrc: u32,
++        payload_type: u8,
++        deadline: Instant,
++    ) -> ControlResult<Self> {
++        let binding = port.binding();
++        let MediaFormat::Encoded {
++            name,
++            clock_rate_hz,
++            channels,
++            fmtp,
++        } = &binding.negotiated.format
++        else {
++            return Err(StreamControlError::Unsupported);
++        };
++        let mime = match name.to_ascii_lowercase().as_str() {
++            "pcmu" | "g.711-mu" => "audio/PCMU",
++            "pcma" | "g.711-a" => "audio/PCMA",
++            _ => return Err(StreamControlError::Unsupported),
++        };
++        if binding.negotiated.requested.medium != Medium::Audio
++            || !binding.sink_ready
++            || *clock_rate_hz != 8000
++            || *channels != 1
++            || fmtp.as_ref().is_some_and(|f| !f.is_empty())
++            || payload_type >= 128
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let codec =
++            tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), track.codec(ssrc))
++                .await
++                .map_err(|_| StreamControlError::Deadline)?
++                .ok_or(StreamControlError::NotReady)?;
++        if !codec.mime_type.eq_ignore_ascii_case(mime)
++            || codec.clock_rate != *clock_rate_hz
++            || codec.channels != u16::from(*channels)
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let writer = OutboundAudioRtpWriter::new(track, ssrc, *clock_rate_hz);
++        if writer.clock_rate_hz() != *clock_rate_hz {
++            return Err(StreamControlError::Unsupported);
++        }
++        let output = port.take_egress()?;
++        Ok(Self {
++            output,
++            writer,
++            payload_type,
++        })
++    }
++    /// Acquire no permission while waiting for a frame or shared audio/DTMF
++    /// sequence ownership. Once returned, retain this exact write until drained.
++    /// Dropping this wait before submission produces no IO. No write is retried.
++    pub async fn submit_next(&mut self, deadline: Instant) -> ControlResult<Option<OwnedRtpWrite>> {
++        let queued =
++            tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), self.output.recv())
++                .await
++                .map_err(|_| StreamControlError::Deadline)?;
++        let Some(queued) = queued else {
++            return Ok(None);
++        };
++        self.writer
++            .queue_core_audio(queued, self.payload_type, deadline)
++            .await
++            .map(Some)
++    }
++}
++struct Packet {
++    queued: QueuedMedia,
++    state: OwnedMutexGuard<OutboundAudioRtpState>,
++}
++pub(crate) struct CoreProducer {
++    packet: Mutex<Option<Packet>>,
++    writer: Arc<OutboundAudioRtpWriter>,
++    payload_type: u8,
++}
++impl CoreProducer {
++    pub(crate) fn new(
++        queued: QueuedMedia,
++        state: OwnedMutexGuard<OutboundAudioRtpState>,
++        writer: Arc<OutboundAudioRtpWriter>,
++        payload_type: u8,
++    ) -> Self {
++        Self {
++            packet: Mutex::new(Some(Packet { queued, state })),
++            writer,
++            payload_type,
++        }
++    }
++}
++#[async_trait::async_trait]
++impl OwnedRtpProducer for CoreProducer {
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++        let Packet { queued, mut state } = self
++            .packet
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .take()
++            .ok_or(OwnedRtpError::Refused)?;
++        // Only Core can disclose the frame. Its fresh source/target authority,
++        // route generation, cancellation and original age cover this IO future.
++        queued
++            .deliver(|frame| async move {
++                if frame.kind != StreamKind::Audio
++                    || frame.payload_type != Some(self.payload_type)
++                    || frame.payload.is_empty()
++                    || frame.payload.len() > 1600
++                {
++                    return Err(StreamControlError::NotReady);
++                }
++                let samples = frame.payload.len() as u32; // G.711 mono: one sample/byte.
++                let timestamp = state.allocate_audio_timestamp(frame.timestamp_rtp, samples);
++                let packet = rtc::rtp::Packet {
++                    header: rtc::rtp::Header {
++                        version: 2,
++                        payload_type: self.payload_type,
++                        ssrc: self.writer.ssrc(),
++                        sequence_number: state.next_sequence_number(),
++                        timestamp,
++                        ..Default::default()
++                    },
++                    payload: frame.payload.to_vec().into(),
++                };
++                io.write(packet)
++                    .await
++                    .map_err(|_| StreamControlError::NotReady)
++            })
++            .await
++            .map_err(|_| OwnedRtpError::Refused)
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/mod.rs b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -12,16 +12,19 @@
+ pub(crate) mod video_reorder;
+ 
+ pub use fixtures::{
+-    opus_rtp_packet_for_ssrc, send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
+-    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD,
++    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD, opus_rtp_packet_for_ssrc,
++    send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
+ };
+ pub use pump::{
++    CandidatePairStats, FRAME_CHANNEL_CAP, InboundStats, OutboundStats, WebRtcStatsSnapshot,
+     silent_opus_payload, silent_rtp_packet, silent_rtp_payload, silent_rtp_payload_for_ssrc,
+-    CandidatePairStats, InboundStats, OutboundStats, WebRtcStatsSnapshot, FRAME_CHANNEL_CAP,
+ };
+ pub use stream::{
+-    from_tracks, from_tracks_with_audio_queue_capacity, from_tracks_with_dtmf_codecs,
+-    from_tracks_with_dtmf_events, WebRtcMediaStream,
++    WebRtcMediaStream, from_tracks, from_tracks_with_audio_queue_capacity,
++    from_tracks_with_dtmf_codecs, from_tracks_with_dtmf_events,
+ };
+ 
+ pub(crate) mod clock;
++
++/// Guarded Core audio egress through driver-owned RTP IO.
++pub mod core_audio;
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/outbound.rs b/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
+@@ -8,9 +8,9 @@
+ use rtc::rtp::extension::HeaderExtension;
+ use rtc::shared::marshal::{Marshal, MarshalSize};
+ use tokio::sync::Mutex;
++use webrtc::media_stream::Track;
++use webrtc::media_stream::track_local::TrackLocal;
+ use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+-use webrtc::media_stream::track_local::TrackLocal;
+-use webrtc::media_stream::Track;
+ 
+ use crate::peer::builder::HDREXT_SDES_MID;
+ 
+@@ -66,7 +66,11 @@
+         sequence_number
+     }
+ 
+-    fn allocate_audio_timestamp(&mut self, source_timestamp: u32, samples_per_frame: u32) -> u32 {
++    pub(crate) fn allocate_audio_timestamp(
++        &mut self,
++        source_timestamp: u32,
++        samples_per_frame: u32,
++    ) -> u32 {
+         let timestamp = match (
+             source_timestamp,
+             self.last_source_timestamp,
+@@ -160,7 +164,7 @@
+     ssrc: u32,
+     clock_rate_hz: u32,
+     mid: SyncMutex<Option<String>>,
+-    state: Mutex<OutboundAudioRtpState>,
++    state: Arc<Mutex<OutboundAudioRtpState>>,
+ }
+ 
+ #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+@@ -216,7 +220,7 @@
+             clock_rate_hz,
+             sender_clock: SyncMutex::new(None),
+             mid: SyncMutex::new(None),
+-            state: Mutex::new(OutboundAudioRtpState::default()),
++            state: Arc::new(Mutex::new(OutboundAudioRtpState::default())),
+         });
+         writers.insert(key, Arc::downgrade(&writer));
+         writer
+@@ -230,6 +234,30 @@
+             .mid
+             .lock()
+             .unwrap_or_else(|poisoned| poisoned.into_inner()) = mid;
++    }
++
++    pub(crate) fn clock_rate_hz(&self) -> u32 {
++        self.clock_rate_hz
++    }
++    /// Reserve the existing shared RTP sequence owner before queueing driver
++    /// work. No Core permission or payload is acquired in this wait.
++    pub(crate) async fn queue_core_audio(
++        self: &Arc<Self>,
++        queued: rvoip_core::staged_streams::QueuedMedia,
++        payload_type: u8,
++        deadline: std::time::Instant,
++    ) -> rvoip_core::staged_streams::ControlResult<
++        webrtc::media_stream::track_local::owned_rtp::OwnedRtpWrite,
++    > {
++        let state = tokio::time::timeout_at(
++            tokio::time::Instant::from_std(deadline),
++            self.state.clone().lock_owned(),
++        )
++        .await
++        .map_err(|_| rvoip_core::staged_streams::StreamControlError::Deadline)?;
++        let producer =
++            super::core_audio::CoreProducer::new(queued, state, self.clone(), payload_type);
++        Ok(self.track.owned_rtp(Arc::new(producer), deadline))
+     }
+ 
+     pub(crate) fn ssrc(&self) -> u32 {
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -444,6 +444,8 @@
+                 complete(producer.as_ref(), &mut io, &control).await
+             }
+         };
++        // Also destroy uninvoked producer metadata/sequence custody on refusal.
++        drop(producer);
+         // `complete` destroys the producer's future (and hence Core guards)
+         // before this exact original receipt is acknowledged.
+         let _ = completion.send(result);
