@@ -1184,6 +1184,11 @@
       "path": "patches/rvoip/gate6-canonical-opus-audio.patch",
       "source": "G6-051 bounded canonical Opus mono 48 kHz, 20 ms and 32 kbit/s Core audio; validate actual two-channel SDP mapping and both directional parameters, own exact source/egress SSRC/PT and timestamp from the Opus packet TOC. Preserve current Core authority and original driver-owned RTP write custody.",
       "sha256": "6d423a40d623bc6addd79f779c671d9a1a5a78ff0279ba38035c2d88f71a7d2d"
+    },
+    {
+      "path": "patches/rvoip/gate6-retained-video-repair.patch",
+      "source": "G6-051 guarded VP8 repair foundation: issue a bounded original-packet retainer only after successful Core delivery, keep no idle authority reader, reacquire exact current source/audience/selection/generation permission per explicit repair, atomically bound attempts and preserve the original monotonic age through pending IO. Canonical RTC video/repair driver integration remains required.",
+      "sha256": "32f3e114bdac7bc678927d62fc49649cce689335e845c5b2d8f59cfbcc19768c"
     }
   ]
 }

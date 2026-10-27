@@ -1,0 +1,202 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "scope": "Core VP8 RTP repair dependency and original video IO expiry only, local macOS arm64. This does not install or qualify canonical RTC video, NACK/RTX sockets, actual browsers, Linux/remote, acceptance or publication.",
+  "implementation": [
+    "QueuedMedia::deliver_video_with_repair issues an opaque VideoRepair only after the original guarded send returns success. Only a bounded complete VP8 RTP packet with one original source qualifies; generic audio/data remain one-use and no raw payload accessor or public clone is added.",
+    "The retained packet keeps original bytes, capture/arrival time, source and target ports, route-generation tickets, source identity and selection/scene stamps. No current policy reader is retained between calls. A transport must bind the handle to that exact original actual sender/wire packet in its bounded cache.",
+    "Each explicit repair reacquires ordinary current Core source, target, membership/Endpoint, media, audience, route, gate and selection permission. Four attempts per original packet/recipient share an atomic budget, including refused attempts. There is no automatic retry of uncertain IO.",
+    "Non-data delivery now uses the original monotonic arrival plus200ms as its outer IO cutoff. Video previously checked initial age but could then renew pending IO by another200ms. Original delivery and repairs now stop at the same original cutoff; shorter fresh credentials still win.",
+    "Current IO is destroyed before its authorization guards release on cutoff or cancellation. Expired/failed/unsupported original delivery returns no repair handle. Existing canonical RTC hosting still refuses video/SCTP pending its adapters."
+  ],
+  "verification": {
+    "focused_core_methods": 115,
+    "new_repair_methods": 10,
+    "existing_methods": 105,
+    "builds": [
+      {
+        "name": "core-harness-build-03",
+        "exit_code": 0,
+        "seconds": 0.4906541670206934,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-build-03",
+        "exit_code": 0,
+        "seconds": 14.244696708861738,
+        "log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-production-build-03",
+        "exit_code": 0,
+        "seconds": 10.557551125064492,
+        "log_sha256": "273a943f5e38e9d8bbed12c8f00196cff9dae810056a6a4835c9dddec13b23b0",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      }
+    ],
+    "runtime": [
+      {
+        "name": "core-unit-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.6489770840853453,
+        "log_sha256": "7e2066e867a6d3b495991265f90f7839a6ae233001b5d3cc2f0c47d65316cb44",
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 535 filtered out; finished in 0.04s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-existing-gates-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.0480295829474926,
+        "log_sha256": "e183d634fd81384f63ebc988f405665e45b0a1d31ebd263b6ee70a3a9c6fc779",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 536 filtered out; finished in 0.03s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-scene-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.3225524581503123,
+        "log_sha256": "048fd26010cde57f535479edb28f2568b5be1fe23569cba6be2b4fe4a799cb41",
+        "results": [
+          "test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 503 filtered out; finished in 0.29s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-guarded-mixer-runtime-03",
+        "exit_code": 0,
+        "seconds": 2.092175291851163,
+        "log_sha256": "273c75f9a58d88d99bac283d721a0111f8affd14c9ceb659a14f961f1c7483e7",
+        "results": [
+          "test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 484 filtered out; finished in 2.04s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-video-repair-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.7261852500960231,
+        "log_sha256": "745fdaab76865b69f1ae4f0d70e240d719a320fc6135e9c20c8da80a261c5661",
+        "results": [
+          "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 528 filtered out; finished in 0.69s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-direct-subscriptions-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.0903328750282526,
+        "log_sha256": "e66f4fb7be8c525ffb32f516afa2346d3d38756bd11b66e6143c59a84096bdc5",
+        "results": [
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 529 filtered out; finished in 0.06s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-existing-packet-expiry-runtime-03",
+        "exit_code": 0,
+        "seconds": 0.21031254203990102,
+        "log_sha256": "118ed2ed5b75ec0d081aa75c45837478a05ab7cfe17f638f1f56f9cf11c3af72",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 536 filtered out; finished in 0.17s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      }
+    ],
+    "causal_control": {
+      "only_changed_production_file": [
+        "staged_streams.rs"
+      ],
+      "difference": "Restore the prior Audio-only original-deadline condition; the complete repair API, fixtures, dependency artifacts and thresholds remain identical.",
+      "prior_behavior": {
+        "name": "causal-control-runtime-02",
+        "exit_code": 101,
+        "expected_exit_code": 101,
+        "seconds": 1.1086151669733226,
+        "log_sha256": "4103850d979ae99aabcaf010376c1d407b295d05db79e44e545e1b14fefc82de",
+        "results": [
+          "test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 536 filtered out; finished in 0.54s"
+        ],
+        "changed_sources": [],
+        "changed_libraries": []
+      },
+      "corrected_behavior": {
+        "name": "causal-fixed-runtime-02",
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "seconds": 0.44061237503774464,
+        "log_sha256": "8dbe874a7c32f27a8ee853e925c953e858c7f6d5197eb0ccd5e7f4a47702bd43",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 536 filtered out; finished in 0.41s"
+        ],
+        "changed_sources": [],
+        "changed_libraries": []
+      }
+    },
+    "artifacts": {
+      "core-unit-tests-03": {
+        "sha256": "2106879b5ad56891817fc4b39688a5a571971e285aa2f9f0699a08c915c699d0",
+        "bytes": 46327904
+      },
+      "librvoip_core_video_repair_03.rlib": {
+        "sha256": "80b602b1c9b015c696d9d7ed2e0d6b5c0ca9a92017de5c0f3a47a3be60287a1e",
+        "bytes": 109716240
+      },
+      "core-old-video-deadline": {
+        "sha256": "4700d56b10c248d5d9799c0395ed20d02488ea9efcdbea8def47d94c1a45a8e1",
+        "bytes": 46327912
+      }
+    },
+    "source_inputs": 5165,
+    "dependency_inputs": 30,
+    "upstream_patch_sha256": "32f3e114bdac7bc678927d62fc49649cce689335e845c5b2d8f59cfbcc19768c",
+    "scope_notes": [
+      "Both unconditional production Core and whole Core unit sources compile under the retained Root dependency feature graph, with standard stacks and unchanged library/source guards. The component build uses opt-level0; no current Connect executable or RTC wire qualification is claimed.",
+      "The ten new methods cover video/screen bytes and origin, idle policy writers, current source/recipient/audience/publication/playback denial, unsubscribe/reselection, both endpoint pause/resume paths, expiry, unsuccessful/unsupported originals, cancellation destruction, concurrent attempt limits and shorter current source/recipient grants."
+    ]
+  },
+  "attempt_history": [
+    "The first component compile stopped on an undeclared futures helper in a new test before any runtime. The fixture now uses existing Tokio tasks, without a dependency change.",
+    "The next run passed94 existing methods and9/10 new methods; one fixture withheld the opposite server-port permission while expecting endpoint publication refusal. The fixture now removes source receive/target send permissions, preserving Core endpoint/server direction semantics. Production repair code was unchanged. All final115 selected methods pass.",
+    "The first causal-control compile lacked a crate-relative test-support path in its private source copy and stopped before runtime. Binding it to the identical original test support permits compilation. Both original/repair age cases then fail on the prior condition and pass on the correction with source/library guards intact."
+  ],
+  "private_evidence": {
+    ".local/gate-6/rtc-video-repair/core-tests-03-summary.json": "2d5cc1ec17b5b4f588c6266df00282936560a1da7afe1647ba988978cc01f30c",
+    ".local/gate-6/rtc-video-repair/causal-pair-02-summary.json": "c619f77cbe8a827b472f8057e332b22d8d6a2acfd933786d0c5fc4f01a8795b5",
+    ".local/gate-6/rtc-video-repair/causal-control-inputs.json": "4bf852253ce1cf8ff8790c5b3b66de371b6c870d7ededa55b7d6ad4cdb3c37d7",
+    ".local/gate-6/rtc-video-repair/component-inputs-03.json": "5034b9c15d9fc92827a62923240274f3c24acffcad2347c336a9ddf24a914416",
+    ".local/gate-6/rtc-video-repair/library-inputs-03.json": "a0800b3a78b5abfaedb9ca4c062340b213eac84c1594eface69d4652d52ff63f",
+    ".local/gate-6/rtc-video-repair/final-guards.json": "1687d8dbb542b49bb28c2d329b9e08f8bb333840664104e41e6a6d54f44eb539",
+    ".local/gate-6/rtc-video-repair/core-tests-current-graph-summary.json": "6d591cbcbfc57d06a64cda31447df871cf476691222c1123bb9d4f9b1be55667",
+    ".local/gate-6/rtc-video-repair/core-tests-02-summary.json": "a33022fafc7c785955b0c820bc9c6f3167c4bf6dd0c180ecdabda2f8013aa630",
+    ".local/gate-6/rtc-video-repair/causal-pair-summary.json": "d3beb193cce57161efd99d9d5356e8e74694dcb06ad9f94c5cc79b0a541b1ea4"
+  },
+  "remaining": [
+    "Guarded canonical RTC VP8 egress/ingress, sender/PT/MID/SSRC mapping, bounded actual NACK/RTX cache and fresh per-repair wire IO are still required. Native interceptor caches must not retain bytes that can escape current Core authority.",
+    "Canonical reliable data, full synchronized source clocks, wider RTC lifecycle/failure/query/reoffer/credential cases, public browser API replacement, actual Chrome/Firefox forced fallback, Linux/remote hosting, packages and full Gate6 acceptance remain required."
+  ],
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

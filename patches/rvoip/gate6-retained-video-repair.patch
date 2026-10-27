@@ -1,0 +1,546 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/video_repair.rs
+@@ -0,0 +1,395 @@
++//! Retained video bytes never retain current permission or a renewed age budget.
++use super::*;
++use crate::staged_streams::direct_subscriptions::*;
++
++async fn queued(f: &Fixture, medium: Medium) -> QueuedMedia {
++    let source = f.aa.port(medium);
++    let id = desired(medium).logical_id;
++    let mut input = f.a.take_ingress(&id).unwrap();
++    let mut output = f.ba.port(medium).take_egress().unwrap();
++    source.try_publish(&frame(&source, 9000)).unwrap();
++    receive(&mut input).await.try_forward_to(&f.b, &id).unwrap();
++    outgoing(&mut output).await
++}
++async fn retained(f: &Fixture) -> VideoRepair {
++    queued(f, Medium::Video)
++        .await
++        .deliver_video_with_repair(|_, _| async { Ok(()) })
++        .await
++        .unwrap()
++}
++fn selection(f: &Fixture) -> DirectSubscriptionChange {
++    DirectSubscriptionChange::Subscribe(vec![DirectSubscription::new(
++        &f.a,
++        desired(Medium::Video).logical_id.clone(),
++        desired(Medium::Video).logical_id,
++    )])
++}
++
++#[tokio::test]
++async fn successful_video_and_screen_repair_preserve_exact_original_and_bound_attempts() {
++    for medium in [Medium::Video, Medium::Screen] {
++        let f = Fixture::new(8);
++        f.start(&[medium]).await;
++        let original = Arc::new(Mutex::new(None));
++        let saved = original.clone();
++        let repair = queued(&f, medium)
++            .await
++            .deliver_video_with_repair(move |frame, origin| async move {
++                *saved.lock().unwrap() = Some((frame, origin));
++                Ok(())
++            })
++            .await
++            .unwrap();
++        // Retention must not block an unrelated current-policy writer.
++        assert!(f.policy.0.try_write().is_ok());
++        for _ in 0..MAX_VIDEO_REPAIRS {
++            let saved = original.clone();
++            repair
++                .repair(move |frame, origin| async move {
++                    let saved = saved.lock().unwrap();
++                    let (old, old_origin) = saved.as_ref().unwrap();
++                    assert_eq!(frame.payload, old.payload);
++                    assert_eq!(frame.stream_id, old.stream_id);
++                    assert_eq!(frame.timestamp_rtp, old.timestamp_rtp);
++                    assert_eq!(frame.payload_type, old.payload_type);
++                    assert_eq!(frame.captured_at, old.captured_at);
++                    assert!(origin == *old_origin);
++                    Ok(())
++                })
++                .await
++                .unwrap();
++            assert!(f.policy.0.try_write().is_ok());
++        }
++        assert!(matches!(
++            repair
++                .repair(|_, _| async { panic!("repair budget exceeded") })
++                .await,
++            Err(StreamControlError::Backpressure)
++        ));
++    }
++}
++
++#[tokio::test]
++async fn retained_video_rechecks_current_source_target_audience_and_media_grants() {
++    for change in ["source", "target", "audience", "publish", "playback"] {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Video]).await;
++        let repair = retained(&f).await;
++        {
++            let mut policy = f
++                .policy
++                .0
++                .try_write()
++                .expect("retainer held a policy reader");
++            match change {
++                "source" => {
++                    policy.revoked.insert("alice".into());
++                }
++                "target" => {
++                    policy.revoked.insert("bob".into());
++                }
++                "audience" => policy.private = true,
++                "publish" => {
++                    policy
++                        .owners
++                        .get_mut("alice")
++                        .unwrap()
++                        .receive_media
++                        .remove(&Medium::Video);
++                }
++                _ => {
++                    policy
++                        .owners
++                        .get_mut("bob")
++                        .unwrap()
++                        .send_media
++                        .remove(&Medium::Video);
++                }
++            }
++        }
++        assert!(repair
++            .repair(|_, _| async { panic!("withdrawn {change} reached IO") })
++            .await
++            .is_err());
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
++
++#[tokio::test]
++async fn unsubscribe_and_reselection_cannot_restore_an_old_video_repair_ticket() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let repair = retained(&f).await;
++    for change in [DirectSubscriptionChange::Clear, selection(&f)] {
++        f.b.change_direct_subscriptions(
++            f.b.revision(),
++            change,
++            deadline(),
++            CancellationToken::new(),
++            None,
++        )
++        .await
++        .unwrap();
++        assert!(repair
++            .repair(|_, _| async { panic!("old selection reached IO") })
++            .await
++            .is_err());
++    }
++}
++
++#[tokio::test]
++async fn source_and_target_pause_resume_invalidate_old_video_repair() {
++    for source in [true, false] {
++        let f = Fixture::new(8);
++        f.start(&[Medium::Video]).await;
++        let repair = retained(&f).await;
++        let c = if source { &f.a } else { &f.b };
++        let ids = [desired(Medium::Video).logical_id].into_iter().collect();
++        for action in [StreamGateAction::Pause, StreamGateAction::Resume] {
++            c.set_media_gate(c.revision(), &ids, action, deadline())
++                .await
++                .unwrap();
++            assert!(repair
++                .repair(|_, _| async { panic!("old gate reached IO") })
++                .await
++                .is_err());
++        }
++    }
++}
++
++struct IoDrop {
++    policy: Arc<Policy>,
++    observation: Arc<Mutex<Option<bool>>>,
++}
++impl Drop for IoDrop {
++    fn drop(&mut self) {
++        *self.observation.lock().unwrap() = Some(self.policy.0.try_write().is_err());
++    }
++}
++async fn pending_io(f: &Fixture, observed: Arc<Mutex<Option<bool>>>) -> ControlResult<()> {
++    let _io = IoDrop {
++        policy: f.policy.clone(),
++        observation: observed,
++    };
++    std::future::pending().await
++}
++
++async fn aged_pending_io(repair: bool) {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let packet = queued(&f, Medium::Video).await;
++    let expires = packet.admitted_at + Duration::from_millis(200);
++    let mut original = Some(packet);
++    let retained = if repair {
++        Some(
++            original
++                .take()
++                .unwrap()
++                .deliver_video_with_repair(|_, _| async { Ok(()) })
++                .await
++                .unwrap(),
++        )
++    } else {
++        None
++    };
++    tokio::time::sleep_until(tokio::time::Instant::from_std(
++        expires - Duration::from_millis(40),
++    ))
++    .await;
++    let observed = Arc::new(Mutex::new(None));
++    let result = if let Some(retained) = retained {
++        tokio::time::timeout(
++            Duration::from_millis(100),
++            retained.repair(|_, _| pending_io(&f, observed.clone())),
++        )
++        .await
++    } else {
++        tokio::time::timeout(
++            Duration::from_millis(100),
++            original
++                .take()
++                .unwrap()
++                .deliver(|_| pending_io(&f, observed.clone())),
++        )
++        .await
++    };
++    assert!(
++        matches!(result, Ok(Err(StreamControlError::Deadline))),
++        "age budget renewed: {result:?}"
++    );
++    assert_eq!(
++        *observed.lock().unwrap(),
++        Some(true),
++        "IO outlived permission"
++    );
++    assert!(f.policy.0.try_write().is_ok());
++}
++#[tokio::test]
++async fn original_video_pending_io_keeps_original_age() {
++    aged_pending_io(false).await;
++}
++#[tokio::test]
++async fn repair_video_pending_io_keeps_original_age() {
++    aged_pending_io(true).await;
++}
++
++#[tokio::test]
++async fn expired_failed_and_unsupported_originals_never_issue_repair_authority() {
++    for medium in [Medium::Audio, Medium::Data] {
++        let f = Fixture::new(8);
++        f.start(&[medium]).await;
++        // Audio has its own consumer; directly route this controlled fixture.
++        let source = f.aa.port(medium);
++        let id = desired(medium).logical_id;
++        let mut input = f.a.take_ingress(&id).unwrap();
++        let mut output = f.ba.port(medium).take_egress().unwrap();
++        source.try_publish(&frame(&source, 9000)).unwrap();
++        receive(&mut input).await.try_forward_to(&f.b, &id).unwrap();
++        assert!(matches!(
++            outgoing(&mut output)
++                .await
++                .deliver_video_with_repair(|_, _| async { panic!("non-video reached IO") })
++                .await,
++            Err(StreamControlError::Unsupported)
++        ));
++    }
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    assert!(matches!(
++        queued(&f, Medium::Video)
++            .await
++            .deliver_video_with_repair(|_, _| async { Err(StreamControlError::NotReady) })
++            .await,
++        Err(StreamControlError::NotReady)
++    ));
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let repair = retained(&f).await;
++    tokio::time::sleep_until(tokio::time::Instant::from_std(
++        repair.expires_at() + Duration::from_millis(1),
++    ))
++    .await;
++    assert!(matches!(
++        repair
++            .repair(|_, _| async { panic!("expired repair reached IO") })
++            .await,
++        Err(StreamControlError::Deadline)
++    ));
++}
++
++#[tokio::test]
++async fn cancelled_repair_future_destroys_io_before_releasing_current_policy() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let repair = retained(&f).await;
++    let observed = Arc::new(Mutex::new(None));
++    let mut send = Box::pin(repair.repair(|_, _| pending_io(&f, observed.clone())));
++    assert!(
++        std::future::poll_fn(|cx| std::task::Poll::Ready(send.as_mut().poll(cx)))
++            .await
++            .is_pending()
++    );
++    assert!(f.policy.0.try_write().is_err());
++    drop(send);
++    assert_eq!(*observed.lock().unwrap(), Some(true));
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++#[tokio::test]
++async fn concurrent_repair_requests_share_one_atomic_attempt_budget() {
++    let f = Fixture::new(8);
++    f.start(&[Medium::Video]).await;
++    let repair = retained(&f).await;
++    let repair = Arc::new(repair);
++    let writes = Arc::new(AtomicUsize::new(0));
++    let mut jobs = tokio::task::JoinSet::new();
++    for _ in 0..12 {
++        let repair = repair.clone();
++        let writes = writes.clone();
++        jobs.spawn(async move {
++            repair
++                .repair(|_, _| async {
++                    writes.fetch_add(1, Ordering::AcqRel);
++                    tokio::task::yield_now().await;
++                    Ok(())
++                })
++                .await
++        });
++    }
++    let mut results = Vec::new();
++    while let Some(result) = jobs.join_next().await {
++        results.push(result.unwrap());
++    }
++    assert_eq!(
++        results.iter().filter(|r| r.is_ok()).count(),
++        MAX_VIDEO_REPAIRS as usize
++    );
++    assert_eq!(writes.load(Ordering::Acquire), MAX_VIDEO_REPAIRS as usize);
++    assert!(f.policy.0.try_write().is_ok());
++}
++
++type Expiry = Arc<Mutex<Option<(String, chrono::DateTime<chrono::Utc>)>>>;
++struct ExpiringPolicy {
++    inner: Arc<Policy>,
++    expiry: Expiry,
++}
++struct ExpiringLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    expiry: Option<chrono::DateTime<chrono::Utc>>,
++}
++impl MediaAuthorityLease for ExpiringLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.expiry
++    }
++}
++impl MediaPolicy for ExpiringPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        let expiry = self
++            .expiry
++            .lock()
++            .unwrap()
++            .as_ref()
++            .filter(|(name, _)| name == scope.connection.as_str())
++            .map(|(_, at)| *at);
++        Ok(Box::new(ExpiringLease {
++            inner: self.inner.current(scope)?,
++            expiry,
++        }))
++    }
++}
++#[tokio::test]
++async fn repair_obeys_new_shorter_source_and_recipient_grants_without_idle_readers() {
++    for connection in ["alice", "bob"] {
++        let expiry: Expiry = Arc::new(Mutex::new(None));
++        let f = Fixture::with_policy(
++            8,
++            Some(Box::new({
++                let expiry = expiry.clone();
++                move |inner| Arc::new(ExpiringPolicy { inner, expiry })
++            })),
++        );
++        f.start(&[Medium::Video]).await;
++        let repair = retained(&f).await;
++        assert!(f.policy.0.try_write().is_ok());
++        *expiry.lock().unwrap() = Some((
++            connection.into(),
++            chrono::Utc::now() + chrono::Duration::milliseconds(30),
++        ));
++        let observed = Arc::new(Mutex::new(None));
++        let result = tokio::time::timeout(
++            Duration::from_millis(100),
++            repair.repair(|_, _| pending_io(&f, observed.clone())),
++        )
++        .await;
++        assert!(
++            matches!(result, Ok(Err(StreamControlError::Deadline))),
++            "old grant used by repair: {result:?}"
++        );
++        assert_eq!(*observed.lock().unwrap(), Some(true));
++        assert!(f.policy.0.try_write().is_ok());
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2819,3 +2819,5 @@
+ mod private_outbound;
+ 
+ mod gate_slot;
++
++mod video_repair;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs b/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/video_repair.rs
+@@ -0,0 +1,98 @@
++//! Bounded repair of one successfully submitted original VP8 RTP packet.
++//! Retention holds metadata and bytes only. Every repair reacquires the original
++//! source/target tickets and current policy through ordinary queued delivery.
++use super::*;
++
++/// Upper bound on explicit repair attempts for one original packet/recipient.
++pub const MAX_VIDEO_REPAIRS: u32 = 4;
++
++/// Issued only after the original guarded send returns success. A transport
++/// binds this opaque handle to that exact sent RTP identity in its bounded
++/// repair cache; it cannot substitute a new source, recipient or packet.
++/// No permission reader survives between repair attempts.
++pub struct VideoRepair {
++    queued: QueuedMedia,
++    remaining: AtomicU32,
++    expires: Instant,
++}
++impl std::fmt::Debug for VideoRepair {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("VideoRepair(redacted)")
++    }
++}
++impl VideoRepair {
++    /// Original age cutoff, never an authorization or readiness observation.
++    pub fn expires_at(&self) -> Instant {
++        self.expires
++    }
++
++    /// One explicit repair request, not an automatic retry of uncertain IO.
++    /// Every call consumes one attempt, even when current admission refuses.
++    /// Dropping the future destroys active IO before releasing its Core guards.
++    pub async fn repair<F, Fut>(&self, send: F) -> ControlResult<()>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if Instant::now() >= self.expires {
++            return Err(StreamControlError::Deadline);
++        }
++        self.remaining
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| n.checked_sub(1))
++            .map_err(|_| StreamControlError::Backpressure)?;
++        self.queued.video_copy().deliver_with_origin(send).await
++    }
++}
++impl QueuedMedia {
++    // Deliberately private; generic queued audio/data must remain one-use.
++    fn video_copy(&self) -> Self {
++        Self {
++            frame: self.frame.clone(),
++            data: None,
++            local: None,
++            sources: self.sources.clone(),
++            target: self.target.clone(),
++            target_ticket: self.target_ticket.clone(),
++            target_consumer: self.target_consumer.clone(),
++            target_scene: self.target_scene.clone(),
++            subscription: self.subscription.clone(),
++            direct: self.direct.clone(),
++            admitted_at: self.admitted_at,
++        }
++    }
++
++    /// Submit one original video packet and retain it for bounded explicit
++    /// repairs only after successful guarded IO. Failed, cancelled or uncertain
++    /// sends return no handle. Original bytes, target, source identity, route
++    /// generations, selection stamp and monotonic arrival time are immutable.
++    pub async fn deliver_video_with_repair<F, Fut>(self, send: F) -> ControlResult<VideoRepair>
++    where
++        F: FnOnce(MediaFrame, Option<MediaDeliveryOrigin>) -> Fut,
++        Fut: Future<Output = ControlResult<()>>,
++    {
++        if self.frame.kind != StreamKind::Video
++            || self.data.is_some()
++            || self.local.is_some()
++            || self.sources.len() != 1
++            || !matches!(&self.target.binding.negotiated.format,
++                MediaFormat::Encoded { name, clock_rate_hz: 90000, channels: 0, fmtp }
++                if name.eq_ignore_ascii_case("vp8") && fmtp.as_ref().is_none_or(|v| v.is_empty()))
++            || self.frame.payload_type.is_none_or(|pt| {
++                crate::video_bridge::normalize_packet(&self.frame, 1, pt).is_none()
++            })
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let expires = self.admitted_at + Duration::from_millis(200);
++        let queued = self.video_copy();
++        self.deliver_with_origin(send).await?;
++        if Instant::now() >= expires {
++            return Err(StreamControlError::Deadline);
++        }
++        Ok(VideoRepair {
++            queued,
++            remaining: AtomicU32::new(MAX_VIDEO_REPAIRS),
++            expires,
++        })
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        atomic::{AtomicU32, Ordering},
+         Arc, Mutex, Weak,
+-        atomic::{AtomicU32, Ordering},
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
++use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -1378,7 +1378,7 @@
+         let mut subscription_guards = Vec::new();
+         let mut admissions = Vec::new();
+         let mut tokens = vec![target.shutdown.clone()];
+-        let mut deadline = if self.frame.kind == StreamKind::Audio {
++        let mut deadline = if self.frame.kind != StreamKind::Data {
+             tokio::time::Instant::from_std(self.admitted_at + Duration::from_millis(200))
+         } else {
+             tokio::time::Instant::now() + Duration::from_millis(200)
+@@ -3206,3 +3206,6 @@
+ mod readiness_observation;
+ 
+ pub mod endpoint_preparation;
++
++mod video_repair;
++pub use video_repair::{VideoRepair, MAX_VIDEO_REPAIRS};

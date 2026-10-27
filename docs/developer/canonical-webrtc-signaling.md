@@ -437,3 +437,26 @@ and one codec-factory checks. An earlier invalid SDP test fixture and an
 interrupted build remain recorded. These checks do not qualify actual browser
 fallback, wider Opus profiles, VP8/data, Linux/remote hosting or full Gate 6.
 G6-051 remains in progress and default browser media advertisement stays disabled.
+
+
+## Core video repair ownership
+
+`QueuedMedia.deliver_video_with_repair` can return an opaque `VideoRepair` after
+successful original guarded VP8 packet delivery. Retention preserves only the
+original packet and its source/recipient/selection/generation metadata. Every
+explicit repair reacquires current Core permission and consumes one of four
+attempts. Retention holds no idle policy reader. Failed or uncertain originals
+return no handle, and callers cannot replace its source, target or payload.
+A transport must bind it to the exact original physical sender/wire identity in
+a bounded cache. It does not authorize a native interceptor to resend stored
+bytes independently.
+
+Initial and repaired video IO now retain the original arrival-plus-200ms cutoff;
+pending delivery cannot renew that interval. Shorter current credentials still
+bound IO, and cancellation destroys IO before releasing its permission readers.
+The [component evidence](../evidence/gate-6/webrtc-video-repair-core.json) records
+115 selected Core methods and production compilation. Both pending-age cases
+fail with the prior deadline condition and pass with this correction using the
+same fixtures and dependency artifacts. Early test-fixture/control-copy errors
+remain recorded. Canonical RTC video, actual NACK/RTX wire repair and browser
+fallback are still implementation and qualification work; G6-051 remains open.
