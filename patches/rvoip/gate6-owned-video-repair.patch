@@ -1,0 +1,683 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/interceptor_registry.rs
+@@ -636,3 +636,15 @@
+         register_default_interceptors_with_sender_clock(Registry::new(), media_engine, clock)?;
+     Ok(registry.with(owned_dtmf_profile::wrap))
+ }
++
++/// Reviewed VP8 delivery: negotiated feedback stays in SDP, but native outgoing
++/// NACK byte caching is disabled. The driver alone owns explicit guarded repair.
++/// This opt-in profile is never selected by the ordinary constructor.
++pub fn register_owned_video_interceptors(
++    media_engine: &mut MediaEngine,
++    clock: crate::interceptor::SenderClockHandle,
++) -> Result<Registry<impl Interceptor + use<>>> {
++    let registry =
++        register_default_interceptors_with_sender_clock(Registry::new(), media_engine, clock)?;
++    Ok(registry.with(owned_dtmf_profile::wrap_video))
++}
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/owned_dtmf_profile.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/owned_dtmf_profile.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/owned_dtmf_profile.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/configuration/owned_dtmf_profile.rs
+@@ -3,11 +3,16 @@
+ use sansio::Protocol;
+ use shared::error::Error;
+ use std::time::Instant;
+-pub(super) struct OwnedDtmfProfile<I>(I);
++pub(super) struct OwnedDtmfProfile<I, const VIDEO: bool = false>(I);
+ pub(super) fn wrap<I: Interceptor>(inner: I) -> OwnedDtmfProfile<I> {
+     OwnedDtmfProfile(inner)
+ }
+-impl<I: Interceptor> Protocol<TaggedPacket, TaggedPacket, ()> for OwnedDtmfProfile<I> {
++pub(super) fn wrap_video<I: Interceptor>(inner: I) -> OwnedDtmfProfile<I, true> {
++    OwnedDtmfProfile(inner)
++}
++impl<I: Interceptor, const VIDEO: bool> Protocol<TaggedPacket, TaggedPacket, ()>
++    for OwnedDtmfProfile<I, VIDEO>
++{
+     type Rout = TaggedPacket;
+     type Wout = TaggedPacket;
+     type Eout = ();
+@@ -41,12 +46,23 @@
+         self.0.close()
+     }
+ }
+-impl<I: Interceptor> Interceptor for OwnedDtmfProfile<I> {
++impl<I: Interceptor, const VIDEO: bool> Interceptor for OwnedDtmfProfile<I, VIDEO> {
+     fn supports_owned_dtmf_io(&self) -> bool {
+         true
+     }
++    fn supports_owned_video_io(&self) -> bool {
++        VIDEO
++    }
+     fn bind_local_stream(&mut self, i: &StreamInfo) {
+-        self.0.bind_local_stream(i)
++        if VIDEO && i.mime_type.to_ascii_lowercase().starts_with("video/") {
++            let mut guarded = i.clone();
++            guarded
++                .rtcp_feedback
++                .retain(|f| f.typ != "nack" || !f.parameter.is_empty());
++            self.0.bind_local_stream(&guarded)
++        } else {
++            self.0.bind_local_stream(i)
++        }
+     }
+     fn unbind_local_stream(&mut self, i: &StreamInfo) {
+         self.0.unbind_local_stream(i)
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/handler/interceptor.rs
+@@ -306,7 +306,9 @@
+                 // unrelated first compound member cannot hide a valid source.
+                 self.process_read_rtcp_for_stats(packets, msg.now);
+                 for packet in packets.iter().filter(|packet| {
+-                    packet.as_any().is::<PictureLossIndication>()
++                    (self.interceptor.supports_owned_video_io()
++                        && packet.as_any().is::<TransportLayerNack>())
++                        || packet.as_any().is::<PictureLossIndication>()
+                         || packet.as_any().is::<FullIntraRequest>()
+                         || packet.as_any().is::<SenderReport>()
+                         || packet
+diff --git a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/peer_connection/mod.rs
+@@ -684,6 +684,9 @@
+     pub fn supports_owned_dtmf_io(&self) -> bool {
+         self.interceptor.supports_owned_dtmf_io()
+     }
++    pub fn supports_owned_video_io(&self) -> bool {
++        self.interceptor.supports_owned_video_io()
++    }
+     pub fn owned_dtmf_io_ready(&self) -> bool {
+         self.peer_connection_state == RTCPeerConnectionState::Connected
+             && self.supports_owned_dtmf_io()
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/internal.rs
+@@ -52,6 +52,7 @@
+     /// Whether SDP negotiation has occurred for this sender
+     negotiated: bool,
+     sent: bool,
++    owned_rtx_sequence: u16,
+ 
+     _phantom: PhantomData<I>,
+ }
+@@ -90,9 +91,16 @@
+             last_returned_parameters: None,
+             negotiated: false,
+             sent: false,
++            owned_rtx_sequence: 0,
+ 
+             _phantom: PhantomData,
+         }
++    }
++
++    pub(crate) fn next_owned_rtx_sequence(&mut self) -> u16 {
++        let seq = self.owned_rtx_sequence;
++        self.owned_rtx_sequence = self.owned_rtx_sequence.wrapping_add(1);
++        seq
+     }
+ 
+     /// Returns the media track being sent.
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+@@ -181,12 +181,12 @@
+ pub(crate) mod rtp_send_parameters;
+ pub(crate) mod set_parameter_options;
+ 
++use crate::media_stream::MediaStreamId;
+ use crate::media_stream::track::MediaStreamTrack;
+-use crate::media_stream::MediaStreamId;
++use crate::peer_connection::RTCPeerConnection;
+ use crate::peer_connection::message::RTCMessage;
+-use crate::peer_connection::RTCPeerConnection;
+-use crate::rtp_transceiver::rtp_sender::rtp_codec::{codec_parameters_fuzzy_search, CodecMatch};
+ use crate::rtp_transceiver::RTCRtpSenderId;
++use crate::rtp_transceiver::rtp_sender::rtp_codec::{CodecMatch, codec_parameters_fuzzy_search};
+ use interceptor::{Interceptor, NoopInterceptor};
+ use sansio::Protocol;
+ use shared::error::{Error, Result};
+@@ -442,6 +442,7 @@
+     /// NACK/repair/paced media is not admitted by this first owned RTP profile.
+     pub fn prepare_owned_rtp(&mut self, mut packet: rtp::Packet) -> Result<(rtp::Packet, u32)> {
+         use crate::rtp_transceiver::RTCRtpTransceiverDirection::{Sendonly, Sendrecv};
++        let guarded_video = self.peer_connection.supports_owned_video_io();
+         let transceiver = &self.peer_connection.rtp_transceivers[self.id.0];
+         if !matches!(transceiver.direction(), Sendonly | Sendrecv)
+             || !matches!(transceiver.current_direction(), Sendonly | Sendrecv)
+@@ -477,13 +478,18 @@
+         let opus = mime.eq_ignore_ascii_case("audio/opus")
+             && codec.rtp_codec.clock_rate == 48000
+             && codec.rtp_codec.channels == 2;
+-        if !(g711 || opus)
+-            || codec
+-                .rtp_codec
+-                .rtcp_feedback
+-                .iter()
+-                .any(|f| f.typ != "transport-cc" || !f.parameter.is_empty())
+-        {
++        let vp8 = guarded_video
++            && mime.eq_ignore_ascii_case("video/VP8")
++            && codec.rtp_codec.clock_rate == 90000
++            && codec.rtp_codec.channels == 0;
++        let supported_feedback = codec.rtp_codec.rtcp_feedback.iter().all(|f| {
++            (f.typ == "transport-cc" && f.parameter.is_empty())
++                || vp8
++                    && ((f.typ == "nack" && (f.parameter.is_empty() || f.parameter == "pli"))
++                        || (f.typ == "ccm" && f.parameter == "fir")
++                        || (f.typ == "goog-remb" && f.parameter.is_empty()))
++        });
++        if !(g711 || opus || vp8) || !supported_feedback {
+             return Err(Error::ErrRTPTransceiverCodecUnsupported);
+         }
+         let clock = codec.rtp_codec.clock_rate;
+@@ -497,6 +503,62 @@
+             return Err(Error::ErrRTPTransceiverCodecUnsupported);
+         }
+         Ok((packet, clock))
++    }
++
++    /// Write one repair of a validated original primary packet. The actual
++    /// current negotiated encoding controls RFC4588 PT/SSRC/sequence; callers
++    /// cannot supply an arbitrary repair identity. This queues no permission.
++    pub fn write_owned_video_repair(&mut self, primary: rtp::Packet) -> Result<rtp::Packet> {
++        if !self.peer_connection.supports_owned_video_io() {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
++        let (mut packet, clock) = self.prepare_owned_rtp(primary)?;
++        if clock != 90000 {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
++        let sender = self.peer_connection.rtp_transceivers[self.id.0]
++            .sender_mut()
++            .as_mut()
++            .ok_or(Error::ErrSenderWithNoSSRCs)?;
++        let parameters = sender.get_parameters(&mut self.peer_connection.media_engine);
++        let encoding = parameters
++            .encodings
++            .iter()
++            .find(|e| e.rtp_coding_parameters.ssrc == Some(packet.header.ssrc))
++            .ok_or(Error::ErrSenderWithNoSSRCs)?;
++        let repair_pt = rtp_codec::find_rtx_payload_type(
++            packet.header.payload_type,
++            &parameters.rtp_parameters.codecs,
++        );
++        match (&encoding.rtp_coding_parameters.rtx, repair_pt) {
++            (Some(rtx), Some(pt)) => {
++                let mut body = Vec::with_capacity(packet.payload.len() + 2);
++                body.extend_from_slice(&packet.header.sequence_number.to_be_bytes());
++                body.extend_from_slice(&packet.payload);
++                packet.header = rtp::Header {
++                    version: 2,
++                    ssrc: rtx.ssrc,
++                    payload_type: pt,
++                    sequence_number: sender.next_owned_rtx_sequence(),
++                    timestamp: packet.header.timestamp,
++                    marker: packet.header.marker,
++                    ..Default::default()
++                };
++                packet.payload = body.into();
++            }
++            (None, None) => {}
++            _ => return Err(Error::ErrRTPTransceiverCodecUnsupported),
++        }
++        // Primary identity was checked above; repair identity is constructed
++        // solely from the actual selected encoding and negotiated apt mapping.
++        let track_id = sender.track().track_id().to_string();
++        let fact = packet.clone();
++        self.peer_connection.handle_write(RTCMessage::RtpPacket(
++            track_id,
++            packet,
++            std::time::Instant::now(),
++        ))?;
++        Ok(fact)
+     }
+ 
+     pub fn write_rtp(&mut self, mut packet: rtp::Packet) -> Result<()> {
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+@@ -17,7 +17,7 @@
+ }
+ pub type OwnedRtpResult = std::result::Result<(), OwnedRtpError>;
+ 
+-/// A borrowed actual driver sink. It accepts at most one negotiated G.711 RTP
++/// A borrowed actual driver sink. It accepts at most one negotiated audio or reviewed VP8 RTP
+ /// packet. It cannot be retained by the producer or detached from its guard.
+ #[async_trait::async_trait]
+ pub trait OwnedRtpIo: Send {
+@@ -31,6 +31,15 @@
+ #[async_trait::async_trait]
+ pub trait OwnedRtpProducer: Send + Sync {
+     async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult;
++    /// Metadata only. None disables caching; it never grants repair permission.
++    fn repair_deadline(&self) -> Option<Instant> {
++        None
++    }
++    /// An explicit authenticated peer NACK runs here, under newly acquired
++    /// original source/target permission. The default cannot emit cached bytes.
++    async fn repair(&self, _io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++        Err(OwnedRtpError::Unsupported)
++    }
+ }
+ /// The qualified one-use delivery state is shared with the existing owned DTMF
+ /// path. This separate type prevents exchanging tickets between those jobs.
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver/owned_video.rs
+@@ -0,0 +1,265 @@
++//! Bounded original-packet metadata. Native interceptors must not cache outgoing
++//! video on this opt-in profile. Only a fresh producer callback can disclose a
++//! repair packet to the actual guarded socket writer.
++use super::*;
++use crate::media_stream::track_local::owned_rtp::*;
++
++const MAX_PACKETS: usize = 512;
++const MAX_BYTES: usize = MAX_PACKETS * 1600;
++const MAX_REQUESTS: usize = 64;
++const MAX_ATTEMPTS: u8 = 4;
++
++pub(super) struct RepairEntry {
++    sender: RTCRtpSenderId,
++    fact: rtp::Packet,
++    track: String,
++    producer: Arc<dyn OwnedRtpProducer>,
++    expires: Instant,
++    attempts: u8,
++}
++impl RepairEntry {
++    pub(super) fn new(
++        sender: RTCRtpSenderId,
++        fact: rtp::Packet,
++        track: String,
++        producer: Arc<dyn OwnedRtpProducer>,
++        expires: Instant,
++    ) -> Self {
++        Self {
++            sender,
++            fact,
++            track,
++            producer,
++            expires,
++            attempts: 0,
++        }
++    }
++    fn size(&self) -> usize {
++        rtc::shared::marshal::MarshalSize::marshal_size(&self.fact)
++    }
++}
++#[derive(Default)]
++pub(super) struct RepairCache {
++    entries: VecDeque<RepairEntry>,
++    bytes: usize,
++}
++impl RepairCache {
++    pub(super) fn expire(&mut self, now: Instant) {
++        self.entries
++            .retain(|e| e.expires > now && e.attempts < MAX_ATTEMPTS);
++        self.bytes = self.entries.iter().map(RepairEntry::size).sum();
++    }
++    pub(super) fn next_expiry(&self) -> Option<Instant> {
++        self.entries.iter().map(|e| e.expires).min()
++    }
++    pub(super) fn insert(&mut self, entry: RepairEntry) {
++        self.expire(Instant::now());
++        let size = entry.size();
++        if size > 1600
++            || entry.track.len() > 256
++            || entry.expires <= Instant::now()
++            || entry.attempts >= MAX_ATTEMPTS
++        {
++            return;
++        }
++        self.entries.retain(|e| {
++            !(e.sender == entry.sender
++                && e.fact.header.ssrc == entry.fact.header.ssrc
++                && e.fact.header.sequence_number == entry.fact.header.sequence_number)
++        });
++        self.bytes = self.entries.iter().map(RepairEntry::size).sum();
++        while self.entries.len() >= MAX_PACKETS || self.bytes + size > MAX_BYTES {
++            if let Some(old) = self.entries.pop_front() {
++                self.bytes -= old.size();
++            } else {
++                break;
++            }
++        }
++        self.bytes += size;
++        self.entries.push_back(entry);
++    }
++    fn take(&mut self, ssrc: u32, sequence: u16) -> Option<RepairEntry> {
++        self.expire(Instant::now());
++        // A NACK carries no track ID. Never guess between colliding senders.
++        let mut indices = self
++            .entries
++            .iter()
++            .enumerate()
++            .filter(|(_, e)| {
++                e.fact.header.ssrc == ssrc && e.fact.header.sequence_number == sequence
++            })
++            .map(|(i, _)| i);
++        let index = indices.next()?;
++        if indices.next().is_some() {
++            return None;
++        }
++        let mut entry = self.entries.remove(index)?;
++        self.bytes -= entry.size();
++        entry.attempts += 1;
++        Some(entry)
++    }
++}
++pub(super) fn same_primary(a: &rtp::Packet, b: &rtp::Packet) -> bool {
++    a.header.version == 2 && a.header == b.header && a.payload == b.payload
++}
++struct RepairProducer(Arc<dyn OwnedRtpProducer>);
++#[async_trait::async_trait]
++impl OwnedRtpProducer for RepairProducer {
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++        self.0.repair(io).await
++    }
++}
++impl<I: Interceptor + 'static> PeerConnectionDriver<I> {
++    pub(super) async fn handle_owned_video_nack(
++        &mut self,
++        nack: &rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack,
++    ) -> bool {
++        if !self.inner.core.lock().await.supports_owned_video_io() {
++            return false;
++        }
++        let mut requested = std::collections::BTreeSet::new();
++        'pairs: for pair in nack.nacks.iter().take(32) {
++            for bit in 0..=16 {
++                if bit == 0 || pair.lost_packets & (1 << (bit - 1)) != 0 {
++                    requested.insert(pair.packet_id.wrapping_add(bit));
++                    if requested.len() == MAX_REQUESTS {
++                        break 'pairs;
++                    }
++                }
++            }
++        }
++        for sequence in requested {
++            let Some(entry) = self.video_repairs.take(nack.media_ssrc, sequence) else {
++                continue;
++            };
++            let control = OwnedRtpControl::new(entry.expires);
++            if !control.claim() {
++                continue;
++            }
++            {
++                let mut io = RtpIo {
++                    driver: self,
++                    sender: entry.sender,
++                    control: &control,
++                    attempted: false,
++                    written: false,
++                    expected: Some((entry.fact.clone(), entry.track.clone())),
++                    written_video: None,
++                };
++                // The callback must acquire fresh permission. The cache only
++                // checks its supplied packet; it never sends stored bytes.
++                let _ = complete(&RepairProducer(entry.producer.clone()), &mut io, &control).await;
++            }
++            self.video_repairs.insert(entry);
++        }
++        true
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    struct NoBytes;
++    #[async_trait::async_trait]
++    impl OwnedRtpProducer for NoBytes {
++        async fn write(&self, _: &mut dyn OwnedRtpIo) -> OwnedRtpResult {
++            Err(OwnedRtpError::Refused)
++        }
++    }
++    fn entry(sender: usize, sequence: u16) -> RepairEntry {
++        RepairEntry::new(
++            sender.into(),
++            rtp::Packet {
++                header: rtp::Header {
++                    version: 2,
++                    ssrc: 123,
++                    sequence_number: sequence,
++                    ..Default::default()
++                },
++                payload: vec![7; 100].into(),
++            },
++            "track".into(),
++            Arc::new(NoBytes),
++            Instant::now() + std::time::Duration::from_secs(5),
++        )
++    }
++    #[test]
++    fn packet_byte_bounds_evict_oldest_and_replace_without_accounting_leaks() {
++        let mut cache = RepairCache::default();
++        for sequence in 0..600 {
++            cache.insert(entry(0, sequence));
++        }
++        assert_eq!(cache.entries.len(), MAX_PACKETS);
++        assert!(cache.bytes <= MAX_BYTES);
++        assert!(cache.take(123, 0).is_none());
++        assert!(cache.take(123, 599).is_some());
++        for _ in 0..100 {
++            cache.insert(entry(0, 598));
++        }
++        assert_eq!(
++            cache
++                .entries
++                .iter()
++                .filter(|e| e.fact.header.sequence_number == 598)
++                .count(),
++            1
++        );
++        assert_eq!(
++            cache.bytes,
++            cache.entries.iter().map(RepairEntry::size).sum()
++        );
++        let mut over = entry(0, 600);
++        over.fact.payload = vec![1; 1600].into();
++        cache.insert(over);
++        assert!(cache.take(123, 600).is_none());
++    }
++    #[test]
++    fn ambiguous_sender_collision_never_guesses_and_expiry_releases_producers() {
++        let mut cache = RepairCache::default();
++        let mut a = entry(0, 1);
++        let deadline = a.expires;
++        let weak = Arc::downgrade(&a.producer);
++        a.track = "first".into();
++        cache.insert(a);
++        cache.insert(entry(1, 1));
++        assert!(cache.take(123, 1).is_none());
++        assert_eq!(cache.entries.len(), 2);
++        cache.expire(deadline + std::time::Duration::from_secs(1));
++        assert!(cache.entries.is_empty());
++        assert_eq!(cache.bytes, 0);
++        assert!(weak.upgrade().is_none());
++    }
++    #[test]
++    fn four_refused_attempts_do_not_renew_original_expiry() {
++        let mut cache = RepairCache::default();
++        let original = entry(0, 1);
++        let deadline = original.expires;
++        cache.insert(original);
++        for attempt in 1..=4 {
++            let e = cache.take(123, 1).unwrap();
++            assert_eq!(e.attempts, attempt);
++            assert_eq!(e.expires, deadline);
++            cache.insert(e);
++        }
++        assert!(cache.take(123, 1).is_none());
++        assert!(cache.entries.is_empty());
++        assert_eq!(cache.bytes, 0);
++    }
++    #[test]
++    fn retained_fact_checks_header_extensions_marker_ssrc_and_payload() {
++        let a = entry(0, 1).fact;
++        assert!(same_primary(&a, &a));
++        let mut b = a.clone();
++        b.header.marker = true;
++        assert!(!same_primary(&a, &b));
++        b = a.clone();
++        b.header.ssrc += 1;
++        assert!(!same_primary(&a, &b));
++        b = a.clone();
++        b.payload = vec![8; 100].into();
++        assert!(!same_primary(&a, &b));
++        b = a.clone();
++        b.header.set_extension(1, vec![1, 2].into()).unwrap();
++        assert!(!same_primary(&a, &b));
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -82,6 +82,7 @@
+     advertised_to_socket: HashMap<SocketAddr, SocketAddr>,
+     socket_to_advertised: HashMap<SocketAddr, SocketAddr>,
+     deferred_transmits: VecDeque<TaggedBytesMut>,
++    video_repairs: owned_video::RepairCache,
+ }
+ 
+ impl<I> PeerConnectionDriver<I>
+@@ -110,6 +111,7 @@
+             advertised_to_socket,
+             socket_to_advertised,
+             deferred_transmits: VecDeque::new(),
++            video_repairs: owned_video::RepairCache::default(),
+         })
+     }
+ 
+@@ -152,6 +154,7 @@
+             .collect();
+ 
+         loop {
++            self.video_repairs.expire(Instant::now());
+             // 1.a ice_gatherer poll_write()
+             {
+                 while let Some(msg) = self.ice_gatherer.poll_write() {
+@@ -213,6 +216,9 @@
+                 }
+             }
+ 
++            if let Some(expiry) = self.video_repairs.next_expiry() {
++                timeout = timeout.min(expiry);
++            }
+             let delay_from_now = timeout
+                 .checked_duration_since(Instant::now())
+                 .unwrap_or(Duration::from_secs(0));
+@@ -432,8 +438,8 @@
+             })
+             .await
+             .unwrap_or_else(|_| Err(stopped(&control)));
+-        let result = match ready {
+-            Err(error) => Err(error),
++        let (result, candidate) = match ready {
++            Err(error) => (Err(error), None),
+             Ok(()) => {
+                 let mut io = RtpIo {
+                     driver: self,
+@@ -441,10 +447,24 @@
+                     control: &control,
+                     attempted: false,
+                     written: false,
++                    expected: None,
++                    written_video: None,
+                 };
+-                complete(producer.as_ref(), &mut io, &control).await
++                let result = complete(producer.as_ref(), &mut io, &control).await;
++                (result, io.written_video.take())
+             }
+         };
++        if result.is_ok() {
++            if let (Some((fact, track)), Some(expiry)) = (candidate, producer.repair_deadline()) {
++                self.video_repairs.insert(owned_video::RepairEntry::new(
++                    sender,
++                    fact,
++                    track,
++                    producer.clone(),
++                    expiry.min(control.deadline()),
++                ));
++            }
++        }
+         // Also destroy uninvoked producer metadata/sequence custody on refusal.
+         drop(producer);
+         // `complete` destroys the producer's future (and hence Core guards)
+@@ -794,6 +814,9 @@
+             RTCMessage::RtcpPacket(track_id, packets) => {
+                 let mut feedback_handled = false;
+                 for packet in &packets {
++                    if let Some(nack)=packet.as_any().downcast_ref::<rtcp::transport_feedbacks::transport_layer_nack::TransportLayerNack>() {
++                        feedback_handled |= self.handle_owned_video_nack(nack).await;
++                    }
+                     feedback_handled |= self.inner.handler.on_rtcp_packet(packet.as_ref()).await;
+                 }
+                 let track_remotes = self.inner.track_remote_events_tx.lock().await;
+@@ -898,6 +921,8 @@
+     control: &'a crate::media_stream::track_local::owned_rtp::OwnedRtpControl,
+     attempted: bool,
+     written: bool,
++    expected: Option<(rtp::Packet, String)>,
++    written_video: Option<(rtp::Packet, String)>,
+ }
+ #[async_trait::async_trait]
+ impl<I: Interceptor + 'static> crate::media_stream::track_local::owned_rtp::OwnedRtpIo
+@@ -924,12 +949,32 @@
+             let mut sender = core
+                 .rtp_sender(self.sender)
+                 .ok_or(Error::ErrConnectionClosed)?;
+-            let (packet, _) = sender.prepare_owned_rtp(packet)?;
+-            let fact = packet.clone();
++            if let Some((expected, track)) = &self.expected {
++                if sender.track().track_id() != track
++                    || !owned_video::same_primary(&packet, expected)
++                {
++                    return Err(Error::ErrRTPTransceiverCodecUnsupported);
++                }
++            }
++            let (packet, clock) = sender.prepare_owned_rtp(packet)?;
++            let original = packet.clone();
++            let track = sender.track().track_id().to_string();
++            if clock == 90000 && rtc::shared::marshal::MarshalSize::marshal_size(&packet) > 1600 {
++                return Err(Error::ErrRTPTransceiverCodecUnsupported);
++            }
+             if !self.control.begin() {
+                 return Err(Error::ErrConnectionClosed);
+             }
+-            sender.write_rtp(packet)?;
++            let fact = if self.expected.is_some() {
++                sender.write_owned_video_repair(packet)?
++            } else {
++                let fact = packet.clone();
++                sender.write_rtp(packet)?;
++                fact
++            };
++            if clock == 90000 {
++                self.written_video = Some((original, track));
++            }
+             let mut output = Vec::new();
+             while let Some(message) = core.poll_write() {
+                 output.push(message);
+@@ -977,3 +1022,5 @@
+         Ok(())
+     }
+ }
++
++mod owned_video;
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/runtime/mod.rs
+@@ -254,7 +254,7 @@
+             drop(self.socket.take());
+         }
+     }
+-    #[runtime_tokio::test(flavor = "multi_thread", worker_threads = 2)]
++    #[runtime_tokio::test(crate = "runtime_tokio", flavor = "multi_thread", worker_threads = 2)]
+     async fn cancelled_abort_wait_retains_original_task_until_actual_udp_drop() {
+         let gate = Arc::new(Gate::default());
+         // Always release the blocking destructor, including on assertion failure.

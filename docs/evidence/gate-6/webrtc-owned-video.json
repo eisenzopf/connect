@@ -1,0 +1,260 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "executed_at": "2026-10-27T11:27:06.337384+00:00",
+  "source_revision_before_checkpoint": "c179413e6f0bfbab91de4e855faa789f33abab09",
+  "scope": "Opt-in guarded VP8 RTP/NACK/RTX driver dependency, local macOS arm64 actual encrypted loopback. Instrumented permission fixture; no current Core VideoRepair/Store/canonical host composition or decoded-picture/browser qualification.",
+  "implementation": [
+    "An explicit reviewed interceptor profile advertises guarded video IO without inheritance through arbitrary wrappers. Its local video binding removes native outgoing NACK byte-cache registration before original transmission, while retaining negotiated feedback and incoming NACK generation/RTX restoration. Ordinary registries are unchanged.",
+    "Authenticated decrypted NACKs are copied past the terminal consuming interceptor only for this opt-in profile. The driver expands at most32pairs/64unique sequences per feedback item, resolves exact SSRC/sequence and refuses ambiguous senders.",
+    "Only successful actual original UDP submission plus a producer-supplied repair deadline creates an entry. Cache limits are512packets,819200accounted packet bytes,1600bytes/packet,256bytes/track ID and4attempts/original. The original producer deadline is capped by the original one-use control (at most200ms). Timer-driven eviction releases idle producers without further media or feedback.",
+    "Each explicit repair invokes the retained producer through a new one-use driver control. The callback must reacquire current permission; the cache never submits stored bytes. Freshly supplied full primary header/payload must match the original packet and current physical track; current direction/negotiated primary identity are checked again.",
+    "Actual current encoding and apt mapping derive RFC4588 repair PT/SSRC, original sequence prefix and a distinct sender-lifetime RTX sequence. When the answer declines RTX the guarded primary fallback is used. Partial/inconsistent RTX mapping refuses. Pending IO retains immutable original expiry and is destroyed before fixture policy readers release.",
+    "The preexisting runtime-close unit test now identifies its Tokio macro crate explicitly, avoiding collision with the local runtime::tokio module. This changes test compilation only. Canonical host video stays uninstalled until its Core/ingress/clock/port/controller adapters are implemented."
+  ],
+  "verification": {
+    "video_probe_methods": 13,
+    "complete_stack_unit_methods": 23,
+    "retained_audio_assertion_groups": 8,
+    "production_builds_and_stack_tests": [
+      {
+        "name": "rtc_interceptor-production",
+        "seconds": 0.17436179192736745,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rtc-production",
+        "seconds": 1.0542649999260902,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "webrtc-production",
+        "seconds": 0.986470292089507,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-build",
+        "seconds": 1.460074707865715,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-runtime",
+        "seconds": 2.849611874902621,
+        "exit_code": 0,
+        "log_sha256": "e39f7180ad3b7619f7e645a2568622c22c157ad2566c6d233c6c7c697935e7e7",
+        "changed_inputs": []
+      }
+    ],
+    "video_probe": [
+      {
+        "name": "probe-build",
+        "seconds": 0.4572345409542322,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "probe-runtime",
+        "seconds": 3.798366833012551,
+        "exit_code": 0,
+        "log_sha256": "e1009eae173faca85aa353d1ffcce5e473037ecc558d33f95719a035c28ecb08",
+        "results": [
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.50s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "audio_regression": [
+      {
+        "name": "audio-regression-build",
+        "seconds": 0.42133533279411495,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "audio-regression-runtime",
+        "seconds": 0.5637238749768585,
+        "exit_code": 0,
+        "log_sha256": "ffd475135fc76b604d37eee1d4394f4bb85f4cf1d3a7f76cc85171b25f0142ef",
+        "results": [
+          "PASS actual ICE/DTLS/SRTP G.711 plaintext delivery, exact SSRC/PT/sequence/timestamp/payload",
+          "PASS no-IO success cannot forge a delivery receipt",
+          "PASS mismatched sender SSRC and unnegotiated payload refuse before UDP",
+          "PASS queued expiry invokes no producer and retains no permission reader",
+          "PASS revocation between enqueue and callback refuses without wire submission",
+          "PASS cancelled observer preserves original IO; actual UDP future drops before both permission readers; original drain acknowledges; no late packet",
+          "PASS same RTC peer remains healthy after cancellation",
+          "PASS immediate requested send-direction withdrawal refuses output"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "controlled_native_cache_pair": [
+      {
+        "name": "rtc-build",
+        "seconds": 1.0601562499068677,
+        "exit_code": 0,
+        "expected_success": true,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "stack-build",
+        "seconds": 0.983423416968435,
+        "exit_code": 0,
+        "expected_success": true,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "probe-build",
+        "seconds": 0.45839400007389486,
+        "exit_code": 0,
+        "expected_success": true,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "native-cache-source_revoke_refuses_native_bypass_then_fresh_restore",
+        "seconds": 0.5467527501750737,
+        "exit_code": 101,
+        "expected_success": false,
+        "log_sha256": "e5a6867791da9e2981d848ac2ec1031b8f0b296083205de672e30b11eda70b83",
+        "results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.24s"
+        ],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "guarded-source_revoke_refuses_native_bypass_then_fresh_restore",
+        "seconds": 0.23330620909109712,
+        "exit_code": 0,
+        "expected_success": true,
+        "log_sha256": "bbe0a4e71f68cb27f9af18922071cbc1ecba26d31179fc06484561f6fdd14e0a",
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.23s"
+        ],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "native-cache-target_revoke_refuses_native_bypass_then_fresh_restore",
+        "seconds": 0.23163670906797051,
+        "exit_code": 101,
+        "expected_success": false,
+        "log_sha256": "252b5046244e45c82c0328132750a5cdf16f822746adcb3c06ca2ef36a790a01",
+        "results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.23s"
+        ],
+        "changed_actual_inputs": []
+      },
+      {
+        "name": "guarded-target_revoke_refuses_native_bypass_then_fresh_restore",
+        "seconds": 0.24050058308057487,
+        "exit_code": 0,
+        "expected_success": true,
+        "log_sha256": "cded9f8634f26a5bb0e5525dd3f232dff205f3002b5b0d6be42fd8419188e365",
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.24s"
+        ],
+        "changed_actual_inputs": []
+      }
+    ],
+    "controlled_change": {
+      "file": "rtc/src/peer_connection/configuration/owned_dtmf_profile.rs",
+      "before_sha256": "06f76762879a1240e370e59f7fdb8b463e0597248e6d8beb8111e516c8e74cfe",
+      "after_sha256": "004662985339eec7ff8acb80dbc0009a1ccc4f8fcf7d0007000c59f9c424f5a6",
+      "change": "Only disable local-stream NACK filtering; native outgoing byte cache is restored. Same fixture, negotiated media, dependencies and test assertions."
+    },
+    "causal_observation": "With only local video NACK filtering disabled, both source and target revocation tests fail on actual encrypted wire count3 rather than2. Identical corrected fixtures pass both. All other RTC Rust source hashes in the control copy match. This establishes native-cache bypass prevention, not actual Core authorization integration.",
+    "source_inputs_unchanged": true,
+    "guarded_inputs": 218,
+    "rust_source_inputs": 185,
+    "source_lock_sha256": "6e4abe57da8476a6fe310d5f7662c853dbf0e2467ca7ea08df383f3d85562c64",
+    "patches": {
+      "patches/rtc-interceptor/gate6-owned-video-contract.patch": "89facf030b220e5cdbebb7f0d38144c6a31a104dd17aca856da21fc7c7ac286f",
+      "patches/rvoip/gate6-owned-video-repair.patch": "df93bf180e0c6835f355a35d6d271715902a41601035f05cd985a05e99eb827d"
+    },
+    "artifacts_sha256": {
+      "librtc_interceptor_owned_video.rlib": "fbc9ccc9070f2cdb6776a57d708377eb235059f4400e045ba8fd2f4dee6ef588",
+      "librtc_owned_video.rlib": "3cd25dad3a3acbf3b063afa57ef951531c4d1b957052e053cd09b346991f4ae4",
+      "libwebrtc_owned_video.rlib": "26ca570476d0ec736fd1a0fb47598bca660f259dce7054f032638c09c322f43d",
+      "stack-unit-tests": "a2e00a352ba59d6876bab27db07d2b5be933d4057cb681a0c534bc1e1dbb5374",
+      "owned-video-probe": "e68341c4e918a8c6cac694b8cb46856cd2990696b603b0c594bcda4d6df4cc39",
+      "audio-regression": "fef4dd8728909ab2cd329b6dd4d9d7cf5d3f2c47ed464f338ffe82ccd66bd165"
+    },
+    "public_probe_sha256": "2ad346017d6f83b0b68fba54a2ce104d36a9696752557cac825ff8e3b418e0aa",
+    "standard_stack": true,
+    "socket_loss_fixture": "After successful actual SRTP UDP submission, the first seq11 packet is sent to a designated bound loopback discard sink; later explicit SRTCP NACK triggers actual encrypted repair. No interceptor pretends a dropped write succeeded."
+  },
+  "behaviors": [
+    "Negotiated RTX, non-RTX and declined-RTX answers restore exact primary SSRC/PT/sequence/timestamp/marker/payload through the public receiver. Actual encrypted repair headers match the offered FID repair SSRC and apt PT; repeated RTX uses distinct sender sequences.",
+    "Current source and target permission withdrawal refuse explicit repair without native bypass. Restored permission plus a new explicit NACK succeeds on the same peer. Cache retains no idle permission reader.",
+    "No repair deadline yields no native cached transmission. Idle expiration releases the last retained producer without a NACK and later feedback does not renew it. Four refused attempts exhaust repair even when permission is restored.",
+    "Pending socket future holds both current permission readers until original expiry destroys IO; destruction observes both readers still live, then writers unblock. Releasing the old pending gate afterward emits no late packet.",
+    "Substituted payload, foreign SSRC/sequence and immediate requested send-direction withdrawal refuse. Full header equality includes marker, SSRC and extensions. Cache packet/byte/accounting/oldest eviction, ambiguity, immutable expiry and attempt bounds pass.",
+    "All23stack methods pass, including four ordinary encrypted native repair profiles, track publication and existing owned DTMF/task-close checks. The prior G.711 driver probe passes its eight assertion groups against the new production libraries."
+  ],
+  "attempt_history": [
+    "The first actual encrypted probe had2passes/8timeouts: the terminal interceptor consumed NACKs, so repair callbacks never ran. Added guarded-profile-only forwarding; all10initial methods then passed. Diagnostic test-source edits overlapped the failed runtime observation and are explicitly reported as changed in that failed guard manifest; no pass is claimed for it.",
+    "Extended-test compilation initially failed before runtime: an existing runtime Tokio macro resolved the local module and the custom wrapper fixture omitted proc-macro-required imports. Explicit runtime macro crate and fixture imports fixed compilation. Final23stack and13video methods pass with unchanged guards.",
+    "Native-cache control tests deliberately fail0/2 at the encrypted packet-count assertion; corrected profile passes2/2 with the same assertions. These controlled failures are expected evidence, not acceptance passes.",
+    "One old unused debug incremental cache was verified as idle reproducible compiler intermediates and discarded to make build room. Private source/state, raw logs, dependency libraries and all proof executables were preserved."
+  ],
+  "remaining": [
+    "Core VideoRepair producer/actual target sequence mapping, canonical VP8 ingress/egress, exact MID/SSRC/payload negotiation, source-clock/RTCP timing, independently decoded video, staged Store/controller readiness and physical port cleanup remain implementation work. This driver fixture cannot qualify them.",
+    "Current whole Connect Root executables have not been rebuilt for these dependency changes; prior executables remain historical. No signed canonical video, real browser/Chrome/Firefox fallback, Linux/remote/provider, package, acceptance or publication pass is claimed.",
+    "G6-051 and all105tasks remain active; public browser migration/old signaling removal, reliable data, AV/quality/query/reoffer/DTMF/credential transitions and all other required plan scopes remain required."
+  ],
+  "private_evidence": {
+    ".local/gate-6/rtc-owned-video/prepared.json": "feef44b7322d27a3a534ea7d5054023c78fcd6c25de6ccd41e58ca3161075a7a",
+    ".local/gate-6/rtc-owned-video/prepare-04.log": "b0b3cfbae3d6a588ef9ba86f3728f2a36fdd2fdd65531cb637d7d6aaeff3b683",
+    ".local/gate-6/rtc-owned-video/build.py": "786437021fa16e0f97bbcea1def702d2c70ac49cca9cb5212f2d32ee90b428a1",
+    ".local/gate-6/rtc-owned-video/build-summary.json": "ce889972353541bde017eb11f01d3d5229193a2c20850a002c3d579769763dc0",
+    ".local/gate-6/rtc-owned-video/build-inputs.json": "23684edf3935664e8717ad7b54108aa9e374be760d6a69ecbc4bc5f28d7d971a",
+    ".local/gate-6/rtc-owned-video/probe.py": "c708f114096663fe11ba342b7beced2a916b0e59e3aad87ecbe842346e7102f5",
+    ".local/gate-6/rtc-owned-video/probe-summary.json": "ed0617929990be75ab8893ed3ea127bd431ca475adb9a5eee617d16662930373",
+    ".local/gate-6/rtc-owned-video/probe-inputs.json": "8a8da0440a3a32af423637fe0037ea77bb67e953d3dd158a3b67bd1ea74b312b",
+    ".local/gate-6/rtc-owned-video/probe-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-owned-video/probe-runtime.log": "e1009eae173faca85aa353d1ffcce5e473037ecc558d33f95719a035c28ecb08",
+    ".local/gate-6/rtc-owned-video/stack-unit-runtime.log": "e39f7180ad3b7619f7e645a2568622c22c157ad2566c6d233c6c7c697935e7e7",
+    ".local/gate-6/rtc-owned-video/audio-regression-summary.json": "b6e730bb83ad08cb8793cd9c1ab5b7ca2904f1f58147510a3549b85a17e6d026",
+    ".local/gate-6/rtc-owned-video/audio-regression-runtime.log": "ffd475135fc76b604d37eee1d4394f4bb85f4cf1d3a7f76cc85171b25f0142ef",
+    ".local/gate-6/rtc-owned-video/causal.py": "f7b0d0275aa3434eb3b1fe74dbffdc53f017d60d34b7b2e9dcd0cf8884b5857f",
+    ".local/gate-6/rtc-owned-video/causal-final-summary.json": "2d4d3c7416fe4741bf087af574a8a6d291b0c4d4173c2d3ad7d37c8b192746c9",
+    ".local/gate-6/rtc-owned-video/causal-final-change.json": "5eb910ff8608f664b5f98447b644ca53c68fb7c722d1d783c94df2406bd59c7a",
+    ".local/gate-6/rtc-owned-video/causal-final-source-diff.json": "49c3a7a9775fc45280c2b49c247ff42ff4891b17bc3673508bb7128285902e68",
+    ".local/gate-6/rtc-owned-video/initial-probe-summary.json": "d48ac2e6539b6c597f79d05689e162d16f268143ffbf9446c8511f5c685c239d",
+    ".local/gate-6/rtc-owned-video/initial-probe-runtime.log": "97e52074435ef6dc9091626e9a897149f5d7321df0162e4a4e7ddbbfd62c2516",
+    ".local/gate-6/rtc-owned-video/extended-first-build-summary.json": "02e4a9e599497cbf4a7d0b30fa548f1e094a4876517a4d06d9a7c2456acbacac",
+    ".local/gate-6/rtc-owned-video/extended-first-probe-summary.json": "af48461ce370f92771af2d6236110979110decf5502496ee77c606c6014087f8",
+    ".local/gate-6/rtc-owned-video/discarded-idle-incremental-cache.json": "403b68b8b9be48353b03f45604759c363be0513d8dfd61e76a7ac815c1494bd9",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/stack-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/guarded-target_revoke_refuses_native_bypass_then_fresh_restore.log": "cded9f8634f26a5bb0e5525dd3f232dff205f3002b5b0d6be42fd8419188e365",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/native-cache-source_revoke_refuses_native_bypass_then_fresh_restore.log": "e5a6867791da9e2981d848ac2ec1031b8f0b296083205de672e30b11eda70b83",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/guarded-source_revoke_refuses_native_bypass_then_fresh_restore.log": "bbe0a4e71f68cb27f9af18922071cbc1ecba26d31179fc06484561f6fdd14e0a",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/probe-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/rtc-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-owned-video/native-cache-control-final/native-cache-target_revoke_refuses_native_bypass_then_fresh_restore.log": "252b5046244e45c82c0328132750a5cdf16f822746adcb3c06ca2ef36a790a01"
+  },
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

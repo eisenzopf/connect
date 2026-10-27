@@ -1,0 +1,17 @@
+diff --git a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -327,6 +327,13 @@
+         false
+     }
+ 
++    /// Reviewed immediate VP8 IO with no native outgoing NACK byte cache.
++    /// Repairs require an explicit driver-owned producer under fresh permission.
++    /// This pipeline property is not authorization and is not inherited.
++    fn supports_owned_video_io(&self) -> bool {
++        false
++    }
++
+     /// Wrap this interceptor with another layer.
+     ///
+     /// The wrapper function receives `self` and returns a new interceptor

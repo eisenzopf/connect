@@ -460,3 +460,34 @@ fail with the prior deadline condition and pass with this correction using the
 same fixtures and dependency artifacts. Early test-fixture/control-copy errors
 remain recorded. Canonical RTC video, actual NACK/RTX wire repair and browser
 fallback are still implementation and qualification work; G6-051 remains open.
+
+
+## Guarded VP8 driver repair
+
+The opt-in `register_owned_video_interceptors` profile disables the native
+outgoing video NACK byte cache before the first packet. It retains advertised
+feedback and inbound RTX/NACK handling. Authenticated NACKs reach the driver,
+which resolves a bounded original-packet entry and invokes a fresh producer
+callback. Retention holds no policy reader. The callback must acquire current
+permission and disclose the exact original primary packet; the driver checks
+current track, direction, negotiated encoding and the full original packet.
+Only an actual successful original UDP submission may create an entry.
+
+The current negotiated `apt` and FID encoding control RTX PT/SSRC and the
+sender's separate sequence counter. Declined RTX uses guarded primary repair.
+Each original has at most four attempts, its original expiry (at most 200 ms)
+and a timer-driven cache bound of 512 packets / 819200 packet bytes. Pending IO
+is destroyed before its callback releases permission. Cache bytes are equality
+facts; they are never an independent source for a socket write.
+
+The [checked-in probe](../evidence/gate-6/webrtc-owned-video-probe.rs) and
+[component evidence](../evidence/gate-6/webrtc-owned-video.json) record 13 video
+methods, all 23 stack unit methods and eight existing audio assertion groups
+against current production libraries. The native-cache control emits a repair
+after either fixture permission is revoked; the corrected profile refuses both.
+The fixture uses synthetic RTP declared as VP8, not independently decoded
+pictures, and instrumented permission readers rather than Core/Store policy.
+Canonical video still requires its actual Core retainer producer, ingress,
+source clocks, port/controller lifetime and readiness integration. The canonical
+host continues to refuse video/SCTP. Whole Connect, actual browsers, fallback,
+Linux/remote and full Gate 6 qualification remain open.

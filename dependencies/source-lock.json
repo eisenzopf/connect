@@ -1189,6 +1189,17 @@
       "path": "patches/rvoip/gate6-retained-video-repair.patch",
       "source": "G6-051 guarded VP8 repair foundation: issue a bounded original-packet retainer only after successful Core delivery, keep no idle authority reader, reacquire exact current source/audience/selection/generation permission per explicit repair, atomically bound attempts and preserve the original monotonic age through pending IO. Canonical RTC video/repair driver integration remains required.",
       "sha256": "32f3e114bdac7bc678927d62fc49649cce689335e845c5b2d8f59cfbcc19768c"
+    },
+    {
+      "path": "patches/rtc-interceptor/gate6-owned-video-contract.patch",
+      "source": "Explicit reviewed guarded VP8 pipeline capability; custom interceptor wrappers do not inherit it.",
+      "sha256": "89facf030b220e5cdbebb7f0d38144c6a31a104dd17aca856da21fc7c7ac286f",
+      "target": "rtc-interceptor"
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-video-repair.patch",
+      "source": "G6-051 opt-in guarded VP8 RTP and explicit bounded NACK repair callbacks; suppress native outgoing video byte cache, validate original packet/current negotiated track, derive actual negotiated RTX identity, retain immutable expiry and destroy pending IO before permission release. Canonical host integration remains required.",
+      "sha256": "df93bf180e0c6835f355a35d6d271715902a41601035f05cd985a05e99eb827d"
     }
   ]
 }
