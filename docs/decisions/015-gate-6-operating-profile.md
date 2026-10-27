@@ -39,6 +39,16 @@ do not change source content, capture/draw cadence, observers, thresholds or the
 60second window. Prior failed audio observations remain failures. Linux/remote,
 physical devices and provider lanes still require their own named execution.
 
+October 27 native fallback receiver update: before the next normal installed
+browser matrix, the SDK sets the same 80 ms preferred native jitter-buffer target
+on its audio/video receivers before an offer. The installed Chrome/Firefox
+capability probes retain this target; a private Firefox comparison measured
+about 71–76 ms audio buffering with the target and 51–53 ms with automatic
+buffering. These distinct runs do not establish causality or remove retained
+audio failures. Sources, observers, thresholds, 60-second windows and independent
+AV-sync checks remain unchanged. The target is a preference, not a hard latency
+guarantee. Unsupported or ignored native control refuses before signaling.
+
 Native endpoint TLS verifies configured server identity and trust. Hosted HTTP
 requires HTTPS, WSS and HTTP/3 with declared origins and trusted proxy policy.
 Provision short-lived scoped participant/device credentials through a trusted

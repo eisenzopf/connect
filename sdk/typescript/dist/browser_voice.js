@@ -1,6 +1,7 @@
 import { boundedCanvasVideoCapture, } from "./browser_video_capture.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { browserIceConfiguration } from "./browser_ice.js";
+import { configureReceiverBuffer } from "./browser_receiver.js";
 import { browserOfferSelection, } from "./browser_binding.js";
 import { CanonicalWebRtcSignaling, } from "./browser_webrtc_signaling.js";
 import { microphoneStream, captureDevices, validateBrowserAnswer, } from "./browser_capture.js";
@@ -204,6 +205,7 @@ export class BrowserVoiceSession {
                 else
                     session.peer.addTrack(track, session.localStream);
             }
+            configureReceiverBuffer(session.peer);
             if (video)
                 session.videoWorker = startVideoTransform(session.peer);
             session.peer.ontrack = (event) => {

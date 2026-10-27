@@ -1,0 +1,614 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T21:09:07.231406+00:00",
+  "scope": "Local macOS arm64 installed native Chrome155.0.8059.85/Firefox158.0.1 API probes; two sequential private FirefoxEdDSA 60second diagnostics. No model/provider/remote executions.",
+  "specification": "https://www.w3.org/TR/webrtc/#dom-rtcrtpreceiver-jitterbuffertarget",
+  "capability_probe": {
+    "results": [
+      {
+        "browser": "chrome",
+        "version": "Chrome/155.0.8059.85",
+        "receivers": [
+          {
+            "kind": "audio",
+            "supported": true,
+            "initial": null,
+            "eighty": 80,
+            "negativeRefused": true,
+            "largeRefused": true,
+            "retained": 80,
+            "reset": null,
+            "oneTwenty": 120
+          },
+          {
+            "kind": "video",
+            "supported": true,
+            "initial": null,
+            "eighty": 80,
+            "negativeRefused": true,
+            "largeRefused": true,
+            "retained": 80,
+            "reset": null,
+            "oneTwenty": 120
+          }
+        ],
+        "scope": "Native unconnected receive transceivers, no capture/offer/network/media/provider/model. Setter semantics only, not measured buffering/quality."
+      },
+      {
+        "browser": "firefox",
+        "version": "firefox/158.0.1",
+        "receivers": [
+          {
+            "kind": "audio",
+            "supported": true,
+            "initial": null,
+            "eighty": 80,
+            "negativeRefused": true,
+            "largeRefused": true,
+            "retained": 80,
+            "reset": null,
+            "oneTwenty": 120
+          },
+          {
+            "kind": "video",
+            "supported": true,
+            "initial": null,
+            "eighty": 80,
+            "negativeRefused": true,
+            "largeRefused": true,
+            "retained": 80,
+            "reset": null,
+            "oneTwenty": 120
+          }
+        ],
+        "scope": "Native unconnected receive transceivers, no capture/offer/network/media/provider/model. Setter semantics only, not measured buffering/quality."
+      }
+    ]
+  },
+  "probe_sha256": "efc42a7a637cd801a37294cdc5e4a6204f7b3817eb30b6ec121aac4540757aac",
+  "diagnostics": [
+    {
+      "name": "firefox-receiver-target80-eddsa-74",
+      "scope": "Private native target/counter diagnostic, not an unmodified normal-profile qualification; original source/observer/threshold/window remain. No extra stats timer: existing diagnostic polling snapshots the same native getStats result.",
+      "verdict": "passed",
+      "exit_code": 0,
+      "seconds": 66.52021420816891,
+      "changed_inputs": [],
+      "observations": [
+        {
+          "bad_audio_samples": 0,
+          "audio_samples": 600,
+          "av_median_abs_skew_ms": 41.00000000000037,
+          "av_p95_abs_skew_ms": 67.99999999999962,
+          "decoded_fps": 28.913775268918602,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "native_counters": [
+            {
+              "targets": [
+                {
+                  "kind": "audio",
+                  "target_ms": 80
+                },
+                {
+                  "kind": "video",
+                  "target_ms": 80
+                }
+              ],
+              "sample_bound": 256,
+              "media": [
+                {
+                  "kind": "audio",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "audio",
+                    "packetsReceived": 128,
+                    "packetsLost": 0,
+                    "jitter": 0.004,
+                    "jitterBufferDelay": 7593.6,
+                    "jitterBufferEmittedCount": 120000,
+                    "jitterBufferTargetDelay": 9600,
+                    "jitterBufferMinimumDelay": 5356.8,
+                    "concealedSamples": 2325,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 4,
+                    "insertedSamplesForDeceleration": 2614,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 124320
+                  },
+                  "final": {
+                    "kind": "audio",
+                    "packetsReceived": 3069,
+                    "packetsLost": 0,
+                    "jitter": 0.003,
+                    "jitterBufferDelay": 208406.4,
+                    "jitterBufferEmittedCount": 2942400,
+                    "jitterBufferTargetDelay": 235392,
+                    "jitterBufferMinimumDelay": 121708.8,
+                    "concealedSamples": 51894,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 62,
+                    "insertedSamplesForDeceleration": 10733,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 3004320
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 2941,
+                    "packetsLost": 0,
+                    "jitterBufferDelay": 200812.8,
+                    "jitterBufferEmittedCount": 2822400,
+                    "jitterBufferTargetDelay": 225792,
+                    "jitterBufferMinimumDelay": 116352.0,
+                    "concealedSamples": 49569,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 58,
+                    "insertedSamplesForDeceleration": 8119,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 2880000
+                  },
+                  "actual_average_buffer_ms": 71.14965986394557
+                },
+                {
+                  "kind": "video",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "video",
+                    "packetsReceived": 158,
+                    "packetsLost": 0,
+                    "jitter": 0.010044444444444444,
+                    "jitterBufferDelay": 3.546877,
+                    "jitterBufferEmittedCount": 49,
+                    "jitterBufferTargetDelay": 3.387,
+                    "jitterBufferMinimumDelay": 1.387799
+                  },
+                  "final": {
+                    "kind": "video",
+                    "packetsReceived": 3745,
+                    "packetsLost": 1,
+                    "jitter": 0.009822222222222222,
+                    "jitterBufferDelay": 153.287578,
+                    "jitterBufferEmittedCount": 1784,
+                    "jitterBufferTargetDelay": 146.47199999999998,
+                    "jitterBufferMinimumDelay": 63.893994
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 3587,
+                    "packetsLost": 1,
+                    "jitterBufferDelay": 149.740701,
+                    "jitterBufferEmittedCount": 1735,
+                    "jitterBufferTargetDelay": 143.08499999999998,
+                    "jitterBufferMinimumDelay": 62.506195
+                  },
+                  "actual_average_buffer_ms": 86.30587953890489
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "bad_audio_samples": 0,
+          "audio_samples": 600,
+          "av_median_abs_skew_ms": 51.9999999999996,
+          "av_p95_abs_skew_ms": 65.99999999999895,
+          "decoded_fps": 28.913775268918602,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "native_counters": [
+            {
+              "targets": [
+                {
+                  "kind": "audio",
+                  "target_ms": 80
+                },
+                {
+                  "kind": "video",
+                  "target_ms": 80
+                }
+              ],
+              "sample_bound": 256,
+              "media": [
+                {
+                  "kind": "audio",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "audio",
+                    "packetsReceived": 122,
+                    "packetsLost": 0,
+                    "jitter": 0.004,
+                    "jitterBufferDelay": 8073.6,
+                    "jitterBufferEmittedCount": 114240,
+                    "jitterBufferTargetDelay": 9139.2,
+                    "jitterBufferMinimumDelay": 4569.6,
+                    "concealedSamples": 5456,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 6,
+                    "insertedSamplesForDeceleration": 2398,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 121440
+                  },
+                  "final": {
+                    "kind": "audio",
+                    "packetsReceived": 2994,
+                    "packetsLost": 0,
+                    "jitter": 0.004,
+                    "jitterBufferDelay": 217536,
+                    "jitterBufferEmittedCount": 2871360,
+                    "jitterBufferTargetDelay": 229708.8,
+                    "jitterBufferMinimumDelay": 114854.4,
+                    "concealedSamples": 116407,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 134,
+                    "insertedSamplesForDeceleration": 14504,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 3001440
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 2872,
+                    "packetsLost": 0,
+                    "jitterBufferDelay": 209462.4,
+                    "jitterBufferEmittedCount": 2757120,
+                    "jitterBufferTargetDelay": 220569.59999999998,
+                    "jitterBufferMinimumDelay": 110284.79999999999,
+                    "concealedSamples": 110951,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 128,
+                    "insertedSamplesForDeceleration": 12106,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 2880000
+                  },
+                  "actual_average_buffer_ms": 75.97144846796657
+                },
+                {
+                  "kind": "video",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "video",
+                    "packetsReceived": 143,
+                    "packetsLost": 0,
+                    "jitter": 0.009333333333333334,
+                    "jitterBufferDelay": 3.544752,
+                    "jitterBufferEmittedCount": 49,
+                    "jitterBufferTargetDelay": 3.3899999999999997,
+                    "jitterBufferMinimumDelay": 1.028662
+                  },
+                  "final": {
+                    "kind": "video",
+                    "packetsReceived": 3784,
+                    "packetsLost": 2,
+                    "jitter": 0.010977777777777777,
+                    "jitterBufferDelay": 150.149824,
+                    "jitterBufferEmittedCount": 1784,
+                    "jitterBufferTargetDelay": 144.78199999999998,
+                    "jitterBufferMinimumDelay": 45.096399
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 3641,
+                    "packetsLost": 2,
+                    "jitterBufferDelay": 146.605072,
+                    "jitterBufferEmittedCount": 1735,
+                    "jitterBufferTargetDelay": 141.392,
+                    "jitterBufferMinimumDelay": 44.067737
+                  },
+                  "actual_average_buffer_ms": 84.49860057636887
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "hashes": {
+        "summary.json": "626c76ea02dc2137659440d269a9a75941e016324bb16674b66b42ab59398920",
+        "inputs.json": "c721ef18b2f3d680fddcbc15dac0b61a098ea568b2e7263dffd05c6a924ef6da",
+        "test.log": "3b75ff8394e4a2e60a795a02b488c54db1d2e374b1de38f15c0eed777a3879b1",
+        "browser-result.jsonl": "805b03745d20373a09287dd281794f3009e9aca35cff79d216104a2556c23129",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+      }
+    },
+    {
+      "name": "firefox-receiver-auto-eddsa-75",
+      "scope": "Private native target/counter diagnostic, not an unmodified normal-profile qualification; original source/observer/threshold/window remain. No extra stats timer: existing diagnostic polling snapshots the same native getStats result.",
+      "verdict": "failed",
+      "exit_code": 101,
+      "seconds": 66.36015020799823,
+      "changed_inputs": [],
+      "observations": [
+        {
+          "bad_audio_samples": 1,
+          "audio_samples": 600,
+          "av_median_abs_skew_ms": 35.50000000000075,
+          "av_p95_abs_skew_ms": 107.0000000000002,
+          "decoded_fps": 27.93054025977382,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "failed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "native_counters": [
+            {
+              "targets": [
+                {
+                  "kind": "audio",
+                  "target_ms": null
+                },
+                {
+                  "kind": "video",
+                  "target_ms": null
+                }
+              ],
+              "sample_bound": 256,
+              "media": [
+                {
+                  "kind": "audio",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "audio",
+                    "packetsReceived": 117,
+                    "packetsLost": 0,
+                    "jitter": 0.004,
+                    "jitterBufferDelay": 5875.2,
+                    "jitterBufferEmittedCount": 110400,
+                    "jitterBufferTargetDelay": 6163.2,
+                    "jitterBufferMinimumDelay": 6163.2,
+                    "concealedSamples": 1889,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 2,
+                    "insertedSamplesForDeceleration": 1161,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 113280
+                  },
+                  "final": {
+                    "kind": "audio",
+                    "packetsReceived": 3025,
+                    "packetsLost": 0,
+                    "jitter": 0.004,
+                    "jitterBufferDelay": 154080,
+                    "jitterBufferEmittedCount": 2901120,
+                    "jitterBufferTargetDelay": 173606.4,
+                    "jitterBufferMinimumDelay": 173606.4,
+                    "concealedSamples": 83251,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 93,
+                    "insertedSamplesForDeceleration": 9990,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 2993760
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 2908,
+                    "packetsLost": 0,
+                    "jitterBufferDelay": 148204.8,
+                    "jitterBufferEmittedCount": 2790720,
+                    "jitterBufferTargetDelay": 167443.19999999998,
+                    "jitterBufferMinimumDelay": 167443.19999999998,
+                    "concealedSamples": 81362,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 91,
+                    "insertedSamplesForDeceleration": 8829,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 2880480
+                  },
+                  "actual_average_buffer_ms": 53.1062951496388
+                },
+                {
+                  "kind": "video",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "video",
+                    "packetsReceived": 138,
+                    "packetsLost": 0,
+                    "jitter": 0.009733333333333333,
+                    "jitterBufferDelay": 0.894579,
+                    "jitterBufferEmittedCount": 49,
+                    "jitterBufferTargetDelay": 0.7772049999999999,
+                    "jitterBufferMinimumDelay": 0.7772049999999999
+                  },
+                  "final": {
+                    "kind": "video",
+                    "packetsReceived": 3715,
+                    "packetsLost": 5,
+                    "jitter": 0.012044444444444444,
+                    "jitterBufferDelay": 102.067742,
+                    "jitterBufferEmittedCount": 1725,
+                    "jitterBufferTargetDelay": 97.96009699999999,
+                    "jitterBufferMinimumDelay": 20.523139
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 3577,
+                    "packetsLost": 5,
+                    "jitterBufferDelay": 101.173163,
+                    "jitterBufferEmittedCount": 1676,
+                    "jitterBufferTargetDelay": 97.182892,
+                    "jitterBufferMinimumDelay": 19.745934000000002
+                  },
+                  "actual_average_buffer_ms": 60.36584904534607
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "bad_audio_samples": 0,
+          "audio_samples": 600,
+          "av_median_abs_skew_ms": 45.999999999999375,
+          "av_p95_abs_skew_ms": 96.00000000000009,
+          "decoded_fps": 28.580475265818677,
+          "subchecks": {
+            "source_identity": "passed",
+            "audio_profile": "passed",
+            "motion_profile": "passed",
+            "worker_pipeline": "passed",
+            "av_sync": "passed",
+            "av_acceptance": "passed"
+          },
+          "native_counters": [
+            {
+              "targets": [
+                {
+                  "kind": "audio",
+                  "target_ms": null
+                },
+                {
+                  "kind": "video",
+                  "target_ms": null
+                }
+              ],
+              "sample_bound": 256,
+              "media": [
+                {
+                  "kind": "audio",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "audio",
+                    "packetsReceived": 121,
+                    "packetsLost": 0,
+                    "jitter": 0.005,
+                    "jitterBufferDelay": 6931.2,
+                    "jitterBufferEmittedCount": 113280,
+                    "jitterBufferTargetDelay": 5760,
+                    "jitterBufferMinimumDelay": 5760,
+                    "concealedSamples": 1095,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 2,
+                    "insertedSamplesForDeceleration": 2403,
+                    "removedSamplesForAcceleration": 218,
+                    "totalSamplesReceived": 116160
+                  },
+                  "final": {
+                    "kind": "audio",
+                    "packetsReceived": 3058,
+                    "packetsLost": 0,
+                    "jitter": 0.005,
+                    "jitterBufferDelay": 150768,
+                    "jitterBufferEmittedCount": 2932800,
+                    "jitterBufferTargetDelay": 174931.2,
+                    "jitterBufferMinimumDelay": 174931.2,
+                    "concealedSamples": 55611,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 58,
+                    "insertedSamplesForDeceleration": 8692,
+                    "removedSamplesForAcceleration": 218,
+                    "totalSamplesReceived": 2996640
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 2937,
+                    "packetsLost": 0,
+                    "jitterBufferDelay": 143836.8,
+                    "jitterBufferEmittedCount": 2819520,
+                    "jitterBufferTargetDelay": 169171.2,
+                    "jitterBufferMinimumDelay": 169171.2,
+                    "concealedSamples": 54516,
+                    "silentConcealedSamples": 0,
+                    "concealmentEvents": 56,
+                    "insertedSamplesForDeceleration": 6289,
+                    "removedSamplesForAcceleration": 0,
+                    "totalSamplesReceived": 2880480
+                  },
+                  "actual_average_buffer_ms": 51.014640789921685
+                },
+                {
+                  "kind": "video",
+                  "samples": 121,
+                  "interval_seconds": 60.00600004196167,
+                  "initial": {
+                    "kind": "video",
+                    "packetsReceived": 130,
+                    "packetsLost": 0,
+                    "jitter": 0.011922222222222223,
+                    "jitterBufferDelay": 1.0646179999999998,
+                    "jitterBufferEmittedCount": 50,
+                    "jitterBufferTargetDelay": 1.0128519999999999,
+                    "jitterBufferMinimumDelay": 1.0128519999999999
+                  },
+                  "final": {
+                    "kind": "video",
+                    "packetsReceived": 3794,
+                    "packetsLost": 4,
+                    "jitter": 0.011911111111111112,
+                    "jitterBufferDelay": 106.217463,
+                    "jitterBufferEmittedCount": 1765,
+                    "jitterBufferTargetDelay": 102.131806,
+                    "jitterBufferMinimumDelay": 41.444505
+                  },
+                  "counter_deltas": {
+                    "packetsReceived": 3664,
+                    "packetsLost": 4,
+                    "jitterBufferDelay": 105.152845,
+                    "jitterBufferEmittedCount": 1715,
+                    "jitterBufferTargetDelay": 101.118954,
+                    "jitterBufferMinimumDelay": 40.431653
+                  },
+                  "actual_average_buffer_ms": 61.31361224489796
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "hashes": {
+        "summary.json": "12fe5a5ea1a0643b4fdbd11e2beea28738d33fc52783a9074636462042ac9a8d",
+        "inputs.json": "4721f14f691400e91ff31f044fccbc315a2fc19da64d7aa92ab954dd0b18215c",
+        "test.log": "2420708e6cca507dd3559e9f5e0d3e97f16198053ab0342f4c5672913cc4696b",
+        "browser-result.jsonl": "26c7dd99606600d7ae4ac7fb74b27b275fbe5a5855f4a0f7052e377cae648363",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+      }
+    }
+  ],
+  "interpretation": "Both native browsers retain the requested audio/video target and reject out-of-range values. The 80ms diagnostic actually increases measured buffering and passes the independent content/AV checks; the automatic diagnostic retains one failed audio sample. Distinct runs have different packet/concealment histories. This is not a causal repair proof, and native concealment remains present even with the target. The SDK now configures the same supported preference before signaling and refuses unsupported/ignored setters with owned cleanup.",
+  "sdk_verification": {
+    "methods": 76,
+    "passed": 76,
+    "failed": 0,
+    "log_sha256": "444da37ed0e5a3113524d269b647cdaf52b253267e3af7d548cef88d76f1a4ee",
+    "scope": "Synthetic RTC boundary and actual signed BrowserClient wire fixtures, not installed media. Three new negative methods prove no offer/end mutation, original capture/peer cleanup and borrowed client retention. Existing video path proves synchronous setup preserves encoded-transform attachment.",
+    "initial_attempt": "74 passed /2 failed because the separate signed-wrapper Peer fixture lacked getTransceivers. Fixture updated to expose its receiver and assert the retained target; no production fallback added."
+  },
+  "pending": [
+    "Normal installed Chrome/Firefox \u00d7 EdDSA/ES256 four-profile matrix on the changed SDK.",
+    "Retained media failures, wider browser/WT/native/remote task scope and independent Gate6 acceptance remain open."
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "scope": "Explicit same-source full CLI artifact repair after retained Cargo debug-stripping ENOSPC. Original Cargo CLI failure is retained; this is a separate full-source relink and isolated CLI smoke, not a claim that the failed original stripping succeeded.",
+  "original_failure": {
+    "scope": "CLI artifact from warned objcopy step is truncated/non-executable; retain as infrastructure failure. Separate sealed native test executable loads; test fixtures use in-process initialization. CLI repair pending before any CLI qualification.",
+    "bytes": 2992,
+    "mode": 420,
+    "sha256": "ec09142720c1211fbcb0fb448cd703fb2a7dceae3ae9e95230be1429c7cec33e",
+    "header": "1574eeadce096db4",
+    "version_probe": "PermissionError EACCES before process execution; no effect/model/provider call"
+  },
+  "relink": {
+    "scope": "Explicit normal complete current CLI source relink with the original Cargo-built dependency libraries/features. opt0/no debug stripping/no stack override, no fake modules or IO; separate from integration test artifact.",
+    "exit_code": 0,
+    "timed_out": false,
+    "seconds": 1.3436585830058903,
+    "changed_inputs": [],
+    "log_sha256": "6a9f38280d57ff71043cbd91c3441a42bf3e5e320c0d224a244a8ee98adac7de"
+  },
+  "artifact": {
+    "sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+    "bytes": 242005080,
+    "version": "connect 0.1.0"
+  },
+  "smoke": {
+    "scope": "Full repaired CLI, fresh isolated loopback installation, existing destination refusal without any rewrite, real serve plus authenticated public application-client health/diagnostics, owned server termination; no model/provider calls.",
+    "prior_harness_attempt": "First smoke expected idempotent init incorrectly; actual new-directory refusal occurred before server startup. That failed harness attempt is retained.",
+    "artifact_sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+    "steps": [
+      {
+        "name": "initialize",
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "seconds": 0.17342400015331805,
+        "stdout_sha256": "76d65c2ed98692d9dfec4cbe63130a3646e4c8e2aae502825c4642803a969d74",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "existing-installation-refused",
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "seconds": 0.008461833000183105,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "120e0b606e3141dc197fb1ee224f351e1805c5bd15ae7d8291a23793addfd8c9"
+      },
+      {
+        "name": "health",
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "seconds": 0.01662124996073544,
+        "stdout_sha256": "db654320b5023d6361b25829b33b2b9ef3326dbfd26fae1c0f760578175328e1",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "diagnostics",
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "seconds": 0.009676875080913305,
+        "stdout_sha256": "db654320b5023d6361b25829b33b2b9ef3326dbfd26fae1c0f760578175328e1",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "owned_server_joined": true,
+    "server_exit_code": 0
+  },
+  "cache_restored": true,
+  "failed_relinks": [
+    {
+      "name": "cli-relink-69",
+      "exit_code": 1,
+      "summary_sha256": "9b40511cbb35ef5e2a528f91a56835c2b05b7649db78e099dfcbfdd520090015",
+      "reason": "ENOSPC"
+    },
+    {
+      "name": "cli-relink-70",
+      "exit_code": 1,
+      "summary_sha256": "32e3f0821722c7d30d6ce97ec87d96a202090e94e3ad7d2e3ac2292242fdc51f",
+      "reason": "ENOSPC"
+    }
+  ],
+  "preservation": {
+    "closed_generated_executables": [
+      {
+        "manifest": ".local/gate-6/rtc-signed-av/closed-cache-executables-74/manifest.json",
+        "sha256": "bdbe876bfb11f7a3c9c81a784debdc072a4410bc2c8187209bc5a79466c9a788",
+        "roundtrip_verified": true
+      },
+      {
+        "manifest": ".local/gate-6/rtc-signed-av/closed-cache-executables-76/manifest.json",
+        "sha256": "7be395da61cc825de2f3ef0dfed632d56547932fb1c8ed9cc9c626a92a508c1d",
+        "roundtrip_verified": true
+      }
+    ],
+    "scope": "Only closed generated noncurrent executables, no live lsof owner, lossless compressed bytes/hash/mode/mtime retained; current dependency libraries/source/private installation state/logs retained."
+  }
+}

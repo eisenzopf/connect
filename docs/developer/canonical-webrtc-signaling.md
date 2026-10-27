@@ -739,6 +739,15 @@ program advertises mono Opus/48000 and optional VP8/90000. The complete answer
 must preserve all original logical streams and accept duplex media with no extra
 SCTP channel. Public capture never creates an unoffered control data channel.
 
+Before creating an offer, the native receivers must retain an 80 ms
+`jitterBufferTarget` for both audio and video. Missing support, a refused setter
+or an ignored value fails with `unsupported-media-profile` and retires owned
+capture and the peer without submitting an offer. This is a preferred native
+playout target, not a measured latency guarantee; browsers can adapt the actual
+buffer. The [WebRTC specification](https://www.w3.org/TR/webrtc/#dom-rtcrtpreceiver-jitterbuffertarget)
+defines the target and synchronized receiver behavior. Decoder observations
+still determine content and AV-sync acceptance.
+
 ```ts
 const media = await BrowserVideoSession.open(signedClient, {
   conversationId, sessionId, connectionId, operationId, expectedRevision,

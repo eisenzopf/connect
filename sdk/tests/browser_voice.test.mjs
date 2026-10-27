@@ -20,10 +20,17 @@ async function withBrowser(mode,run){
     const stream={getTracks:()=>[track]};state.track=track;state.stream=stream;
     class Peer extends EventTarget {
         iceGatheringState='complete';connectionState='new';
+        transceivers=[];
         constructor(configuration){super();state.peerConfiguration=structuredClone(configuration);state.peer=this;if(mode==='peer-constructor')throw Error('fixture peer failure');}
-        addTrack(){if(mode==='track-add')throw Error('fixture track failure');}
+        addTrack(track){if(mode==='track-add')throw Error('fixture track failure');
+            const receiver={track:{kind:track.kind},jitterBufferTarget:null};
+            if(mode==='receiver-unsupported')delete receiver.jitterBufferTarget;
+            if(mode==='receiver-ignored')Object.defineProperty(receiver,'jitterBufferTarget',{get:()=>null,set(){}});
+            if(mode==='receiver-throws')Object.defineProperty(receiver,'jitterBufferTarget',{get:()=>null,set(){throw Error('fixture native refusal');}});
+            this.transceivers.push({receiver});}
+        getTransceivers(){return this.transceivers;}
         createDataChannel(){throw Error('Unoffered datachannel must never be created');}
-        async createOffer(){if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp};}
+        async createOffer(){assert.ok(this.getTransceivers().every(t=>t.receiver.jitterBufferTarget===80));if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp};}
         async setLocalDescription(offer){this.localDescription=offer;}
         async setRemoteDescription(answer){state.answer=answer;this.remoteDescription=answer;}
         close(){state.peerClosed=true;state.peerCloses++;}
@@ -88,6 +95,12 @@ test('invalid supplied capture refuses before ownership or signaling',()=>withBr
 for(const mode of ['peer-constructor','track-add'])test(`browser releases original capture after ${mode} failure`,()=>withBrowser(mode,async state=>{
     await assert.rejects(open(state),{code:'webrtc-failed'});assert.equal(state.microphoneRequests,1);assert.equal(state.trackStops,1);
     if(mode!=='peer-constructor')assert.equal(state.peerCloses,1);assert.equal(state.offers.length,0);
+}));
+for(const mode of ['receiver-unsupported','receiver-ignored','receiver-throws'])test(`native receiver ${mode} refuses before offer and releases owned resources`,()=>withBrowser(mode,async state=>{
+    await assert.rejects(open(state),error=>error instanceof BrowserVoiceOpenError&&error.code==='unsupported-media-profile'&&error.savedOffer===undefined);
+    assert.equal(state.offers.length,0);assert.equal(state.client.commands.length,0);
+    assert.equal(state.trackStops,1);assert.equal(state.peerCloses,1);
+    assert.equal(state.client.closed,false);assert.equal(state.client.events.size,0);assert.equal(state.client.lifetimes.size,0);
 }));
 test('media local close is shared and sends no end while retaining borrowed control',()=>withBrowser('early',async state=>{
     const voice=await open(state);let terminated=0;voice.videoWorker={terminate(){terminated++;}};
@@ -297,7 +310,7 @@ test('video capture awaits finish before sender creation so queued bypass cannot
                 const sender=new Sender(track,state.ignoreInitialBounds?[{}]:structuredClone(init.sendEncodings));this.senders.push(sender);
                 queueMicrotask(()=>{state.bypassed=!sender.transform;});return {sender};
             }
-            getTransceivers(){return this.senders.map(sender=>({sender,setCodecPreferences(){}}));}
+            getTransceivers(){return this.senders.map(sender=>({sender,receiver:sender.receiver??=( {track:{kind:sender.track.kind},jitterBufferTarget:null}),setCodecPreferences(){}}));}
             getSenders(){return this.senders;}
         }
         const replacements={RTCRtpSender:Sender,RTCRtpScriptTransform:class {},RTCPeerConnection:Peer,

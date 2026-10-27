@@ -221,12 +221,13 @@ for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} public capture wrapp
     try{
         Object.defineProperty(globalThis,'WebSocket',{configurable:true,value:Socket});Object.defineProperty(globalThis,'WebTransport',{configurable:true,value:undefined});Object.defineProperty(globalThis,'isSecureContext',{configurable:true,value:true});
         client=await BrowserClient.open({transport:'websocket',url:'wss://fixture.invalid/connect',credential:'fixture-only',identityId:'identity',device:{id:'device',kind:'browser',platform:'fixture'},signing,server,timeoutMs:500});
-        const peer=new Peer();peer.addTrack=()=>{};
+        const peer=new Peer(),receiver={jitterBufferTarget:null};peer.addTrack=()=>{};
+        peer.getTransceivers=()=>[{receiver}];
         Object.defineProperty(globalThis,'RTCPeerConnection',{configurable:true,value:class{constructor(){return peer;}}});
         Object.defineProperty(globalThis,'MediaStream',{configurable:true,value:class{tracks=[];getTracks(){return this.tracks;}addTrack(track){this.tracks.push(track);}}});
         let trackStops=0;const track=Object.assign(new EventTarget(),{kind:'audio',readyState:'live',stop(){trackStops++;}});
         owner=await BrowserVoiceSession.open(client,{...options(),audioStreamId:'audio-stream',inputStream:{getTracks:()=>[track]}},{timeoutMs:500});
-        assert.equal(peer.ice.length,1);assert.equal(peer.remoteDescription.sdp,sdp);assert.equal(sent.filter(f=>f.type==='connection.offer').length,1);
+        assert.equal(receiver.jitterBufferTarget,80);assert.equal(peer.ice.length,1);assert.equal(peer.remoteDescription.sdp,sdp);assert.equal(sent.filter(f=>f.type==='connection.offer').length,1);
         assert.ok(sent.every(f=>!['offer-ready','answer','ready'].includes(f.type)));assert.ok(sent.find(f=>f.type==='connection.offer').signature);
         assert.equal(owner.savedOffer.scope.operation_id,'original-offer');
         const ending=owner.end('original-end',1);assert.equal(ending,owner.end('original-end',1));await ending;

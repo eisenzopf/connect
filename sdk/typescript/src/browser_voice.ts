@@ -4,6 +4,7 @@ import {
 } from "./browser_video_capture.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { browserIceConfiguration } from "./browser_ice.js";
+import { configureReceiverBuffer } from "./browser_receiver.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
     browserOfferSelection,
@@ -341,6 +342,7 @@ export class BrowserVoiceSession {
                     );
                 else session.peer.addTrack(track, session.localStream);
             }
+            configureReceiverBuffer(session.peer);
             if (video) session.videoWorker = startVideoTransform(session.peer);
             session.peer.ontrack = (event) => {
                 if (session.closed) return;

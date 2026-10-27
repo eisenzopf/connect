@@ -203,7 +203,8 @@
         "scope": "Cargo exited zero but debug stripping produced a damaged 2992-byte CLI; direct same-source relink also failed ENOSPC. Neither is counted as a CLI pass. Native/browser cohorts use the separately sealed and load-verified in-process integration executable.",
         "damaged_artifact_audit_sha256": "13950ad1399c48f46781a0804c2bb2beafa90450e1c0e65b798ce1098527aed2",
         "relink_summary_sha256": "9b40511cbb35ef5e2a528f91a56835c2b05b7649db78e099dfcbfdd520090015",
-        "repair_pending": true
+        "repair_pending": false,
+        "subsequent_repair": "docs/evidence/gate-6/canonical-cli-artifact-recovery.json"
       }
     },
     "native_methods": 33,
