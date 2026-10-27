@@ -1,0 +1,236 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -752,6 +752,26 @@
+         }
+     }
+ }
++fn publish_audio(
++    output: crate::media::audio_reorder::AudioRelease,
++    source: &Arc<Source>,
++    ports: &DashMap<StreamId, Arc<PortIo>>,
++    ready: &watch::Sender<Option<std::result::Result<Arc<Source>, ()>>>,
++) {
++    if output.discarded != 0 {
++        packet_refusal(
++            &source.refused,
++            source.medium,
++            "audio-reorder-discard",
++            output.discarded,
++        );
++    }
++    for received in output.packets {
++        // Publish under the same original local receipt and existing200ms age
++        // bound. Reordering grants no source, route or delivery authority.
++        publish_source(received.packet, received.inserted, source, ports, ready);
++    }
++}
+ async fn source_loop(
+     peer: Arc<RvoipPeerConnection>,
+     pt: u8,
+@@ -809,9 +829,17 @@
+         refused: AtomicU64::new(0),
+     });
+     let mut reorder = crate::media::video_reorder::PacketReorder::default();
++    let mut audio_reorder = crate::media::audio_reorder::AudioReorder::default();
++    let mut audio_sequence = None::<u16>;
++    let mut audio_anomalies = 0u64;
+     let mut mapping = crate::media::video_normalize::SequenceMapper::default();
+     loop {
+-        if medium == Medium::Video {
++        if stop.is_cancelled() {
++            return Ok(());
++        }
++        if medium == Medium::Audio {
++            publish_audio(audio_reorder.expire(Instant::now()), &source, &ports, ready);
++        } else {
+             publish_video(
+                 reorder.expire(Instant::now()),
+                 &mut mapping,
+@@ -820,11 +848,14 @@
+                 ready,
+             );
+         }
+-        let wait = reorder
+-            .next_deadline()
+-            .map(|d| d.saturating_duration_since(Instant::now()))
+-            .unwrap_or(Duration::from_millis(100))
+-            .min(Duration::from_millis(100));
++        let wait = if medium == Medium::Audio {
++            audio_reorder.next_deadline()
++        } else {
++            reorder.next_deadline()
++        }
++        .map(|d| d.saturating_duration_since(Instant::now()))
++        .unwrap_or(Duration::from_millis(100))
++        .min(Duration::from_millis(100));
+         let event = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=peer.wait_failed()=>return Err(StreamControlError::NotReady),e=tokio::time::timeout(wait,track.poll())=>match e{Ok(e)=>e,Err(_)=>continue}};
+         match event {
+             Some(TrackRemoteEvent::OnRtpPacket(packet, at)) => {
+@@ -844,7 +875,28 @@
+                     )
+                     .is_ok()
+                     {
+-                        publish_source(packet, at, &source, &ports, ready);
++                        if let Some(previous) = audio_sequence {
++                            let step = packet.header.sequence_number.wrapping_sub(previous) as i16;
++                            if step != 1 {
++                                audio_anomalies = audio_anomalies.saturating_add(1);
++                                if audio_anomalies <= 32 || audio_anomalies.is_power_of_two() {
++                                    tracing::debug!(target:"rvoip_webrtc::canonical::media",ssrc=source.ssrc,
++                                        previous, sequence=packet.header.sequence_number,step,
++                                        timestamp=packet.header.timestamp,age_us=at.elapsed().as_micros() as u64,
++                                        count=audio_anomalies,"RTC original audio arrival sequence discontinuity");
++                                }
++                            }
++                        }
++                        audio_sequence = Some(packet.header.sequence_number);
++                        publish_audio(
++                            audio_reorder.push(
++                                crate::media::audio_reorder::ReceivedAudio::new(packet, at),
++                                Instant::now(),
++                            ),
++                            &source,
++                            &ports,
++                            ready,
++                        );
+                     }
+                 } else if packet.payload.len() <= 1500 {
+                     publish_video(
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/audio_reorder.rs
+@@ -8,11 +8,11 @@
+ const CAPACITY: usize = 10;
+ const GAP_WAIT: Duration = Duration::from_millis(100);
+ 
+-pub(super) struct ReceivedAudio {
++pub(crate) struct ReceivedAudio {
+     pub packet: rtp::Packet,
+     pub source_clock: Option<rvoip_core::stream::MediaSourceClock>,
+     pub captured_at: DateTime<Utc>,
+-    pub(super) inserted: Instant,
++    pub(crate) inserted: Instant,
+ }
+ impl ReceivedAudio {
+     /// Preserve original local UDP receipt across every event/reorder wait.
+@@ -33,13 +33,13 @@
+     }
+ }
+ #[derive(Default)]
+-pub(super) struct AudioRelease {
++pub(crate) struct AudioRelease {
+     pub packets: Vec<ReceivedAudio>,
+     pub peak_depth: usize,
+     pub discarded: usize,
+ }
+ #[derive(Default)]
+-pub(super) struct AudioReorder {
++pub(crate) struct AudioReorder {
+     ssrc: Option<u32>,
+     next: Option<u16>,
+     pending: Vec<ReceivedAudio>,
+@@ -178,12 +178,10 @@
+         let mut queue = AudioReorder::default();
+         queue.push(packet(65534, now), now);
+         assert!(queue.push(packet(0, now), now).packets.is_empty());
+-        assert!(
+-            queue
+-                .expire(now + Duration::from_millis(99))
+-                .packets
+-                .is_empty()
+-        );
++        assert!(queue
++            .expire(now + Duration::from_millis(99))
++            .packets
++            .is_empty());
+         assert_eq!(sequences(&queue.expire(now + GAP_WAIT)), [0]);
+         let late = queue.push(packet(65535, now), now + GAP_WAIT);
+         assert!(late.packets.is_empty());
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/outbound.rs b/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/outbound.rs
+@@ -8,9 +8,9 @@
+ use rtc::rtp::extension::HeaderExtension;
+ use rtc::shared::marshal::{Marshal, MarshalSize};
+ use tokio::sync::Mutex;
++use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
++use webrtc::media_stream::track_local::TrackLocal;
+ use webrtc::media_stream::Track;
+-use webrtc::media_stream::track_local::TrackLocal;
+-use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+ 
+ use crate::peer::builder::HDREXT_SDES_MID;
+ 
+@@ -804,3 +804,71 @@
+         assert!((update.is_current)());
+     }
+ }
++
++#[cfg(test)]
++mod canonical_audio_order_tests {
++    use super::OutboundAudioRtpState;
++    use std::time::{Duration, Instant};
++    fn input(seq: u16, at: Instant) -> crate::media::audio_reorder::ReceivedAudio {
++        crate::media::audio_reorder::ReceivedAudio::new(
++            rtc::rtp::Packet {
++                header: rtc::rtp::Header {
++                    sequence_number: seq,
++                    ssrc: 7,
++                    timestamp: u32::from(seq) * 960,
++                    ..Default::default()
++                },
++                payload: vec![0xf8, 0xff, 0xfe].into(),
++            },
++            at,
++        )
++    }
++    #[test]
++    fn original_arrival_order_masks_a_reorder_as_a_clock_reset() {
++        let mut state = OutboundAudioRtpState::default();
++        let wire: Vec<_> = [10, 12, 11, 13]
++            .into_iter()
++            .map(|n| state.allocate_audio_timestamp(n * 960, 960))
++            .collect();
++        assert_eq!(wire, vec![9600, 11520, 12480, 14400]);
++        assert_ne!(wire, vec![9600, 10560, 11520, 12480]);
++    }
++    #[test]
++    fn existing_bounded_reorder_preserves_original_times_and_contiguous_timeline() {
++        let now = Instant::now();
++        let arrivals = [
++            (10, now),
++            (12, now + Duration::from_millis(2)),
++            (11, now + Duration::from_millis(4)),
++            (13, now + Duration::from_millis(6)),
++        ];
++        let mut reorder = crate::media::audio_reorder::AudioReorder::default();
++        let mut output = Vec::new();
++        for (seq, at) in arrivals {
++            output.extend(reorder.push(input(seq, at), at).packets);
++        }
++        assert_eq!(
++            output
++                .iter()
++                .map(|p| p.packet.header.sequence_number)
++                .collect::<Vec<_>>(),
++            vec![10, 11, 12, 13]
++        );
++        for p in &output {
++            assert_eq!(
++                p.inserted,
++                arrivals
++                    .iter()
++                    .find(|(n, _)| *n == p.packet.header.sequence_number)
++                    .unwrap()
++                    .1
++            );
++        }
++        let mut state = OutboundAudioRtpState::default();
++        let wire: Vec<_> = output
++            .iter()
++            .map(|p| state.allocate_audio_timestamp(p.packet.header.timestamp, 960))
++            .collect();
++        assert_eq!(wire, vec![9600, 10560, 11520, 12480]);
++    }
++}

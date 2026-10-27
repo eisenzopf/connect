@@ -1246,6 +1246,16 @@
       "path": "patches/rvoip/gate6-rtc-packet-path-diagnostics.patch",
       "source": "G6-051 numeric power-of-two packet refusal observations at the canonical RTC source/normalization/port-input/Core-publish/original-driver-write boundaries. No payload/SDP/credential logging and no delivery, permission, queue, cadence or original deadline changes.",
       "sha256": "1fd16c1091b91443d11e0a5d9bd6ad84d6089203789549bf70b12dd6e80d6b20"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-audio-reorder.patch",
+      "source": "G6-050/G6-051 canonical RTC audio reuses existing10packet/100ms RTP reorder before sequence stripping. Preserve original local receipt,200ms packet age, current per-packet authority and original IO ownership. Bounded numeric arrival-discontinuity diagnostics and causal RTP timeline tests.",
+      "sha256": "d34496cfb83c61fdbcc6a26506abd212cbf740f5c31608bddde99bd52c7b518f"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-audio-timing.patch",
+      "source": "G6-050/G6-051 explicit trace-only numeric original audio timing at source-read/Core-publish/guarded-driver-write.8192rows per stage/process; no payload/address/SDP/credential logs, cached grant, repeated IO or source/age/deadline/permission changes.",
+      "sha256": "7e25d306bcc2e02de04eb155b44b5d58f465c856bcf666d506851ec67059f29b"
     }
   ]
 }

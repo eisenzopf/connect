@@ -397,3 +397,30 @@ Current installed Firefox and Chrome clean runs decode about29fps and pass motio
 worker/keyframe and AV-sync checks. They still fail complete AV on isolated audio
 frequency observations. See [pre-offer capture evidence](../evidence/gate-6/browser-preoffer-capture.json)
 for the original failures, current source guards and bounded verification.
+
+
+### Canonical audio ordering and bounded timing
+
+Canonical WebRTC audio now crosses the existing ten-packet,100ms gap-only
+reorder before RTP sequence is stripped. Contiguous packets publish immediately;
+missing-packet expiration wakes even without new traffic. Release preserves the
+original receive instant and existing200ms packet age/current authorization.
+Two regressions prove that10,12,11,13arrival must not look like a source-clock reset
+at the outgoing allocator.193whole upstream unit methods and33existing native
+integration methods pass; the source-locked upstream patches are reproducible.
+
+Normal installed Firefox EdDSA and Chrome ES25660second profiles still fail
+isolated tone observations despite recovered29–30fps video, motion, workers,
+AVsync, original-ID UDP/WSS recovery, terminal and owned cleanup passes. An
+explicit instrumented Firefox ES256variation passes all1200audio observations;
+it does not erase the failed normal profiles or establish their cause.
+
+For an explicit diagnostic run, enable the `rvoip_webrtc::audio_timing=trace`
+tracing target. Each process emits at most8192numeric rows per stage:
+source-read, core-publish and driver-write. These retain original timestamps,
+sequence, sample count, age and observed duration, without payload/SDP/credentials.
+Trace timestamps describe processing observations, not physical/kernel delivery,
+and logging can affect scheduling. Both source streams in the diagnostic retain
+continuous sequence/timestamp steps while outgoing timestamps skip some quanta;
+Core cadence/queue selection remains to investigate. See
+[the scoped evidence](../evidence/gate-6/canonical-audio-order.json).

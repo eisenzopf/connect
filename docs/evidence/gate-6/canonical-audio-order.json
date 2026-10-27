@@ -1,0 +1,498 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T19:36:29.867279+00:00",
+  "scope": "Canonical WebRTC original audio ordering and explicit bounded timing diagnostics. This does not close the complete browser/fallback/acceptance matrix.",
+  "implementation": [
+    "Canonical audio uses the existing ten-packet/100ms gap-only reorder before RTP sequence is stripped; contiguous audio does not wait. Expiration wakes on its actual pending deadline even without new traffic.",
+    "Original local receive Instant remains attached through release; existing200ms source/Core age and current route/scene/consumer authorization remain. Cancellation checked before pending release. No payload, source, observer, gain, threshold, deadline or IO-retry change.",
+    "Bounded DEBUG sequence anomalies preserve numeric sequence/timestamp/age only. Explicit TRACE audio_timing captures at most8192rows per source-read/core-publish/driver-write stage per process; no payload, address, SDP or credentials. Trace is diagnostic, not clean-profile evidence."
+  ],
+  "causal_timeline_witness": {
+    "arrival_sequences": [
+      10,
+      12,
+      11,
+      13
+    ],
+    "source_timestamps_in_arrival_order": [
+      9600,
+      11520,
+      10560,
+      12480
+    ],
+    "old_wire_timestamps": [
+      9600,
+      11520,
+      12480,
+      14400
+    ],
+    "reordered_wire_timestamps": [
+      9600,
+      10560,
+      11520,
+      12480
+    ],
+    "scope": "Exact original outbound timestamp allocator and existing reorder; unit reproduction, not an attribution of every live concealment/frequency event."
+  },
+  "patches": {
+    "patches/rvoip/gate6-canonical-audio-reorder.patch": "d34496cfb83c61fdbcc6a26506abd212cbf740f5c31608bddde99bd52c7b518f",
+    "patches/rvoip/gate6-canonical-audio-timing.patch": "7e25d306bcc2e02de04eb155b44b5d58f465c856bcf666d506851ec67059f29b"
+  },
+  "source_lock_sha256": "e52accbd3e34d07895e5ee473673518b02982c974d2027f311eb4ebc0cc30bb4",
+  "verification": {
+    "original_fragment_probe_methods": 7,
+    "original_fragment_probe_scope_sha256": "1f67a6b2856a1ff3bb431e683676faf61d3a09a35beed52209e80d0465e1d577",
+    "original_fragment_probe_log_sha256": "f54a6c58e37bf54c1323e4efdbff5536b7460d0e244b35abb3715f5a98fd2170",
+    "whole_upstream_before_timing": [
+      {
+        "phase": "upper-unit-build",
+        "exit_code": 0,
+        "seconds": 15.111510834190995,
+        "guards_unchanged": true,
+        "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+        "results": []
+      },
+      {
+        "phase": "upper-units",
+        "exit_code": 0,
+        "seconds": 6.095961290877312,
+        "guards_unchanged": true,
+        "log_sha256": "a4dbc0f5bb281d998c0327c3018bac1642d9b68a687081c72b90fe273a3dc1f9",
+        "results": [
+          "test result: ok. 193 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.66s"
+        ]
+      }
+    ],
+    "whole_upstream_with_timing": [
+      {
+        "phase": "upper-unit-build",
+        "exit_code": 0,
+        "seconds": 15.146498624933884,
+        "guards_unchanged": true,
+        "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+        "results": []
+      },
+      {
+        "phase": "upper-units",
+        "exit_code": 0,
+        "seconds": 6.110250499797985,
+        "guards_unchanged": true,
+        "log_sha256": "c7739f819c3491e3b3552fc2b8eaddca7b4b4edc98fdc5b4c6dec5c05c755fb9",
+        "results": [
+          "test result: ok. 193 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.64s"
+        ]
+      }
+    ],
+    "upstream_scope": "Full original rvoip-webrtc lib.rs unit suite with normal dependency libraries/features;193methods,191existing plus2new. Standalone unit crate opt0; not whole server runtime.",
+    "production_build": {
+      "profile": "Cargo release, with connect-store/connect-service/connect-server explicitly opt0; upstream dependencies retain release optimization. No stack override.",
+      "seconds": 702.6995168752037,
+      "guarded_inputs": 5219,
+      "changed_inputs": [],
+      "artifact_sha256": "0c38fca6e5aa588df8257f9ad199541a685327d8294ad03c34ca32e940ee6602",
+      "artifact_bytes": 214834960,
+      "summary_sha256": "b9005a660487acb49d9ab58e002587f04770348f97b9aa2a615fb5f3034f9848"
+    },
+    "native": [
+      {
+        "mode": "av",
+        "exit_code": 0,
+        "seconds": 19.38578866608441,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 17.86s"
+        ],
+        "log_sha256": "2916b58fa7f05c4c4fdd36ffb4b7da3112a48e6d683283a5af53c898ada14290"
+      },
+      {
+        "mode": "configured",
+        "exit_code": 0,
+        "seconds": 7.916259457822889,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 7.90s"
+        ],
+        "log_sha256": "7f94adc8b51454e337f26af842c26d1da06dc0f324ca32c8990b358dce9b56e6"
+      },
+      {
+        "mode": "refusal",
+        "exit_code": 0,
+        "seconds": 1.3610440420452505,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 67 filtered out; finished in 1.30s"
+        ],
+        "log_sha256": "7b03c33173c0ea38d449da0e98d31b5e64c9e9284c2408015492fb2816586329"
+      },
+      {
+        "mode": "regression",
+        "exit_code": 0,
+        "seconds": 52.244753249920905,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 52.20s"
+        ],
+        "log_sha256": "07cf2b73baaf500b56553af00b57d07612f22eabae775e6363a4ba223174c9ee"
+      },
+      {
+        "mode": "regression",
+        "exit_code": 0,
+        "seconds": 39.340498000150546,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 39.28s"
+        ],
+        "log_sha256": "9fdc6fb6fbdaa805baf120707153ee4b08ebf5619f37ec82e9f3a1a3078d232d"
+      },
+      {
+        "mode": "regression",
+        "exit_code": 0,
+        "seconds": 4.26358766714111,
+        "guards_unchanged": true,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 4.21s"
+        ],
+        "log_sha256": "271220dbaac244b68f9c024c7187adca0512fd2b899bc39e1e21caf4e05a88d4"
+      }
+    ],
+    "browser": [
+      {
+        "label": "firefox-audio-order-61",
+        "scope": "original normal browser profile with bounded DEBUG refusal/sequence diagnostics",
+        "exit_code": 101,
+        "seconds": 66.60445849993266,
+        "guards_unchanged": true,
+        "verdict": "failed",
+        "participants": [
+          {
+            "seconds": 60.00599980354309,
+            "decoded_fps": 29.06376038579103,
+            "changing_fps": 26.030730345530728,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 660,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 1,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00499987602234,
+            "decoded_fps": 29.064244706329756,
+            "changing_fps": 25.94783773380472,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 440,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 3,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.0026582500000004072,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.09329491699999926,
+        "hashes": {
+          "summary.json": "8aef4a18642599cd78c3740d9d68157d45e371b6fd36f637cfd8b0f05e3d1ac3",
+          "inputs.json": "a64398b821c8a85c64ae8dc0dbf88a3c46c31fa52cc06499c50e2b0cfd2493d1",
+          "browser-result.jsonl": "ab3e1dae23509d1f998ef46873c9e7a19198416083f461bd90e054738f503561",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+          "test.log": "13664354cba1f06c5752ea5ca94f2ccfc75034419f9dd1ea09ee6e9a8e4411d8"
+        }
+      },
+      {
+        "label": "chrome-audio-order-61",
+        "scope": "original normal browser profile with bounded DEBUG refusal/sequence diagnostics",
+        "exit_code": 101,
+        "seconds": 65.76171574997716,
+        "guards_unchanged": true,
+        "verdict": "failed",
+        "participants": [
+          {
+            "seconds": 60.008400201797485,
+            "decoded_fps": 29.995800487047195,
+            "changing_fps": 25.029829073080492,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 660,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 3,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.0068998336792,
+            "decoded_fps": 29.979885729579074,
+            "changing_fps": 25.230431903603513,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 440,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.062213624999996685,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.12253300000000308,
+        "hashes": {
+          "summary.json": "38b0e6cc6a2ac5da1ae404328a4565b9540a4fc655c55793338c2b1e86e07bd5",
+          "inputs.json": "0286363b2e5ac3064786d4a5e900da9bc256b5ae45325ef27c33b4572b7cea0a",
+          "browser-result.jsonl": "e9f5f5bf1d41da9d948e298abc0ea195f4f2319b5ca377bb178ee1b1edc0e38d",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1",
+          "test.log": "db680d248ea592b34b879fb7807a3766e8a137f4cf6da06f349cdb26d8250e3f"
+        }
+      },
+      {
+        "label": "firefox-audio-timing-62",
+        "scope": "diagnostic TRACE/PCM/RTP variation; scheduling may be affected",
+        "exit_code": 0,
+        "seconds": 66.40114895789884,
+        "guards_unchanged": true,
+        "verdict": "passed",
+        "participants": [
+          {
+            "seconds": 60.00500011444092,
+            "decoded_fps": 29.080909868710172,
+            "changing_fps": 25.931172352844143,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 660,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 29.047095270158575,
+            "changing_fps": 25.964070241484254,
+            "video_packets_lost": 0,
+            "expected_audio_hz": 440,
+            "audio_samples": 600,
+            "bad_unexcepted_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.06139066699999967,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.11090862499999639,
+        "hashes": {
+          "summary.json": "fe59385ddda3ad1475636b803321fd9af2299d3b8321987ec72d2f413a18e5ed",
+          "inputs.json": "c02c9edd9c0d86517a4b942a6824799860287e662589b87e3e756a58a22e9476",
+          "browser-result.jsonl": "c92f7e26b1bbe1e6306ed5cb273949ac3ce589ad667050ee18a941e80d65fb37",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+          "test.log": "242087bc89d4cd7ed49376cd98eef099772bbde35c80b371b121f680faf0bb13"
+        }
+      }
+    ]
+  },
+  "closed_baseline_preservation": {
+    "scope": "Three closed baseline artifact groups losslessly compressed with SHA/streaming roundtrip before unlink; original paths and restoration mapping remain in ignored manifest. No live compiler/test owner, source/state/log deletion.",
+    "manifest_sha256": "7c8dad4ae1fa46c43d1a13d0a620f6d5fbfad57f66b9bef50c1b88526e1e239b"
+  },
+  "progress": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  },
+  "limitations": [
+    "Local macOS arm64 synthetic/native/installed-browser scope only. No Linux, named remote, provider, telephone or package qualification.",
+    "Source log timestamps observe callback processing, not physical sensor or kernel arrival. Timing instrumentation can affect scheduling.",
+    "Do not infer a live reorder cause or complete repair from the unit witness; browser failures remain explicit. No observer or source changes to force a pass.",
+    "The earlier authorized model-host run is already consumed; no additional model or account execution in this checkpoint."
+  ],
+  "timing_diagnostic": {
+    "scope": "One explicit instrumented Firefox ES25660s run passes,0/1200bad audio observations. No failed interval was captured; it cannot establish the cause of normal-profile failures.",
+    "analysis_sha256": "d9d69504e0e7d11582606f75cfdacc75db9efc1c3a67d7c73e065ad6d1f2382f",
+    "stages": {
+      "source-read": {
+        "rows": 6276,
+        "row_cap_per_process": 8192,
+        "cap_reached": false,
+        "age_us": {
+          "samples": 6276,
+          "median": 9.0,
+          "p95": 283,
+          "max": 7846
+        },
+        "publish_us": null,
+        "write_us": null,
+        "refused": 0
+      },
+      "core-publish": {
+        "rows": 6271,
+        "row_cap_per_process": 8192,
+        "cap_reached": false,
+        "age_us": {
+          "samples": 6271,
+          "median": 220,
+          "p95": 766,
+          "max": 8404
+        },
+        "publish_us": {
+          "samples": 6271,
+          "median": 190,
+          "p95": 564,
+          "max": 8367
+        },
+        "write_us": null,
+        "refused": 3
+      },
+      "driver-write": {
+        "rows": 5875,
+        "row_cap_per_process": 8192,
+        "cap_reached": false,
+        "age_us": {
+          "samples": 5875,
+          "median": 3322,
+          "p95": 7513,
+          "max": 21758
+        },
+        "publish_us": null,
+        "write_us": {
+          "samples": 5875,
+          "median": 17,
+          "p95": 25,
+          "max": 57
+        },
+        "refused": 0
+      }
+    },
+    "flows": [
+      {
+        "stage": "source-read",
+        "ssrc": 451060523,
+        "rows": 3138,
+        "log_observation_gap_ms": {
+          "samples": 3137,
+          "median": 21.273136138916016,
+          "p95": 26.922941207885742,
+          "max": 42.56296157836914
+        },
+        "sequence_discontinuities": 0,
+        "timestamp_step_discontinuities": 0
+      },
+      {
+        "stage": "source-read",
+        "ssrc": 2292134956,
+        "rows": 3138,
+        "log_observation_gap_ms": {
+          "samples": 3137,
+          "median": 21.330833435058594,
+          "p95": 21.432876586914062,
+          "max": 29.495954513549805
+        },
+        "sequence_discontinuities": 0,
+        "timestamp_step_discontinuities": 0
+      },
+      {
+        "stage": "driver-write",
+        "ssrc": 113222001,
+        "rows": 2768,
+        "log_observation_gap_ms": {
+          "samples": 2767,
+          "median": 20.43890953063965,
+          "p95": 41.59998893737793,
+          "max": 67.64006614685059
+        },
+        "sequence_discontinuities": 0,
+        "timestamp_step_discontinuities": 329
+      },
+      {
+        "stage": "driver-write",
+        "ssrc": 123905001,
+        "rows": 3107,
+        "log_observation_gap_ms": {
+          "samples": 3106,
+          "median": 19.996047019958496,
+          "p95": 26.32284164428711,
+          "max": 43.4260368347168
+        },
+        "sequence_discontinuities": 0,
+        "timestamp_step_discontinuities": 21
+      }
+    ],
+    "interpretation": "Both input RTP sequences/timestamps are continuous. Output sequences are continuous but329/21timestamp steps exceed one960sample quantum. These are actual gaps, preserved in evidence; this passing diagnostic alone does not establish a failure cause. Mixer source/output cadence and queue selection remain to investigate."
+  }
+}

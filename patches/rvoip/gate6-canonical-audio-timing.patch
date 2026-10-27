@@ -1,0 +1,135 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -86,6 +86,21 @@
+     if count.is_power_of_two() {
+         tracing::debug!(target: "rvoip_webrtc::canonical::media", ?medium, stage, count, ?reason, "RTC original packet path refused");
+     }
++}
++// Explicit trace-only numeric packet timing. At most8192rows per stage/process.
++static AUDIO_SOURCE_TIMING: AtomicU64 = AtomicU64::new(0);
++static AUDIO_PUBLISH_TIMING: AtomicU64 = AtomicU64::new(0);
++fn audio_timing_next(counter: &AtomicU64) -> Option<u64> {
++    if !tracing::enabled!(target:"rvoip_webrtc::audio_timing",tracing::Level::TRACE) {
++        return None;
++    }
++    let count = counter
++        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++            Some(n.saturating_add(1))
++        })
++        .unwrap()
++        .saturating_add(1);
++    (count <= 8192).then_some(count)
+ }
+ struct Source {
+     format: MediaFormat,
+@@ -869,12 +884,16 @@
+                     return Err(StreamControlError::NotReady);
+                 }
+                 if medium == Medium::Audio {
+-                    if crate::media::core_audio_profile::packet_samples(
++                    if let Ok(samples) = crate::media::core_audio_profile::packet_samples(
+                         codec.clock_rate,
+                         &packet.payload,
+-                    )
+-                    .is_ok()
+-                    {
++                    ) {
++                        if let Some(count) = audio_timing_next(&AUDIO_SOURCE_TIMING) {
++                            tracing::trace!(target:"rvoip_webrtc::audio_timing",stage="source-read",count,
++                                source_ssrc=source.ssrc,sequence=packet.header.sequence_number,
++                                timestamp=packet.header.timestamp,samples,age_us=at.elapsed().as_micros()as u64,
++                                "Original RTC audio timing");
++                        }
+                         if let Some(previous) = audio_sequence {
+                             let step = packet.header.sequence_number.wrapping_sub(previous) as i16;
+                             if step != 1 {
+@@ -974,6 +993,9 @@
+                 );
+                 break;
+             }
++            let timing_started = (source.medium == Medium::Audio
++                && tracing::enabled!(target:"rvoip_webrtc::audio_timing",tracing::Level::TRACE))
++            .then(Instant::now);
+             let result = port.try_publish_clocked_received(&frame, received.at, |route| {
+                 source
+                     .lease
+@@ -993,6 +1015,15 @@
+                     })
+                     .map(|clock| clock.with_route_liveness(route))
+             });
++            if source.medium == Medium::Audio {
++                if let Some(count) = audio_timing_next(&AUDIO_PUBLISH_TIMING) {
++                    tracing::trace!(target:"rvoip_webrtc::audio_timing",stage="core-publish",count,
++                        source_ssrc=source.ssrc,timestamp=received.packet.header.timestamp,
++                        age_us=received.at.elapsed().as_micros()as u64,
++                        publish_us=timing_started.map(|at|at.elapsed().as_micros()as u64),accepted=result.is_ok(),
++                        "Original RTC audio timing");
++                }
++            }
+             match result {
+                 Ok(()) => break,
+                 Err(StreamControlError::Backpressure) => {
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -10,14 +10,31 @@
+     stream_lifecycle::{MediaFormat, Medium},
+ };
+ use std::{
+-    sync::{Arc, Mutex},
++    sync::{
++        atomic::{AtomicU64, Ordering},
++        Arc, Mutex,
++    },
+     time::Instant,
+ };
+-use tokio::sync::{OwnedMutexGuard, mpsc};
++use tokio::sync::{mpsc, OwnedMutexGuard};
+ use webrtc::media_stream::{
++    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+     Track,
+-    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+ };
++
++static AUDIO_WRITE_TIMING: AtomicU64 = AtomicU64::new(0);
++fn audio_timing_next() -> Option<u64> {
++    if !tracing::enabled!(target:"rvoip_webrtc::audio_timing",tracing::Level::TRACE) {
++        return None;
++    }
++    let count = AUDIO_WRITE_TIMING
++        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++            Some(n.saturating_add(1))
++        })
++        .unwrap()
++        .saturating_add(1);
++    (count <= 8192).then_some(count)
++}
+ 
+ /// Consumes only the receiver belonging to one exact Core port. Callers cannot
+ /// substitute a queued frame, frame bytes, stream ID or source authorization.
+@@ -178,6 +195,9 @@
+                         .rtp_offset
+                         .wrapping_add(timestamp.wrapping_sub(frame.timestamp_rtp));
+                 }
++                let timing_count=audio_timing_next();
++                let timing_started=timing_count.map(|_|Instant::now());
++                let sequence=packet.header.sequence_number;
+                 let result = if let Some(clock) = self.writer.sender_clock() {
+                     io.write_with_clock(packet, clock, update).await
+                 } else if update.is_none() {
+@@ -185,6 +205,14 @@
+                 } else {
+                     return Err(StreamControlError::Unsupported);
+                 };
++                if let Some(count)=timing_count {
++                    tracing::trace!(target:"rvoip_webrtc::audio_timing",stage="driver-write",count,
++                        target_ssrc=self.writer.ssrc(),source_timestamp=frame.timestamp_rtp,
++                        wire_timestamp=timestamp,sequence,samples,
++                        age_us=chrono::Utc::now().signed_duration_since(frame.captured_at).num_microseconds(),
++                        write_us=timing_started.map(|at|at.elapsed().as_micros()as u64),accepted=result.is_ok(),
++                        "Original RTC audio timing");
++                }
+                 result.map_err(|_| StreamControlError::NotReady)
+             })
+             .await
