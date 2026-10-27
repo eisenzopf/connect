@@ -76,7 +76,55 @@
         }
       ]
     },
-    "native_mcp_handoff": "current server rebuild running; not yet qualified"
+    "native_mcp_handoff": {
+      "status": "Current native consultation/return and full eight-scene handoff passed; movement is running.",
+      "steps": [
+        {
+          "name": "consult-return",
+          "test": "canonical_native_connections::consultation::production_mcp_consultation_return_preserves_private_audio_original_recovery_and_current_authority",
+          "exit_code": 0,
+          "seconds": 38.50207566586323,
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 38.48s"
+          ],
+          "changed_inputs": [],
+          "log_sha256": "3169abc64ef97a61803d3bcd27ebbd97cc4b5b0b80544de139c20d100b29fd6a"
+        },
+        {
+          "name": "handoff",
+          "test": "canonical_native_connections::consultation::groups::handoff::production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect",
+          "exit_code": 0,
+          "seconds": 178.33097458281554,
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 178.27s"
+          ],
+          "changed_inputs": [],
+          "log_sha256": "98a0d55999d968f9cbeb830490341ed78813e38f07de2fd7410ff09d479a49de"
+        }
+      ],
+      "scope": "Fresh exact three existing actual native PCM MCP consultation/return, handoff and movement functions after upstream Core changes; local default synthetic fixtures, no actual model/provider/remote execution.",
+      "artifact_sha256": "0313b9d42d485ec4e72ce44c32023601d37cd63970e36369f7f1d75e6f9ddd9c",
+      "previous_failed_scene": "EdDSA / Leave / Conversation now has97marked private-reverse partner frames; strict original >10 threshold, same windows/audience and normal non-TRACE execution. This pass does not prove historical event causation."
+    },
+    "server_build": {
+      "exit_code": 0,
+      "seconds": 706.3802398338448,
+      "source_count": 5224,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/consultation-sql-contention/runtime/test-snapshot",
+        "sha256": "0313b9d42d485ec4e72ce44c32023601d37cd63970e36369f7f1d75e6f9ddd9c",
+        "bytes": 265388184
+      }
+    },
+    "current_cli": {
+      "sha256": "e9a3dd92c9830f56963ed7902f2c52afb6a3677f1f5a3932869f2828a8968014",
+      "bytes": 236030896,
+      "help_exit_code": 0,
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/consultation-sql-contention/runtime/connect",
+      "magic": "cffaedfe"
+    }
   },
   "limitations": [
     "Controlled SQL contention is proven; no failed-event snapshot yet ties it to the earlier unexplained one-frame native reverse-audio failure.",
