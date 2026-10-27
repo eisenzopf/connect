@@ -1,0 +1,300 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -25,6 +25,7 @@
+     output: mpsc::Receiver<QueuedMedia>,
+     writer: Arc<OutboundAudioRtpWriter>,
+     payload_type: u8,
++    physical_peer: Option<Arc<crate::peer::RvoipPeerConnection>>,
+ }
+ impl CoreAudioEgress {
+     /// Validate static format/track identity before taking the exact port queue.
+@@ -81,7 +82,12 @@
+             output,
+             writer,
+             payload_type,
++            physical_peer: None,
+         })
++    }
++    pub(crate) fn retain_peer(mut self, peer: Arc<crate::peer::RvoipPeerConnection>) -> Self {
++        self.physical_peer = Some(peer);
++        self
+     }
+     /// Acquire no permission while waiting for a frame or shared audio/DTMF
+     /// sequence ownership. Once returned, retain this exact write until drained.
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/builder.rs b/crates/webrtc/rvoip-webrtc/src/peer/builder.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/builder.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/builder.rs
+@@ -1,7 +1,7 @@
+ //! `PeerConnectionBuilder` wiring — MediaEngine, interceptors, configuration.
+ 
++pub use rtc::peer_connection::configuration::media_engine::MIME_TYPE_TELEPHONE_EVENT;
+ use rtc::peer_connection::configuration::media_engine::MediaEngine;
+-pub use rtc::peer_connection::configuration::media_engine::MIME_TYPE_TELEPHONE_EVENT;
+ use rtc::peer_connection::configuration::setting_engine::SettingEngine;
+ use rtc::peer_connection::configuration::{
+     RTCConfiguration, RTCConfigurationBuilder, RTCIceServer, RTCIceTransportPolicy,
+@@ -14,7 +14,7 @@
+ };
+ use rvoip_core::capability::CapabilityDescriptor;
+ use std::collections::HashSet;
+-use std::sync::{atomic::AtomicUsize, Arc};
++use std::sync::{Arc, atomic::AtomicUsize};
+ 
+ // G6 — RTP header extension URIs. Registered explicitly so that interop SDPs
+ // (Chrome / Safari / Firefox) round-trip the right `extmap:` IDs.
+@@ -144,16 +144,16 @@
+     build_media_engine_with_profile(opus_settings, capabilities, false)
+ }
+ 
+-fn build_media_engine_with_profile(
++/// One codec table for the engine and its local primary audio encoding.
++/// Ordering is configured preference, not proof of final SDP selection.
++pub(crate) fn configured_audio_codecs(
+     opus_settings: &crate::config::OpusSettings,
+     capabilities: &CapabilityDescriptor,
+-    vp8_only: bool,
+-) -> Result<MediaEngine> {
+-    let mut media_engine = MediaEngine::default();
+-    let video_feedback = standard_video_rtcp_feedback();
++) -> Result<Vec<RTCRtpCodecParameters>> {
+     let audio_feedback = standard_audio_rtcp_feedback();
+ 
+     let mut registered = HashSet::new();
++    let mut codecs = Vec::new();
+     for configured in &capabilities.audio_codecs {
+         let canonical = match configured.name.to_ascii_lowercase().as_str() {
+             "opus" => "opus",
+@@ -197,17 +197,28 @@
+             ),
+             _ => unreachable!("canonical audio codec table is exhaustive"),
+         };
+-        media_engine.register_codec(
+-            RTCRtpCodecParameters {
+-                rtp_codec,
+-                payload_type,
+-                ..Default::default()
+-            },
+-            RtpCodecKind::Audio,
+-        )?;
++        codecs.push(RTCRtpCodecParameters {
++            rtp_codec,
++            payload_type,
++            ..Default::default()
++        });
+     }
+     if registered.is_empty() {
+         return Err(WebRtcError::IncompatibleCapabilities);
++    }
++
++    Ok(codecs)
++}
++
++fn build_media_engine_with_profile(
++    opus_settings: &crate::config::OpusSettings,
++    capabilities: &CapabilityDescriptor,
++    vp8_only: bool,
++) -> Result<MediaEngine> {
++    let mut media_engine = MediaEngine::default();
++    let video_feedback = standard_video_rtcp_feedback();
++    for codec in configured_audio_codecs(opus_settings, capabilities)? {
++        media_engine.register_codec(codec, RtpCodecKind::Audio)?;
+     }
+ 
+     // Keep legacy PT 101/8 kHz first for rvoip offerer compatibility while
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1,8 +1,8 @@
+ //! `RvoipPeerConnection` — offer/answer lifecycle on webrtc-rs 0.20.
+ 
+ use std::collections::HashMap;
++use std::sync::Arc;
+ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+-use std::sync::Arc;
+ use std::time::Duration;
+ 
+ use parking_lot::Mutex as SyncMutex;
+@@ -11,10 +11,10 @@
+ use rtc::rtp_transceiver::rtp_sender::{
+     RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters,
+ };
+-use tokio::sync::{mpsc, Mutex as AsyncMutex};
++use tokio::sync::{Mutex as AsyncMutex, mpsc};
+ use webrtc::data_channel::{DataChannel, DataChannelEvent, RTCDataChannelState};
++use webrtc::media_stream::track_local::TrackLocal;
+ use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+-use webrtc::media_stream::track_local::TrackLocal;
+ use webrtc::media_stream::track_remote::TrackRemote;
+ use webrtc::peer_connection::PeerConnection;
+ use webrtc::peer_connection::{RTCIceCandidate, RTCIceCandidateInit, RTCSdpType};
+@@ -25,16 +25,15 @@
+ use crate::media::dtmf::{OutboundDtmfNegotiation, TelephoneEventCodec};
+ use crate::media::outbound::OutboundAudioRtpWriter;
+ use crate::peer::builder::{
+-    self, audio_track_rtcp_feedback, video_track_rtcp_feedback, MIME_TYPE_OPUS, MIME_TYPE_VP8,
+-    TELEPHONE_EVENT_MAPPINGS,
++    self, MIME_TYPE_VP8, TELEPHONE_EVENT_MAPPINGS, video_track_rtcp_feedback,
+ };
+ use crate::peer::handler::{
+     ConnectionHandler, HandlerChannels, HandlerDropCounters, LocalIceEvent,
+ };
+ use crate::peer::ice::IceCandidateLog;
+ use crate::sdp::inspect::{
+-    negotiated_sdes_mid_for_outbound_audio, negotiated_telephone_event_codec,
+-    preferred_telephone_event_codec_in_sdp, sdp_has_media_line, NegotiatedAudioMid,
++    NegotiatedAudioMid, negotiated_sdes_mid_for_outbound_audio, negotiated_telephone_event_codec,
++    preferred_telephone_event_codec_in_sdp, sdp_has_media_line,
+ };
+ use crate::sdp::session::{parse_sdp, sdp_to_string};
+ 
+@@ -75,6 +74,7 @@
+     local_ice_complete_pending: Arc<AtomicBool>,
+     local_ice_overflowed: Arc<AtomicBool>,
+     local_ice_overflow_reported: AtomicBool,
++    primary_audio_encoding: RTCRtpCodec,
+     local_audio: SyncMutex<Option<Arc<TrackLocalStaticRTP>>>,
+     local_audio_ssrc: SyncMutex<Option<u32>>,
+     outbound_audio_writer: SyncMutex<Option<Arc<OutboundAudioRtpWriter>>>,
+@@ -127,6 +127,12 @@
+         )
+         .await?;
+         let gather_timeout = Duration::from_secs(config.gather_timeout_secs);
++        let primary_audio_encoding =
++            builder::configured_audio_codecs(&config.opus_settings, &config.capabilities)?
++                .into_iter()
++                .next()
++                .ok_or(WebRtcError::IncompatibleCapabilities)?
++                .rtp_codec;
+ 
+         Ok(Arc::new(Self {
+             source_clock,
+@@ -147,6 +153,7 @@
+             local_ice_complete_pending: receivers.local_ice_complete_pending,
+             local_ice_overflowed: receivers.local_ice_overflowed,
+             local_ice_overflow_reported: AtomicBool::new(false),
++            primary_audio_encoding,
+             local_audio: SyncMutex::new(None),
+             local_audio_ssrc: SyncMutex::new(None),
+             outbound_audio_writer: SyncMutex::new(None),
+@@ -383,20 +390,15 @@
+                 .try_for_each(|codec| self.validate_existing_dtmf_clock(codec));
+         }
+ 
+-        let opus = RTCRtpCodec {
+-            mime_type: MIME_TYPE_OPUS.to_owned(),
+-            clock_rate: 48000,
+-            channels: 2,
+-            sdp_fmtp_line: "minptime=10;useinbandfec=1".into(),
+-            rtcp_feedback: audio_track_rtcp_feedback(),
+-        };
++        let primary = self.primary_audio_encoding.clone();
++        let clock_rate = primary.clock_rate;
+         let ssrc = rand_ssrc();
+         let encodings = vec![RTCRtpEncodingParameters {
+             rtp_coding_parameters: RTCRtpCodingParameters {
+                 ssrc: Some(ssrc),
+                 ..Default::default()
+             },
+-            codec: opus,
++            codec: primary,
+             ..Default::default()
+         }];
+         let mut dtmf_ssrcs_by_clock = HashMap::new();
+@@ -428,7 +430,7 @@
+         *self.outbound_audio_writer.lock() = Some(OutboundAudioRtpWriter::new(
+             Arc::clone(&track),
+             ssrc,
+-            48_000,
++            clock_rate,
+         ));
+         if let Some(codec) = dtmf_codecs.first().copied() {
+             // Both handles deliberately point at the same TrackLocal and SSRC.
+@@ -504,6 +506,87 @@
+ 
+     pub fn local_audio_track(&self) -> Option<Arc<TrackLocalStaticRTP>> {
+         self.local_audio.lock().clone()
++    }
++
++    /// Protected transport composition: derive a unique current SDP mapping,
++    /// local track and SSRC from this actual peer, never caller scalar claims.
++    /// This grants no Core media permission or readiness. The staged adapter
++    /// must install exact-port cleanup first and retain every original write.
++    pub async fn core_audio_egress(
++        self: &Arc<Self>,
++        port: &rvoip_core::staged_streams::AdapterMediaPort,
++        deadline: std::time::Instant,
++    ) -> rvoip_core::staged_streams::ControlResult<crate::media::core_audio::CoreAudioEgress> {
++        use rvoip_core::staged_streams::StreamControlError as E;
++        let mapping = tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
++            if !self.connected_flag.load(Ordering::Acquire)
++                || self.failed_flag.load(Ordering::Acquire)
++                || !self.signaling_is_stable().await
++            {
++                return Err(E::NotReady);
++            }
++            let local = self.pc.local_description().await.ok_or(E::NotReady)?;
++            let remote = self.pc.remote_description().await.ok_or(E::NotReady)?;
++            for sdp in [&local.sdp, &remote.sdp] {
++                let parsed = sdp
++                    .parse::<rvoip_sip_core::types::sdp::SdpSession>()
++                    .map_err(|_| E::Unsupported)?;
++                if parsed
++                    .media_descriptions
++                    .iter()
++                    .filter(|m| m.media == "audio" && m.port != 0)
++                    .count()
++                    != 1
++                {
++                    return Err(E::Unsupported);
++                }
++            }
++            let (offer, answer) = match (local.sdp_type, remote.sdp_type) {
++                (RTCSdpType::Offer, RTCSdpType::Answer) => (&local.sdp, &remote.sdp),
++                (RTCSdpType::Answer, RTCSdpType::Offer) => (&remote.sdp, &local.sdp),
++                _ => return Err(E::NotReady),
++            };
++            let mapping = crate::sdp::negotiated_single_audio_payload(offer, answer)
++                .map_err(|_| E::Unsupported)?;
++            if !self.signaling_is_stable().await {
++                return Err(E::NotReady);
++            }
++            Ok(mapping)
++        })
++        .await
++        .map_err(|_| E::Deadline)??;
++        let rvoip_core::stream_lifecycle::MediaFormat::Encoded {
++            name,
++            clock_rate_hz,
++            channels,
++            ..
++        } = &port.binding().negotiated.format
++        else {
++            return Err(E::Unsupported);
++        };
++        let canonical = match name.to_ascii_lowercase().as_str() {
++            "pcmu" | "g.711-mu" => "g.711-mu",
++            "pcma" | "g.711-a" => "g.711-a",
++            _ => return Err(E::Unsupported),
++        };
++        if mapping.codec.name != canonical
++            || mapping.codec.clock_rate_hz != *clock_rate_hz
++            || mapping.codec.channels != *channels
++            || mapping.codec.fmtp.as_ref().is_some_and(|f| !f.is_empty())
++        {
++            return Err(E::Unsupported);
++        }
++        let track = self.local_audio_track().ok_or(E::NotReady)?;
++        let ssrc = self.local_audio_ssrc().ok_or(E::NotReady)?;
++        let egress = crate::media::core_audio::CoreAudioEgress::bind(
++            port,
++            track,
++            ssrc,
++            mapping.payload_type,
++            deadline,
++        )
++        .await?;
++        Ok(egress.retain_peer(self.clone()))
+     }
+ 
+     /// SSRC of the local audio encoding (for RFC 4733 DTMF).

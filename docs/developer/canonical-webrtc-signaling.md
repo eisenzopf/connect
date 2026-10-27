@@ -237,13 +237,23 @@ closes the physical peer. The driver destroys uninvoked producers and their
 sequence custody before acknowledging definite pre-write refusal.
 
 This is the initial G.711 mono egress implementation. It is not installed in the
-canonical server adapter yet. In particular, the current `RvoipPeerConnection`
-audio-track constructor still uses an Opus encoding/48 kHz writer even for a
-single G.711 profile; the new binder refuses that mismatch. Selecting the actual
-configured/negotiated track and clock, ingress, owned port pumps and cleanup,
-Core adapter/controller admission and actual readiness are still required before
-canonical media can be enabled. Opus/VP8/data and browser qualification remain
-open. The [Core egress probe](../evidence/gate-6/webrtc-core-egress-probe.rs) uses
+canonical server adapter yet. The peer and engine now share one configured
+primary codec table, so single G.711 peers allocate an actual G.711/8 kHz track
+and shared writer. `RvoipPeerConnection::core_audio_egress` derives the unique
+completed SDP mapping and peer-owned track/SSRC, checks stable connected state
+and exact Core format, and retains the physical peer. It rejects ambiguous or
+mismatched candidates before taking the queue. Configured preference alone does
+not prove final codec selection; payload-aware multi-codec media and active-clock
+changes remain work.
+
+The [peer audio probe](../evidence/gate-6/webrtc-peer-audio-probe.rs) verifies
+actual PCMU with dynamic PT109 and PCMA with PT8, two exact packets per peer,
+refusal without queue consumption, retained ownership and physical close. Its
+[scoped evidence](../evidence/gate-6/webrtc-peer-audio.json) records eight assertion
+groups, the twelve Core probe regressions and twenty Connect methods separately.
+Ingress, owned port pumps and cleanup, canonical Core admission and sealed actual
+readiness are still required before media can be enabled. Opus/VP8/data, timing,
+MID/SSRC mapping and browser qualification remain open. The [Core egress probe](../evidence/gate-6/webrtc-core-egress-probe.rs) uses
 actual Core controllers/queues and a real RTC pair with isolated policy and
 synthetic capture fixtures; its [evidence](../evidence/gate-6/webrtc-core-egress.json)
 keeps those limits explicit.

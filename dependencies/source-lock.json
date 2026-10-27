@@ -1149,6 +1149,11 @@
       "path": "patches/rvoip/gate6-core-owned-audio-egress.patch",
       "source": "G6-051 exact Core-port audio egress through deferred RTC driver producer. Core QueuedMedia::deliver owns fresh authority through actual socket IO; queue waits own no reader. Serialize with existing audio/DTMF sequence state before enqueue, retain original write/drain outside observation. No media-ready or cleanup claim; canonical adapter integration remains required.",
       "sha256": "3480310ec79445e68a3805c3c47aa564b25e4c600de47af59ff9c2763e40b83b"
+    },
+    {
+      "path": "patches/rvoip/gate6-peer-audio-codec-binding.patch",
+      "source": "G6-051 share configured primary codec table across engine/track/SSRC clock construction. Derive Core egress from actual stable connected peer SDP, selected payload/format and peer-owned track/SSRC; retain physical peer and reject ambiguous mappings. This does not establish canonical Core admission/readiness.",
+      "sha256": "0b7130da55ec31cee74e07b01d4d6d218f6109f8ad781aadd19a41d5c4ec59fb"
     }
   ]
 }

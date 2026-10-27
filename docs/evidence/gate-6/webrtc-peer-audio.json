@@ -1,0 +1,288 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "base_revision": "a392f2fa",
+  "checked_at": "2026-10-27T01:02:50.080242+00:00",
+  "scope": "Local macOS arm64 production RvoipPeerConnection and Core egress over actual loopback ICE/DTLS/SRTP; isolated Core policy/relationship/synthetic capture fixtures. No canonical Store media admission/readiness, production port cleanup, browser or acceptance qualification.",
+  "source_inputs": {
+    "dependencies/source-lock.json": "b65e6a7e17365665c0c87a2ab3b5e62ffe7306170808711bd3ea15f9195921eb",
+    "patches/rvoip/gate6-peer-audio-codec-binding.patch": "0b7130da55ec31cee74e07b01d4d6d218f6109f8ad781aadd19a41d5c4ec59fb",
+    "docs/evidence/gate-6/webrtc-peer-audio-probe.rs": "a533a98080c2673e3741627903223175520f42d885de90e6c758673d9204df42",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs": "60be98f7ffda59d4ac790cca2d8aa386f74744bad545ca1caf06e57ab6ffd59e",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/peer/builder.rs": "72f39e8e500282e3c2b3c188f701cb275a96a876a2e4dabafc665a6c80dfd3b3",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/peer/session.rs": "709a907dd215c6c3df3353b941a212224d0d81ffa241576f4d9de38c956ebadd"
+  },
+  "dependency_preparation": {
+    "previous": "/Users/jonathaneisenzopf/.local/share/connect/deps-core-owned-audio-20261026-v5",
+    "current": "/Users/jonathaneisenzopf/.local/share/connect/deps-peer-audio-20261026",
+    "unchanged_mtimes": 4117,
+    "preparation_terminal_before_switch": true
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 100.65701662492938,
+    "source_unchanged": true,
+    "source_count": 2132,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-3040a430b3e3a7af",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/server-library-test-01",
+        "sha256": "bb46f48860ee6dfc1e7ecb69c355a5f94832b9a1321afbe500ff6d02126aa7ad",
+        "bytes": 106380880
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-d8a5afc4603da809",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/wss-integration-test-01",
+        "sha256": "7983ebb18cf13c292b8941fd4bb651b9916571d077c36499dc894bf6b8f8a2b4",
+        "bytes": 203945184
+      }
+    ],
+    "log_sha256": "8d3f92a53e54be24efd6c0dc5bb9b1d31e54b1e7222ff160183ec0c7edc3fba9"
+  },
+  "connect_regressions": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/wss-integration-test-01",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.40702295792289,
+        "log_sha256": "f07854b4e0fe7294ad3b76f36efb25cb5a22ea659601904c3b472f477ff370d1",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.64s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/server-library-test-01",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.316610916983336,
+        "log_sha256": "697a54926c43231c9d44682655cb736d963c6072f5e0b94efb68da8538046de3",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.36s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/wss-integration-test-01",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.343414457980543,
+        "log_sha256": "15cb21120834b98d35001095d87151a03780d70492d29e4d1658e89cd2381e58",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.31s"
+        ]
+      }
+    ],
+    "source_count": 2505,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
+  "peer_probe": {
+    "exit_code": 0,
+    "seconds": 0.8718476251233369,
+    "compile_command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-peer-audio-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/probe-final-01",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-e885d22a2ab0b98f.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "a533a98080c2673e3741627903223175520f42d885de90e6c758673d9204df42",
+    "executable_sha256": "dca4fb4df81d3c951529a98404e9faf3f7a950281c62181557266dfe1797f23d",
+    "log_sha256": "032b18256b23b10de545dd17fcdeae10b6864de4a51b87852af0835f8fee510d",
+    "artifacts": [
+      {
+        "name": "webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/normal-webrtc-01.rlib",
+        "sha256": "1af57d6a46239dc58fd69fd5af8905a88a01ec2661dd6b879e4da0763ad2ed62",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "runtime-tokio"
+        ]
+      },
+      {
+        "name": "rtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/normal-rtc-01.rlib",
+        "sha256": "07729aa0f6f167b3fb2ebd8216452629bafd28f6ca02f74b1978b5a7deaec870",
+        "cfg_test": false,
+        "features": []
+      },
+      {
+        "name": "rvoip_core",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/normal-rvoip_core-01.rlib",
+        "sha256": "54bc8a5e3d7ab53bbe53dd6f7c4794a8c673c700774b41c25ea8487748cab66b",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ]
+      },
+      {
+        "name": "rvoip_webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-e885d22a2ab0b98f.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/normal-rvoip_webrtc-01.rlib",
+        "sha256": "76efaac15d77f31c8cb8e40b4870fbcaa6d05e33b1270480c0eb5d48cefb2ed7",
+        "cfg_test": false,
+        "features": [
+          "client",
+          "comprehensive",
+          "default",
+          "signaling-ws"
+        ]
+      }
+    ],
+    "input_count": 9,
+    "unchanged_inputs": true,
+    "unchanged_source_count": 2132,
+    "source_unchanged": true,
+    "checks": [
+      "PASS pcmu: configured local track uses exact G.711 codec/8000/1 rather than Opus/48000",
+      "PASS pcmu: actual completed SDP selects PT109; peer-bound Core egress sends exact decrypted RTP payload, SSRC and 160-sample timeline",
+      "PASS pcmu: unconnected/mismatched candidates refuse without consuming Core queue; egress retains actual peer after caller drop",
+      "PASS pcmu: original physical RTC closes and retained peer is released after queue-owner drop",
+      "PASS pcma: configured local track uses exact G.711 codec/8000/1 rather than Opus/48000",
+      "PASS pcma: actual completed SDP selects PT8; peer-bound Core egress sends exact decrypted RTP payload, SSRC and 160-sample timeline",
+      "PASS pcma: unconnected/mismatched candidates refuse without consuming Core queue; egress retains actual peer after caller drop",
+      "PASS pcma: original physical RTC closes and retained peer is released after queue-owner drop"
+    ]
+  },
+  "core_probe_regression": {
+    "exit_code": 0,
+    "seconds": 1.1758411249611527,
+    "command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-core-egress-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-peer-audio/core-regression-01",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-e885d22a2ab0b98f.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+    ],
+    "probe_sha256": "820f055f537c7ee2e91de70a6b3a83ee6b86c982edf746a0b169772212531710",
+    "executable_sha256": "7233de393e0cf0e3cac8db083beb5627acd2ba5e99ff73d1170501f67c0fb065",
+    "log_sha256": "18318e3586752ffeb385b146b75e5c0648c8d4bd4ec3b5f0255f6a0436998908",
+    "checks": [
+      "PASS a negotiated sibling codec/PT cannot silently retarget Core audio onto a different encoding",
+      "PASS exact production Core port queue delivers expected packet through actual ICE/DTLS/SRTP",
+      "PASS Core source and target revocation after enqueue refuse before UDP with no queued reader",
+      "PASS production Core source/target metadata retries preserve original packet and release all readers between attempts",
+      "PASS cancelled result observation retains original IO and both actual Core permission leases until driver destroys UDP future before releasing them",
+      "PASS original frame/write deadline destroys pending UDP before actual Core leases, original drain confirms, no late packet",
+      "PASS same Core queue and RTC peer deliver subsequent authorized frame after cancelled/expired writes",
+      "PASS Core original queued-frame age cannot be refreshed by a new submission deadline",
+      "PASS replaced original Core source generation fences old queued bytes before UDP",
+      "PASS dropped egress preserves the original shared SSRC timeline through pending write ownership and rebind",
+      "PASS replacement Core source delivers on unchanged target and RTC peer",
+      "PASS missing original driver receipt remains unconfirmed; actual parent RTC close destroys pending IO before actual Core permission release"
+    ],
+    "unchanged_inputs": true
+  },
+  "implementation": [
+    "One configured codec table now constructs engine registrations, the initial primary audio encoding and the SSRC writer clock. G.711 peers no longer allocate an Opus/48000 track/writer. Configured codec preference is not represented as completed SDP selection.",
+    "RvoipPeerConnection::core_audio_egress derives track, SSRC and unique payload/codec from the actual stable connected peer and completed local/remote SDP. No caller payload/SSRC claims. It rejects unconnected, failed, unstable, multiple-active-audio, ambiguous or mismatched format candidates before taking the Core queue.",
+    "The returned egress retains the physical peer and its shared RTP writer; dropping the caller reference does not orphan that ownership. Caller still owns original write drain and actual physical shutdown."
+  ],
+  "qualification_limits": [
+    "Eight assertion groups in one production-library program exercise actual PCMU/8000/1 with remote dynamic PT109 and PCMA/8000/1 with PT8, exact decrypted packet payload/SSRC/sequence/timestamp, candidate refusal without queue consumption, retained peer and actual close. They are separate from the 12 Core probe groups and 20 Connect test methods.",
+    "No decoded PCM rendering or hardware capture/playback. Core readiness/cleanup and current policy are explicit isolated fixtures, not canonical Store proofs.",
+    "Initial track uses configured preference. This checkpoint does not implement payload-aware multi-codec media or rebind an already active SSRC to another RTP clock; ambiguous/nonmatching Core bindings refuse. Opus/VP8/SCTP and MID/source clock/report integration remain open.",
+    "The protected peer constructor is available to backend composition but is not installed as the canonical Core staged adapter/controller or advertised by the default server.",
+    "No actual model-host turn was part of this audio verification; the newly authorized separate G6-065 rehearsal follows this checkpoint."
+  ],
+  "pending": [
+    "Wire canonical Core staged adapter/controller, actual ingress age and codec/direction/MID/SSRC attribution, owned port pumps/cleanup and sealed actual readiness before Store operation completion.",
+    "Complete payload-aware multi-codec/Opus/VP8/data and current canonical ICE authority, source clock/report timing, public browser routing/capture and remove old offer-ready dialect.",
+    "Run actual Chrome/Firefox fallback/transition and Linux/remote bounded G6-093 profiles; preserve original accepted/uncertain mutation IDs."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-peer-audio/",
+  "publication": "Separate; not performed."
+}
