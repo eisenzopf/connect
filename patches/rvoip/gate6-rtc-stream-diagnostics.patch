@@ -1,0 +1,32 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -120,12 +120,15 @@
+         // Capture the guard before spawn, so even abort-before-first-poll
+         // retires this original lifetime without consulting setup metadata.
+         let lifetime = self.health.guard();
++        let stream = self.binding.transport_id.clone();
++        let medium = self.binding.negotiated.requested.medium;
+         setup.tasks.push(tokio::spawn(async move {
+             let _lifetime = lifetime;
+             let result = std::panic::AssertUnwindSafe(f)
+                 .catch_unwind()
+                 .await
+                 .unwrap_or(Err(StreamControlError::CleanupUnconfirmed));
++            tracing::debug!(target: "rvoip_webrtc::canonical::media", %stream, ?medium, ?result, "RTC original media worker returned");
+             // Terminal lifetime is visible before any metadata exclusion.
+             // A late readiness writer cannot resurrect this cancelled token.
+             ready.store(false, Ordering::Release);
+@@ -167,7 +170,11 @@
+                         clean = false;
+                     }
+                 }
+-                if clean { Ok(()) } else { Err(()) }
++                if clean {
++                    Ok(())
++                } else {
++                    Err(())
++                }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()

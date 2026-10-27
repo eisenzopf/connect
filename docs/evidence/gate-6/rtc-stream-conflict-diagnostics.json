@@ -1,0 +1,156 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T16:06:40.443565+00:00",
+  "scope": "Local macOS arm64 production Connect debug metadata and private isolated failure retention. No repair or full-suite/browser/fallback/acceptance claim.",
+  "implementation": [
+    "Retain original Core error classification before service error mapping, original subscription receipt availability and bounded RTC worker termination results. Debug fields contain resource/error metadata, no media or credentials.",
+    "CONNECT_GATE6_KEEP_LISTENER_STATE=1 retains explicit local diagnostic fixture state. Default fixture cleanup is unchanged.",
+    "Upstream debug metadata uses a pinned patch/source-lock and official prepared dependency snapshot; resource, authorization, media, revision and deadline behavior is unchanged."
+  ],
+  "build": {
+    "exit_code": 0,
+    "seconds": 648.6391635828186,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5212,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-08",
+      "sha256": "6cb61bac4f824d9e5d38e744d954344d3d2685ddab64f802096b08b4b700c9af",
+      "bytes": 214326288
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "3bbbdf46a825ea86e5f9fffbc87fe6eb411c4cf95950c6f1649691b26fbf2891"
+  },
+  "verification": {
+    "signed_av": [
+      {
+        "exit_code": 0,
+        "seconds": 13.782034708186984,
+        "log_sha256": "c247c509000001d863f6bd71aa2f771f5e18a277ec4bc80aef7fb433db90448a",
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 12.31s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "diagnostic": {
+      "max_attempts": 8,
+      "max_seconds": 60,
+      "actual_attempts": 5,
+      "seconds": 18.77724195807241,
+      "passed_attempts": 4,
+      "failed_attempts": 1,
+      "additional_distinct_methods": 0,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit_code": 0,
+          "seconds": 3.9479987078811973,
+          "timed_out": false,
+          "process_joined": true,
+          "log_sha256": "a68b3174456524fc550b7c221390ee6e20a3dc0a3726f024d5a1869f9905fd64",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 3.91s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "attempt": 2,
+          "exit_code": 0,
+          "seconds": 3.927879082970321,
+          "timed_out": false,
+          "process_joined": true,
+          "log_sha256": "0b93298cae0cc781e3b3bb2c5dcbc5b0750e0f97e19d68f6b80dd4bee62f21e3",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 3.92s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "attempt": 3,
+          "exit_code": 0,
+          "seconds": 3.948396291816607,
+          "timed_out": false,
+          "process_joined": true,
+          "log_sha256": "72b8a5bd45fdfad01bb6824a87aca0d663370137b198bb5e2264f47cbe638522",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 3.93s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "attempt": 4,
+          "exit_code": 0,
+          "seconds": 4.040861167013645,
+          "timed_out": false,
+          "process_joined": true,
+          "log_sha256": "325285c550a0304f028d86e9fcf324437b7df9dc7e54a06bce10356963e7c272",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 4.02s"
+          ],
+          "changed_inputs": []
+        },
+        {
+          "attempt": 5,
+          "exit_code": 101,
+          "seconds": 1.5711241660173982,
+          "timed_out": false,
+          "process_joined": true,
+          "log_sha256": "14c5e1277b88b7e5e974eb468f1061fd4a0f2c066c4b8e6dab04b2cae2c70fcb",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 63 filtered out; finished in 1.54s"
+          ],
+          "changed_inputs": []
+        }
+      ]
+    },
+    "all_guard_manifests_closed_unchanged": true
+  },
+  "finding": {
+    "operation": "av-select-1",
+    "stage": "initial second-connection receive selection; differs from the earlier restore-stage failure",
+    "error": "Media(Model(Conflict))",
+    "journal_read_only_observation": {
+      "state": "unknown",
+      "expected_revision": 1,
+      "effects": [
+        {
+          "state": "unknown",
+          "attempt": 1,
+          "submission_generation": 1
+        }
+      ]
+    },
+    "workers": "Original worker Ok termination logs occur only after the failed operation and test unwind, with no earlier worker failure recorded.",
+    "candidate": "Direct source validation maps publisher.state.try_lock WouldBlock to model Conflict. Audio validation already distinguishes Backpressure. This is a concrete incorrect contention classification; deterministic causal tests and correction follow.",
+    "uncertainty": "This identifies a candidate cause for this observed uncertainty class, not proof that every historical restore/unknown failure has the same cause. No replacement operation is submitted."
+  },
+  "private_evidence": ".local/gate-6/rtc-stream-diagnostics/restore-trace-08-*; original failed fixture journal remains under ignored runtime-state",
+  "qualification": "Both initial signed AV methods pass on this source, but the bounded repeat fails on attempt5. No robust path, complete G6-051 or acceptance qualification; the full105-task objective remains active."
+}

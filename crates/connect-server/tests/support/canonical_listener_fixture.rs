@@ -162,7 +162,11 @@ impl Fixture {
             Some(parent) => tempfile::tempdir_in(parent).unwrap(),
             None => tempfile::tempdir().unwrap(),
         };
-        if parent.is_some() {
+        if parent.is_some()
+            || std::env::var("CONNECT_GATE6_KEEP_LISTENER_STATE").as_deref() == Ok("1")
+        {
+            // Explicit diagnostic runs retain their isolated journal/state for
+            // original-operation inspection after failure; default tests clean up.
             temp.disable_cleanup(true);
         }
         let state = temp.path().join("state");

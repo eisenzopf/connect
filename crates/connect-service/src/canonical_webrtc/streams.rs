@@ -26,6 +26,7 @@ fn reply(record: connect_protocol::transitions::OperationRecord) -> Reply {
     }
 }
 fn engine_error(error: ParticipantControlError) -> Error {
+    tracing::debug!(target: "connect_service::canonical_webrtc", ?error, "RTC original stream engine outcome");
     use rvoip_core::stream_lifecycle::MediaTransitionError;
     match error {
         ParticipantControlError::Media(StreamControlError::Backpressure) => {
@@ -454,6 +455,7 @@ impl Runtime {
                                 })
                                 .flatten()
                         });
+                    tracing::debug!(target: "connect_service::canonical_webrtc", revision, projection_available = projection.is_some(), "RTC subscription returned; capturing original receipt");
                     lease.committed(revision, false, projection)
                 }
             }
@@ -480,6 +482,7 @@ impl Runtime {
         let receipt = match receipt {
             Ok(r) => r,
             Err(e) => {
+                tracing::debug!(target: "connect_service::canonical_webrtc", code = %e.code, "RTC original stream result could not be captured");
                 let _ = tx.send(Err(e));
                 return;
             }
