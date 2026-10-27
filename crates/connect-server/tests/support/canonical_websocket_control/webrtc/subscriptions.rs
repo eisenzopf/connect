@@ -198,8 +198,8 @@ async fn inaudible(rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>) {
         }
     }
 }
-async fn scenario(algorithm: &str) {
-    let f = configured(algorithm, 8, None).await;
+async fn scenario(algorithm: &str, end: bool) {
+    let f = configured_end_scope(algorithm, 8, None, end).await;
     let host = SignalingHost::new(audio_config(), 2).unwrap();
     f.server
         .service
@@ -389,36 +389,100 @@ async fn scenario(algorithm: &str) {
     assert_eq!(controllers[0].revision(), 4);
     audible(&mut audio_a, -1).await;
     audible(&mut audio_b, 1).await;
-    let store = f.server.store.clone();
-    let admin = store.authenticate(&f.admin).unwrap().credential_id;
-    tokio::time::timeout(
-        Duration::from_secs(3),
-        tokio::task::spawn_blocking(move || {
-            store.execute_provisioning(
-                &admin,
-                ProvisioningCommand::RevokeEndpoint {
-                    operation_id: "rtc-withdraw-source".into(),
-                    endpoint_id: endpoint,
-                    expected_revision: 1,
-                },
-            )
-        }),
-    )
-    .await
-    .unwrap()
-    .unwrap()
-    .unwrap();
-    inaudible(&mut audio_a).await;
-    tokio::time::timeout(Duration::from_secs(5), async {
-        while host.adapter().route_count() != 1 || host.available_slots() != 1 {
-            tokio::time::sleep(Duration::from_millis(10)).await;
-        }
-    })
-    .await
-    .unwrap();
-    assert_eq!(controllers[0].revision(), 4);
-    assert_eq!(host.adapter().total_allocations(), 2);
-    assert!(host.adapter().is_connection_live(&ids[0]));
+    if end {
+        let request = scoped(
+            &cid,
+            0,
+            "connection.end",
+            "rtc-end-a",
+            4,
+            json!({"reason_code":0,"reason":"designated local fixture complete"}),
+        );
+        command(&mut first, request.clone()).await;
+        let ended = completed(&f, &f.client, "rtc-end-a").await;
+        assert_eq!(ended.result.as_ref().unwrap()["ended"], true);
+        assert_eq!(ended.effects.len(), 1);
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if host.adapter().route_count() == 1
+                    && host.available_slots() == 1
+                    && session.read().unwrap().connections.len() == 1
+                    && f.server
+                        .service
+                        .canonical_runtime_snapshot()
+                        .unwrap()
+                        .connections
+                        == 1
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        assert!(!host.adapter().is_connection_live(&ids[0]));
+        assert!(host.adapter().is_connection_live(&ids[1]));
+        assert!(controllers[0].active_bindings().is_empty());
+        assert_eq!(controllers[1].revision(), 2);
+        assert_eq!(host.adapter().total_allocations(), 2);
+        inaudible(&mut audio_b).await;
+        let mut replay = request;
+        replay["id"] = json!(uuid::Uuid::new_v4().to_string());
+        command(&mut first, replay).await;
+        assert_eq!(record(&f, &f.client, "rtc-end-a"), ended);
+        assert_eq!(host.adapter().total_allocations(), 2);
+        // The original WSS peer remains live after explicit media termination.
+        first.create(&f).await;
+    } else {
+        refused(
+            &mut first,
+            scoped(
+                &cid,
+                0,
+                "connection.end",
+                "rtc-denied-end-a",
+                4,
+                json!({"reason_code":0,"reason":"no end scope"}),
+            ),
+            "forbidden",
+            403,
+        )
+        .await;
+        assert_eq!(controllers[0].revision(), 4);
+        audible(&mut audio_a, -1).await;
+        audible(&mut audio_b, 1).await;
+        let store = f.server.store.clone();
+        let admin = store.authenticate(&f.admin).unwrap().credential_id;
+        tokio::time::timeout(
+            Duration::from_secs(3),
+            tokio::task::spawn_blocking(move || {
+                store.execute_provisioning(
+                    &admin,
+                    ProvisioningCommand::RevokeEndpoint {
+                        operation_id: "rtc-withdraw-source".into(),
+                        endpoint_id: endpoint,
+                        expected_revision: 1,
+                    },
+                )
+            }),
+        )
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+        inaudible(&mut audio_a).await;
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while host.adapter().route_count() != 1 || host.available_slots() != 1 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        assert_eq!(controllers[0].revision(), 4);
+        assert_eq!(host.adapter().total_allocations(), 2);
+        assert!(host.adapter().is_connection_live(&ids[0]));
+    }
     stream_a.close().await.unwrap();
     stream_b.close().await.unwrap();
     for (stop, sender) in senders {
@@ -437,9 +501,17 @@ async fn scenario(algorithm: &str) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_eddsa() {
-    scenario("EdDSA").await;
+    scenario("EdDSA", false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_es256() {
-    scenario("ES256").await;
+    scenario("ES256", false).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_end_joins_original_resources_and_replays_eddsa() {
+    scenario("EdDSA", true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_end_joins_original_resources_and_replays_es256() {
+    scenario("ES256", true).await;
 }

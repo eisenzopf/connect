@@ -194,7 +194,7 @@ impl Runtime {
     ) -> Result<Reply> {
         if !matches!(
             a.envelope().payload(),
-            Payload::StreamSubscribe(_) | Payload::StreamUnsubscribe(_)
+            Payload::StreamSubscribe(_) | Payload::StreamUnsubscribe(_) | Payload::ConnectionEnd(_)
         ) {
             return Err(Error::new(
                 "unsupported-media-profile",
@@ -242,14 +242,19 @@ impl Runtime {
             let _ = tx.send(Err(e));
             return;
         }
-        let accepted =
-            match proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p)) {
-                Ok(record) => record,
-                Err(e) => {
-                    let _ = tx.send(Err(e));
-                    return;
-                }
-            };
+        let ending = matches!(a.envelope().payload(), Payload::ConnectionEnd(_));
+        let admission = if ending {
+            self.accept_after_managed(&a, &physical, &credential).await
+        } else {
+            proof(&a).and_then(|p| store.accept_native_stream_with_peer(&credential, p))
+        };
+        let accepted = match admission {
+            Ok(record) => record,
+            Err(e) => {
+                let _ = tx.send(Err(e));
+                return;
+            }
+        };
         if accepted.state != OperationState::Accepted {
             let _ = tx.send(Ok(reply(accepted)));
             return;
@@ -264,7 +269,11 @@ impl Runtime {
         let planned = self
             .native_preflight(&a, cutoff, || {
                 let (id, source) = self.rtc_stream_source(&a, &physical, &credential)?;
-                let plan = self.rtc_subscription_plan(&a, &id, &source)?;
+                let plan = if ending {
+                    None
+                } else {
+                    Some(self.rtc_subscription_plan(&a, &id, &source)?)
+                };
                 if matches!(a.envelope().payload(), Payload::StreamSubscribe(_)) {
                     store.validate_native_subscription_sources_with_peer(
                         &credential,
@@ -316,12 +325,16 @@ impl Runtime {
             .native_preflight(&a, deadline, || {
                 self.rtc_stream_source(&a, &physical, &credential)?;
                 store.validate_native_stream_attempt(&credential, proof(&a)?, &lease)?;
-                self.media.stream_invocation(
-                    a.clone(),
-                    Plan::RtcSubscriptions(plan.clone()),
-                    &lease,
-                    deadline,
-                )
+                plan.clone()
+                    .map(|plan| {
+                        self.media.stream_invocation(
+                            a.clone(),
+                            Plan::RtcSubscriptions(plan),
+                            &lease,
+                            deadline,
+                        )
+                    })
+                    .transpose()
             })
             .await;
         let invocation = match ready {
@@ -331,33 +344,55 @@ impl Runtime {
                 return;
             }
         };
-        let outcome = tokio::select! {
-            biased;
-            _=self.stop.cancelled()=>Err(Error::forbidden()),
-            r=self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref()))=>r.map_err(engine_error),
-        };
-        drop(invocation);
-        let revision = match outcome {
-            Ok(r) => r,
-            Err(_) => {
+        let receipt = if let (Some(invocation), Some(plan)) = (invocation, plan) {
+            let outcome = tokio::select! {
+                biased;
+                _=self.stop.cancelled()=>Err(Error::forbidden()),
+                r=self.core.change_staged_media_subscriptions(&sid, &id, plan.expected_revision(), plan.routing().clone(), deadline, a.invocation_cancellation(), Some(invocation.as_ref()))=>r.map_err(engine_error),
+            };
+            drop(invocation);
+            let revision = match outcome {
+                Ok(r) => r,
+                Err(_) => {
+                    let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
+                    return;
+                }
+            };
+            let projection = self
+                .webrtc
+                .get()
+                .and_then(|h| h.adapter().staged_controller(&id))
+                .and_then(|c| {
+                    if c.revision() != revision {
+                        return None;
+                    }
+                    let bindings = c.active_bindings();
+                    (c.revision() == revision)
+                        .then(|| crate::canonical_native_streams::codec_bindings(&bindings).ok())
+                        .flatten()
+                });
+            lease.committed(revision, false, projection)
+        } else {
+            // The lease and original RTC route remain owned across the actual
+            // close/join. Only its returned success plus confirmed absence may
+            // become an ended receipt; cancellation or timeout stays uncertain.
+            let outcome = tokio::select! { biased;
+                _=self.stop.cancelled()=>Err(Error::forbidden()),
+                _=tokio::time::sleep_until(deadline)=>Err(Error::new("reconciliation-required", "RTC termination is uncertain")),
+                r=self.core.end_connection(id.clone(), EndReason::Normal)=>r.map_err(|_| Error::new("reconciliation-required", "RTC termination is uncertain")),
+            };
+            if outcome.is_err() || self.native_connection_live(&id) {
                 let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
                 return;
             }
+            let absent = RtcAbsent {
+                adapter: self.webrtc.get().map(|h| h.adapter()),
+                id,
+                generation: lease.generation(),
+            };
+            lease.ended(&absent)
         };
-        let projection = self
-            .webrtc
-            .get()
-            .and_then(|h| h.adapter().staged_controller(&id))
-            .and_then(|c| {
-                if c.revision() != revision {
-                    return None;
-                }
-                let bindings = c.active_bindings();
-                (c.revision() == revision)
-                    .then(|| crate::canonical_native_streams::codec_bindings(&bindings).ok())
-                    .flatten()
-            });
-        let receipt = match lease.committed(revision, false, projection) {
+        let receipt = match receipt {
             Ok(r) => r,
             Err(e) => {
                 let _ = tx.send(Err(e));
@@ -386,5 +421,26 @@ impl Runtime {
                 Err(_) => (),
             }
         }
+    }
+}
+
+struct RtcAbsent {
+    adapter: Option<Arc<CanonicalWebRtcAdapter>>,
+    id: ConnectionId,
+    generation: u64,
+}
+impl NativeOfferRuntimeObservation for RtcAbsent {
+    fn observe(&self) -> Result<NativeOfferObservation> {
+        let adapter = self.adapter.as_ref().ok_or_else(Error::forbidden)?;
+        if adapter.is_connection_live(&self.id) {
+            return Err(Error::new(
+                "reconciliation-required",
+                "Original RTC cleanup is unconfirmed",
+            ));
+        }
+        Ok(NativeOfferObservation::Retired {
+            runtime_connection_id: self.id.as_str().into(),
+            generation: self.generation,
+        })
     }
 }

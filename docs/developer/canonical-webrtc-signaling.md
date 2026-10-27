@@ -331,8 +331,32 @@ refusal, unsubscribe/reselect with reverse positive control, and publisher
 Endpoint withdrawal. Those cases and all fourteen existing WSS methods plus one
 decoded WebTransport regression pass on the same guarded source and executable.
 
-The default host still makes no browser media advertisement. RTC lifecycle/role
-control, reoffers, DTMF, reconciliation/query/credential refresh, Opus/video/data,
+## Explicit RTC termination
+
+Signed `connection.end` requires its own current permission and the exact
+originating WSS peer and RTC route. The service retains one original Store
+stream-operation lease while Core closes the installed RTC connection. A
+successful returned Core call and confirmed absence of that original route are
+both required before it captures an ended receipt. The adapter retains physical,
+source, port and controller cleanup custody through the joins; absence after an
+uncertain call cannot manufacture a successful outcome.
+
+Deadline, stop or cleanup uncertainty keeps the original attempt uncertain.
+Metadata retries record only the captured actual success and cannot repeat the
+close. A completed replay uses current journal authority, returns the same end
+receipt and never creates another peer. The WSS control connection remains usable
+after its media connection ends.
+
+The [explicit end evidence](../evidence/gate-6/webrtc-explicit-end.json) records
+both signing algorithms, real marked duplex before termination, original resource
+and quota release, completed replay, continued WSS use, and refused end without
+scope while duplex stays usable. Four RTC methods plus all fourteen existing WSS
+methods and one decoded WebTransport regression pass. Separately injected
+service-level pending-close/lost-receipt/deadline uncertainty remains unqualified.
+
+The default host still makes no browser media advertisement. RTC durable role
+projection and wider lifecycle control, reoffers, DTMF,
+reconciliation/query/credential refresh, Opus/video/data,
 ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and
 approved Linux/remote hosting, package and full acceptance qualification remain
 required. G6-051 remains in progress.

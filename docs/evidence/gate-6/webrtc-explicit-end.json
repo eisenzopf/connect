@@ -1,0 +1,87 @@
+{
+  "task": "G6-051",
+  "status": "partial; task remains in progress",
+  "based_on": "dced42d3",
+  "scope": "Protected stock signed WSS + Store + Core actual RTC G.711 local macOS arm64 lifecycle. No full browser/media/hosting acceptance or publication.",
+  "implementation": [
+    "Signed connection.end selects the exact original RTC route through the same current WSS PeerAdmission, credential, WebRTC Endpoint/runtime Connection/generation and Store proof checks used for subscriptions. The managed-control admission preserves current authorization and creates one original NativeStreamLease before asynchronous cleanup.",
+    "The owned job calls Core.end_connection once, retaining its lease through the actual installed adapter close and original driver/source/port/controller joins. Returned success plus absence of the original RTC route is mandatory before lease.ended can produce a captured receipt. Observed absence alone or an interrupted/uncertain call never establishes success.",
+    "Deadline, installation stop or returned cleanup uncertainty records an uncertain original attempt; this path never automatically repeats the physical effect. Metadata contention retries only the same captured success, releasing original command readers before idle retries. Historical receipt completion cannot revive a retired generation.",
+    "Historical completed replay needs current Store owner authority and returns the original completed operation/effect without another allocation, close request or media mutation. Native-only QUIC/WebTransport negotiation allowlists are unchanged."
+  ],
+  "verification": {
+    "rtc_methods": 4,
+    "existing_wss_methods": 14,
+    "decoded_webtransport_methods": 1,
+    "total_selected_methods_passed": 19,
+    "end_signatures": [
+      "EdDSA",
+      "ES256"
+    ],
+    "assertions": [
+      "Both explicit-end methods first complete the full actual stock RTC marked-duplex/subscription/replay/stale/unsupported/unsubscribe/reselect journey on two identities in one publicly accepted Session.",
+      "The signed end command completes with ended=true and one effect. Original controller bindings are empty; exact original route A is absent while route B remains current, with its revision unchanged and only two total RTC allocations.",
+      "Managed Session Connection count, live WSS peer Core Connection quota and deployment capacity each confirm exactly one remaining route/occupied slot after actual joins. The original WSS peer is still live and executes a subsequent conversation.create command.",
+      "A fresh envelope with the same logical end operation ID returns the exact completed end receipt/effect after retirement, without reallocation or another engine effect.",
+      "Both endpoint-withdrawal variants also prove that a credential lacking connection.end scope is refused and its actual decoded duplex/stream revision remain current.",
+      "All four RTC journey methods, all fourteen existing WSS methods and the independent actual decoded WebTransport regression pass on the same final guarded source and original/sealed executable. Default stacks and isolated ignored local state; no account/model-host/provider invocation."
+    ],
+    "build": {
+      "exit_code": 0,
+      "seconds": 646.1287567920517,
+      "source_count": 5156,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "34b5f6c4a0d7bb1361854ca1c53455ddd2d87d99b66b7ef53383c59b3c12dcd5"
+    },
+    "artifact": {
+      "sha256": "e7980587e2b865e514640f1cf4759c1aa249f2b9588e940305a8bc09c34913fb",
+      "bytes": 212765664,
+      "validated": "Executable Mach-O, source-guarded ordinary release integration target with selected test strip disabled. Package/full release profile runtime is not qualified."
+    },
+    "runtime_groups": [
+      {
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::",
+        "seconds": 15.528444207971916,
+        "results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 14.03s"
+        ],
+        "log_sha256": "da8998cbd10d1f09bc54190098de9f7afa98aa2846c87d2cc3790e33bd487004"
+      },
+      {
+        "pattern": "canonical_websocket_control::",
+        "seconds": 39.52500841696747,
+        "results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 39.52s"
+        ],
+        "log_sha256": "ce71e267013829dbf11f7f87ce8b8f93fe6233bb34d33616c34d1724b62afda9"
+      },
+      {
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "seconds": 4.2988822921179235,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 4.24s"
+        ],
+        "log_sha256": "d59cbc3ba5d2340139e9df978dc8474510c65e56c38c94756484b2cab6cdc717"
+      }
+    ],
+    "runtime_input_count": 5312,
+    "runtime_inputs_unchanged": true,
+    "original_and_sealed_artifacts_unchanged": true,
+    "source_sha256": {
+      "crates/connect-service/src/canonical_webrtc/streams.rs": "ff52228f6188094521de571dd622ab86372c920b3fb046ca67ff70352b2c601b",
+      "crates/connect-server/tests/support/canonical_websocket_control.rs": "c6d71491196f767d48bc86e1b92ec9882d8e641a919e2e604da17be9e9b96a60",
+      "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs": "a89713b202d8acaef404ac9095dd253179f44510a5b62efcdb2fb316b5e7e1d1"
+    },
+    "dependency_source_lock_sha256": "667500f92375a0a4f83ae97bddb513c2a50cc9a711b2b3a3532db3046c961ed2",
+    "upstream_staged_patch_sha256": "2b689ebd466aaa771dc6c50d45403dc59b12d1844c11be52e03fa62bd61f8128",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "http_reference": "24 mounts / 25 explicit operations / 0 uncovered; source inventory only, no endpoint changes."
+  },
+  "private_evidence_root": ".local/gate-6/webrtc-end/",
+  "remaining_scope": [
+    "No separately injected service-level pending-close, lost-driver-receipt, stop/deadline or uncertain-end fault is qualified by these successful/refused/replay cases. Prior component cleanup evidence retains its separate scope.",
+    "RTC durable Session role projection, lifecycle notifications/quality/query/reconciliation, reoffers and resource/codec negotiation, DTMF and credential refresh integration still need actual stock journeys.",
+    "Opus/video/data, advanced ICE/MID/SSRC/source-clock profiles, installed Chrome/Firefox forced fallback with same Conversation/transitions, approved Linux/remote hosting and full package/acceptance remain required. All 105 Gate6 tasks remain the objective."
+  ]
+}

@@ -8,6 +8,14 @@ use tokio_tungstenite::{
 type Socket = WebSocketStream<tokio_rustls::client::TlsStream<tokio::net::TcpStream>>;
 
 async fn configured(algorithm: &str, capacity: usize, expiry: Option<chrono::Duration>) -> Fixture {
+    configured_end_scope(algorithm, capacity, expiry, false).await
+}
+async fn configured_end_scope(
+    algorithm: &str,
+    capacity: usize,
+    expiry: Option<chrono::Duration>,
+    end: bool,
+) -> Fixture {
     let Fixture {
         temp,
         mut config,
@@ -16,7 +24,7 @@ async fn configured(algorithm: &str, capacity: usize, expiry: Option<chrono::Dur
         peer,
         admin,
         key_revision,
-    } = fixture(algorithm).await;
+    } = fixture_with_end(algorithm, end).await;
     server.shutdown().await.unwrap();
     config.limits.connections = capacity;
     config.websocket = Some(
