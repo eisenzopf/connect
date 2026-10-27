@@ -1,0 +1,362 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media/worker_health.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media/worker_health.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media/worker_health.rs
+@@ -0,0 +1,137 @@
++//! Monotonic IO-worker lifetime. Join custody stays in setup; transient
++//! metadata exclusion is not evidence that an activated worker has ended.
++use rvoip_core::staged_streams::{ControlResult, StreamControlError};
++use std::sync::{
++    Arc, Mutex,
++    atomic::{AtomicBool, Ordering},
++};
++use tokio::task::JoinHandle;
++use tokio_util::sync::CancellationToken;
++pub(super) struct Setup {
++    pub(super) closing: bool,
++    pub(super) tasks: Vec<JoinHandle<ControlResult<()>>>,
++}
++#[derive(Clone)]
++pub(super) struct WorkerHealth {
++    pub(super) ready: Arc<AtomicBool>,
++    pub(super) stop: CancellationToken,
++    pub(super) setup: Arc<Mutex<Setup>>,
++}
++impl WorkerHealth {
++    pub(super) fn new(stop: CancellationToken) -> Self {
++        Self {
++            ready: Arc::new(AtomicBool::new(false)),
++            stop,
++            setup: Arc::new(Mutex::new(Setup {
++                closing: false,
++                tasks: vec![],
++            })),
++        }
++    }
++    pub(super) fn confirmed(&self) -> bool {
++        // Activation sets ready only after original workers and port readiness
++        // are installed. Every worker exit/drop retires the shared token before
++        // it waits for setup metadata. Close also retires before taking joins.
++        self.ready.load(Ordering::Acquire) && !self.stop.is_cancelled()
++    }
++    pub(super) fn activate(&self, setup: &Setup) -> ControlResult<()> {
++        if setup.closing || self.stop.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        if setup.tasks.is_empty() {
++            return Err(StreamControlError::NotReady);
++        }
++        self.ready.store(true, Ordering::Release);
++        Ok(())
++    }
++    pub(super) fn guard(&self) -> WorkerGuard {
++        WorkerGuard {
++            ready: self.ready.clone(),
++            stop: self.stop.clone(),
++        }
++    }
++    pub(super) fn retire(&self) {
++        self.ready.store(false, Ordering::Release);
++        self.stop.cancel();
++    }
++}
++pub(super) struct WorkerGuard {
++    ready: Arc<AtomicBool>,
++    stop: CancellationToken,
++}
++impl Drop for WorkerGuard {
++    fn drop(&mut self) {
++        self.ready.store(false, Ordering::Release);
++        self.stop.cancel();
++    }
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[tokio::test]
++    async fn metadata_observation_exclusion_is_not_worker_withdrawal() {
++        let h = WorkerHealth::new(CancellationToken::new());
++        assert!(!h.confirmed());
++        assert!(h.activate(&h.setup.lock().unwrap()).is_err());
++        h.setup.lock().unwrap().tasks.push(tokio::spawn(async {
++            std::future::pending::<()>().await;
++            Ok(())
++        }));
++        let setup = h.setup.lock().unwrap();
++        h.activate(&setup).unwrap();
++        assert!(!setup.closing && !setup.tasks[0].is_finished());
++        assert!(
++            h.confirmed(),
++            "a bounded metadata observer cannot revoke current activated IO"
++        );
++        drop(setup);
++        h.retire();
++        let tasks = std::mem::take(&mut h.setup.lock().unwrap().tasks);
++        for task in tasks {
++            task.abort();
++            let _ = task.await;
++        }
++    }
++    #[tokio::test]
++    async fn terminal_lifetime_cannot_be_reactivated_by_late_ready_observation() {
++        let h = WorkerHealth::new(CancellationToken::new());
++        h.setup.lock().unwrap().tasks.push(tokio::spawn(async {
++            std::future::pending::<()>().await;
++            Ok(())
++        }));
++        h.activate(&h.setup.lock().unwrap()).unwrap();
++        assert!(h.confirmed());
++        let setup = h.setup.lock().unwrap();
++        h.retire();
++        h.ready.store(true, Ordering::Release);
++        assert!(
++            !h.confirmed(),
++            "late ready cannot resurrect a retired worker"
++        );
++        drop(setup);
++        let tasks = std::mem::take(&mut h.setup.lock().unwrap().tasks);
++        for task in tasks {
++            task.abort();
++            let _ = task.await;
++        }
++    }
++    #[tokio::test]
++    async fn abort_before_first_poll_retires_the_captured_original_lifetime() {
++        let h = WorkerHealth::new(CancellationToken::new());
++        // Construct outside the future: abort-before-poll must still drop it.
++        let guard = h.guard();
++        let task = tokio::spawn(async move {
++            let _lifetime = guard;
++            std::future::pending::<()>().await;
++            Ok(())
++        });
++        h.setup.lock().unwrap().tasks.push(task);
++        h.activate(&h.setup.lock().unwrap()).unwrap();
++        let task = h.setup.lock().unwrap().tasks.pop().unwrap();
++        task.abort();
++        let _ = task.await;
++        assert!(!h.confirmed());
++        h.ready.store(true, Ordering::Release);
++        assert!(!h.confirmed());
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -1,6 +1,7 @@
+ //! Owned canonical audio/VP8 ports on one actual RTC peer. No signaling
+ //! answer or remote declaration alone establishes a source/sink resource.
+ use super::*;
++mod worker_health;
+ use crate::media::{core_audio::CoreAudioEgress, core_video::CoreVideoEgress};
+ use crate::peer::source_clock::InboundClockLease;
+ use chrono::Utc;
+@@ -14,11 +15,9 @@
+     sync::atomic::{AtomicBool, AtomicU32},
+     time::{Duration, Instant},
+ };
+-use tokio::{
+-    sync::{mpsc, watch},
+-    task::JoinHandle,
+-};
++use tokio::sync::{mpsc, watch};
+ use webrtc::media_stream::track_remote::TrackRemoteEvent;
++use worker_health::WorkerHealth;
+ type Done = Shared<BoxFuture<'static, std::result::Result<(), ()>>>;
+ struct Reservation {
+     peer: Weak<PeerAdmission>,
+@@ -96,19 +95,13 @@
+         self.stop.cancel();
+     }
+ }
+-struct Setup {
+-    closing: bool,
+-    tasks: Vec<JoinHandle<ControlResult<()>>>,
+-}
+ struct PortIo {
+     port: WeakAdapterMediaPort,
+     binding: ReadyMediaBinding,
+     physical: Arc<WebRtcPhysicalBinding>,
+-    stop: CancellationToken,
++    health: WorkerHealth,
+     input: mpsc::Sender<Received>,
+-    setup: Arc<Mutex<Setup>>,
+     close: OnceLock<Done>,
+-    ready: Arc<AtomicBool>,
+     map: Weak<DashMap<StreamId, Arc<PortIo>>>,
+ }
+ impl PortIo {
+@@ -116,30 +109,33 @@
+         &self,
+         f: impl std::future::Future<Output = ControlResult<()>> + Send + 'static,
+     ) -> ControlResult<()> {
+-        let mut setup = self.setup.lock().unwrap_or_else(|p| p.into_inner());
+-        if setup.closing || self.stop.is_cancelled() {
++        let mut setup = self.health.setup.lock().unwrap_or_else(|p| p.into_inner());
++        if setup.closing || self.health.stop.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        let state = self.setup.clone();
+-        let ready = self.ready.clone();
++        let state = self.health.setup.clone();
++        let ready = self.health.ready.clone();
+         let port = self.port.clone();
+-        let stop = self.stop.clone();
++        let stop = self.health.stop.clone();
++        // Capture the guard before spawn, so even abort-before-first-poll
++        // retires this original lifetime without consulting setup metadata.
++        let lifetime = self.health.guard();
+         setup.tasks.push(tokio::spawn(async move {
+-            let _lifetime = JobLifetime {
+-                ready: Some(ready.clone()),
+-                stop: stop.clone(),
+-            };
++            let _lifetime = lifetime;
+             let result = std::panic::AssertUnwindSafe(f)
+                 .catch_unwind()
+                 .await
+                 .unwrap_or(Err(StreamControlError::CleanupUnconfirmed));
++            // Terminal lifetime is visible before any metadata exclusion.
++            // A late readiness writer cannot resurrect this cancelled token.
+             ready.store(false, Ordering::Release);
++            let report = !stop.is_cancelled();
++            stop.cancel();
+             {
+                 let mut state = state.lock().unwrap_or_else(|p| p.into_inner());
+                 state.closing = true;
+             }
+-            if !stop.is_cancelled() {
+-                stop.cancel();
++            if report {
+                 if let Some(port) = port.upgrade() {
+                     let _ = port.report_terminal();
+                 }
+@@ -151,16 +147,16 @@
+ }
+ impl Drop for PortIo {
+     fn drop(&mut self) {
+-        self.stop.cancel();
++        self.health.retire();
+     }
+ }
+ #[async_trait::async_trait]
+ impl MediaPortCleanup for PortIo {
+     async fn close(&self) -> ControlResult<()> {
+-        self.stop.cancel();
++        self.health.retire();
+         let done = self.close.get_or_init(|| {
+             let tasks = {
+-                let mut setup = self.setup.lock().unwrap_or_else(|p| p.into_inner());
++                let mut setup = self.health.setup.lock().unwrap_or_else(|p| p.into_inner());
+                 setup.closing = true;
+                 std::mem::take(&mut setup.tasks)
+             };
+@@ -311,8 +307,8 @@
+                     for entry in ports.iter().filter(|p| {
+                         p.binding.negotiated.requested.medium == medium && p.binding.source_ready
+                     }) {
+-                        entry.ready.store(false, Ordering::Release);
+-                        entry.stop.cancel();
++                        entry.health.ready.store(false, Ordering::Release);
++                        entry.health.stop.cancel();
+                         if let Some(port) = entry.port.upgrade() {
+                             let _ = port.report_terminal();
+                         }
+@@ -365,8 +361,7 @@
+             && !bindings.is_empty()
+             && bindings.iter().all(|b| {
+                 self.ports.get(&b.transport_id).is_some_and(|p| {
+-                    p.ready.load(Ordering::Acquire)
+-                        && !p.stop.is_cancelled()
++                    p.health.confirmed()
+                         && same_binding(&p.binding, b)
+                         && (!b.source_ready
+                             || self.sources[if b.negotiated.requested.medium == Medium::Audio {
+@@ -376,11 +371,6 @@
+                             }]
+                             .get()
+                             .is_some_and(|s| !s.stop.is_cancelled()))
+-                        && p.setup.try_lock().is_ok_and(|setup| {
+-                            !setup.closing
+-                                && !setup.tasks.is_empty()
+-                                && setup.tasks.iter().all(|task| !task.is_finished())
+-                        })
+                 })
+             })
+     }
+@@ -572,14 +562,9 @@
+             port: prepared.port.downgrade(),
+             binding: b.clone(),
+             physical: self.physical.clone(),
+-            stop: self.lifetime.child_token(),
++            health: WorkerHealth::new(self.lifetime.child_token()),
+             input: tx,
+-            setup: Arc::new(Mutex::new(Setup {
+-                closing: false,
+-                tasks: vec![],
+-            })),
+             close: OnceLock::new(),
+-            ready: Arc::new(AtomicBool::new(false)),
+             map: Arc::downgrade(&self.ports),
+         });
+         prepared.port.install_cleanup(io.clone())?;
+@@ -592,13 +577,13 @@
+             }
+             _ => return Err(StreamControlError::Authority),
+         }
+-        if io.stop.is_cancelled() || cancel.is_cancelled() {
++        if io.health.stop.is_cancelled() || cancel.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        let peer = tokio::select! {biased;_=cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=io.stop.cancelled()=>return Err(StreamControlError::Cancelled),p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?};
++        let peer = tokio::select! {biased;_=cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=io.health.stop.cancelled()=>return Err(StreamControlError::Cancelled),p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?};
+         tokio::select! {biased;
+             _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
+-            _=io.stop.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=io.health.stop.cancelled()=>return Err(StreamControlError::Cancelled),
+             r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
+         }
+         let (format, pt, can_receive, can_send) =
+@@ -642,16 +627,16 @@
+             None
+         };
+         if let Some(source) = source {
+-            io.start(ingress(io.port.clone(), io.stop.clone(), rx, source))?;
++            io.start(ingress(io.port.clone(), io.health.stop.clone(), rx, source))?;
+         }
+         if let Some(egress) = egress {
+-            io.start(egress_loop(egress, io.stop.clone()))?;
+-        }
+-        if !self.current() || cancel.is_cancelled() || io.stop.is_cancelled() {
++            io.start(egress_loop(egress, io.health.stop.clone()))?;
++        }
++        if !self.current() || cancel.is_cancelled() || io.health.stop.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        let setup = io.setup.lock().unwrap_or_else(|p| p.into_inner());
+-        if setup.closing || io.stop.is_cancelled() {
++        let setup = io.health.setup.lock().unwrap_or_else(|p| p.into_inner());
++        if setup.closing || io.health.stop.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
+         prepared.port.observe_ready(
+@@ -660,7 +645,7 @@
+             b.sink_ready && can_send,
+             Some(pt),
+         )?;
+-        io.ready.store(true, Ordering::Release);
++        io.health.activate(&setup)?;
+         drop(setup);
+         Ok(())
+     }
+@@ -681,8 +666,8 @@
+     for entry in ports.iter() {
+         let io = entry.value();
+         if io.binding.negotiated.requested.medium != source.medium
+-            || !io.ready.load(Ordering::Acquire)
+-            || io.stop.is_cancelled()
++            || !io.health.ready.load(Ordering::Acquire)
++            || io.health.stop.is_cancelled()
+             || io
+                 .port
+                 .upgrade()

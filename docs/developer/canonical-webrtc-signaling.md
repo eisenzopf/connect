@@ -589,3 +589,27 @@ This is an isolated Core fixture qualification. The signed AV composition that
 uses the new SPI is being rebuilt separately and remains unqualified here.
 Future non-audio selectors, wider media/browser/fallback/clock/hosting/package
 scopes remain required. G6-051 stays in progress.
+
+
+## Worker readiness under concurrent observation
+
+Activated RTC IO readiness now follows original monotonic worker lifetime.
+Another observer holding the bounded setup mutex cannot establish withdrawal.
+Original join handles remain in setup; activation requires installed handles and
+actual port readiness. Worker completion publishes retirement before metadata
+access, and the guard is captured before spawn so abort-before-first-poll also
+retires readiness. A late ready observation cannot resurrect a cancelled worker.
+
+The [worker probe](../evidence/gate-6/webrtc-worker-health-probe.rs) and
+[evidence](../evidence/gate-6/webrtc-worker-health.json) record the failing causal
+try-lock control, three passing worker methods, 14 actual resource-lifetime groups
+and 11 actual PCMU/VP8 AV groups. The lifetime groups include seven earlier audio
+groups. Original no-RTP refusal, cancellation recovery, controlled actual worker
+failure, decoded pictures/RTX and original peer/port joins pass. A fixture return
+type compile failure and its corrected sealed checks are retained.
+
+Signed build05 also exposed intermittent unknown restoration and audio loss
+following video-only mute. This metadata defect is independently established;
+those historical outcomes are not conclusively attributed here. The corrected
+full signed Opus/VP8 host is being rebuilt and remains separately unqualified.
+G6-051 and the wider browser/fallback/timing/hosting/package scopes stay open.

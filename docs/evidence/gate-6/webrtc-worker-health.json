@@ -1,0 +1,169 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T14:05:28.233681+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "source_revision_before_checkpoint": "607e463b069b6577b45511f38fd986a90d0cb3a5",
+  "scope": "Original canonical RTC IO-worker lifetime and readiness metadata. Ordinary production upper WebRTC library compiled; isolated metadata concurrency controls plus actual local Core/RTC resource and PCMU+VP8 probes. No new signed-host/browser/Opus+VP8/full fallback qualification in this commit.",
+  "implementation": [
+    "Readiness no longer treats failure to acquire the IO worker setup mutex as worker withdrawal. Only successful original activation plus a live monotonic shared worker token confirms IO; setup retains the original join handles.",
+    "Activation still requires nonempty installed original worker handles, an open setup and a live token after the actual Core port readiness observation. Any exit/drop retires shared readiness. Normal completion publishes retirement before accessing setup metadata; close also retires before moving handles into its original join owner.",
+    "The lifetime guard is constructed before spawning and captured by the future, covering abort-before-first-poll. A late ready store cannot resurrect a cancelled original worker token. Source jobs, physical binding, SSRC/PT/codec/clock/permission/selection/age checks and original joined cleanup are retained. These lifetime bits cannot grant media authorization."
+  ],
+  "verification": {
+    "worker_methods": 3,
+    "resource_lifetime_assertion_groups": 14,
+    "canonical_av_assertion_groups": 11,
+    "overlap": "The resource-lifetime14 include seven earlier staged-audio groups; they are not counted again.",
+    "production_build": [
+      {
+        "name": "rvoip_webrtc-production-03",
+        "seconds": 20.277272291015834,
+        "exit_code": 0,
+        "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+        "changed_inputs": []
+      }
+    ],
+    "causal_control": {
+      "expected_control_failure": true,
+      "scope": "A private causal extraction of the former readiness predicate, including try_lock on setup, with the same held-metadata fixture. This is not an old full signed-host rerun.",
+      "checks": [
+        {
+          "name": "health-red-sealed-build",
+          "exit_code": 0,
+          "seconds": 0.18200529110617936,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "results": [],
+          "changed_inputs": []
+        },
+        {
+          "name": "health-red-sealed-runtime",
+          "exit_code": 101,
+          "seconds": 0.46678979112766683,
+          "log_sha256": "b9017316a63eda35c11eae3db11c22d8a1b875a46a75b9ad3c0d576803e766ed",
+          "results": [
+            "test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+          ],
+          "changed_inputs": []
+        }
+      ],
+      "control_source_sha256": "2c58c0d91c82be844461cd28553e3f2c0a9c3b798013641d8a6b5089def0f877"
+    },
+    "worker": [
+      {
+        "name": "health-green-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.18276858306489885,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "health-green-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 0.26703108311630785,
+        "log_sha256": "6f59607dcde1cca91c30dbacdb0297e3d1eaccbd3496da9a2785f91cc1a12bef",
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "resource_lifetime": [
+      {
+        "name": "resource-lifetime-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.6239417919423431,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "resource-lifetime-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 2.8354101669974625,
+        "log_sha256": "d2473d2470982b8fd0aee71fc8101d118ec486fa97c9e29c1f591737d1110b1f",
+        "results": [
+          "PASS carol: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS carol: actual parent close ends a pending no-RTP observation before original source/controller joins and quota refund",
+          "PASS alice: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS alice: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+          "PASS bob: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS bob: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+          "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+          "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+          "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+          "PASS original RTC drivers and all Core port resources close before quota refund",
+          "PASS actual ingress worker failure invalidates current media readiness while retaining peer quota and capacity until original joined cleanup"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "canonical_av": [
+      {
+        "name": "canonical-av-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.8126647500321269,
+        "log_sha256": "ee5245bcd3252829db70e1c4067bf76f7dfd8787cb523b498ba13bc5c84e1e1d",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "canonical-av-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 3.0143687499221414,
+        "log_sha256": "88f4f1da2c71c87747b5d06ced4342eada00baee26a49e896671af2830d863a6",
+        "results": [
+          "PASS unallocated resources refuse readiness then recover into four actual Core AV ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS independently decoded duplex audio continues on the actual canonical AV peers",
+          "PASS no implicit video playback before explicit Core selection",
+          "PASS actual negotiated VP8 PT/SSRC/MID and original pictures traverse both canonical Core AV routes",
+          "PASS actual canonical NACK/RTX repair preserves original picture identity and negotiated MID",
+          "PASS independent FFmpeg decoding identifies the other participant's distinct 64x64 picture in each direction",
+          "PASS video selection withdrawal and restoration leave duplex audio and reverse video running",
+          "PASS current video-only publication permission withdraws/restores independently of audio and reverse video",
+          "PASS both original canonical AV peers and all four actual Core ports join before quota refund"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "behavior": [
+      "A live installed worker remains ready while another observer holds setup metadata.",
+      "Uninstalled workers cannot activate. Retired workers cannot become ready through a late observation.",
+      "Abort before the first future poll still drops the captured guard and retires readiness.",
+      "Actual no-RTP peers refuse readiness and cancelled observations retain original ownership; deadline/cancellation recovery and parent close join before quota refund.",
+      "A controlled actual ingress policy-worker panic invalidates media readiness while peer quota/capacity remain held until original joined cleanup.",
+      "Actual duplex PCMU/VP8 pictures, authenticated original-packet loss/RTX repair, video-only permission/selection changes and all four original Core ports/peer joins pass. Pictures decode independently using the previously recorded local FFmpeg/source fixture."
+    ]
+  },
+  "failures_and_limits": [
+    "The causal former try-lock predicate fails exactly the held-metadata method; its other two control methods pass. The corrected current implementation passes all three.",
+    "While tightening activation coverage, an added abort fixture returned JoinHandle<()> where setup requires JoinHandle<ControlResult<()>>. Both component test compilations correctly failed; added the fixture return type without changing the behavioral assertions. A fresh prepared snapshot, successful production compile and sealed tests precede final results.",
+    "The actual resource-lifetime probe intentionally panics a policy worker and then verifies invalidated readiness and joined cleanup. That private logged panic is the exercised failure case.",
+    "Prior signed build05 has successful complete EdDSA and paired diagnostic EdDSA/ES256 journeys, plus intermittent unknown control outcome and lost Opus during video-only mute. The readiness mutex defect is independently established; these historical outcomes are not conclusively attributed or erased by passing reruns. The corrected full signed server is being rebuilt and needs its own runtime/stress evidence."
+  ],
+  "private_evidence": {
+    "directory": ".local/gate-6/rtc-worker-readiness/",
+    "prepared_snapshot": "deps-rtc-worker-health-20261027-v11",
+    "source_lock_sha256": "f28fd01b9d6b58e9a331e3efa76dce94bd9720bc15ae6c03dff367907fdd188d",
+    "patch_sha256": "42db3149b95f609231e327727c00eff2c9e798b990c60a3483a40e79bbccb09d",
+    "manifests": {
+      "build-03-inputs.json": "9ae5d2448d6f2c37ba5318fee632dcd1c7e469f7895a60e09d11ae51f48be091",
+      "build-complete.json": "2866b4ab49ed64263e11db6c9d4493dfbfae67e9573a8f300d816bbb4e6359cb",
+      "health-red-sealed-inputs.json": "068d535de4495e11e55a7b35e0536c080660b84c0099f3f1a6a0897afe02d513",
+      "health-green-sealed-inputs.json": "002037aac3fcdcf44fabc9cac728bc5be1facea530c2fd372f2da9e534824f1e",
+      "resource-lifetime-sealed-inputs.json": "5d73c10613b0b0e8fcad6a76e26b46d7270b7f40b7486b688a9b58edf109769f",
+      "canonical-av-sealed-inputs.json": "c9657996874aaf3c212115fc9e3db25cf2a55481fcdfd011e368a8684e36218a"
+    },
+    "guard_scope": "Input/artifact hashes unchanged during each passing production/component run. Subsequent composition rebuild is a separate phase; no perpetual retained-library identity claim."
+  },
+  "remaining": [
+    "Verify the corrected current full signed WSS/Store/Core Opus+VP8 host, including repeated video restoration/mute and original cleanup. Preserve prior intermittent failures as unresolved until sufficiently diagnosed/verified.",
+    "Finish fixed-port future non-audio selectors, public browser dialect migration and Chrome/Firefox forced fallback/capture/permissions/background/reoffer/DTMF/data, actual timing/sync, Linux/remote and package qualification. All105-task objective remains active; no acceptance criterion is qualified."
+  ]
+}

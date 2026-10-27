@@ -1221,6 +1221,11 @@
       "path": "patches/rvoip/gate6-existing-port-selection.patch",
       "source": "G6-051 exact source selection onto existing confirmed direct sinks without creating foreign logical ports; preserve original source/receiver identity and installed-route unsubscribe, refuse ambiguous sinks and future non-audio selectors.",
       "sha256": "f96d21254717708440848caeb658484435bb55094de509752fec54c720832ac9"
+    },
+    {
+      "path": "patches/rvoip/gate6-rtc-worker-health.patch",
+      "source": "G6-051 IO readiness follows monotonic original worker lifetime, not transient worker metadata mutex exclusion; capture terminal guard before spawn, publish retirement before metadata access, retain original joined cleanup.",
+      "sha256": "42db3149b95f609231e327727c00eff2c9e798b990c60a3483a40e79bbccb09d"
     }
   ]
 }
