@@ -1,0 +1,324 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T15:32:49.757103+00:00",
+  "source_revision_before_checkpoint": "2257e1f8522b4a8bccb428cb468cedf7092a8bf5",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "scope": "Local macOS arm64 ordinary production RTC/WebRTC libraries, actual engine answers to saved complete Chrome/Firefox offers, unit and retained Core component checks. No connected browser, signed WSS/Store, full Connect rebuild, clock/sync/fallback/hosting/package or Gate6 acceptance claim.",
+  "implementation": [
+    "Codec identity matching treats Opus/VP8 receive preferences separately from MIME/rate/channels; H264 format identity and RTX association remain enforced.",
+    "Local SDP advertises locally registered receive parameters while negotiated RTP sender parameters retain original remote receiver constraints. Dynamic payload IDs, RTX apt, MID and directions are preserved.",
+    "Opus stereo=1 is a receive preference, while the fixed Core sender remains mono and rejects actual stereo or non-20ms packets.",
+    "VP8 independently validates both receive capacities against 640x360 (920 macroblocks) at 30fps. Duplicate, malformed, insufficient or overflowing known limits refuse; unknown extension parameters are ignored. Explicit bounded host advertises its own limits."
+  ],
+  "patch": {
+    "files": [
+      "crates/webrtc/rvoip-rtc/src/peer_connection/configuration/directional_fmtp_tests.rs",
+      "crates/webrtc/rvoip-rtc/src/peer_connection/configuration/media_engine.rs",
+      "crates/webrtc/rvoip-rtc/src/peer_connection/sdp/mod.rs",
+      "crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/rtp_codec.rs",
+      "crates/webrtc/rvoip-webrtc/src/media/core_audio_profile.rs",
+      "crates/webrtc/rvoip-webrtc/src/media/core_video_profile.rs",
+      "crates/webrtc/rvoip-webrtc/src/peer/builder.rs"
+    ],
+    "patch_sha256": "602b18789268597e5260ca2c5c4bca7f5e09e6563cb7a5d914dbacb960317311"
+  },
+  "verification": {
+    "unit_methods_distinct": 406,
+    "rtc_unit_methods": 215,
+    "upper_webrtc_unit_methods": 191,
+    "new_unit_methods_included": 7,
+    "retained_video_profile_methods": 6,
+    "retained_canonical_av_groups": 11,
+    "retained_resource_lifetime_groups": 14,
+    "audio_groups_shared_between_retained_probes": 7,
+    "answers": [
+      {
+        "browser_offer": "chrome-final-05",
+        "audio_payload": 111,
+        "video_payload": 96,
+        "rtx_payload": 97,
+        "directions": [
+          "sendrecv",
+          "sendrecv"
+        ],
+        "audio_core_channels": 1,
+        "local_audio_fmtp": "minptime=10;useinbandfec=1;maxaveragebitrate=32000",
+        "local_video_fmtp": "max-fs=920;max-fr=30",
+        "answer_sha256": "f61a778d19c418d48ba66374b60a09b8a91ccc6f523e60b0ea92314f0e894c68",
+        "log_sha256": "f527b19734260d6d3ccff486644540dae4d8a4c686046edbecb00589fed99489"
+      },
+      {
+        "browser_offer": "firefox-final-06",
+        "audio_payload": 109,
+        "video_payload": 120,
+        "rtx_payload": 124,
+        "directions": [
+          "sendrecv",
+          "sendrecv"
+        ],
+        "audio_core_channels": 1,
+        "local_audio_fmtp": "minptime=10;useinbandfec=1;maxaveragebitrate=32000",
+        "local_video_fmtp": "max-fs=920;max-fr=30",
+        "answer_sha256": "ad932a2eb0b9834792b8ce060728c1c343b964a70d84866f84651c29f291b142",
+        "log_sha256": "66d513c9bacaf8a72762de7d479c5f9707e8c1bb8191ee0ff8038fedc5861a87"
+      }
+    ],
+    "checks": {
+      "build-03-summary.json": {
+        "sha256": "7055b7ae7a1dae40638c83a3054b942731241a28e75b7d186b303114b6557b2a",
+        "steps": [
+          {
+            "name": "rtc-production-03",
+            "exit_code": 0,
+            "seconds": 1.0525875829625875,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "changed_inputs": []
+          },
+          {
+            "name": "webrtc-production-03",
+            "exit_code": 0,
+            "seconds": 0.9962530420161784,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "changed_inputs": []
+          },
+          {
+            "name": "rvoip_webrtc-production-03",
+            "exit_code": 0,
+            "seconds": 20.28167845797725,
+            "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+            "changed_inputs": []
+          }
+        ]
+      },
+      "checks-03.json": {
+        "sha256": "33414fad2650d0a545299f269944c6534cea2ba424e608b67ddc375a8ff34509",
+        "steps": [
+          {
+            "name": "answer-current-build",
+            "exit_code": 0,
+            "seconds": 0.29607204208150506,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "chrome-final-05-answer-current",
+            "exit_code": 0,
+            "seconds": 0.4062145419884473,
+            "log_sha256": "f527b19734260d6d3ccff486644540dae4d8a4c686046edbecb00589fed99489",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "firefox-final-06-answer-current",
+            "exit_code": 0,
+            "seconds": 0.08532554213888943,
+            "log_sha256": "66d513c9bacaf8a72762de7d479c5f9707e8c1bb8191ee0ff8038fedc5861a87",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "rtc-unit-build",
+            "exit_code": 0,
+            "seconds": 1.595730833010748,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "rtc-directional_fmtp_tests",
+            "exit_code": 0,
+            "seconds": 0.39843941712751985,
+            "log_sha256": "864dbbafa7e8611a399a9c1f9cc767fa1344447b2a9e9d670b8ea4b2cfb24e9d",
+            "results": [
+              "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 212 filtered out; finished in 0.00s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "name": "rvoip_webrtc-unit-build",
+            "exit_code": 0,
+            "seconds": 15.095304583199322,
+            "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "rvoip_webrtc-core_audio_profile",
+            "exit_code": 0,
+            "seconds": 0.5219181659631431,
+            "log_sha256": "6719dadba7453e5887a9f7ab8e6ad1e1d0084f4f341b520ebe1c27b1e436dd7e",
+            "results": [
+              "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 187 filtered out; finished in 0.00s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "name": "rvoip_webrtc-core_video_profile-receive_limit_tests",
+            "exit_code": 0,
+            "seconds": 0.12717041606083512,
+            "log_sha256": "96891b7eecf4a79a3146fa9ccb554c0bf5151b653c530a152833cbee95dcad75",
+            "results": [
+              "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 0.00s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      "all-unit-results-01.json": {
+        "sha256": "2fb684c87a556c40532b04519e0c32d722fc91283020c17b83cb3d9ec0e6fc9f",
+        "steps": [
+          {
+            "package": "rtc",
+            "exit_code": 0,
+            "seconds": 0.10456024995073676,
+            "log_sha256": "daadfaddac48b45c3449c7730d940d1d0dcca1969abe1590f6d6a550e98d7c4d",
+            "results": [
+              "test result: ok. 215 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "package": "rvoip_webrtc",
+            "exit_code": 0,
+            "seconds": 5.747655083891004,
+            "log_sha256": "2180dccee217213ad9937aa9da5a478a42a1e7505440eb2f9a769d32af1a338a",
+            "results": [
+              "test result: ok. 191 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.63s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      "canonical-av-current-summary.json": {
+        "sha256": "99bff2b2305a08ea5b3d9a1ff6396c098764c24847dfe7f84d2e671a5a913479",
+        "steps": [
+          {
+            "name": "canonical-av-current-build",
+            "exit_code": 0,
+            "seconds": 0.8355109170079231,
+            "log_sha256": "6c5aee5030e28a59547df76753da9ef3f6e1c8d6ae4c05a25ff090fd81713465",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "canonical-av-current-runtime",
+            "exit_code": 0,
+            "seconds": 3.1925161669496447,
+            "log_sha256": "88f4f1da2c71c87747b5d06ced4342eada00baee26a49e896671af2830d863a6",
+            "results": [
+              "PASS unallocated resources refuse readiness then recover into four actual Core AV ports without synthetic callbacks",
+              "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+              "PASS explicit current Core participant subscriptions authorize both receive directions",
+              "PASS independently decoded duplex audio continues on the actual canonical AV peers",
+              "PASS no implicit video playback before explicit Core selection",
+              "PASS actual negotiated VP8 PT/SSRC/MID and original pictures traverse both canonical Core AV routes",
+              "PASS actual canonical NACK/RTX repair preserves original picture identity and negotiated MID",
+              "PASS independent FFmpeg decoding identifies the other participant's distinct 64x64 picture in each direction",
+              "PASS video selection withdrawal and restoration leave duplex audio and reverse video running",
+              "PASS current video-only publication permission withdraws/restores independently of audio and reverse video",
+              "PASS both original canonical AV peers and all four actual Core ports join before quota refund"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      "resource-lifetime-current-summary.json": {
+        "sha256": "ec1e314a8aa425c33f69426e2ef1300a741b03fa00da0e626cd713b5c38ff525",
+        "steps": [
+          {
+            "name": "resource-lifetime-current-build",
+            "exit_code": 0,
+            "seconds": 0.6194554578978568,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "resource-lifetime-current-runtime",
+            "exit_code": 0,
+            "seconds": 2.915754333138466,
+            "log_sha256": "ae07c64baa88e62441afd5a97f798051a0a53f15fac4def9a7d607e708d74aa3",
+            "results": [
+              "PASS carol: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+              "PASS carol: actual parent close ends a pending no-RTP observation before original source/controller joins and quota refund",
+              "PASS alice: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+              "PASS alice: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+              "PASS bob: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+              "PASS bob: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+              "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+              "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+              "PASS explicit current Core participant subscriptions authorize both receive directions",
+              "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+              "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+              "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+              "PASS original RTC drivers and all Core port resources close before quota refund",
+              "PASS actual ingress worker failure invalidates current media readiness while retaining peer quota and capacity until original joined cleanup"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      "video-profile-current-summary.json": {
+        "sha256": "7101cf6eb073b91551eb6e2d0c57278f7d829f01abfa93799dd0732b45cecb20",
+        "steps": [
+          {
+            "name": "video-profile-current-build",
+            "exit_code": 0,
+            "seconds": 0.1830735830590129,
+            "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "results": [],
+            "changed_inputs": []
+          },
+          {
+            "name": "video-profile-current-runtime",
+            "exit_code": 0,
+            "seconds": 0.2536593747790903,
+            "log_sha256": "e88f624f21a727968c18c9b964e7a3d790f835e570d81fba3570e260a6c93ba4",
+            "results": [
+              "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    },
+    "guard_manifests": [
+      {
+        "file": "check-inputs-03.json",
+        "sha256": "3e9f6d8d306bf9ca3e55694e5f8e6af2a58b31785097109e898679aa5fb25697",
+        "changed_inputs": []
+      },
+      {
+        "file": "canonical-av-current-inputs.json",
+        "sha256": "9f314dad3fc8f33f37148b50219b366c18b038143f9f7b0e27ea53efd7fc7386",
+        "changed_inputs": []
+      },
+      {
+        "file": "resource-lifetime-current-inputs.json",
+        "sha256": "3b2f7ee568bae0805deaa39cb927b6a62e316fc7adae530f49c47501a8fa62bb",
+        "changed_inputs": []
+      },
+      {
+        "file": "video-profile-current-inputs.json",
+        "sha256": "7020e1532d2626881f85d1e07f555d23001f62d354aa873cd17812006fdd752c",
+        "changed_inputs": []
+      }
+    ]
+  },
+  "retained_failures": [
+    "Original production engine echoed remote receive preferences and refused the actual Firefox profile; original result/logs are retained privately. The control probe had no local tracks and is signaling-only.",
+    "First new SDP unit fixture omitted the required session connection line; the second put it after timing, which the RTC parser refuses. Both failed revisions and logs are retained privately. Corrected version uses connection before timing and all full unit suites pass.",
+    "A partial-module formatting attempt traversed unavailable staged child files; final staged formatting uses skip_children."
+  ],
+  "next_required": [
+    "Whole Connect production rebuild and the 31 distinct signed AV/control/native regression methods against the new source-lock.",
+    "Actual isolated trusted TLS Chrome/Firefox signed-host enrollment, explicit receive selection, unchanged decoded media/quality/cleanup and real forced fallback checks.",
+    "All broader unchanged G6-051 tasks and full 105-task/acceptance scope."
+  ],
+  "primary_references": [
+    "https://www.rfc-editor.org/rfc/rfc7587.html#section-7.1",
+    "https://www.rfc-editor.org/rfc/rfc7741.html#section-6.2.2"
+  ]
+}

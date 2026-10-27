@@ -1226,6 +1226,11 @@
       "path": "patches/rvoip/gate6-rtc-worker-health.patch",
       "source": "G6-051 IO readiness follows monotonic original worker lifetime, not transient worker metadata mutex exclusion; capture terminal guard before spawn, publish retirement before metadata access, retain original joined cleanup.",
       "sha256": "42db3149b95f609231e327727c00eff2c9e798b990c60a3483a40e79bbccb09d"
+    },
+    {
+      "path": "patches/rvoip/gate6-directional-media-parameters.patch",
+      "source": "G6-051 directional Opus/VP8 receive preferences are independent of codec identity; local SDP advertises local limits, original remote sender parameters/PT/RTX remain intact, fixed mono/20ms and VP8 layout guards remain enforced.",
+      "sha256": "602b18789268597e5260ca2c5c4bca7f5e09e6563cb7a5d914dbacb960317311"
     }
   ]
 }
