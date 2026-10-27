@@ -1,0 +1,212 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress; first current failing decoded-PCM witness captured, no repair claim",
+  "recorded_at": "2026-10-27T23:42:31.947615+00:00",
+  "base_revision": "04de780676963d68e12652b70a42ce91f2ccaa46",
+  "scope": "One current local macOS arm64 Chrome ES256 sixty-second synthetic native AV plus actual UDP-to-WSS control fallback diagnostic. Original tone, 100ms observation cadence, 35Hz limit, audio window and independent audience/AV/cleanup assertions remain. Server TRACE disabled. Added bounded source analyser/PCM ring and native RTP stats may affect scheduling; this is a diagnostic, not a normal-profile qualification. No model/provider/remote execution.",
+  "build": {
+    "exit_code": 0,
+    "seconds": 3.833133165957406,
+    "source_count": 5224,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-84",
+      "sha256": "1bcb4f0f796434f3a7199e5b93da3ae44222df0475ef787f783b4d85027a57fc",
+      "bytes": 214881696
+    }
+  },
+  "runtime": {
+    "exit_code": 101,
+    "seconds": 69.81744849984534,
+    "timed_out": false,
+    "changed_inputs": [],
+    "verdict": "failed",
+    "bad_audio_samples": [
+      1,
+      0
+    ],
+    "events": 1,
+    "in_measured_window": true,
+    "witness_errors": [],
+    "ownership": {
+      "browser_kind": "chrome",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    },
+    "repetition_budget": "Maximum4; stopped after first run captured the failed event."
+  },
+  "captured_event": {
+    "receiver": 0,
+    "sample_rate": 48000,
+    "sample_count": 2048,
+    "expected_tone_hz": 660,
+    "measured_tone": {
+      "rms": 0.23309216724618378,
+      "frequency_hz": 703.125
+    },
+    "independent_pcm_fft": {
+      "rms": 0.23309216724618378,
+      "frequency_hz": 703.125
+    },
+    "top_pcm_fft_bins": [
+      {
+        "bin": 30,
+        "hz": 703.125,
+        "db": -38.083518981933594
+      },
+      {
+        "bin": 28,
+        "hz": 656.25,
+        "db": -39.4625244140625
+      },
+      {
+        "bin": 32,
+        "hz": 750,
+        "db": -43.27333068847656
+      },
+      {
+        "bin": 31,
+        "hz": 726.5625,
+        "db": -45.25692367553711
+      },
+      {
+        "bin": 26,
+        "hz": 609.375,
+        "db": -47.236572265625
+      },
+      {
+        "bin": 33,
+        "hz": 773.4375,
+        "db": -48.538291931152344
+      },
+      {
+        "bin": 25,
+        "hz": 585.9375,
+        "db": -48.6063117980957
+      },
+      {
+        "bin": 35,
+        "hz": 820.3125,
+        "db": -48.76044845581055
+      }
+    ],
+    "same_pcm_before_after_frequency_read": true,
+    "source_ring": [
+      {
+        "relative_seconds": -0.3112001419067383,
+        "tone": {
+          "rms": 0.0353569488270877,
+          "frequency_hz": 656.25
+        }
+      },
+      {
+        "relative_seconds": -0.19920015335083008,
+        "tone": {
+          "rms": 0.49597421045370554,
+          "frequency_hz": 656.25
+        }
+      },
+      {
+        "relative_seconds": -0.09930014610290527,
+        "tone": {
+          "rms": 0.03538369107823397,
+          "frequency_hz": 656.25
+        }
+      },
+      {
+        "relative_seconds": -0.0023000240325927734,
+        "tone": {
+          "rms": 0.03527188159640385,
+          "frequency_hz": 656.25
+        }
+      }
+    ],
+    "receiver_rtp": {
+      "unix_seconds": 1793144303.4701002,
+      "peers": [
+        [
+          {
+            "direction": "inbound-rtp",
+            "ssrc": 482205001,
+            "packetsReceived": 2112,
+            "packetsLost": 0,
+            "bytesReceived": 155527,
+            "jitter": 0.003,
+            "concealedSamples": 52659,
+            "silentConcealedSamples": 0,
+            "concealmentEvents": 58,
+            "insertedSamplesForDeceleration": 9425,
+            "removedSamplesForAcceleration": 0,
+            "jitterBufferDelay": 157401.6,
+            "jitterBufferEmittedCount": 2023680,
+            "totalSamplesReceived": 2085600,
+            "totalSamplesDuration": 43.449999999999925,
+            "timestamp": 1793144303469.822
+          },
+          {
+            "direction": "outbound-rtp",
+            "ssrc": 3835708293,
+            "packetsSent": 2188,
+            "bytesSent": 177084,
+            "timestamp": 1793144303469.822
+          }
+        ]
+      ]
+    },
+    "counter_interpretation": "Zero RTP packetsLost coexists with nonzero concealment. These counters alone do not identify a missing/late server frame or prove the cause of this transient."
+  },
+  "measurement_checks": {
+    "independent_fft": "The captured float PCM independently produces the same 703.125Hz peak, RMS and spectrum as the browser analyser. Both time-domain captures are exactly equal. The wrong-tone observation is present in the decoded samples, not merely a mismatched analyser read.",
+    "fft_reference": "https://www.w3.org/TR/webaudio-1.1/#fft-windowing-and-smoothing-over-time",
+    "method": "Independent radix2 FFT, spec Blackman window alpha0.16, 2048 samples, no smoothing. Received-source frequency estimator and acceptance thresholds are unchanged.",
+    "pure_gain_control": {
+      "cases": 16448,
+      "sample_rates": [
+        44100,
+        48000
+      ],
+      "tones_hz": [
+        440,
+        660
+      ],
+      "gain_levels": [
+        0.05,
+        0.7
+      ],
+      "directions": [
+        "on",
+        "off"
+      ],
+      "gain_offsets": 257,
+      "phases": 8,
+      "wrong_tone_cases": 0,
+      "interpretation": "A mathematical clean source gain step alone did not produce a wrong-tone peak in this grid. This control is not the actual encoded/network signal path."
+    }
+  },
+  "next_action": "Exercise the actual current Opus codec in an isolated pulse roundtrip to separate codec transients from Core pacing/mixing and browser concealment. Exact RTP-to-PCM chunk lineage is not yet captured; do not assign root cause from aggregate counters or change the quality threshold.",
+  "private_hashes": {
+    ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/summary.json": "836f96167f6e905dcfe2c0c84f1f5be2ed5834f0e3b679a398a025bb247b6cfa",
+    ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/inputs.json": "83bd9ca6d56c0c80cd91b7c2d832ef64ee8cd57012a86fade8b6381f304aa467",
+    ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/browser-result.jsonl": "1fd2674194b1b72f32e8a60c4ab65f27461905d961c42c5a978b6b1ef2acdb72",
+    ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/decoded-audio/synthetic-audio-witnesses.json": "ea6523df7a1a722f3da66210efad2eb55aace002a02ccea69d65d35761ed70fe",
+    ".local/gate-6/audio-witness-analysis-85/analyzed.json": "ce2b497a5d3618791ffb10ef7efe5067bb2510931a7cf6bf435240af477b4d01",
+    ".local/gate-6/audio-witness-analysis-85/envelope-result.json": "b5a0ab7e897c386a8210482e31cae7fa5da6d3d720664f4f53bcfcc8f47ee75b",
+    ".local/gate-6/audio-witness-analysis-85/fft.mjs": "efd8e65f361a0efeadbdc48b267855c656f9dbe3cf96779034b93dabf5dc4b44",
+    ".local/gate-6/audio-witness-analysis-85/analyze.mjs": "5d3af57c49a669434cf60ee70cbbcac28aa11225c15ade1562531748826ab9d7",
+    ".local/gate-6/audio-witness-analysis-85/envelope.mjs": "c1bb3fa30e9974c26731bc76cdc93383120868d47e5079d66e61968b8ff7be2e"
+  },
+  "progress": {
+    "tasks_complete": 57,
+    "in_progress": 2,
+    "acceptance_qualified": 0
+  },
+  "publication": false
+}
