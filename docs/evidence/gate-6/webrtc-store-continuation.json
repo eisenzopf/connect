@@ -1,0 +1,102 @@
+{
+  "task": "G6-051",
+  "date": "2026-10-26",
+  "scope": "Store-only original-attempt WebRTC continuation; synthetic SDP is not transport or media readiness evidence.",
+  "implementation": {
+    "sources": {
+      "crates/connect-store/src/authority_fences.rs": "c0196507b32b953d4e6bb679e73bd58712cab51afa904cb0c7b9f5c340970fdd",
+      "crates/connect-store/src/peer_authority/connection_media.rs": "63807c3cb357a6509c20db6511f3fcf7e1bc210a8dbdc95d2582703de6adf843",
+      "crates/connect-store/src/peer_authority/connection_media/webrtc.rs": "76b3fe779cb6ba68ae6489d0c3418f074828c168d78c4c78d996e67009f7a9c7",
+      "crates/connect-store/src/connection_control/tests/native_wire.rs": "958abf42e4d81e7a5468e7457d5fbb83d3bd663acbbdd8f4824ca09d8231b45a",
+      "crates/connect-store/src/connection_control/tests/native_wire/webrtc_continuation.rs": "9857398d65a7b78debd29f85fd54dea848ffc84fc7d17a95d4b7934996f514bf"
+    },
+    "behavior": [
+      "Derives the exact original offer request from Store-issued attribution and the non-cloneable original lease; allocates no new attempt or effect.",
+      "Reacquires current credential, signing key, device, endpoint, membership, runtime-owner and original attempt authority after the original invocation releases its readers.",
+      "Fresh proof and reads share the same authority interval. Caller cancellation/deadline and original source/operation expiry bound reacquisition without renewal."
+    ]
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 22.641432999866083,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "-p",
+      "connect-store",
+      "--features",
+      "test-support",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 822,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_store-d0ea71d0d0a28a3d",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-store-continuation/store-library-test-02",
+      "sha256": "273978df6a50e571a098eb6514716b4cf722a78c041f3d7d9ecf292ddfc2530c",
+      "bytes": 66556992
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "a0a5e9572dd1fbb1374ba430d8a13a2a0da15b52d75f89a691adaeef3e69536e"
+  },
+  "tests": [
+    {
+      "exit_code": 0,
+      "seconds": 11.512123874854296,
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-store-continuation/store-library-test-02",
+        "connection_control::tests::native_wire::",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "log_sha256": "45a86321d2450ed32fb2bef74ba64bea8f6eab22aa3021569369cf1ae5d48d55",
+      "test_results": [
+        "test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 1214 filtered out; finished in 10.84s"
+      ],
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    },
+    {
+      "exit_code": 0,
+      "seconds": 12.563408541958779,
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-store-continuation/store-library-test-02",
+        "connection_control::tests::media_authority::",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "log_sha256": "f6381e139eb8e47172357a5d7b92f29f2ad9d73b0e7e2e318c12b48be98a61bb",
+      "test_results": [
+        "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1223 filtered out; finished in 12.55s"
+      ],
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    }
+  ],
+  "observations": [
+    "27 native-wire tests pass, including 10 new continuation cases.",
+    "18 media-authority regression tests pass.",
+    "Idle original attribution holds no reader; an independent conversation writer runs before and after each fresh bounded proof.",
+    "Repeated continuation preserves one original offer/effect. Wrong credential/origin/attempt, QUIC entry, withdrawal, departure, cancellation and expired original source are refused.",
+    "A requested ten-second wait behind a writer ends within the original two-second source budget."
+  ],
+  "retained_failure": {
+    "private_log": ".local/gate-6/webrtc-store-continuation/test-01.log",
+    "sha256": "b8e71ae53741c02fb9a2a448d9ecd4113fa480365d5d601a15098042f54dcf55",
+    "result": "Initial 9/10 pass. The expiry test incorrectly expected Preparing; the established status projection correctly returns Unknown after expiry. Fixed only that expectation and verified no result, no renewed continuation and one original effect."
+  },
+  "limitations": [
+    "Service/WSS/Core continuation is not wired by this checkpoint.",
+    "No physical WebRTC allocation, media readiness, browser fallback, Linux/remote, package or acceptance qualification is inferred."
+  ],
+  "task_status": "in-progress"
+}

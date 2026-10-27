@@ -116,6 +116,13 @@ impl AuthorityWait {
             cancelled: Arc::new(AtomicBool::new(false)),
         }
     }
+    /// Narrow the same wait/cancellation owner; never renew its deadline.
+    pub(crate) fn bounded(&self, timeout: Duration) -> Self {
+        Self {
+            deadline: self.deadline.min(Instant::now() + timeout),
+            cancelled: self.cancelled.clone(),
+        }
+    }
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Release);
     }

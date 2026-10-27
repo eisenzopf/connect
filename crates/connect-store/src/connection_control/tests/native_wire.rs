@@ -1,5 +1,6 @@
 //! Shared-ledger lifecycle only. Attempt issuance is NOT physical media evidence.
 use super::*;
+mod webrtc_continuation;
 use crate::{AuthorityWait, PeerAuthorityGuard, PeerAuthorityRequest};
 use connect_protocol::transitions::{OperationAction, OperationRecord, OperationState};
 use std::time::Duration;

@@ -4,6 +4,7 @@ use connect_protocol::connection_control::{OfferIntent, PrepareRequest};
 use std::sync::Weak;
 mod admission;
 mod credential_refresh;
+mod webrtc;
 pub use credential_refresh::{
     NativeCredentialRefreshApplied, NativeCredentialRefreshAttempt, NativeCredentialRefreshPlan,
     NativeCredentialRefreshTarget,
