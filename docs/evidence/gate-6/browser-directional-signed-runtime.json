@@ -1,0 +1,149 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T15:48:42.432909+00:00",
+  "source_revision": "eb3ecb8c8add5e8ee04d34ddf8b9b87344da67ec",
+  "source_revision_note": "Build began after directional patch checkpoint; exact full revision is resolved below. Later TLS-only tooling/doc checkpoint does not alter the guarded Connect graph.",
+  "scope": "Local macOS arm64 whole production Connect graph with the pinned directional media patch. Selected real signed WSS/Store/Core/independent decoder and retained native WT regression. Actual Chrome/Firefox signed media and fallback remain unrun.",
+  "build": {
+    "exit_code": 0,
+    "seconds": 654.5927928329911,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5211,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-07",
+      "sha256": "10568a898b102c1237b8fb7626cc008b6187cf25339fcbb538875aeea20e64c2",
+      "bytes": 214322208
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "b242d4f0e88fd73778a7179c769a89c32c036ab44678d6c546687d877db9e8a6"
+  },
+  "verification": {
+    "initial_distinct_methods": 31,
+    "initial_passed": 30,
+    "initial_failed": 1,
+    "diagnostic_repeated_method_passed": 1,
+    "diagnostic_adds_distinct_methods": 0,
+    "all_closed_input_guards_unchanged": true,
+    "runs": [
+      {
+        "name": "directional-av-07",
+        "input_count": 5372,
+        "input_manifest_sha256": "bb70b6c2674cbe140045126ef5fa4491a5fdf23d40ba0f197ead49f0a60ceeac",
+        "steps": [
+          {
+            "exit_code": 101,
+            "seconds": 11.098011083202437,
+            "log_sha256": "6c671be0a48f8fa17037f5fcf18e47332f192ad77589c254a20e3ddebaa26b45",
+            "test_results": [
+              "test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 9.61s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "directional-refusal-07",
+        "input_count": 5372,
+        "input_manifest_sha256": "30ffea2cecc1cc6de75f8fc49a316980c0bbd210505248f79c3de59a736550f5",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 1.4667487079277635,
+            "log_sha256": "81743cc92f3995ccc0a1946b2ddccb5f821a42e3f6f8eeed9e5bf810ef069c1a",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 60 filtered out; finished in 1.40s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "directional-regression-07",
+        "input_count": 5372,
+        "input_manifest_sha256": "47c15ee70a37e2878bc6d2f1834c6502feff1c9e8f5e422da6cae8d7da33480d",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 51.86417399998754,
+            "log_sha256": "c70c39a2b4d181828adb8c7e5999813f228d126e5493d5e9e4f709a0db581f1f",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 51.80s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 39.49893125006929,
+            "log_sha256": "bbc9bb723cd30fbfab4d91253cd90a3bded3ba3cd31105bf3336979355619e4b",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 39.48s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 4.3292786669917405,
+            "log_sha256": "94f2459ac9daef886b58d167b401eadd9cf996bc4a90de8d29ff6398bc27b6e0",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 4.29s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "directional-restore-diagnostic-07",
+        "input_count": 5372,
+        "input_manifest_sha256": "0ba55e7640dc631d77c8194cdf39fddb59d3be922bf7ae705b2ec703d80b57f3",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 4.094406166113913,
+            "log_sha256": "1d8f504908ee20e009844ffef06ab17b2f68e2c12d3e86520ac62b7d73466d46",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 4.05s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ]
+  },
+  "unresolved_failure": {
+    "method": "signed_av_opus_vp8_decoded_duplex_eddsa",
+    "stage": "av-restore-video original stream.subscribe",
+    "outcome": "unknown",
+    "effect": "original native-stream effect remains unknown at attempt1; no replacement operation is submitted",
+    "observed_before_failure": "Independent duplex Opus and red/blue VP8 decode, original video withdrawal and continued other media passed; restoration did not reach completed journal state. Slow-consumer ingress drops were logged.",
+    "diagnostic": "Same frozen executable and source with bounded debug logging passes a fresh EdDSA fixture. This neither explains the failure nor resolves the failed original operation.",
+    "next": "Retain original error class and worker outcome diagnostics, reproduce and repair the underlying cause without changing original quality/authority/deadline thresholds."
+  },
+  "qualification": "No complete selected-suite, G6-051 or Gate6 acceptance pass. Earlier signed05 uncertainty remains unresolved; the prior worker-metadata fix is not claimed to explain all failures. Publication remains separate."
+}

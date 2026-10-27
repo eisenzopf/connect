@@ -44,15 +44,24 @@ export async function canonicalMediaClient(configuration, selection = {}) {
             return Promise.reject(Error("Supply an explicit original receive-receiveSelection operation, revision and subscriptions."));
         receiving = (async()=>{
             const until = performance.now() + 10000;
+            const completed = async (operationId, label) => {
+                for (;;) {
+                    if(performance.now() >= until)
+                        throw Error(`Original ${label} is not confirmed complete; inspect its operation status.`);
+                    const state=await client.operationStatus(scope.cid,operationId,{timeoutMs:Math.max(1,until-performance.now())});
+                    if(state.state === "completed") return;
+                    if(["failed","cancelled"].includes(state.state))
+                        throw Error(`Original ${label} is not confirmed complete; inspect its operation status.`);
+                    await new Promise(resolve=>setTimeout(resolve,20));
+                }
+            };
+            // RTC signaling completion does not establish the original host
+            // media admission. Observe its journal before submitting selection.
+            await completed(options.operationId, "media offer");
             await client.request("stream.subscribe", {subscriptions: receiveSelection.subscriptions},
-                {...scope, operation_id: receiveSelection.operationId, expected_revision: receiveSelection.expectedRevision});
-            for (;;) {
-                const state=await client.operationStatus(scope.cid,receiveSelection.operationId,{timeoutMs:Math.max(1,until-performance.now())});
-                if(state.state === "completed") return;
-                if(["failed","cancelled"].includes(state.state) || performance.now() >= until)
-                    throw Error("Original receive receiveSelection is not confirmed complete; inspect its operation status.");
-                await new Promise(resolve=>setTimeout(resolve,20));
-            }
+                {...scope, operation_id: receiveSelection.operationId, expected_revision: receiveSelection.expectedRevision},
+                {timeoutMs:Math.max(1,until-performance.now())});
+            await completed(receiveSelection.operationId, "receive selection");
         })();
         return receiving;
     }};

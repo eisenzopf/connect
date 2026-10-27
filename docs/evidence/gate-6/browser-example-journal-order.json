@@ -1,0 +1,53 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T15:57:42.003258+00:00",
+  "scope": "Public example orchestration with actual JWK imports and a controlled public BrowserClient boundary. No actual server, browser, RTP/media or Gate6 acceptance claim.",
+  "implementation": [
+    "Observe the original media-offer operation in the journal before submitting the original receive-selection operation. Signaling alone does not establish usable host ports.",
+    "One original receive promise and mutation. Failed/cancelled offer or current status-authority refusal prevents receive submission. Unknown receive effects only poll the original ID.",
+    "Original offer wait, receive request and receive completion share the same 10-second budget; operation/resource/revision/selection IDs are preserved."
+  ],
+  "verification": {
+    "checks": [
+      {
+        "name": "current-02",
+        "exit_code": 0,
+        "seconds": 0.09521045908331871,
+        "log_sha256": "485594e9c9bd84fd7cd9c3bdeff4a0f4842e933350eda7a0afed27c03c08a251",
+        "results": [
+          "\u2139 tests 4",
+          "\u2139 pass 4",
+          "\u2139 fail 0",
+          "\u2139 skipped 0"
+        ],
+        "changed_inputs": []
+      },
+      {
+        "name": "prior-control-02",
+        "exit_code": 1,
+        "seconds": 0.0964619170408696,
+        "log_sha256": "4be36be3751d09af510f61c770d96a448b276a20a60130491dcecb7e88c89807",
+        "results": [
+          "\u2139 tests 4",
+          "\u2139 pass 0",
+          "\u2139 fail 4",
+          "\u2139 skipped 0"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "prior_source_sha256": "372787a472f6cafc1c71dcd0cb2e39d5d5802f1582273adef07b893c93ba6a5e",
+    "prior_control_relocation": "Only the SDK import URL is mechanically relocated; the original receive implementation is unchanged.",
+    "current_methods": 4,
+    "prior_control_failed_methods": 4,
+    "source_input_count": 155,
+    "input_manifest_sha256": "ec9d50329f23ba4cae359807f41dbcfae325f016de578fd5ea0183ef4f6bca0e",
+    "all_inputs_unchanged": true
+  },
+  "sources": {
+    "examples/conversation-client/canonical-media.js": "046f3b9286386ad1938ec6aafcd317702001b901d489e9e89842c306dd05fcf3",
+    "scripts/tests/canonical_media_example.test.mjs": "b393e376c1cb024dc674fa6ffa6fd898bd18fba1199bd0ecbd7cfebf7f39fc5e"
+  },
+  "qualification": "This repairs example submission ordering. The separate signed EdDSA restore uncertainty, actual signed Chrome/Firefox media/forced fallback and unchanged full Gate6 scope remain open."
+}
