@@ -18,6 +18,9 @@ export interface BrowserVoiceOptions extends BrowserSessionSelection, BrowserCap
     videoCanvas?: HTMLCanvasElement;
     /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
+    /** Explicit STUN/TURN services. Copied before capture; credentials stay local.
+     * Omit to use native host candidates without an implicit public service. */
+    iceServers?: readonly RTCIceServer[];
 }
 /** An unsuccessful open retains its original offer for authoritative status recovery.
  * This snapshot can contain private SDP; keep it in application-owned private state. */

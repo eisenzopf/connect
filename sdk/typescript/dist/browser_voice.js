@@ -1,5 +1,6 @@
 import { boundedCanvasVideoCapture, } from "./browser_video_capture.js";
 import { BrowserDeadline } from "./browser_deadline.js";
+import { browserIceConfiguration } from "./browser_ice.js";
 import { browserOfferSelection, } from "./browser_binding.js";
 import { CanonicalWebRtcSignaling, } from "./browser_webrtc_signaling.js";
 import { microphoneStream, captureDevices, validateBrowserAnswer, } from "./browser_capture.js";
@@ -106,6 +107,7 @@ export class BrowserVoiceSession {
         if (client.closed)
             throw new ConnectError("closed", "Canonical control client closed");
         const selection = browserOfferSelection(options);
+        const iceConfiguration = browserIceConfiguration(options.iceServers);
         const video = selection.videoStreamId !== undefined;
         const inputStream = options.inputStream;
         const videoCanvas = options.videoCanvas;
@@ -195,7 +197,7 @@ export class BrowserVoiceSession {
             }
             // Attach the encoded transform in the same task as addTrack. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
-            session.peer = new RTCPeerConnection();
+            session.peer = new RTCPeerConnection(iceConfiguration);
             for (const track of session.localStream.getTracks())
                 session.peer.addTrack(track, session.localStream);
             if (video)

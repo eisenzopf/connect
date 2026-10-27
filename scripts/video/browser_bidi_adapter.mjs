@@ -7,7 +7,7 @@ export async function connectFirefoxBidi(modulePath, port) {
         throw Error('Explicit private Puppeteer module and bounded loopback port required');
     const {default:puppeteer}=await import(pathToFileURL(modulePath).href);
     const browser=await puppeteer.connect({protocol:'webDriverBiDi',
-        browserWSEndpoint:`ws://127.0.0.1:${port}/session`,acceptInsecureCerts:false,protocolTimeout:10000});
+        browserWSEndpoint:`ws://127.0.0.1:${port}/session`,acceptInsecureCerts:false,protocolTimeout:20000});
     try {
         const version=await browser.version();
         if(version!=='firefox/158.0.1')throw Error('Installed Firefox fixture requires version158.0.1');

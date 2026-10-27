@@ -1,0 +1,322 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T18:38:15.371815+00:00",
+  "scope": "Explicit bounded ICE services on the original browser peer. Firefox now establishes actual duplex media and original Session termination after real UDP failure; full60s Firefox AV remains FAILED.",
+  "implementation": [
+    "BrowserVoiceSession/BrowserVideoSession accept only explicit iceServers, copied before capture awaits. No implicit public STUN/TURN. Credentials go only to the original native RTC peer, not logical Connection payloads or status/receipt records.",
+    "Bounds:8servers,4URLs each,16URLs total; URL2048characters, username512, credential2048; valid stun/stuns/turn/turns URI shape and port1..65535; TURN requires username/credential. Invalid input and sparse arrays refuse before capture with value-free errors.",
+    "Canonical example copies connection.iceServers from its existing private configuration. Native signed IDs, capture ownership and original deadlines remain unchanged.",
+    "Firefox fixture uses a fresh normally trusted profile, explicit loopback ICE preference and owned RFC5389 UDP listener bound to127.0.0.1. Address obfuscation stays enabled. This qualifies only the isolated test environment.",
+    "The fixture initially dropped requests from native browser sockets bound to another local interface. It now reflects that actual source socket. Numeric first8header records prove20byte Binding requests with non-loopback source addresses; no address, payload or transaction ID is retained in the report.",
+    "BiDi automation budget20s allows existing SDK deadlines to report their original result; product signaling/capture deadlines are unchanged."
+  ],
+  "units": {
+    "sdk_and_example_methods": 69,
+    "original_observer_methods": 56,
+    "guarded_source_count": 290,
+    "checks": {
+      "checks": [
+        {
+          "name": "sdk-and-example",
+          "arguments": [
+            "node",
+            "--test",
+            "sdk/tests/browser_voice.test.mjs",
+            "sdk/tests/browser_webrtc_signaling.test.mjs",
+            "scripts/tests/canonical_media_example.test.mjs"
+          ],
+          "exit_code": 0,
+          "seconds": 0.18709716596640646,
+          "log_sha256": "8b8966f515e6d3fe3bddd5c43c0c3580ab6d4b1cbac6b36c931ab40aded0dae9"
+        },
+        {
+          "name": "original-observers",
+          "arguments": [
+            "python3",
+            "-m",
+            "unittest",
+            "scripts.tests.test_video_measurements"
+          ],
+          "exit_code": 0,
+          "seconds": 1.7312265830114484,
+          "log_sha256": "b4b1f4eaddc70c72c78e62e7e5803d2c456625fe020c389d9a9ea7ff7da0f4c3"
+        }
+      ],
+      "source_count": 290,
+      "changed_inputs": []
+    },
+    "stun_fixture": {
+      "diagnostic_filter": "warn,connect_service::canonical_webrtc=debug,rvoip_webrtc::canonical::media=debug",
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-41",
+        "canonical_webrtc_browser::canonical_loopback_stun_fixture_preserves_transaction_and_joins",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.09229449997656047,
+      "changed_inputs": [],
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.06s"
+      ],
+      "files": {
+        "test.log": "287cd1a290a9bde3f747dd5456b31a6177060e182de0d95a73768e7dfbc6874c",
+        "inputs.json": "f33547a49a84cb57e7e4ceaa9b77ff48f78ba2d19a2f6a609ecaaee3ffff5c5b"
+      }
+    },
+    "stun_assertions": "One actual original Binding request, matching12byte transaction/cookie, correct XOR-mapped IPv4/port; malformed cookie receives no response; task joins and original UDP address is reclaimed. One method passed. Initial helper used --ignored and selected0methods; that is not a pass and is retained separately."
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 3.808388624805957,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5217,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-41",
+      "sha256": "27d12e50adc45eba3eb76b220434311685b184f201a52827639c9f30014a5882",
+      "bytes": 214817536
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "bfa7539722773c4363d127a0166ba1323f38c0e8069b3f55435ff2fd954b0fd4"
+  },
+  "firefox": {
+    "status": "failed",
+    "browser": "firefox/158.0.1",
+    "seconds": 67.64845520816743,
+    "guards_closed_unchanged": true,
+    "hashes": {
+      "inputs.json": "b0c9fb883b2fddcdd8d261eef5d4118db4a60a792b79b3ba7a4cc6ca15af94b1",
+      "browser-result.jsonl": "e2f56cda0249b6db9cf6b1e5d91a597b81bdc2584c0b98bace44742967c11d34",
+      "test.log": "c773b1ad6773a00c0495f47bfb5eb2922035a9fbdc97616dcf9df40aeb61f5bd",
+      "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+      "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+      "stun.json": "ce6feb57886284dd235a4e511fd6a7fdbb2844fdfbd3ab70d83488240779c3b1",
+      "browser-profile.json": "0c5bea7bae22bc7c05c938d431efdd70a08969b939f8ee0036f5635c8d381db6"
+    },
+    "transport_switch": {
+      "actual_loopback_quic_initial_datagrams": [
+        28,
+        28
+      ],
+      "forced_fallback": true,
+      "original_message_counts": [
+        1,
+        2,
+        1
+      ],
+      "original_message_counts_preserved": true
+    },
+    "stun": {
+      "bounded_numeric_headers": [
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        },
+        {
+          "body_bytes": 0,
+          "bytes": 20,
+          "cookie": 554869826,
+          "message_type": 1,
+          "source_is_loopback": false
+        }
+      ],
+      "owned_loopback_only": true,
+      "successful_binding_responses": 8
+    },
+    "profile": {
+      "isolated_firefox_loopback_ice": true,
+      "normal_certificate_verification": true
+    },
+    "fallback": [
+      {
+        "transport": "webtransport",
+        "status": "refused",
+        "error_code": "timeout",
+        "seconds": 1.998,
+        "original_timeout_ms": 1000,
+        "application_mutations_attempted": 0,
+        "replayed_originals": [
+          {
+            "type": "message.send",
+            "operation_id": "browser-original-message-op",
+            "state": "completed"
+          },
+          {
+            "type": "session.invite",
+            "operation_id": "browser-invite",
+            "state": "completed"
+          }
+        ]
+      },
+      {
+        "transport": "webtransport",
+        "status": "refused",
+        "error_code": "timeout",
+        "seconds": 1.004,
+        "original_timeout_ms": 1000,
+        "application_mutations_attempted": 0,
+        "replayed_originals": [
+          {
+            "type": "session.accept",
+            "operation_id": "browser-accept",
+            "state": "completed"
+          }
+        ]
+      }
+    ],
+    "participants": [
+      {
+        "seconds": 60.00500011444092,
+        "decoded_fps": 18.39846675934443,
+        "changing_fps": 0.049995833585175085,
+        "rendered_frames": 4,
+        "video_packets_lost": 3,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "failed",
+          "motion_profile": "failed",
+          "worker_pipeline": "failed",
+          "av_sync": "failed",
+          "av_acceptance": "failed"
+        },
+        "audio_samples": 517,
+        "audio_coverage_complete": false,
+        "bad_audio_samples": 0,
+        "source_draws_per_second": 29.080909868710172
+      },
+      {
+        "seconds": 60.003000020980835,
+        "decoded_fps": 24.282119218881405,
+        "changing_fps": 21.965568380566705,
+        "rendered_frames": 1457,
+        "video_packets_lost": 0,
+        "subchecks": {
+          "source_identity": "passed",
+          "audio_profile": "failed",
+          "motion_profile": "passed",
+          "worker_pipeline": "failed",
+          "av_sync": "passed",
+          "av_acceptance": "passed"
+        },
+        "audio_samples": 515,
+        "audio_coverage_complete": false,
+        "bad_audio_samples": 0,
+        "source_draws_per_second": 29.081879229202503
+      }
+    ],
+    "paired_termination": {
+      "status": "passed",
+      "seconds": 0.03992366699999548,
+      "limit_seconds": 5,
+      "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+    },
+    "teardown_seconds": 0.08268316600000253,
+    "ownership": {
+      "browser_kind": "firefox",
+      "original_listener_addresses_reclaimed": 3,
+      "owned_browser_joined": true,
+      "owned_node_joined": true,
+      "physical_routes_and_slots_retired": true,
+      "runner_timed_out": false,
+      "server_shutdown_joined": true
+    }
+  },
+  "retained_failures": [
+    "Firefox29/31/34/35 failed native ICE. A loopback preference alone did not repair it.",
+    "Firefox36/37 configured1native ICE service per peer but the fixture admitted0Binding requests; the source filter ran before the numeric header observer. This is not evidence that Firefox sent0datagrams.",
+    "Captured ChromeES256 audio witness30 shows native Blackman peak703.125Hz while direct rectangular DFT of the samePCM peaks656.25Hz. Candidate rectangular observer passesES25632 but failsEdDSA33 with703.125Hz and398.4375Hz samples. Candidate code was saved privately and removed from public sources; original observer/threshold/source retained.",
+    "Root38 compiled but link failed ENOSPC. Seven closed proof executables20/23/24/28/34/36/37 were losslessly archived with roundtrip SHA/length verified before unlink. Source/state/logs retained. CorrectedRoot39/41 links pass."
+  ],
+  "archives": {
+    "manifest_sha256": "51954cc58b9de5790ddafc534f2d52f67ce26de41abb82b9525afb4dcc4b1827",
+    "artifacts": 7,
+    "original_bytes": 1503123984,
+    "compressed_bytes": 305136559,
+    "all_roundtrip_verified": true
+  },
+  "remaining": [
+    "Firefox fullAV FAIL: first receiver renders4frames despite native decoded18.40fps and source draws29.08fps; second decodes24.28fps. Worker counters unavailable.",
+    "Both audio observers record515samples with0wrong tones, below unchanged90percent coverage minimum540; callback-count sampling does not maintain configured100ms cadence in Firefox. Actual timestamps and failed verdict retained.",
+    "FirefoxES256, normal remote/default profiles, impairment/mute/data and prior Chrome/native audio issues remain required.",
+    "No model/account/provider calls in this checkpoint; the authorized one-shot Codex host run was already consumed successfully."
+  ],
+  "qualification": "53/105done,4in progress,48not started; acceptance unqualified. No task promotion."
+}

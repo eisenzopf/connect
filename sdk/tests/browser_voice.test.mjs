@@ -20,7 +20,7 @@ async function withBrowser(mode,run){
     const stream={getTracks:()=>[track]};state.track=track;state.stream=stream;
     class Peer extends EventTarget {
         iceGatheringState='complete';connectionState='new';
-        constructor(){super();state.peer=this;if(mode==='peer-constructor')throw Error('fixture peer failure');}
+        constructor(configuration){super();state.peerConfiguration=structuredClone(configuration);state.peer=this;if(mode==='peer-constructor')throw Error('fixture peer failure');}
         addTrack(){if(mode==='track-add')throw Error('fixture track failure');}
         createDataChannel(){throw Error('Unoffered datachannel must never be created');}
         async createOffer(){if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp};}
@@ -419,3 +419,41 @@ test('public answer profile refuses partial, nonduplex and unoffered audio/data'
         audioSdp+'m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n'])assert.throws(()=>validateBrowserAnswer(sdp,false),{code:'unsupported-media-profile'});
     assert.throws(()=>validateBrowserAnswer(audioSdp,true),{code:'unsupported-media-profile'});
 });
+
+
+test('explicit ICE services reach only the original native peer and stay out of wire intents',()=>withBrowser('early',async state=>{
+    const iceServers=[{urls:['stun:127.0.0.1:3478','stuns:localhost:5349']},
+        {urls:['turn:relay.example:3478?transport=udp','turns:[::1]:5349?transport=tcp'],username:'private-turn-user',credential:'private-turn-secret'}];
+    const voice=await open(state,{iceServers});
+    assert.deepEqual(state.peerConfiguration,{iceServers});
+    assert.equal(state.offers.length,1);
+    assert(!JSON.stringify(voice.savedOffer).includes('private-turn'));
+    assert(!JSON.stringify(state.client.commands).includes('relay.example'));
+    await voice.close();assert.equal(state.peerCloses,1);
+}));
+
+test('ICE configuration is snapshotted before pending capture permission',()=>withBrowser('early',async state=>{
+    let finish;const pending=new Promise(resolve=>finish=resolve);
+    navigator.mediaDevices.getUserMedia=()=>pending;
+    const iceServers=[{urls:['turn:relay.example:3478'],username:'original-user',credential:'original-secret'}];
+    const opening=open(state,{iceServers});
+    iceServers[0].urls[0]='turn:changed.example:3478';iceServers[0].credential='changed-secret';iceServers.push({urls:'stun:changed.example'});
+    finish(state.stream);const voice=await opening;
+    assert.deepEqual(state.peerConfiguration,{iceServers:[{urls:['turn:relay.example:3478'],username:'original-user',credential:'original-secret'}]});
+    await voice.close();
+}));
+
+test('invalid or excessive ICE services refuse before capture and keep error details private',()=>withBrowser('early',async state=>{
+    const invalid=[null,{},Array(2),[{urls:Array(2)}],Array(9).fill({urls:'stun:localhost'}),[{urls:[]}],
+        [{urls:['stun:localhost','stun:localhost','stun:localhost','stun:localhost','stun:localhost']}],
+        Array(5).fill({urls:Array(4).fill('stun:localhost')}),
+        ...['https://private-secret.example','stun://localhost','stun:localhost:0','stun:localhost:65536','stun:localhost/path',
+            'stun:user:private-secret@localhost','stun:localhost?transport=udp','turn:localhost?transport=other',
+            'stun:[not-an-ip]','stun:localhost#private-secret'].map(urls=>({urls})).map(s=>[s]),
+        [{urls:'turn:localhost'}],[{urls:'stun:localhost',username:4}],
+        [{urls:'turn:localhost',username:'user',credential:{private:'secret'}}],
+        [{urls:'stun:localhost',credential:'x'.repeat(2049)}],
+        [{urls:'stun:localhost',privateSecret:'private-secret'}]];
+    for(const iceServers of invalid)await assert.rejects(open(state,{iceServers}),error=>error.code==='invalid-request'&&!error.message.includes('private-secret'));
+    assert.equal(state.microphoneRequests,0);assert.equal(state.peer,undefined);assert.equal(state.offers.length,0);
+}));

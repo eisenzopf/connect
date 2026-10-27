@@ -111,18 +111,27 @@ fn participant(
         "end":{"operationId":format!("browser-end-{index}"),"expectedRevision":2}})
 }
 
-struct UdpBlackhole {
+struct OwnedUdpFixture {
     address: std::net::SocketAddr,
     packets: Arc<std::sync::atomic::AtomicU64>,
+    headers: Arc<std::sync::Mutex<Vec<Value>>>,
     stop: tokio_util::sync::CancellationToken,
     task: Option<tokio::task::JoinHandle<()>>,
 }
-impl UdpBlackhole {
+impl OwnedUdpFixture {
     async fn open() -> Self {
+        Self::bind(false).await
+    }
+    async fn stun() -> Self {
+        Self::bind(true).await
+    }
+    async fn bind(stun: bool) -> Self {
         let socket = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
         let address = socket.local_addr().unwrap();
         let packets = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let count = packets.clone();
+        let headers = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let observed_headers = headers.clone();
         let stop = tokio_util::sync::CancellationToken::new();
         let cancelled = stop.clone();
         let task = tokio::spawn(async move {
@@ -132,7 +141,38 @@ impl UdpBlackhole {
                     _=cancelled.cancelled()=>break,
                     received=socket.recv_from(&mut buffer)=>{
                         let (length,source)=received.unwrap();
-                        if source.ip().is_loopback() && length>=1200 {
+                        // The listener itself is loopback-only. Firefox can bind a
+                        // local interface address before sending to that listener.
+                        // Preserve that native socket's actual reflected address.
+                        if !stun && !source.ip().is_loopback() { continue; }
+                        if stun {
+                            {
+                                let mut headers = observed_headers.lock().unwrap();
+                                if headers.len() < 8 {
+                                    headers.push(json!({"bytes":length,"source_is_loopback":source.ip().is_loopback(),
+                                        "message_type":(length>=2).then(||u16::from_be_bytes([buffer[0],buffer[1]])),
+                                        "body_bytes":(length>=4).then(||u16::from_be_bytes([buffer[2],buffer[3]])),
+                                        "cookie":(length>=8).then(||u32::from_be_bytes(buffer[4..8].try_into().unwrap()))}));
+                                }
+                            }
+                            // RFC5389 loopback binding only. No proxy, auth or
+                            // provider traffic; the original transaction is echoed.
+                            if length < 20 || length > 2048 || buffer[..2] != [0,1]
+                                || buffer[4..8] != [0x21,0x12,0xa4,0x42]
+                                || usize::from(u16::from_be_bytes([buffer[2],buffer[3]])) != length-20
+                                || (length-20)%4 != 0 { continue; }
+                            let std::net::IpAddr::V4(ip) = source.ip() else { continue; };
+                            let mut response=[0u8;32];
+                            response[..4].copy_from_slice(&[1,1,0,12]);
+                            response[4..20].copy_from_slice(&buffer[4..20]);
+                            response[20..26].copy_from_slice(&[0,0x20,0,8,0,1]);
+                            response[26..28].copy_from_slice(&(source.port()^0x2112).to_be_bytes());
+                            for (index,byte) in ip.octets().iter().enumerate() {
+                                response[28+index]=byte^buffer[4+index];
+                            }
+                            socket.send_to(&response,source).await.unwrap();
+                            count.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
+                        } else if length>=1200 {
                             count.fetch_add(1,std::sync::atomic::Ordering::Relaxed);
                         }
                     }
@@ -142,6 +182,7 @@ impl UdpBlackhole {
         Self {
             address,
             packets,
+            headers,
             stop,
             task: Some(task),
         }
@@ -152,7 +193,7 @@ impl UdpBlackhole {
         self.packets.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
-impl Drop for UdpBlackhole {
+impl Drop for OwnedUdpFixture {
     fn drop(&mut self) {
         self.stop.cancel();
         if let Some(task) = &self.task {
@@ -160,6 +201,43 @@ impl Drop for UdpBlackhole {
         }
     }
 }
+
+#[tokio::test]
+async fn canonical_loopback_stun_fixture_preserves_transaction_and_joins() {
+    let fixture = OwnedUdpFixture::stun().await;
+    let address = fixture.address;
+    let client = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
+    let mut request = [7u8; 20];
+    request[..8].copy_from_slice(&[0, 1, 0, 0, 0x21, 0x12, 0xa4, 0x42]);
+    client.send_to(&request, address).await.unwrap();
+    let mut response = [0u8; 64];
+    let (length, source) =
+        tokio::time::timeout(Duration::from_secs(1), client.recv_from(&mut response))
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(source, address);
+    assert_eq!(length, 32);
+    assert_eq!(&response[..4], &[1, 1, 0, 12]);
+    assert_eq!(&response[4..20], &request[4..20]);
+    assert_eq!(&response[20..26], &[0, 0x20, 0, 8, 0, 1]);
+    assert_eq!(
+        u16::from_be_bytes(response[26..28].try_into().unwrap()) ^ 0x2112,
+        client.local_addr().unwrap().port()
+    );
+    assert_eq!(&response[28..32], &[127 ^ 0x21, 0x12, 0xa4, 1 ^ 0x42]);
+    request[4] ^= 1;
+    client.send_to(&request, address).await.unwrap();
+    assert!(
+        tokio::time::timeout(Duration::from_millis(50), client.recv_from(&mut response))
+            .await
+            .is_err()
+    );
+    assert_eq!(fixture.close().await, 1);
+    let reclaimed = std::net::UdpSocket::bind(address).unwrap();
+    drop(reclaimed);
+}
+
 fn original_message_counts(f: &Fixture) -> (i64, i64, i64) {
     let db = rusqlite::Connection::open_with_flags(
         f.server.store.path(),
@@ -347,6 +425,24 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
     std::fs::write(output.join("trust-import.log"), &imported.stderr).unwrap();
     assert!(imported.status.success());
     std::fs::write(output.join("trust-import.json"), &imported.stdout).unwrap();
+    if browser_kind == "firefox" {
+        // Firefox excludes loopback ICE candidates in its normal profile.
+        // This owned profile qualifies only this isolated loopback fixture.
+        std::fs::write(
+            profile.join("user.js"),
+            "user_pref(\"media.peerconnection.ice.loopback\", true);\n",
+        )
+        .unwrap();
+    }
+    std::fs::write(
+        output.join("browser-profile.json"),
+        serde_json::to_vec(&json!({
+            "normal_certificate_verification":true,
+            "isolated_firefox_loopback_ice":browser_kind == "firefox"
+        }))
+        .unwrap(),
+    )
+    .unwrap();
     let browser_log = output.join(format!("{browser_kind}.log"));
     let mut command = Command::new(binary);
     if browser_kind == "chrome" {
@@ -418,13 +514,24 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
     let mut blackholes = Vec::new();
     if forced_fallback {
         for _ in 0..2 {
-            blackholes.push(UdpBlackhole::open().await);
+            blackholes.push(OwnedUdpFixture::open().await);
         }
     }
+    let stun = if browser_kind == "firefox" {
+        Some(OwnedUdpFixture::stun().await)
+    } else {
+        None
+    };
     let mut participants = vec![
         participant(&f, &f.client, &room.id, mine, theirs, 0),
         participant(&f, &other, &room.id, theirs, mine, 1),
     ];
+    if let Some(stun) = &stun {
+        for participant in &mut participants {
+            participant["connection"]["iceServers"] =
+                json!([{ "urls":format!("stun:127.0.0.1:{}",stun.address.port()) }]);
+        }
+    }
     if forced_fallback {
         participants[0]["fallbackOriginals"] = json!([original_message.unwrap(),
             {"type":"session.invite","payload":{"to":[theirs],"medium":"voice+video","intent":"conference","capabilities_offer":{"audio":["opus"],"video":["vp8"]}},
@@ -476,6 +583,23 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
     for hole in blackholes {
         blackhole_packets.push(hole.close().await);
     }
+    let (stun_bindings, stun_headers) = match stun {
+        Some(stun) => {
+            let headers = stun.headers.clone();
+            let count = stun.close().await;
+            let values = headers.lock().unwrap().clone();
+            (count, values)
+        }
+        None => (0, Vec::new()),
+    };
+    std::fs::write(
+        output.join("stun.json"),
+        serde_json::to_vec(
+            &json!({"owned_loopback_only":true,"successful_binding_responses":stun_bindings,"bounded_numeric_headers":stun_headers}),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     let message_preserved =
         original_counts.is_none_or(|before| original_message_counts(&f) == before);
     std::fs::write(output.join("transport-switch.json"),serde_json::to_vec(&json!({"forced_fallback":forced_fallback,"actual_loopback_quic_initial_datagrams":blackhole_packets,"original_message_counts_preserved":message_preserved,"original_message_counts":original_counts})).unwrap()).unwrap();
