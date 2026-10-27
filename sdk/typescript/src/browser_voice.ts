@@ -1,3 +1,7 @@
+import {
+    boundedCanvasVideoCapture,
+    type CanvasVideoCapture,
+} from "./browser_video_capture.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
@@ -40,6 +44,9 @@ export interface BrowserVoiceOptions
     /** A live one-audio or one-audio/one-video stream. Ownership transfers after validation.
      * Clone tracks first to retain a source. Omit to acquire microphone/camera capture. */
     inputStream?: MediaStream;
+    /** Explicit canvas source for video. SDK owns captureStream(30); inputStream
+     * supplies audio only. Canvas images stay on their original canvas. */
+    videoCanvas?: HTMLCanvasElement;
     /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
 }
@@ -82,6 +89,7 @@ export class BrowserVoiceSession {
     private localStream?: MediaStream;
     private ownedTracks: MediaStreamTrack[] = [];
     private videoWorker?: Worker;
+    private canvasCapture?: CanvasVideoCapture;
     private signaling?: CanonicalWebRtcSignaling;
     private stopLifetime?: () => void;
     private stopEvents?: () => void;
@@ -171,9 +179,26 @@ export class BrowserVoiceSession {
         const selection = browserOfferSelection(options);
         const video = selection.videoStreamId !== undefined;
         const inputStream = options.inputStream;
+        const videoCanvas = options.videoCanvas;
+        if (
+            videoCanvas !== undefined &&
+            (!video ||
+                typeof HTMLCanvasElement !== "function" ||
+                !(videoCanvas instanceof HTMLCanvasElement) ||
+                videoCanvas.width < 1 ||
+                videoCanvas.width > 640 ||
+                videoCanvas.height < 1 ||
+                videoCanvas.height > 360 ||
+                options.videoDeviceId !== undefined)
+        )
+            throw new ConnectError(
+                "invalid-request",
+                "Select a bounded video canvas without a camera device selector",
+            );
+        const capturedVideo = video && videoCanvas === undefined;
         const devices = captureDevices(
             options,
-            video,
+            capturedVideo,
             inputStream !== undefined,
         );
         const tracks = inputStream?.getTracks();
@@ -181,8 +206,8 @@ export class BrowserVoiceSession {
             tracks &&
             (tracks.filter((t) => t.kind === "audio").length !== 1 ||
                 tracks.filter((t) => t.kind === "video").length !==
-                    (video ? 1 : 0) ||
-                tracks.length !== (video ? 2 : 1) ||
+                    (capturedVideo ? 1 : 0) ||
+                tracks.length !== (capturedVideo ? 2 : 1) ||
                 tracks.some((t) => t.readyState !== "live"))
         )
             throw new ConnectError(
@@ -217,7 +242,7 @@ export class BrowserVoiceSession {
                     inputStream ??
                     (await microphoneStream(
                         budget.remaining(),
-                        video,
+                        capturedVideo,
                         devices,
                         session.captureEvents.signal,
                     ));
@@ -233,11 +258,11 @@ export class BrowserVoiceSession {
                 ...(tracks ?? session.localStream.getTracks()),
             ];
             if (
-                session.ownedTracks.length !== (video ? 2 : 1) ||
+                session.ownedTracks.length !== (capturedVideo ? 2 : 1) ||
                 session.ownedTracks.filter((t) => t.kind === "audio").length !==
                     1 ||
                 session.ownedTracks.filter((t) => t.kind === "video").length !==
-                    (video ? 1 : 0)
+                    (capturedVideo ? 1 : 0)
             )
                 throw new ConnectError(
                     "unsupported-media-profile",
@@ -264,18 +289,44 @@ export class BrowserVoiceSession {
                     );
             }
             session.check();
-            if (video)
-                await session.bound(
-                    constrainVideoCapture(
-                        session.localStream,
-                        budget.remaining(),
-                    ),
-                    budget,
-                );
+            if (video) {
+                session.canvasCapture = videoCanvas
+                    ? boundedCanvasVideoCapture(
+                          session.localStream,
+                          videoCanvas,
+                          (error) => session.fail(error),
+                      )
+                    : undefined;
+                if (session.canvasCapture) {
+                    session.localStream = session.canvasCapture.stream;
+                    for (const track of session.localStream.getVideoTracks())
+                        track.addEventListener(
+                            "ended",
+                            () =>
+                                session.fail(
+                                    new ConnectError(
+                                        "closed",
+                                        "Owned canvas capture ended",
+                                    ),
+                                ),
+                            {
+                                once: true,
+                                signal: session.captureEvents.signal,
+                            },
+                        );
+                } else
+                    await session.bound(
+                        constrainVideoCapture(
+                            session.localStream,
+                            budget.remaining(),
+                        ),
+                        budget,
+                    );
+            }
             // Attach the encoded transform in the same task as addTrack. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
             session.peer = new RTCPeerConnection();
-            for (const track of session.ownedTracks)
+            for (const track of session.localStream.getTracks())
                 session.peer.addTrack(track, session.localStream);
             if (video) session.videoWorker = startVideoTransform(session.peer);
             session.peer.ontrack = (event) => {
@@ -410,8 +461,10 @@ export class BrowserVoiceSession {
 
     /** Independently mute a captured kind without ending the durable Session. */
     setMuted(kind: "audio" | "video", muted: boolean): void {
-        for (const track of this.localStream!.getTracks().filter(
-            (t) => t.kind === kind,
+        for (const track of new Set(
+            [...this.ownedTracks, ...this.localStream!.getTracks()].filter(
+                (t) => t.kind === kind,
+            ),
         ))
             track.enabled = !muted;
     }
@@ -588,10 +641,14 @@ export class BrowserVoiceSession {
                 stopVideoWorker(this.videoWorker);
             } finally {
                 try {
-                    for (const track of this.ownedTracks) track.stop();
+                    this.canvasCapture?.close();
                 } finally {
-                    this.ownedTracks = [];
-                    this.resolveEnded();
+                    try {
+                        for (const track of this.ownedTracks) track.stop();
+                    } finally {
+                        this.ownedTracks = [];
+                        this.resolveEnded();
+                    }
                 }
             }
         }

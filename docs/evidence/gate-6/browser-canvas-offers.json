@@ -1,0 +1,491 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T15:02:00.537786+00:00",
+  "source_revision_before_checkpoint": "14983b8b56da28186e8f0655651a948b98cc5651",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "scope": "Local macOS arm64 SDK/capture and actual Chrome/Firefox complete-offer observations with synthetic canvas/WebAudio and a controlled client.request fixture. Requests are intercepted and refused before any remote server submission. No signed WSS/TLS/Core/DTLS/SRTP/decoded-media/fallback acceptance claim.",
+  "implementation": [
+    "Public videoCanvas option is snapshotted before capture. It requires the bounded actual HTMLCanvasElement and audio-only supplied input (or acquired microphone without camera). Device selectors or ambiguous supplied video refuse before ownership.",
+    "SDK creates and owns captureStream(30) on the original canvas, checking actual output settings when exposed. It does not infer an unavailable frame rate from a caller assertion, rescale source images or rewrite timestamps. Physical camera/supplied camera-track constraints remain on their original path.",
+    "An owned MutationObserver retires the derived track and reports unsupported-media-profile if intrinsic canvas dimensions change. Control/peer/terminal/capture failure, cancellation and local close disconnect the observer and stop original and derived tracks. Video mute applies to original and derived owners.",
+    "The prepared browser qualification source now supplies its original canvas explicitly and a mono WebAudio destination, preserving source images, tone/marker definitions and all observer quality limits. Actual signed-host qualification is still required."
+  ],
+  "verification": {
+    "sdk_methods": 312,
+    "new_canvas_methods_included": 7,
+    "browser_verdict_methods": 34,
+    "package_inventory_methods": 29,
+    "checks": [
+      {
+        "name": "build",
+        "command": [
+          "npm",
+          "--prefix",
+          "sdk/typescript",
+          "run",
+          "build"
+        ],
+        "exit_code": 0,
+        "seconds": 0.27201766590587795,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 build",
+          "npm notice run tsc -p tsconfig.json"
+        ]
+      },
+      {
+        "name": "format",
+        "command": [
+          "npm",
+          "--prefix",
+          "sdk/typescript",
+          "exec",
+          "--",
+          "prettier",
+          "--check",
+          "sdk/typescript/src/browser_video_capture.ts",
+          "sdk/typescript/src/browser.ts",
+          "sdk/typescript/src/browser_voice.ts",
+          "sdk/typescript/src/browser_video.ts",
+          "sdk/typescript/src/browser_binding.ts",
+          "sdk/typescript/src/browser_capture.ts",
+          "sdk/typescript/src/browser_webrtc_signaling.ts"
+        ],
+        "exit_code": 0,
+        "seconds": 0.27807287499308586,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "bb02a7f0c6da597648de2d2ac3d9755409649ec8af5a89d9d4438e8322d02bd4",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 npx",
+          "npm notice run 'prettier' --check sdk/typescript/src/browser_video_capture.ts sdk/typescript/src/browser.ts sdk/typescript/src/browser_voice.ts sdk/typescript/src/browser_video.ts sdk/typescript/src/browser_binding.ts sdk/typescript/src/browser_capture.ts sdk/typescript/src/browser_webrtc_signaling.ts",
+          "Checking formatting...",
+          "All matched files use Prettier code style!"
+        ]
+      },
+      {
+        "name": "sdk",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/clients.test.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 3.289977083913982,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "332160f0250a1fb0c17729024e6bc0491dfdecc93575374a1f885c6b661ca97b",
+        "tail": [
+          "\u2714 native audio reports remote end promptly and preserves the terminal code (88.081583ms)",
+          "\u2714 health readiness validates observations and still accepts older servers (0.667167ms)",
+          "\u2139 tests 312",
+          "\u2139 suites 0",
+          "\u2139 pass 312",
+          "\u2139 fail 0",
+          "\u2139 cancelled 0",
+          "\u2139 skipped 0",
+          "\u2139 todo 0",
+          "\u2139 duration_ms 3246.294958"
+        ]
+      },
+      {
+        "name": "verdict",
+        "command": [
+          "node",
+          "--test",
+          "scripts/tests/acceptance_policy.test.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 0.10666695889085531,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "4ba5810f5c8d57be73b9bac141a06c0bb8021b6adf9ff35e915b676f9e2eba22",
+        "tail": [
+          "\u2714 legacy strict helper still rejects degraded impaired-quality evidence (0.477542ms)",
+          "\u2714 actual browser verdict retains every non-AV hard gate under degraded acceptance (1.916416ms)",
+          "\u2139 tests 34",
+          "\u2139 suites 0",
+          "\u2139 pass 34",
+          "\u2139 fail 0",
+          "\u2139 cancelled 0",
+          "\u2139 skipped 0",
+          "\u2139 todo 0",
+          "\u2139 duration_ms 65.518375"
+        ]
+      },
+      {
+        "name": "package",
+        "command": [
+          "python3",
+          "scripts/tests/test_package_inventory.py"
+        ],
+        "exit_code": 0,
+        "seconds": 2.1888570829760283,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "40b105381cecc62cd0dc0c0ecc9073a396de3fa33db288854bd743a035219c9d",
+        "tail": [
+          ".............................",
+          "----------------------------------------------------------------------",
+          "Ran 29 tests in 2.123s",
+          "",
+          "OK"
+        ]
+      },
+      {
+        "name": "syntax-0",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/canonical-media.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.036238000029698014,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-1",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/app.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03419833304360509,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-2",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/video.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.034354541916400194,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-3",
+        "command": [
+          "node",
+          "--check",
+          "scripts/live/browser-voice.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.036836290964856744,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-4",
+        "command": [
+          "node",
+          "--check",
+          "scripts/video/browser-qualify.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03347187489271164,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      }
+    ],
+    "input_manifest_sha256": "53783f8c93d03a7a0ef8bf76181813423deabe65243cd837d1e3fce56a7d32e4",
+    "actual_browser_runs": [
+      {
+        "run": "chrome-final-05",
+        "browser": "chrome",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+        "seconds": 1.126261416822672,
+        "result": "local-offer-observed",
+        "process_joined": true,
+        "process_exit_code": 0,
+        "changed_inputs": [],
+        "input_manifest_sha256": "9afcdc9900728411ba658acb0bffcaa823ecd63907ab86769d55ff7c8f697253",
+        "canvas_capture_rates": [
+          30
+        ],
+        "original_audio_after_release": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          }
+        ],
+        "owned_canvas_after_release": [
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "actual_native_stop_calls": {
+          "audio": 1,
+          "video": 1
+        },
+        "summary_sha256": "d9a260fa5289d37854b10818577b05a99c3e54655343a1a7d6c89f1c58b101ee",
+        "sdp_sha256": "f84db32dd94415b9e026fbf4b74d49eff17cbafa9f9b6155641cdd3fdbd18ea9",
+        "sections": [
+          {
+            "media": "m=audio 9 UDP/TLS/RTP/SAVPF 111 63 9 0 8 13 110 126",
+            "mid": "a=mid:0",
+            "codec_lines": [
+              "a=rtpmap:111 opus/48000/2",
+              "a=fmtp:111 minptime=10;useinbandfec=1",
+              "a=rtpmap:63 red/48000/2",
+              "a=fmtp:63 111/111",
+              "a=rtpmap:9 G722/8000",
+              "a=rtpmap:0 PCMU/8000",
+              "a=rtpmap:8 PCMA/8000",
+              "a=rtpmap:13 CN/8000",
+              "a=rtpmap:110 telephone-event/48000",
+              "a=rtpmap:126 telephone-event/8000"
+            ],
+            "rid_or_simulcast": false
+          },
+          {
+            "media": "m=video 9 UDP/TLS/RTP/SAVPF 96 97",
+            "mid": "a=mid:1",
+            "codec_lines": [
+              "a=rtpmap:96 VP8/90000",
+              "a=rtpmap:97 rtx/90000",
+              "a=fmtp:97 apt=96"
+            ],
+            "rid_or_simulcast": false
+          }
+        ],
+        "logical_streams": [
+          {
+            "codec_preferences": [
+              "opus"
+            ],
+            "direction": "sendrecv",
+            "id": "synthetic-audio",
+            "kind": "audio"
+          },
+          {
+            "codec_preferences": [
+              "vp8"
+            ],
+            "direction": "sendrecv",
+            "id": "synthetic-video",
+            "kind": "video"
+          }
+        ]
+      },
+      {
+        "run": "firefox-final-06",
+        "browser": "firefox",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+        "seconds": 1.497529499931261,
+        "result": "local-offer-observed",
+        "process_joined": true,
+        "process_exit_code": -15,
+        "changed_inputs": [],
+        "input_manifest_sha256": "9afcdc9900728411ba658acb0bffcaa823ecd63907ab86769d55ff7c8f697253",
+        "canvas_capture_rates": [
+          30
+        ],
+        "original_audio_after_release": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          }
+        ],
+        "owned_canvas_after_release": [
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "actual_native_stop_calls": {
+          "audio": 1,
+          "video": 1
+        },
+        "summary_sha256": "723f79aff942ece1278e87ac7a6a05b8a531be94273ee2fa7c65b63d3a84eaaa",
+        "sdp_sha256": "5cecbbf7cb121baa07775b26d21e5fddc6ed05798b0be2af7467abdbdbf662c6",
+        "sections": [
+          {
+            "media": "m=audio 9 UDP/TLS/RTP/SAVPF 109 9 0 8 101",
+            "mid": "a=mid:0",
+            "codec_lines": [
+              "a=fmtp:109 maxplaybackrate=48000;stereo=1;useinbandfec=1",
+              "a=fmtp:101 0-15",
+              "a=rtpmap:109 opus/48000/2",
+              "a=rtpmap:9 G722/8000/1",
+              "a=rtpmap:0 PCMU/8000",
+              "a=rtpmap:8 PCMA/8000",
+              "a=rtpmap:101 telephone-event/8000"
+            ],
+            "rid_or_simulcast": false
+          },
+          {
+            "media": "m=video 9 UDP/TLS/RTP/SAVPF 120 124",
+            "mid": "a=mid:1",
+            "codec_lines": [
+              "a=fmtp:120 max-fs=12288;max-fr=60",
+              "a=fmtp:124 apt=120",
+              "a=rtpmap:120 VP8/90000",
+              "a=rtpmap:124 rtx/90000"
+            ],
+            "rid_or_simulcast": false
+          }
+        ],
+        "logical_streams": [
+          {
+            "codec_preferences": [
+              "opus"
+            ],
+            "direction": "sendrecv",
+            "id": "synthetic-audio",
+            "kind": "audio"
+          },
+          {
+            "codec_preferences": [
+              "vp8"
+            ],
+            "direction": "sendrecv",
+            "id": "synthetic-video",
+            "kind": "video"
+          }
+        ]
+      },
+      {
+        "run": "chrome-resize-06",
+        "browser": "chrome",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+        "seconds": 1.0306337499059737,
+        "result": "dimension-retired",
+        "process_joined": true,
+        "process_exit_code": 0,
+        "changed_inputs": [],
+        "input_manifest_sha256": "9afcdc9900728411ba658acb0bffcaa823ecd63907ab86769d55ff7c8f697253",
+        "canvas_capture_rates": [
+          30
+        ],
+        "original_audio_after_release": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          }
+        ],
+        "owned_canvas_after_release": [
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "actual_native_stop_calls": {
+          "audio": 1,
+          "video": 1
+        },
+        "summary_sha256": "b4aa9d437982404cb4ad53d4e86bd9ea0186cbab95c0a5989a2bb3329f808421"
+      },
+      {
+        "run": "firefox-resize-07",
+        "browser": "firefox",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+        "seconds": 1.5754364160820842,
+        "result": "dimension-retired",
+        "process_joined": true,
+        "process_exit_code": -15,
+        "changed_inputs": [],
+        "input_manifest_sha256": "9afcdc9900728411ba658acb0bffcaa823ecd63907ab86769d55ff7c8f697253",
+        "canvas_capture_rates": [
+          30
+        ],
+        "original_audio_after_release": [
+          {
+            "kind": "audio",
+            "state": "ended"
+          }
+        ],
+        "owned_canvas_after_release": [
+          {
+            "kind": "video",
+            "state": "ended"
+          }
+        ],
+        "actual_native_stop_calls": {
+          "audio": 1,
+          "video": 1
+        },
+        "summary_sha256": "690209e30a577246c7aedd16caf44781714ed507fa07cb964cf2b04bb1cc9acc"
+      }
+    ],
+    "browser_executions": 4,
+    "browser_scope": "Two complete local offers and two actual intrinsic-resize retirement journeys; not four media qualification methods. Both original audio and owned video are ended before the report; native stop calls and selected browser process joins are observed.",
+    "format_scope": "Edited TypeScript passes focused formatting. Previously recorded unrelated SDK-wide formatting failures are not promoted to a pass.",
+    "firefox_build": {
+      "version": "158.0.1",
+      "source": "https://www.firefox.com/en-US/download/mac/",
+      "download_url": "https://download-installer.cdn.mozilla.net/pub/firefox/releases/158.0.1/mac/en-US/Firefox%20158.0.1.dmg",
+      "dmg_sha256": "1d7aa96b51fc9110185047de18228ac87238fba5e42bba53c9d696f88878cba6",
+      "codesign_verification": "codesign --verify --deep --strict succeeds; Developer ID Application: Mozilla Corporation (43AQ936H96). Downloaded/extracted only under ignored task state; no owner browser profile was used.",
+      "codesign_log_sha256": "fd32176ae8a513c0ac93f9f55f9f5f7a071f9113850fa1576ec839d272ea30db"
+    },
+    "prior_failures": [
+      {
+        "scope": "Original Firefox canvas input fails before an offer; transparent diagnostic preserves native constraint call/error.",
+        "native_error": {
+          "name": "OverconstrainedError",
+          "message": "Constraints could not be satisfied.",
+          "constraint": "",
+          "requested": {
+            "width": {
+              "max": 640
+            },
+            "height": {
+              "max": 360
+            },
+            "frameRate": {
+              "max": 30
+            }
+          }
+        },
+        "reported_code": "webrtc-failed",
+        "tracks_after_release": [
+          {
+            "kind": "video",
+            "state": "ended"
+          },
+          {
+            "kind": "audio",
+            "state": "ended"
+          }
+        ]
+      },
+      {
+        "scope": "A candidate attempted to infer the source canvas from the supplied track; Firefox does not expose a usable canvas property here, so it still took the unsupported camera-constraint path. It is replaced by the explicit videoCanvas API."
+      },
+      {
+        "scope": "The first Firefox download filled the external volume and was incomplete. Only that newly created partial file was removed after size/hash audit. Complete download, signed build verification and browser execution used internal ignored state."
+      }
+    ]
+  },
+  "observed_next_work": [
+    "Firefox 158 offers Opus PT109 with maxplaybackrate=48000;stereo=1;useinbandfec=1, VP8 PT120 with max-fs=12288;max-fr=60 and RTX PT124 apt=120. Current fixed-host parsers reject those parameters; update their directional semantics with actual media evidence before qualification.",
+    "Chrome 155 offers Opus PT111 with minptime=10;useinbandfec=1 and VP8 PT96/RTX97 apt=96; neither actual offer has RID/simulcast.",
+    "Prepare actual signed WSS browser host/enrollment fixtures, normal isolated browser TLS trust and negative verification controls, then unchanged Chrome/Firefox media/forced fallback profiles.",
+    "Broader selectors/directions/reoffer/DTMF/data/consultation/handoff/preparation, real capture/timing/impairment/background, Linux/remote/hosting/packages and all unchanged Gate6 requirements remain open."
+  ],
+  "primary_references": [
+    "https://w3c.github.io/mediacapture-fromelement/#html-canvas-element-media-capture-extensions",
+    "https://www.rfc-editor.org/rfc/rfc7587.html#section-7.1",
+    "https://www.rfc-editor.org/rfc/rfc7741.html#section-6.2.2"
+  ]
+}

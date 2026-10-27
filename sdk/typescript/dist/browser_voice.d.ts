@@ -13,6 +13,9 @@ export interface BrowserVoiceOptions extends BrowserSessionSelection, BrowserCap
     /** A live one-audio or one-audio/one-video stream. Ownership transfers after validation.
      * Clone tracks first to retain a source. Omit to acquire microphone/camera capture. */
     inputStream?: MediaStream;
+    /** Explicit canvas source for video. SDK owns captureStream(30); inputStream
+     * supplies audio only. Canvas images stay on their original canvas. */
+    videoCanvas?: HTMLCanvasElement;
     /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
 }
@@ -44,6 +47,7 @@ export declare class BrowserVoiceSession {
     private localStream?;
     private ownedTracks;
     private videoWorker?;
+    private canvasCapture?;
     private signaling?;
     private stopLifetime?;
     private stopEvents?;

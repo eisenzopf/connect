@@ -1,3 +1,4 @@
+import { boundedCanvasVideoCapture, } from "./browser_video_capture.js";
 import { BrowserDeadline } from "./browser_deadline.js";
 import { browserOfferSelection, } from "./browser_binding.js";
 import { CanonicalWebRtcSignaling, } from "./browser_webrtc_signaling.js";
@@ -38,6 +39,7 @@ export class BrowserVoiceSession {
     localStream;
     ownedTracks = [];
     videoWorker;
+    canvasCapture;
     signaling;
     stopLifetime;
     stopEvents;
@@ -106,13 +108,25 @@ export class BrowserVoiceSession {
         const selection = browserOfferSelection(options);
         const video = selection.videoStreamId !== undefined;
         const inputStream = options.inputStream;
-        const devices = captureDevices(options, video, inputStream !== undefined);
+        const videoCanvas = options.videoCanvas;
+        if (videoCanvas !== undefined &&
+            (!video ||
+                typeof HTMLCanvasElement !== "function" ||
+                !(videoCanvas instanceof HTMLCanvasElement) ||
+                videoCanvas.width < 1 ||
+                videoCanvas.width > 640 ||
+                videoCanvas.height < 1 ||
+                videoCanvas.height > 360 ||
+                options.videoDeviceId !== undefined))
+            throw new ConnectError("invalid-request", "Select a bounded video canvas without a camera device selector");
+        const capturedVideo = video && videoCanvas === undefined;
+        const devices = captureDevices(options, capturedVideo, inputStream !== undefined);
         const tracks = inputStream?.getTracks();
         if (tracks &&
             (tracks.filter((t) => t.kind === "audio").length !== 1 ||
                 tracks.filter((t) => t.kind === "video").length !==
-                    (video ? 1 : 0) ||
-                tracks.length !== (video ? 2 : 1) ||
+                    (capturedVideo ? 1 : 0) ||
+                tracks.length !== (capturedVideo ? 2 : 1) ||
                 tracks.some((t) => t.readyState !== "live")))
             throw new ConnectError("invalid-request", "Input tracks do not match the selected audio/video profile");
         if (signal?.aborted)
@@ -134,7 +148,7 @@ export class BrowserVoiceSession {
             try {
                 session.localStream =
                     inputStream ??
-                        (await microphoneStream(budget.remaining(), video, devices, session.captureEvents.signal));
+                        (await microphoneStream(budget.remaining(), capturedVideo, devices, session.captureEvents.signal));
             }
             catch (error) {
                 session.check();
@@ -145,11 +159,11 @@ export class BrowserVoiceSession {
             session.ownedTracks = [
                 ...(tracks ?? session.localStream.getTracks()),
             ];
-            if (session.ownedTracks.length !== (video ? 2 : 1) ||
+            if (session.ownedTracks.length !== (capturedVideo ? 2 : 1) ||
                 session.ownedTracks.filter((t) => t.kind === "audio").length !==
                     1 ||
                 session.ownedTracks.filter((t) => t.kind === "video").length !==
-                    (video ? 1 : 0))
+                    (capturedVideo ? 1 : 0))
                 throw new ConnectError("unsupported-media-profile", "Acquired tracks do not match the original audio/video profile");
             // Capture can finish in the same microtask as control retirement.
             if (session.closed) {
@@ -164,12 +178,25 @@ export class BrowserVoiceSession {
                     session.fail(new ConnectError("closed", "Owned capture ended"));
             }
             session.check();
-            if (video)
-                await session.bound(constrainVideoCapture(session.localStream, budget.remaining()), budget);
+            if (video) {
+                session.canvasCapture = videoCanvas
+                    ? boundedCanvasVideoCapture(session.localStream, videoCanvas, (error) => session.fail(error))
+                    : undefined;
+                if (session.canvasCapture) {
+                    session.localStream = session.canvasCapture.stream;
+                    for (const track of session.localStream.getVideoTracks())
+                        track.addEventListener("ended", () => session.fail(new ConnectError("closed", "Owned canvas capture ended")), {
+                            once: true,
+                            signal: session.captureEvents.signal,
+                        });
+                }
+                else
+                    await session.bound(constrainVideoCapture(session.localStream, budget.remaining()), budget);
+            }
             // Attach the encoded transform in the same task as addTrack. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
             session.peer = new RTCPeerConnection();
-            for (const track of session.ownedTracks)
+            for (const track of session.localStream.getTracks())
                 session.peer.addTrack(track, session.localStream);
             if (video)
                 session.videoWorker = startVideoTransform(session.peer);
@@ -269,7 +296,7 @@ export class BrowserVoiceSession {
     }
     /** Independently mute a captured kind without ending the durable Session. */
     setMuted(kind, muted) {
-        for (const track of this.localStream.getTracks().filter((t) => t.kind === kind))
+        for (const track of new Set([...this.ownedTracks, ...this.localStream.getTracks()].filter((t) => t.kind === kind)))
             track.enabled = !muted;
     }
     /** Video decode counters, dimensions and timestamps; no SDP or addresses. */
@@ -390,12 +417,17 @@ export class BrowserVoiceSession {
             }
             finally {
                 try {
-                    for (const track of this.ownedTracks)
-                        track.stop();
+                    this.canvasCapture?.close();
                 }
                 finally {
-                    this.ownedTracks = [];
-                    this.resolveEnded();
+                    try {
+                        for (const track of this.ownedTracks)
+                            track.stop();
+                    }
+                    finally {
+                        this.ownedTracks = [];
+                        this.resolveEnded();
+                    }
                 }
             }
         }

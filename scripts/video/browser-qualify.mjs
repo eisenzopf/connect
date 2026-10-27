@@ -109,7 +109,7 @@ try {
             const audio = new AudioContext(); await audio.resume();
             const oscillator = audio.createOscillator(); oscillator.frequency.value = frequency;
             const gain=audio.createGain();
-            const destination = audio.createMediaStreamDestination(); oscillator.connect(gain);gain.connect(destination); oscillator.start();
+            const destination = audio.createMediaStreamDestination(); destination.channelCount=1; oscillator.connect(gain);gain.connect(destination); oscillator.start();
             const draw = () => {
                 const now=(performance.timeOrigin+performance.now())/1000;
                 const elapsed=(performance.now()-sourceBegan)/1000;
@@ -132,8 +132,8 @@ try {
                 if(pulse){paint.fillStyle="white";paint.fillRect(0,0,640,360);}
             };
             draw(); const timer=setInterval(draw,1000/30);
-            const stream = source.captureStream(30); stream.addTrack(destination.stream.getAudioTracks()[0]);
-            const session = await BrowserVideoSession.open(control.client,{...control.options,inputStream:stream});
+            const stream = new MediaStream(destination.stream.getAudioTracks());
+            const session = await BrowserVideoSession.open(control.client,{...control.options,inputStream:stream,videoCanvas:source});
             const video=document.createElement("video"); video.muted=true; video.autoplay=true;
             video.style.cssText="position:fixed;inset:0;width:640px;height:360px;z-index:10000";
             document.body.append(video);

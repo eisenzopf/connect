@@ -762,3 +762,42 @@ methods passing with source/generated-module guards. Both signature algorithms
 exercise the actual public SDK offer and journaled-end envelope path with
 controlled capture/RTC boundaries. The earlier compile/helper-parse failures and
 unsupported legacy provisioning lanes remain recorded explicitly.
+
+
+## Explicit canvas capture and actual browser offers
+
+For generated canvas video, pass `videoCanvas: canvas` and an audio-only
+`inputStream` to `BrowserVideoSession.open`. Without a supplied audio stream,
+the SDK acquires only the microphone. The canvas must fit 640×360; it cannot be
+combined with a camera device selector or another supplied video track.
+The SDK owns the derived canvas track and its dimension observer. Intrinsic
+resize retires that track and the original audio owner. Local cleanup and all
+existing control/capture failures release the same resources. Camera capture
+continues to use native constraints.
+
+Firefox canvas tracks reject the native camera constraints used by the original
+wrapper. The explicit source lets the SDK call the standard
+[`captureStream(30)` API](https://w3c.github.io/mediacapture-fromelement/#html-canvas-element-media-capture-extensions)
+on the original canvas itself. Missing Firefox `getSettings().frameRate` is not
+replaced by an unverified caller value. The SDK checks exposed output settings,
+observes intrinsic dimensions and adds no image scaling or timestamp offset.
+The qualification source retains its canvas/tone/marker content and observer
+limits, with an explicit mono audio destination matching the frozen Opus profile.
+
+[Evidence](../evidence/gate-6/browser-canvas-offers.json) records 312 SDK methods
+(including seven canvas cases), 34 verdict methods and 29 asset-inventory methods
+passing with source/generated-module guards. Actual Chrome155 and Firefox158 each
+produce a complete local offer through the public API and retire capture after an
+intentional fixture refusal; both also retire on actual canvas resize. Each run
+observes original audio and derived video ended before reporting and joins its
+selected browser process. `scripts/video/canonical-offer-profile.py` reproduces
+this isolated local lane; raw SDP and profiles stay under `.local/`.
+
+The client boundary is controlled: it records and refuses the offer before any
+remote submission. These are capture/SDP observations, not signed-host media,
+decoding, DTLS/SRTP, timing or complete fallback evidence. Firefox's actual Opus
+`stereo=1` and VP8 `max-fs=12288;max-fr=60` reveal the next fixed-host compatibility
+work. Their directional meaning must follow
+[RFC7587](https://www.rfc-editor.org/rfc/rfc7587.html#section-7.1) and
+[RFC7741](https://www.rfc-editor.org/rfc/rfc7741.html#section-6.2.2), retaining actual
+mono/packet/source bounds. G6-051 and the full105-task objective remain open.

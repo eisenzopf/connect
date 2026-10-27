@@ -20,6 +20,7 @@ import {createServer} from 'node:http';
 import {NativeAudioClient,NativeClient,HttpClient,ConnectError} from '../typescript/dist/index.js';
 import {decodeResponse} from '../typescript/dist/protocol.js';
 import './browser_voice.test.mjs';
+import './browser_canvas_capture.test.mjs';
 import './canonical_media_configuration.test.mjs';
 import './browser_capture_wait.test.mjs';
 const helper=fileURLToPath(new URL('./helper_fixture.py',import.meta.url));

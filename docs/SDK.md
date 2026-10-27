@@ -385,7 +385,10 @@ await video.close();
 
 All scope/stream IDs and the initial revision are explicit and snapshotted before
 capture. Capture, ICE, offer/answer and sender configuration share one deadline.
-The fixed profile is mono Opus audio plus optional VP8 camera. Supplied tracks
+The fixed profile is mono Opus audio plus optional VP8 camera. An explicit
+`videoCanvas` can supply a canvas with audio-only `inputStream`; the SDK owns its
+30fps capture and retires on intrinsic resize. Camera capture keeps native
+constraints. Supplied tracks
 transfer ownership after validation; clone them to retain a source. Device IDs
 stay in capture constraints. The shared client remains caller-owned. `close()`
 only retires local capture/worker/peer; `end()` submits one original Connection
