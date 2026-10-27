@@ -4,8 +4,8 @@
     "G6-051"
   ],
   "status": "in-progress",
-  "recorded_at": "2026-10-27T19:52:10.294261+00:00",
-  "scope": "Component-verified Core publication ordering. Whole-candidate native/browser build/runtime PENDING; no claim of repaired audio/profile qualification.",
+  "recorded_at": "2026-10-27T20:21:31.157607+00:00",
+  "scope": "Current source-frozen production build and33existing native functions pass. Four normal installed-browser/signing combinations are explicitly reported; retained failed measurements remain failures.",
   "implementation": [
     "Each tick temporarily batches at most one original output per existing member; releases producer source/target/subscription readers before publishing queued frames. Preserve tick serialization. No persistent added queue/timer/frame rewrite/repeated IO.",
     "Exact queued delivery independently reacquires current source/recipient/scene/subscription authority, original receipt/200ms age/cancellation/IO deadline. No positive grant survives in the queue."
@@ -135,9 +135,8 @@
     "scope": "Only closed executables/replaced libraries; no live lsof owner, streaming decompression/SHA before unlink, restoration mappings/modes/times retained. Sources/state/logs retained."
   },
   "pending": [
-    "Frozen full Connect Cargo build67 in intended release cache; Store/Service/Server opt0.",
-    "New binary native AV/refusal/WSS/WT regressions and installed normal Chrome/Firefox profiles.",
-    "Causal timing comparison; historical normal-profile audio failures remain failures."
+    "Investigate current normal-browser failures; passing native/component functions do not close those operating profiles.",
+    "Remaining task/profile work and all105Gate6 objective; no independent acceptance qualification."
   ],
   "progress": {
     "done": 53,
@@ -164,5 +163,406 @@
     "archive_bytes": 59029435,
     "manifest_sha256": "24bf9ac432eb71920b842ceb6de9cb8ef9bc18cd8b97ab55c0e1f1ee2d02a69b",
     "scope": "Completed source-guarded browser-SDK diagnostic netlogs only, no live lsof owner; exact streaming decompression/SHA/mode/owner/time/xattrs and restoration paths retained. Source, credentials/state/CA unchanged."
+  },
+  "current_runtime": {
+    "implementation_commit": "9a5fe76c",
+    "profile_record_commit": "49969292",
+    "scope": "Local macOS arm64 synthetic/native/installed-browser scope only; no Linux/remote/provider/physical-device/package/acceptance qualification.",
+    "build": {
+      "seconds": 1225.6497595419642,
+      "guarded_inputs": 5221,
+      "changed_inputs": [],
+      "artifact": {
+        "sha256": "36f172164e7a302bdb70b36bc4a47e43adaa681f7397238a22d9847eed37fd97",
+        "bytes": 214881664
+      },
+      "profile": "release with Store/Service/Server opt0, no stack override",
+      "summary_sha256": "e366c48f30c0996cf9f88a16fd035d8735c7896ec4ff37a92d38d3497070e244"
+    },
+    "native_methods": 33,
+    "native": [
+      {
+        "exit_code": 0,
+        "seconds": 9.485123707912862,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 8.02s"
+        ],
+        "log_sha256": "d218196764b4bca8dd1d83375a6d2de535a3886aab706dc14ae8efb8b18834c2",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 8.219180749962106,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 8.21s"
+        ],
+        "log_sha256": "dfcc3768dd0e63ff930643bcf652e632c324cf020111a5e453f34105261cb636",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 1.412942832801491,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 67 filtered out; finished in 1.38s"
+        ],
+        "log_sha256": "54392b2617b514c5aeb69a05c12db7033600551aa6a9b3ad9fa4ac1bdb088efa",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 58.879152458161116,
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 58.86s"
+        ],
+        "log_sha256": "ae4fe2c50a7636f0961206ab7b374122b2e26274507e6004f13da5467aecddc9",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.636744583025575,
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 39.58s"
+        ],
+        "log_sha256": "7ef53f64398d986a2825b336666f51aa64d853ad64d10bd9ad3d13fd21b81404",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.29374208394438,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 4.24s"
+        ],
+        "log_sha256": "5ed035f7a9ffaf282ffc653ce255dbc18df19961db70ea75bac65e690034a75a",
+        "changed_inputs": []
+      }
+    ],
+    "browser_matrix": [
+      {
+        "browser": "firefox",
+        "algorithm": "eddsa",
+        "label": "firefox-mixer-publication-eddsa-67",
+        "runtime_exit_code": 0,
+        "seconds": 66.375401499914,
+        "verdict": "passed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00500011444092,
+            "decoded_fps": 28.78093486719912,
+            "changing_fps": 25.631197351333093,
+            "video_packets_lost": 1,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00599980354309,
+            "decoded_fps": 28.94710538424256,
+            "changing_fps": 25.897410343761045,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.0413428750000021,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.08419562500000029,
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "3ab86414a34a9ad4c2e98441da7c6241486e4cdc396c2d49a1b29555c61115c1",
+          "inputs.json": "12f898d8fc0f39b39f5c6ce75e86d4c0861a42da5c0aaeeaacfcdaec223ef685",
+          "browser-result.jsonl": "210187d844ecc9033afa15776e70f16fc6d88713d464d0e2d5f142f6e2690f46",
+          "test.log": "3ee2ee94780dd61c7d5673e119b387dea8f818e952e064f191e49ee8d5cb3e6b",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "es256",
+        "label": "chrome-mixer-publication-es256-67",
+        "runtime_exit_code": 101,
+        "seconds": 65.75934049999341,
+        "verdict": "failed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.005800008773804,
+            "decoded_fps": 29.980435220211337,
+            "changing_fps": 24.96425345184913,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 1,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00569987297058,
+            "decoded_fps": 29.98048525070791,
+            "changing_fps": 25.297596781864705,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.06993041699999594,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.10170350000000326,
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "fd4c0b67bb297d80b1abb76a8b9101a8f31e7703524d415be4627219de5e9f8a",
+          "inputs.json": "6554db86e630f6f3297a5183182b19a99d30f56f39b2658a00daf3f282104f3c",
+          "browser-result.jsonl": "eb683f2bb130e116b3e32e83ef3b81a15755e2082edd1c7698cb640ed955f278",
+          "test.log": "1c92a4d7b56ba2a60dbf80f06c9b593052c429fe4a7ff389294e22822a17f877",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "es256",
+        "label": "firefox-mixer-publication-es256-67",
+        "runtime_exit_code": 101,
+        "seconds": 66.40900970785879,
+        "verdict": "failed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00500011444092,
+            "decoded_fps": 29.030914035124997,
+            "changing_fps": 26.14782096504657,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 1,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 29.01376526984858,
+            "changing_fps": 25.930740241174263,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.04726691700000083,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.09805341700000281,
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "7ead87693da45d28c3426d481c70e1a185f96f4d9f7665131e72cb43ddc2508f",
+          "inputs.json": "f54f18224eb2d6fc76e57fd0c0f1b479b8b4bada155aa728333ea5e625832a6c",
+          "browser-result.jsonl": "8d4b547fc9a598f17210fd45dce508dd111fe968c3f395d590f89b52b8a1312e",
+          "test.log": "919f70a72025a0db6963709c135338426ef693dffb3bc887292152ddf13fcdcf",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "eddsa",
+        "label": "chrome-mixer-publication-eddsa-67",
+        "runtime_exit_code": 0,
+        "seconds": 65.68067520903423,
+        "verdict": "passed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00789976119995,
+            "decoded_fps": 29.97938616680602,
+            "changing_fps": 25.1966825370821,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00779986381531,
+            "decoded_fps": 29.979436074689296,
+            "changing_fps": 25.31337598524349,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.07536787499999628,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.12135345799999778,
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "6a2e91d187868c0286ca9f07edbd926558a5ec10b9a6cadd0e5032d39ab84334",
+          "inputs.json": "7f87ee1117156bfb54d8c5f1c083000de330bcd321fb66a15ae3cf11c626e740",
+          "browser-result.jsonl": "c17aa92f282ca1f95aebaec520a721a7c401b1dc4576e992d6b0b500921859a9",
+          "test.log": "abcf3804829c3d3fc836ffb905cca811e9a994b6f0e5cb14cbbd5379ff2b37e7",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      }
+    ],
+    "all_four_normal_browser_profiles_pass": false,
+    "orchestration_sha256": "343c4abca9baa378513270dfe3310de97e778e420341d7c3a9ebd50ce29b9bb0"
   }
 }
