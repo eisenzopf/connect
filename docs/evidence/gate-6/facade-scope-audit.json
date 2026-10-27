@@ -288,7 +288,7 @@
     "root_cause": "Unresolved. Do not infer facade or Core root cause from this audio observation alone.",
     "snapshot_gap": "Existing private snapshot hook covers a later retained-remote probe; it did not capture this earlier private-reverse failure. Original log/source/input/executable proof is retained.",
     "skipped": "Native movement did not run: orchestrator stopped after the handoff failure. Not counted as a pass.",
-    "next_action": "Preserve case state for any initial audio-probe failure, then run a bounded diagnostic of the failed handoff scene without weakening content/audience thresholds."
+    "next_action": "Capture a failed event with the all-probe private snapshot/counters. Six focused non-TRACE repetitions did not reproduce it; do not keep rerunning an unchanged passing scene as repair evidence."
   },
   "infrastructure": {
     "aborted_cli_graph": {
@@ -383,6 +383,128 @@
       "probe_reports": 90,
       "summary_sha256": "79547f9f10d2c6e1dc6a64641bf74dbd405faa5861cf0108f3d6b12b0b429e2a"
     },
-    "production_code_changed": false
+    "production_code_changed": false,
+    "bounded_non_trace_reproduction": {
+      "scope": "At most six separate-process EdDSA/Leave/Conversation diagnostic scenes, stopping at first failure. TRACE disabled; original media thresholds unchanged. Synthetic loopback only; no model or provider execution. Not full eight-scene qualification.",
+      "runs": [
+        {
+          "number": 1,
+          "exit_code": 0,
+          "seconds": 18.045904708094895,
+          "log_sha256": "988b66bc5efa66c59994ffbaa0c0410bb2f9986251b17b0173bcfcca01f86f2c",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.03s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 0, 99] source_timestamp_steps=Some((112, 205))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 94, 0] sent=100 received=[0, 94, 0] source_timestamp_steps=Some((114, 189))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[1, 0, 107] source_timestamp_steps=Some((146, 173))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((104, 225))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((144, 174))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        },
+        {
+          "number": 2,
+          "exit_code": 0,
+          "seconds": 18.11417566705495,
+          "log_sha256": "9c6234fbec943919170900def579cdfb187677075da4cf9d844fd91fef4b8daa",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.09s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=99 received=[0, 0, 99] source_timestamp_steps=Some((137, 327))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 79, 0] sent=99 received=[0, 79, 0] source_timestamp_steps=Some((92, 365))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[4, 0, 110] source_timestamp_steps=Some((149, 171))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[99, 0, 0] sent=100 received=[99, 0, 0] source_timestamp_steps=Some((146, 176))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((147, 177))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        },
+        {
+          "number": 3,
+          "exit_code": 0,
+          "seconds": 18.015527416951954,
+          "log_sha256": "0ac08631a660faf32529e89f1549cd1e5a65f36fe341e63b06c2207199c392cf",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 17.99s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 0, 99] source_timestamp_steps=Some((126, 193))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 96, 0] sent=100 received=[0, 96, 0] source_timestamp_steps=Some((54, 277))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 99] sent=100 received=[1, 0, 105] source_timestamp_steps=Some((85, 249))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((135, 190))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 0, 99] source_timestamp_steps=Some((147, 175))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        },
+        {
+          "number": 4,
+          "exit_code": 0,
+          "seconds": 18.159938249969855,
+          "log_sha256": "4914bc8401d9559443b339638b6a130c8c03c8cb6af1ec73edd82b4666ee3853",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.14s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 95] sent=100 received=[0, 0, 95] source_timestamp_steps=Some((92, 220))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 74, 0] sent=100 received=[0, 74, 0] source_timestamp_steps=Some((131, 191))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[4, 0, 109] source_timestamp_steps=Some((127, 193))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((123, 200))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((150, 171))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        },
+        {
+          "number": 5,
+          "exit_code": 0,
+          "seconds": 18.158843957819045,
+          "log_sha256": "a0f634c73e324bd7f3149218579a919492752bd03d41274d4926fb0952aefb0c",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.10s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 96] sent=98 received=[0, 0, 96] source_timestamp_steps=Some((83, 369))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 90, 0] sent=100 received=[0, 90, 0] source_timestamp_steps=Some((99, 212))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 98] sent=100 received=[4, 0, 105] source_timestamp_steps=Some((62, 257))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[98, 0, 0] sent=100 received=[98, 0, 0] source_timestamp_steps=Some((66, 252))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 96] sent=100 received=[0, 0, 96] source_timestamp_steps=Some((83, 240))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        },
+        {
+          "number": 6,
+          "exit_code": 0,
+          "seconds": 18.09446741687134,
+          "log_sha256": "1da330bf2b0a8e7e00354f65f9f7082e958ac2a1da472725b3959a423df3d84e",
+          "test_result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.08s"
+          ],
+          "probe_reports": [
+            "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 95] sent=98 received=[0, 0, 95] source_timestamp_steps=Some((40, 440))",
+            "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 99, 0] sent=100 received=[0, 99, 0] source_timestamp_steps=Some((111, 211))",
+            "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 98] sent=98 received=[4, 0, 105] source_timestamp_steps=Some((150, 338))",
+            "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[98, 0, 0] sent=99 received=[98, 0, 0] source_timestamp_steps=Some((77, 321))",
+            "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 98] sent=100 received=[0, 0, 98] source_timestamp_steps=Some((23, 298))"
+          ],
+          "private_snapshots": [],
+          "snapshot_errors": []
+        }
+      ],
+      "changed_inputs": [],
+      "summary_sha256": "0cdda6b9befbcf9f906fbda777636b4ca4a62b7f15cd8a5e5495ea6b157dafde",
+      "inputs_sha256": "1debebeb1338b7f5dc5e9d1ada3e1e8e818ebbebeba9d10f4be3fe0ac2d63b8c",
+      "harness_sha256": "76cbbde200fb3eba2b00fb9ee5c92a5c715c8876bb575a4160c763a49bcacbf8",
+      "interpretation": "All six focused separate-process scenes pass with TRACE disabled and original media thresholds. No failed-event witness or snapshot branch execution; this is not a production fix, full eight-scene qualification, actual model/provider run or task closure."
+    },
+    "investigation": {
+      "audio_consumer_lock_inversion": "Ruled out the proposed decoded/state inversion: decoded_since takes decoded then ConsumerStamp.state, but activate/retire/commit do not lock decoded/delivered while holding state. No production change justified by that hypothesis.",
+      "consultation_completion": "Candidate first decoded audio triggers durable decoded/completion recording, including a Conversation authority writer. Current passing runs do not establish this as the cause of the original collapse."
+    }
   }
 }
