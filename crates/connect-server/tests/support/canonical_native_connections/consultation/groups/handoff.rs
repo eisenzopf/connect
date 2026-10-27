@@ -2,6 +2,88 @@
 use super::*;
 use connect_protocol::transitions::{OutgoingDisposition, RoleScope};
 
+fn backup_handoff_state(
+    source: &rusqlite::Connection,
+    destination: &mut rusqlite::Connection,
+    budget: Duration,
+) -> anyhow::Result<()> {
+    // Failure reporting must not wait indefinitely behind the failed runtime.
+    // SQLite's run_to_completion retries Busy/Locked without a deadline.
+    source.busy_timeout(Duration::ZERO)?;
+    destination.busy_timeout(Duration::ZERO)?;
+    let deadline = std::time::Instant::now() + budget;
+    let backup = rusqlite::backup::Backup::new(source, destination)?;
+    loop {
+        anyhow::ensure!(
+            std::time::Instant::now() < deadline,
+            "handoff snapshot deadline"
+        );
+        match backup.step(128)? {
+            rusqlite::backup::StepResult::Done => return Ok(()),
+            rusqlite::backup::StepResult::More => {}
+            rusqlite::backup::StepResult::Busy | rusqlite::backup::StepResult::Locked => {
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            _ => anyhow::bail!("unsupported handoff snapshot result"),
+        }
+    }
+}
+
+fn save_handoff_failure(
+    f: &Fixture,
+    context: &Value,
+    peers: &[Peer],
+    source_index: usize,
+    allowed: &[usize],
+    phase: &str,
+) -> anyhow::Result<std::path::PathBuf> {
+    let parent =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.local/gate-6/sdk-external");
+    std::fs::create_dir_all(&parent)?;
+    let directory = parent.join(format!("handoff-failure-{}", uuid::Uuid::new_v4()));
+    init::private_directory(&directory)?;
+    let database = directory.join("state.sqlite3");
+    let source = rusqlite::Connection::open(&f.config.database)?;
+    let mut destination = rusqlite::Connection::open(&database)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o600))?;
+    }
+    // Metadata survives even when contention prevents a consistent database.
+    let connections = peers
+        .iter()
+        .map(|peer| {
+            json!({"id":peer.id,
+                "participant":peer.participant,"handle":peer.handle,"live":peer.live,
+                "sequence":peer.sequence,"elapsed_milliseconds":peer.clock.elapsed().as_millis()})
+        })
+        .collect::<Vec<_>>();
+    let scope = json!({"case":context,"phase":phase,"source_index":source_index,
+        "allowed_receiver_indices":allowed,"connections":connections,
+        "captured_at_unix_milliseconds":chrono::Utc::now().timestamp_millis()});
+    init::private_write(
+        &directory.join("case.json"),
+        &serde_json::to_vec_pretty(&scope)?,
+    )?;
+    let copied = backup_handoff_state(&source, &mut destination, Duration::from_secs(2));
+    init::private_write(
+        &directory.join("snapshot.json"),
+        &serde_json::to_vec_pretty(&json!({"database_complete":copied.is_ok(),
+            "error":copied.as_ref().err().map(ToString::to_string)}))?,
+    )?;
+    // The path identifies metadata/partial state as well as successful backups.
+    // A partial SQLite file must never be reported as a consistent snapshot.
+    if let Err(error) = copied {
+        eprintln!(
+            "Handoff failure incomplete private snapshot: {}",
+            directory.display()
+        );
+        return Err(error);
+    }
+    Ok(directory)
+}
+
 async fn handoff_probe(
     f: &Fixture,
     context: &Value,
@@ -17,48 +99,94 @@ async fn handoff_probe(
     if let Err(panic) = checked {
         // Every probe, including private preparation, needs its state before
         // TempDir cleanup. A snapshot failure must not replace the original panic.
-        let saved = (|| -> anyhow::Result<std::path::PathBuf> {
-            let parent = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.local/gate-6/sdk-external");
-            std::fs::create_dir_all(&parent)?;
-            let directory = parent.join(format!("handoff-failure-{}", uuid::Uuid::new_v4()));
-            init::private_directory(&directory)?;
-            let database = directory.join("state.sqlite3");
-            let source = rusqlite::Connection::open(&f.config.database)?;
-            let mut destination = rusqlite::Connection::open(&database)?;
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o600))?;
-            }
-            rusqlite::backup::Backup::new(&source, &mut destination)?.run_to_completion(
-                128,
-                Duration::from_millis(1),
-                None,
-            )?;
-            let connections = peers
-                .iter()
-                .map(|peer| {
-                    json!({"id":peer.id,
-                "participant":peer.participant,"handle":peer.handle,"live":peer.live,
-                "sequence":peer.sequence,"elapsed_milliseconds":peer.clock.elapsed().as_millis()})
-                })
-                .collect::<Vec<_>>();
-            let scope = json!({"case":context,"phase":phase,"source_index":source_index,
-                "allowed_receiver_indices":allowed,"connections":connections,
-                "captured_at_unix_milliseconds":chrono::Utc::now().timestamp_millis()});
-            init::private_write(
-                &directory.join("case.json"),
-                &serde_json::to_vec_pretty(&scope)?,
-            )?;
-            Ok(directory)
-        })();
+        let saved = save_handoff_failure(f, context, peers, source_index, allowed, phase);
         match saved {
             Ok(directory) => eprintln!("Handoff failure private snapshot: {}", directory.display()),
             Err(error) => eprintln!("Handoff failure snapshot unavailable: {error:#}"),
         }
         std::panic::resume_unwind(panic);
     }
+}
+
+#[test]
+fn handoff_failure_backup_refuses_a_locked_source_within_its_original_budget() {
+    let source = rusqlite::Connection::open_in_memory().unwrap();
+    source
+        .execute_batch("CREATE TABLE witness(value INTEGER); INSERT INTO witness VALUES(1);")
+        .unwrap();
+    source
+        .execute_batch("BEGIN IMMEDIATE; INSERT INTO witness VALUES(2);")
+        .unwrap();
+    let mut destination = rusqlite::Connection::open_in_memory().unwrap();
+    let started = std::time::Instant::now();
+    let error =
+        backup_handoff_state(&source, &mut destination, Duration::from_millis(25)).unwrap_err();
+    assert_eq!(error.to_string(), "handoff snapshot deadline");
+    assert!(started.elapsed() < Duration::from_secs(1));
+    source.execute_batch("ROLLBACK").unwrap();
+    backup_handoff_state(&source, &mut destination, Duration::from_secs(1)).unwrap();
+    let values: Vec<i64> = destination
+        .prepare("SELECT value FROM witness ORDER BY value")
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(values, [1]);
+}
+
+#[tokio::test]
+async fn handoff_failure_snapshot_preserves_private_consistent_state_and_case_metadata() {
+    let f = Fixture::with_native_mcp("EdDSA", 16).await;
+    let context = json!({"diagnostic":"capture-self-check","simulated":true});
+    let directory = save_handoff_failure(&f, &context, &[], 2, &[1], "capture-self-check").unwrap();
+    let case: Value =
+        serde_json::from_slice(&std::fs::read(directory.join("case.json")).unwrap()).unwrap();
+    assert_eq!(case["case"], context);
+    assert_eq!(case["source_index"], 2);
+    assert_eq!(case["allowed_receiver_indices"], json!([1]));
+    let status: Value =
+        serde_json::from_slice(&std::fs::read(directory.join("snapshot.json")).unwrap()).unwrap();
+    assert_eq!(status, json!({"database_complete":true,"error":null}));
+    let saved = rusqlite::Connection::open(directory.join("state.sqlite3")).unwrap();
+    assert_eq!(
+        saved
+            .query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
+            .unwrap(),
+        "ok"
+    );
+    let source = rusqlite::Connection::open(&f.config.database).unwrap();
+    let identities = |c: &rusqlite::Connection| {
+        c.query_row("SELECT COUNT(*) FROM identities", [], |r| {
+            r.get::<_, u64>(0)
+        })
+        .unwrap()
+    };
+    assert!(identities(&saved) > 0);
+    assert_eq!(identities(&source), identities(&saved));
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(
+            std::fs::metadata(&directory).unwrap().permissions().mode() & 0o777,
+            0o700
+        );
+        for name in ["state.sqlite3", "case.json", "snapshot.json"] {
+            assert_eq!(
+                std::fs::metadata(directory.join(name))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+    }
+    eprintln!(
+        "Handoff snapshot self-check private state: {}",
+        directory.display()
+    );
+    f.server.shutdown().await.unwrap();
 }
 
 #[tokio::test]

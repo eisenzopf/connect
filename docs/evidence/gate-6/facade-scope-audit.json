@@ -313,14 +313,14 @@
   },
   "pending": [
     "Diagnose retained original one-frame private-reverse failure; later instrumented handoff/movement passes are not a root-cause fix.",
-    "Snapshot-on-failure branch has not executed in the two passing handoff followups.",
+    "Controlled capture and contention tests pass; the unexpected media-probe failure itself has not reoccurred and its original failed-event database remains unavailable.",
     "Full105-task Gate6 objective and independent acceptance remain open."
   ],
   "diagnostic_followup": {
     "recorded_at": "2026-10-27T21:56:56.899682+00:00",
     "scope": "Test-fixture diagnostics only; production transport/authorization/media code unchanged. Source generation, original PCMU payload, original elapsed-time RTP basis,20ms scheduling,2second source window/300ms tail, >10marked partner threshold and strict zero forbidden receivers remain.",
     "changes": [
-      "All handoff probes preserve a consistent private SQLite snapshot and credential-free case/peer metadata on failure before fixture cleanup, not only the retained-remote phase. New directories0700 and files0600; snapshot errors do not replace the original panic.",
+      "Every handoff probe attempts a private consistent SQLite snapshot with an original two-second budget and credential-free case/peer metadata before fixture cleanup. Case metadata survives backup contention; snapshot.json identifies incomplete copies. Directories0700/files0600; capture errors do not replace the original panic.",
       "Probe summaries distinguish source packets sent, receiver packets received, non-silent marked frames, and minimum/maximum source RTP timestamp increments.",
       "One explicitly ignored single-scene diagnostic uses the original EdDSA/Leave/Conversation path; TRACE requires a separate explicit diagnostic flag. It does not replace the full eight-scene function."
     ],
@@ -505,6 +505,13 @@
     "investigation": {
       "audio_consumer_lock_inversion": "Ruled out the proposed decoded/state inversion: decoded_since takes decoded then ConsumerStamp.state, but activate/retire/commit do not lock decoded/delivered while holding state. No production change justified by that hypothesis.",
       "consultation_completion": "Candidate first decoded audio triggers durable decoded/completion recording, including a Conversation authority writer. Current passing runs do not establish this as the cause of the original collapse."
+    },
+    "bounded_snapshot_capture": {
+      "evidence": "docs/evidence/gate-6/native-handoff-failure-capture.json",
+      "controlled_tests_passed": 2,
+      "old_unbounded_call_negative": "Controlled locked-source child remains waiting; killed/reaped by parent after500ms.",
+      "underlying_native_audio_repaired": false,
+      "unexpected_media_probe_failure_reproduced": false
     }
   }
 }

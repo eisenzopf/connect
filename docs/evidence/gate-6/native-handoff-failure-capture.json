@@ -1,0 +1,97 @@
+{
+  "task": "G6-065",
+  "status": "diagnostic failure capture improved; underlying native audio finding remains open",
+  "recorded_at": "2026-10-27T22:18:38.197843+00:00",
+  "base_revision": "538d5d7e",
+  "scope": "Current local macOS arm64 diagnostic code only. No production transport, media, authorization, SDK thresholds, model/account or provider execution changes. No full-task/acceptance qualification.",
+  "source_inputs": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "4773980a97ecb27da4e444f95f8bf1b76138c0459b193b5e8a82c0de7a181290",
+    "Cargo.lock": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5"
+  },
+  "problem": "The previous failure snapshot used rusqlite Backup.run_to_completion, whose Busy/Locked retry loop has no deadline. Diagnostic reporting could hang behind contention and prevent the original panic from surfacing. This is distinct from the unexplained original one-frame private reverse audio failure.",
+  "change": [
+    "Fresh diagnostic SQLite connections use zero busy timeout; backup steps share one original two-second budget, including progress/retry time. Busy/Locked waits use one millisecond sleeps without resetting the deadline.",
+    "Case metadata is persisted before attempting the database copy. A separate private snapshot.json distinguishes complete copies from incomplete attempts. Incomplete state is never reported as a consistent database.",
+    "Existing all-probe catch reports capture failure then resumes the original panic. No audio generation, audience, scheduling, duration, role, or marked-frame threshold was changed."
+  ],
+  "build": {
+    "exit_code": 0,
+    "seconds": 13.34607516694814,
+    "source_count": 5223,
+    "changed_inputs": [],
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ]
+  },
+  "artifact": {
+    "sha256": "a0e4476689543f02e40557b993a2aacd15e8969a3a5dcef1326cf4647cb0f15d",
+    "bytes": 265388184
+  },
+  "negative_control": {
+    "scope": "Controlled negative: same normal-graph rusqlite library, original unbounded backup call, even with SQLite busy handlers set to zero. Source intentionally retains its own write transaction. Parent kills and reaps only this child after500ms; no model/provider/listeners.",
+    "expected_timeout": true,
+    "exit_code": "timeout-owned-child-killed-and-reaped",
+    "entered_backup": true,
+    "seconds": 0.5083715000655502,
+    "source_sha256": "3fe74e56f7dc4d6cc8861b19dd2d9345f87b9093d31268521b371a0fbe377c78",
+    "artifact_sha256": "50bfb2f5e1eb33eb0a0e686f46b5874420d80bfd22bdb16e3dc9614f34d072ec",
+    "library_sha256": "5dd012d312f2f7984b9bdf815345fba0b06cd745d75b694e8ff34b113a03cf05",
+    "log_sha256": "843dd6201f79f354ab35aa5add93248139572e24ef75d31c3a8af7438d12853e",
+    "changed_inputs": []
+  },
+  "verification": {
+    "scope": "Controlled diagnostic backup tests only: locked-source deadline/refusal then rollback/current copy, and a real isolated MCP fixture database snapshot plus private mode/status/case checks. No native audio failure reproduction, model or provider execution.",
+    "expected": [
+      "canonical_native_connections::consultation::groups::handoff::handoff_failure_backup_refuses_a_locked_source_within_its_original_budget",
+      "canonical_native_connections::consultation::groups::handoff::handoff_failure_snapshot_preserves_private_consistent_state_and_case_metadata"
+    ],
+    "exit_code": 0,
+    "seconds": 0.27102520782500505,
+    "test_result": [
+      "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 350 filtered out; finished in 0.25s"
+    ],
+    "changed_inputs": [],
+    "log_sha256": "a5d6335d1d543c800fd1e6439cc5740b672ec5ff8b3ea3c2ba846e3ad4e8ed47"
+  },
+  "observed": [
+    "Controlled retained write transaction refuses within the25ms test budget; after rollback a fresh bounded copy contains only the committed witness row.",
+    "Real isolated MCP fixture backup passes SQLite integrity_check and matches the source identity count. Case metadata and complete-status document match the requested synthetic case.",
+    "Actual retained directory mode0700; database,case.json,snapshot.json each0600. Owned server shutdown passes."
+  ],
+  "private_report_hashes": {
+    "build-snapshot-summary.json": "ebe26832f36aba060d2edb826f39491c02ebbf5b2fc06278cd0e83d5a8047245",
+    "root-inputs-snapshot.json": "129a0722590b12bb38c5c7771790835068913b2722e223b81aa6220aae22b9d6",
+    "runtime-inputs.json": "a278310e9868acae676979ffd291a5b65a6ea856e8b9c9b79567e01a6a0f8572",
+    "runtime-summary.json": "257fd9ed0bce453fd06e1f8d7fd4ad93a6fbf870db1edfd9062bbc3bb0d1434d",
+    "negative-build.json": "dd158e1651abf258fd53209f776b46f11da4d152f7a3369d6c5671d263c58d42",
+    "negative-summary.json": "704cb5574e796bfd522e1ab8e6901e90db12965b73c4670c4da61b261c1f4963"
+  },
+  "limits": [
+    "The actual unexpected media-probe panic path has not reoccurred; its original failed-event database state remains unavailable.",
+    "Two controlled capture tests are not native media, full eight-scene handoff, current facade runtime, installed SDK, Linux, real provider or actual model qualification.",
+    "Original source-frozen one-frame private reverse finding remains unresolved; later passing runs do not constitute a causal repair."
+  ],
+  "cached_cli_warning": "Cargo replayed the retained old objcopy/ENOSPC diagnostic from its cached CLI artifact. This was not a new successful strip; the current test executable is complete, sealed, hashed and actually loaded."
+}
