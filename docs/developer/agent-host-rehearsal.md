@@ -109,6 +109,9 @@ original prompt/session, native state and redacted JSONL remain under ignored
 
 See [the bounded actual-host evidence](../evidence/gate-6/canonical-agent-host-authorized.json).
 This fulfills the actual supported-host request/observe subrequirement locally.
-Remaining facade/profile work, remote/provider/telephone/browser qualification
-and Gate 6 acceptance remain open. This one authorization does not authorize
-another model rehearsal.
+This is the recorded candidate's actual-host result. The later
+[facade audit](../evidence/gate-6/facade-scope-audit.json) retains a native
+private-audio probe failure on changed service/media sources; historical host
+success does not resolve that finding. Remote/provider/telephone/browser
+qualification and Gate 6 acceptance remain open. This one authorization does not
+authorize another model rehearsal.

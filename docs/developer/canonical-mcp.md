@@ -2,11 +2,14 @@
 
 G6-065 is in progress. Ordinary identity access exposes finite canonical
 conversation, participant, Message, Session, Connection, stream-selection and
-operation tools. The official-client checkpoint and all9 MCP library tests pass;
-exact scope is in `docs/evidence/gate-6/canonical-mcp-control.json`. Configured
-hosting, scoped-agent export and native handoff have separate local evidence.
-Actual supported model-host transitions, complete facade parity and required
-remote/model profiles remain open.
+operation tools. Current HTTP/MCP/CLI, issuance and recovery checks are recorded
+in the [facade audit](../evidence/gate-6/facade-scope-audit.json). Configured
+hosting, scoped-agent export and native transitions have separate local evidence.
+One explicitly authorized supported Codex host requested and observed a handoff;
+see the [recorded rehearsal](agent-host-rehearsal.md#recorded-actual-host-result).
+The current audit retains an unresolved private-audio probe failure before a
+handoff request. Later diagnostic passes do not establish a repair. Remote,
+provider, package and independent acceptance profiles remain separate.
 
 Each tool advertises the canonical payload schema and explicit resource scope.
 The schema comes from the checked UCTP contract with only reachable definitions.
@@ -41,9 +44,9 @@ Older ordinary communication tool paths for create/send/history, Session
 lifecycle, participant add/update/remove, legacy dial/end and request status are
 removed from ordinary discovery. Canonical counterparts use current schemas;
 named application reads, files, receipt preferences and optional Task workflows
-retain their independently scoped interfaces. Full Task composition, file/admin
-facade parity, actual host transitions and required profile qualification remain
-open in G6-065.
+retain their independently scoped interfaces. Current Task/grant, file/admin and
+host evidence is linked from the facade audit; it does not qualify every media,
+remote or installed-package profile.
 
 The ordinary dispatch/receipt checkpoint has before/after actual CLI probes,
 all 27 retired selector refusals through the identity service, nested Task
@@ -51,7 +54,7 @@ exactly-once replay, both signing algorithms through the official MCP client,
 and 280 current HTTP/schema exchanges. Its
 [recorded evidence](../evidence/gate-6/canonical-mcp-application-dispatch.json)
 records that dispatch scope separately from the consultation/movement checkpoint
-below and the remaining actual host/profile qualification.
+below, the actual host rehearsal and the current audit's retained audio finding.
 
 ## Canonical server configuration
 

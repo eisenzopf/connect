@@ -532,6 +532,10 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
     let mut tick = tokio::time::interval(Duration::from_millis(20));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut counts = vec![0usize; peers.len()];
+    let mut received_packets = vec![0usize; peers.len()];
+    let mut sent_packets = 0usize;
+    let mut previous_timestamp = None;
+    let mut timestamp_steps: Option<(u32, u32)> = None;
     while tokio::time::Instant::now() < until {
         let event = {
             let receives = peers
@@ -562,16 +566,31 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                             .into(),
                         payload_type: 0,
                         sequence_number: p.sequence as u16,
-                        timestamp: (p.clock.elapsed().as_micros() * 8 / 1000) as u32,
+                        timestamp: {
+                            let timestamp = (p.clock.elapsed().as_micros() * 8 / 1000) as u32;
+                            if let Some(previous) = previous_timestamp {
+                                let step = timestamp.wrapping_sub(previous);
+                                timestamp_steps = Some(match timestamp_steps {
+                                    Some((minimum, maximum)) => {
+                                        (minimum.min(step), maximum.max(step))
+                                    }
+                                    None => (step, step),
+                                });
+                            }
+                            previous_timestamp = Some(timestamp);
+                            timestamp
+                        },
                         ssrc: 0x4736_8000 + source as u32,
                     },
                 })
                 .unwrap();
                 p.client.send_native_media_datagram(&packet).unwrap();
+                sent_packets += 1;
             }
             Event::Packet(i, bytes) => {
                 let packet = unpack_rtp_datagram(&bytes.unwrap()).unwrap();
                 assert_eq!(packet.stream_local_id, peers[i].handle);
+                received_packets[i] += 1;
                 if packet
                     .rtp
                     .payload
@@ -590,7 +609,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
             _ => {}
         }
     }
-    eprintln!("private-group audio {name}: source={source} allowed={allowed:?} frames={counts:?}");
+    eprintln!("private-group audio {name}: source={source} allowed={allowed:?} frames={counts:?} sent={sent_packets} received={received_packets:?} source_timestamp_steps={timestamp_steps:?}");
     for i in allowed {
         assert!(counts[*i] > 10, "{name}: too few marked frames: {counts:?}");
     }

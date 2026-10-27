@@ -172,10 +172,13 @@ source; it does not infer source identity from `--version` or build a distributi
 It creates fresh protected loopback state and strips provider/model credentials
 from child environments. Grant-bearing wire samples stay in ignored `.local/`.
 
-The current local [protected HTTP checkpoint](../evidence/gate-6/protected-http.json)
+The earlier local [protected HTTP checkpoint](../evidence/gate-6/protected-http.json)
 passes52 actual exchanges,51 checked against OpenAPI; the remaining Task-create
 exchange is fixture setup. It also records five reference-sensitivity witnesses
 and clean HTTP/MCP shutdown. This qualifies its local unsigned HTTP scope.
-Actual model-host, Linux, remote/provider/media and distribution profiles remain
-separate. G6-065 remains open for credential issuance/recovery, full body-variant
-parity and the remaining authorized facade behavior.
+The [current facade audit](../evidence/gate-6/facade-scope-audit.json) records 280
+actual exchanges, all schema-checked without setup-only exclusions, plus current
+CLI/MCP/scoped issuance and recovery checks. One supported actual-host rehearsal
+has separate bounded evidence. G6-065 remains open with a native private-audio
+probe finding; Linux, remote/provider/media, distribution and independent
+acceptance profiles remain separate.

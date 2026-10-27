@@ -312,8 +312,63 @@
     "http-wire/summary.json": "00f7ef7b4b276f37f9b2687517f1e102551ad660dd4b15963213d6cd3cbe18e3"
   },
   "pending": [
-    "Diagnose current private-reverse native audio failure and finish native transition qualification.",
-    "Reconcile current facade developer documentation after the completion audit passes.",
+    "Diagnose retained original one-frame private-reverse failure; later instrumented passes are not a root-cause fix.",
+    "Finish separately running current native movement verification.",
     "Full105-task Gate6 objective and independent acceptance remain open."
-  ]
+  ],
+  "diagnostic_followup": {
+    "recorded_at": "2026-10-27T21:56:56.899682+00:00",
+    "scope": "Test-fixture diagnostics only; production transport/authorization/media code unchanged. Source generation, original PCMU payload, original elapsed-time RTP basis,20ms scheduling,2second source window/300ms tail, >10marked partner threshold and strict zero forbidden receivers remain.",
+    "changes": [
+      "All handoff probes preserve a consistent private SQLite snapshot and credential-free case/peer metadata on failure before fixture cleanup, not only the retained-remote phase. New directories0700 and files0600; snapshot errors do not replace the original panic.",
+      "Probe summaries distinguish source packets sent, receiver packets received, non-silent marked frames, and minimum/maximum source RTP timestamp increments.",
+      "One explicitly ignored single-scene diagnostic uses the original EdDSA/Leave/Conversation path; TRACE requires a separate explicit diagnostic flag. It does not replace the full eight-scene function."
+    ],
+    "build": {
+      "seconds": 13.446169208036736,
+      "source_count": 5223,
+      "changed_inputs": [],
+      "artifact": {
+        "sha256": "fd0807554695cbb0c1d9c7c3bc09b056daea37c5c954206c9af95b453c47e7df",
+        "bytes": 265337624
+      },
+      "summary_sha256": "8c375510de6bc7ba4a2cacce74c08aa72ed2ae9d22a4d863c2fdf9795cef4fdd"
+    },
+    "focused": {
+      "scope": "One explicit ignored EdDSA/Leave/Conversation native MCP diagnostic with numeric packet/policy/Core timing and failure-state preservation. Not the full eight-scene qualification and not a model/provider execution.",
+      "exit_code": 0,
+      "seconds": 18.217720666900277,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 18.15s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "333ef413dd4b416e10398c664825dae90d17cefb730fd17760295fdfde63e229",
+      "probe_reports": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 98] sent=100 received=[0, 0, 98] source_timestamp_steps=Some((59, 251))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 98, 0] sent=100 received=[0, 98, 0] source_timestamp_steps=Some((102, 204))",
+        "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 71] sent=100 received=[2, 0, 79] source_timestamp_steps=Some((142, 176))",
+        "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((115, 213))",
+        "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((128, 187))"
+      ],
+      "private_snapshots": [],
+      "snapshot_errors": []
+    },
+    "full_sequence": {
+      "scope": "One full existing eight-scene native MCP handoff sequence with new packet counters and all-probe failure snapshots; TRACE disabled. Same content/audience/duration thresholds. A later pass does not erase the original unexplained failure. No model/provider execution.",
+      "exit_code": 0,
+      "seconds": 178.07298816600814,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 178.03s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "bfd4f3dcfdb1433e27a1a1579743088868e096b2ee621e328f8c14ce76a46245",
+      "private_snapshots": [],
+      "snapshot_errors": []
+    },
+    "full_sequence_probe_count": 54,
+    "full_sequence_summary_sha256": "55a1f36464c118b779485350bf706e5c151c73a6c834f20324738dd002e82757",
+    "interpretation": "Focused traced scene and later full8-scene non-TRACE run pass. Neither contains a failure witness; new snapshot-on-failure branch was not exercised. Original source-frozen1frame/failed probe remains unexplained and unresolved. No causal repair, task completion or acceptance promotion.",
+    "movement": "Running separately; no result credited yet.",
+    "production_code_changed": false
+  }
 }

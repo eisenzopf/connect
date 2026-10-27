@@ -55,7 +55,8 @@ Scoped issuance and native enrollment use the
 [saved-intent credential installer](credential-installation.md), with explicit
 `issue-resume` after uncertainty. Retained inspection uses the
 [application diagnostics](application-sdk.md#retained-task-diagnostics) config.
-G6-065 remains in progress. Full facade endpoint/OpenAPI/admin/file parity
-and actual supported agent-host
-transitions remain required. Remote, provider, Linux and distribution profiles
-need their own qualification.
+G6-065 remains in progress. Current CLI/HTTP/MCP, scoped issuance/recovery and
+OpenAPI checks are recorded in the [facade audit](../evidence/gate-6/facade-scope-audit.json).
+The actual supported-host rehearsal passed for its recorded candidate; a later
+native private-audio probe failure remains unresolved. Remote, provider, Linux,
+distribution and independent acceptance profiles need their own qualification.

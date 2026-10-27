@@ -1,6 +1,66 @@
 //! Actual native handoff from a decoded private audience through public clients.
 use super::*;
 use connect_protocol::transitions::{OutgoingDisposition, RoleScope};
+
+async fn handoff_probe(
+    f: &Fixture,
+    context: &Value,
+    peers: &mut [Peer],
+    source_index: usize,
+    allowed: &[usize],
+    phase: &str,
+) {
+    use futures_util::FutureExt;
+    let checked = std::panic::AssertUnwindSafe(super::probe(peers, source_index, allowed, phase))
+        .catch_unwind()
+        .await;
+    if let Err(panic) = checked {
+        // Every probe, including private preparation, needs its state before
+        // TempDir cleanup. A snapshot failure must not replace the original panic.
+        let saved = (|| -> anyhow::Result<std::path::PathBuf> {
+            let parent = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../.local/gate-6/sdk-external");
+            std::fs::create_dir_all(&parent)?;
+            let directory = parent.join(format!("handoff-failure-{}", uuid::Uuid::new_v4()));
+            init::private_directory(&directory)?;
+            let database = directory.join("state.sqlite3");
+            let source = rusqlite::Connection::open(&f.config.database)?;
+            let mut destination = rusqlite::Connection::open(&database)?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&database, std::fs::Permissions::from_mode(0o600))?;
+            }
+            rusqlite::backup::Backup::new(&source, &mut destination)?.run_to_completion(
+                128,
+                Duration::from_millis(1),
+                None,
+            )?;
+            let connections = peers
+                .iter()
+                .map(|peer| {
+                    json!({"id":peer.id,
+                "participant":peer.participant,"handle":peer.handle,"live":peer.live,
+                "sequence":peer.sequence,"elapsed_milliseconds":peer.clock.elapsed().as_millis()})
+                })
+                .collect::<Vec<_>>();
+            let scope = json!({"case":context,"phase":phase,"source_index":source_index,
+                "allowed_receiver_indices":allowed,"connections":connections,
+                "captured_at_unix_milliseconds":chrono::Utc::now().timestamp_millis()});
+            init::private_write(
+                &directory.join("case.json"),
+                &serde_json::to_vec_pretty(&scope)?,
+            )?;
+            Ok(directory)
+        })();
+        match saved {
+            Ok(directory) => eprintln!("Handoff failure private snapshot: {}", directory.display()),
+            Err(error) => eprintln!("Handoff failure snapshot unavailable: {error:#}"),
+        }
+        std::panic::resume_unwind(panic);
+    }
+}
+
 #[tokio::test]
 async fn production_native_private_handoff_commits_roles_and_retains_remote_audio() {
     for (disposition, role_scope) in [
@@ -48,6 +108,17 @@ async fn handoff_case_with_control(
     mcp: bool,
     host: Option<&crate::canonical_agent_rehearsal::Settings>,
 ) {
+    if std::env::var_os("CONNECT_GATE6_NATIVE_DIAGNOSTICS").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        let _ = tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "warn".into()),
+            )
+            .try_init();
+    }
     let codecs::Running {
         f,
         mut clients,
@@ -75,6 +146,8 @@ async fn handoff_case_with_control(
     if let Some(settings) = host {
         settings.retain_state(&f);
     }
+    let case_context = json!({"algorithm":f.client.signing_algorithm,"outgoing":disposition,
+        "role_scope":role_scope,"initial_activation":initial_activation,"mcp":mcp,"actual_host":host.is_some()});
     let room = clients[1]
         .list_conversations(Default::default())
         .await
@@ -134,8 +207,24 @@ async fn handoff_case_with_control(
     if initial_activation {
         // The third Participant has accepted before either public source
         // supplies real flow. It cannot be covered by the other two.
-        probe(&mut peers, RA, &[PA], "initial-handoff-public-forward").await;
-        probe(&mut peers, PA, &[RA], "initial-handoff-public-reverse").await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            RA,
+            &[PA],
+            "initial-handoff-public-forward",
+        )
+        .await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            PA,
+            &[RA],
+            "initial-handoff-public-reverse",
+        )
+        .await;
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         assert_eq!(
             db.query_row(
@@ -148,8 +237,24 @@ async fn handoff_case_with_control(
         );
     }
     let group = begin(&f, &mut peers, &cid, "private-before-handoff", PA, RA, CA).await;
-    probe(&mut peers, PA, &[CA], "handoff-private-forward").await;
-    probe(&mut peers, CA, &[PA], "handoff-private-reverse").await;
+    handoff_probe(
+        &f,
+        &case_context,
+        &mut peers,
+        PA,
+        &[CA],
+        "handoff-private-forward",
+    )
+    .await;
+    handoff_probe(
+        &f,
+        &case_context,
+        &mut peers,
+        CA,
+        &[PA],
+        "handoff-private-reverse",
+    )
+    .await;
     wait_state(&f, &group.key.id, &group.command.operation_id, true).await;
     let initial_flow_count = if initial_activation {
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -298,21 +403,33 @@ async fn handoff_case_with_control(
             let replay = controller.transition(refused).await.unwrap();
             assert_eq!(serde_json::to_value(replay).unwrap()["state"], "failed");
         }
-        probe(
+        handoff_probe(
+            &f,
+            &case_context,
             &mut peers,
             PA,
             &[CA],
             "handoff-refused-keeps-private-forward",
         )
         .await;
-        probe(
+        handoff_probe(
+            &f,
+            &case_context,
             &mut peers,
             CA,
             &[PA],
             "handoff-refused-keeps-private-reverse",
         )
         .await;
-        probe(&mut peers, RA, &[], "handoff-refused-keeps-remote-held").await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            RA,
+            &[],
+            "handoff-refused-keeps-remote-held",
+        )
+        .await;
     }
     if disposition == OutgoingDisposition::Leave {
         // Force the actual native EOF/retirement observation to precede
@@ -493,41 +610,18 @@ async fn handoff_case_with_control(
     } else {
         vec![RA]
     };
-    {
-        use futures_util::FutureExt;
-        let checked = std::panic::AssertUnwindSafe(probe(
-            &mut peers,
-            RA,
-            &remote_receivers,
-            "handoff-retained-remote",
-        ))
-        .catch_unwind()
-        .await;
-        if let Err(panic) = checked {
-            // Preserve a consistent private snapshot before TempDir cleanup.
-            // Do not retry the handoff or weaken the strict audio assertions.
-            let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../.local/gate-6/sdk-external")
-                .join(format!("handoff-failure-{}", uuid::Uuid::new_v4()));
-            std::fs::create_dir_all(&directory).unwrap();
-            let source = rusqlite::Connection::open(&f.config.database).unwrap();
-            let mut destination =
-                rusqlite::Connection::open(directory.join("state.sqlite3")).unwrap();
-            rusqlite::backup::Backup::new(&source, &mut destination)
-                .unwrap()
-                .run_to_completion(128, Duration::from_millis(1), None)
-                .unwrap();
-            let scope = json!({"algorithm":f.client.signing_algorithm,"command":command,"source":peers[RA].id,"incoming":peers[CA].id,"outgoing":peers[PA].id,"allowed":remote_receivers});
-            std::fs::write(
-                directory.join("case.json"),
-                serde_json::to_vec_pretty(&scope).unwrap(),
-            )
-            .unwrap();
-            eprintln!("Handoff failure private snapshot: {}", directory.display());
-            std::panic::resume_unwind(panic);
-        }
-    }
-    probe(
+    handoff_probe(
+        &f,
+        &case_context,
+        &mut peers,
+        RA,
+        &remote_receivers,
+        "handoff-retained-remote",
+    )
+    .await;
+    handoff_probe(
+        &f,
+        &case_context,
         &mut peers,
         CA,
         &incoming_receivers,
@@ -535,12 +629,22 @@ async fn handoff_case_with_control(
     )
     .await;
     if disposition == OutgoingDisposition::Observe {
-        probe(&mut peers, PA, &[], "handoff-observer-cannot-publish").await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            PA,
+            &[],
+            "handoff-observer-cannot-publish",
+        )
+        .await;
     }
     // Wait beyond both planning/attempt reader intervals. Continued audio
     // follows current physical lifetime policy, never retained command reads.
     tokio::time::sleep(Duration::from_secs(5)).await;
-    probe(
+    handoff_probe(
+        &f,
+        &case_context,
         &mut peers,
         RA,
         &remote_receivers,
@@ -551,7 +655,9 @@ async fn handoff_case_with_control(
         peers[PA].client.close();
         peers[PA].live = false;
         tokio::time::sleep(Duration::from_millis(300)).await;
-        probe(
+        handoff_probe(
+            &f,
+            &case_context,
             &mut peers,
             RA,
             &[CA],
@@ -602,6 +708,20 @@ async fn production_mcp_handoff_keeps_decoded_native_audio_roles_original_recove
             eprintln!("MCP handoff {algorithm}:outgoing={outgoing:?},scope={scope:?}, independent decoded native audio, original recovery, one effect, all owners joined");
         }
     }
+}
+
+#[tokio::test]
+#[ignore = "Explicit single-scene diagnostic; not the full eight-scene qualification"]
+async fn diagnostic_mcp_leave_conversation_handoff_scene() {
+    handoff_case_with_control(
+        OutgoingDisposition::Leave,
+        RoleScope::Conversation,
+        false,
+        Some("EdDSA"),
+        true,
+        None,
+    )
+    .await;
 }
 
 pub(crate) async fn host_rehearsal(settings: &crate::canonical_agent_rehearsal::Settings) {

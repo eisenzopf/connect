@@ -1,12 +1,15 @@
 # Give an agent a canonical Connect connection
 
-G6-065 is migrating the agent-facing facades. Ordinary MCP access uses one
+Ordinary MCP access uses one
 current, revocable Identity credential and explicit authorized resources.
 Task tracking and narrowly delegated Task installations remain optional.
-Current qualification and limitations are in
-[evidence/gate-6/canonical-agent-export.json](evidence/gate-6/canonical-agent-export.json).
-Actual-model, live-transition/media, remote and installed package profiles retain
-their separate qualification requirements.
+Current facade qualification and limitations are in the
+[scope audit](evidence/gate-6/facade-scope-audit.json); the
+[export evidence](evidence/gate-6/canonical-agent-export.json) records installation
+and credential boundaries. One explicitly authorized supported Codex rehearsal
+passed. G6-065 remains in progress with an unresolved native private-audio probe
+finding. Remote, provider, installed-package and independent acceptance profiles
+retain their separate qualification requirements.
 
 ## Start a protected local installation
 
