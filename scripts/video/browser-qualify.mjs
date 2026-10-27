@@ -117,7 +117,7 @@ try {
     const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
         const context = await browser.newContext(); contexts.push(context);
         const page = await context.newPage();
-        observedPages.push(page);
+        observedPages[index]=page;
         await page.addInitScript(installPeerDiagnostics);
         await page.addInitScript(installControlDiagnostics);
         await page.goto(spec.baseURL + "/examples/conversation-client/");

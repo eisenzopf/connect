@@ -54,7 +54,7 @@ export function installPeerDiagnostics() {
 }
 
 export async function browserFailure(pages, error) {
-    const peerDiagnostics = await Promise.all(pages.map(async (page, index) => {
+    const peerDiagnostics = await Promise.all(Array.from(pages, async (page, index) => {
         try {
             const value = await Promise.race([
                 page.evaluate(() => globalThis.connectPeerDiagnostics?.() ?? {unavailable: true}),

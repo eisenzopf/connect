@@ -973,6 +973,15 @@ const proof=result.peer_diagnostics[0];assert.equal(proof.omitted_peers,1);asser
 assert.equal(proof.peers[0].events.length,128);assert.equal(proof.peers[0].omitted_events,13);
 assert.equal(proof.peers[0].current.ice,'checking');assert.equal(proof.peers[0].current.remote_description_set,true);
 assert(!JSON.stringify(result).includes('private-secret'));
+// Participant1 can finish creating its page while participant0 is unavailable.
+// Preserve configured identities and represent the actual missing page explicitly.
+const unordered=[];unordered[1]={evaluate:async callback=>callback()};
+const sparse=await browserFailure(unordered,new Error('private-secret-error'));
+assert.deepEqual(sparse.peer_diagnostics[0],{participant:0,unavailable:true});
+assert.equal(sparse.peer_diagnostics[1].participant,1);
+assert.equal(sparse.peer_diagnostics[1].peers[0].current.ice,'checking');
+assert(!JSON.stringify(sparse).includes('private-secret'));
+
 console.log('bounded peer-state privacy guard passed');
 '''
         result = subprocess.run([os.environ.get('CONNECT_NODE_BINARY', 'node'), '--input-type=module',

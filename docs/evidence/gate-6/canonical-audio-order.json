@@ -4,7 +4,7 @@
     "G6-051"
   ],
   "status": "in-progress",
-  "recorded_at": "2026-10-27T19:36:29.867279+00:00",
+  "recorded_at": "2026-10-27T19:46:32.877016+00:00",
   "scope": "Canonical WebRTC original audio ordering and explicit bounded timing diagnostics. This does not close the complete browser/fallback/acceptance matrix.",
   "implementation": [
     "Canonical audio uses the existing ten-packet/100ms gap-only reorder before RTP sequence is stripped; contiguous audio does not wait. Expiration wakes on its actual pending deadline even without new traffic.",
@@ -494,5 +494,274 @@
       }
     ],
     "interpretation": "Both input RTP sequences/timestamps are continuous. Output sequences are continuous but329/21timestamp steps exceed one960sample quantum. These are actual gaps, preserved in evidence; this passing diagnostic alone does not establish a failure cause. Mixer source/output cadence and queue selection remain to investigate."
+  },
+  "follow_up_diagnostics": [
+    {
+      "label": "firefox-audio-core-timing-64",
+      "scope": "Explicit instrumented diagnostic variation. Same source/observer/threshold. Core/policy trace is bounded by the150second parent run, not the8192row audio_timing stage cap.",
+      "verdict": "failed",
+      "guards_unchanged": true,
+      "seconds": 66.42703145905398,
+      "bad_audio_samples": [
+        2,
+        0
+      ],
+      "stages": {
+        "source-read": {
+          "rows": 6279,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6279,
+            "median": 9,
+            "p95": 16,
+            "max": 7181
+          },
+          "publish_us": null,
+          "write_us": null,
+          "refused": 0
+        },
+        "core-publish": {
+          "rows": 6274,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6274,
+            "median": 215.0,
+            "p95": 539,
+            "max": 19642
+          },
+          "publish_us": {
+            "samples": 6274,
+            "median": 190.0,
+            "p95": 505,
+            "max": 19619
+          },
+          "write_us": null,
+          "refused": 2
+        },
+        "driver-write": {
+          "rows": 6142,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6142,
+            "median": 3231.5,
+            "p95": 7417,
+            "max": 26416
+          },
+          "publish_us": null,
+          "write_us": {
+            "samples": 6142,
+            "median": 17.0,
+            "p95": 27,
+            "max": 47
+          },
+          "refused": 0
+        }
+      },
+      "core_delivery_refusals": [
+        {
+          "stage": "target-egress",
+          "problem": "NotReady",
+          "rows": 2756
+        },
+        {
+          "stage": "source-egress",
+          "problem": "NotReady",
+          "rows": 2950
+        },
+        {
+          "stage": "source-egress",
+          "problem": "Authority",
+          "rows": 4
+        }
+      ],
+      "core_queued_rows": 6144,
+      "core_trim_rows": 108,
+      "policy_rows": 0,
+      "policy_rows_with_problem": 0,
+      "flows": [
+        {
+          "stage": "source-read",
+          "rows": 3139,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 0
+        },
+        {
+          "stage": "source-read",
+          "rows": 3140,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 0
+        },
+        {
+          "stage": "driver-write",
+          "rows": 3103,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 23
+        },
+        {
+          "stage": "driver-write",
+          "rows": 3039,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 88
+        }
+      ],
+      "hashes": {
+        "summary.json": "f1461f14584fd5d500d6f16eca8346334ebf8dfeddec09e1012baa016d5a09e4",
+        "inputs.json": "45ac3503e68ce67ea7f07c479e11e2f24df52224dcdfe7cd576acf486212425d",
+        "browser-result.jsonl": "5ea62ad9aa7d8611214c5c1401dae7d76488d90b27250b1f5bb937f98d072d6f",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "test.log": "86bdb7eb3a6b20a85ad4424954457f85ec30e184e0a966cc6d8e29fac0326652",
+        "audio-timing-analysis.json": "6a96c7a7d0128aacf060e6dd105797e3fee29f9fbdb25ee8ce74e69f808dd502"
+      },
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    },
+    {
+      "label": "firefox-audio-policy-timing-65",
+      "scope": "Explicit instrumented diagnostic variation. Same source/observer/threshold. Core/policy trace is bounded by the150second parent run, not the8192row audio_timing stage cap.",
+      "verdict": "passed",
+      "guards_unchanged": true,
+      "seconds": 66.3786585831549,
+      "bad_audio_samples": [
+        0,
+        0
+      ],
+      "stages": {
+        "source-read": {
+          "rows": 6278,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6278,
+            "median": 9.0,
+            "p95": 18,
+            "max": 7703
+          },
+          "publish_us": null,
+          "write_us": null,
+          "refused": 0
+        },
+        "core-publish": {
+          "rows": 6274,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6274,
+            "median": 214.0,
+            "p95": 529,
+            "max": 43843
+          },
+          "publish_us": {
+            "samples": 6274,
+            "median": 191.0,
+            "p95": 435,
+            "max": 43799
+          },
+          "write_us": null,
+          "refused": 3
+        },
+        "driver-write": {
+          "rows": 6086,
+          "row_cap_per_process": 8192,
+          "cap_reached": false,
+          "age_us": {
+            "samples": 6086,
+            "median": 3269.0,
+            "p95": 7359,
+            "max": 18014
+          },
+          "publish_us": null,
+          "write_us": {
+            "samples": 6086,
+            "median": 17.0,
+            "p95": 26,
+            "max": 78
+          },
+          "refused": 0
+        }
+      },
+      "core_delivery_refusals": [
+        {
+          "stage": "source-egress",
+          "problem": "NotReady",
+          "rows": 2995
+        },
+        {
+          "stage": "target-egress",
+          "problem": "NotReady",
+          "rows": 2664
+        },
+        {
+          "stage": "source-egress",
+          "problem": "Authority",
+          "rows": 2
+        }
+      ],
+      "core_queued_rows": 6087,
+      "core_trim_rows": 166,
+      "policy_rows": 80139,
+      "policy_rows_with_problem": 8,
+      "flows": [
+        {
+          "stage": "source-read",
+          "rows": 3139,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 0
+        },
+        {
+          "stage": "source-read",
+          "rows": 3139,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 0
+        },
+        {
+          "stage": "driver-write",
+          "rows": 3017,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 107
+        },
+        {
+          "stage": "driver-write",
+          "rows": 3069,
+          "sequence_discontinuities": 0,
+          "timestamp_step_discontinuities": 60
+        }
+      ],
+      "hashes": {
+        "summary.json": "c41b84ddf8c58f774aeafc807b9b2c06e8ac7f3a09d1e086983115e1e224abf1",
+        "inputs.json": "f34a1aba75d78386bf23e44d15a935f615c926262339503a508e0646bf7867b1",
+        "browser-result.jsonl": "30c346db09d4fc14b92e86127099b1e1e96e61e436e6bdaf3d9f29899b691fd3",
+        "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "test.log": "af5c9c1ba20650406b6c0b3366cba4daef5100c93ab921c643be506708651af4",
+        "audio-timing-analysis.json": "234fcf2bb7a5cfabc529b716b868a389ba42459434cc38f926887ac6321d786e"
+      },
+      "ownership": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      }
+    }
+  ],
+  "diagnostic_participant_identity": {
+    "correction": "Store asynchronously created pages at the configured participant index, rather than completion-order push. Original qualification observations already use Promise.all input order; this fixes diagnostic page attribution.",
+    "retained_limitation": "Run64 receiver PCM/RTP and server timing remain original. Its counterpart-source ring/RTP is INVALID: completion order selected the receiver itself. Do not use it to attribute a remote source cause. Run65 uses the corrected mapping but has zero bad samples/witness events, so it does not provide a new failed-source witness.",
+    "verification": "JavaScript syntax,57existing measurement methods and3existing sample-clock methods pass. Run65 full diagnostic passes without changed source/observer/threshold. Existing telemetry test now additionally verifies a missing participant0/out-of-order participant1 remains explicit and correctly indexed, with private descriptions/error text still excluded. All57measurement methods pass after this assertion."
+  },
+  "additional_closed_profile_preservation": {
+    "closed-profile-archives-63": "111fee8059dd8cae2fd41125bc3a760747e1fd7dab4b991acc7d64aa5f7526c4",
+    "closed-profile-archives-66": "1fbc25ffaf3ee672afbb7a7702ed5141110bb006c728ea303843e7fea094b03f"
   }
 }
