@@ -1256,6 +1256,11 @@
       "path": "patches/rvoip/gate6-canonical-audio-timing.patch",
       "source": "G6-050/G6-051 explicit trace-only numeric original audio timing at source-read/Core-publish/guarded-driver-write.8192rows per stage/process; no payload/address/SDP/credential logs, cached grant, repeated IO or source/age/deadline/permission changes.",
       "sha256": "7e25d306bcc2e02de04eb155b44b5d58f465c856bcf666d506851ec67059f29b"
+    },
+    {
+      "path": "patches/rvoip/gate6-mixer-publish-after-readers.patch",
+      "source": "G6-050/G6-051 close mixer producer source/target/subscription reader intervals before publishing original queued frames. Fresh queued IO still reacquires current authority within original age/deadline. Exact negative/positive observer regression covers publication order and current revocation; no source/observer/profile relaxation.",
+      "sha256": "4e88ebe1f59ffa6416294e5d371d103e93d93efcaf33b8082da729f328342b90"
     }
   ]
 }

@@ -1,0 +1,189 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -756,6 +756,7 @@
+             inputs.insert(id.clone(), (member.participant.clone(), segments));
+         }
+         let mut subscription_guards = Vec::new();
++        let mut outputs = Vec::with_capacity(members.len());
+         for member in members.values_mut() {
+             let subscription = member.subscriptions.stamp();
+             let mut total = vec![0i32; (self.rate / 50) as usize];
+@@ -904,19 +905,31 @@
+             member.previous_sources = provenance.clone();
+             tracing::trace!(target: "rvoip_core::audio_path", target = %member.controller.connection,
+                 age_us = oldest.elapsed().as_micros() as u64, "Guarded audio queued");
+-            let _ = member.port.egress.try_send(QueuedMedia {
+-                frame,
+-                data: None,
+-                local: None,
+-                sources: provenance,
+-                target: member.port.clone(),
+-                target_ticket,
+-                target_consumer,
+-                target_scene,
+-                subscription: Some(subscription),
+-                direct: None,
+-                admitted_at: oldest,
+-            });
++            outputs.push((
++                member.port.egress.clone(),
++                QueuedMedia {
++                    frame,
++                    data: None,
++                    local: None,
++                    sources: provenance,
++                    target: member.port.clone(),
++                    target_ticket,
++                    target_consumer,
++                    target_scene,
++                    subscription: Some(subscription),
++                    direct: None,
++                    admitted_at: oldest,
++                },
++            ));
++        }
++        // Queues hold original frames and provenance, never these readers.
++        // Wake consumers only after this producer interval closes; delivery
++        // still reacquires its own exact current authority and original age.
++        drop(subscription_guards);
++        drop(admissions);
++        drop(leases);
++        for (output, queued) in outputs {
++            let _ = output.try_send(queued);
+         }
+     }
+ }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1505,3 +1505,5 @@
+         ))
+         .is_err());
+ }
++
++mod tick_publication;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/tick_publication.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/tick_publication.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/tick_publication.rs
+@@ -0,0 +1,119 @@
++use super::*;
++
++#[derive(Default)]
++struct Probe {
++    queue: std::sync::Mutex<Option<mpsc::Receiver<QueuedMedia>>>,
++    early: std::sync::atomic::AtomicBool,
++}
++struct ObservedLease {
++    inner: Box<dyn MediaAuthorityLease>,
++    probe: Arc<Probe>,
++}
++impl MediaAuthorityLease for ObservedLease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.inner.expires_at()
++    }
++    fn packet_context(&self) -> Option<&(dyn std::any::Any + Send + Sync)> {
++        self.inner.packet_context()
++    }
++}
++impl Drop for ObservedLease {
++    fn drop(&mut self) {
++        // This real policy reader is still held here. Observe the actual
++        // receiver without sending, inventing authority or awaiting a callback.
++        let mut queue = self.probe.queue.lock().unwrap();
++        if queue.as_mut().is_some_and(|q| q.try_recv().is_ok()) {
++            self.probe.early.store(true, Ordering::Release);
++        }
++    }
++}
++struct ObservedPolicy {
++    inner: Arc<Policy>,
++    probe: Arc<Probe>,
++}
++impl MediaPolicy for ObservedPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        Ok(Box::new(ObservedLease {
++            inner: self.inner.current(scope)?,
++            probe: self.probe.clone(),
++        }))
++    }
++    fn current_participant_receive(
++        &self,
++        scope: &MediaScope<'_>,
++        source: &MediaParticipantSource,
++    ) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        self.inner.current_participant_receive(scope, source)
++    }
++}
++#[tokio::test]
++async fn queued_output_is_published_after_tick_readers_release_and_rechecks_current_authority() {
++    for withdrawn in [false, true] {
++        let probe = Arc::new(Probe::default());
++        let observed = probe.clone();
++        let s = Scene::new_inner(
++            &four()[..2],
++            8000,
++            Some(Box::new(move |inner| {
++                Arc::new(ObservedPolicy {
++                    inner,
++                    probe: observed,
++                })
++            })),
++        )
++        .await;
++        s.bind(0, true).await;
++        s.bind(1, false).await;
++        *probe.queue.lock().unwrap() = Some(s.port(1).take_egress().unwrap());
++        s.publish(0, 3000);
++        s.mixer.tick();
++        assert!(
++            !probe.early.load(Ordering::Acquire),
++            "queued output woke its consumer before producer policy readers released"
++        );
++        drop(
++            s.policy
++                .0
++                .try_write()
++                .expect("idle queued output retained a producer reader"),
++        );
++        let queued = probe
++            .queue
++            .lock()
++            .unwrap()
++            .as_mut()
++            .unwrap()
++            .try_recv()
++            .unwrap();
++        if withdrawn {
++            s.policy
++                .0
++                .try_write()
++                .unwrap()
++                .revoked
++                .insert("alice".into());
++            let calls = std::sync::atomic::AtomicUsize::new(0);
++            let result = queued
++                .deliver(|_| {
++                    calls.fetch_add(1, Ordering::AcqRel);
++                    std::future::ready(Ok(()))
++                })
++                .await;
++            assert!(matches!(result, Err(StreamControlError::Authority)));
++            assert_eq!(calls.load(Ordering::Acquire), 0);
++        } else {
++            heard(queued, 3000).await;
++        }
++        assert!(probe
++            .queue
++            .lock()
++            .unwrap()
++            .as_mut()
++            .unwrap()
++            .try_recv()
++            .is_err());
++    }
++}

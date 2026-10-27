@@ -1,0 +1,148 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T19:52:10.294261+00:00",
+  "scope": "Component-verified Core publication ordering. Whole-candidate native/browser build/runtime PENDING; no claim of repaired audio/profile qualification.",
+  "implementation": [
+    "Each tick temporarily batches at most one original output per existing member; releases producer source/target/subscription readers before publishing queued frames. Preserve tick serialization. No persistent added queue/timer/frame rewrite/repeated IO.",
+    "Exact queued delivery independently reacquires current source/recipient/scene/subscription authority, original receipt/200ms age/cancellation/IO deadline. No positive grant survives in the queue."
+  ],
+  "motivation": "Instrumented browser observations expose thousands of Core NotReady retries with almost entirely successful Store policy reads. Existing code publishes before producer readers release. Component proof establishes this ordering, not causal attribution or measured performance repair.",
+  "patch_sha256": "4e88ebe1f59ffa6416294e5d371d103e93d93efcaf33b8082da729f328342b90",
+  "source_lock_sha256": "3ac3237f3abd45b9e8f97ce75eb0498d27646888bfa791963d0642a90c2a692d",
+  "negative": [
+    {
+      "name": "harness-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.502664458937943,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unit-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 14.163273459067568,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "c3d027c39b8981810332a35c32c19137033cb0b2c8ae769f3004989b089a5c6d"
+    },
+    {
+      "name": "negative-witness",
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "seconds": 0.7076860410161316,
+      "results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 543 filtered out; finished in 0.01s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "bc68313a78fa581682b6a9767cc1c19214258d7ee8f826f5d3ac9300e8296287"
+    }
+  ],
+  "positive": [
+    {
+      "name": "harness-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.4900309999939054,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unit-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 14.382889042142779,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "82139cfff09caacc87672a35a098aaa119150fdf07d039b02e7bfb3e2e4cd9de"
+    },
+    {
+      "name": "mixer",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 2.5962720001116395,
+      "results": [
+        "test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 489 filtered out; finished in 2.05s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "40f92fb7332726026a3333179a42d4c71577558eb8b544b4ea80a8d5a55b65ec"
+    },
+    {
+      "name": "scene",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.4478913329076022,
+      "results": [
+        "test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 504 filtered out; finished in 0.41s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "72097b9b7267f44957c41493f650061d365f7fb1a562fa60d7ec812e84a2b477"
+    },
+    {
+      "name": "queued",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.492774958955124,
+      "results": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 539 filtered out; finished in 0.43s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "70b510a18c78a625f452c14f2fd40efa3a7ec0085abb05c55abf116737d41197"
+    },
+    {
+      "name": "cadence",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.006075874902307987,
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 542 filtered out; finished in 0.00s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "d239053baa8a478bf96ecac09ca1447c2e05a143a5ace760ca8f4645d0fe45cb"
+    }
+  ],
+  "positive_methods": 102,
+  "method_counts": {
+    "guarded_mixer": 55,
+    "media_scene": 40,
+    "original_queued_contention": 5,
+    "cadence": 2
+  },
+  "new_regression": "Real policy lease destructor observes actual receiver while original reader is held. Prior production exposes queued output and fails. Candidate releases readers first. Live-authority delivery and current source revocation before delivery, no duplicate output, are checked.",
+  "prepared_source": {
+    "whole_core_exactly_matches_positive_unit_source": true,
+    "official_source_patch_verification": "passed",
+    "format_check": "passed",
+    "unchanged_files_cow_mtime_preserved": 4129,
+    "scope": "Full original Core lib.rs, normal upstream dependencies/features, opt0/no stack override; component evidence only."
+  },
+  "failed_attempt": {
+    "scope": "Initial preparation refused missing Git new-file mode header. Corrected metadata leaves unit-tested Rust unchanged. Fresh official preparation passes. No product build/runtime on refused preparation.",
+    "record_sha256": "b8f674643b9ad80bbd30c86ee22fce41ba0cb7c4a1fc1dae6324c45ec14d87ac",
+    "duplicate_generated_cache_sha256": "57a278040338b477647f31742756d47de10c6be598a20a371493bd4e539e5cd3",
+    "preservation": "Failed log/patch/lock retained. Every generated duplicate source byte verified identical to retained prior official source at same Git revision before pruning."
+  },
+  "closed_proof_preservation": {
+    "baseline_manifest_sha256": "27e9cf756144984b4b4e38fba158c5b39fc762bd7af6fdef9e7f244af06cc7be",
+    "unit_manifest_sha256": "c85047c09542051cf968cc1c8b4ba53937b3345e0e88ce7c669231fb048faa33",
+    "scope": "Only closed executables/replaced libraries; no live lsof owner, streaming decompression/SHA before unlink, restoration mappings/modes/times retained. Sources/state/logs retained."
+  },
+  "pending": [
+    "Frozen full Connect Cargo build67 in intended release cache; Store/Service/Server opt0.",
+    "New binary native AV/refusal/WSS/WT regressions and installed normal Chrome/Firefox profiles.",
+    "Causal timing comparison; historical normal-profile audio failures remain failures."
+  ],
+  "progress": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

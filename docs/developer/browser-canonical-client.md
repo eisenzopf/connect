@@ -424,3 +424,13 @@ and logging can affect scheduling. Both source streams in the diagnostic retain
 continuous sequence/timestamp steps while outgoing timestamps skip some quanta;
 Core cadence/queue selection remains to investigate. See
 [the scoped evidence](../evidence/gate-6/canonical-audio-order.json).
+
+
+Core mixer output publication now follows closure of the tick's producer reader
+intervals. A tick-local batch holds at most one original output per existing
+member, with no persistent queue/timer. Tick serialization and each queued
+delivery's exact current authority/original age/deadline remain. Prior production
+fails an actual receiver/lease-release regression;102focused Core methods pass.
+Full native/browser verification remains pending; this does not establish a
+repair of the tone failures. See
+[component evidence](../evidence/gate-6/canonical-mixer-publication.json).
