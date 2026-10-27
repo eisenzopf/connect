@@ -2,11 +2,12 @@
   "task": "G6-051",
   "status": "in-progress",
   "base_revision": "bd5ca964",
-  "checked_at": "2026-10-27T01:47:45.191547+00:00",
-  "scope": "Typed Core WebRTC resource ownership component; ordinary production libraries and actual loopback UDP allocation/close. Current policy and membership are isolated fixtures. No canonical Store media readiness or browser/hosting qualification.",
+  "component_revision": "8270f78a",
+  "checked_at": "2026-10-27T01:58:45.966416+00:00",
+  "scope": "Local macOS arm64, ordinary production Core/RTC/WebRTC libraries, isolated current policy/membership fixtures, real UDP peer allocation and driver destruction. Distinct from canonical Store staged-media readiness and browser/hosting qualification.",
   "source_inputs": {
-    "Cargo.lock": "6b8421b32ed000a141390be9b00cd61cb85b59b9828d49895ce123ee93871b72",
     "dependencies/source-lock.json": "ffe6d1d0169b4b51ed6c34adf819b7416ba5dee2fa03184057617e88cb1d52ab",
+    "Cargo.lock": "6b8421b32ed000a141390be9b00cd61cb85b59b9828d49895ce123ee93871b72",
     "patches/rvoip/gate6-core-webrtc-resource-preparation.patch": "a063e33932ccc2b2390f20d99976e94bf364c7f38baa9d7011da05bec4eb12ca",
     "docs/evidence/gate-6/webrtc-core-resource-probe.rs": "d587a2ef140cdb13400e62e8646eb52f78edc046efada0f9dcf26d6a017ec826",
     ".deps/rvoip/crates/foundation/rvoip-core/src/adapter.rs": "8912994fc2d7010c8c6cd7fb966afd42c49a7bcfafef54d02b0bb5b0ca1a9625",
@@ -16,7 +17,183 @@
     ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/lib.rs": "f61ae450d4f3bcfaaa8fe3d56c4829e00d72697994bd465ae2c29345741453b8",
     ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/peer/session.rs": "5f809dbc87a2d49f1b2ca0fc82bed4abe0ef301c19d4d2cc59c58e81479f80f0"
   },
-  "dependency_preparation": "Fresh source-lock/patch digests verified; preparation terminal before adoption. Unchanged-file mtime restoration is byte-checked and recorded privately.",
+  "dependency_preparation": {
+    "verified": true,
+    "source_lock_sha256": "ffe6d1d0169b4b51ed6c34adf819b7416ba5dee2fa03184057617e88cb1d52ab",
+    "patch_sha256": "a063e33932ccc2b2390f20d99976e94bf364c7f38baa9d7011da05bec4eb12ca",
+    "new_root_preparation_terminal": true,
+    "unchanged_files_mtime_restored_only_after_terminal_preparation": true
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 23.74616724997759,
+    "source_unchanged": true,
+    "source_count": 2134,
+    "command": [
+      "cargo",
+      "test",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_canonical_runtime",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-456d973275220a3b",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/server-library-test-02",
+        "sha256": "eb198a80c383dae3cc656795a2a77ecddd34a75a83f3b1dc3333a2e849a7baf3",
+        "bytes": 106429600
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-b78a1d2be46d58ba",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/wss-integration-test-02",
+        "sha256": "04d6de83db73856acb10f63d05afafc43e3d4d9e8fa3b1c99e4b27ddfaf71211",
+        "bytes": 203947072
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-7b90941c893c1dae",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/runtime-integration-test-02",
+        "sha256": "a2e6f4ec254d9486293e077323e370a7974532fb74a48033cd5a4124d69861fb",
+        "bytes": 251761136
+      }
+    ],
+    "log_sha256": "e47fc10a2ee7d84a9d67816f448e61215a2dfb7c7088e37604a9d6c4b7f406ca"
+  },
+  "initial_disk_full_build": {
+    "exit_code": 101,
+    "seconds": 958.8805567920208,
+    "source_unchanged": true,
+    "source_count": 2134,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--test",
+      "gate6_canonical_runtime",
+      "--no-run",
+      "--message-format=json"
+    ]
+  },
+  "connect_regressions": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/wss-integration-test-02",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.178412124980241,
+        "log_sha256": "1ed1a05057dee3e87954513c5ff81f798d8c355b155195ba5631b3340293e84d",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.64s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/server-library-test-02",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.244470000034198,
+        "log_sha256": "24a5df02d03623ba8f5e7139905961b1e212ae540be46cc223bffca30c90609d",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.33s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/wss-integration-test-02",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.351806125137955,
+        "log_sha256": "26944e1d51fb1f816b334f12d6e09075456abb1b12ff81595b951e262dbe1c57",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.30s"
+        ]
+      },
+      {
+        "scope": "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/runtime-integration-test-02",
+          "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 2.476047458127141,
+        "log_sha256": "e84cb939d645963c9afc97526d1ec2408018650fa7444004bc6b03a4ebc79612",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.67s"
+        ]
+      },
+      {
+        "scope": "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-adapter/runtime-integration-test-02",
+          "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 0.6664142080117017,
+        "log_sha256": "79b2e7ea8790d2a32781b0ce645b33e003fb42e9a52bc413417f4c620a980ec8",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 0.65s"
+        ]
+      }
+    ],
+    "source_count": 2507,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
   "production_probes": {
     "results": [
       {
@@ -282,20 +459,32 @@
       "test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
     ]
   },
-  "connect_build_and_regressions": {
-    "status": "pending",
-    "detail": "Full frozen Connect build is running. No Connect regression pass is claimed in this component checkpoint."
-  },
+  "implementation": [
+    "Typed PeerWebRtcIntent and private Core-constructed WebRtcConnectionRequest use a separate default-deny adapter hook. Native transport allowlist remains strict. Core reserves never-reused IDs and shared physical Session/Connection quotas before the dormant callback.",
+    "CanonicalWebRtcAdapter allocates only a Connecting resource route with no streams/capabilities/readiness. The original physical context is bound to its originating authenticated PeerAdmission before first claim and accepts one Core Connection.",
+    "WebRtcPhysicalBinding starts one original construction task only after reservation; pending result observations can be canceled without replacing or losing original work. Physical/Core cancellation fences current observations and closes a peer constructed after retirement.",
+    "One original close worker joins construction and actual RTC driver destruction. Adapter liveness/Core quota remain retained until close confirms; missing worker/close result stays unconfirmed. Constructor validates primary audio encoding before driver allocation."
+  ],
   "qualification_limits": [
-    "16resource+8peer-audio+12Core-egress assertion groups are distinct from16extracted exact native test bodies; these are not an upstream Cargo dev-test pass.",
-    "Resource adapter is not installed by the service signaling host/default server. Connecting resource retention does not admit a Participant or assert media readiness.",
-    "Missing-result fixture uses invalid trusted usize::MAX channel capacity to cause a real constructor worker panic; Core quota remains quarantined.",
-    "Initial probe generated a new Endpoint during retain and correctly refused; fixture now preserves the original ID. Zero channel capacity was clamped rather than panicking; the corrected panic fixture passes. Initial broad native harness failed due to unrelated TLS/media parent dependencies; selected exact resource bodies pass. Explicit dependency feature selection outside the workspace was rejected before compilation."
+    "The new program has 16 assertion groups. Peer-audio and Core-egress regressions have 8 and12 groups respectively; these are not separate Cargo test counts.",
+    "The16 native regressions compile exact existing resource-preparation test bodies in an external rustc test harness against ordinary production libraries. The enclosing upstream TLS/media harness is excluded; no upstream cargo dev-test pass is claimed.",
+    "The missing-result case supplies an invalid trusted handler channel capacity to cause a real constructor worker panic before RTC allocation. Original JoinError remains unconfirmed and Core quota remains quarantined; no injected adapter outcome.",
+    "Current authority and media fixtures are isolated. No canonical Store media-ready proof, actual browser fallback or remote/provider qualification is inferred.",
+    "The resource adapter is available for trusted composition but is not yet installed by the service signaling host or default CLI. Existing signed WSS tests still qualify protected SDP control, not Core media readiness."
+  ],
+  "diagnostics_and_failures": [
+    "Initial full Connect build failed during parallel linking with ld errno28 ENOSPC after958.881seconds;2134compiled inputs stayed unchanged. One reported output was only496bytes and was rejected/removed before retry. Closed proof executables were preserved as lossless gzip with restoredSHA verification; only matching stale compiler binaries and unreferenced regenerable libraries were reclaimed. Single-job unchanged-source retry passes in23.746seconds with all three valid original/sealed test artifacts.",
+    "Initial cargo dependency-package invocation rejected explicit features outside the workspace before compiling; corrected package selection and final Root builds pass.",
+    "Initial probe constructed a fresh Endpoint ID during retain and correctly received Authority; fixed the fixture to preserve its verified original Endpoint ID.",
+    "A proposed zero channel-capacity panic fixture did not panic because production clamps it. The final invalid usize::MAX capacity yields an actual JoinError and the quarantine assertions pass.",
+    "Initial native support-file harness pulled unrelated enclosing TLS/media modules and lacked their parent fixture/imports. The final harness selects16 unchanged native resource test bodies with required imports; all pass.",
+    "Unused regenerable compiler-cache variants were removed with a private path/size/SHA manifest before building to avoid ENOSPC. Current artifact graph and closed proof/state/logs were preserved."
   ],
   "pending": [
-    "Finish the frozen Connect build and selected WSS/RTC/decoded-WT/native public-control regressions.",
-    "Install service/Core resource and staged-media composition with original Store custody, authenticated ingress timing, owned port pumps/cleanup and sealed actual readiness.",
-    "Complete Opus/VP8/data/MID/SSRC/ICE, public browser replacement and full browser/Linux/remote profiles."
+    "Install canonical service/Core resource and staged-media composition with original Store attempt provenance and sealed actual readiness.",
+    "Carry original socket receive time through RTC/event queues; bind authenticated ingress codec/direction/MID/SSRC and owned ingress/egress port pumps, installing actual cleanup before allocation.",
+    "Complete payload-aware multi-codec/Opus/VP8/data, source clock/report timing and current ICE authority; replace the old public offer-ready dialect and integrate browser capture.",
+    "Qualify actual Chrome/Firefox forced WT/UDP fallback and same-conversation transitions, accepted/uncertain logical mutation recovery, and approved Linux/remote G6-093 profiles."
   ],
   "private_evidence": ".local/gate-6/webrtc-core-adapter/",
   "publication": "Separate; not performed."
