@@ -4,7 +4,7 @@
     "G6-051"
   ],
   "status": "in-progress",
-  "recorded_at": "2026-10-27T21:09:07.231406+00:00",
+  "recorded_at": "2026-10-27T21:14:16.100892+00:00",
   "scope": "Local macOS arm64 installed native Chrome155.0.8059.85/Firefox158.0.1 API probes; two sequential private FirefoxEdDSA 60second diagnostics. No model/provider/remote executions.",
   "specification": "https://www.w3.org/TR/webrtc/#dom-rtcrtpreceiver-jitterbuffertarget",
   "capability_probe": {
@@ -608,7 +608,353 @@
     "initial_attempt": "74 passed /2 failed because the separate signed-wrapper Peer fixture lacked getTransceivers. Fixture updated to expose its receiver and assert the retained target; no production fallback added."
   },
   "pending": [
-    "Normal installed Chrome/Firefox \u00d7 EdDSA/ES256 four-profile matrix on the changed SDK.",
-    "Retained media failures, wider browser/WT/native/remote task scope and independent Gate6 acceptance remain open."
-  ]
+    "Current normal browser audio failures remain open. Native receiver target does not establish causal repair or full profile qualification.",
+    "Remaining browser/WT/native/remote task scope and independent Gate6 acceptance."
+  ],
+  "normal_runtime": {
+    "sdk_commit": "d773e177",
+    "server_implementation_commit": "63c6865c",
+    "matrix_sha256": "2ae5ebc816b8ffb7f8324e47c510dd4ee45f93dc1a46e102a97f70cbed2eacb2",
+    "all_four_pass": false,
+    "profiles": [
+      {
+        "label": "firefox-receiver80-eddsa-76",
+        "runtime_exit_code": 0,
+        "seconds": 66.51257308293134,
+        "verdict": "passed",
+        "scope": "Normal installed60second profile on committed SDK d773e177; no private runner, TRACE, PCM witness, source or observer variation. Native server artifact69 is unchanged.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 29.047095270158575,
+            "changing_fps": 26.180715243499208,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 52.00000000000138,
+            "av_p95_abs_skew_ms": 70.00000000000028,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 28.997100269693586,
+            "changing_fps": 25.99740024179425,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 51.9999999999996,
+            "av_p95_abs_skew_ms": 62.00000000000472,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.060793666000005034,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.11188199999999779,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "447876ae84be0b123e1037eb584f81c58141d92c29efab863b20d35a3cb3b968",
+          "inputs.json": "2734ce95bbd1f8326e6d3ffd423110600eba2da51d072f48d13ce0f1e813b92e",
+          "test.log": "e64f2e39420ac1340979797f68cf61431aa2284d7409e489a2f73f61fcc00743",
+          "browser-result.jsonl": "59c4e709984bc5c594f608861be7ff8b3f0502a9c77594740d97f3c568063682",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3"
+        }
+      },
+      {
+        "label": "chrome-receiver80-es256-76",
+        "runtime_exit_code": 101,
+        "seconds": 66.09746000007726,
+        "verdict": "failed",
+        "scope": "Normal installed60second profile on committed SDK d773e177; no private runner, TRACE, PCM witness, source or observer variation. Native server artifact69 is unchanged.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.008400201797485,
+            "decoded_fps": 29.962471819839365,
+            "changing_fps": 25.829717086068417,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 3,
+            "av_median_abs_skew_ms": 26.100000143049584,
+            "av_p95_abs_skew_ms": 78.20000004768346,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.008299827575684,
+            "decoded_fps": 29.96252193723647,
+            "changing_fps": 25.72977412185379,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 25.100000143051915,
+            "av_p95_abs_skew_ms": 81.0000000000004,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.002880541999998968,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.07757570900000428,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "23cf52dcf74c49ac1b0109d457f38e35f4476002e37f2f23e211ff25062bfa27",
+          "inputs.json": "ece1813cd83b498dedbc9cc6ad14e66b699e0b7dbb64105db4af61ce434f72dc",
+          "test.log": "5aafef960b40043e4e2b6e988046d1c9e9fb43bc02d44daa0880c8a8bfe5399d",
+          "browser-result.jsonl": "ea819accf9c582c4ce4ce1026413c61e733c172179b808b7cfff08c0c50416b5",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd"
+        }
+      },
+      {
+        "label": "firefox-receiver80-es256-76",
+        "runtime_exit_code": 0,
+        "seconds": 66.50854854192585,
+        "verdict": "passed",
+        "scope": "Normal installed60second profile on committed SDK d773e177; no private runner, TRACE, PCM witness, source or observer variation. Native server artifact69 is unchanged.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00500011444092,
+            "decoded_fps": 29.014248757263275,
+            "changing_fps": 25.864511241397242,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 45.999999999999375,
+            "av_p95_abs_skew_ms": 70.00000000000028,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 28.997100269693586,
+            "changing_fps": 26.11405524287922,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 48.00000000000004,
+            "av_p95_abs_skew_ms": 62.00000000001182,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.04168383300000278,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.09315662500000325,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "dd939eca8b991b9e261c03a22c5ce156a4285b2eb2f371469a592cd5fb6c3f2a",
+          "inputs.json": "0cd9bdf10b16987f20944d7866cdbcf743c9a2f05f03844ee1ac267083c77bb3",
+          "test.log": "1d92c6d26ff57d2f7a37fa52ab8b3f0abcec89a387cf3618cb66b0036a0a445f",
+          "browser-result.jsonl": "76c18a9a3c5f430e1a1c566ceab2b4cb7f1b64d9ea587e4a1bf5d992a7ebbc38",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3"
+        }
+      },
+      {
+        "label": "chrome-receiver80-eddsa-76",
+        "runtime_exit_code": 0,
+        "seconds": 65.61674579209648,
+        "verdict": "passed",
+        "scope": "Normal installed60second profile on committed SDK d773e177; no private runner, TRACE, PCM witness, source or observer variation. Native server artifact69 is unchanged.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00819993019104,
+            "decoded_fps": 29.67927719998066,
+            "changing_fps": 24.996583829293087,
+            "video_packets_lost": 1,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 31.700000047683474,
+            "av_p95_abs_skew_ms": 79.70000004768352,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00830006599426,
+            "decoded_fps": 29.962521818192574,
+            "changing_fps": 25.279836261511754,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 32.85000002384297,
+            "av_p95_abs_skew_ms": 89.40000009536763,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.016794583000002604,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.06737712499999907,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "4272abe1e0cd0055ac38213c06f7d0546774290cb4d848916bfc486fab85618c",
+          "inputs.json": "e679e08b1028b0a55e98475d0036f22b4e5059131fc3f4d8848391d7c2f170ee",
+          "test.log": "db51ce89f12beaedaab63067e4c14e76949a8ce8b6c2d31bb8ebaa715320068a",
+          "browser-result.jsonl": "47a06e8993ea96ce27fa7e3786272c34788afed791a6cf6c73a51bd24cec3a65",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd"
+        }
+      }
+    ],
+    "closed_profile_preservation": [
+      {
+        "summary": ".local/gate-6/canonical-browser-host/closed-profile-archives-76-before-chrome-eddsa/summary.json",
+        "sha256": "7ad8525204c0f23f9a6bcabf68ae5285ea6ca0b5aa7b00fa2aa6df9d0e86dd5e"
+      }
+    ]
+  }
 }
