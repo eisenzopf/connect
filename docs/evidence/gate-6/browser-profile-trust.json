@@ -1,0 +1,217 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T15:42:22.261907+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "scope": "Actual installed Chrome155 and designated private Firefox158 HTTPS/WSS loopback TLS controls in newly created isolated profiles. No connected canonical/Store/signature/enrollment/media/renderer/fallback/hosting/acceptance claim.",
+  "implementation": [
+    "Fresh-profile-only certificate initialization. Chrome155.0.8059.85 schema1/protobuf trust metadata; bundled Firefox NSS3.130 public API website CA trust C,,. Existing directory/symlink and unknown Chrome/NSS versions refuse.",
+    "Isolated software slot initialized before NSS certificate trust mutation. All imported certificate/slot handles are released and NSS shuts down. No signed app, system Keychain or owner profile modification.",
+    "Real loopback HTTP bootstrap, correct-name TLS listener, independent foreign-CA TLS listener, wrong-name access to first listener. Proper HTTP/1.1 WebSocket handshake and bounded close. No TLS verification bypass/exception. Original child process groups receive termination; original browser process is joined and listener threads close."
+  ],
+  "verification": {
+    "runs": [
+      {
+        "browser": "chrome",
+        "trusted_profile": true,
+        "passed": true,
+        "seconds": 1.3518979579675943,
+        "process_joined": true,
+        "exit_code": 0,
+        "report": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+          "secureContext": true,
+          "results": {
+            "valid": {
+              "https": true,
+              "wss": true
+            },
+            "foreign": {
+              "https": false,
+              "wss": false
+            },
+            "wrong_name": {
+              "https": false,
+              "wss": false
+            }
+          }
+        },
+        "application_requests": [
+          {
+            "server": "valid",
+            "path": "/",
+            "host": "localhost:59044"
+          },
+          {
+            "server": "valid",
+            "path": "/ws",
+            "host": "localhost:59044"
+          }
+        ],
+        "sources": {
+          "scripts/video/check-browser-profile.py": "8f5355fb9994ec59cdd97e20eb5219839a042b0ef37ef07a0c46b5dec537ba53",
+          "scripts/video/browser_profile.py": "b222950c9d4166158300ab3a5142d0c9b5b71fb4375ff1c736fb2084631e8627"
+        },
+        "changed_inputs": [],
+        "summary_sha256": "939791f9f10beacc6c61b8a157a984165ac5a900a0c96af3bf7720bf77603683",
+        "input_count": 8
+      },
+      {
+        "browser": "firefox",
+        "trusted_profile": true,
+        "passed": true,
+        "seconds": 1.7906495418865234,
+        "process_joined": true,
+        "exit_code": -15,
+        "report": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+          "secureContext": true,
+          "results": {
+            "valid": {
+              "https": true,
+              "wss": true
+            },
+            "foreign": {
+              "https": false,
+              "wss": false
+            },
+            "wrong_name": {
+              "https": false,
+              "wss": false
+            }
+          }
+        },
+        "application_requests": [
+          {
+            "server": "valid",
+            "path": "/",
+            "host": "localhost:59066"
+          },
+          {
+            "server": "valid",
+            "path": "/ws",
+            "host": "localhost:59066"
+          }
+        ],
+        "sources": {
+          "scripts/video/check-browser-profile.py": "8f5355fb9994ec59cdd97e20eb5219839a042b0ef37ef07a0c46b5dec537ba53",
+          "scripts/video/browser_profile.py": "b222950c9d4166158300ab3a5142d0c9b5b71fb4375ff1c736fb2084631e8627"
+        },
+        "changed_inputs": [],
+        "summary_sha256": "6f346f37929439da7c80208970c3029f54ab4bab12d1b435f87d38d6c1f9dce7",
+        "input_count": 11
+      },
+      {
+        "browser": "chrome",
+        "trusted_profile": false,
+        "passed": true,
+        "seconds": 1.3645149578806013,
+        "process_joined": true,
+        "exit_code": 0,
+        "report": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+          "secureContext": true,
+          "results": {
+            "valid": {
+              "https": false,
+              "wss": false
+            },
+            "foreign": {
+              "https": false,
+              "wss": false
+            },
+            "wrong_name": {
+              "https": false,
+              "wss": false
+            }
+          }
+        },
+        "application_requests": [],
+        "sources": {
+          "scripts/video/check-browser-profile.py": "8f5355fb9994ec59cdd97e20eb5219839a042b0ef37ef07a0c46b5dec537ba53",
+          "scripts/video/browser_profile.py": "b222950c9d4166158300ab3a5142d0c9b5b71fb4375ff1c736fb2084631e8627"
+        },
+        "changed_inputs": [],
+        "summary_sha256": "c450aa4363dea5dc0f1f49d5c9f72e74ef0a57c32bdfef717e784d2919c440f0",
+        "input_count": 8
+      },
+      {
+        "browser": "firefox",
+        "trusted_profile": false,
+        "passed": true,
+        "seconds": 2.1369127919897437,
+        "process_joined": true,
+        "exit_code": -15,
+        "report": {
+          "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+          "secureContext": true,
+          "results": {
+            "valid": {
+              "https": false,
+              "wss": false
+            },
+            "foreign": {
+              "https": false,
+              "wss": false
+            },
+            "wrong_name": {
+              "https": false,
+              "wss": false
+            }
+          }
+        },
+        "application_requests": [],
+        "sources": {
+          "scripts/video/check-browser-profile.py": "8f5355fb9994ec59cdd97e20eb5219839a042b0ef37ef07a0c46b5dec537ba53",
+          "scripts/video/browser_profile.py": "b222950c9d4166158300ab3a5142d0c9b5b71fb4375ff1c736fb2084631e8627"
+        },
+        "changed_inputs": [],
+        "summary_sha256": "df1f928dcffff5c0bca385c3ab449587ea95f2decca0ffb71463501a1400333c",
+        "input_count": 11
+      }
+    ],
+    "connection_outcomes": 24,
+    "positive_https_wss_outcomes": 4,
+    "negative_https_wss_outcomes": 20,
+    "existing_profile_refusal": {
+      "exit_code": 1,
+      "profile_files": 155,
+      "changed_files": [],
+      "log_sha256": "1950d73381f615c260c8af1752a8b8e4eee67f548936aafb12f089f68d64ea48"
+    },
+    "all_source_and_fixture_guards_unchanged": true
+  },
+  "primary_sources": [
+    {
+      "file": "chromium-certificate.proto",
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/155.0.8059.85/components/server_certificate_database/server_certificate_database.proto?format=TEXT",
+      "sha256": "378c2e7874da4cebec7d46e9d30ee561cd10eb6cec7bbb0783d22818dcf9dff1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mozilla/nss/NSS_3_130_RTM/lib/certdb/cert.h",
+      "sha256": "b9dbe7f7911104688cd8fd0d819499eee07a9dd15dfd6b4a6fd0a741378efd1b"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mozilla/nss/NSS_3_130_RTM/lib/certdb/certt.h",
+      "sha256": "60500525f84cf771e09e788f0392e5e2f40775802a244401a7d7d3dfde482937"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mozilla/nss/NSS_3_130_RTM/lib/pk11wrap/pk11pub.h",
+      "sha256": "0768fd987588456929b283cdfa2bad760c0ddd8c9086b5c491738b03639bf8c1"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mozilla/nss/NSS_3_130_RTM/lib/nss/nss.h",
+      "sha256": "10ccc45392f26cca9c4960b6a1d224f062d9c71f8b521e226645cc1316772774"
+    }
+  ],
+  "retained_failures": [
+    "Initial NSS import attempted trust mutation before initializing the new software slot; CERT_ChangeCertTrust refused with -8037. The failed private profiles are retained; corrected fresh profile initialization passes.",
+    "First Firefox WSS positive control failed because the test server replied HTTP/1.0 and closed immediately after upgrade. Corrected HTTP/1.1 handshake and bounded close pass for both browsers; the first failed report remains private.",
+    "A syntax error in the added source-guard report prevented the first guarded attempt from starting. Corrected syntax, all four current guarded runs pass."
+  ],
+  "next_required": [
+    "Use fresh certificate/profile cohorts in actual signed canonical browser fixture enrollment and accepted Session control.",
+    "Connect actual Opus/VP8 media with original receive selection, observers, quality/AV/cleanup limits and actual forced fallback.",
+    "All unchanged G6-051/Linux/remote/package/full Gate6 scope remains open."
+  ]
+}
