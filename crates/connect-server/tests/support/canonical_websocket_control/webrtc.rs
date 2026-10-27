@@ -1,10 +1,11 @@
-//! Real signed WSS SDP exchange + RTC; no media routing/readiness claim.
+//! Real signed WSS SDP, Core reservation and RTC; no media readiness claim.
 use super::*;
 use connect_protocol::{
     session_control::{Action, Request},
     transitions::{OperationAction, OperationState},
 };
 use connect_server::canonical_webrtc::SignalingHost;
+use connect_service::canonical_webrtc::Host;
 use rvoip_core::capability::CodecInfo;
 use rvoip_webrtc::{
     peer::{PeerRole, RvoipPeerConnection},
@@ -112,7 +113,10 @@ fn status(f: &Fixture) -> connect_protocol::transitions::OperationRecord {
 async fn retired(f: &Fixture, host: &SignalingHost) {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
-            if host.available_slots() == 1 && status(f).state == OperationState::Failed {
+            if host.available_slots() == 1
+                && host.adapter().route_count() == 0
+                && status(f).state == OperationState::Failed
+            {
                 break;
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
@@ -170,6 +174,8 @@ async fn signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_reti
             0
         );
         assert_eq!(host.available_slots(), 0);
+        assert_eq!(host.adapter().route_count(), 1);
+        assert_eq!(host.adapter().total_allocations(), 1);
         caller
             .set_remote_answer(
                 answer.original()["payload"]["substrate_setup"]["sdp"]
@@ -187,8 +193,8 @@ async fn signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_reti
                 .canonical_runtime_snapshot()
                 .unwrap()
                 .connections,
-            0,
-            "SDP/DTLS is not a Core media route"
+            1,
+            "SDP uses one dormant Core reservation; it is not media readiness"
         );
         let mut replay = original.clone();
         replay["id"] = json!(uuid::Uuid::new_v4().to_string());
@@ -207,6 +213,8 @@ async fn signed_wss_webrtc_answers_original_scope_once_and_joins_rtc_before_reti
             }
         }
         assert!(observed);
+        assert_eq!(host.adapter().route_count(), 1);
+        assert_eq!(host.adapter().total_allocations(), 1);
         assert_eq!(
             host.available_slots(),
             0,
@@ -230,6 +238,18 @@ struct AlteredAttempt {
     field: &'static str,
 }
 impl connect_service::canonical_webrtc::Host for AlteredHost {
+    fn adapter(&self) -> Arc<rvoip_webrtc::canonical::CanonicalWebRtcAdapter> {
+        use connect_service::canonical_webrtc::Host;
+        self.inner.adapter()
+    }
+    fn reserve_physical(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: tokio_util::sync::CancellationToken,
+    ) -> connect_protocol::Result<Arc<rvoip_webrtc::canonical::WebRtcPhysicalBinding>> {
+        use connect_service::canonical_webrtc::Host;
+        self.inner.reserve_physical(peer, physical)
+    }
     fn start(
         &self,
         p: connect_service::canonical_webrtc::Preparation,

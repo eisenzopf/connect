@@ -88,8 +88,12 @@ and connection waits, so a cancelled wait cannot discard or replace that lease.
 The original attempt remains available by reference for later attributed Core
 readiness or cleanup work.
 
-One worker owns allocation, SDP application, ICE/DTLS observation and actual peer
-close. A host capacity permit belongs to that worker until close completes.
+One worker owns SDP application and ICE/DTLS observation on the exact original
+`WebRtcPhysicalBinding`. Trusted service composition first attaches the current
+WSS peer to the Session, reserves its typed Core WebRTC Connection, and configures
+its controller. Only then may that binding start its one physical allocation.
+The binding and Core route retain the host capacity permit through actual RTC
+close and original controller/resource cleanup.
 Explicit shutdown callers share the original completion; dropping one shutdown
 wait cannot take its join. Owner drop or supplied physical cancellation fences
 the worker. Current Store lifetime checks retain no domain reader while idle;
@@ -127,8 +131,9 @@ work; this is not the final Gate 6 browser media profile.
 
 A WebSocket offer enters the same signed canonical handler and Store authority
 as other transports. The exact verified `webrtc` Endpoint is selected, one
-original offer attempt is issued, and its lease is transferred synchronously to
-the host. Exact replay returns the existing operation record without starting a
+original offer attempt is issued, and its lease enters outer service-worker
+custody before the first setup suspension. The host receives the exact context
+already reserved by Core; it cannot allocate a second peer context. Exact replay returns the existing operation record without starting a
 second peer or resending an SDP answer. An origin-issuance or capacity refusal
 retains that original lease for attributed cleanup.
 
@@ -257,3 +262,21 @@ MID/SSRC mapping and browser qualification remain open. The [Core egress probe](
 actual Core controllers/queues and a real RTC pair with isolated policy and
 synthetic capture fixtures; its [evidence](../evidence/gate-6/webrtc-core-egress.json)
 keeps those limits explicit.
+
+
+## Fresh original-offer continuation
+
+`Store::resume_webrtc_offer_authority` reacquires current control for the exact
+original Store-issued WebRTC origin and non-cloneable attempt after the SDP
+handler releases its readers. It restores the original offer request, checks the
+current credential, key, Device, Endpoint, membership, runtime owner and original
+attempt, and derives a media read under that same new proof. It never prepares or
+begins another attempt. Caller cancellation/deadline and the original source and
+operation expiry bound acquisition; fresh authorization cannot renew those bounds.
+An expired attempted operation remains uncertain, rather than becoming successful.
+
+The Store-only continuation is verified separately. Wiring it into post-answer
+Core resource observation, staged media admission and the final Store transaction
+remains required. A dormant Core reservation, an SDP answer and connected DTLS do
+not complete the media operation. The full browser/media/hosting profiles remain
+unqualified.

@@ -1,6 +1,8 @@
 //! Real loopback ICE/DTLS and Store fences; no signaling facade or media proof.
 #![allow(clippy::unwrap_used)]
 use super::*;
+use rvoip_webrtc::peer::RvoipPeerConnection;
+pub(super) mod reservation;
 use connect_protocol::{
     connection_control::OfferIntent,
     provisioning::*,
@@ -418,7 +420,7 @@ async fn transient_metadata_contention_keeps_one_original_peer_and_attempt() {
     let physical = CancellationToken::new();
     let context = ReadContext::new(None);
     context.busy_reads.store(8, Ordering::Release);
-    let peer = Peer::start_scoped(
+    let peer = Peer::start_fixture_scoped(
         f.store.clone(),
         f.origin.clone(),
         f.attempt.take().unwrap(),
@@ -472,7 +474,7 @@ async fn unavailable_metadata_never_outlives_original_deadline_or_physical_sourc
         let context = ReadContext::new(None);
         context.busy_reads.store(usize::MAX, Ordering::Release);
         let deadline = Instant::now() + Duration::from_millis(if cancel { 1000 } else { 40 });
-        let peer = Peer::start_scoped(
+        let peer = Peer::start_fixture_scoped(
             f.store.clone(),
             f.origin.clone(),
             f.attempt.take().unwrap(),

@@ -1,0 +1,253 @@
+{
+  "task": "G6-051",
+  "date": "2026-10-26",
+  "status": "in-progress",
+  "scope": "Local macOS arm64 protected canonical WSS SDP + exact typed Core reservation + owned RTC transport/cleanup. Dormant reservation and connected DTLS are not media readiness.",
+  "source_sha256": {
+    "Cargo.lock": "ef9212399e1ea764766671467cb79922d44bcd7aaf8777f8d85d29a339fd6071",
+    "crates/connect-service/Cargo.toml": "779b8fe777fda482db37cf9ebe6458757fa663eaaf69985dc9c06688e66a5d7b",
+    "crates/connect-service/src/canonical_runtime.rs": "1eb0a366c1d9aec9c38e77330ceffd127de215f09a9093f20b79156f9b251bf0",
+    "crates/connect-service/src/canonical_webrtc.rs": "f2f161381ab3f0f36a5c68142063350c0af8c9654ef050b4105925e3abf630ac",
+    "crates/connect-server/src/canonical_webrtc.rs": "298db55c9249a72a82a2e04bf04ba46684586f7702e8faf27fea8c75af30e3cf",
+    "crates/connect-server/src/canonical_webrtc/signaling.rs": "e3de8ef9ae7b5fd76adfb89db74307b51268e7b52a54d5c402c39777190ec3eb",
+    "crates/connect-server/src/canonical_webrtc/tests.rs": "dd103607a4270c3f4c10255a5aa75a7db425248615b4d8db121744ef8679f827",
+    "crates/connect-server/src/canonical_webrtc/tests/reservation.rs": "e55fa87395eb5fa526f3799a98cac01fc27d944a38f3017fbd30495fb942b39f",
+    "crates/connect-server/tests/support/canonical_websocket_control/webrtc.rs": "ba644f765ecd6040186335bd7bdb8185e8889b7d0e624f382b3cae5da3bd79af"
+  },
+  "behavior": [
+    "Trusted installation freezes and registers the exact CanonicalWebRtcAdapter before physical admission.",
+    "The original non-cloneable Store lease enters outer worker custody before the first setup suspension, including origin/metadata/capacity refusal.",
+    "Current Store authority attaches the actual WSS PeerAdmission, registers its media entry, resolves the verified WebRTC Endpoint, retains a typed Core reservation under the original runtime Connection ID and configures its exact controller before physical startup.",
+    "The host receives that same WebRtcPhysicalBinding. It starts its one owned physical allocation; the production direct peer constructor is removed.",
+    "Only successful Core preparation establishes route cleanup custody. A refused conflicting preparation cannot end another route.",
+    "The original RTC binding and Core adapter/controller cleanup complete before Store retirement is attributed. Capacity remains owned through original resource cleanup.",
+    "Historical original replay retains one Core allocation and one effect, and cannot send another SDP answer."
+  ],
+  "builds": {
+    "initial_current_service_and_server": {
+      "exit_code": 0,
+      "seconds": 725.3060564170592,
+      "source_count": 5150,
+      "changed_inputs": []
+    },
+    "final_server_unit": {
+      "exit_code": 0,
+      "seconds": 67.79432066599838,
+      "arguments": [
+        "cargo",
+        "test",
+        "--jobs",
+        "1",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "source_count": 5150,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-2093e64ad655006c",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/server-library-test-04",
+        "sha256": "faa9d5ffaa0cb6f2802d691ba80cddc16de9d649b0b22130e2609863813fb7fd",
+        "bytes": 111914512
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "f0292d6929e94cd8e2cd342805a75da6fe3e7640042cd47580a7dd1a0b46d82c"
+    },
+    "selected_unstripped_integration": {
+      "exit_code": 0,
+      "seconds": 3.1830945420078933,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "1",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5150,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-83663a9b8f5ddcb6",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/wss-integration-test-05",
+        "sha256": "13ad3c43c870b26aa50a6b90cee1250de34c12046b3537ae3dd107ee3eddd77d",
+        "bytes": 211376208
+      },
+      "diagnostic_warnings": [
+        {
+          "message": "stripping debug info with `rust-objcopy` failed: exit status: 1",
+          "scope": "Cached CLI stripping diagnostic; the separately selected integration test target has strip=none and its actual Mach-O executable is validated."
+        }
+      ],
+      "log_sha256": "419276495fe51e479069a002c171fba14e5bc7e95d867643354f0be6f7aad136"
+    }
+  },
+  "tests": {
+    "owned_rtc": [
+      {
+        "exit_code": 0,
+        "seconds": 3.2920335840899497,
+        "arguments": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/server-library-test-04",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "log_sha256": "c1636b4124d835de0a110713f3ee695e93cec983a4938507fc36a7c99f3efade",
+        "test_results": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.34s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true
+      }
+    ],
+    "canonical_wss_and_decoded_webtransport": [
+      {
+        "exit_code": 0,
+        "seconds": 10.083599791163579,
+        "arguments": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/wss-integration-test-05",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "log_sha256": "dd45e5f95e07b5b60f051756069b8c23158364f9051acacf40bb0565c4c911a8",
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.52s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.334167208056897,
+        "arguments": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/wss-integration-test-05",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "log_sha256": "fdcd7408d5fe54b6c74f958a776690c5754b8848e6629c82678dff4fa31517e2",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.31s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true
+      }
+    ],
+    "sdk_signing_cases_with_extended_guard": [
+      {
+        "exit_code": 0,
+        "seconds": 0.5658517500851303,
+        "arguments": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/wss-integration-test-05",
+          "canonical_websocket_control::production_sdk_uses_actual_tls_wss_and_recovers_original_receipt_",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "log_sha256": "1ff323fb2e0b91d5963f1846e64d39fcd23da3c96ffcb1383fbd99a85a8ea9c4",
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.55s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true
+      }
+    ]
+  },
+  "source_guards": {
+    "rust_and_fixtures": 5150,
+    "extended_sdk_source_and_dist": 5306,
+    "unchanged_at_final_collection": true,
+    "node_version": "v26.7.0"
+  },
+  "observed_results": [
+    "7 owned RTC server tests pass with actual Core reservation fixtures, original runtime IDs and identified principals.",
+    "12 signed-WSS tests pass, including both signature algorithms, exact scope/codec/member binding, one Core allocation through original replay, current Endpoint withdrawal, independent WSS control and joined retirement.",
+    "The existing actual decoded WebTransport duplex method passes on the new normal service/server graph.",
+    "The two actual production SDK TLS/WSS signing methods pass again under the extended SDK source/distribution guard.",
+    "The original operation stays Preparing without a media-ready result after signed SDP and connected DTLS. Core adapter routes reach zero and the host slot is refunded after joined close. This fixture does not separately assert the final Core peer-quota count."
+  ],
+  "retained_failures": [
+    {
+      "scope": "Review build stopped before qualification",
+      "private_record": ".local/gate-6/webrtc-core-signaling/build-01-outcome.json",
+      "sha256": "bea7519997c634f4f4e24d38a9778d804a2ae57b9ef5b37b1ba04c637fa874ac",
+      "reason": "Stopped to freeze the installed adapter and distinguish owned preparation from a refused conflicting route."
+    },
+    {
+      "scope": "Initial transport fixture",
+      "private_record": ".local/gate-6/webrtc-core-signaling/runtime-02-summary.json",
+      "sha256": "9194ed9147f8fffefc0528e4d290f1745ba0cc7eb78c51334339abd66f746c31",
+      "result": "1 passed / 6 failed because Core correctly refused an anonymous fixture principal. Corrected the isolated fixture to identified authority and the original runtime ID; production checks unchanged."
+    },
+    {
+      "scope": "Stripped integration and CLI outputs",
+      "private_record": ".local/gate-6/webrtc-core-signaling/build-03-sealing-rejected.json",
+      "sha256": "a858bea28ee25517d81658cb5940129004db7b58c7972e942a0264634f290606",
+      "result": "Cargo returned zero while rust-objcopy ENOSPC left 2624-byte integration and 3568-byte CLI non-executable data. Both were rejected, preserved privately and removed from derived output paths. The final selected test uses strip=none and an actual validated 211376208-byte Mach-O executable. No stripped/package/CLI pass."
+    }
+  ],
+  "artifact_preservation": {
+    "closed_unit_executable_archive": {
+      "summary": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/build-04-summary.json",
+      "archive": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/server-library-test-04.gz",
+      "archive_sha256": "dd542175d8b9baba53c76ca100084e49a9b9708b0ca45690005bd862d3e91eb0",
+      "decoded_sha256": "faa9d5ffaa0cb6f2802d691ba80cddc16de9d649b0b22130e2609863813fb7fd",
+      "original_bytes": 111914512,
+      "original_mode": "0o755",
+      "raw_aliases_removed": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-core-signaling/server-library-test-04",
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-2093e64ad655006c"
+      ]
+    },
+    "private_manifests": {
+      "obsolete-derived-libraries-01.json": "8dc185142ada8f145c32829730d997bebbc1633a8633077b91f13223a75aa149",
+      "closed-proof-archives-01.json": "51ae0d627778d5762ff62b9eb245d6bbd83db350d366a63d6fbf494598c1a19f",
+      "closed-proof-archives-02.json": "c3a0c1f69a7c36acef061d599be177fea23ad9bcdb6c3cae9d022be552d1ceb3",
+      "rejected-derived-outputs-01.json": "39ba916a72ec37538fe7eff0037319547a704baa6ed608581a6869627f833ec9"
+    },
+    "scope": "Only obsolete derived caches and raw aliases of losslessly archived closed test executables removed. Sources/state/logs retained."
+  },
+  "reference_checks": {
+    "http_mount_declarations": 24,
+    "explicit_http_operations": 25,
+    "uncovered": 0,
+    "scope": "Source/OpenAPI inventory only; this checkpoint adds no HTTP endpoint."
+  },
+  "remaining": [
+    "Wire the fresh original-attempt Store continuation into post-answer actual resource observation, staged Core admission and durable readiness.",
+    "Current RTC role/subscription/reoffer/DTMF/reconciliation semantics and failure recovery require their full behavior evidence.",
+    "Opus/VP8/data, ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and approved Linux/remote qualification remain required.",
+    "Stripped/package/CLI qualification remains unresolved; no acceptance criterion or task closure is inferred.",
+    "No account/model/provider rehearsal was invoked by this checkpoint."
+  ]
+}

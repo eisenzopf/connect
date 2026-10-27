@@ -14,6 +14,7 @@ test-support = ["connect-store/test-support"]
 connect-protocol.workspace = true
 connect-store.workspace = true
 rvoip-core.workspace = true
+rvoip-webrtc.workspace = true
 rvoip-sip.workspace = true
 rvoip-sip-dialog.workspace = true
 rvoip-sip-core.workspace = true

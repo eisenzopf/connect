@@ -12,7 +12,13 @@ use connect_store::{
     NativeMediaOrigin, NativeMediaRead, NativeOfferLease, NativeOfferObservation,
     NativeOfferRuntimeObservation, Store,
 };
+use rvoip_core::{
+    adapter::{ConnectionAdapter, EndReason},
+    ids::{ConnectionId, ConversationId, SessionId},
+    orchestrator::peer_native::{PeerNativeAuthority, PeerNativeAuthorityLease, PeerWebRtcIntent},
+};
 use rvoip_uctp::v2::{auth_dispatch::AuthorizedEnvelope, payloads::ConnectionAnswer};
+use rvoip_webrtc::canonical::{CanonicalWebRtcAdapter, WebRtcPhysicalBinding};
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
@@ -26,6 +32,7 @@ pub struct Preparation {
     /// Bounded originating invocation custody; release before idle/cleanup.
     pub read: Arc<NativeMediaRead>,
     pub physical: CancellationToken,
+    pub binding: Arc<WebRtcPhysicalBinding>,
     pub deadline: Instant,
 }
 #[async_trait]
@@ -42,9 +49,37 @@ pub trait Attempt: Send + Sync {
     async fn closed(&self) -> Result<()>;
 }
 pub trait Host: Send + Sync {
+    fn adapter(&self) -> Arc<CanonicalWebRtcAdapter>;
+    /// Reserve deployment capacity without starting physical RTC resources.
+    fn reserve_physical(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: CancellationToken,
+    ) -> Result<Arc<WebRtcPhysicalBinding>>;
     /// Return an owner even on allocation refusal so the original lease remains
     /// available for attributed cleanup. This must not start another attempt.
     fn start(&self, preparation: Preparation) -> Arc<dyn Attempt>;
+}
+// Freeze the adapter installed in Core even when a trusted host delegates its
+// construction to another component.
+struct Installed {
+    host: Arc<dyn Host>,
+    adapter: Arc<CanonicalWebRtcAdapter>,
+}
+impl Host for Installed {
+    fn adapter(&self) -> Arc<CanonicalWebRtcAdapter> {
+        self.adapter.clone()
+    }
+    fn reserve_physical(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: CancellationToken,
+    ) -> Result<Arc<WebRtcPhysicalBinding>> {
+        self.host.reserve_physical(peer, physical)
+    }
+    fn start(&self, preparation: Preparation) -> Arc<dyn Attempt> {
+        self.host.start(preparation)
+    }
 }
 impl Service {
     /// Trusted startup composition only, before the first physical admission.
@@ -58,18 +93,41 @@ impl Service {
         if *closed || runtime.stop.is_cancelled() {
             return Err(Error::forbidden());
         }
+        if runtime.webrtc.get().is_some() {
+            return Err(Error::new("conflict", "WebRTC host already installed"));
+        }
+        let adapter = host.adapter();
+        runtime
+            .core
+            .register(adapter.clone())
+            .map_err(|_| Error::forbidden())?;
         runtime
             .webrtc
-            .set(host)
+            .set(Arc::new(Installed { host, adapter }))
             .map_err(|_| Error::new("conflict", "WebRTC host already installed"))
     }
 }
-struct Closed {
-    attempt: Arc<dyn Attempt>,
+#[derive(Default)]
+struct Owned {
+    lease: Option<NativeOfferLease>,
+    attempt: Option<Arc<dyn Attempt>>,
+    binding: Option<Arc<WebRtcPhysicalBinding>>,
+    id: Option<ConnectionId>,
+    reserved: bool,
 }
-impl NativeOfferRuntimeObservation for Closed {
+impl Owned {
+    fn lease(&self) -> Result<&NativeOfferLease> {
+        self.attempt
+            .as_ref()
+            .map(|a| a.original_attempt())
+            .or(self.lease.as_ref())
+            .ok_or_else(Error::storage)
+    }
+}
+struct Closed<'a>(&'a Owned);
+impl NativeOfferRuntimeObservation for Closed<'_> {
     fn observe(&self) -> Result<NativeOfferObservation> {
-        let a = self.attempt.original_attempt();
+        let a = self.0.lease()?;
         Ok(NativeOfferObservation::Retired {
             runtime_connection_id: a.runtime_connection_id().into(),
             generation: a.generation(),
@@ -84,42 +142,65 @@ impl Runtime {
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) {
-        let mut owned = None;
+        let mut owned = Owned::default();
         let outcome = self
             .webrtc_start(&a, &physical, &credential, &mut owned)
             .await;
         let succeeded = outcome.is_ok();
         let _ = tx.send(outcome);
-        if let Some(attempt) = &owned {
+        if let Some(attempt) = &owned.attempt {
             attempt.release_invocation();
         }
         // No command or domain read is held while waiting for physical retirement.
         drop(a);
-        let Some(attempt) = owned else { return };
-        if succeeded {
-            let expiry = attempt.original_attempt().expires_at();
-            tokio::select! {
-                _ = attempt.closed() => {},
-                _ = self.stop.cancelled() => {},
-                _ = physical.lifetime.cancelled() => {},
-                _ = tokio::time::sleep(Duration::from_secs((expiry-chrono::Utc::now().timestamp()).max(0) as u64)) => {},
+        if let Some(attempt) = &owned.attempt {
+            if succeeded {
+                let expiry = attempt.original_attempt().expires_at();
+                tokio::select! {
+                    _ = attempt.closed() => {},
+                    _ = self.stop.cancelled() => {},
+                    _ = physical.lifetime.cancelled() => {},
+                    _ = tokio::time::sleep(Duration::from_secs((expiry-chrono::Utc::now().timestamp()).max(0) as u64)) => {},
+                }
+            }
+            // The original owner confirms actual RTC close. A missing confirmation
+            // cannot produce a durable retirement fact or release its owned capacity.
+            if attempt.shutdown().await.is_err() {
+                return;
             }
         }
-        // The original owner confirms actual RTC close. A missing confirmation
-        // cannot produce a durable retirement fact or release its owned capacity.
-        if attempt.shutdown().await.is_err() {
+        if let Some(binding) = &owned.binding {
+            if binding.shutdown().await.is_err() {
+                return;
+            }
+        }
+        if let Some(id) = &owned.id {
+            let Some(host) = self.webrtc.get() else {
+                return;
+            };
+            if owned.reserved
+                && host
+                    .adapter()
+                    .end(id.clone(), EndReason::Normal)
+                    .await
+                    .is_err()
+            {
+                return;
+            }
+            if owned.reserved && host.adapter().is_connection_live(id) {
+                return;
+            }
+            self.media.remove(id);
+        }
+        if owned.lease().is_err() {
             return;
         }
+        let owned = Arc::new(owned);
         loop {
             let store = self.media.store.clone();
-            let owner = attempt.clone();
+            let owner = owned.clone();
             let settled = tokio::task::spawn_blocking(move || {
-                store.settle_native_offer_cleanup(
-                    owner.original_attempt(),
-                    &Closed {
-                        attempt: owner.clone(),
-                    },
-                )
+                store.settle_native_offer_cleanup(owner.lease()?, &Closed(&owner))
             })
             .await;
             if matches!(settled, Ok(Ok(()))) || self.stop.is_cancelled() {
@@ -130,10 +211,10 @@ impl Runtime {
     }
     async fn webrtc_start(
         &self,
-        a: &AuthorizedEnvelope,
+        a: &Arc<AuthorizedEnvelope>,
         physical: &Physical,
         credential: &str,
-        owned: &mut Option<Arc<dyn Attempt>>,
+        owned: &mut Owned,
     ) -> Result<Reply> {
         let host = self.webrtc.get().ok_or_else(|| {
             Error::new(
@@ -177,24 +258,20 @@ impl Runtime {
                 answered: false,
             });
         };
+        // Retain the non-cloneable original lease before the first suspension.
+        owned.lease = Some(lease);
+        let lease = owned.lease()?;
         let remaining = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = Instant::now() + Duration::from_secs(remaining.min(30));
-        // No suspension between issuance and transferring custody to the host.
         // Origin issuance uses the exact current originating invocation fence.
-        let origin = match self
+        // Every suspension retains the original lease in the outer worker.
+        let origin = self
             .native_preflight(a, deadline, || {
                 self.media
                     .store
-                    .native_media_origin_with_peer(credential, proof, &lease)
+                    .native_media_origin_with_peer(credential, proof, lease)
             })
-            .await
-        {
-            Ok(origin) => origin,
-            Err(error) => {
-                *owned = Some(Arc::new(Unallocated(lease)));
-                return Err(error);
-            }
-        };
+            .await?;
         let read = match self
             .native_preflight(a, deadline, || {
                 self.media
@@ -205,19 +282,90 @@ impl Runtime {
         {
             Ok(read) => Arc::new(read),
             Err(error) => {
-                *owned = Some(Arc::new(Unallocated(lease)));
                 return Err(error);
             }
         };
+        let peer = a.peer_admission().ok_or_else(Error::forbidden)?.clone();
+        self.attach(
+            &read.target().session,
+            a.principal(),
+            peer.clone(),
+            authority.retained(),
+        )?;
+        let base = crate::canonical_native::base_profile()?;
+        let entry = self
+            .media
+            .register(origin.clone(), a.principal().clone(), &base, &read)
+            .map_err(|_| Error::forbidden())?;
+        let id = ConnectionId::from_string(origin.runtime_connection_id().to_owned());
+        // Register cleanup custody before any reservation/configuration can fail.
+        owned.id = Some(id.clone());
+        let binding = host.reserve_physical(&peer, physical.lifetime.child_token())?;
+        owned.binding = Some(binding.clone());
+        let owner = entry
+            .owner(read.target(), a.principal(), false)
+            .map_err(|_| Error::forbidden())?;
+        let view = Preparing {
+            authority: PeerNativeAuthority {
+                actor: owner.member,
+                endpoint: owner.endpoint,
+                may_prepare: true,
+            },
+            _read: read.clone(),
+        };
+        let prepared = self
+            .core
+            .prepare_peer_webrtc_connection(
+                peer,
+                a.principal(),
+                PeerWebRtcIntent {
+                    session: SessionId::from_string(origin.session_id().to_owned()),
+                    connection: id.clone(),
+                },
+                &view,
+                binding.clone(),
+            )
+            .map_err(|_| Error::forbidden())?;
+        // Only a successful preparation proves custody of this Core route.
+        // A refusal must never end an unrelated conflicting route.
+        owned.reserved = true;
+        prepared
+            .retain(a.principal(), &view)
+            .map_err(|_| Error::forbidden())?;
+        let invocation = crate::canonical_media::Invocation {
+            policy: self.media.clone(),
+            connection: entry.clone(),
+            authorized: a.clone(),
+            read: read.clone(),
+            participant_revision: self
+                .core
+                .participant_revision(&SessionId::from_string(origin.session_id().to_owned()))
+                .map_err(|_| Error::forbidden())?,
+        };
+        let (_, activation) = host
+            .adapter()
+            .configure_media(
+                &id,
+                a.principal().clone(),
+                ConversationId::from_string(origin.conversation_id().to_owned()),
+                self.media.clone(),
+                1,
+                &invocation,
+            )
+            .map_err(|_| Error::forbidden())?;
+        entry
+            .set_activation(activation)
+            .map_err(|_| Error::forbidden())?;
         let attempt = host.start(Preparation {
             store: self.media.store.clone(),
             origin,
-            attempt: lease,
+            attempt: owned.lease.take().ok_or_else(Error::storage)?,
             read,
             physical: physical.lifetime.child_token(),
+            binding,
             deadline,
         });
-        *owned = Some(attempt.clone());
+        owned.attempt = Some(attempt.clone());
         let answer = tokio::select! {
             biased;
             _=self.stop.cancelled()=>return Err(Error::forbidden()),
@@ -242,21 +390,12 @@ impl Runtime {
     }
 }
 
-// No transport was allocated when origin issuance failed. Keep the exact lease
-// in the tracked worker until its absence has been durably attributed.
-struct Unallocated(NativeOfferLease);
-#[async_trait]
-impl Attempt for Unallocated {
-    fn original_attempt(&self) -> &NativeOfferLease {
-        &self.0
-    }
-    async fn answer(&self, _: Instant) -> Result<ConnectionAnswer> {
-        Err(Error::forbidden())
-    }
-    async fn shutdown(&self) -> Result<()> {
-        Ok(())
-    }
-    async fn closed(&self) -> Result<()> {
-        Ok(())
+struct Preparing {
+    authority: PeerNativeAuthority,
+    _read: Arc<NativeMediaRead>,
+}
+impl PeerNativeAuthorityLease for Preparing {
+    fn authority(&self) -> &PeerNativeAuthority {
+        &self.authority
     }
 }

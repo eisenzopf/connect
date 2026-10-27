@@ -1,4 +1,4 @@
-//! Protected canonical SDP host. Core media routing is a separate integration.
+//! Protected canonical SDP host using the exact Core-reserved RTC context.
 use super::*;
 use async_trait::async_trait;
 use connect_service::canonical_webrtc::{Attempt, Host, Preparation};
@@ -10,6 +10,7 @@ use serde_json::json;
 pub struct SignalingHost {
     config: WebRtcConfig,
     slots: Arc<tokio::sync::Semaphore>,
+    adapter: Arc<rvoip_webrtc::canonical::CanonicalWebRtcAdapter>,
 }
 impl SignalingHost {
     /// A single G.711 codec preserves an exact canonical/SDP channel binding.
@@ -35,6 +36,7 @@ impl SignalingHost {
         }
         Ok(Arc::new(Self {
             config,
+            adapter: rvoip_webrtc::canonical::CanonicalWebRtcAdapter::new(),
             slots: Arc::new(tokio::sync::Semaphore::new(capacity)),
         }))
     }
@@ -42,53 +44,48 @@ impl SignalingHost {
         self.slots.available_permits()
     }
 }
-enum Owned {
-    Peer(Peer),
-    Refused {
-        attempt: NativeOfferLease,
-        error: Error,
-    },
-}
+struct Owned(Peer);
 impl Host for SignalingHost {
+    fn adapter(&self) -> Arc<rvoip_webrtc::canonical::CanonicalWebRtcAdapter> {
+        self.adapter.clone()
+    }
+    fn reserve_physical(
+        &self,
+        peer: &Arc<rvoip_core::peer_admission::PeerAdmission>,
+        physical: CancellationToken,
+    ) -> Result<Arc<WebRtcPhysicalBinding>> {
+        let permit = self
+            .slots
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| Error::new("busy", "Canonical WebRTC peers at capacity"))?;
+        Ok(WebRtcPhysicalBinding::with_capacity(peer, physical, permit))
+    }
     fn start(&self, p: Preparation) -> Arc<dyn Attempt> {
-        match self.slots.clone().try_acquire_owned() {
-            Ok(permit) => Arc::new(Owned::Peer(Peer::start_scoped(
-                p.store,
-                p.origin,
-                p.attempt,
-                self.config.clone(),
-                &p.physical,
-                permit,
-                p.deadline,
-                ReadContext::new(Some(p.read)),
-            ))),
-            Err(_) => Arc::new(Owned::Refused {
-                attempt: p.attempt,
-                error: Error::new("busy", "Canonical WebRTC peers at capacity"),
-            }),
-        }
+        Arc::new(Owned(Peer::start_scoped(
+            p.store,
+            p.origin,
+            p.attempt,
+            self.config.clone(),
+            &p.physical,
+            p.binding,
+            p.deadline,
+            ReadContext::new(Some(p.read)),
+            #[cfg(test)]
+            None,
+        )))
     }
 }
 #[async_trait]
 impl Attempt for Owned {
     fn original_attempt(&self) -> &NativeOfferLease {
-        match self {
-            Self::Peer(p) => p.original_attempt(),
-            Self::Refused { attempt, .. } => attempt,
-        }
+        self.0.original_attempt()
     }
     fn release_invocation(&self) {
-        if let Self::Peer(peer) = self {
-            peer.release_invocation();
-        }
+        self.0.release_invocation();
     }
     async fn answer(&self, deadline: Instant) -> Result<ConnectionAnswer> {
-        let Self::Peer(peer) = self else {
-            let Self::Refused { error, .. } = self else {
-                unreachable!()
-            };
-            return Err(error.clone());
-        };
+        let peer = &self.0;
         let answer = peer.answer_sdp(deadline).await?;
         let read = peer.source_read(deadline).await?;
         let offer = &read.target().offer;
@@ -139,15 +136,9 @@ impl Attempt for Owned {
         serde_json::from_value(value).map_err(|_| engine_error())
     }
     async fn shutdown(&self) -> Result<()> {
-        match self {
-            Self::Peer(p) => p.shutdown().await,
-            Self::Refused { .. } => Ok(()),
-        }
+        self.0.shutdown().await
     }
     async fn closed(&self) -> Result<()> {
-        match self {
-            Self::Peer(p) => p.completion.clone().await,
-            Self::Refused { .. } => Ok(()),
-        }
+        self.0.completion.clone().await
     }
 }

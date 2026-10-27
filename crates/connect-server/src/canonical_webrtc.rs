@@ -1,22 +1,16 @@
 //! Owned WebRTC transport preparation for one durable Connection attempt.
-//! This backend component is not yet a configured canonical signaling/media route.
+//! Actual RTC allocation requires the exact prior Core reservation.
 use connect_protocol::{provisioning::EndpointTransport, Error, Result};
 use connect_store::{NativeMediaOrigin, NativeMediaRead, NativeOfferLease, Store};
 use futures_util::{future::BoxFuture, FutureExt};
-use rvoip_webrtc::{
-    peer::{PeerRole, RvoipPeerConnection},
-    WebRtcConfig,
-};
+use rvoip_webrtc::{canonical::WebRtcPhysicalBinding, peer::PeerRole, WebRtcConfig};
 use std::{
     collections::BTreeMap,
     str::FromStr,
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tokio::{
-    sync::{watch, OwnedSemaphorePermit},
-    time::Instant,
-};
+use tokio::{sync::watch, time::Instant};
 use tokio_util::sync::CancellationToken;
 mod signaling;
 pub use signaling::SignalingHost;
@@ -66,29 +60,6 @@ pub struct Peer {
     close_gate: CloseGateSlot,
 }
 impl Peer {
-    /// Transfers the single Store-issued attempt before any asynchronous work.
-    /// Keeping this owner outside answer/connection waits preserves the original
-    /// lease even when a wait is cancelled or setup fails.
-    pub fn start(
-        store: Arc<Store>,
-        origin: Arc<NativeMediaOrigin>,
-        attempt: NativeOfferLease,
-        config: WebRtcConfig,
-        physical: &CancellationToken,
-        permit: OwnedSemaphorePermit,
-        deadline: Instant,
-    ) -> Self {
-        Self::start_scoped(
-            store,
-            origin,
-            attempt,
-            config,
-            physical,
-            permit,
-            deadline,
-            ReadContext::new(None),
-        )
-    }
     #[allow(clippy::too_many_arguments)]
     fn start_scoped(
         store: Arc<Store>,
@@ -96,9 +67,10 @@ impl Peer {
         attempt: NativeOfferLease,
         config: WebRtcConfig,
         physical: &CancellationToken,
-        permit: OwnedSemaphorePermit,
+        binding: Arc<WebRtcPhysicalBinding>,
         deadline: Instant,
         initial: InitialRead,
+        #[cfg(test)] reservation: Option<tests::reservation::Reservation>,
     ) -> Self {
         let stop = physical.child_token();
         let (state_tx, state) = watch::channel(State::Preparing);
@@ -111,12 +83,14 @@ impl Peer {
             attempt.clone(),
             config,
             stop.clone(),
-            permit,
+            binding,
             deadline,
             state_tx,
             initial.clone(),
             #[cfg(test)]
             close_gate.clone(),
+            #[cfg(test)]
+            reservation,
         ));
         let completion = async move {
             task.await
@@ -365,17 +339,17 @@ async fn worker(
     attempt: Arc<NativeOfferLease>,
     config: WebRtcConfig,
     stop: CancellationToken,
-    _permit: OwnedSemaphorePermit,
+    binding: Arc<WebRtcPhysicalBinding>,
     deadline: Instant,
     state: watch::Sender<State>,
     initial: InitialRead,
     #[cfg(test)] close_gate: CloseGateSlot,
+    #[cfg(test)] reservation: Option<tests::reservation::Reservation>,
 ) -> Result<()> {
     let remaining = attempt.expires_at() - chrono::Utc::now().timestamp();
     let lease_deadline = Instant::now() + Duration::from_secs(remaining.max(0) as u64);
     let original_deadline = deadline;
     let deadline = deadline.min(lease_deadline);
-    let mut allocated = None;
     let result: Result<()> = async {
         if origin.offer_record_id()!=attempt.record_id()||origin.connection_id()!=attempt.connection_id()||origin.runtime_connection_id()!=attempt.runtime_connection_id()||origin.generation()!=attempt.generation(){return Err(Error::forbidden());}
         if original_deadline<=Instant::now()||original_deadline>Instant::now()+Duration::from_secs(30){return Err(Error::new("invalid-request","WebRTC preparation requires a bounded original deadline"));}
@@ -383,7 +357,8 @@ async fn worker(
         if config.trickle_ice {return Err(Error::new("unsupported-media-profile","Canonical WebRTC preparation requires complete ICE in SDP"));}
         let sdp=bounded_read(&stop,deadline,||original_sdp(&store,&origin,&initial)).await?;
         // Keep allocation owned even when the preparing caller goes away.
-        let peer=RvoipPeerConnection::new(&config,PeerRole::Answerer).await.map_err(|_|engine_error())?;allocated=Some(peer.clone());
+        binding.start_peer(config.clone(),PeerRole::Answerer).map_err(|_|engine_error())?;
+        let peer=binding.peer(deadline).await.map_err(|_|engine_error())?;
         if stop.is_cancelled(){return Err(Error::new("cancelled","WebRTC preparation cancelled"));}
         let answer=tokio::select! {
             biased;
@@ -422,12 +397,16 @@ async fn worker(
             gate.release.notified().await;
         }
     }
-    let cleanup = match allocated {
-        Some(peer) => peer
-            .close()
-            .await
-            .map_err(|_| Error::new("cleanup-unconfirmed", "WebRTC peer close failed")),
-        None => Ok(()),
+    let cleanup = binding.shutdown().await.map_err(|_| {
+        Error::new(
+            "cleanup-unconfirmed",
+            "WebRTC original binding close failed",
+        )
+    });
+    #[cfg(test)]
+    let cleanup = match reservation {
+        Some(reservation) => cleanup.and(reservation.close().await),
+        None => cleanup,
     };
     state.send_replace(State::Closed(cleanup.clone().and(result)));
     // Setup/authority refusal and actual close confirmation remain distinct.

@@ -143,7 +143,12 @@ impl Runtime {
     }
     pub(crate) fn native_connection_live(&self, id: &rvoip_core::ids::ConnectionId) -> bool {
         use rvoip_core::adapter::ConnectionAdapter;
-        self.quic_native.is_connection_live(id) || self.webtransport_native.is_connection_live(id)
+        self.quic_native.is_connection_live(id)
+            || self.webtransport_native.is_connection_live(id)
+            || self
+                .webrtc
+                .get()
+                .is_some_and(|host| host.adapter().is_connection_live(id))
     }
     pub(crate) fn new(store: Arc<connect_store::Store>) -> Result<Arc<Self>> {
         let limits = store.limits();
@@ -543,6 +548,7 @@ pub(crate) fn core_transport(
     transport: &connect_protocol::provisioning::EndpointTransport,
 ) -> Result<Transport> {
     match transport {
+        connect_protocol::provisioning::EndpointTransport::Webrtc => Ok(Transport::WebRtc),
         connect_protocol::provisioning::EndpointTransport::Quic => Ok(Transport::Quic),
         connect_protocol::provisioning::EndpointTransport::Webtransport => {
             Ok(Transport::WebTransport)

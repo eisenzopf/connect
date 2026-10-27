@@ -933,6 +933,7 @@ dependencies = [
  "rvoip-sip-dialog",
  "rvoip-sip-transport",
  "rvoip-uctp",
+ "rvoip-webrtc",
  "serde_json",
  "sha2",
  "tempfile",
