@@ -8,6 +8,7 @@ pub(crate) mod preparation;
 pub(crate) mod reconciliation;
 pub(crate) mod replacement;
 mod sources;
+pub(crate) mod webrtc;
 use crate::{canonical_runtime::current_member, StoreInvocationAuthority};
 use connect_store::{NativeMediaOrigin, NativeMediaRead, PeerConnectionProjection, Store};
 use rvoip_core::{
@@ -910,6 +911,9 @@ impl MediaPolicy for Policy {
             return target.current_control(scope, intent, held);
         }
 
+        if let Some(i) = held.downcast_ref::<webrtc::RtcInvocation>() {
+            return i.media_control(self, scope, intent);
+        }
         if let Some(i) = held.downcast_ref::<credential_refresh::Invocation>() {
             return i.control(self, scope, intent);
         }

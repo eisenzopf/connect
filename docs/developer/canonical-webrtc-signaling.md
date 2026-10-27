@@ -275,8 +275,34 @@ begins another attempt. Caller cancellation/deadline and the original source and
 operation expiry bound acquisition; fresh authorization cannot renew those bounds.
 An expired attempted operation remains uncertain, rather than becoming successful.
 
-The Store-only continuation is verified separately. Wiring it into post-answer
-Core resource observation, staged media admission and the final Store transaction
-remains required. A dormant Core reservation, an SDP answer and connected DTLS do
-not complete the media operation. The full browser/media/hosting profiles remain
-unqualified.
+The protected G.711 service path now waits for the original handler to finish
+and releases its originating readers before network resource observation. A
+connected peer with no primary RTP remains `Preparing`; an independent
+Conversation writer can run during that wait. The exact original physical
+lifetime and host completion cancel a pending resource wait when that owner
+retires. Observer cancellation retains the original source job and cleanup join.
+
+After actual resource observation, the service reacquires the original offer's
+current Store proof and derives its media read under that same interval. The
+bounded control hook stages only the original selected streams, admits the
+participant once, and commits readiness from the actual controller, activation,
+peer, bindings and managed Session. Only precommit participant revision conflicts
+may retry admission; metadata contention retries the same observation and
+original effect. A fresh proof cannot renew the original source/operation expiry.
+No reader survives into idle resource monitoring.
+
+The local signed-WSS cases verify genuine primary RTP, original completed replay,
+current endpoint withdrawal, and original RTC/source/port/controller joins before
+slot and live-peer Core quota reuse. A remote UDP close is detected through the
+pinned ICE policy (5 seconds disconnected plus 25 seconds failed detection),
+rather than an invented close acknowledgement. Retirement appends its causal
+journal event while preserving the original completed result and effect. WSS
+control remains usable after the media route retires.
+
+This path adds no implicit receive subscription or default browser advertisement.
+Explicit RTC subscriptions, role/lifecycle/reoffer/DTMF/reconciliation integration,
+Opus/video/data, ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced
+fallback and approved Linux/remote hosting qualification remain required. The
+isolated component probe's decoded Core duplex is separate from the current
+Store/WSS admission cases; these cases do not qualify decoded stock RTC duplex or
+full browser/media/hosting acceptance.

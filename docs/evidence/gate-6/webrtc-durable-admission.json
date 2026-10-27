@@ -1,0 +1,176 @@
+{
+  "task": "G6-051",
+  "date": "2026-10-26",
+  "status": "in-progress",
+  "scope": "Local macOS arm64 actual signed-WSS/Store/Core admission for the protected single-G.711 profile. This is not full browser fallback or acceptance qualification.",
+  "source_sha256": {
+    "crates/connect-service/src/canonical_webrtc.rs": "cc29b2a8f42d83b85246421dc36fbfdc41bd1856829bbd1ef6c84e287ec7e7ec",
+    "crates/connect-service/src/canonical_webrtc/admission.rs": "e97fa15b4408af019f9187b141030e8ff7b00825da359226bebb0898b9937ac6",
+    "crates/connect-service/src/canonical_media.rs": "816c148688fb384c59ebbbab9d58a45bba70e359b39d25cc78a7f7e36c0b3447",
+    "crates/connect-service/src/canonical_media/webrtc.rs": "fcc0bbcb916847e3689856681cdeddcf2b3bfe6743f3ebdf7c7b38038b53de34",
+    "crates/connect-service/src/canonical_media/participants.rs": "51437a45e9c8cc01628c2b45772243d976ea6b60df0b97f30b245e70c7d26661",
+    "crates/connect-server/tests/support/canonical_websocket_control/webrtc.rs": "a0fcd3748839becad4afee47086e846521000dfa3a74e6bdff737c57697740cf",
+    "crates/connect-server/tests/support/canonical_websocket_control/webrtc/admission.rs": "00cdc4cc939abfdcb974f285fd55c9553f85e616cc3013b24c95da92d5e5ba9e"
+  },
+  "source_lock_sha256": "667500f92375a0a4f83ae97bddb513c2a50cc9a711b2b3a3532db3046c961ed2",
+  "build": {
+    "exit_code": 0,
+    "seconds": 786.8644470418803,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5154,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-83663a9b8f5ddcb6",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-admission/wss-integration-test-05",
+      "sha256": "4eecb81da70c67aaaf23f6266f0c532d2edea3192705e6449c6ef8f413ad8526",
+      "bytes": 211911312
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "f1b87954dfc64fad1b1deb28ba7df491f90819431cfacc714f6aa846e3c6838a"
+  },
+  "runtime_tests": [
+    {
+      "exit_code": 0,
+      "seconds": 32.759973999811336,
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-admission/wss-integration-test-05",
+        "canonical_websocket_control::webrtc::admission::",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "log_sha256": "0eef84b2e25a4cb15e6e8ccffe80593f517ee94d34faa14e730ec9fe4f0c19b4",
+      "test_results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 31.09s"
+      ],
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    },
+    {
+      "exit_code": 0,
+      "seconds": 8.589131917105988,
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-admission/wss-integration-test-05",
+        "canonical_websocket_control::",
+        "--nocapture",
+        "--test-threads=1",
+        "--skip",
+        "canonical_websocket_control::webrtc::admission::"
+      ],
+      "log_sha256": "aabf43943611757c5c6ae46a28928a54a7207ce0155721eaf34a97727ae3f22f",
+      "test_results": [
+        "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 8.54s"
+      ],
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    },
+    {
+      "exit_code": 0,
+      "seconds": 4.287844166858122,
+      "arguments": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-admission/wss-integration-test-05",
+        "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "log_sha256": "be93d955a73c5b9a413bcf663a067094899c1c1efc040e6bcdbbb097f703192a",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 4.25s"
+      ],
+      "changed_inputs": [],
+      "artifact_unchanged": true
+    }
+  ],
+  "runtime_source_guard": {
+    "count": 5310,
+    "rust_build_count": 5154,
+    "includes_sdk_source_and_dist": true,
+    "unchanged_at_collection": true,
+    "private_manifest_sha256": "766f443886aa974c0cd658160299730df5427f4daee1ac58cc264b74f272fd32",
+    "environment": "Default thread stacks; synthetic isolated state under ignored .local/."
+  },
+  "observed_behavior": [
+    "No primary RTP after connected DTLS leaves the operation Preparing and the managed Session without an admitted Connection. An independent Conversation writer runs during this actual resource wait, proving originating readers are released.",
+    "Actual negotiated PCMU primary RTP triggers fresh original-attempt Store authorization, one staged stream revision, one participant admission and one durable completed original effect.",
+    "The selected current plan, actual peer/registry owner, original operation/correlation, source expiry and shared proof/read interval constrain control. The new held hooks have no fallback to an originating handler grant.",
+    "The sealed readiness observation rechecks actual activation/controller bindings and managed Session participant/Connection metadata before and within the Store transaction.",
+    "Completed original replay produces the same completed result/effect, one physical/Core allocation and no new SDP, stream revision or participant admission.",
+    "Current Endpoint withdrawal after completed admission closes that media route. Actual RTC/port/source/controller cleanup precedes host-slot and live-peer Core quota reuse, with the same WSS peer still usable.",
+    "Closing the actual remote UDP peer retires resources after the pinned ICE detection boundary. The 35-second test budget covers 5s disconnected plus 25s failed detection and scheduler slack; the observed pair completes in31.09s.",
+    "Retirement preserves the original completed state/result/effect/revision while appending one causal retirement journal event.",
+    "The existing twelve signed-WSS methods, including pre-RTP Endpoint revocation, both signing algorithms, malformed answer refusal, control reconnect/expiry and actual SDK TLS/WSS, pass. The independent actual decoded WebTransport duplex method also passes."
+  ],
+  "component_regression": {
+    "reference": "docs/evidence/gate-6/webrtc-resource-retirement.json",
+    "same_normal_production_libraries_still_match": true,
+    "groups": 14,
+    "scope": "Fourteen isolated actual Core/decoded-RTC groups. Separate from Store/WSS stock duplex qualification."
+  },
+  "retained_failures": [
+    {
+      "private_record": ".local/gate-6/webrtc-admission/runtime-01-summary.json",
+      "sha256": "a322f5d19103009fc291b9079aebd1a4b09bc3b5609d31b7dc23457b62be9add",
+      "result": "Both cases reached genuine durable readiness. Initial cleanup assertions incorrectly required no new causal event and remote UDP-loss detection within5s. Corrected receipt comparison preserves all original fields/events and permits the appended retirement fact; the remote budget now follows pinned ICE defaults."
+    },
+    {
+      "private_record": ".local/gate-6/webrtc-admission/runtime-04-summary.json",
+      "sha256": "bdd0251a2c852a9c5a732598b29a51c93b1ac8a336918dcb3c0b08c189dcb70e",
+      "result": "The new admission/withdrawal/remote-loss pair passed, but the broader suite found a genuine pre-RTP withdrawal regression (11/12). The resource observer did not notice its actual physical owner had closed. Fixed exact physical cancellation plus explicit original host-completion observation; the original5s withdrawal regression now passes."
+    },
+    {
+      "private_record": ".local/gate-6/webrtc-admission/build-01-outcome.json",
+      "sha256": "b76f144df76607cfbb30376d14aa6bc3eb123f1be9eb63ffaaba4f6948677065",
+      "result": "First full compilation produced a valid test executable but CLI linking failed with ENOSPC. Test02/03 relinks also failed with ENOSPC; all failures retained. Closed prior executables were losslessly archived and exact obsolete derived aliases removed. Final build05 completes successfully with no stripping diagnostic."
+    }
+  ],
+  "current_cli_build_artifact": {
+    "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+    "sha256": "d7b52582de2cdaae40a686983640808205059166553357fa5f54460594040434",
+    "bytes": 234002528,
+    "executable_macho": true,
+    "scope": "Actual current CLI build output validated; no package/profile acceptance or HTTP runtime pass inferred."
+  },
+  "artifact_preservation_manifests": {
+    "previous-executable-preserved.json": "199e781af4b0307f2f2609320d0d1da7802738be425939a39e9737585fb3977d",
+    "initial-executable-preserved.json": "bf8220ee8cc5283cbd56ea53727cdf28a09e8a1dd2695fbfb9749c458930391a",
+    "pre-retirement-fix-executable-preserved.json": "b6c9534e10cd86e92f70ccbfe9a58e294afc97af73aa0d311a72e73284b11e11",
+    "older-closed-executables-preserved.json": "5552d6ffc203ddc6f0abe74618b7712557e725d22308e5798fcd2c75b218f93e",
+    "older-component-executables-preserved.json": "5ffe001769765c63130ad3c63bc7d43775c2fc1ffb3b7a6d380db5f09ab3a537"
+  },
+  "reference_checks": {
+    "http_mount_declarations": 24,
+    "explicit_http_operations": 25,
+    "uncovered": 0,
+    "scope": "Source/reference inventory; no new HTTP endpoint."
+  },
+  "remaining": [
+    "Explicit stock RTC receive subscriptions and independently decoded Store/WSS RTC duplex are required. No implicit audience or receive grants were added.",
+    "Current RTC role/lifecycle/reoffer/DTMF/reconciliation and wider worker/source/pending-write failure qualification remain required.",
+    "Opus/VP8/data, advanced ICE/MID/SSRC/source clocks, actual Chrome/Firefox forced WT/UDP fallback and same Conversation transitions, approved Linux/remote and final task/acceptance audits remain required.",
+    "The CLI executable is now valid and the current test-profile build has no stripping warning; HTTP/package/profile/stripped release qualification was not rerun and is not inferred.",
+    "No model/account/provider rehearsal was invoked."
+  ]
+}

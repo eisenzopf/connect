@@ -8,7 +8,7 @@ use rvoip_core::{
     },
     participant_transitions::ParticipantChange,
 };
-fn authority(
+pub(super) fn authority(
     entry: &Connection,
     scope: &ParticipantScope<'_>,
     read: &NativeMediaRead,
@@ -185,6 +185,9 @@ impl ParticipantPolicy for Policy {
                 return Err(ParticipantControlError::Authority);
             }
             return i.control(scope);
+        }
+        if let Some(i) = held.downcast_ref::<super::webrtc::RtcInvocation>() {
+            return i.role_control(self, scope);
         }
         if let Some(role) = held.downcast_ref::<super::roles::Projection>() {
             return role.control(self, scope);

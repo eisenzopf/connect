@@ -1,5 +1,7 @@
 //! Real signed WSS SDP, Core reservation and RTC; no media readiness claim.
 use super::*;
+#[path = "webrtc/admission.rs"]
+mod admission;
 use connect_protocol::{
     session_control::{Action, Request},
     transitions::{OperationAction, OperationState},

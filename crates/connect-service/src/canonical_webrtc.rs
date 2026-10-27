@@ -22,6 +22,7 @@ use rvoip_webrtc::canonical::{CanonicalWebRtcAdapter, WebRtcPhysicalBinding};
 use std::{sync::Arc, time::Duration};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
+mod admission;
 
 /// One original Store-issued attempt; the host must take custody synchronously.
 /// It must not publish media or report operation success from SDP/DTLS alone.
@@ -114,6 +115,11 @@ struct Owned {
     binding: Option<Arc<WebRtcPhysicalBinding>>,
     id: Option<ConnectionId>,
     reserved: bool,
+    entry: Option<Arc<crate::canonical_media::Connection>>,
+    controller: Option<Arc<rvoip_core::staged_streams::StreamController>>,
+    peer: Option<Arc<rvoip_core::peer_admission::PeerAdmission>>,
+    deadline: Option<Instant>,
+    correlation: Option<String>,
 }
 impl Owned {
     fn lease(&self) -> Result<&NativeOfferLease> {
@@ -143,24 +149,44 @@ impl Runtime {
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
     ) {
         let mut owned = Owned::default();
-        let outcome = self
-            .webrtc_start(&a, &physical, &credential, &mut owned)
-            .await;
+        let outcome = Box::pin(self.webrtc_start(&a, &physical, &credential, &mut owned)).await;
+        let handler_finished = a.invocation_cancellation();
         let succeeded = outcome.is_ok();
         let _ = tx.send(outcome);
         if let Some(attempt) = &owned.attempt {
             attempt.release_invocation();
         }
-        // No command or domain read is held while waiting for physical retirement.
+        // The dispatcher cancels this child when the original handler returns.
+        // Release our Arc and every host read before observing actual resources.
         drop(a);
         if let Some(attempt) = &owned.attempt {
             if succeeded {
-                let expiry = attempt.original_attempt().expires_at();
-                tokio::select! {
-                    _ = attempt.closed() => {},
-                    _ = self.stop.cancelled() => {},
-                    _ = physical.lifetime.cancelled() => {},
-                    _ = tokio::time::sleep(Duration::from_secs((expiry-chrono::Utc::now().timestamp()).max(0) as u64)) => {},
+                let deadline = owned.deadline.unwrap_or_else(Instant::now);
+                let finished = tokio::select! { biased;
+                    _=self.stop.cancelled()=>false,
+                    _=physical.lifetime.cancelled()=>false,
+                    _=tokio::time::sleep_until(deadline)=>false,
+                    _=handler_finished.cancelled()=>true,
+                };
+                if finished {
+                    match Box::pin(self.webrtc_admit(&owned, physical.clone(), &credential)).await {
+                        Ok(ready) => loop {
+                            tokio::select! { biased;
+                                _=self.stop.cancelled()=>break,
+                                _=physical.lifetime.cancelled()=>break,
+                                _=attempt.closed()=>break,
+                                _=tokio::time::sleep(Duration::from_millis(100))=>{},
+                            }
+                            match ready.current() {
+                                Ok(()) => {}
+                                Err(e) if e.code == "authority-busy" => continue,
+                                Err(_) => break,
+                            }
+                        },
+                        Err(e) => {
+                            tracing::debug!(code=%e.code,"RTC original media admission refused")
+                        }
+                    }
                 }
             }
             // The original owner confirms actual RTC close. A missing confirmation
@@ -260,16 +286,18 @@ impl Runtime {
         };
         // Retain the non-cloneable original lease before the first suspension.
         owned.lease = Some(lease);
-        let lease = owned.lease()?;
-        let remaining = (lease.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
+        let remaining =
+            (owned.lease()?.expires_at() - chrono::Utc::now().timestamp()).max(0) as u64;
         let deadline = Instant::now() + Duration::from_secs(remaining.min(30));
+        owned.deadline = Some(deadline);
+        owned.correlation = Some(a.envelope().id().to_owned());
         // Origin issuance uses the exact current originating invocation fence.
         // Every suspension retains the original lease in the outer worker.
         let origin = self
             .native_preflight(a, deadline, || {
                 self.media
                     .store
-                    .native_media_origin_with_peer(credential, proof, lease)
+                    .native_media_origin_with_peer(credential, proof, owned.lease()?)
             })
             .await?;
         let read = match self
@@ -300,6 +328,8 @@ impl Runtime {
         let id = ConnectionId::from_string(origin.runtime_connection_id().to_owned());
         // Register cleanup custody before any reservation/configuration can fail.
         owned.id = Some(id.clone());
+        owned.entry = Some(entry.clone());
+        owned.peer = Some(peer.clone());
         let binding = host.reserve_physical(&peer, physical.lifetime.child_token())?;
         owned.binding = Some(binding.clone());
         let owner = entry
@@ -316,7 +346,7 @@ impl Runtime {
         let prepared = self
             .core
             .prepare_peer_webrtc_connection(
-                peer,
+                peer.clone(),
                 a.principal(),
                 PeerWebRtcIntent {
                     session: SessionId::from_string(origin.session_id().to_owned()),
@@ -342,7 +372,7 @@ impl Runtime {
                 .participant_revision(&SessionId::from_string(origin.session_id().to_owned()))
                 .map_err(|_| Error::forbidden())?,
         };
-        let (_, activation) = host
+        let (controller, activation) = host
             .adapter()
             .configure_media(
                 &id,
@@ -353,6 +383,7 @@ impl Runtime {
                 &invocation,
             )
             .map_err(|_| Error::forbidden())?;
+        owned.controller = Some(controller);
         entry
             .set_activation(activation)
             .map_err(|_| Error::forbidden())?;
