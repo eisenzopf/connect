@@ -1,0 +1,319 @@
+{
+  "task": "G6-065",
+  "status": "in-progress; current native handoff probe fails, completion audit does not pass",
+  "recorded_at": "2026-10-27T21:44:14.954679+00:00",
+  "base_revision": "c498b978",
+  "scope": "Current local macOS arm64 stock facade/runtime composition, synthetic bounded fixtures. No new model, real provider, remote, Linux, install-package, acceptance or publication qualification.",
+  "requirement_audit": [
+    {
+      "requirement": "Expose authorized controls, status and events with permissions/audience/operation identity/error preservation",
+      "result": "Current17HTTP/MCP/JSON-lines/issuance/install functions pass. Full native transition requalification has a retained failure below.",
+      "evidence": [
+        "crates/connect-mcp/src/canonical_tools.rs",
+        "crates/connect-service/src/identity_access.rs",
+        "crates/connect-server/src/cli/request.rs",
+        "crates/connect-server/src/cli/stdio.rs"
+      ]
+    },
+    {
+      "requirement": "Preserve Task/grant workflows",
+      "result": "Five current Task methods and deterministic authority-deadline before/after passed in preceding checkpoint.",
+      "evidence": [
+        "docs/evidence/gate-6/task-fixture-authority-deadline.json"
+      ]
+    },
+    {
+      "requirement": "OpenAPI covers supported HTTP, privileged provisioning, operation recovery and file endpoints; actual body/response/auth and inventory agreement",
+      "result": "Current280actualHTTPexchanges/280schema checks,85selector+Task cases/85auth cases;24route declarations/25methods. Prior98real serde/schema checks remain separately scoped. No setup-only exclusion.",
+      "evidence": [
+        "contracts/http-endpoints.json",
+        "contracts/openapi-application-http.json",
+        "contracts/openapi-protected-http.json",
+        "contracts/openapi-canonical-http.json",
+        "docs/developer/server-http.md"
+      ]
+    },
+    {
+      "requirement": "MCP/CLI controls exclude media frames and make capability/action-request limits explicit",
+      "result": "Catalog advertises29finite canonical controls with contract-derived closed schemas, no transport credentials/native offer/frame arguments; finite event reads. Current official MCP/CLI runtime methods pass. Metadata is not decoded audio.",
+      "evidence": [
+        "crates/connect-mcp/src/canonical_tools.rs",
+        "docs/developer/canonical-mcp.md",
+        "docs/developer/canonical-cli.md"
+      ]
+    },
+    {
+      "requirement": "An actual supported agent host requests/observes within configured authority without invented successful audio",
+      "result": "One earlier explicitly approved Codex0.164.0-alpha.11.1 turn passed47.635s with exact handoff/status and metadata-only final report. Six narrowly recorded host sources match current; broader service/media sources have changed. This retained turn is not a new actual-model run on the current artifact. Current native handoff verification is failed, so it cannot be promoted from historical host/media evidence.",
+      "host_source_matches": {
+        "crates/connect-server/tests/support/canonical_agent_rehearsal.rs": true,
+        "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": true,
+        "crates/connect-server/src/cli/agent_access/host.rs": true,
+        "crates/connect-server/src/cli/agent_access/preflight.rs": true,
+        "crates/connect-server/src/cli/task_access/codex_host/process.rs": true,
+        "crates/connect-server/src/cli/task_access/codex_host/child.rs": true
+      },
+      "evidence": [
+        "docs/evidence/gate-6/canonical-agent-host-authorized.json"
+      ]
+    }
+  ],
+  "current_build": {
+    "exit_code": 0,
+    "seconds": 41.366545791970566,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5223,
+    "changed_inputs": []
+  },
+  "current_artifact": {
+    "sha256": "d1fae20636ca294655c43a2e01ece8f2183d4f42ae4ca77f551daf58358372af",
+    "bytes": 265216648
+  },
+  "current_cli": {
+    "scope": "Actual current integration Cargo graph includes this complete CLI artifact; explicit repaired CLI71 provenance retained. No claim that cached warning represents a successful original strip.",
+    "exit_code": 0,
+    "source_unchanged": true,
+    "source_count": 5223,
+    "command": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "seconds": 41.366545791970566,
+    "cli_bin_fresh": true,
+    "canonical-cli-1": {
+      "sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+      "bytes": 242005080
+    },
+    "runtime_build_summary_sha256": "1187a9b36d0599141ecbca9fb1c8032e1d628bafd650016515abb32753224c0f"
+  },
+  "facade_runtime": {
+    "scope": "Current production listener/public signed HTTP/MCP/CLI/credential facade cohort; synthetic loopback only, no model or live provider execution.",
+    "source_count": 5227,
+    "artifact_sha256": "d1fae20636ca294655c43a2e01ece8f2183d4f42ae4ca77f551daf58358372af",
+    "cli_sha256": "b73a0f95b5815ad573436e13b0d04718657bfb1a28a2edd1bd6a538a94039184",
+    "steps": [
+      {
+        "name": "http",
+        "expected": [
+          "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+          "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+          "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+          "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+          "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+          "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts"
+        ],
+        "exit_code": 0,
+        "seconds": 3.025875332998112,
+        "test_result": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 343 filtered out; finished in 2.97s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "d3b5af66c7c39471e9d8e850941f86abe68b3d524826519d4e138030203f21c2"
+      },
+      {
+        "name": "mcp",
+        "expected": [
+          "canonical_mcp::application_dispatch::identity_application_dispatch_refuses_retired_mutations_keeps_tasks_and_rechecks_auth",
+          "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+          "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+          "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+          "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+        ],
+        "exit_code": 0,
+        "seconds": 1.4371162080205977,
+        "test_result": [
+          "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 1.41s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "47be83e7dc93f0837b7bf44614abf41bfd74ca1248bdc85ebef0663a6ee811eb"
+      },
+      {
+        "name": "stdio",
+        "expected": [
+          "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+          "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration"
+        ],
+        "exit_code": 0,
+        "seconds": 3.610002707922831,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 3.58s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "e59de0aa0d924a445d467d748cdb341cad9046cf773f060152deebe19f467c45"
+      },
+      {
+        "name": "install",
+        "expected": [
+          "credential_installation::actual_cli_issues_independent_native_assets_rechecks_completion_and_exports_scoped_agent",
+          "credential_installation::actual_cli_resumes_committed_lost_issuance_device_key_and_failed_native_admission"
+        ],
+        "exit_code": 0,
+        "seconds": 12.044893875019625,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 12.02s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "ba3ec05028905c2abeb033ec27209b1336c99f5757cd38fe6727cd7e6c978c93"
+      },
+      {
+        "name": "issuance",
+        "expected": [
+          "credential_issuance::protected_issuance_authenticates_before_body_and_refuses_header_shape_and_authority_changes",
+          "credential_issuance::protected_issuance_recovers_original_after_disconnect_restart_and_native_enrollment"
+        ],
+        "exit_code": 0,
+        "seconds": 1.050720833009109,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 1.01s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "1c639674f57d4c035039a50110d0abd9a92ec7dcc13ef5de3cb3bbb2ab044c96"
+      }
+    ]
+  },
+  "http_wire": {
+    "cases": 280,
+    "schema_checked": 280,
+    "source_unchanged": true,
+    "setup_only": [],
+    "sigterm_exit": 0,
+    "dispatch_and_task_cases": 85,
+    "auth_cases": 85,
+    "reference_inputs": {
+      "scripts/check-gate6-protected-http.py": "f85bbf0ec552da2df6ab5424cf765096aadb8544b3f35b7f40d402995a153fca",
+      "scripts/generate-protected-http-openapi.py": "e5bfb95bd44f2e75d7055e3d7dac659973d452b3d8d91603678a00db1c3a9f92",
+      "contracts/openapi-protected-http.json": "1bc98ea100168bacf626a69e741a38ab2612710b773e7112422cf4761062e993",
+      "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
+      "contracts/openapi-canonical-http.json": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
+      "contracts/openapi-provisioning.json": "7ea2ba5731c65bb70b1b4fff124a2e6b68ce400cb43cd1eeb8b08f7475722a09",
+      "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135",
+      "scripts/lib/application_http_cases.py": "44ac10fff84777ae22aa3a017dda93ff6b61af1e2b52caa6cfc670662f51f770",
+      "contracts/openapi-application-http.json": "95f2748a4819c18669a0fbb9d289722578f9a805a07d78b28ac25acc566fb0f0",
+      "contracts/application-http-dispatch.json": "fcac6370f1e242c64625901fa387332e07e80338ad141aef7d3e44b3092c6dbc"
+    },
+    "summary_sha256": "00f7ef7b4b276f37f9b2687517f1e102551ad660dd4b15963213d6cd3cbe18e3",
+    "outcome": {
+      "exit_code": 0,
+      "seconds": 3.0555562081281096,
+      "changed_inputs": [],
+      "log_sha256": "207ad4ccb45cca0327e275651457fb07ce7469be72bf2274d8295997f9a74c99"
+    }
+  },
+  "current_native_transition_runtime": {
+    "scope": "Fresh exact three existing actual native PCM MCP consultation/return, handoff and movement functions after upstream Core changes; local default synthetic fixtures, no actual model/provider/remote execution.",
+    "artifact_sha256": "d1fae20636ca294655c43a2e01ece8f2183d4f42ae4ca77f551daf58358372af",
+    "guarded_inputs": 5225,
+    "steps": [
+      {
+        "name": "consult-return",
+        "test": "canonical_native_connections::consultation::production_mcp_consultation_return_preserves_private_audio_original_recovery_and_current_authority",
+        "exit_code": 0,
+        "seconds": 38.52056608395651,
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 348 filtered out; finished in 38.48s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "f253304bf56f53896029bb880e9c6e1ec4ac9249357bcdf3d4c67d6c011bc3fc"
+      },
+      {
+        "name": "handoff",
+        "test": "canonical_native_connections::consultation::groups::handoff::production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect",
+        "exit_code": 101,
+        "seconds": 76.42423579096794,
+        "test_result": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 348 filtered out; finished in 76.40s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "6293e6ac688eb799938ba810d97a7735418d3445682541d0e30819aa29008bdc"
+      }
+    ]
+  },
+  "finding": {
+    "algorithm": "EdDSA",
+    "outgoing": "Leave",
+    "role_scope": "Conversation",
+    "phase": "handoff-private-reverse, before handoff submission",
+    "marked_frames": [
+      0,
+      1,
+      0
+    ],
+    "required_receiver_frames": "strictly more than10",
+    "previous_scenes": "Three EdDSA handoff scenes completed before this case: Observe/Session, Leave/Session, Observe/Conversation.",
+    "root_cause": "Unresolved. Do not infer facade or Core root cause from this audio observation alone.",
+    "snapshot_gap": "Existing private snapshot hook covers a later retained-remote probe; it did not capture this earlier private-reverse failure. Original log/source/input/executable proof is retained.",
+    "skipped": "Native movement did not run: orchestrator stopped after the handoff failure. Not counted as a pass.",
+    "next_action": "Preserve case state for any initial audio-probe failure, then run a bounded diagnostic of the failed handoff scene without weakening content/audience thresholds."
+  },
+  "infrastructure": {
+    "aborted_cli_graph": {
+      "scope": "Aborted unqualified build attempt, not a pass. Plain cargo build chose a different dependency feature graph than the existing integration graph, so it was stopped before a full upstream cascade. Correct current runtime Cargo graph remains the qualification build.",
+      "command": "cargo build --release --offline --locked --features test-support (same opt0 package overrides)",
+      "terminated_owned_cargo_pid": 4266,
+      "source_changed": false,
+      "stdout_sha256": "e9533c385c684d300c823b47394235c711669958e10f0999c8e95cb5b800d861",
+      "stderr_sha256": "299cc9e5aa5e265cb4a64df6e74e35262ff5066f7d73bfec574f9577ab644a62"
+    },
+    "scope": "Plain cargo build selected a different feature graph and was stopped before an upstream cascade. Current integration Cargo graph built successfully and supplies the complete repaired CLI; failed attempt is not credited.",
+    "closed_cache_manifest_sha256": "dfd871589b944c88210cfdf940ca29e814872d96a8c53d4b0638607c286df52d"
+  },
+  "private_report_hashes": {
+    "build-runtime-summary.json": "1187a9b36d0599141ecbca9fb1c8032e1d628bafd650016515abb32753224c0f",
+    "runtime-inputs.json": "649552348e5fdd68d6ba9bbd75174f962c337c48fb3e5fbb973575a08e08f498",
+    "runtime-summary.json": "115fdf6c613b0a54b48e8867bab3b68aa72a72c4c92b6ba091b3e23583d141b8",
+    "native-transitions-summary.json": "6433a01bfc7dd370707b5be87d8e9a5eddd4f184d8df159ea0283c883a6e3df0",
+    "handoff.log": "6293e6ac688eb799938ba810d97a7735418d3445682541d0e30819aa29008bdc",
+    "consult-return.log": "f253304bf56f53896029bb880e9c6e1ec4ac9249357bcdf3d4c67d6c011bc3fc",
+    "http-wire/summary.json": "00f7ef7b4b276f37f9b2687517f1e102551ad660dd4b15963213d6cd3cbe18e3"
+  },
+  "pending": [
+    "Diagnose current private-reverse native audio failure and finish native transition qualification.",
+    "Reconcile current facade developer documentation after the completion audit passes.",
+    "Full105-task Gate6 objective and independent acceptance remain open."
+  ]
+}
