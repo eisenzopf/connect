@@ -1,0 +1,62 @@
+{
+  "scope": "Closed local task proof executables losslessly compressed after source/artifact verification phases closed. Original bytes/mode/mtime and original SHA remain recoverable; source/state/logs and active build files unchanged.",
+  "artifacts": [
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-04",
+      "archive": ".local/gate-6/rtc-signed-av/proof-archives-20261027-01/wss-integration-test-04.zst",
+      "original_sha256": "f79c3222db3d5902a0cee342b0689ee746ff808dd51a4ab04a757ec575129d42",
+      "archive_sha256": "abe854690813cce89e1273df8b99714a4ddfb618725ab998b06e6698a42dc792",
+      "original_bytes": 214304960,
+      "archive_bytes": 46812012,
+      "mode": 493,
+      "mtime_ns": 1793107017553086075,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-05",
+      "archive": ".local/gate-6/rtc-signed-av/proof-archives-20261027-01/wss-integration-test-05.zst",
+      "original_sha256": "56cadeb4d4634753a7f63a2bc20cbe50366d73a113dc7dbaefc50ba7c12f0d50",
+      "archive_sha256": "a01dfc4f29878e2836dfc26fd12b5d395780193ed9e691c911266ad4695f9f03",
+      "original_bytes": 214304496,
+      "archive_bytes": 46801875,
+      "mode": 493,
+      "mtime_ns": 1793108515766027741,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-06",
+      "archive": ".local/gate-6/rtc-signed-av/proof-archives-20261027-01/wss-integration-test-06.zst",
+      "original_sha256": "a13240af80f1bfbfb4d53ec0b50af28a16191a89f908b17f54bfff6255091462",
+      "archive_sha256": "c8f156aae088a18bebe21f548ce12ea79e1a3436279dd055ffb918e2881ff6ef",
+      "original_bytes": 214300352,
+      "archive_bytes": 46801338,
+      "mode": 493,
+      "mtime_ns": 1793110471173961106,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-07",
+      "archive": ".local/gate-6/rtc-signed-av/proof-archives-20261027-01/wss-integration-test-07.zst",
+      "original_sha256": "10568a898b102c1237b8fb7626cc008b6187cf25339fcbb538875aeea20e64c2",
+      "archive_sha256": "c7f5ee5c29e92779d50137f2e13596779ba20caf5cd762e6f65ca6733bd5bab5",
+      "original_bytes": 214322208,
+      "archive_bytes": 46807253,
+      "mode": 493,
+      "mtime_ns": 1793115841197365969,
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-08",
+      "archive": ".local/gate-6/rtc-signed-av/proof-archives-20261027-01/wss-integration-test-08.zst",
+      "original_sha256": "6cb61bac4f824d9e5d38e744d954344d3d2685ddab64f802096b08b4b700c9af",
+      "archive_sha256": "6d8d271f6788eae0eac9313739945e61bb8b5f3ed82631e847cb831fa1ef123b",
+      "original_bytes": 214326288,
+      "archive_bytes": 46812611,
+      "mode": 493,
+      "mtime_ns": 1793116901436912081,
+      "roundtrip_verified": true
+    }
+  ],
+  "recovered_logical_bytes": 837523215,
+  "restore": "zstd -d to the recorded original path, verify original_sha256 and original_bytes, then chmod(mode) and restore mtime_ns."
+}

@@ -32,6 +32,9 @@ pub struct CanonicalServerConfig {
     pub webtransport: Option<crate::canonical_webtransport::CanonicalWebTransportConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub websocket: Option<crate::canonical_websocket::CanonicalWebSocketConfig>,
+    /// Explicit bounded local WebRTC media; WSS alone remains control-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webrtc: Option<crate::canonical_webrtc::CanonicalWebRtcConfig>,
     pub bind: SocketAddr,
     pub database: PathBuf,
     pub certificate: PathBuf,
@@ -106,6 +109,13 @@ impl CanonicalServerConfig {
         if let Some(websocket) = &self.websocket {
             websocket.validate(self.network_profile)?;
         }
+        if let Some(webrtc) = &self.webrtc {
+            webrtc.validate(
+                self.network_profile,
+                self.websocket.is_some(),
+                self.limits.connections,
+            )?;
+        }
         anyhow::ensure!(
             self.session_reconnect_grace_seconds <= 300,
             "Invalid Session reconnect grace"
@@ -179,6 +189,8 @@ pub struct RunningCanonicalServer {
     public_assistants: Option<crate::canonical_assistants::Hosting>,
     provider_voice: Option<crate::canonical_provider_voice::Worker>,
     provider_messages: Option<crate::canonical_messages::Host>,
+    #[cfg(any(test, feature = "test-support"))]
+    webrtc_host: Option<Arc<crate::canonical_webrtc::SignalingHost>>,
     contributed_media: Option<crate::connector_media::Host>,
     pub telnyx_callback_address: Option<SocketAddr>,
     pub address: SocketAddr,
@@ -192,6 +204,11 @@ pub struct RunningCanonicalServer {
     pub service: Arc<Service>,
 }
 impl RunningCanonicalServer {
+    /// Fixture observation only; startup and actual media use the production host.
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn test_webrtc_host(&self) -> Option<Arc<crate::canonical_webrtc::SignalingHost>> {
+        self.webrtc_host.clone()
+    }
     pub async fn start(config: CanonicalServerConfig) -> Result<Self> {
         Box::pin(Self::start_with_connectors(
             config,
@@ -259,6 +276,11 @@ impl RunningCanonicalServer {
             "Message injection requires protected hosting configuration"
         );
         config.validate()?;
+        let webrtc_host = config
+            .webrtc
+            .as_ref()
+            .map(|profile| profile.host())
+            .transpose()?;
         // All key/TLS validation precedes installation recovery and binding.
         let mut tls =
             (*crate::tls::server_config(&config.certificate, &config.private_key)?).clone();
@@ -319,6 +341,9 @@ impl RunningCanonicalServer {
         let service = Service::with_runtime(store.clone(), runtime);
         service.install_canonical_assurance(config.user_assurance.clone())?;
         service.install_canonical_runtime()?;
+        if let Some(host) = &webrtc_host {
+            service.install_canonical_webrtc(host.clone())?;
+        }
         contributed_media.install(&service)?;
         let record_https = match &config.record_https {
             Some(records) => Some(
@@ -624,6 +649,8 @@ impl RunningCanonicalServer {
             public_assistants,
             provider_voice,
             provider_messages,
+            #[cfg(any(test, feature = "test-support"))]
+            webrtc_host,
             contributed_media: None,
             telnyx_callback_address,
             address,

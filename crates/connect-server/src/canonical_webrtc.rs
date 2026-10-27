@@ -12,6 +12,8 @@ use std::{
 };
 use tokio::{sync::watch, time::Instant};
 use tokio_util::sync::CancellationToken;
+mod config;
+pub use config::{CanonicalWebRtcConfig, CanonicalWebRtcProfile};
 mod signaling;
 pub use signaling::SignalingHost;
 struct ReadContext {

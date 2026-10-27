@@ -50,14 +50,18 @@ fn video_producer(
             let mut body = vec![0x10];
             body.extend_from_slice(&frame);
             packet.payload = body.into();
-            if !matches!(
-                tokio::time::timeout(
-                    Duration::from_millis(500),
-                    track.write_rtp_with_extensions(packet, &[])
-                )
-                .await,
-                Ok(Ok(()))
-            ) {
+            let result = tokio::time::timeout(
+                Duration::from_millis(500),
+                track.write_rtp_with_extensions(packet, &[]),
+            )
+            .await;
+            if !matches!(result, Ok(Ok(()))) {
+                tracing::warn!(
+                    ?result,
+                    sent,
+                    ssrc,
+                    "Synthetic video source stopped on its original write result"
+                );
                 break;
             }
             sent += 1;
@@ -200,6 +204,9 @@ async fn no_video(rx: &mut mpsc::Receiver<MediaFrame>) {
     );
 }
 async fn run(algorithm: &str) {
+    Box::pin(run_profile(algorithm, false)).await;
+}
+async fn run_profile(algorithm: &str, configured: bool) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -214,12 +221,28 @@ async fn run(algorithm: &str) {
     assert_eq!((red.len(), blue.len()), (64, 64));
     let dir = fixtures.join(format!("signed-{algorithm}-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir(&dir).unwrap();
-    let f = configured_end_scope(algorithm, 8, None, true).await;
-    let host = SignalingHost::new(config(), 2).unwrap();
-    f.server
-        .service
-        .install_canonical_webrtc(host.clone())
-        .unwrap();
+    let mut f = configured_end_scope(algorithm, 8, None, true).await;
+    let host = if configured {
+        f.server.shutdown().await.unwrap();
+        f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
+            profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
+            max_peers: 2,
+        });
+        f.server = RunningCanonicalServer::start(f.config.clone())
+            .await
+            .unwrap();
+        f.client.endpoint = f.server.address;
+        f.server
+            .test_webrtc_host()
+            .expect("configured production RTC host")
+    } else {
+        let host = SignalingHost::new(config(), 2).unwrap();
+        f.server
+            .service
+            .install_canonical_webrtc(host.clone())
+            .unwrap();
+        host
+    };
     let other = canonical_webtransport_media::other(&f);
     provision_media_config(&f, &f.client, 0, &["audio", "video"]).await;
     provision_media_config(&f, &other, 1, &["audio", "video"]).await;
@@ -532,4 +555,15 @@ async fn signed_av_refuses_unmatched_or_extra_sdp_before_media_admission() {
         drop(ws);
         f.server.shutdown().await.unwrap();
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit local decoded AV/production configuration lane"]
+async fn configured_signed_av_opus_vp8_decoded_duplex_eddsa() {
+    Box::pin(run_profile("EdDSA", true)).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "explicit local decoded AV/production configuration lane"]
+async fn configured_signed_av_opus_vp8_decoded_duplex_es256() {
+    Box::pin(run_profile("ES256", true)).await;
 }

@@ -45,6 +45,7 @@ impl Harness {
         let signing = temp.path().join("canonical-server.der");
         std::fs::write(&signing, key.serialize_der()).unwrap();
         let server = RunningCanonicalServer::start(CanonicalServerConfig {
+            webrtc: None,
             network_profile: Default::default(),
             webtransport: None,
             websocket: None,

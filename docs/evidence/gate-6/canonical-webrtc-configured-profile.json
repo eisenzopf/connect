@@ -1,0 +1,242 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T16:59:28.890819+00:00",
+  "scope": "Local macOS arm64 explicit configured canonical WebRTC host; normal production libraries with test-support observation. No installed browser run or acceptance qualification.",
+  "build": {
+    "exit_code": 0,
+    "seconds": 6.102910166140646,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5214,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+      "sha256": "87c8bf321e86a456f21c1316affafa43b056a4bef01edc25195eb943dbf8b0f9",
+      "bytes": 214408160
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "b7b823c6812b5daa0f1f375b4f707217ddfc1aca674744ffcdb7d1c46be4b64b"
+  },
+  "verification": {
+    "integration_distinct_methods": 33,
+    "passed": 33,
+    "configuration_methods": 3,
+    "configuration_scope": "Original configuration module compiled as a separate test harness against the exact normal production server/Core/WebRTC libraries; not a full connect-server unit suite.",
+    "configuration": {
+      "build_arguments": [
+        "rustc",
+        "--edition=2021",
+        "--test",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/canonical-browser-host/profile-config-units.rs",
+        "-L",
+        "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+        "-o",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/canonical-browser-host/profile-config-units",
+        "--extern",
+        "connect_server=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_server-ea982a39a9a2989c.rlib",
+        "--extern",
+        "connect_protocol=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_protocol-7bb49f1c9cd9b92e.rlib",
+        "--extern",
+        "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+        "--extern",
+        "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+        "--extern",
+        "serde=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libserde-98ab69f043bfd003.rlib",
+        "--extern",
+        "toml=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtoml-66ad1830f9ef4276.rlib",
+        "--extern",
+        "anyhow=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libanyhow-9795db7413f283e6.rlib"
+      ],
+      "seconds": 0.8790667080320418,
+      "exit_code": 0,
+      "output": "\nrunning 3 tests\ntest canonical_webrtc::config::tests::unsupported_network_control_and_capacity_refuse ... ok\ntest canonical_webrtc::config::tests::explicit_local_profiles_build_bounded_hosts ... ok\ntest canonical_webrtc::config::tests::strict_configuration_roundtrips_and_refuses_unknown_fields_profiles ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+      "changed_inputs": []
+    },
+    "checks": [
+      {
+        "name": "profile-av-11",
+        "manifest_sha256": "16e324f05ef34906846eb54c788878b931a4011e995636c8b2ea593f4d75c1b1",
+        "steps": [
+          {
+            "generated_rgb": [
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/alice-blue-during-video-mute.rgb",
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/alice-receives-blue.rgb",
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/alice-restores-blue.rgb",
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/bob-continues-red.rgb",
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/bob-receives-red.rgb",
+              "signed-ES256-281e14af-4f55-4167-a7f8-26447e5c2dad/bob-red-after-unmute.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/alice-receives-blue.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/alice-restores-blue.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/bob-continues-red.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/bob-receives-red.rgb",
+              "signed-EdDSA-5f32854a-0805-46bf-873e-6ff53e6b01c9/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 14.554051500046626,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "1664487d8e61c0b4624b9f80e5403f7b528051082568b8690285c21dd90ea639",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 13.11s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "configured-av-11",
+        "manifest_sha256": "8d4d61c1969e0254c4674dfe059fae9f23f71826f7af37822630de1758db6283",
+        "steps": [
+          {
+            "generated_rgb": [
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/alice-receives-blue.rgb",
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/alice-restores-blue.rgb",
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/bob-continues-red.rgb",
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/bob-receives-red.rgb",
+              "signed-EdDSA-ef8cfe90-161d-415f-a458-ae41628cbaa0/bob-red-after-unmute.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/alice-blue-during-video-mute.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/alice-receives-blue.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/alice-restores-blue.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/bob-continues-red.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/bob-receives-red.rgb",
+              "signed-ES256-bb87ab1c-472a-4661-b837-6b38f0dab7b0/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 10.860066833207384,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "4b822930668ed4abda1f7d8c95a47d35df7d3bec8780e793857d8aa1c245113f",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 10.85s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "profile-refusal-11",
+        "manifest_sha256": "e97743b679ce9ea8974032a9adb6b58210db002aa3413f8d423b7eee3ddf200a",
+        "steps": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 1.3819660420995206,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_websocket_control::webrtc::subscriptions::av::",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "fdf49cffa2f6953c8ee48438c34eb16707038c66b03cc377b30018e9510296f2",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 60 filtered out; finished in 1.35s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "profile-regression-11",
+        "manifest_sha256": "16e324f05ef34906846eb54c788878b931a4011e995636c8b2ea593f4d75c1b1",
+        "steps": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 53.08412520796992,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_websocket_control::webrtc::subscriptions::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::av::"
+            ],
+            "log_sha256": "348793d0ca0dd0987b16a8651cc26f92f3d6d779750460bc17a75a943b2f8f70",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; finished in 53.03s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 39.44721950008534,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_websocket_control::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::"
+            ],
+            "log_sha256": "3d243c03d6f7b4c6884436efd0ab00aa06970719a0dabe11afc20c9354cefd1b",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 39.43s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 4.328932541888207,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-11",
+              "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "e944cc860e03913bd90e13aa5f045286585de474b3b1a2a1e3a50b86c25e09e0",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 4.29s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ],
+    "all_guards_closed_unchanged": true
+  },
+  "behavior": "Explicit optional webrtc configuration installs a bounded Opus or Opus/VP8 host before physical intake, requires WSS/local network and capacity within connection limits; unknown fields/profiles refuse. Both signing algorithms exercise configured host, independent decoded audio/video, original selection/replay, withdrawal/restoration, video-only mute/unmute, terminal and joined ownership. Existing unconfigured/manual-host paths and29 retained methods pass.",
+  "failures_retained": {
+    "build10": "Library compiled but link/codegen ENOSPC; no binary or test pass. Closed proof artifacts archived losslessly with roundtrip hashes; only failed-build object files pruned. Single-job retry build11 succeeds in6.1s with5214 inputs unchanged.",
+    "audio": "Prior build09 intermittent post-video-only-mute Opus timeout remains unresolved. New fixture source-stop and direction-specific timeout diagnostics preserve the original500ms source write and5s observation bounds. The current33 passes do not explain or erase the prior failure."
+  },
+  "remaining": "Installed Chrome/Firefox connected media, actual forced WT/UDP failure and WSS continuity, wider profile/control/transition/recovery and impairment checks; G6-051/all105/acceptance remain open."
+}

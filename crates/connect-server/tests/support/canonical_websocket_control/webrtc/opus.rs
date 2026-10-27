@@ -44,14 +44,18 @@ pub(super) fn producer(
                 (sent as u32).wrapping_mul(960),
             );
             packet.payload = bytes[..count].to_vec().into();
-            if !matches!(
-                tokio::time::timeout(
-                    Duration::from_millis(500),
-                    track.write_rtp_with_extensions(packet, &[])
-                )
-                .await,
-                Ok(Ok(()))
-            ) {
+            let result = tokio::time::timeout(
+                Duration::from_millis(500),
+                track.write_rtp_with_extensions(packet, &[]),
+            )
+            .await;
+            if !matches!(result, Ok(Ok(()))) {
+                tracing::warn!(
+                    ?result,
+                    sent,
+                    ssrc,
+                    "Synthetic Opus source stopped on its original write result"
+                );
                 break;
             }
             sequence = sequence.wrapping_add(1);
@@ -99,7 +103,7 @@ pub(super) async fn tone(
         let frame = match tokio::time::timeout_at(until, rx.recv()).await {
             Ok(Some(frame)) => frame,
             Err(_) if absent => return,
-            other => panic!("actual Opus output: {other:?}"),
+            other => panic!("actual Opus output for {expected_hz} Hz: {other:?}"),
         };
         assert_eq!(frame.payload_type, Some(111));
         if let Some(previous) = previous_timestamp {

@@ -1,0 +1,162 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T16:46:26.144053+00:00",
+  "source_checkpoint": "e7609920",
+  "scope": "Local macOS arm64 full production Connect rebuild after direct-source contention repair. No complete selected-suite/browser/fallback/acceptance pass.",
+  "build": {
+    "exit_code": 0,
+    "seconds": 906.1767005829606,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5213,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-09",
+      "sha256": "d0685e9df2b8d3517ce24658b49b40b06feda3791536c3778f3f58fcbadc07b3",
+      "bytes": 214326288
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "265af37a4532868f152b7fadead5625d1845a02ed2cf4e9acf44fcfc46dabff7"
+  },
+  "verification": {
+    "initial_distinct_methods": 31,
+    "initial_passed": 30,
+    "initial_failed": 1,
+    "checks": [
+      {
+        "name": "corrected-av-09",
+        "input_manifest_sha256": "6c4c790b0b638b03e903330a9a73dbcfb9797317e9a1579d8a915053f09e8167",
+        "steps": [
+          {
+            "exit_code": 101,
+            "seconds": 18.23016200005077,
+            "log_sha256": "a1359559f01c2ef57291af914e4b40dbf555022ddb548189d3d7872b0f9e85d9",
+            "test_results": [
+              "test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 16.73s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "corrected-refusal-09",
+        "input_manifest_sha256": "07bab8125e7767eda4f0df0fab0a9458408450f8d73b4fa12248437ef9980f45",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 1.3608009580057114,
+            "log_sha256": "a0c7f22f39ce478ebb91eb5f2fc499c58c723431c59a72a2b91039e957bf5334",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 2 ignored; 0 measured; 60 filtered out; finished in 1.31s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "corrected-regression-09",
+        "input_manifest_sha256": "1a49df1f5fb55f98916d93cda578d51acc912f71d49da94161335ee583f46cf0",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 53.59362300019711,
+            "log_sha256": "e3f47b73dbf49167ee9688c0cf8a3154eda4739cbe7d568c827d560f13628f36",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 53.56s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 39.36224874993786,
+            "log_sha256": "e9692cd2e84efbc63f086b36e77ba05596212763c32041ba0b46ecd2c3bd1722",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 39.32s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "exit_code": 0,
+            "seconds": 4.3486813749186695,
+            "log_sha256": "88ab5e30763982e3a6a1fe90c792742157449298c1ba71f757694fa246b4dde3",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 4.29s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ],
+    "bounded_fresh_fixture_diagnostics": [
+      {
+        "name": "postfix-trace-09",
+        "actual_attempts": 7,
+        "seconds": 45.3146657908801,
+        "passed": 7,
+        "timed_out": 0,
+        "additional_distinct_methods": 0,
+        "summary_sha256": "758dbe374c91ebdb3eb6bea09f7fa526c9f40abe6bbac7f1c7d831fc5948eb19",
+        "log_sha256": [
+          "5ba10f6dcdc8cdb462a6fb197af7e79b7ab079f535757da6061957fb3df8bfa6",
+          "863d016a1c8bd03cdb0639ee822551630a898d84e19e949a6295bb8e4bc464c5",
+          "366cd3c3cabf06a3a87aedb8dccd9019fccbc487c75ca6607df9efef0fb3e0b2",
+          "c3f41d85ded2e6c769dc95441b9eebac391c07fcdd7c8054e896e34d099d8a82",
+          "bf331d57ca21842915865212353e324bfee3f2a21919fd72040c4be18ead669d",
+          "674ef26227ce64ef6aa081991dbbfc256b5cbc6e975ef7ad3bd675843f61d065",
+          "173f71e69a3e417a82730d342402c77bb5db67611333bd468e880752da2d214d"
+        ]
+      },
+      {
+        "name": "worker-trace-09",
+        "actual_attempts": 6,
+        "seconds": 47.40561562497169,
+        "passed": 5,
+        "timed_out": 1,
+        "additional_distinct_methods": 0,
+        "summary_sha256": "86b13aed3db6f98119e0538cddffc8079dc8c75a01dedd654eafbb256b6253d5",
+        "log_sha256": [
+          "342c219454256254795ae839473d42442b7136dffca9d81ffcdcf7e92718d121",
+          "6ddcee63de7c80afc2beceabd6f0c8faf2690dfab30ee38652c5059b2c5afab2",
+          "93e92555be1ded6014e2265298af427a47adc6b71a87f10328fb3df1bbe8d7bf",
+          "06947e61d16390e41f3c76f42b16245b7ae53425f285e624637a6e8a5cbb58e2",
+          "2d2b00181018d65585865b8622c8d40dc8384391c5cc682f6ccda2d880681685",
+          "67897848cc81cbba49ed2fdc28456a6b0860149ac17d3bd1326938ea441bae23"
+        ]
+      }
+    ],
+    "all_guard_inputs_closed_unchanged": true
+  },
+  "remaining_failure": {
+    "method": "signed_av_opus_vp8_decoded_duplex_eddsa",
+    "stage": "after independent initial AV decode, video withdrawal/restoration and accepted video-only mute; later Opus output wait expires under its original5second limit",
+    "observed": "Video restore completes and its image decodes; no false revision-conflict/unknown operation observed in this failed run. ES256 and29 retained methods pass.",
+    "diagnostics": "Detailed-log cohort has7passes. Worker-only cohort has5passes then1original process timeout/termination; that last attempt has no test verdict and is not a pass or completed product-failure observation. Neither cohort explains the original Opus timeout.",
+    "next": "Capture original source-producer termination reasons and direction-specific audio timeout metadata without changing source, quality, permission, replay or deadline behavior."
+  },
+  "qualification": "The deterministic contention correction remains independently qualified by49Core methods and3prior-body causal failures. Historical unknown records and this later audio timeout remain recorded. G6-051/full105/acceptance remain open."
+}

@@ -54,6 +54,43 @@ forced WT/UDP failure in Chrome and Firefox with the same
 Conversation and transition intents. Current authorization, uncertainty,
 permission/background/resume, loss and owned teardown remain required.
 
+## Explicit local server profile
+
+The canonical server configuration can install the media host before physical
+intake. WSS control and its exact allowed web origin remain explicit:
+
+```toml
+[websocket]
+bind = "127.0.0.1:8443"
+mount_path = "/connect"
+allowed_origins = ["http://127.0.0.1:8080"]
+
+[webrtc]
+profile = "opus-vp8"
+max_peers = 8
+```
+
+Use `profile = "opus"` for one duplex mono Opus stream, or `"opus-vp8"` for
+that audio plus one duplex VP8 camera. Both use the reviewed Opus 48 kHz/20 ms
+mono profile with a 32 kbps receive limit. Opus SDP retains its required `/2`
+mapping. VP8 advertises the local 640×360/30 fps capacity, preserving the
+peer's directional receive parameters and negotiated payload IDs.
+
+`max_peers` must be 1–512 and within the server connection limit. The profile
+requires configured WSS and the local network profile; remote addressing and
+ICE/TURN installation remain G6-054 work. Unknown profiles or fields refuse.
+Omitting `[webrtc]` leaves WSS control available without a media host.
+
+A participant still needs an enrolled signing Device, a verified WebRTC
+Endpoint with the actual media capabilities, current authorization and an
+accepted Session. Submit an original scoped `connection.offer`, observe its
+journal completion, then apply an explicit original receive selection. The
+configuration alone does not establish a live Connection or media consumption.
+WSS uses normal platform TLS trust; isolated qualification profiles are described
+in [browser-profile-trust.md](browser-profile-trust.md). Server HTTP operation
+and status semantics remain in [canonical-http.md](canonical-http.md), with
+unchanged shared OpenAPI contracts.
+
 ## Durable offer preparation
 
 The initial Connection intent contract now accepts `websocket+webrtc` and maps it

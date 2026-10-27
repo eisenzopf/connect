@@ -1,0 +1,428 @@
+{
+  "scope": "Closed task proof artifacts losslessly archived with content deduplication and verified roundtrip; original bytes/mode/mtime recorded. Only closed failed-build10 codegen objects pruned. No source, private state, logs, active compiler inputs or browser runtimes changed.",
+  "free_bytes_before": 1069318144,
+  "free_bytes_after": 2758524928,
+  "proof_artifacts": [
+    {
+      "original": ".local/gate-6/rtc-opus/native-regression-test-01",
+      "original_sha256": "385815c1d96d8e3cad1d6cc16515eccdc4e4704ca7d04f67e51760f91fce92bc",
+      "original_bytes": 259519896,
+      "mode": 493,
+      "mtime_ns": 1793096867663534179,
+      "archive": ".local/gate-6/proof-archives-20261027-02/385815c1d96d8e3cad1d6cc16515eccdc4e4704ca7d04f67e51760f91fce92bc.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/mcp-transitions/production-test-01",
+      "original_sha256": "708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7",
+      "original_bytes": 250947456,
+      "mode": 493,
+      "mtime_ns": 1793047203414190893,
+      "archive": ".local/gate-6/proof-archives-20261027-02/708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/mcp-transitions/canonical-cli-01",
+      "original_sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+      "original_bytes": 232474976,
+      "mode": 493,
+      "mtime_ns": 1793045384426435515,
+      "archive": ".local/gate-6/proof-archives-20261027-02/f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/connector-kit/stock-cli-31",
+      "original_sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+      "original_bytes": 232474976,
+      "mode": 493,
+      "mtime_ns": 1793045384426435515,
+      "archive": ".local/gate-6/proof-archives-20261027-02/f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/connector-kit/stock-cli-30",
+      "original_sha256": "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184",
+      "original_bytes": 232474976,
+      "mode": 493,
+      "mtime_ns": 1793045384426435515,
+      "archive": ".local/gate-6/proof-archives-20261027-02/f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/agent-host-current/canonical-cli-01",
+      "original_sha256": "b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db",
+      "original_bytes": 232474976,
+      "mode": 493,
+      "mtime_ns": 1793048359889797448,
+      "archive": ".local/gate-6/proof-archives-20261027-02/b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-09",
+      "original_sha256": "d0685e9df2b8d3517ce24658b49b40b06feda3791536c3778f3f58fcbadc07b3",
+      "original_bytes": 214326288,
+      "mode": 493,
+      "mtime_ns": 1793118442021930938,
+      "archive": ".local/gate-6/proof-archives-20261027-02/d0685e9df2b8d3517ce24658b49b40b06feda3791536c3778f3f58fcbadc07b3.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-03",
+      "original_sha256": "366fdbb92b76eeddb14665c3b380f0fbeaa8825ee3d2a6216ef98011682af5e5",
+      "original_bytes": 214212384,
+      "mode": 493,
+      "mtime_ns": 1793106299787847844,
+      "archive": ".local/gate-6/proof-archives-20261027-02/366fdbb92b76eeddb14665c3b380f0fbeaa8825ee3d2a6216ef98011682af5e5.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-signed-av/wss-integration-test-02",
+      "original_sha256": "684f046720a38e58cae05c61aee26c2a678b2c10973c69e25471c616da9517ff",
+      "original_bytes": 214211856,
+      "mode": 493,
+      "mtime_ns": 1793106074793368101,
+      "archive": ".local/gate-6/proof-archives-20261027-02/684f046720a38e58cae05c61aee26c2a678b2c10973c69e25471c616da9517ff.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-opus/wss-integration-test-03",
+      "original_sha256": "ca1326144f92662c48f2b1d7e0df3443ab22c420ee51670fd092eab19fdeac82",
+      "original_bytes": 213558400,
+      "mode": 493,
+      "mtime_ns": 1793096846323572405,
+      "archive": ".local/gate-6/proof-archives-20261027-02/ca1326144f92662c48f2b1d7e0df3443ab22c420ee51670fd092eab19fdeac82.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/webrtc-admission/wss-integration-test-05",
+      "original_sha256": "4eecb81da70c67aaaf23f6266f0c532d2edea3192705e6449c6ef8f413ad8526",
+      "original_bytes": 211911312,
+      "mode": 493,
+      "mtime_ns": 1793081141361020792,
+      "archive": ".local/gate-6/proof-archives-20261027-02/4eecb81da70c67aaaf23f6266f0c532d2edea3192705e6449c6ef8f413ad8526.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/webrtc-owned-rtp/normal-server-lib-04.rlib",
+      "original_sha256": "240b5aa4db8d3851d94cd87e5bbed37c28fb21882dbedb398153fd054f477c4b",
+      "original_bytes": 180178328,
+      "mode": 420,
+      "mtime_ns": 1793060584045781830,
+      "archive": ".local/gate-6/proof-archives-20261027-02/240b5aa4db8d3851d94cd87e5bbed37c28fb21882dbedb398153fd054f477c4b.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/webrtc-peer-owner/normal-server-lib-03.rlib",
+      "original_sha256": "d8ea0cad96366bf91b601d1ec0c655173d5b58cc4055f36928da3bd2fc8b5937",
+      "original_bytes": 179764816,
+      "mode": 420,
+      "mtime_ns": 1793053644152475840,
+      "archive": ".local/gate-6/proof-archives-20261027-02/d8ea0cad96366bf91b601d1ec0c655173d5b58cc4055f36928da3bd2fc8b5937.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-direct-contention/librvoip_core_contention.rlib",
+      "original_sha256": "3501e7fbeb9c217696a2f2f081e88699f9b19fc0a35297ec04743837fdc0d106",
+      "original_bytes": 110317976,
+      "mode": 420,
+      "mtime_ns": 1793117447175649187,
+      "archive": ".local/gate-6/proof-archives-20261027-02/3501e7fbeb9c217696a2f2f081e88699f9b19fc0a35297ec04743837fdc0d106.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-video-repair/librvoip_core_video_repair_03.rlib",
+      "original_sha256": "80b602b1c9b015c696d9d7ed2e0d6b5c0ca9a92017de5c0f3a47a3be60287a1e",
+      "original_bytes": 109716240,
+      "mode": 420,
+      "mtime_ns": 1793098204880016607,
+      "archive": ".local/gate-6/proof-archives-20261027-02/80b602b1c9b015c696d9d7ed2e0d6b5c0ca9a92017de5c0f3a47a3be60287a1e.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-video-repair/librvoip_core_video_repair_02.rlib",
+      "original_sha256": "cb4469dd46fc1701f10c5d1e1395a557436792dd2c1f19d47e68d9e83fd10043",
+      "original_bytes": 109716240,
+      "mode": 420,
+      "mtime_ns": 1793098093145577955,
+      "archive": ".local/gate-6/proof-archives-20261027-02/cb4469dd46fc1701f10c5d1e1395a557436792dd2c1f19d47e68d9e83fd10043.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-core-video/librvoip_core_owned_video.rlib",
+      "original_sha256": "7640f9147d5db192c5a402cd40e734a31137dacac2cd96bbc9714e21b14fb79f",
+      "original_bytes": 109609552,
+      "mode": 420,
+      "mtime_ns": 1793101426233866059,
+      "archive": ".local/gate-6/proof-archives-20261027-02/7640f9147d5db192c5a402cd40e734a31137dacac2cd96bbc9714e21b14fb79f.zst",
+      "roundtrip_verified": true
+    },
+    {
+      "original": ".local/gate-6/rtc-canonical-video/librvoip_core_owned_video.rlib",
+      "original_sha256": "53b03465814385f963c800af20dcdfa23bfb71953c6a3f056964f2d040d5bbb3",
+      "original_bytes": 109556912,
+      "mode": 420,
+      "mtime_ns": 1793104026234097637,
+      "archive": ".local/gate-6/proof-archives-20261027-02/53b03465814385f963c800af20dcdfa23bfb71953c6a3f056964f2d040d5bbb3.zst",
+      "roundtrip_verified": true
+    }
+  ],
+  "archive_blobs": {
+    "385815c1d96d8e3cad1d6cc16515eccdc4e4704ca7d04f67e51760f91fce92bc": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/385815c1d96d8e3cad1d6cc16515eccdc4e4704ca7d04f67e51760f91fce92bc.zst",
+      "sha256": "cbe054c86743c3c729c01a09b2bba1fd4dfa79782e9dd8076ee03873f9dae7cf",
+      "bytes": 56039297
+    },
+    "708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/708da7d698816ffe124612c545841b8dbe071c8f75ff9c3491722b8609c1ecb7.zst",
+      "sha256": "bd260834c9f5eb8817446320eca8016c5c61f2f670b65416d00f3b488353d2a1",
+      "bytes": 56468593
+    },
+    "f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/f41ebf9bc9d031e9ca4a572f22477528932e40fcead8124774c586108dc1e184.zst",
+      "sha256": "0986ce1877827af8677df6d1fb4d7e6e9b8f71e0793b1afba1c2b54fd509bec9",
+      "bytes": 52297563
+    },
+    "b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/b42084effc782d53135b95ee100350a103eb49d65c91eea126062a17cb1e19db.zst",
+      "sha256": "ca194dae0e6cddf3d2b0fea1fb62793520cc9a69226ba5ba5afaeb58a5232f39",
+      "bytes": 52297568
+    },
+    "d0685e9df2b8d3517ce24658b49b40b06feda3791536c3778f3f58fcbadc07b3": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/d0685e9df2b8d3517ce24658b49b40b06feda3791536c3778f3f58fcbadc07b3.zst",
+      "sha256": "40c747635e27755f7a5333c84616944ab9fff56ff5ad421ba38d70b4e503b69e",
+      "bytes": 46818402
+    },
+    "366fdbb92b76eeddb14665c3b380f0fbeaa8825ee3d2a6216ef98011682af5e5": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/366fdbb92b76eeddb14665c3b380f0fbeaa8825ee3d2a6216ef98011682af5e5.zst",
+      "sha256": "8a5ccbfd6d7befc52c78b1bc31100ed758d5a389f7b809200d3f0672ee523788",
+      "bytes": 46785169
+    },
+    "684f046720a38e58cae05c61aee26c2a678b2c10973c69e25471c616da9517ff": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/684f046720a38e58cae05c61aee26c2a678b2c10973c69e25471c616da9517ff.zst",
+      "sha256": "bbeefb3486f022a4ffd2ae1615dd214e89409b8c2f927b93e1ace976ad3634f4",
+      "bytes": 46786254
+    },
+    "ca1326144f92662c48f2b1d7e0df3443ab22c420ee51670fd092eab19fdeac82": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/ca1326144f92662c48f2b1d7e0df3443ab22c420ee51670fd092eab19fdeac82.zst",
+      "sha256": "522ed29f1e2dea835edd1cb9dc5635ae9ce7554f2a0ec505fb0af8d60d825061",
+      "bytes": 46639241
+    },
+    "4eecb81da70c67aaaf23f6266f0c532d2edea3192705e6449c6ef8f413ad8526": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/4eecb81da70c67aaaf23f6266f0c532d2edea3192705e6449c6ef8f413ad8526.zst",
+      "sha256": "83ee541fab02742f114d2af7420412a8a406894ae8edf275459f916d9b5e2b83",
+      "bytes": 46253346
+    },
+    "240b5aa4db8d3851d94cd87e5bbed37c28fb21882dbedb398153fd054f477c4b": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/240b5aa4db8d3851d94cd87e5bbed37c28fb21882dbedb398153fd054f477c4b.zst",
+      "sha256": "feea934d938ccdd1d9023bc9f01c87dea5e9cc4be0c4046fa8a3b59f6cbf6dde",
+      "bytes": 22500010
+    },
+    "d8ea0cad96366bf91b601d1ec0c655173d5b58cc4055f36928da3bd2fc8b5937": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/d8ea0cad96366bf91b601d1ec0c655173d5b58cc4055f36928da3bd2fc8b5937.zst",
+      "sha256": "a5dad0ea4171d20f1fbba133bcce77ba932db1dc7217aa324903273fe6f70da6",
+      "bytes": 22391512
+    },
+    "3501e7fbeb9c217696a2f2f081e88699f9b19fc0a35297ec04743837fdc0d106": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/3501e7fbeb9c217696a2f2f081e88699f9b19fc0a35297ec04743837fdc0d106.zst",
+      "sha256": "17c26eb548a5ced00361b31ef03390dff4271c9e03515743fe5edf8e74f719f4",
+      "bytes": 16019643
+    },
+    "80b602b1c9b015c696d9d7ed2e0d6b5c0ca9a92017de5c0f3a47a3be60287a1e": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/80b602b1c9b015c696d9d7ed2e0d6b5c0ca9a92017de5c0f3a47a3be60287a1e.zst",
+      "sha256": "a55c909ce3e5c9f6ec3a36e9e604ca102bf3978347a04742a70809c13b99fdb3",
+      "bytes": 15943030
+    },
+    "cb4469dd46fc1701f10c5d1e1395a557436792dd2c1f19d47e68d9e83fd10043": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/cb4469dd46fc1701f10c5d1e1395a557436792dd2c1f19d47e68d9e83fd10043.zst",
+      "sha256": "82ca36c51f6b02e238e21811d74415d95d705fcb0fd05cf73949e36dfd05a4ea",
+      "bytes": 15943034
+    },
+    "7640f9147d5db192c5a402cd40e734a31137dacac2cd96bbc9714e21b14fb79f": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/7640f9147d5db192c5a402cd40e734a31137dacac2cd96bbc9714e21b14fb79f.zst",
+      "sha256": "83d854216eeed56ef3f367074b4ea2dc543ed6b09fd3db0f7db81088e9e608fb",
+      "bytes": 15951336
+    },
+    "53b03465814385f963c800af20dcdfa23bfb71953c6a3f056964f2d040d5bbb3": {
+      "archive": ".local/gate-6/proof-archives-20261027-02/53b03465814385f963c800af20dcdfa23bfb71953c6a3f056964f2d040d5bbb3.zst",
+      "sha256": "8eb652bed85b46979b879297b8af6fa7245492e128dbf5271cba2ab1a15d7e7d",
+      "bytes": 15924063
+    }
+  },
+  "pruned_failed_build_objects": [
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.01.rcgu.o",
+      "bytes": 1287072,
+      "mtime_ns": 1793119685152112873,
+      "sha256": "64aca1e736ac9f2baae21b972c57f6ca95cf484d7abb16ac561755fff97c4a87"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.13.rcgu.o",
+      "bytes": 429560,
+      "mtime_ns": 1793119685224462198,
+      "sha256": "84ab67a3389b51dddd5329933e485c307a5c48cc45ebd6d76e09db9bdeaed452"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.14.rcgu.o",
+      "bytes": 395512,
+      "mtime_ns": 1793119683722441023,
+      "sha256": "e1afd466341a690e56c23be09f845bd604e48c1939b0c5939fb8e1ab630edf71"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.06.rcgu.o",
+      "bytes": 153456,
+      "mtime_ns": 1793119684120629512,
+      "sha256": "e0a408e8b6a4c2a11415fd73ceb52dfaef4c3f5e064b22c21d540c20fc426d9d"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.11.rcgu.o",
+      "bytes": 636672,
+      "mtime_ns": 1793119685447340494,
+      "sha256": "c8371ab66807cd565f3f21f85482494b091205b713141492a1f6bd702b84bfc3"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.03.rcgu.o",
+      "bytes": 617368,
+      "mtime_ns": 1793119685309016336,
+      "sha256": "13f69ee5f9c1318796773ae3342278c7c06b8d59d2347139bb4c3d7b0a0b2889"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.04.rcgu.o",
+      "bytes": 346216,
+      "mtime_ns": 1793119683964298054,
+      "sha256": "e7dc003722eee2e75e9f235143ff67dea7cdd667ebca0755bdf8404fb71e2686"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.08.rcgu.o",
+      "bytes": 447032,
+      "mtime_ns": 1793119684378107343,
+      "sha256": "a514c07e10c482032907922e8c6f1c0c64ecc2e21d69bb65c5ead89db9c73aba"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.12.rcgu.o",
+      "bytes": 274024,
+      "mtime_ns": 1793119683924667392,
+      "sha256": "ee0b37ef903089a437ba576a6658d34d1cc56a1588ffa51cc9c10cbd49399e20"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.ci7mk9ppt722dzws15ljqbo64.rcgu.o",
+      "bytes": 568,
+      "mtime_ns": 1793119684380291861,
+      "sha256": "2efc698ceb0e11dd08dd0fe344bd2886c1c29a7d7221763c391f80e0897c4fbc"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.00.rcgu.o",
+      "bytes": 677056,
+      "mtime_ns": 1793119683560165949,
+      "sha256": "b9a881db4c26f5ad883a0152e04b27391ae27fa4d1855a8508602b88da29de5d"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.15.rcgu.o",
+      "bytes": 635288,
+      "mtime_ns": 1793119685038396484,
+      "sha256": "8aa98c03ddf51a336bf7c03ad7c4048b462f85832a949cbc8b895fedafed5b9d"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.02.rcgu.o",
+      "bytes": 721280,
+      "mtime_ns": 1793119683789091291,
+      "sha256": "b1a9e656424398c677cea5d1b6d3cd3de4a600d7a30c571853d5dc7ebf586dc4"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.10.rcgu.o",
+      "bytes": 340920,
+      "mtime_ns": 1793119684095739766,
+      "sha256": "3a64a00e410aec9b9e7a27b2c7845b1d0a1820e2b6f88206efddd94e40fc3934"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.05.rcgu.o",
+      "bytes": 626704,
+      "mtime_ns": 1793119685492902670,
+      "sha256": "6174973bcff66a79f1c471734bd39a37f07733e9fac18a2d9d5b8a89dd073ae8"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.15.rcgu.o",
+      "bytes": 495008,
+      "mtime_ns": 1793119683610564182,
+      "sha256": "b472796bf82bbd292de46dfd5ca1ccc017fd3703c2ce17d5d62e1e4f485d956a"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.07.rcgu.o",
+      "bytes": 489472,
+      "mtime_ns": 1793119684309497591,
+      "sha256": "6419d822ee3c6a894a9a63471597b18d8804086b718cb627c586659953537ab3"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.00.rcgu.o",
+      "bytes": 1557808,
+      "mtime_ns": 1793119685042602396,
+      "sha256": "83caab630f00ae6319c9066b584f2de56295070e6829914406c5fabedde7990d"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.12.rcgu.o",
+      "bytes": 1221544,
+      "mtime_ns": 1793119685354101990,
+      "sha256": "33672d46276e0a59d283166db2aeae05290839cf699e5c700323d8b38221d061"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.05.rcgu.o",
+      "bytes": 511352,
+      "mtime_ns": 1793119684057653369,
+      "sha256": "52b70f7d950cf71798b968ca94ea1778364e84257ec624867c9a8164e296ff86"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.09.rcgu.o",
+      "bytes": 774864,
+      "mtime_ns": 1793119684179793500,
+      "sha256": "40b8c5b12fbe35133eaf5b1c9546eff4288efef9aff6a4978d3f984ab94c6f95"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.10.rcgu.o",
+      "bytes": 672328,
+      "mtime_ns": 1793119685698099112,
+      "sha256": "f4daac52a9b7d1a8a974fe6c1b536e29b569293e1ac9d3d7b489a2b826b61dc4"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.02.rcgu.o",
+      "bytes": 573184,
+      "mtime_ns": 1793119685249642994,
+      "sha256": "9ca021d65252e154f1182924b1e6b28cad0ed242feec3690a3ba021e0f5769ba"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.14.rcgu.o",
+      "bytes": 629832,
+      "mtime_ns": 1793119685157178743,
+      "sha256": "614bbb54ef0c33a19e1d4b64a33bf87524ec62e77d3dd4edf26100de8d153341"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.13.rcgu.o",
+      "bytes": 320752,
+      "mtime_ns": 1793119683836395855,
+      "sha256": "605445440eb8e31e54cc8da6b7bd299f78a69c4a68888e403bf7a5603ecefb9a"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.01.rcgu.o",
+      "bytes": 567992,
+      "mtime_ns": 1793119683659985643,
+      "sha256": "459bdb6a2acaf31c33774a3dc366cb692ae1903d5efb2e98afde0dd8670f1515"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5.gate6_canonical_webtransport.e7b8a8e58d99db71-cgu.04.rcgu.o",
+      "bytes": 664608,
+      "mtime_ns": 1793119685405556921,
+      "sha256": "5bc7159c7da35f887936e8403e3159e2ea245ab40e8ee3f72b2bc998fda82e8f"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.03.rcgu.o",
+      "bytes": 334168,
+      "mtime_ns": 1793119683886401443,
+      "sha256": "1a51659995674ff68b5723f6c8fded93abce9cb6226cc190dd3e9fecc59ac153"
+    },
+    {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect-521a0c55d335bf99.connect.9923337c8fc07355-cgu.11.rcgu.o",
+      "bytes": 147016,
+      "mtime_ns": 1793119683988854556,
+      "sha256": "5cbee7aed8f9940ddf9a672d26e7a80527977fe22b75dff29c0be5a1d28e0d6a"
+    }
+  ],
+  "restore": "zstd -d to original path; verify original SHA and bytes, then restore mode/mtime from private manifest."
+}

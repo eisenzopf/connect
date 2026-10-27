@@ -53,6 +53,7 @@ pub(super) async fn setup(connector: &str, account_reference: &str) -> Setup {
     let pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519).unwrap();
     std::fs::write(&signing, pair.serialize_der()).unwrap();
     let mut config = CanonicalServerConfig {
+        webrtc: None,
         network_profile: Default::default(),
         webtransport: None,
         websocket: None,

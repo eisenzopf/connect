@@ -184,6 +184,7 @@ impl Fixture {
         let mut limits = old.limits;
         limits.connections = connections;
         let config = CanonicalServerConfig {
+            webrtc: None,
             network_profile: Default::default(),
             webtransport: None,
             websocket: None,
