@@ -255,7 +255,7 @@ diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/r
 new file mode 100644
 --- /dev/null
 +++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
-@@ -0,0 +1,816 @@
+@@ -0,0 +1,821 @@
 +//! Owned initial canonical audio ports on one actual RTC peer. No signaling
 +//! answer or remote declaration alone establishes a source/sink resource.
 +use super::*;
@@ -1040,6 +1040,9 @@ new file mode 100644
 +        deadline: tokio::time::Instant,
 +        cancel: CancellationToken,
 +    ) -> ControlResult<()> {
++        tokio::select! { biased;
++            _=self.physical.lifetime.cancelled()=>Err(StreamControlError::Cancelled),
++            result=async {
 +        if self.lifetime.is_cancelled() || !self.physical.owner_current() {
 +            return Err(StreamControlError::Cancelled);
 +        }
@@ -1070,6 +1073,8 @@ new file mode 100644
 +            return Err(StreamControlError::Cancelled);
 +        }
 +        Ok(())
++            }=>result,
++        }
 +    }
 +}
 diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs

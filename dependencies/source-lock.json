@@ -1168,7 +1168,7 @@
     {
       "path": "patches/rvoip/gate6-webrtc-staged-core-media.patch",
       "source": "G6-051 actual Core staged WebRTC audio backend, shared physical handle allocation, exact resource activation and owned per-port ingress/egress/cleanup. Preserve original receive age across Core admission; retain capacity through confirmed route cleanup. Initial G711 path; service composition and wider profiles remain required, no default advertisement or SDP-only readiness.",
-      "sha256": "63f06e7852c70ef3b4e46474ebadba17978ba0a5803337c127a4be391b6445b6"
+      "sha256": "2b689ebd466aaa771dc6c50d45403dc59b12d1844c11be52e03fa62bd61f8128"
     }
   ]
 }
