@@ -4,8 +4,8 @@
     "G6-051"
   ],
   "status": "in-progress",
-  "recorded_at": "2026-10-27T20:32:46.153084+00:00",
-  "scope": "Exact-source Core skipped-original regression and candidate103focused methods. Full frozen production build69/runtime PENDING; no claim of fixed browser audio.",
+  "recorded_at": "2026-10-27T21:02:18.338609+00:00",
+  "scope": "Current source-frozen integration executable loads and33existing native functions pass. CLI build is failed due to disk exhaustion and remains pending repair. Four normal installed-browser/signing combinations are explicitly reported; retained failed measurements remain failures.",
   "previous_runtime": "canonical-mixer-publication.json records33native functions passing, both normal EdDSA browser profiles passing and both ES256profiles failing one660Hz-direction audio sample each. All other AV/originalUDP-WSS/terminal/cleanup subchecks passed. Those failures remain failures.",
   "implementation": [
     "After one mixed quantum, keep at most two newest not-yet-started original PCM chunks. In the frozen20ms profile this allows40ms pending lookahead, preserving the middle original in a three-packet burst.",
@@ -149,9 +149,8 @@
     "scope": "Failed Linux build target remains untouched because a live VM has open entries. No VM/container was stopped; no data archive/unlink occurred."
   },
   "pending": [
-    "Full frozen build69 in existing intended release cache,2Cargo jobs; Store/Service/Server opt0, upstream release optimization.",
-    "New native33and original60s Chrome/Firefox x EdDSA/ES256matrix; measure actual added latency and audio against unchanged thresholds.",
-    "Further task work and full105Gate6 objective. No Linux/remote/provider/physical-device/package/acceptance qualification."
+    "Investigate current normal-browser failures; passing native/component functions do not close those operating profiles.",
+    "Remaining task/profile work and all105Gate6 objective; no independent acceptance qualification."
   ],
   "progress": {
     "done": 53,
@@ -165,5 +164,456 @@
     "archive_bytes": 9995806,
     "manifest_sha256": "a7064239f8127d622e73912194677748a15ea8ecba6478641f3040c7afc4014a",
     "scope": "Only completed source-guarded old browser-SDK netlogs, no lsof owner; complete bytes/metadata streamed-roundtrip verified before unlink. Source/state/CA untouched."
+  },
+  "runtime_profile_record": "docs/decisions/015-gate-6-operating-profile.md",
+  "current_runtime": {
+    "implementation_commit": "63c6865c",
+    "profile_record_commit": "49969292",
+    "scope": "Local macOS arm64 synthetic/native/installed-browser scope only; no Linux/remote/provider/physical-device/package/acceptance qualification.",
+    "build": {
+      "seconds": 903.3648444579449,
+      "guarded_inputs": 5223,
+      "changed_inputs": [],
+      "artifact": {
+        "sha256": "2613108a869e0b4e86cb9dee443b6120ea8c3dd52d0c36c505984048643efb1f",
+        "bytes": 214881696
+      },
+      "profile": "release with Store/Service/Server opt0, no stack override",
+      "summary_sha256": "5bd005623b7149b6c83736e13553188c37edd9bb851f04023086ae93fb22beb2",
+      "load_audit": {
+        "scope": "Build completed successfully,73native test names load from original full-sized sealed Mach-O. Retain actual compiler stripping warning; no claim that stripping succeeded. Behavior verification remains required.",
+        "warnings": [
+          {
+            "package_id": "path+file:///Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server#0.1.0",
+            "target": "connect",
+            "level": "warning",
+            "message": "stripping debug info with `rust-objcopy` failed: exit status: 1",
+            "notes": [
+              "LLVM ERROR: IO failure on output stream: No space left on device\n"
+            ]
+          }
+        ],
+        "executable_sha256": "2613108a869e0b4e86cb9dee443b6120ea8c3dd52d0c36c505984048643efb1f",
+        "native_test_names": 73,
+        "original_and_sealed_match": true
+      },
+      "load_audit_sha256": "3a035527b60a5b33e4eb84bbb79f2897c838e5c1497f61319d1bb4fa7301a623",
+      "cli_status": {
+        "verdict": "failed-disk-space",
+        "scope": "Cargo exited zero but debug stripping produced a damaged 2992-byte CLI; direct same-source relink also failed ENOSPC. Neither is counted as a CLI pass. Native/browser cohorts use the separately sealed and load-verified in-process integration executable.",
+        "damaged_artifact_audit_sha256": "13950ad1399c48f46781a0804c2bb2beafa90450e1c0e65b798ce1098527aed2",
+        "relink_summary_sha256": "9b40511cbb35ef5e2a528f91a56835c2b05b7649db78e099dfcbfdd520090015",
+        "repair_pending": true
+      }
+    },
+    "native_methods": 33,
+    "native": [
+      {
+        "exit_code": 0,
+        "seconds": 16.625640916870907,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 16.60s"
+        ],
+        "log_sha256": "1821ff619456eccf4bb057d38498026c6a583ec42c27ba0285b0bc5d6120b1eb",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 8.015629458939657,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 7.99s"
+        ],
+        "log_sha256": "ec24daf97728cf94cee3e8f0daf002f78642bf5e2150259ddc06e11ffe86816a",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 1.368152875220403,
+        "test_results": [
+          "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 67 filtered out; finished in 1.32s"
+        ],
+        "log_sha256": "359db3645acdbee99f01ef0dc484f6361122ca805e71ed826798821c8c141276",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 52.9337512080092,
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 61 filtered out; finished in 52.89s"
+        ],
+        "log_sha256": "3210631a49e8ebf5cbeb8d39864137a89d8a7b255a8e9c2b47a168609aa2362c",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.53602912509814,
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 39.48s"
+        ],
+        "log_sha256": "c9999cf25adf39f4f06d66cc5fae6942747a525a2fcbc2cfca25975f90af8aed",
+        "changed_inputs": []
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.330388291971758,
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 4.30s"
+        ],
+        "log_sha256": "f9f5926c086043df1a296d8d4cf941b47a8134cbc4eddc47d65e1701fb28b92f",
+        "changed_inputs": []
+      }
+    ],
+    "browser_matrix": [
+      {
+        "browser": "firefox",
+        "algorithm": "eddsa",
+        "label": "firefox-audio-lookahead-eddsa-69",
+        "runtime_exit_code": 101,
+        "seconds": 66.60238675004803,
+        "verdict": "failed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 28.997100269693586,
+            "changing_fps": 26.064060242414232,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 1,
+            "av_median_abs_skew_ms": 36.999999999999034,
+            "av_p95_abs_skew_ms": 81.99999999999896,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00600004196167,
+            "decoded_fps": 29.080425270468567,
+            "changing_fps": 25.930740241174263,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 1,
+            "av_median_abs_skew_ms": 38.00000000000381,
+            "av_p95_abs_skew_ms": 70.00000000000028,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.07042491699999665,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.11599712500000896,
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "1898cf68798f572fe98c814f20eaf557e74156f8e39d0747f1f2cbcbaf3e0876",
+          "inputs.json": "84479c7f5a81b67f0f4f7bb672a32ff6930581bd84f8f4647cbb4e8378f36068",
+          "browser-result.jsonl": "42ad23ca53dd52b6751066099fcfb076ae7d7881012947acb626e50991b309d6",
+          "test.log": "e1cf60cc4017917e30668dbbdca4cd24e9e592de1baa844562bc1cb35f40b191",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "es256",
+        "label": "chrome-audio-lookahead-es256-69",
+        "runtime_exit_code": 0,
+        "seconds": 65.6719101248309,
+        "verdict": "passed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.008699893951416,
+            "decoded_fps": 29.97898643328766,
+            "changing_fps": 25.113025322381603,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 26.849999904632327,
+            "av_p95_abs_skew_ms": 100.09999990463302,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.008699893951416,
+            "decoded_fps": 29.97898643328766,
+            "changing_fps": 25.213010824660493,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 31.000000000000583,
+            "av_p95_abs_skew_ms": 83.90000009536891,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.08152625000000262,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.12243212499999936,
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "d9cf4331ee6f2f32abc3b4859646cc950c43d18bccf6471d18cdab9a90d3b382",
+          "inputs.json": "0f45cb36c08e1a9760b84054f3aa89333011b53e7e206219cd6fdcdc5c1ebca2",
+          "browser-result.jsonl": "86fc6641cb229c4a0fc3f6ceaf8bf376d0c28cafe3f566a06cd6b85cfd750887",
+          "test.log": "ab182ab9a8384d2f8d7f199c9652d781be7a02442424b0c6a0387cf84bf66f54",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "es256",
+        "label": "firefox-audio-lookahead-es256-69",
+        "runtime_exit_code": 0,
+        "seconds": 66.44596287491731,
+        "verdict": "passed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00399994850159,
+            "decoded_fps": 29.0313979317224,
+            "changing_fps": 26.048263471459308,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 48.99999999999949,
+            "av_p95_abs_skew_ms": 79.9999999999983,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00399994850159,
+            "decoded_fps": 29.064729043010257,
+            "changing_fps": 25.914939026307884,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 48.99999999999949,
+            "av_p95_abs_skew_ms": 75.99999999999963,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.05774891700000444,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.11012249999999767,
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "4369993afd01b7ca0fdd08f40cb9344222395d8eba75eb475f6e431db104e62e",
+          "inputs.json": "6087d35ed5a4507ff0c506f7744e8637a17d3d8b85cdd2841b7c130e20be3722",
+          "browser-result.jsonl": "3411efb924387e19e402ff1271c1157abf2821252baccfe34d37bbef39c8759c",
+          "test.log": "f100aa074f739105d29189a1696a0509aeb446e4587c2953ac5a9b9bd2fade1b",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "eddsa",
+        "label": "chrome-audio-lookahead-eddsa-69",
+        "runtime_exit_code": 0,
+        "seconds": 65.70480954204686,
+        "verdict": "passed",
+        "scope": "Original normal60second profile; bounded DEBUG metadata, no TRACE/private PCM/source/observer/threshold variation.",
+        "guards_unchanged": true,
+        "observations": [
+          {
+            "seconds": 60.00789976119995,
+            "decoded_fps": 29.962721694228584,
+            "changing_fps": 25.646623296672853,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 26.799999952316966,
+            "av_p95_abs_skew_ms": 97.90000009536737,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          },
+          {
+            "seconds": 60.00819993019104,
+            "decoded_fps": 29.979236205932178,
+            "changing_fps": 25.413193559781305,
+            "video_packets_lost": 0,
+            "audio_samples": 600,
+            "bad_audio_samples": 0,
+            "av_median_abs_skew_ms": 22.89999997615766,
+            "av_p95_abs_skew_ms": 90.20000004768391,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "passed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_sync": "passed",
+              "av_acceptance": "passed"
+            }
+          }
+        ],
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.042633624999994936,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.08043875000000117,
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "hashes": {
+          "summary.json": "f8eb0e0b1d31046b618449529456ca765aef9c5d4c70bf73ee046d0b2c3fbcf4",
+          "inputs.json": "971950c3b5669e4bb82208f5dd0a3fe1b3c281bb53f394f2e99d88e3196fad3d",
+          "browser-result.jsonl": "c0684caa7c1b15ea647aa40dcf0f172415494445caf89d5b01c71122f31cf399",
+          "test.log": "3f4ec163998af241bc8c09b7fc18f3b159fe93558976d5eea64c377ee4034985",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      }
+    ],
+    "all_four_normal_browser_profiles_pass": false,
+    "orchestration_sha256": "4e2c0a5c743fd474ae04c6e6203e3a84dc6a138a4d9ff45dc1da16cd9a3add81",
+    "closed_profile_preservation": [
+      {
+        "summary": ".local/gate-6/canonical-browser-host/closed-profile-archives-69-before-chrome-eddsa/summary.json",
+        "sha256": "63ed4e51ab9cd5dfff80a20ef7be610e785290e64a4f067a3c234d5a00c81f67",
+        "free_before": 281374720,
+        "free_after": 392458240
+      }
+    ]
   }
 }
