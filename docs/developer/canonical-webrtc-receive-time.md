@@ -19,8 +19,8 @@ is derived from local receive age for downstream bookkeeping; it does not become
 a remote capture-time claim. Source-clock evidence remains separate.
 
 The [production-library probe](../evidence/gate-6/webrtc-receive-age-probe.rs)
-sends real Core queue output through loopback ICE/DTLS/SRTP. It holds decoded
-packet events before starting the media pump, verifies the retained age,
+sends real Core queue output through loopback ICE/DTLS/SRTP. It holds decrypted RTP
+events before starting the media pump, verifies the retained age,
 discards a packet older than 200 ms, and receives fresh media on the same Core
 queue and physical peer. It also observes the retained instant directly from
 the actual track event. PCMU with dynamic PT109 and PCMA with PT8 are covered.
