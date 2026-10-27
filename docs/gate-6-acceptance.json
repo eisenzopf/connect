@@ -2584,7 +2584,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "7/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "8/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-06"
       ],
@@ -2697,6 +2697,8 @@
         "docs/evidence/gate-6/private-provider-audio.json",
         "docs/evidence/gate-6/private-provider-context.json",
         "docs/evidence/gate-6/provider-host-guard-repair.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/transition-extensions.json",
         "patches/rvoip/gate6-consultation-return-wire.patch",
         "patches/rvoip/gate6-private-consult.patch",
@@ -2728,7 +2730,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "7/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "8/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-07"
       ],
@@ -2765,6 +2767,8 @@
         "docs/evidence/gate-6/operations.json",
         "docs/evidence/gate-6/participant-orchestration.json",
         "docs/evidence/gate-6/provider-host-guard-repair.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "patches/rvoip/gate6-agent-observations.patch",
         "patches/rvoip/gate6-connection-handoff.patch",
         "patches/rvoip/gate6-handoff-readiness.patch",
@@ -2801,7 +2805,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "9/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "10/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-08"
       ],
@@ -2954,6 +2958,8 @@
         "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
         "docs/evidence/gate-6/provider-session-voice-reconciliation.json",
         "docs/evidence/gate-6/provider-voice-custody.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/relationships.json",
         "docs/evidence/gate-6/replacement-confirmation.json",
         "docs/evidence/gate-6/routing.json",
@@ -3574,7 +3580,7 @@
         "G6-097",
         "G6-100"
       ],
-      "observation": "11/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "12/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-10"
       ],
@@ -3821,6 +3827,8 @@
         "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
         "docs/evidence/gate-6/provider-session-voice-reconciliation.json",
         "docs/evidence/gate-6/provider-voice-custody.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/transition-extensions.json",
         "patches/rvoip/gate6-agent-observation-decoder.patch",
         "patches/rvoip/gate6-agent-observations.patch",
@@ -6463,7 +6471,7 @@
         "G6-101",
         "G6-103"
       ],
-      "observation": "2/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "3/20 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-14"
       ],
@@ -6472,6 +6480,8 @@
         "contracts/uctp-vectors/",
         "docs/decisions/016-gate-6-sdk.md",
         "docs/evidence/gate-6/contract-checks.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/test-design.json",
         "scripts/check-gate6-contracts.py"
       ]
@@ -6504,7 +6514,7 @@
         "G6-099",
         "G6-100"
       ],
-      "observation": "4/19 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "5/19 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-14"
       ],
@@ -6569,6 +6579,8 @@
         "docs/evidence/gate-6/native-assistant-context-phases.json",
         "docs/evidence/gate-6/native-assistant-provider.json",
         "docs/evidence/gate-6/native-assistant-receipts-audio.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/rust-sdk-contract-alignment.json",
         "docs/evidence/gate-6/sdk-contract-final.json",
         "docs/evidence/gate-6/sdk-contract-outlines.json",
@@ -7336,7 +7348,7 @@
         "G6-101",
         "G6-103"
       ],
-      "observation": "3/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "4/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-11",
         "R6-16"
@@ -7458,6 +7470,8 @@
         "docs/evidence/gate-6/provider-session-voice-quarantine-resolution.json",
         "docs/evidence/gate-6/provider-session-voice-reconciliation.json",
         "docs/evidence/gate-6/provider-voice-custody.json",
+        "docs/evidence/gate-6/reference-scenario-shared-path.json",
+        "docs/evidence/gate-6/reference-scenario.json",
         "docs/evidence/gate-6/test-design.json",
         "patches/rvoip/gate6-initial-sip-answer-observation.patch",
         "patches/rvoip/gate6-initial-sip-participant-custody.patch",

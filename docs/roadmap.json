@@ -481,8 +481,8 @@
         }
       ],
       "authorization": "evidence/gate-6/authorization.json",
-      "completed_task_count": 53,
-      "in_progress_task_count": 4
+      "completed_task_count": 54,
+      "in_progress_task_count": 3
     }
   ],
   "source_of_truth": {

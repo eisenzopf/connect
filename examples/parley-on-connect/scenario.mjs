@@ -27,7 +27,45 @@ export function checkMappings(scenario, sdk, wire) {
             rows.push({ stage: stage.id, method: call.method, sdk: method.target_typescript, canonical_type: method.canonical_type });
         }
     }
-    const seen = new Set(); const visit = (id) => { if (seen.has(id)) return; seen.add(id); scenario.stages.find((s) => s.id === id).next.forEach(visit); }; visit(scenario.start);
+    const seen = new Set(), active = new Set();
+    const visit = (id) => {
+        if (active.has(id)) throw Error("cyclic scenario graph");
+        if (seen.has(id)) return;
+        active.add(id); scenario.stages.find((s) => s.id === id).next.forEach(visit);
+        active.delete(id); seen.add(id);
+    };
+    visit(scenario.start);
     if (seen.size !== ids.size) throw Error("unreachable stage");
     return rows;
+}
+
+/** Common application stage definition for both bindings. This selects a path;
+ * it does not satisfy gates, invoke SDK calls or claim their observations. */
+export function rehearsalPath(bound, { consultation, observer = bound.definition.business_policy.observer_default } = {}) {
+    if (!["takeover", "decline-return"].includes(consultation)) throw Error("explicit consultation outcome required");
+    if (typeof observer !== "boolean") throw Error("explicit observer selection");
+    const { definition } = bound;
+    const stages = new Map(definition.stages.map((stage) => [stage.id, stage]));
+    const result = [], seen = new Set();
+    let id = definition.start;
+    while (id !== undefined) {
+        const stage = stages.get(id);
+        if (!stage || seen.has(id)) throw Error("invalid rehearsal path");
+        seen.add(id);
+        result.push({
+            ...structuredClone(stage),
+            calls: stage.calls.map((call) => ({
+                ...structuredClone(call),
+                audience: call.audience.flatMap((actor) => actor === "observer?" ? observer ? ["observer"] : [] : [actor]),
+            })).filter((call) => call.audience.length > 0),
+        });
+        if (id === "private-consultation") {
+            if (!stage.next.includes(consultation)) throw Error("unsupported consultation branch");
+            id = consultation;
+        } else {
+            if (stage.next.length > 1) throw Error("unresolved rehearsal branch");
+            [id] = stage.next;
+        }
+    }
+    return freeze(result);
 }

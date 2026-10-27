@@ -38,6 +38,15 @@ canonical envelope schema. Historical context uses the public validated raw
 `message.history` interface. The scripted assistant always labels its output
 `SIMULATED`; its output cannot become an owner decision.
 
+`rehearsalPath(bound, { consultation, observer })` supplies the common ordered
+stage definition for both fixture and live bindings. Select `takeover` or
+`decline-return` explicitly; the optional observer changes only the selected
+audiences. The function preserves every business gate, observation requirement
+and A6 mapping. It refuses cycles and unresolved branches. Its call lists describe
+available public SDK actions, including alternative status/cancel actions; they
+are not an instruction to invoke every listed action. Selecting a path satisfies
+no consent, readiness, delivery or approval gate and executes no communication.
+
 `fixtures/index.mjs` composes the scripted model, three UDP SIP/RTP participants
 and a Telnyx-style SMS HTTP fixture. Supply an absolute isolated state directory
 under the repository's ignored `.local/`. The fixtures bind only `127.0.0.1` and
@@ -67,8 +76,10 @@ Tests retain synthetic state under `.local/gate-6/reference-scenario/` regardles
 of the caller's working directory. They passed on Node 26.7.0/macOS arm64; the
 declared Node 22 minimum and Linux lane have not been qualified here.
 
-This checkpoint verifies a definition and simulated peers over real loopback
-HTTP and UDP. It does not execute an installed SDK application, launch a model,
-contact a provider, or qualify the full browser/telephone journey. G6-071 remains
-in progress pending the common application rehearsal path. Installed SDK and
-application work in G6-069 and G6-072–G6-080 remains separate.
+G6-071 verifies the shared scenario/path definition and simulated peers over real
+loopback HTTP and UDP. Both consultation branches and observer choices use the
+same stage path under fixture and live bindings; 19 definition/fixture checks
+pass locally. Installed SDK execution belongs to G6-069 and G6-072–G6-080, which
+depend on this definition task. This evidence does not launch a model, contact a
+provider or qualify the full browser/telephone application journey. Those later
+tasks and Gate 6 acceptance remain open.

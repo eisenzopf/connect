@@ -1,0 +1,131 @@
+{
+  "task": "G6-071",
+  "status": "done for approved scenario definition and deterministic fixture scope",
+  "recorded_at": "2026-10-27T22:21:36.104833+00:00",
+  "base_revision": "a8ac8bb7",
+  "scope": "G6-071 shared scenario/path definition plus scripted model and real loopback HTTP SMS/SIP UDP/RTP fixtures; no SDK application/provider/model execution.",
+  "completion_scope_audit": {
+    "approved_work": "Translate the actual demo into a reusable scenario with owner, AI assistant, organizer and optional observer. Specify messages, context, consultation, takeover, endpoint confirmation and follow-up; provide deterministic AI/SIP/SMS fixtures with observable speaker markers. Keep travel data and approval policy in the example.",
+    "approved_verification": "Every stage maps to public SDK operations and A6 criteria. The fixture and live modes follow the same app path, with provider adapters/configuration swapped; simulated delivery and model behavior remain visibly identified.",
+    "dependencies": {
+      "G6-014": "done",
+      "G6-059": "done"
+    },
+    "scope_correction": "The preceding checkpoint added an installed application rehearsal as a completion condition. G6-072 explicitly depends on G6-071 and implements the installed public-SDK app; G6-079 qualifies its complete fixture journey and G6-080 the actual model. G6-071 closes the reusable scenario, common path definition and deterministic peers, without borrowing those later qualification results.",
+    "installed_sdk_application_executed": false,
+    "full_journey_qualified": false
+  },
+  "evidence_matrix": [
+    {
+      "requirement": "Reusable owner/assistant/organizer/optional-observer scenario, application-owned travel/approval policy",
+      "evidence": "Seventeen reachable stages (also booker), explicit audiences/gates/outcome requirements and35public SDK target calls. Task/context, consultation/takeover or return, configured DTMF1 movement, proposal/approval/followup/recovery mapped to A6.",
+      "paths": [
+        "examples/parley-on-connect/scenario.json",
+        "examples/parley-on-connect/scenario.mjs"
+      ]
+    },
+    {
+      "requirement": "Fixture/live modes share the application stage path with backend/contact configuration swapped",
+      "evidence": "One rehearsalPath function selects16takeover or15decline-return stages. Both modes compare identically for both consultation branches and both observer selections; business gates, required observations and A6 mappings are preserved. It executes no communications and grants no approval.",
+      "paths": [
+        "examples/parley-on-connect/tests/scenario.test.mjs"
+      ]
+    },
+    {
+      "requirement": "Deterministic AI/SIP/SMS fixtures and observable synthetic speakers",
+      "evidence": "Current19tests include visibly simulated deterministic model output, independent decoding of five PCMU markers, actual loopback SIP/RTP with duplicate/no-answer/prompt-gated DTMF/peer-binding/pause/cleanup cases, and HTTP SMS queued-versus-delivered/reply/signature/withheld-ack/restart/cleanup distinctions. These are fixture transports, not actual Core/provider interoperability.",
+      "paths": [
+        "examples/parley-on-connect/fixtures/index.mjs",
+        "examples/parley-on-connect/tests/fixtures.test.mjs",
+        "examples/parley-on-connect/tests/sip.test.mjs",
+        "examples/parley-on-connect/tests/sms.test.mjs"
+      ]
+    }
+  ],
+  "upstream_sources": [
+    {
+      "url": "https://github.com/eisenzopf/parley/blob/b2984928916a3b6ccca5c501457e509cd7a50df7/docs/CONFERENCE_IMPLEMENTATION_STATUS.md",
+      "git_blob_sha": "ed275185836e2e7d5a30d8a5558406f0a4cbeee8",
+      "fetched_content_sha256": "12bcff6dbb323141da7fe2e7d2f50420d4bd0e6d963e065c0f62f15cfbbba6b4",
+      "line_range": [
+        1,
+        108
+      ]
+    },
+    {
+      "url": "https://github.com/eisenzopf/parley/blob/b2984928916a3b6ccca5c501457e509cd7a50df7/docs/UCTP_CONFERENCE_PROFILE.md",
+      "git_blob_sha": "0c7a559854f2cd685063eb23f3b7854eb5eeaa30",
+      "fetched_content_sha256": "701fd79fbf3852176aefc06eb1735a068bb3826ec005482dc208bde62360de4b",
+      "line_range": [
+        210,
+        224
+      ]
+    }
+  ],
+  "historical_checkpoint": {
+    "path": "docs/evidence/gate-6/reference-scenario.json",
+    "sha256": "c2dac834fe5a1676497700e8379a38ac0e32ed6ce5b3f3a5c82e71d9b7dcd11d",
+    "scope": "Retained earlier17-test evidence, not rewritten or combined into a current test count."
+  },
+  "verification": {
+    "scope": "G6-071 shared scenario/path definition plus scripted model and real loopback HTTP SMS/SIP UDP/RTP fixtures; no SDK application/provider/model execution.",
+    "executed_at": "2026-10-27T22:21:06.261482+00:00",
+    "command": [
+      "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+      "--test",
+      "examples/parley-on-connect/tests/fixtures.test.mjs",
+      "examples/parley-on-connect/tests/scenario.test.mjs",
+      "examples/parley-on-connect/tests/sip.test.mjs",
+      "examples/parley-on-connect/tests/sms.test.mjs"
+    ],
+    "node": "v26.7.0",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "exit_code": 0,
+    "seconds": 0.8255588328465819,
+    "tests_passed": 19,
+    "changed_inputs": [],
+    "log_sha256": "dd0e31eff37e5644dfe356e7f486a5bf5e319dd256d62b897810acddb3d2c18a"
+  },
+  "source_inputs": {
+    "contracts/schemas/uctp-envelope-2.schema.json": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+    "contracts/sdk-gate-6-api.json": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+    "docs/evidence/gate-6/reference-scenario.json": "c2dac834fe5a1676497700e8379a38ac0e32ed6ce5b3f3a5c82e71d9b7dcd11d",
+    "examples/parley-on-connect/README.md": "0da53f9349047bb663e420de540a599e12a4c09b808e8e847f8e7a1666a219b2",
+    "examples/parley-on-connect/fixtures/index.mjs": "770ed1d5a96fe09957f0f5051624ad3c40dc87fcb0da97891d5644a7c52a56b4",
+    "examples/parley-on-connect/fixtures/model-script.json": "4366777cb34c178e8e7a25a485007d6f0055d97d210a5b3d45f2609cdd87ce34",
+    "examples/parley-on-connect/fixtures/model.mjs": "42695cb1cecd01b11e160a1a21066060b62a78a827ef6a84d90df5510092e781",
+    "examples/parley-on-connect/fixtures/pcm.mjs": "db930f0f961bf885995349d96ee4947f5784305bd83fddb7cfcac99f69d93a82",
+    "examples/parley-on-connect/fixtures/sip.mjs": "7da17776de45aeffecac60c4810accbc259dd4b19cfc61c6145b5d3cbe619f9c",
+    "examples/parley-on-connect/fixtures/sms.mjs": "3982d719a1111f95eac26ff0ed44f7035dada5c70b681c7a93a0a9e65b5b5625",
+    "examples/parley-on-connect/fixtures/travel.json": "94a7f9d11e1c8c04a853b6b0035b5a2f5f5f89285ab209262d4995fecddba118",
+    "examples/parley-on-connect/package.json": "c22934fd218b8161670fc9ebbb3035c8951c44ac4b6321707275cd1276fe0b1f",
+    "examples/parley-on-connect/scenario.json": "0a3fdced5dbede21fd529e930ed5c4622b965c1ae72be9a93eee70134d750861",
+    "examples/parley-on-connect/scenario.mjs": "fc8c1427d4ab35d9adb4c7b56d5f92d987e2c4582691fcb34732031040baf1a2",
+    "examples/parley-on-connect/tests/fixtures.test.mjs": "110e2aacb7188902a2b13da16783d7a9323037a249d992f8e70b1993421fd342",
+    "examples/parley-on-connect/tests/scenario.test.mjs": "c9712fbe77c75fe171a433e5f89a46ee6522a9c083cd828900c7213e40e5911b",
+    "examples/parley-on-connect/tests/sip.test.mjs": "ea7a3b23e2058c2ca54f09ba9f650c6d500a85b0e6f13b413f09601954110f27",
+    "examples/parley-on-connect/tests/sms.test.mjs": "f56eea19cd8e6991010204456e99a0968a2fd7d22ee48e0676f7a56fe43cf3ea"
+  },
+  "runtime_artifacts": {
+    "/opt/homebrew/Cellar/node/26.7.0/bin/node": "1ef99ea25fe70c9b67e7efe768ef8ee22148d3cabc703db6131b57aeb617d040",
+    "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/reference-scenario/verify-shared-path.py": "a1107c9ff197b800daa9bf2727e162d3d032e41e6b397fb7b55d4cf2a9fd501e"
+  },
+  "controlled_cycle_before_after": {
+    "scope": "Definition-only controlled cyclic graph; no SDK/provider/model execution",
+    "old_accepted_rows": 35,
+    "new_refusal": "cyclic scenario graph",
+    "old_source_sha256": "dd8f75224b33b0f29c86b3bb5c9a74ea973da9be7f8d064232d8325ae3d806db",
+    "current_source_sha256": "fc8c1427d4ab35d9adb4c7b56d5f92d987e2c4582691fcb34732031040baf1a2"
+  },
+  "private_report_hashes": {
+    "shared-path-summary.json": "9422b572b180f0cdef40e59ec162b8aaec53e007ec13f1bf07b110957281cd1f",
+    "shared-path-inputs.json": "7f0ddfd4d17f03145d808b1feea724d968d9e208650789a47d5f61c3c1982607",
+    "graph-cycle-before-after.json": "89b3ca2fb0c569d9ccf026a77f98b62835c3097a8430a454e51325a18e8e927e"
+  },
+  "unqualified": [
+    "Installed SDK and full application execution in G6-069/G6-072 through G6-080.",
+    "Actual model/account/provider contact, actual Core fixture interoperability, Linux x86_64 and minimum Node22.",
+    "Native/browser audio findings in G6-050/G6-051/G6-065; no repair or passing claim from this scenario definition.",
+    "All28Gate6 acceptance criteria remain unqualified; publication remains separate."
+  ]
+}
