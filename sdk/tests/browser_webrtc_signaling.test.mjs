@@ -4,10 +4,11 @@ import {CanonicalWebRtcSignaling} from '../typescript/dist/browser_webrtc_signal
 import {ConnectError} from '../typescript/dist/errors.js';
 import {envelope} from '../typescript/dist/uctp_wire.js';
 import {BrowserClient} from '../typescript/dist/browser_client.js';
+import {BrowserVoiceSession} from '../typescript/dist/browser.js';
 import {canonicalJson,parseCanonicalJson} from '../typescript/dist/uctp_json.js';
 import {signEnvelope,verifyEnvelope} from '../typescript/dist/uctp_signing.js';
 const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
-const sdp = 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=fixture-only\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:audio\r\n';
+const sdp = 'v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=fixture-only\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:audio\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\n';
 const options = () => ({conversationId:'conversation',sessionId:'session',connectionId:'connection',operationId:'original-offer',expectedRevision:0,participantId:'participant',capabilities:{audio:['opus']},streams:[{id:'audio-stream',kind:'audio',direction:'sendrecv',codec_preferences:['opus']}]});
 const scope = () => ({cid:'conversation',sid:'session',connid:'connection',operation_id:'original-offer'});
 const answer = (changes={}) => {
@@ -186,4 +187,60 @@ test('ICE failure retires the original signaling owner even before aggregate pee
     assert.equal(f.client.events.size,0);assert.equal(f.client.lifetimes.size,0);assert.equal(f.client.closed,0);
     assert.equal(f.owner.savedOffer.scope.operation_id,'original-offer');assert.equal(f.client.requests.length,1);
     f.peer.dispatchEvent(new Event('iceconnectionstatechange'));assert.equal(f.peer.closed,1);
+});
+
+for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} public capture wrapper uses actual signed WSS offers and journaled end`,async()=>{
+    const parameters=algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
+    const clientKeys=await crypto.subtle.generateKey(parameters,false,['sign','verify']),serverKeys=await crypto.subtle.generateKey(parameters,false,['sign','verify']);
+    const signing={key:clientKeys.privateKey,keyId:'webrtc-client-key',algorithm},serverSigning={key:serverKeys.privateKey,keyId:'webrtc-server-key',algorithm};
+    const trust=key=>({...key,notBefore:Date.now()/1000-30,expiresAt:Date.now()/1000+300});
+    const clientTrust=trust({...signing,key:clientKeys.publicKey}),server=trust({...serverSigning,key:serverKeys.publicKey});
+    const originals=['WebSocket','WebTransport','isSecureContext','RTCPeerConnection','MediaStream'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]);
+    const sent=[],tasks=[];let socket;
+    class Socket extends EventTarget{
+        static CONNECTING=0;static OPEN=1;readyState=0;bufferedAmount=0;
+        constructor(){super();socket=this;queueMicrotask(()=>{this.readyState=1;this.dispatchEvent(new Event('open'));});}
+        async emit(frame){this.dispatchEvent(new MessageEvent('message',{data:canonicalJson(await signEnvelope(frame,serverSigning))}));}
+        send(text){const frame=parseCanonicalJson(new TextEncoder().encode(text));sent.push(frame);tasks.push((async()=>{
+            if(frame.type!=='auth.hello')await verifyEnvelope(frame,clientTrust);
+            const respond=(type,payload,scope={})=>this.emit(envelope(type,payload,{...scope,in_reply_to:frame.id}));
+            if(frame.type==='auth.hello')await respond('auth.challenge',{accepted_methods:['bearer'],server_capabilities:{application_profiles:['connect/2']}});
+            else if(frame.type==='auth.response')await respond('auth.session',{identity_id:'identity',participant_id:'participant',session_token:'synthetic',expires_at:new Date(Date.now()+60000).toISOString(),application_profile:'connect/2'});
+            else if(frame.type==='connection.offer'){
+                assert.equal(frame.payload.substrate,'websocket+webrtc');assert.equal(frame.operation_id,'original-offer');
+                await respond('connection.ice-candidate',ice().payload,scope());await respond('connection.answer',answer().payload,scope());
+            }else if(frame.type==='connection.end')await respond('ack',{}, {...scope(),operation_id:'original-end'});
+            else if(frame.type==='operation.get'){
+                assert.equal(frame.payload.operation_id,'original-end');
+                await respond('operation.updated',{operation_id:'original-end',state:'completed'},{cid:'conversation'});await respond('ack',{});
+            }else throw Error('unexpected extra control command');
+        })());}
+        close(){if(this.readyState===3)return;this.readyState=3;this.dispatchEvent(new Event('close'));}
+    }
+    let client,owner;
+    try{
+        Object.defineProperty(globalThis,'WebSocket',{configurable:true,value:Socket});Object.defineProperty(globalThis,'WebTransport',{configurable:true,value:undefined});Object.defineProperty(globalThis,'isSecureContext',{configurable:true,value:true});
+        client=await BrowserClient.open({transport:'websocket',url:'wss://fixture.invalid/connect',credential:'fixture-only',identityId:'identity',device:{id:'device',kind:'browser',platform:'fixture'},signing,server,timeoutMs:500});
+        const peer=new Peer();peer.addTrack=()=>{};
+        Object.defineProperty(globalThis,'RTCPeerConnection',{configurable:true,value:class{constructor(){return peer;}}});
+        Object.defineProperty(globalThis,'MediaStream',{configurable:true,value:class{tracks=[];getTracks(){return this.tracks;}addTrack(track){this.tracks.push(track);}}});
+        let trackStops=0;const track=Object.assign(new EventTarget(),{kind:'audio',readyState:'live',stop(){trackStops++;}});
+        owner=await BrowserVoiceSession.open(client,{...options(),audioStreamId:'audio-stream',inputStream:{getTracks:()=>[track]}},{timeoutMs:500});
+        assert.equal(peer.ice.length,1);assert.equal(peer.remoteDescription.sdp,sdp);assert.equal(sent.filter(f=>f.type==='connection.offer').length,1);
+        assert.ok(sent.every(f=>!['offer-ready','answer','ready'].includes(f.type)));assert.ok(sent.find(f=>f.type==='connection.offer').signature);
+        assert.equal(owner.savedOffer.scope.operation_id,'original-offer');
+        const ending=owner.end('original-end',1);assert.equal(ending,owner.end('original-end',1));await ending;
+        assert.equal(sent.filter(f=>f.type==='connection.end').length,1);assert.equal(sent.filter(f=>f.type==='operation.get').length,1);
+        assert.equal(owner.savedEnd.scope.expected_revision,1);assert.equal(trackStops,1);assert.equal(peer.closed,1);
+        await owner.close();assert.equal(client.closed,false);client.close();await Promise.all(tasks);
+    }finally{await owner?.close();client?.close();socket?.close();for(const[k,d]of originals)if(d)Object.defineProperty(globalThis,k,d);else delete globalThis[k];}
+});
+
+test('canonical answer cannot silently omit an original logical video stream',async()=>{
+    const input=options(),client=new Client(),peer=new Peer();
+    input.streams.push({id:'video-stream',kind:'video',direction:'sendrecv',codec_preferences:['vp8']});
+    const owner=new CanonicalWebRtcSignaling(client,peer,input);
+    await assert.rejects(owner.offer(),{code:'protocol'});
+    assert.equal(peer.remoteDescription,null);assert.equal(peer.closed,1);assert.equal(client.requests.length,1);
+    assert.equal(owner.savedOffer.payload.streams_offered.length,2);assert.equal(owner.savedOffer.scope.operation_id,'original-offer');
 });

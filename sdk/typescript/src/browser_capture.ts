@@ -55,21 +55,14 @@ export function validateVideoAnswer(sdp: string): void {
         );
     };
     if (
-        media.length > 3 ||
+        media.length !== 2 ||
         kinds.filter((kind) => kind[0] === "m=audio").length !== 1 ||
         kinds.filter((kind) => kind[0] === "m=video").length !== 1 ||
-        kinds.filter((kind) => kind[0] === "m=application").length > 1 ||
-        kinds.some(
-            (kind) =>
-                !["m=audio", "m=video", "m=application"].includes(kind[0]),
-        )
+        kinds.some((kind) => !["m=audio", "m=video"].includes(kind[0]))
     )
         fail();
     for (const [index, section] of media.entries()) {
         const kind = kinds[index];
-        // The established browser transport also negotiates its ordinary
-        // Connect control datachannel. It is not a third media stream.
-        if (kind[0] === "m=application") continue;
         const direction =
             section.match(/^a=(sendrecv|sendonly|recvonly|inactive)$/m)?.[1] ??
             inherited;
@@ -118,6 +111,42 @@ export function validateVideoAnswer(sdp: string): void {
             }
         }
     }
+}
+
+/** The public fixed Opus/VP8 program must be accepted in full, without extra channels. */
+export function validateBrowserAnswer(sdp: string, video: boolean): void {
+    if (video) validateVideoAnswer(sdp);
+    const sections = sdp.replace(/\r/g, "").split(/\n(?=m=)/);
+    const inherited =
+        sections[0].match(/^a=(sendrecv|sendonly|recvonly|inactive)$/m)?.[1] ??
+        "sendrecv";
+    const media = sections.slice(1),
+        audio = media.filter((section) => section.startsWith("m=audio "));
+    const fail = () => {
+        throw new ConnectError(
+            "unsupported-media-profile",
+            "The peer did not accept the original duplex Opus audio/video program",
+        );
+    };
+    if (media.length !== (video ? 2 : 1) || audio.length !== 1) fail();
+    const section = audio[0],
+        kind = section.split("\n", 1)[0].split(/\s+/);
+    if (
+        !/^\d+$/.test(kind[1]) ||
+        Number(kind[1]) === 0 ||
+        (section.match(/^a=(sendrecv|sendonly|recvonly|inactive)$/m)?.[1] ??
+            inherited) !== "sendrecv"
+    )
+        fail();
+    const offered = new Set(kind.slice(3));
+    if (
+        ![
+            ...section.matchAll(
+                /^a=rtpmap:(\d+)[ \t]+opus\/48000\/2[ \t]*$/gim,
+            ),
+        ].some((match) => offered.has(match[1]))
+    )
+        fail();
 }
 
 /** Capture owns late permission results after deadline or caller cancellation. */
@@ -181,31 +210,5 @@ export async function microphoneStream(
             },
             (error) => fail(error),
         );
-    });
-}
-
-export async function waitForIce(
-    peer: RTCPeerConnection,
-    timeoutMs: number,
-): Promise<void> {
-    if (peer.iceGatheringState === "complete") return;
-    await new Promise<void>((resolve, reject) => {
-        const finish = (error?: ConnectError) => {
-            clearTimeout(timer);
-            peer.removeEventListener("icegatheringstatechange", changed);
-            if (error) reject(error);
-            else resolve();
-        };
-        const timer = setTimeout(
-            () =>
-                finish(new ConnectError("timeout", "ICE gathering timed out")),
-            timeoutMs,
-        );
-        const changed = () => {
-            if (peer.iceGatheringState === "complete") finish();
-        };
-        peer.addEventListener("icegatheringstatechange", changed);
-        // Handle a transition between the initial check and listener registration.
-        changed();
     });
 }

@@ -1,3 +1,4 @@
+import { readCanonicalMedia } from "../../examples/conversation-client/canonical-media.js";
 /** Explicit live browser rehearsal; never imported by the offline runner. */
 import {
     BrowserVoiceSession,
@@ -199,15 +200,12 @@ byId("run").onclick = async () => {
             for (const value of event.data)
                 report.inputPeak = Math.max(report.inputPeak, Math.abs(value));
         };
-        state.voice = await BrowserVoiceSession.open(
-            byId("signaling").value,
-            byId("credential").value,
-            15000,
-            { inputStream },
-        );
+        state.control = await readCanonicalMedia(byId("media-config").files?.[0], {conversationId: byId("conversation").value});
+        state.voice = await BrowserVoiceSession.open(state.control.client, {...state.control.options, inputStream});
         state.voice.ended.then(() => {
             state.stopped = true;
         });
+        await state.control.receive();
         await remoteAudio(state.voice.remoteStream);
         await state.voice.attach(byId("remote"));
         remoteSource = context.createMediaStreamSource(
@@ -282,7 +280,11 @@ byId("run").onclick = async () => {
         recorder?.disconnect();
         monitor?.disconnect();
         remoteSource?.disconnect();
-        await state.voice?.close();
+        try {
+            if (state.voice) await state.voice.end(state.control.end.operationId, state.control.end.expectedRevision);
+        } catch (error) { report.result = "failed"; report.endError = error.code ?? "failed"; }
+        finally { await state.voice?.close(); state.control?.client.close(); }
+        for (const track of inputStream?.getTracks() ?? []) if (track.readyState === "live") track.stop();
         report.inputTracksAfterHangup = inputStream
             ?.getTracks()
             .map((track) => track.readyState);

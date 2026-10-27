@@ -119,23 +119,26 @@ must identify the expected tone; mute/burst exceptions are bound to actual event
 and measured silence/recovery, with recovery within two seconds. These are
 observer coverage bounds, not a physical speaker or universal playback claim.
 
-For native/browser participation, omit `--native-peer`: Connect's direct bridge
-returns media on the negotiated streams. Each participant selects the same
-accepted Session through the public browser SDK:
+For canonical browser participation, borrow an authenticated signed WSS client
+and retain explicit original intent IDs:
 
 ```js
-const video = await BrowserVideoSession.open(signalingURL, credential, 15000, {
-  conversationId: acceptedConversationId,
-  sessionId: acceptedSessionId,
+const video = await BrowserVideoSession.open(signedClient, {
+  conversationId, sessionId, connectionId, operationId, expectedRevision,
+  participantId, audioStreamId, videoStreamId,
   inputStream: generatedOrExplicitCaptureStream,
 });
+// Explicit stream.subscribe commands use signedClient and original selection IDs.
+await video.end(endOperationId, currentConnectionRevision);
+await video.close(); // Local cleanup only; signedClient remains caller-owned.
 ```
 
-The server checks the current participant authorization and accepted invitation
-before allocating peer media. These paired selectors allow an accepted Session
-to be chosen without a fixed server route or restart. The browser uses
-authenticated WebRTC; the native participant continues to use QUIC. The browser
-SDK takes ownership of a supplied input stream and stops its tracks on close.
+The browser SDK snapshots scope before capture and owns supplied tracks. It uses
+Opus audio and VP8; current fixed-host selectors accept audio participant pins
+and exact current video sources. The earlier bearer-only native/browser runner
+requires a new signed canonical fixture and does not qualify this profile.
+See [the canonical browser API](../../docs/developer/canonical-webrtc-signaling.md#public-browser-session-api)
+for configuration, uncertainty and remaining qualification scope.
 
 See [the media profile](../../contracts/connect-media-vp8-v1.md) for wire limits,
 subscription identities, feedback boundaries and supported codecs.

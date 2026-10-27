@@ -1,164 +1,136 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BrowserVoiceSession } from '../typescript/dist/browser.js';
+import { BrowserVoiceSession, BrowserVideoSession, BrowserVoiceOpenError } from '../typescript/dist/browser.js';
 import { validateVideoAnswer } from '../typescript/dist/browser_capture.js';
 import { constrainVideoCapture } from '../typescript/dist/browser_video_setup.js';
+import {envelope} from '../typescript/dist/uctp_wire.js';
+import {ConnectError} from '../typescript/dist/errors.js';
+const audioSdp='v=0\r\no=- 1 1 IN IP4 0.0.0.0\r\ns=synthetic-fixture\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:audio\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\n';
+const videoSdp='m=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:video\r\na=sendrecv\r\na=rtpmap:96 VP8/90000\r\n';
+const intent=(options={})=>({conversationId:'conversation',sessionId:'session',connectionId:'connection',operationId:'original-offer',expectedRevision:0,participantId:'participant',audioStreamId:'audio-stream',...(options.video?{videoStreamId:'video-stream'}:{}),...options});
+const open=(state,options={},timeoutMs=100)=>BrowserVoiceSession.open(state.client,intent(options),{timeoutMs});
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
-// Exercise handshake ordering without a microphone, network or provider call.
-async function withBrowser(mode, run) {
-    const names = ['navigator', 'MediaStream', 'RTCPeerConnection', 'WebSocket'];
-    const original = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
-    const state = { offers: [], trackStopped: false, peerClosed: false, socketClosed: false, microphoneRequests: 0 };
-    const track = Object.assign(new EventTarget(), { kind: 'audio', readyState: 'live', stop: () => { state.trackStopped = true; } });
-    const stream = { getTracks: () => [track] };
-    state.track = track;
-    state.stream = stream;
+// Synthetic capture/RTC boundary; actual signed control is covered separately.
+async function withBrowser(mode,run){
+    const names=['navigator','MediaStream','RTCPeerConnection','WebSocket'];
+    const original=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
+    const state={offers:[],trackStopped:false,trackStops:0,peerClosed:false,peerCloses:0,microphoneRequests:0};
+    const track=Object.assign(new EventTarget(),{kind:'audio',readyState:'live',stop:()=>{state.trackStopped=true;state.trackStops++;}});
+    const stream={getTracks:()=>[track]};state.track=track;state.stream=stream;
     class Peer extends EventTarget {
-        iceGatheringState = 'complete';
-        constructor() { super(); state.peer = this; if (mode === 'peer-constructor') throw new Error('fixture peer failure'); }
-        addTrack() { if (mode === 'track-add') throw new Error('fixture track failure'); }
-        createDataChannel() {}
-        async createOffer() { if (mode === 'offer-stall') return new Promise(() => {}); await Promise.resolve(); return { type: 'offer', sdp: 'fixture-offer' }; }
-        async setLocalDescription(offer) { this.localDescription = offer; }
-        async setRemoteDescription(answer) { state.answer = answer; }
-        close() { state.peerClosed = true; }
+        iceGatheringState='complete';connectionState='new';
+        constructor(){super();state.peer=this;if(mode==='peer-constructor')throw Error('fixture peer failure');}
+        addTrack(){if(mode==='track-add')throw Error('fixture track failure');}
+        createDataChannel(){throw Error('Unoffered datachannel must never be created');}
+        async createOffer(){if(mode==='offer-stall')return new Promise(()=>{});await Promise.resolve();return {type:'offer',sdp:audioSdp};}
+        async setLocalDescription(offer){this.localDescription=offer;}
+        async setRemoteDescription(answer){state.answer=answer;this.remoteDescription=answer;}
+        close(){state.peerClosed=true;state.peerCloses++;}
     }
-    class Socket extends EventTarget {
-        static CONNECTING = 0;
-        static OPEN = 1;
-        readyState = 0;
-        constructor() {
-            super();
-            if (mode === 'socket-constructor') throw new Error('fixture socket failure');
-            state.socket = this;
-            if (mode === 'early') queueMicrotask(() => this.open());
-            if (mode === 'late' || mode === 'late-send-error') setTimeout(() => this.open(), 5);
-            if (mode === 'closed') queueMicrotask(() => { this.readyState = 3; });
+    class Control {
+        controlTransport='websocket';closed=false;events=new Set();lifetimes=new Set();commands=[];
+        onClose(fn){if(mode==='closed'){fn(new ConnectError('transport','fixture control closed'));return()=>{};}this.lifetimes.add(fn);return()=>this.lifetimes.delete(fn);}
+        onEvent(fn){if(mode==='signaling-listener')throw Error('fixture listener failure');this.events.add(fn);return()=>this.events.delete(fn);}
+        emit(frame){for(const fn of [...this.events])fn(frame);}
+        lose(){this.closed=true;for(const fn of [...this.lifetimes])fn(new ConnectError('transport','fixture control loss'));}
+        async request(type,payload,scope){
+            this.commands.push({type,payload:structuredClone(payload),scope:{...scope}});
+            if(type==='connection.end')return [envelope('ack',{},scope)];
+            assert.equal(type,'connection.offer');state.offers.push({type,payload:structuredClone(payload),scope:{...scope}});
+            if(mode==='late-send-error')throw Error('fixture send failure');
+            if(mode==='stalled')return new Promise(()=>{});
+            if(mode==='late')await new Promise(resolve=>setTimeout(resolve,5));
+            const video=payload.streams_offered.some(s=>s.kind==='video');
+            return [envelope('connection.answer',{substrate:'websocket+webrtc',capabilities:payload.capabilities,
+                streams_answered:payload.streams_offered.map(s=>({...s,codec:{name:s.kind==='audio'?'opus':'vp8'}})),
+                substrate_setup:{kind:'websocket+webrtc',sdp:audioSdp+(video?videoSdp:'')}},scope)];
         }
-        open() { this.readyState = 1; this.onopen?.(); }
-        message(value) {
-            const event = new MessageEvent('message', { data: JSON.stringify(value) });
-            this.onmessage?.(event);
-            this.dispatchEvent(event);
-        }
-        send(raw) {
-            assert.equal(this.readyState, 1);
-            const signal = JSON.parse(raw);
-            if (mode === 'late-send-error' && signal.type === 'offer-ready') throw Error('fixture send failure');
-            if (signal.type === 'bye') { this.message({ type: 'bye' }); return; }
-            state.offers.push(signal);
-            this.message({ type: 'answer', sdp: 'fixture-answer', connection_id: 'fixture', request_id: signal.request_id });
-            this.message({ type: 'ready', request_id: signal.request_id });
-        }
-        close() { this.readyState = 3; state.socketClosed = true; }
+        async operationStatus(cid,operationId){return {operation_id:operationId,state:'completed'};}
+        close(){throw Error('Borrowed control must not be closed by media');}
     }
-    const replacements = { navigator: { mediaDevices: { getUserMedia: async constraints => { state.constraints = constraints; state.microphoneRequests++; return stream; } } }, MediaStream: class {}, RTCPeerConnection: Peer, WebSocket: Socket };
-    for (const name of names) Object.defineProperty(globalThis, name, { configurable: true, value: replacements[name] });
-    try { await run(state); }
-    finally {
-        for (const name of names) {
-            const descriptor = original.get(name);
-            if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-            else delete globalThis[name];
-        }
-    }
+    state.client=new Control();
+    const replacements={navigator:{mediaDevices:{getUserMedia:async constraints=>{state.constraints=constraints;state.microphoneRequests++;if(mode==='denied')throw Error('fixture permission denied');return stream;}}},
+        MediaStream:class {tracks=[];getTracks(){return [...this.tracks];}addTrack(track){this.tracks.push(track);}},RTCPeerConnection:Peer,
+        WebSocket:class {constructor(){throw Error('Wrapper must borrow signed control');}}};
+    for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:replacements[name]});
+    try{await run(state);}finally{for(const name of names){const d=original.get(name);if(d)Object.defineProperty(globalThis,name,d);else delete globalThis[name];}}
 }
-
-for (const mode of ['early', 'late']) {
-    test(`browser sends its offer once when the socket opens ${mode}`, async () => {
-        await withBrowser(mode, async state => {
-            const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100);
-            assert.equal(state.offers.length, 1);
-            assert.equal(state.offers[0].type, 'offer-ready');
-            assert.deepEqual(state.answer, { type: 'answer', sdp: 'fixture-answer' });
-            await voice.close();
-            assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
-        });
-    });
-}
-
-test('browser fails promptly when signaling closed during offer preparation', async () => {
-    await withBrowser('closed', async state => {
-        await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100), error => error.code === 'webrtc-failed');
-        assert.equal(state.offers.length, 0);
-        assert.ok(state.trackStopped && state.peerClosed);
-    });
-});
-
-test('browser closes a still-connecting socket after signaling timeout', async () => {
-    await withBrowser('stalled', async state => {
-        await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 10), error => error.code === 'timeout');
-        assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
-    });
-});
-
-test('server hangup releases browser microphone and notifies the application', async () => {
-    await withBrowser('early', async state => {
-        const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100);
-        state.socket.message({ type: 'bye', connection_id: 'unrelated' });
-        assert.equal(state.trackStopped, false);
-        state.socket.message({ type: 'bye', connection_id: 'fixture' });
-        await voice.ended;
-        assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
-    });
-});
-
-test('application audio uses the same signaling and is released without requesting a microphone', async () => {
-    await withBrowser('early', async state => {
-        const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, { inputStream: state.stream });
-        assert.equal(state.microphoneRequests, 0);
-        assert.equal(state.offers.length, 1);
-        await voice.close();
-        assert.ok(state.trackStopped);
-    });
-});
-
-test('application audio rejects empty, ended and video streams before signaling', async () => {
-    await withBrowser('early', async state => {
-        for (const tracks of [[], [{ kind: 'audio', readyState: 'ended' }], [{ kind: 'video', readyState: 'live' }]]) {
-            await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, { inputStream: { getTracks: () => tracks } }), error => error.code === 'invalid-request');
-        }
-        assert.equal(state.microphoneRequests, 0);
-        assert.equal(state.offers.length, 0);
-    });
-});
-
-for (const mode of ['peer-constructor', 'track-add', 'socket-constructor']) {
-    test(`browser releases acquired audio after ${mode} failure`, async () => {
-        await withBrowser(mode, async state => {
-            await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100), error => error.code === 'webrtc-failed');
-            assert.equal(state.microphoneRequests, 1);
-            assert.ok(state.trackStopped);
-            if (mode !== 'peer-constructor') assert.ok(state.peerClosed);
-            assert.equal(state.offers.length, 0);
-        });
-    });
-}
-
-test('hangup send race still releases all local resources and shares close completion', async () => {
-    await withBrowser('early', async state => {
-        const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100);
-        let terminated = false, closes = 0;
-        voice.videoWorker = { terminate() { terminated = true; } };
-        state.socket.send = () => { throw new Error('fixture signaling closed during send'); };
-        state.socket.close = function() {
-            closes++; this.readyState = 3; state.socketClosed = true;
-            this.onclose?.();
-        };
-        const first = voice.close(), second = voice.close();
-        assert.equal(first, second);
-        await first;
-        await voice.ended;
-        assert.equal(closes, 1);
-        assert.ok(terminated && state.trackStopped && state.peerClosed && state.socketClosed);
-    });
-});
+for(const mode of ['early','late'])test(`browser uses exactly one canonical original offer with ${mode} reply`,()=>withBrowser(mode,async state=>{
+    const voice=await open(state);assert.equal(state.offers.length,1);const offer=state.offers[0];
+    assert.equal(offer.type,'connection.offer');assert.equal(offer.scope.operation_id,'original-offer');assert.equal(offer.scope.connid,'connection');
+    assert.equal(offer.payload.by_participant,'participant');assert.equal(offer.payload.streams_offered[0].id,'audio-stream');
+    assert.equal(state.answer.type,'answer');assert.equal(voice.savedOffer.submissionAttempted,true);
+    await voice.close();await voice.ended;assert.ok(state.trackStopped&&state.peerClosed&&!state.client.closed);
+    assert.equal(state.peerCloses,1);assert.equal(state.trackStops,1);assert.equal(state.client.commands.length,1);
+    assert.equal(state.client.events.size,0);assert.equal(state.client.lifetimes.size,0);
+}));
+test('control closure before capture refuses promptly without permission or offer',()=>withBrowser('closed',async state=>{
+    await assert.rejects(open(state),{code:'transport'});assert.equal(state.microphoneRequests,0);assert.equal(state.offers.length,0);
+}));
+test('uncertain signaling timeout retains original SDP and releases only owned resources',()=>withBrowser('stalled',async state=>{
+    await assert.rejects(open(state,{},10),error=>error instanceof BrowserVoiceOpenError&&error.code==='timeout'&&error.savedOffer.scope.operation_id==='original-offer'&&error.savedOffer.submissionAttempted);
+    assert.ok(state.trackStopped&&state.peerClosed&&!state.client.closed);assert.equal(state.client.commands.length,1);
+}));
+test('server end with another operation retires only the selected Connection and owned microphone',()=>withBrowser('early',async state=>{
+    const voice=await open(state);state.client.emit(envelope('connection.end',{}, {cid:'foreign',sid:'session',connid:'connection'}));assert.equal(state.trackStopped,false);
+    state.client.emit(envelope('connection.end',{}, {cid:'conversation',sid:'session',connid:'connection',operation_id:'another-end'}));await voice.ended;
+    assert.ok(state.trackStopped&&state.peerClosed&&!state.client.closed);assert.equal(state.client.commands.length,1);
+}));
+test('application audio uses canonical signaling without requesting a microphone',()=>withBrowser('early',async state=>{
+    const voice=await open(state,{inputStream:state.stream});assert.equal(state.microphoneRequests,0);assert.equal(state.offers.length,1);await voice.close();assert.equal(state.trackStops,1);
+}));
+test('invalid supplied capture refuses before ownership or signaling',()=>withBrowser('early',async state=>{
+    for(const tracks of [[],[{kind:'audio',readyState:'ended'}],[{kind:'video',readyState:'live'}],[{kind:'audio',readyState:'live'},{kind:'other',readyState:'live'}]])
+        await assert.rejects(open(state,{inputStream:{getTracks:()=>tracks}}),{code:'invalid-request'});
+    assert.equal(state.microphoneRequests,0);assert.equal(state.offers.length,0);assert.equal(state.trackStops,0);
+}));
+for(const mode of ['peer-constructor','track-add'])test(`browser releases original capture after ${mode} failure`,()=>withBrowser(mode,async state=>{
+    await assert.rejects(open(state),{code:'webrtc-failed'});assert.equal(state.microphoneRequests,1);assert.equal(state.trackStops,1);
+    if(mode!=='peer-constructor')assert.equal(state.peerCloses,1);assert.equal(state.offers.length,0);
+}));
+test('media local close is shared and sends no end while retaining borrowed control',()=>withBrowser('early',async state=>{
+    const voice=await open(state);let terminated=0;voice.videoWorker={terminate(){terminated++;}};
+    const first=voice.close();assert.equal(first,voice.close());await first;await voice.ended;
+    assert.equal(terminated,1);assert.equal(state.peerCloses,1);assert.equal(state.trackStops,1);assert.equal(state.client.commands.length,1);
+}));
+test('capture denial remains explicit before creating a peer or submitting an offer',()=>withBrowser('denied',async state=>{
+    await assert.rejects(open(state),{code:'media-denied'});assert.equal(state.offers.length,0);assert.equal(state.peer,undefined);assert.equal(state.client.lifetimes.size,0);
+}));
+test('capture deadline stops a late permission result without an offer',()=>withBrowser('early',async state=>{
+    let finish;const pending=new Promise(resolve=>finish=resolve);navigator.mediaDevices.getUserMedia=()=>pending;
+    await assert.rejects(open(state,{},5),{code:'timeout'});finish(state.stream);await tick();assert.equal(state.trackStops,1);assert.equal(state.offers.length,0);
+}));
+test('control loss during permission acquisition immediately retires the pending capture owner',()=>withBrowser('early',async state=>{
+    let finish;const pending=new Promise(resolve=>finish=resolve);navigator.mediaDevices.getUserMedia=()=>pending;
+    const opening=open(state,{},500);state.client.lose();await assert.rejects(opening,{code:'transport'});
+    finish(state.stream);await tick();assert.equal(state.trackStops,1);assert.equal(state.peer,undefined);assert.equal(state.client.events.size,0);assert.equal(state.client.lifetimes.size,0);
+}));
+test('explicit durable end submits once with original revision and confirms journal status',()=>withBrowser('early',async state=>{
+    const voice=await open(state);const first=voice.end('original-end',1);assert.equal(first,voice.end('original-end',1));
+    await assert.rejects(voice.end('replacement-end',1),{code:'conflict'});await first;await voice.ended;
+    const ends=state.client.commands.filter(c=>c.type==='connection.end');assert.equal(ends.length,1);
+    assert.equal(ends[0].scope.operation_id,'original-end');assert.equal(ends[0].scope.expected_revision,1);assert.equal(voice.savedEnd.submissionAttempted,true);
+    const saved=voice.savedEnd;saved.scope.operation_id='forged';assert.equal(voice.savedEnd.scope.operation_id,'original-end');
+    assert.equal(state.trackStops,1);assert.equal(state.peerCloses,1);assert.equal(state.client.closed,false);
+}));
+test('uncertain explicit end keeps one original intent and releases local capture',()=>withBrowser('early',async state=>{
+    const voice=await open(state);state.client.operationStatus=async()=>({state:'unknown'});
+    const first=voice.end('uncertain-end',1,{timeoutMs:5});await assert.rejects(first,{code:'timeout'});
+    assert.equal(first,voice.end('uncertain-end',1));await assert.rejects(voice.end('new-end',2),{code:'conflict'});
+    assert.equal(state.client.commands.filter(c=>c.type==='connection.end').length,1);assert.equal(state.trackStops,1);assert.equal(state.peerCloses,1);
+}));
+test('invalid or cancelled end does not consume the caller original intent',()=>withBrowser('early',async state=>{
+    const voice=await open(state);await assert.rejects(voice.end('original-offer',1),{code:'invalid-request'});
+    const abort=new AbortController();abort.abort();await assert.rejects(voice.end('valid-end',1,{signal:abort.signal}),{code:'cancelled'});
+    assert.equal(voice.savedEnd,undefined);await voice.end('valid-end',1);assert.equal(state.client.commands.filter(c=>c.type==='connection.end').length,1);
+}));
 
 test('video answer rejects rejected, partial, nonduplex and nonVP8 profiles', () => {
     const answer = 'v=0\r\na=sendrecv\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=rtpmap:96 VP8/90000\r\n';
     assert.doesNotThrow(() => validateVideoAnswer(answer));
     const control = 'm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=sctp-port:5000\r\n';
-    assert.doesNotThrow(() => validateVideoAnswer(answer + control));
+    assert.throws(() => validateVideoAnswer(answer + control), {code:'unsupported-media-profile'});
     for (const invalid of [answer.replace('m=video 9', 'm=video 0'),
         answer.replace('VP8/90000', 'H264/90000'), answer.replace('a=sendrecv', 'a=recvonly'),
         answer.slice(0, answer.indexOf('m=video')), answer + 'm=video 9 UDP/TLS/RTP/SAVPF 96\r\n',
@@ -221,43 +193,37 @@ test('video diagnostics omit malformed ICE metadata instead of exporting it', as
 });
 
 
-test('browser session selection is paired, bounded and immutable before capture', async () => {
-    const { browserOfferSelection } = await import('../typescript/dist/browser_binding.js');
-    assert.equal(browserOfferSelection({},false),undefined);
-    const input={conversationId:'conversation',sessionId:'session'};
-    const selected=browserOfferSelection(input,true);input.sessionId='changed';
-    assert.deepEqual(selected,{conversation_id:'conversation',session_id:'session'});
-    for(const value of [{conversationId:'c'}, {sessionId:'s'}, {conversationId:'c',sessionId:'has space'},
-        {conversationId:'c',sessionId:'\u0000'}, {conversationId:'c',sessionId:'é'.repeat(65)}])
-        assert.throws(()=>browserOfferSelection(value,true),error=>error.code==='invalid-request');
-    assert.throws(()=>browserOfferSelection({conversationId:'c',sessionId:'s'},false));
+test('browser session selection snapshots every original ID before capture',async()=>{
+    const {browserOfferSelection}=await import('../typescript/dist/browser_binding.js');
+    const input=intent({video:true}),selected=browserOfferSelection(input);input.sessionId='changed';input.operationId='replacement';
+    assert.equal(selected.sessionId,'session');assert.equal(selected.operationId,'original-offer');
+    for(const invalid of [{conversationId:undefined},{sessionId:undefined},{connectionId:'has space'},{operationId:'\u0000'},
+        {audioStreamId:'é'.repeat(65)},{expectedRevision:-1},{video:true,videoStreamId:undefined},
+        {video:true,videoStreamId:'audio-stream'},{video:false,videoStreamId:'video-stream'}])
+        assert.throws(()=>browserOfferSelection({...intent(),...invalid}),{code:'invalid-request'});
 });
-
-test('invalid explicit video selection fails before requesting microphone or camera', async () => {
-    await withBrowser('early',async state=>{
-        await assert.rejects(BrowserVoiceSession.open('ws://127.0.0.1:3018','fixture',100,{video:true,conversationId:'c'}), error=>error.code==='invalid-request');
-        assert.equal(state.microphoneRequests,0);
-        assert.equal(state.offers.length,0);
-    });
-});
-
+test('invalid explicit selection and wrong physical transport fail before capture',async()=>withBrowser('early',async state=>{
+    await assert.rejects(BrowserVoiceSession.open(state.client,{...intent(),sessionId:undefined}),{code:'invalid-request'});
+    state.client.controlTransport='webtransport';await assert.rejects(open(state),{code:'unsupported-transport'});
+    assert.equal(state.microphoneRequests,0);assert.equal(state.offers.length,0);
+}));
 
 test('a stalled offer obeys the whole participation deadline and releases capture', async () => {
     await withBrowser('offer-stall', async state => {
-        await assert.rejects(BrowserVoiceSession.open('ws://127.0.0.1:3018', 'fixture', 20), error => error.code === 'timeout');
-        assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
+        await assert.rejects(open(state, {}, 20), error => error.code === 'timeout');
+        assert.ok(state.trackStopped && state.peerClosed && !state.client.closed);
         assert.equal(state.offers.length, 0);
     });
 });
 
 test('caller option mutation cannot change the selected media profile during capture', async () => {
     await withBrowser('early', async state => {
-        const options = {};
-        const pending = BrowserVoiceSession.open('ws://127.0.0.1:3018', 'fixture', 100, options);
+        const options = intent();
+        const pending = open(state, options, 100);
         options.video = true;
         const voice = await pending;
         assert.equal(state.offers.length, 1);
-        assert.equal(state.offers[0].conversation_id, undefined);
+        assert.equal(state.offers[0].scope.cid, "conversation");
         await voice.close();
         assert.ok(state.trackStopped && state.peerClosed);
     });
@@ -266,22 +232,22 @@ test('caller option mutation cannot change the selected media profile during cap
 
 test('asynchronous offer send failure settles promptly and releases owned browser resources', async () => {
     await withBrowser('late-send-error', async state => {
-        await assert.rejects(BrowserVoiceSession.open('ws://127.0.0.1:3018', 'fixture', 100), error=>error.code==='webrtc-failed');
-        assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
+        await assert.rejects(open(state, {}, 100), error=>error.code==='webrtc-failed');
+        assert.ok(state.trackStopped && state.peerClosed && !state.client.closed);
     });
 });
 
 for (const failure of ['capture-ended', 'ice-failed']) {
     test(`browser ${failure} releases capture and signaling exactly once`, async () => {
         await withBrowser('early', async state => {
-            const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100);
+            const voice = await open(state, {}, 100);
             if (failure === 'capture-ended') state.track.dispatchEvent(new Event('ended'));
             else {
                 state.peer.iceConnectionState = 'failed';
                 state.peer.dispatchEvent(new Event('iceconnectionstatechange'));
             }
             await voice.ended;
-            assert.ok(state.trackStopped && state.peerClosed && state.socketClosed);
+            assert.ok(state.trackStopped && state.peerClosed && !state.client.closed);
             assert.equal(await voice.close(), undefined);
         });
     });
@@ -289,12 +255,12 @@ for (const failure of ['capture-ended', 'ice-failed']) {
 
 test('capture uses selected local device and rejects incompatible selectors before signaling', async () => {
     await withBrowser('early', async state => {
-        const voice = await BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, {audioDeviceId: 'fixture-microphone'});
+        const voice = await open(state, {audioDeviceId: 'fixture-microphone'}, 100);
         assert.deepEqual(state.constraints.audio, {deviceId: {exact: 'fixture-microphone'}});
         await voice.close();
         for (const options of [{audioDeviceId:''}, {audioDeviceId:'private-device-canary\u0000'},
             {videoDeviceId:'camera'}, {audioDeviceId:'mic',inputStream:state.stream}]) {
-            await assert.rejects(() => BrowserVoiceSession.open('ws://127.0.0.1:8190', 'fixture', 100, options),
+            await assert.rejects(() => open(state, options, 100),
                 error=>error.code==='invalid-request'&&!error.message.includes('private-device-canary'));
         }
         assert.equal(state.microphoneRequests, 1);
@@ -303,9 +269,9 @@ test('capture uses selected local device and rejects incompatible selectors befo
 
 test('video capture awaits finish before sender creation so queued bypass cannot detach the transform', async () => {
     await withBrowser('early', async state => {
-        const names=['RTCRtpSender','RTCRtpScriptTransform','Worker','RTCPeerConnection','WebSocket'];
+        const names=['RTCRtpSender','RTCRtpScriptTransform','Worker','RTCPeerConnection'];
         const originals=new Map(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
-        const PeerBase=globalThis.RTCPeerConnection,SocketBase=globalThis.WebSocket;
+        const PeerBase=globalThis.RTCPeerConnection;
         const video=Object.assign(new EventTarget(),{kind:'video',readyState:'live',
             stop:()=>{state.videoStopped=true;},getSettings:()=>({width:640,height:360,frameRate:30}),
             applyConstraints:()=>new Promise(resolve=>setTimeout(()=>{state.constraintsFinished=true;resolve();},5))});
@@ -326,23 +292,16 @@ test('video capture awaits finish before sender creation so queued bypass cannot
             getTransceivers(){return this.senders.map(sender=>({sender,setCodecPreferences(){}}));}
             getSenders(){return this.senders;}
         }
-        class Socket extends SocketBase {
-            send(raw){const signal=JSON.parse(raw);if(signal.type==='bye'){super.send(raw);return;}
-                state.offers.push(signal);
-                this.message({type:'answer',connection_id:'fixture',request_id:signal.request_id,
-                    sdp:'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 0\r\na=rtpmap:0 PCMU/8000\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=rtpmap:96 VP8/90000\r\n'});
-                this.message({type:'ready',request_id:signal.request_id});}
-        }
-        const replacements={RTCRtpSender:Sender,RTCRtpScriptTransform:class {},RTCPeerConnection:Peer,WebSocket:Socket,
+        const replacements={RTCRtpSender:Sender,RTCRtpScriptTransform:class {},RTCPeerConnection:Peer,
             Worker:class {terminate(){state.workerStopped=true;}}};
         for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:replacements[name]});
         try {
-            const session=await BrowserVoiceSession.open('ws://127.0.0.1:8190','fixture',200,{video:true,inputStream:stream});
+            const session=await BrowserVideoSession.open(state.client,intent({video:true,inputStream:stream}),{timeoutMs:200});
             assert.equal(state.bypassed,false);assert.equal(state.offers.length,1);
-            await session.close();assert.ok(state.trackStopped&&state.videoStopped&&state.workerStopped);
+            await session.end("video-end",1);assert.equal(session.savedEnd.scope.operation_id,"video-end");assert.ok(state.trackStopped&&state.videoStopped&&state.workerStopped);
             state.trackStopped=false;state.videoStopped=false;
             state.constraintsFinished=false;video.applyConstraints=async()=>{throw Error('controlled constraints refusal');};
-            await assert.rejects(BrowserVoiceSession.open('ws://127.0.0.1:8190','fixture',200,{video:true,inputStream:stream}));
+            await assert.rejects(open(state, {video:true,inputStream:stream}, 200));
             assert.equal(state.constraintsFinished,false);assert.equal(state.peerCreations,1);assert.ok(state.trackStopped&&state.videoStopped);
         } finally {
             for(const name of names){const descriptor=originals.get(name);if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
@@ -419,4 +378,44 @@ test('video answer accepts optional RTX only when its apt names negotiated VP8',
         repaired.replace('SAVPF 96 97','SAVPF 96 97 128')+'a=rtpmap:128 VP8/90000\r\n',
     ];
     for(const answer of bad)assert.throws(()=>validateVideoAnswer(answer),error=>error.code==='unsupported-media-profile');
+});
+
+test('listener registration refusal leaves no lifetime observer or capture owner',()=>withBrowser('signaling-listener',async state=>{
+    await assert.rejects(open(state),{code:'webrtc-failed'});assert.equal(state.client.lifetimes.size,0);assert.equal(state.microphoneRequests,0);
+}));
+test('cancelled open before capture and during permission never submits replacement intent',()=>withBrowser('early',async state=>{
+    const abort=new AbortController();abort.abort();await assert.rejects(BrowserVoiceSession.open(state.client,intent(),{signal:abort.signal}),{code:'cancelled'});
+    assert.equal(state.microphoneRequests,0);
+    let finish;const pending=new Promise(resolve=>finish=resolve);navigator.mediaDevices.getUserMedia=()=>pending;
+    const next=new AbortController(),opening=BrowserVoiceSession.open(state.client,intent(),{signal:next.signal});next.abort();
+    await assert.rejects(opening,{code:'cancelled'});finish(state.stream);await tick();assert.equal(state.trackStops,1);assert.equal(state.offers.length,0);
+}));
+test('control lifetime retires established capture with original once-only ownership',()=>withBrowser('early',async state=>{
+    const voice=await open(state);state.client.lose();await voice.ended;assert.equal(state.trackStops,1);assert.equal(state.peerCloses,1);
+    assert.equal(state.client.events.size,0);assert.equal(state.client.lifetimes.size,0);assert.equal(state.client.commands.length,1);
+}));
+test('remote track routing uses the negotiated event track and refuses extra media',()=>withBrowser('early',async state=>{
+    const voice=await open(state);const track={kind:'audio'};
+    state.peer.ontrack({track,streams:[{getTracks:()=>[track,{kind:'video'}]}]});assert.deepEqual(voice.remoteStream.getTracks(),[track]);
+    state.peer.ontrack({track:{kind:'video'},streams:[]});await voice.ended;assert.equal(state.trackStops,1);assert.equal(state.peerCloses,1);
+}));
+
+test('terminal Session notification cancels pending permission without retargeting capture',()=>withBrowser('early',async state=>{
+    let finish;const pending=new Promise(resolve=>finish=resolve);navigator.mediaDevices.getUserMedia=()=>pending;
+    const opening=open(state);state.client.emit(envelope('session.ended',{}, {cid:'conversation',sid:'session',operation_id:'external-end'}));
+    await assert.rejects(opening,{code:'closed'});finish(state.stream);await tick();assert.equal(state.trackStops,1);assert.equal(state.offers.length,0);
+}));
+test('original cancellation signal is retained when request options mutate during capture',()=>withBrowser('early',async state=>{
+    let finish;const pending=new Promise(resolve=>finish=resolve);navigator.mediaDevices.getUserMedia=()=>pending;
+    const original=new AbortController(),replacement=new AbortController(),request={signal:original.signal};
+    const opening=BrowserVoiceSession.open(state.client,intent(),request);request.signal=replacement.signal;original.abort();
+    await assert.rejects(opening,{code:'cancelled'});finish(state.stream);await tick();assert.equal(state.trackStops,1);assert.equal(state.offers.length,0);
+}));
+
+test('public answer profile refuses partial, nonduplex and unoffered audio/data',async()=>{
+    const {validateBrowserAnswer}=await import('../typescript/dist/browser_capture.js');
+    assert.doesNotThrow(()=>validateBrowserAnswer(audioSdp,false));assert.doesNotThrow(()=>validateBrowserAnswer(audioSdp+videoSdp,true));
+    for(const sdp of [audioSdp.replace('opus/48000/2','PCMU/8000'),audioSdp.replace('sendrecv','recvonly'),audioSdp.replace('m=audio 9','m=audio 0'),audioSdp+videoSdp,
+        audioSdp+'m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n'])assert.throws(()=>validateBrowserAnswer(sdp,false),{code:'unsupported-media-profile'});
+    assert.throws(()=>validateBrowserAnswer(audioSdp,true),{code:'unsupported-media-profile'});
 });

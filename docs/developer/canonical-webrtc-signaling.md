@@ -1,14 +1,14 @@
 # Canonical WebRTC signaling component
 
-G6-051 is in progress. The internal TypeScript module
-`browser_webrtc_signaling.ts` implements a signaling owner against the frozen
-`connect/2` envelope shapes. It is not exported from the browser entry point yet.
+G6-051 is in progress. The public TypeScript browser surface exports
+`CanonicalWebRtcSignaling` and owned voice/video sessions against the frozen
+`connect/2` envelope shapes.
 The default canonical server does not enable a WebRTC media route. Protected
 startup composition can install bounded mono Opus/G.711 audio or explicitly opt
 into one duplex audio plus VP8 camera staged media host.
-The older browser voice/video entry points still use their historical signaling
-dialect. These components do not establish browser fallback support or media
-interoperability.
+Browser voice/video now borrow signed canonical control. The former SDK signaling
+dialect has been removed. Installed-browser fallback/media qualification remains
+open.
 
 The component borrows the authenticated `BrowserClient` and takes ownership of
 one supplied `RTCPeerConnection`. The caller configures transceivers, channels
@@ -49,9 +49,8 @@ not TLS/network, installed Chrome/Firefox, Core WebRTC or actual media tests.
 The subsequent peer-state correction has 279 passing SDK tests, including
 15 signaling methods; see the separate peer-lifetime evidence.
 
-Next, complete the wider media profiles and integrate capture,
-track/data routing and the public browser surface, remove the old offer-ready
-dialect, and run forced WT/UDP failure in Chrome and Firefox with the same
+Next, complete the wider media profiles, data/transition routing and run
+forced WT/UDP failure in Chrome and Firefox with the same
 Conversation and transition intents. Current authorization, uncertainty,
 permission/background/resume, loss and owned teardown remain required.
 
@@ -672,7 +671,8 @@ The capture helper accepts an optional cancellation signal. Cancellation before
 capture does not prompt; cancellation or timeout during permission acquisition
 stops every late track. Successful capture transfers ownership and removes that
 callback. This prepares the coordinated public voice/video wrapper migration;
-the existing public wrappers have not yet been migrated.
+at that checkpoint the public wrappers had not yet been migrated. The following
+section records their migration.
 
 [Evidence](../evidence/gate-6/browser-webrtc-capture-lifetime.json) records all 289
 SDK methods passing with source/generated-module guards, including ten new
@@ -680,3 +680,85 @@ transport/ICE/capture methods. Edited sources pass formatting. The SDK-wide form
 check remains failed on three byte-identical HEAD files, recorded explicitly.
 These synthetic boundary checks do not qualify installed-browser media or close
 G6-051.
+
+
+## Public browser session API
+
+`BrowserVoiceSession.open(client, options, request)` and
+`BrowserVideoSession.open(client, options, request)` borrow an authenticated
+canonical WSS `BrowserClient`. Options require `conversationId`, `sessionId`,
+`connectionId`, `operationId`, `expectedRevision`, `participantId` and
+`audioStreamId`; video also requires a distinct `videoStreamId`. Voice opts into
+video only with `video: true`; the video facade selects it directly. The fixed
+program advertises mono Opus/48000 and optional VP8/90000. The complete answer
+must preserve all original logical streams and accept duplex media with no extra
+SCTP channel. Public capture never creates an unoffered control data channel.
+
+```ts
+const media = await BrowserVideoSession.open(signedClient, {
+  conversationId, sessionId, connectionId, operationId, expectedRevision,
+  participantId, audioStreamId, videoStreamId, inputStream,
+}, {timeoutMs: 15000, signal});
+// Receive authorization is a separate original signed stream.subscribe command.
+await media.attach(remoteVideo);
+await media.end(endOperationId, currentConnectionRevision);
+await media.close();
+```
+
+Scope, profile, device selection and cancellation signal are snapshotted before
+permission acquisition. Wrong/closed control and invalid supplied tracks refuse
+before capture ownership. The session owns validated supplied tracks or acquired
+capture, the actual RTC peer and the optional video worker. Capture constraints
+finish before sender creation; the video transform attaches in the same task as
+`addTrack`. Control loss, terminal scope events, capture loss, ICE/peer failure,
+encoder failure, timeout and cancellation retire those original resources. Late
+permission results are stopped. Remote routing uses only the negotiated event
+track; unrelated tracks in its stream do not gain admission.
+
+`close()` is local and never sends a durable mutation or closes the borrowed
+client. `ended` describes local retirement, not a journal receipt. `end()` takes
+an explicit original operation/revision, submits at most once, checks journal
+status and retires local media even when the durable result remains uncertain.
+Repeated identical calls share the original promise; changed operation/revision
+refuses. `savedEnd` and `savedOffer` are copied snapshots. Failed initialization
+exposes `BrowserVoiceOpenError.savedOffer` with original SDP, scope and submission
+attempt. Keep SDP in private application state and inspect the original operation
+under current authorization; never invent another offer after uncertainty.
+The shared BrowserClient's existing request timeout/cancel policy may retire
+uncertain control for all borrowers.
+
+The reference page and live rehearsal read a private JSON configuration file
+(maximum 64 KiB) instead of the former bearer-only route. Its fields are:
+
+- `url`, `credential`, `identityId`, `device`: the enrolled WSS BrowserClient fields.
+- `signing`: `algorithm`, `keyId`, private `jwk`; `server`: `algorithm`, `keyId`,
+  public `jwk`, `notBefore`, `expiresAt`. Keys must match existing enrollment;
+  timestamp values are the actual trust interval in Unix seconds.
+- `connection`: the explicit scope/stream/revision options above.
+- `subscribe`: original `operationId`, `expectedRevision`, `subscriptions`.
+  Current fixed-host selection supports audio participant pins and exact current
+  video sources. Both peers must answer before selecting a current video source.
+- `end`: original Connection-end `operationId` and current `expectedRevision`.
+
+The page applies receive selection only through its explicit button; accepted
+selection is observed through journal status. Its owned client closes separately
+from media. Failed/uncertain operations keep their IDs in the private file and
+snapshots. The browser qualification pipe now takes `participants` with those
+same configurations and one explicit `terminal` Session-end operation/revision.
+It applies selections after all peers answer, then uses the original signed
+Session end and journal receipt for paired termination. Observer quality limits
+are unchanged. The former Gate 5 bearer-only fixture inputs explicitly refuse;
+their provisioning runners require migration to the signed canonical host.
+The current SDK component checks do not qualify that prepared browser runner.
+
+Installed Chrome/Firefox signed-host media, forced WT/UDP failure, real capture,
+background/resume/reoffer/DTMF/data, wider selectors/directions/fmtp,
+consultation/handoff/preparation, Linux/remote and packages remain required.
+G6-051 remains in progress and acceptance scope is unchanged.
+
+[Current wrapper evidence](../evidence/gate-6/browser-canonical-sessions.json)
+records all 305 SDK methods, 34 unchanged verdict methods and 29 package inventory
+methods passing with source/generated-module guards. Both signature algorithms
+exercise the actual public SDK offer and journaled-end envelope path with
+controlled capture/RTC boundaries. The earlier compile/helper-parse failures and
+unsupported legacy provisioning lanes remain recorded explicitly.

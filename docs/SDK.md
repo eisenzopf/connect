@@ -369,27 +369,36 @@ discovery. Supplying only one is invalid. A selected accepted/ready audio/video
 Session must belong to the configured browser pair under current authority.
 Discovery does not allocate a media leg or grant permission.
 
-The browser facade can join that exact Session:
+The canonical browser facade borrows an authenticated WSS `BrowserClient`:
 
 ```ts
-const binding = await client.browserBinding(conversationId, sessionId);
-const video = await BrowserVideoSession.open(binding.signaling_url, credential,
-    15000, {conversationId: binding.conversation_id, sessionId: binding.session_id});
+const video = await BrowserVideoSession.open(signedClient, {
+  conversationId, sessionId, connectionId, operationId, expectedRevision,
+  participantId, audioStreamId, videoStreamId,
+});
 video.setCameraMuted(true);
 video.setMicrophoneMuted(false);
+// Receive selection is an explicit signed stream.subscribe operation.
+await video.end(endOperationId, currentConnectionRevision);
 await video.close();
 ```
 
-It uses authenticated WebRTC. Capture, ICE, offer/answer and sender configuration
-share one monotonic participation timeout. Capture/options are snapshotted before
-asynchronous work. An application-supplied stream transfers track ownership;
-clone tracks first if the application must retain its source. Optional
-`audioDeviceId`/`videoDeviceId` choose local capture devices; they are snapshotted,
-validated and passed only to capture constraints. They never enter signaling or
-diagnostics. Device selectors cannot be combined with an application-supplied stream. Hangup, capture-source loss and failed ICE release
-owned tracks. Leaving the connection retains its accepted durable Session and
-Conversation; explicit `session_end` is terminal, and a new accepted invitation
-can be selected without restarting the server.
+All scope/stream IDs and the initial revision are explicit and snapshotted before
+capture. Capture, ICE, offer/answer and sender configuration share one deadline.
+The fixed profile is mono Opus audio plus optional VP8 camera. Supplied tracks
+transfer ownership after validation; clone them to retain a source. Device IDs
+stay in capture constraints. The shared client remains caller-owned. `close()`
+only retires local capture/worker/peer; `end()` submits one original Connection
+end and observes journal status. Repeated identical end calls share one result;
+a replacement operation/revision refuses. Failed open exposes original private
+SDP/intent through `BrowserVoiceOpenError.savedOffer`; retain it privately and
+inspect the original operation under current authorization. No automatic retry,
+transport change or replacement mutation is implied. Signaling/playback startup
+alone does not prove received or decoded media.
+
+The former `browserBinding` discovery is not a canonical media credential or
+signaling owner. See [canonical WebRTC](developer/canonical-webrtc-signaling.md#public-browser-session-api)
+for signed configuration, explicit receive selection and qualification scope.
 
 Rust `NativeVideoSession` owns independently bounded PCMU and encoded VP8 media
 receivers. It retains a private original binding for receive, subscribe and

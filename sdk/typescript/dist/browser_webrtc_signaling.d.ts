@@ -16,6 +16,11 @@ export interface WebRtcSignalingOptions {
         codec_preferences: readonly string[];
     }>;
 }
+export interface SavedWebRtcOffer {
+    scope: Scope;
+    payload: JsonObject;
+    submissionAttempted: boolean;
+}
 /** Internal canonical signaling owner. Owns the supplied RTCPeerConnection, not
  * its capture tracks or the shared signed client. An applied answer establishes
  * signaling only; media readiness needs independent WebRTC/media observations.
@@ -46,11 +51,7 @@ export declare class CanonicalWebRtcSignaling {
     private readonly peerStateChanged;
     constructor(client: BrowserClient, peer: RTCPeerConnection, options: WebRtcSignalingOptions);
     /** Save this exact original intent for status recovery, never synthesize a replacement offer. */
-    get savedOffer(): Readonly<{
-        scope: Scope;
-        payload: JsonObject;
-        submissionAttempted: boolean;
-    }> | undefined;
+    get savedOffer(): SavedWebRtcOffer | undefined;
     private check;
     private matches;
     private receive;

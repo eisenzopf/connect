@@ -65,10 +65,12 @@ its durable conversation.
 
 The `@rudeless/connect/browser` entry exports `BrowserVoiceSession`. Its default
 input is the microphone. Applications can supply a live audio-only stream with
-`BrowserVoiceSession.open(url, credential, timeoutMs, { inputStream })`; the
+`BrowserVoiceSession.open(signedClient, { ...originalConnectionIntent, inputStream }, { timeoutMs })`; the
 session owns and stops the supplied tracks. Clone tracks to retain another owner.
 The `ended` promise settles after either side ends the browser leg and capture
-stops. Browser WebRTC uses loopback signaling; it is not a native browser QUIC SDK.
+stops. Canonical WebRTC borrows signed WSS control with explicit original
+Connection/operation IDs. Local `close()` releases media; explicit `end()` confirms
+a durable Connection end. The shared signed client remains caller-owned.
 
 See [the conversation client](../examples/conversation-client/README.md) and
 [explicit live rehearsals](../scripts/live/README.md) for hardware and generated

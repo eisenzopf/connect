@@ -1,3 +1,4 @@
+import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
     BrowserVoiceSession,
     type BrowserVoiceOptions,
@@ -10,17 +11,30 @@ import {
 export class BrowserVideoSession {
     private constructor(private readonly session: BrowserVoiceSession) {}
     static async open(
-        url: string,
-        credential: string,
-        timeoutMs = 15000,
-        options: Omit<BrowserVoiceOptions, "video"> = {},
+        client: BrowserClient,
+        options: Omit<BrowserVoiceOptions, "video">,
+        request: RequestOptions = {},
     ): Promise<BrowserVideoSession> {
         return new BrowserVideoSession(
-            await BrowserVoiceSession.open(url, credential, timeoutMs, {
-                ...options,
-                video: true,
-            }),
+            await BrowserVoiceSession.open(
+                client,
+                { ...options, video: true },
+                request,
+            ),
         );
+    }
+    get savedOffer() {
+        return this.session.savedOffer;
+    }
+    get savedEnd() {
+        return this.session.savedEnd;
+    }
+    end(
+        operationId: string,
+        expectedRevision: number,
+        request: RequestOptions = {},
+    ): Promise<void> {
+        return this.session.end(operationId, expectedRevision, request);
     }
     get remoteStream(): MediaStream {
         return this.session.remoteStream;

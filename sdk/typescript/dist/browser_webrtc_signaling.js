@@ -251,7 +251,7 @@ export class CanonicalWebRtcSignaling {
                 !jsonObject(answer.payload.capabilities) ||
                 !Array.isArray(streams) ||
                 !streams.length ||
-                streams.length > offered.size ||
+                streams.length !== offered.size ||
                 new Set(streams.map((s) => (jsonObject(s) ? s.id : undefined)))
                     .size !== streams.length ||
                 streams.some((s) => !jsonObject(s) ||

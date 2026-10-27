@@ -52,6 +52,8 @@ export {
 export { BrowserHttpClient } from "./browser_http.js";
 export {
     BrowserVoiceSession,
+    BrowserVoiceOpenError,
+    type SavedWebRtcEnd,
     type BrowserVoiceOptions,
 } from "./browser_voice.js";
 export type { VoiceDiagnostics } from "./browser_voice_stats.js";
@@ -62,3 +64,9 @@ export type * from "./tasks.js";
 export { TASK_PROFILE } from "./tasks.js";
 export { BrowserVideoSession } from "./browser_video.js";
 export type { VideoDiagnostics } from "./browser_voice.js";
+
+export {
+    CanonicalWebRtcSignaling,
+    type WebRtcSignalingOptions,
+    type SavedWebRtcOffer,
+} from "./browser_webrtc_signaling.js";

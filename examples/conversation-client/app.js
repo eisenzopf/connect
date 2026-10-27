@@ -1,8 +1,8 @@
+import { readCanonicalMedia } from "./canonical-media.js";
 import { renderArtifactHistory } from "./files.js";
 import {
     IntentJournal,
     historyPage,
-    configuredVoiceBinding,
 } from "./workflow.js";
 import {
     BrowserHttpClient,
@@ -14,6 +14,7 @@ const byId = (id) => document.getElementById(id);
 let client;
 let actionRunning = false;
 let voice;
+let voiceMedia;
 const value = (id) => byId(id).value.trim();
 let intents;
 let historyCursor = null;
@@ -254,18 +255,11 @@ byId("end").onclick = () =>
 
 byId("join").onclick = () =>
     act("Voice connected", async () => {
-        const binding = await configuredVoiceBinding(
-            needClient(),
-            needConversation(),
-            value("participant"),
-        );
-        byId("voice-binding").textContent =
-            `Voice conversation: ${binding.conversation_id} · participant: ${binding.participant_id}`;
-        byId("webrtc").value = binding.signaling_url;
-        voice = await BrowserVoiceSession.open(
-            binding.signaling_url,
-            value("credential"),
-        );
+        voiceMedia?.client.close();
+        voiceMedia = await needMedia();
+        byId("voice-binding").textContent = `Voice Conversation: ${voiceMedia.options.conversationId} · Session: ${voiceMedia.options.sessionId}`;
+        try { voice = await BrowserVoiceSession.open(voiceMedia.client, voiceMedia.options); }
+        catch (error) { voiceMedia.client.close(); throw error; }
         const activeVoice = voice;
         void activeVoice.ended.then(() => {
             if (voice !== activeVoice) return;
@@ -274,6 +268,7 @@ byId("join").onclick = () =>
             byId("remote").srcObject = null;
             byId("join").disabled = false;
             byId("hangup").disabled = true;
+            byId("receive-voice").disabled = true;
             report(
                 "Voice ended",
                 "This voice leg ended; the conversation remains available.",
@@ -293,7 +288,12 @@ byId("join").onclick = () =>
         }
         byId("join").disabled = true;
         byId("hangup").disabled = false;
+        byId("receive-voice").disabled = false;
     });
+byId("receive-voice").onclick = () => act("Receive selection confirmed", async()=>{
+    if (!voice || !voiceMedia) throw Error("Join voice first.");
+    await voiceMedia.receive(); byId("receive-voice").disabled = true;
+});
 byId("voice-diagnostics").onclick = () =>
     act("Voice path inspected", async () => {
         if (!voice) throw new Error("Join voice first.");
@@ -305,21 +305,34 @@ byId("voice-diagnostics").onclick = () =>
     });
 byId("hangup").onclick = () =>
     act("Voice ended", async () => {
-        await voice?.close();
+        const current = voice, media = voiceMedia;
+        try { if (current) await current.end(media.end.operationId, media.end.expectedRevision); }
+        finally { media?.client.close(); }
         voice = undefined;
         byId("join").disabled = false;
         byId("hangup").disabled = true;
+            byId("receive-voice").disabled = true;
         await refresh();
     });
 window.addEventListener("beforeunload", () => {
     void voice?.close();
+    voiceMedia?.client.close();
 });
+
+async function needMedia() {
+    const media = await readCanonicalMedia(byId("media-config").files?.[0], {
+        conversationId: needConversation(), sessionId: value("session"), identityId: value("identity"),
+    });
+    byId("webrtc").value = media.url;
+    return media;
+}
 
 // Narrow reference-client hook: modules use the same public client and saved intent.
 export {
     act,
     mutate,
     needClient,
+    needMedia,
     needConversation,
     value,
     refresh,

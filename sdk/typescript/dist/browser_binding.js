@@ -1,16 +1,32 @@
 import { ConnectError } from "./errors.js";
-/** Snapshot paired identifiers before any capture; callers cannot retarget an in-flight offer. */
-export function browserOfferSelection(options, video) {
-    if (options.conversationId === undefined && options.sessionId === undefined)
-        return undefined;
-    const valid = (value) => typeof value === "string" &&
-        value.length > 0 &&
-        new TextEncoder().encode(value).length <= 128 &&
-        !/[\s\u0000-\u001f\u007f-\u009f]/u.test(value);
-    if (!video || !valid(options.conversationId) || !valid(options.sessionId))
-        throw new ConnectError("invalid-request", "Select a conversation and accepted audio/video Session using bounded identifiers");
-    return {
-        conversation_id: options.conversationId,
-        session_id: options.sessionId,
+import { identifier } from "./uctp_wire.js";
+/** Snapshot all identities/profile before capture; never generate replacement intent. */
+export function browserOfferSelection(options) {
+    const selection = {
+        conversationId: options.conversationId,
+        sessionId: options.sessionId,
+        connectionId: options.connectionId,
+        operationId: options.operationId,
+        expectedRevision: options.expectedRevision,
+        participantId: options.participantId,
+        audioStreamId: options.audioStreamId,
+        videoStreamId: options.videoStreamId,
     };
+    if (![
+        selection.conversationId,
+        selection.sessionId,
+        selection.connectionId,
+        selection.operationId,
+        selection.participantId,
+        selection.audioStreamId,
+    ].every(identifier) ||
+        !Number.isSafeInteger(selection.expectedRevision) ||
+        selection.expectedRevision < 0 ||
+        (options.video !== undefined && typeof options.video !== "boolean") ||
+        (options.video === true
+            ? !identifier(selection.videoStreamId) ||
+                selection.videoStreamId === selection.audioStreamId
+            : selection.videoStreamId !== undefined))
+        throw new ConnectError("invalid-request", "Explicit bounded Conversation/Session/Connection/operation/participant/stream IDs, revision and matching media profile required");
+    return selection;
 }

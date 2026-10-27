@@ -1,34 +1,51 @@
 import { ConnectError } from "./errors.js";
+import { identifier } from "./uctp_wire.js";
 
-/** Explicit, nonsecret selection. Discovery and media admission each recheck authority. */
+/** Explicit original identities; authority is rechecked by the signed service. */
 export interface BrowserSessionSelection {
-    conversationId?: string;
-    sessionId?: string;
+    conversationId: string;
+    sessionId: string;
+    connectionId: string;
+    operationId: string;
+    expectedRevision: number;
+    participantId: string;
+    audioStreamId: string;
+    videoStreamId?: string;
 }
-export interface BrowserOfferSelection {
-    conversation_id: string;
-    session_id: string;
-}
-
-/** Snapshot paired identifiers before any capture; callers cannot retarget an in-flight offer. */
+/** Snapshot all identities/profile before capture; never generate replacement intent. */
 export function browserOfferSelection(
-    options: BrowserSessionSelection,
-    video: boolean,
-): BrowserOfferSelection | undefined {
-    if (options.conversationId === undefined && options.sessionId === undefined)
-        return undefined;
-    const valid = (value: unknown): value is string =>
-        typeof value === "string" &&
-        value.length > 0 &&
-        new TextEncoder().encode(value).length <= 128 &&
-        !/[\s\u0000-\u001f\u007f-\u009f]/u.test(value);
-    if (!video || !valid(options.conversationId) || !valid(options.sessionId))
+    options: BrowserSessionSelection & { video?: boolean },
+): BrowserSessionSelection {
+    const selection = {
+        conversationId: options.conversationId,
+        sessionId: options.sessionId,
+        connectionId: options.connectionId,
+        operationId: options.operationId,
+        expectedRevision: options.expectedRevision,
+        participantId: options.participantId,
+        audioStreamId: options.audioStreamId,
+        videoStreamId: options.videoStreamId,
+    };
+    if (
+        ![
+            selection.conversationId,
+            selection.sessionId,
+            selection.connectionId,
+            selection.operationId,
+            selection.participantId,
+            selection.audioStreamId,
+        ].every(identifier) ||
+        !Number.isSafeInteger(selection.expectedRevision) ||
+        selection.expectedRevision < 0 ||
+        (options.video !== undefined && typeof options.video !== "boolean") ||
+        (options.video === true
+            ? !identifier(selection.videoStreamId) ||
+              selection.videoStreamId === selection.audioStreamId
+            : selection.videoStreamId !== undefined)
+    )
         throw new ConnectError(
             "invalid-request",
-            "Select a conversation and accepted audio/video Session using bounded identifiers",
+            "Explicit bounded Conversation/Session/Connection/operation/participant/stream IDs, revision and matching media profile required",
         );
-    return {
-        conversation_id: options.conversationId,
-        session_id: options.sessionId,
-    };
+    return selection;
 }

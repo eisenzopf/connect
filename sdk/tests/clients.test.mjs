@@ -20,25 +20,11 @@ import {createServer} from 'node:http';
 import {NativeAudioClient,NativeClient,HttpClient,ConnectError} from '../typescript/dist/index.js';
 import {decodeResponse} from '../typescript/dist/protocol.js';
 import './browser_voice.test.mjs';
+import './canonical_media_configuration.test.mjs';
 import './browser_capture_wait.test.mjs';
 const helper=fileURLToPath(new URL('./helper_fixture.py',import.meta.url));
 const rejects=(code)=>error=>error instanceof ConnectError&&error.code===code;
 test('browser entry point loads without Node helper modules',async()=>{const browser=await import('../typescript/dist/browser.js');assert.equal(typeof browser.BrowserHttpClient,'function');assert.equal(typeof browser.BrowserVoiceSession,'function');});
-test('browser voice reports microphone denial and rejects non-loopback signaling',async()=>{
- const {BrowserVoiceSession}=await import('../typescript/dist/browser.js');
- await assert.rejects(()=>BrowserVoiceSession.open('wss://public.example.test/voice','fixture'),/loopback/);
- const descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
- Object.defineProperty(globalThis,'navigator',{configurable:true,value:{mediaDevices:{getUserMedia:async()=>{throw new Error('denied');}}}});
- try{await assert.rejects(()=>BrowserVoiceSession.open('ws://127.0.0.1:1234','fixture'),rejects('media-denied'));}
- finally{if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;}
-});
-test('browser voice applies its deadline to microphone acquisition',async()=>{
- const {BrowserVoiceSession}=await import('../typescript/dist/browser.js');
- const descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
- Object.defineProperty(globalThis,'navigator',{configurable:true,value:{mediaDevices:{getUserMedia:()=>new Promise(()=>{})}}});
- try{await assert.rejects(()=>BrowserVoiceSession.open('ws://127.0.0.1:1234','fixture',10),rejects('timeout'));}
- finally{if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;}
-});
 test('browser voice reports remote playback failure',async()=>{
  const {BrowserVoiceSession}=await import('../typescript/dist/browser.js');
  const session=Object.create(BrowserVoiceSession.prototype);

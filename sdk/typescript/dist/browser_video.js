@@ -7,11 +7,17 @@ export class BrowserVideoSession {
     constructor(session) {
         this.session = session;
     }
-    static async open(url, credential, timeoutMs = 15000, options = {}) {
-        return new BrowserVideoSession(await BrowserVoiceSession.open(url, credential, timeoutMs, {
-            ...options,
-            video: true,
-        }));
+    static async open(client, options, request = {}) {
+        return new BrowserVideoSession(await BrowserVoiceSession.open(client, { ...options, video: true }, request));
+    }
+    get savedOffer() {
+        return this.session.savedOffer;
+    }
+    get savedEnd() {
+        return this.session.savedEnd;
+    }
+    end(operationId, expectedRevision, request = {}) {
+        return this.session.end(operationId, expectedRevision, request);
     }
     get remoteStream() {
         return this.session.remoteStream;

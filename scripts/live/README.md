@@ -72,7 +72,11 @@ Serve the public SDK's built `dist` tree and `browser-voice.html`,
 `browser-voice.js`, `capture-worklet.js`, scenario and WAV fixtures on loopback.
 Keep private state outside that document root. The relative SDK import assumes
 this repository layout; adapt that import if staging a smaller document root.
-Enter the configured WebRTC route credential and a same-origin scenario URL.
+Select an enrolled signed media configuration (including original receive/end
+operations) and a same-origin scenario URL. Stage
+`examples/conversation-client/canonical-media.js` with its relative SDK import.
+The canonical WSS host must be explicitly installed; default startup and the old
+bearer-only route do not provide this profile.
 
 The page supplies generated audio through `BrowserVoiceSession.open`'s optional
 `inputStream`, negotiates real WebRTC, records received PCM, reports ICE/codecs,

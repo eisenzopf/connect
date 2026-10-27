@@ -1,0 +1,230 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T14:39:24.553280+00:00",
+  "source_revision_before_checkpoint": "c7be10894c8964ab0fa8660601fdcb6dca2a8110",
+  "scope": "Local TypeScript SDK, generated browser surface, current examples and prepared isolated browser rehearsal contract. Controlled RTC/WebSocket boundaries use actual SDK EdDSA/ES256 envelope signing/verification. No actual TLS/network peer, installed-browser signed-host media, physical capture or complete fallback qualification in this checkpoint.",
+  "implementation": [
+    "BrowserVoiceSession/BrowserVideoSession now borrow canonical signed WSS BrowserClient and require immutable original Conversation/Session/Connection/operation/participant/revision and audio/video stream IDs before capture. The obsolete public offer-ready/ready/bare-bye dialect and negotiation module/generated files are removed without a compatibility path.",
+    "The bounded program advertises mono Opus/48000 plus optional VP8/90000. All original logical stream answers must be present. Public answer validation requires duplex selected media, actual Opus SDP /2 and optional VP8 with no extra SCTP channel. No unoffered control datachannel is created.",
+    "Capture, constraints, ICE, signaling and sender configuration use one participation deadline. Device/profile/scope/cancellation signal are snapshotted. Original validated supplied/acquired capture, actual RTC peer and video worker retire on current control/terminal/peer/ICE/capture/encoder failure or cancellation; late permission tracks stop. Video constraints complete before same-task sender/transform attachment. Remote routing uses only each negotiated event track.",
+    "Local close is once-only and leaves the borrowed client alive. Explicit end uses one caller-supplied original operation/current revision and journal observation, retires local media on uncertainty, shares identical repeated calls and refuses a replacement operation/revision. Copied savedOffer/savedEnd and BrowserVoiceOpenError.savedOffer retain original private intent; no automatic retry, fallback or new mutation.",
+    "Examples import explicitly enrolled private/public JWKs as nonextractable CryptoKeys, keep credentials/configuration in memory and apply explicit once-only original receive selection through journal status. UI hangup uses durable end; page cleanup is local. Live and browser rehearsal callers use the new API. Browser rehearsal now takes signed participant configurations and explicit Session end; frozen observer thresholds remain unchanged.",
+    "Current package inventory references canonical signaling assets and the configuration helper instead of removed modules. This is asset validation, not an actual rebuilt/requalified package."
+  ],
+  "verification": {
+    "sdk_methods": 305,
+    "browser_verdict_methods": 34,
+    "package_inventory_methods": 29,
+    "checks": [
+      {
+        "name": "build",
+        "command": [
+          "npm",
+          "--prefix",
+          "sdk/typescript",
+          "run",
+          "build"
+        ],
+        "exit_code": 0,
+        "seconds": 0.2768764169886708,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 build",
+          "npm notice run tsc -p tsconfig.json"
+        ]
+      },
+      {
+        "name": "format",
+        "command": [
+          "npm",
+          "--prefix",
+          "sdk/typescript",
+          "exec",
+          "--",
+          "prettier",
+          "--check",
+          "sdk/typescript/src/browser.ts",
+          "sdk/typescript/src/browser_voice.ts",
+          "sdk/typescript/src/browser_video.ts",
+          "sdk/typescript/src/browser_binding.ts",
+          "sdk/typescript/src/browser_capture.ts",
+          "sdk/typescript/src/browser_webrtc_signaling.ts"
+        ],
+        "exit_code": 0,
+        "seconds": 0.2748950831592083,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e410a2bca4cbd1c23fc780342b0591eaddb6b1b40dd0727dbdc3cc69540856b5",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 npx",
+          "npm notice run 'prettier' --check sdk/typescript/src/browser.ts sdk/typescript/src/browser_voice.ts sdk/typescript/src/browser_video.ts sdk/typescript/src/browser_binding.ts sdk/typescript/src/browser_capture.ts sdk/typescript/src/browser_webrtc_signaling.ts",
+          "Checking formatting...",
+          "All matched files use Prettier code style!"
+        ]
+      },
+      {
+        "name": "sdk",
+        "command": [
+          "node",
+          "--test",
+          "sdk/tests/clients.test.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 3.3179150000214577,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "fe1e925ae4a0f6b23d80532b101f237cc8b5af610d3033dfb203ac8685999ca2",
+        "tail": [
+          "\u2714 native audio reports remote end promptly and preserves the terminal code (92.257416ms)",
+          "\u2714 health readiness validates observations and still accepts older servers (0.51675ms)",
+          "\u2139 tests 305",
+          "\u2139 suites 0",
+          "\u2139 pass 305",
+          "\u2139 fail 0",
+          "\u2139 cancelled 0",
+          "\u2139 skipped 0",
+          "\u2139 todo 0",
+          "\u2139 duration_ms 3277.700333"
+        ]
+      },
+      {
+        "name": "verdict",
+        "command": [
+          "node",
+          "--test",
+          "scripts/tests/acceptance_policy.test.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 0.1053301659412682,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "154daba7f74e86b7b77a609025c83c86cfb462d22191c69656f00b586afddc84",
+        "tail": [
+          "\u2714 legacy strict helper still rejects degraded impaired-quality evidence (0.470834ms)",
+          "\u2714 actual browser verdict retains every non-AV hard gate under degraded acceptance (1.738542ms)",
+          "\u2139 tests 34",
+          "\u2139 suites 0",
+          "\u2139 pass 34",
+          "\u2139 fail 0",
+          "\u2139 cancelled 0",
+          "\u2139 skipped 0",
+          "\u2139 todo 0",
+          "\u2139 duration_ms 65.158208"
+        ]
+      },
+      {
+        "name": "package",
+        "command": [
+          "python3",
+          "scripts/tests/test_package_inventory.py"
+        ],
+        "exit_code": 0,
+        "seconds": 2.0969197920057923,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "7b9580d9f2a5823c32ec4c98e600a374f73a2b2a1b8e0f59d4a86a9eacd4a7cc",
+        "tail": [
+          ".............................",
+          "----------------------------------------------------------------------",
+          "Ran 29 tests in 2.041s",
+          "",
+          "OK"
+        ]
+      },
+      {
+        "name": "syntax-0",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/canonical-media.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.031525708036497235,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-1",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/app.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03036341699771583,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-2",
+        "command": [
+          "node",
+          "--check",
+          "examples/conversation-client/video.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03127170912921429,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-3",
+        "command": [
+          "node",
+          "--check",
+          "scripts/live/browser-voice.js"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03138195909559727,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      },
+      {
+        "name": "syntax-4",
+        "command": [
+          "node",
+          "--check",
+          "scripts/video/browser-qualify.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 0.03051120787858963,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": []
+      }
+    ],
+    "input_manifest_sha256": "47e2e7969628a9f978eabc68a7190529b77085c8c24506ae31cdded7b475954d",
+    "guarded_source_files": 201,
+    "guarded_generated_files": 100,
+    "legacy_refusal": {
+      "exit_code": 1,
+      "seconds": 0.03924970794469118,
+      "expected_refusal": true,
+      "stderr_sha256": "bb6f34b0a44069df13b927164dee4bf4250e8af1d34504ad277d02033ebd8fa4",
+      "scope": "Refuses the obsolete bearer-only pipe before browser import or launch. No browser/media qualification."
+    },
+    "format_scope": "All edited TypeScript files pass focused formatting. Earlier SDK-wide failures on three byte-identical HEAD files remain recorded in browser-webrtc-capture-lifetime.json; no repository-wide format pass is claimed.",
+    "earlier_attempts": [
+      "Initial wrapper compilation failed because the preserved playback helper lost its timeoutValue import. The import was restored and stable-source compilation passes.",
+      "An initial example-helper import failed at parse time because a subscription local reused the function parameter name selection. The local was renamed; subsequent 303-method and final guarded 304-method SDK cohorts pass.",
+      "Earlier unguarded 298/303/304 candidate SDK checks and the first guarded 304-method cohort remain separate. One additional original-logical-video omission refusal method passes in the final guarded 305-method cohort; repeated methods are not added."
+    ]
+  },
+  "remaining": [
+    "Actual installed Chrome/Firefox signed-host duplex media and current Opus/VP8 offers, browser/native interoperability, timing/impairment/permission/background/reoffer/DTMF/data/full fallback remain required.",
+    "Earlier Gate 5 browser::run and check-video-paths provisioning still supply bearer-only legacy input and explicitly cannot qualify this signed profile; migrate their actual host/enrollment fixture before claiming those lanes. The new browser runner contract is prepared but has not been run against a real canonical host.",
+    "Broader selectors/directions/fmtp, consultation/handoff/preparation, Linux/remote/hosting/package and all unchanged G6-051 requirements remain open. No task or acceptance is promoted."
+  ]
+}

@@ -1,21 +1,27 @@
 import { BrowserDeadline } from "./browser_deadline.js";
-import { negotiateBrowser, type BrowserSignal } from "./browser_negotiation.js";
+import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
     browserOfferSelection,
     type BrowserSessionSelection,
 } from "./browser_binding.js";
 import {
+    CanonicalWebRtcSignaling,
+    type SavedWebRtcOffer,
+} from "./browser_webrtc_signaling.js";
+import {
     microphoneStream,
     captureDevices,
+    validateBrowserAnswer,
     type BrowserCaptureDevices,
 } from "./browser_capture.js";
-import { ConnectError } from "./errors.js";
 import { timeoutValue } from "./protocol.js";
+import { ConnectError } from "./errors.js";
+import { identifier, type Scope } from "./uctp_wire.js";
+import type { JsonObject } from "./uctp_json.js";
 import {
     voiceDiagnostics,
     type VoiceDiagnostics,
 } from "./browser_voice_stats.js";
-
 import {
     constrainVideoCapture,
     startVideoTransform,
@@ -28,198 +34,391 @@ import {
 } from "./browser_video_stats.js";
 export type { VideoDiagnostics } from "./browser_video_stats.js";
 
-/** Optional audio supplied by an application, such as processed or generated speech. */
+/** Explicit canonical Connection intent, snapshotted before capture permission. */
 export interface BrowserVoiceOptions
     extends BrowserSessionSelection, BrowserCaptureDevices {
-    /**
-     * A live stream matching the selected profile: one audio track by default,
-     * or one audio and one video track with video=true. The session owns and
-     * stops its tracks on failure/hangup. Clone tracks first to retain a source.
-     * Omit this to acquire the user's microphone.
-     */
+    /** A live one-audio or one-audio/one-video stream. Ownership transfers after validation.
+     * Clone tracks first to retain a source. Omit to acquire microphone/camera capture. */
     inputStream?: MediaStream;
-    /** Opt into the VP8/640×360 audio/video profile. Audio-only remains the default. */
+    /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
 }
 
-/** One authenticated browser WebRTC leg retained by its signaling lease. */
+/** An unsuccessful open retains its original offer for authoritative status recovery.
+ * This snapshot can contain private SDP; keep it in application-owned private state. */
+export class BrowserVoiceOpenError extends ConnectError {
+    constructor(
+        error: unknown,
+        readonly savedOffer?: SavedWebRtcOffer,
+    ) {
+        super(
+            error instanceof ConnectError ? error.code : "webrtc-failed",
+            error instanceof ConnectError
+                ? error.message
+                : "WebRTC participation failed",
+        );
+    }
+}
+export interface SavedWebRtcEnd {
+    scope: Scope;
+    payload: JsonObject;
+    submissionAttempted: boolean;
+}
+
+/** Owns capture, the RTC peer and video worker; borrows the shared signed client.
+ * open() establishes signaling only. Observe actual media/playback independently. */
 export class BrowserVoiceSession {
     readonly remoteStream = new MediaStream();
-    private connectionId?: string;
     private closed = false;
+    private failure?: Error;
     private readonly captureEvents = new AbortController();
     private closing?: Promise<void>;
-    private resolveEnded: () => void = () => {};
-    /** Settles after either side ends this leg and microphone capture stops. */
+    private resolveEnded!: () => void;
+    /** Settles after local media resources retire. It is not a durable end receipt. */
     readonly ended = new Promise<void>((resolve) => {
         this.resolveEnded = resolve;
     });
+    private peer?: RTCPeerConnection;
+    private localStream?: MediaStream;
+    private ownedTracks: MediaStreamTrack[] = [];
+    private videoWorker?: Worker;
+    private signaling?: CanonicalWebRtcSignaling;
+    private stopLifetime?: () => void;
+    private stopEvents?: () => void;
+    private endIntent?: SavedWebRtcEnd;
+    private ending?: Promise<void>;
 
     private constructor(
-        private readonly peer: RTCPeerConnection,
-        private readonly socket: WebSocket,
-        private readonly localStream: MediaStream,
-        private readonly videoWorker?: Worker,
+        private readonly client: BrowserClient,
+        private readonly selection: ReturnType<typeof browserOfferSelection>,
     ) {
-        for (const track of localStream.getTracks())
-            track.addEventListener("ended", () => void this.close(), {
-                once: true,
-                signal: this.captureEvents.signal,
+        this.stopLifetime = client.onClose((error) => this.fail(error));
+        if (this.closed) {
+            this.stopLifetime();
+            return;
+        }
+        try {
+            this.stopEvents = client.onEvent((frame) => {
+                if (
+                    (frame.type === "conversation.closed" &&
+                        frame.cid === selection.conversationId) ||
+                    (frame.type === "session.ended" &&
+                        frame.cid === selection.conversationId &&
+                        frame.sid === selection.sessionId) ||
+                    (frame.type === "connection.end" &&
+                        frame.cid === selection.conversationId &&
+                        frame.sid === selection.sessionId &&
+                        frame.connid === selection.connectionId)
+                )
+                    void this.close();
             });
-        peer.ontrack = (event) => {
-            for (const track of event.streams[0]?.getTracks() ?? [event.track])
-                this.remoteStream.addTrack(track);
-        };
+            if (this.closed) this.stopEvents();
+        } catch (error) {
+            this.stopLifetime?.();
+            throw error;
+        }
     }
-
+    private check(): void {
+        if (this.closed)
+            throw (
+                this.failure ??
+                new ConnectError("closed", "Browser media owner closed")
+            );
+    }
+    private fail(error: Error): void {
+        if (this.closed) return;
+        this.failure = error;
+        void this.close();
+    }
+    private async bound<T>(
+        work: Promise<T>,
+        budget: BrowserDeadline,
+    ): Promise<T> {
+        const result = await budget.run(() =>
+            Promise.race([
+                work,
+                this.ended.then(() => {
+                    this.check();
+                    throw new ConnectError(
+                        "closed",
+                        "Browser media owner closed",
+                    );
+                }),
+            ]),
+        );
+        this.check();
+        return result;
+    }
     static async open(
-        signalingUrl: string,
-        credential: string,
-        timeoutMs = 15000,
-        options: BrowserVoiceOptions = {},
+        client: BrowserClient,
+        options: BrowserVoiceOptions,
+        request: RequestOptions = {},
     ): Promise<BrowserVoiceSession> {
-        timeoutMs = timeoutValue(timeoutMs);
-        if (options.video !== undefined && typeof options.video !== "boolean")
+        const signal = request.signal;
+        const timeoutMs = request.timeoutMs ?? 15000;
+        if (!Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 60000)
             throw new ConnectError(
                 "invalid-request",
-                "Select a boolean media profile",
+                "WebRTC deadline must be 1–60000 ms",
             );
-        const video = options.video === true;
+        if (client.controlTransport !== "websocket")
+            throw new ConnectError(
+                "unsupported-transport",
+                "Browser WebRTC requires an existing signed WebSocket client",
+            );
+        if (client.closed)
+            throw new ConnectError("closed", "Canonical control client closed");
+        const selection = browserOfferSelection(options);
+        const video = selection.videoStreamId !== undefined;
         const inputStream = options.inputStream;
         const devices = captureDevices(
             options,
             video,
             inputStream !== undefined,
         );
-        const selection = browserOfferSelection(options, video);
-        const budget = new BrowserDeadline(timeoutMs);
-        const parsed = new URL(signalingUrl);
+        const tracks = inputStream?.getTracks();
         if (
-            parsed.protocol !== "ws:" ||
-            !["127.0.0.1", "[::1]", "localhost"].includes(parsed.hostname) ||
-            parsed.username ||
-            parsed.password ||
-            parsed.search ||
-            parsed.hash
+            tracks &&
+            (tracks.filter((t) => t.kind === "audio").length !== 1 ||
+                tracks.filter((t) => t.kind === "video").length !==
+                    (video ? 1 : 0) ||
+                tracks.length !== (video ? 2 : 1) ||
+                tracks.some((t) => t.readyState !== "live"))
         )
-            throw new Error("Use a loopback WebRTC signaling URL");
-        if (!/^[A-Za-z0-9._~-]+$/.test(credential))
             throw new ConnectError(
                 "invalid-request",
-                "Credential is not WebSocket-safe",
+                "Input tracks do not match the selected audio/video profile",
             );
-        let stream: MediaStream;
-        try {
-            if (inputStream) {
-                const tracks = inputStream.getTracks();
-                if (
-                    tracks.filter((track) => track.kind === "audio").length !==
-                        1 ||
-                    tracks.filter((track) => track.kind === "video").length !==
-                        (video ? 1 : 0) ||
-                    tracks.some((track) => track.readyState !== "live")
-                )
-                    throw new ConnectError(
-                        "invalid-request",
-                        "Input tracks do not match the selected audio/video profile",
-                    );
-                stream = inputStream;
-            } else
-                stream = await microphoneStream(
-                    budget.remaining(),
-                    video,
-                    devices,
-                );
-        } catch (error) {
-            if (error instanceof ConnectError) throw error;
+        if (signal?.aborted)
             throw new ConnectError(
-                "media-denied",
-                "Microphone or camera access was denied",
+                "cancelled",
+                "Browser media open cancelled before capture",
             );
-        }
-        let peer: RTCPeerConnection | undefined;
-        let socket: WebSocket | undefined;
-        let session: BrowserVoiceSession | undefined;
-        let videoWorker: Worker | undefined;
+        const budget = new BrowserDeadline(timeoutMs);
+        let session: BrowserVoiceSession;
         try {
-            // Chromium posts an encoded-stream bypass task when addTrack creates
-            // a sender. Finish capture awaits before creating that sender, then
-            // attach its transform synchronously in the same task. See
-            // https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/modules/peerconnection/rtc_rtp_sender.cc
-            // Constructor:667-672; bypass:1064-1074.
-            if (video) await constrainVideoCapture(stream, budget.remaining());
-            peer = new RTCPeerConnection();
-            for (const track of stream.getTracks())
-                peer.addTrack(track, stream);
-            if (video) videoWorker = startVideoTransform(peer);
-            peer.createDataChannel("connect-control", { ordered: true });
-            socket = new WebSocket(signalingUrl, [
-                "rvoip.webrtc.v1",
-                `token.${credential}`,
-            ]);
-            session = new BrowserVoiceSession(
-                peer,
-                socket,
-                stream,
-                videoWorker,
-            );
-            if (videoWorker) {
-                const owned = session;
-                videoWorker.onerror = () => void owned.close();
-                videoWorker.onmessage = () => void owned.close();
-            }
-            await budget.run(() =>
-                negotiateBrowser(
-                    peer!,
-                    socket!,
-                    stream,
-                    budget,
-                    (id) => {
-                        session!.connectionId = id;
-                    },
-                    selection,
+            session = new BrowserVoiceSession(client, selection);
+        } catch (error) {
+            throw new BrowserVoiceOpenError(error);
+        }
+        const abort = () =>
+            session.fail(
+                new ConnectError(
+                    "cancelled",
+                    "Browser media open cancelled; retain original operation ID",
                 ),
             );
-            if (video) await budget.run(() => configureVideoSender(peer!));
-            if (session.closed)
+        signal?.addEventListener("abort", abort, { once: true });
+        try {
+            if (signal?.aborted) abort();
+            session.check();
+            try {
+                session.localStream =
+                    inputStream ??
+                    (await microphoneStream(
+                        budget.remaining(),
+                        video,
+                        devices,
+                        session.captureEvents.signal,
+                    ));
+            } catch (error) {
+                session.check();
+                if (error instanceof ConnectError) throw error;
+                throw new ConnectError(
+                    "media-denied",
+                    "Microphone or camera access was denied",
+                );
+            }
+            session.ownedTracks = [
+                ...(tracks ?? session.localStream.getTracks()),
+            ];
+            if (
+                session.ownedTracks.length !== (video ? 2 : 1) ||
+                session.ownedTracks.filter((t) => t.kind === "audio").length !==
+                    1 ||
+                session.ownedTracks.filter((t) => t.kind === "video").length !==
+                    (video ? 1 : 0)
+            )
                 throw new ConnectError(
                     "unsupported-media-profile",
-                    "Video encoder support failed",
+                    "Acquired tracks do not match the original audio/video profile",
                 );
-            session.watchEnd();
+            // Capture can finish in the same microtask as control retirement.
+            if (session.closed) {
+                for (const track of session.ownedTracks) track.stop();
+                session.ownedTracks = [];
+                session.check();
+            }
+            for (const track of session.ownedTracks) {
+                track.addEventListener(
+                    "ended",
+                    () =>
+                        session.fail(
+                            new ConnectError("closed", "Owned capture ended"),
+                        ),
+                    { once: true, signal: session.captureEvents.signal },
+                );
+                if (track.readyState !== "live")
+                    session.fail(
+                        new ConnectError("closed", "Owned capture ended"),
+                    );
+            }
+            session.check();
+            if (video)
+                await session.bound(
+                    constrainVideoCapture(
+                        session.localStream,
+                        budget.remaining(),
+                    ),
+                    budget,
+                );
+            // Attach the encoded transform in the same task as addTrack. Awaiting
+            // capture constraints first prevents Chromium's sender bypass task.
+            session.peer = new RTCPeerConnection();
+            for (const track of session.ownedTracks)
+                session.peer.addTrack(track, session.localStream);
+            if (video) session.videoWorker = startVideoTransform(session.peer);
+            session.peer.ontrack = (event) => {
+                if (session.closed) return;
+                const track = event.track,
+                    received = session.remoteStream.getTracks();
+                if (
+                    !["audio", ...(video ? ["video"] : [])].includes(
+                        track.kind,
+                    ) ||
+                    received.some((t) => t.kind === track.kind && t !== track)
+                ) {
+                    session.fail(
+                        new ConnectError(
+                            "protocol",
+                            "Remote tracks exceed the original media profile",
+                        ),
+                    );
+                    return;
+                }
+                if (!received.includes(track))
+                    session.remoteStream.addTrack(track);
+            };
+            session.signaling = new CanonicalWebRtcSignaling(
+                client,
+                session.peer,
+                {
+                    ...selection,
+                    capabilities: {
+                        audio_codecs: [
+                            {
+                                name: "opus",
+                                params: { sample_rate: 48000, channels: 1 },
+                            },
+                        ],
+                        video_codecs: video
+                            ? [
+                                  {
+                                      name: "vp8",
+                                      params: {
+                                          sample_rate: 90000,
+                                          channels: 0,
+                                      },
+                                  },
+                              ]
+                            : [],
+                        max_streams_per_connection: video ? 2 : 1,
+                        identity_assurance_offered: "identified",
+                    },
+                    streams: [
+                        {
+                            id: selection.audioStreamId,
+                            kind: "audio",
+                            direction: "sendrecv",
+                            codec_preferences: ["opus"],
+                        },
+                        ...(video
+                            ? [
+                                  {
+                                      id: selection.videoStreamId!,
+                                      kind: "video" as const,
+                                      direction: "sendrecv" as const,
+                                      codec_preferences: ["vp8"],
+                                  },
+                              ]
+                            : []),
+                    ],
+                },
+            );
+            void session.signaling.finished.then(
+                () => session.close(),
+                (error) => session.fail(error),
+            );
+            if (session.videoWorker) {
+                session.videoWorker.onerror = () =>
+                    session.fail(
+                        new ConnectError(
+                            "unsupported-media-profile",
+                            "Video encoder support failed",
+                        ),
+                    );
+                session.videoWorker.onmessage = () =>
+                    session.fail(
+                        new ConnectError(
+                            "unsupported-media-profile",
+                            "Video encoder support failed",
+                        ),
+                    );
+            }
+            await session.bound(
+                session.signaling.offer({
+                    timeoutMs: Math.max(1, budget.remaining()),
+                    signal,
+                }),
+                budget,
+            );
+            validateBrowserAnswer(
+                session.peer.remoteDescription?.sdp ?? "",
+                video,
+            );
+            if (video)
+                await session.bound(configureVideoSender(session.peer), budget);
+            session.check();
             return session;
         } catch (error) {
-            if (session) await session.close();
-            else {
-                socket?.close();
-                peer?.close();
-                stopVideoWorker(videoWorker);
-                for (const track of stream.getTracks()) track.stop();
-            }
-            if (error instanceof ConnectError) throw error;
-            throw new ConnectError(
-                "webrtc-failed",
-                "WebRTC negotiation failed",
+            await session.close();
+            throw new BrowserVoiceOpenError(
+                session.failure ?? error,
+                session.signaling?.savedOffer,
             );
+        } finally {
+            signal?.removeEventListener("abort", abort);
         }
     }
-
+    /** A private snapshot of original SDP/operation intent, including uncertain submission. */
+    get savedOffer(): SavedWebRtcOffer | undefined {
+        return this.signaling?.savedOffer;
+    }
+    get savedEnd(): SavedWebRtcEnd | undefined {
+        return this.endIntent
+            ? {
+                  ...this.endIntent,
+                  scope: { ...this.endIntent.scope },
+                  payload: { ...this.endIntent.payload },
+              }
+            : undefined;
+    }
     /** Local capture for a muted preview; this session still owns its tracks. */
     get localPreview(): MediaStream {
-        return this.localStream;
+        return this.localStream!;
     }
 
     /** Independently mute a captured kind without ending the durable Session. */
     setMuted(kind: "audio" | "video", muted: boolean): void {
-        for (const track of this.localStream
-            .getTracks()
-            .filter((t) => t.kind === kind))
+        for (const track of this.localStream!.getTracks().filter(
+            (t) => t.kind === kind,
+        ))
             track.enabled = !muted;
     }
 
     /** Video decode counters, dimensions and timestamps; no SDP or addresses. */
     async videoDiagnostics(): Promise<Array<VideoDiagnostics>> {
-        return videoDiagnostics(this.peer, this.videoWorker);
+        return videoDiagnostics(this.peer!, this.videoWorker);
     }
 
     /** Attach remote audio and report browser playback-policy/output failure. */
@@ -258,102 +457,143 @@ export class BrowserVoiceSession {
 
     /** Inspect the negotiated path and audio counters without exposing SDP. */
     diagnostics(): Promise<VoiceDiagnostics> {
-        return voiceDiagnostics(this.peer);
+        return voiceDiagnostics(this.peer!);
     }
 
+    /** Submit one explicit durable end, then observe its original journal status.
+     * Repeating the same call shares its result; another operation/revision refuses.
+     * Local capture retires even when the durable outcome remains uncertain. */
+    end(
+        operationId: string,
+        expectedRevision: number,
+        request: RequestOptions = {},
+    ): Promise<void> {
+        if (this.endIntent) {
+            if (
+                this.endIntent.scope.operation_id !== operationId ||
+                this.endIntent.scope.expected_revision !== expectedRevision
+            )
+                return Promise.reject(
+                    new ConnectError(
+                        "conflict",
+                        "Original end already attempted; inspect its original operation status",
+                    ),
+                );
+            return this.ending!;
+        }
+        const signal = request.signal;
+        const timeoutMs = request.timeoutMs ?? 15000;
+        if (
+            !identifier(operationId) ||
+            operationId === this.selection.operationId ||
+            !Number.isSafeInteger(expectedRevision) ||
+            expectedRevision < 0 ||
+            !Number.isFinite(timeoutMs) ||
+            timeoutMs < 1 ||
+            timeoutMs > 60000
+        )
+            return Promise.reject(
+                new ConnectError(
+                    "invalid-request",
+                    "Use a distinct stable end operation, current revision and bounded deadline",
+                ),
+            );
+        if (signal?.aborted)
+            return Promise.reject(
+                new ConnectError(
+                    "cancelled",
+                    "End cancelled before submission",
+                ),
+            );
+        this.endIntent = {
+            scope: {
+                cid: this.selection.conversationId,
+                sid: this.selection.sessionId,
+                connid: this.selection.connectionId,
+                operation_id: operationId,
+                expected_revision: expectedRevision,
+            },
+            payload: { reason_code: 200, reason: "normal-clearing" },
+            submissionAttempted: false,
+        };
+        const until = performance.now() + timeoutMs;
+        const remaining = () => ({
+            timeoutMs: Math.max(1, until - performance.now()),
+            signal,
+        });
+        this.ending = Promise.resolve().then(async () => {
+            try {
+                this.endIntent!.submissionAttempted = true;
+                await this.client.request(
+                    "connection.end",
+                    { ...this.endIntent!.payload },
+                    { ...this.endIntent!.scope },
+                    remaining(),
+                );
+                for (;;) {
+                    if (performance.now() >= until)
+                        throw new ConnectError(
+                            "timeout",
+                            "Original Connection end remains uncertain; inspect its operation status",
+                        );
+                    const state = await this.client.operationStatus(
+                        this.selection.conversationId,
+                        operationId,
+                        remaining(),
+                    );
+                    if (state.state === "completed") return;
+                    if (["failed", "cancelled"].includes(String(state.state)))
+                        throw new ConnectError(
+                            "refused",
+                            "Original Connection end did not complete",
+                        );
+                    if (performance.now() >= until)
+                        throw new ConnectError(
+                            "timeout",
+                            "Original Connection end remains uncertain; inspect its operation status",
+                        );
+                    await new Promise((resolve) =>
+                        setTimeout(
+                            resolve,
+                            Math.max(
+                                0,
+                                Math.min(20, until - performance.now()),
+                            ),
+                        ),
+                    );
+                }
+            } finally {
+                await this.close();
+            }
+        });
+        return this.ending;
+    }
+    /** Local retirement only; never sends a durable end or closes the shared client. */
     close(): Promise<void> {
         if (this.closing) return this.closing;
         this.closed = true;
+        this.captureEvents.abort();
         this.closing = Promise.resolve().then(() => this.release());
         return this.closing;
     }
-
-    private async release(): Promise<void> {
-        this.captureEvents.abort();
+    private release(): void {
+        this.stopEvents?.();
+        this.stopLifetime?.();
+        if (this.peer) this.peer.ontrack = null;
         try {
-            if (
-                this.socket.readyState === WebSocket.OPEN &&
-                this.connectionId
-            ) {
-                await new Promise<void>((resolve) => {
-                    const finish = () => {
-                        clearTimeout(timer);
-                        this.socket.removeEventListener("message", message);
-                        this.socket.removeEventListener("close", finish);
-                        resolve();
-                    };
-                    const message = (event: MessageEvent) => {
-                        if (typeof event.data !== "string") return;
-                        try {
-                            if (
-                                (JSON.parse(event.data) as BrowserSignal)
-                                    .type === "bye"
-                            )
-                                finish();
-                        } catch {
-                            // The negotiated session already owns protocol errors.
-                        }
-                    };
-                    const timer = setTimeout(finish, 500);
-                    this.socket.addEventListener("message", message);
-                    this.socket.addEventListener("close", finish, {
-                        once: true,
-                    });
-                    try {
-                        this.socket.send(
-                            JSON.stringify({
-                                type: "bye",
-                                connection_id: this.connectionId,
-                                request_id: crypto.randomUUID(),
-                            }),
-                        );
-                    } catch {
-                        finish();
-                    }
-                });
-            }
+            if (this.signaling) this.signaling.close();
+            else this.peer?.close();
         } finally {
             try {
-                if (
-                    this.socket.readyState === WebSocket.OPEN ||
-                    this.socket.readyState === WebSocket.CONNECTING
-                )
-                    this.socket.close(1000, "Connect voice ended");
+                stopVideoWorker(this.videoWorker);
             } finally {
                 try {
-                    this.peer.close();
+                    for (const track of this.ownedTracks) track.stop();
                 } finally {
-                    stopVideoWorker(this.videoWorker);
-                    for (const track of this.localStream.getTracks())
-                        track.stop();
+                    this.ownedTracks = [];
                     this.resolveEnded();
                 }
             }
         }
-    }
-
-    private watchEnd(): void {
-        this.socket.onclose = () => void this.close();
-        this.socket.onerror = () => void this.close();
-        this.socket.onmessage = (event) => {
-            if (typeof event.data !== "string") return;
-            try {
-                const signal = JSON.parse(event.data) as BrowserSignal;
-                if (
-                    signal.type === "bye" &&
-                    signal.connection_id === this.connectionId
-                )
-                    void this.close();
-            } catch {
-                void this.close();
-            }
-        };
-        this.peer.addEventListener("iceconnectionstatechange", () => {
-            if (this.peer.iceConnectionState === "failed") void this.close();
-        });
-        this.peer.addEventListener("connectionstatechange", () => {
-            if (["failed", "closed"].includes(this.peer.connectionState))
-                void this.close();
-        });
     }
 }

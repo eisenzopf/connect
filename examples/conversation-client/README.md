@@ -44,20 +44,25 @@ sources or rebuilding the SDK. Do not write connection state into this static
 root. Use the server configuration and identity mapping below with your selected
 normal source-built executable in place of the installed path.
 
-Open `http://127.0.0.1:8088/examples/conversation-client/`. Start Connect with
-its loopback HTTP and WebRTC listeners, then enter their addresses plus a
-communications credential. The credential stays in page memory and is sent to
-WebRTC signaling through a private WebSocket subprotocol value.
+Open `http://127.0.0.1:8088/examples/conversation-client/`. HTTP messaging and
+Session controls use the local API fields. Browser media uses the separate
+**Signed media configuration** file described in
+[canonical WebRTC](../../docs/developer/canonical-webrtc-signaling.md#public-browser-session-api).
+It requires enrolled client/server signing keys, an authorized WebRTC Endpoint,
+an accepted Session and an explicitly installed canonical WSS media host. Default
+server startup does not install that host. The former bearer-only loopback route
+cannot be used by this browser API.
 
-The configured server-side WebRTC route selects the durable conversation and
-assistant. Browser metadata never chooses authority. Microphone denial and
-unsupported signaling are reported in the page status area.
-Use **Inspect voice path** during a call to see the selected ICE pair, candidate
-types, codec, and inbound/outbound audio counters. Network addresses, credentials
-and SDP are excluded. Playback startup has a deadline; output failure releases
-the microphone leg.
-Server hangup also releases capture, detaches playback and restores **Join voice**.
-The parent conversation remains available for the next call or message.
+Choose **Join voice/video** to establish signaling and owned capture. After both
+peers have answered, choose **Receive selected sources** to apply the file's
+original explicit subscription. An answer or successful playback call alone does
+not prove received or decoded media. **Hang up/Leave video** submits the file's
+original Connection end and observes its journal status. Local capture loss/page
+cleanup only retires owned resources. It does not invent a durable mutation.
+Keys, credentials and SDP stay in memory; keep the configuration outside the
+static asset directory. Inspect diagnostics for bounded counters without SDP,
+credentials or network addresses. The installed-browser operating profile remains
+under G6-051 qualification.
 
 ## Native microphone and speaker
 
@@ -142,43 +147,10 @@ print(json.dumps({"op": "create", "request_id": "reference-conversation-1",
 PY
 ```
 
-Stop your foreground server with Ctrl-C before changing its configuration.
-Add the loopback signaling listener and route using the generated public IDs.
-The route's `credential_id` is an identifier, not the secret `credential` value.
-This command refuses to add a second WebRTC section and never prints a token:
-
-```sh
-python3 - <<'PY'
-import json, os, pathlib, tomllib
-state = pathlib.Path(os.environ["CONNECT_REFERENCE_STATE"])
-human = tomllib.loads((state / "human.toml").read_text())
-peer = tomllib.loads((state / "agent.toml").read_text())
-reply = json.loads((state / "reference-conversation.json").read_text())
-assert reply["kind"] == "conversation", "Inspect the saved create result before proceeding"
-conversation = reply["data"]["id"]
-server = state / "server.toml"
-text = server.read_text()
-assert "webrtc" not in tomllib.loads(text), "Existing WebRTC configuration preserved"
-text += ('\n[webrtc]\nbind = "127.0.0.1:8092"\n[webrtc.route]\n'
-         + 'credential_id = ' + json.dumps(human["credential_id"]) + '\n'
-         + 'conversation_id = ' + json.dumps(conversation) + '\n'
-         + 'assistant_identity_id = ' + json.dumps(peer["identity_id"]) + '\n')
-server.write_text(text)
-print("Reference Conversation ID:", conversation)
-PY
-"$CONNECT_REFERENCE_BINARY" serve \
-  --config "$CONNECT_REFERENCE_STATE/server.toml" --http-bind 127.0.0.1:8091
-```
-
-The route deliberately omits `session_id`: each video join supplies the explicit
-accepted Session, and the server rechecks its membership and current authority.
-Keep the returned Conversation ID. Serve the matching runtime root in another
-terminal, so both `examples/` and `sdk/` remain reachable by relative imports:
-
-```sh
-cd /absolute/path/to/runtime
-python3 -m http.server 8088 --bind 127.0.0.1
-```
+Keep the returned Conversation ID. The setup above prepares HTTP/native test
+state; it does not provision canonical browser media. Use the separately enrolled
+signed media configuration and explicit canonical host for that lane. Serve only
+the matching public assets as described above.
 
 Open `http://127.0.0.1:8088/examples/conversation-client/` in two windows.
 Privately open the generated client configurations to populate the fields:
@@ -191,22 +163,22 @@ Privately open the generated client configurations to populate the fields:
 | Credential | `human.toml` → `credential` | `agent.toml` → `credential` |
 | Conversation ID | Returned Conversation ID | Same Conversation ID |
 
-Choose **Connect**, then **Refresh timeline** in each window. Signaling is read
-from the server before joining; do not substitute a browser-supplied route.
+Choose **Connect**, then **Refresh timeline** in each window. Select a separate
+signed media configuration for each identity before joining browser media.
 Send a message and reply before proceeding to the audio/video controls below.
 Keep the state directory private and out of the static-server root. When done,
 stop only these owned servers with Ctrl-C; retain the state for restart.
 
-## Gate 5 local audio/video and continuity
+## Signed browser audio/video and continuity
 
 Use two permitted identities in two browser windows with the same explicit
-Conversation ID. The server must expose its configured loopback HTTP and WebRTC
-listeners and the selected identities must have session/media authority. Use
+Conversation ID. The server must expose its HTTP API and explicitly installed canonical WSS
+media host; the selected identities need current Session/media authority. Use
 **Invite audio + video** in one window and copy the returned Session ID to the
 other. **Reject** leaves devices unopened. For a new invitation, choose **Accept**
 before either participant chooses **Join video**. Select available camera and
 microphone devices, allow the browser permissions, and verify remote playback
-in both windows. **Inspect video** reports bounded media diagnostics.
+in both windows after explicit receive selection. **Inspect video** reports bounded media diagnostics.
 
 **Mute camera** and **Mute microphone** change the local tracks. **Leave video**
 releases the current media leg; **End** ends the Session for both participants.

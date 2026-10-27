@@ -23,6 +23,11 @@ export interface WebRtcSignalingOptions {
         codec_preferences: readonly string[];
     }>;
 }
+export interface SavedWebRtcOffer {
+    scope: Scope;
+    payload: JsonObject;
+    submissionAttempted: boolean;
+}
 const maximumSdpBytes = 512 * 1024;
 const maximumCandidates = 64;
 const maximumCandidateBytes = 64 * 1024;
@@ -167,13 +172,7 @@ export class CanonicalWebRtcSignaling {
         void this.finished.catch(() => {});
     }
     /** Save this exact original intent for status recovery, never synthesize a replacement offer. */
-    get savedOffer():
-        | Readonly<{
-              scope: Scope;
-              payload: JsonObject;
-              submissionAttempted: boolean;
-          }>
-        | undefined {
+    get savedOffer(): SavedWebRtcOffer | undefined {
         return this.original
             ? {
                   scope: { ...this.scope },
@@ -363,7 +362,7 @@ export class CanonicalWebRtcSignaling {
                 !jsonObject(answer.payload.capabilities) ||
                 !Array.isArray(streams) ||
                 !streams.length ||
-                streams.length > offered.size ||
+                streams.length !== offered.size ||
                 new Set(streams.map((s) => (jsonObject(s) ? s.id : undefined)))
                     .size !== streams.length ||
                 streams.some(

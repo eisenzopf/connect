@@ -210,6 +210,7 @@ test('actual video UI cannot reactivate an ended session after delayed playback'
     const sandbox={document:{getElementById:byId},window:{addEventListener(){}},
         BrowserVideoSession:{open:async()=>current},act:async(_label,action)=>action(),
         configuredVoiceBinding:async()=>({conversation_id:'c',session_id:'s',signaling_url:'ws://127.0.0.1:1'}),
+        needMedia:async()=>({client:{close(){}},options:{conversationId:'c',sessionId:'s'},end:{operationId:'end',expectedRevision:1}}),
         needClient:()=>client,needConversation:()=>'c',value:id=>id==='session'?'s':'fixture',refresh:async()=>{},mutate:async()=>{}};
     const source=fs.readFileSync(new URL('../../examples/conversation-client/video.js',import.meta.url),'utf8')
         .replace(/^import[\s\S]*?from .*?;\n/gm,'');

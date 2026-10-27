@@ -14,13 +14,16 @@ import { motionObservation } from "./motion_observation.mjs";
 import { workerPipeline } from "./encoded_worker_observation.mjs";
 import { installPeerDiagnostics, browserFailure } from "./browser_failure.mjs";
 const moduleInput = process.env.CONNECT_PLAYWRIGHT_MODULE;
-const { chromium } = await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright");
+
 let input = "";
 for await (const chunk of process.stdin) {
     input += chunk;
     if (input.length > 65536) throw new Error("Browser fixture input too large");
 }
 const spec = JSON.parse(input);
+if (!Array.isArray(spec.participants) || ![1,2].includes(spec.participants.length) || !spec.terminal)
+    throw Error("Canonical browser qualification requires explicit signed participant configurations, subscriptions and a stable Session end; bearer-only legacy fixture migration is unsupported");
+const { chromium } = await import(moduleInput ? pathToFileURL(moduleInput).href : "playwright");
 spec.profileMode??="clean";
 if(!["clean","impairment","mute"].includes(spec.profileMode))throw Error("Unknown browser measurement scenario");
 if(Boolean(spec.muteRecovery)!==(spec.profileMode==="mute") || (spec.muteRecovery&&spec.seconds<20))
@@ -59,15 +62,15 @@ if(spec.root) {
     await new Promise(resolve=>assets.listen(0,"127.0.0.1",resolve));
     spec.baseURL=`http://127.0.0.1:${assets.address().port}`;
 }
-for (const address of [spec.baseURL, spec.signalingURL]) {
+for (const address of [spec.baseURL, ...spec.participants.map(p=>p.url)]) {
     const url = new URL(address);
     if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.username || url.password || url.search)
         throw new Error("Use an isolated loopback browser fixture");
 }
-if (!Number.isInteger(spec.seconds) || spec.seconds < 1 || spec.seconds > 120 || ![1,2].includes(spec.tokens.length))
+if (!Number.isInteger(spec.seconds) || spec.seconds < 1 || spec.seconds > 120 || ![1,2].includes(spec.participants.length))
     throw new Error("Invalid bounded browser rehearsal");
 for(const tones of [spec.sourceToneHz,spec.expectedToneHz])if(tones!==undefined&&(!Array.isArray(tones)
-    ||tones.length!==spec.tokens.length||tones.some(value=>!Number.isFinite(value)||value<100||value>3000)))
+    ||tones.length!==spec.participants.length||tones.some(value=>!Number.isFinite(value)||value<100||value>3000)))
     throw new Error("Generated/expected audio requires an identifiable 100–3000 Hz tone per participant");
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CONNECT_CHROME_BINARY,
     args: ["--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "--disable-renderer-backgrounding"] });
@@ -81,14 +84,16 @@ const cleanup=()=>cleanupPromise??=(async()=>{
 })();
 process.once("SIGTERM",()=>{cleanup().finally(()=>process.exit(1));});
 try {
-    const pages = await Promise.all(spec.tokens.map(async (credential,index) => {
+    const pages = await Promise.all(spec.participants.map(async (configuration,index) => {
         const context = await browser.newContext(); contexts.push(context);
         const page = await context.newPage();
         observedPages.push(page);
         await page.addInitScript(installPeerDiagnostics);
         await page.goto(spec.baseURL + "/examples/conversation-client/");
-        await page.evaluate(async ({ url, credential, frequency, conversationId, sessionId, sourceId }) => {
+        await page.evaluate(async ({ configuration, frequency, sourceId }) => {
             const { BrowserVideoSession } = await import("/sdk/typescript/dist/browser.js");
+            const {canonicalMediaClient}=await import("/examples/conversation-client/canonical-media.js");
+            const control=await canonicalMediaClient(configuration);
             const {markerCells,classifySourceFrame,sourceIdentityReport}=await import("/_qualification/source-identity.mjs");
             const identityCells=markerCells(sourceId);
             const {spectralTone}=await import("/_qualification/audio-spectrum.mjs");
@@ -128,7 +133,7 @@ try {
             };
             draw(); const timer=setInterval(draw,1000/30);
             const stream = source.captureStream(30); stream.addTrack(destination.stream.getAudioTracks()[0]);
-            const session = await BrowserVideoSession.open(url,credential,15000,{inputStream:stream,conversationId,sessionId});
+            const session = await BrowserVideoSession.open(control.client,{...control.options,inputStream:stream});
             const video=document.createElement("video"); video.muted=true; video.autoplay=true;
             video.style.cssText="position:fixed;inset:0;width:640px;height:360px;z-index:10000";
             document.body.append(video);
@@ -154,11 +159,14 @@ try {
                 observation.last=key; video.requestVideoFrameCallback(decoded);
             };
             video.requestVideoFrameCallback(decoded);
-            window.videoFixture={session,video,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
-        }, { url:spec.signalingURL,credential,frequency:spec.sourceToneHz?.[index]??440+index*220,
-            conversationId:spec.conversationId,sessionId:spec.sessionId,sourceId:spec.sourceIds?.[index]??index });
+            window.videoFixture={session,control,video,observation,sourceObservation,sourceIdentityReport,spectralTone,timer,audio,oscillator,muteTimers:[],muteTransitions:[]};
+        }, { configuration,frequency:spec.sourceToneHz?.[index]??440+index*220,
+            sourceId:spec.sourceIds?.[index]??index });
         return page;
     }));
+    // The canonical host grants no implicit receive selection. Apply only the
+    // caller's original explicit intents after all physical peers have answered.
+    await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.control.receive())));
     // Initial negotiation does not count toward the clean 60-second window.
     await new Promise(resolve=>setTimeout(resolve,1500));
     await Promise.all(pages.map(page=>page.evaluate(async()=>{
@@ -347,6 +355,15 @@ try {
         const f=window.videoFixture;clearInterval(f.timer);clearInterval(f.audioTimer);f.muteTimers.forEach(clearTimeout);f.oscillator.stop();await f.audio.close();await f.session.close();
         return f.session.localPreview.getTracks().every(t=>t.readyState==="ended");
     });
+    // End the durable Session explicitly; local capture close is not a peer end.
+    await pages[0].evaluate(async terminal=>{
+        const f=window.videoFixture, options=f.control.options;
+        if(typeof terminal.operationId!=="string" || !Number.isSafeInteger(terminal.expectedRevision))throw Error("Explicit original Session end operation/revision required");
+        await f.control.client.request("session.end",{by_participant:options.participantId,reason_code:200,reason:"fixture-complete"},
+            {cid:options.conversationId,sid:options.sessionId,operation_id:terminal.operationId,expected_revision:terminal.expectedRevision});
+        const state=await f.control.client.operationStatus(options.conversationId,terminal.operationId);
+        if(state.state!=="completed")throw Error("Original Session end is not confirmed complete");
+    },spec.terminal);
     const ended=[await release(pages[0])];
     let pairedTermination={status:"not-applicable",seconds:null};
     if(pages.length===2) {
@@ -356,9 +373,10 @@ try {
             return Promise.race([f.session.ended.then(()=>true),new Promise(resolve=>setTimeout(()=>resolve(false),4500))]);
         });
         pairedTermination={status:peerEnded?"passed":"failed",seconds:(performance.now()-peerAt)/1000,limit_seconds:5,
-            method:"first participant explicitly closes; second must receive terminal before its own close"};
+            method:"first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"};
         ended.push(await release(pages[1]));
     }
+    await Promise.all(pages.map(page=>page.evaluate(()=>window.videoFixture.control.client.close())));
     await cleanup();
     const teardown=(performance.now()-closeAt)/1000;
     const passed=observations.every(o=>o.worker_pipeline.status==="passed"&&(o.motion_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.motion_profile.status==="requires-counterpart-setter-binding"))&&(o.audio_profile.status==="passed"||(spec.muteRecovery&&pages.length===1&&o.audio_profile.status==="requires-counterpart-setter-binding"))&&o.source_identity.status==="passed"&&o.stats_available&&o.decoded!==null&&o.codec?.toLowerCase()==="video/vp8"&&o.width===640&&o.height===360

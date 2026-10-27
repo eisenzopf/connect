@@ -3,12 +3,13 @@ import {
     act,
     mutate,
     needClient,
+    needMedia,
     needConversation,
     value,
     refresh,
 } from "./app.js";
-import { configuredVoiceBinding } from "./workflow.js";
 const byId = (id) => document.getElementById(id);
+let media;
 let session,
     camera = false,
     microphone = false;
@@ -17,7 +18,7 @@ function reset() {
         byId(id).pause();
         byId(id).srcObject = null;
     }
-    for (const id of ["end-video", "mute-camera", "mute-microphone"])
+    for (const id of ["end-video", "receive-video", "mute-camera", "mute-microphone"])
         byId(id).disabled = true;
     for (const id of ["audio-device", "video-device", "refresh-devices"])
         byId(id).disabled = false;
@@ -41,36 +42,16 @@ byId("invite-video").onclick = () =>
     });
 byId("join-video").onclick = () =>
     act("Video connected", async () => {
-        const binding = await configuredVoiceBinding(
-            needClient(),
-            needConversation(),
-            value("participant"),
-            value("session"),
-        );
-        if (binding.session_id !== value("session"))
-            throw new Error(
-                "Select the configured accepted video Session before capture.",
-            );
-        const state = await needClient().sessionGet(
-            needConversation(),
-            binding.session_id,
-        );
-        if (
-            !["accepted", "ready"].includes(state.state) ||
-            !state.media.includes("video")
-        )
+        const state = await needClient().sessionGet(needConversation(), value("session"));
+        if (!["accepted", "ready"].includes(state.state) || !state.media.includes("video"))
             throw new Error("Accept an audio/video Session first.");
-        session = await BrowserVideoSession.open(
-            binding.signaling_url,
-            value("credential"),
-            15000,
-            {
-                conversationId: binding.conversation_id,
-                sessionId: binding.session_id,
-                audioDeviceId: byId("audio-device").value || undefined,
-                videoDeviceId: byId("video-device").value || undefined,
-            },
-        );
+        media?.client.close();
+        media = await needMedia();
+        try { session = await BrowserVideoSession.open(media.client, {
+            ...media.options,
+            audioDeviceId: byId("audio-device").value || undefined,
+            videoDeviceId: byId("video-device").value || undefined,
+        }); } catch (error) { media.client.close(); throw error; }
         const current = session;
         current.ended.then(() => {
             if (session === current) reset();
@@ -88,12 +69,18 @@ byId("join-video").onclick = () =>
         byId("join-video").disabled = true;
         for (const id of ["audio-device", "video-device", "refresh-devices"])
             byId(id).disabled = true;
-        for (const id of ["end-video", "mute-camera", "mute-microphone"])
+        for (const id of ["end-video", "receive-video", "mute-camera", "mute-microphone"])
             byId(id).disabled = false;
     });
+byId("receive-video").onclick = () => act("Receive selection confirmed", async()=>{
+    if (!session || !media) throw Error("Join video first.");
+    await media.receive(); byId("receive-video").disabled = true;
+});
 byId("end-video").onclick = () =>
     act("Video left", async () => {
-        await session?.close();
+        const current = session, control = media;
+        try { if (current) await current.end(control.end.operationId, control.end.expectedRevision); }
+        finally { control?.client.close(); }
         reset();
         await refresh();
     });
@@ -120,6 +107,7 @@ byId("video-diagnostics").onclick = () =>
     });
 window.addEventListener("beforeunload", () => {
     void session?.close();
+    media?.client.close();
 });
 
 byId("refresh-devices").onclick = () =>

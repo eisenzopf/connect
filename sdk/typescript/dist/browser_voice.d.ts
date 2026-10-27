@@ -1,36 +1,62 @@
+import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { type BrowserSessionSelection } from "./browser_binding.js";
+import { type SavedWebRtcOffer } from "./browser_webrtc_signaling.js";
 import { type BrowserCaptureDevices } from "./browser_capture.js";
+import { ConnectError } from "./errors.js";
+import { type Scope } from "./uctp_wire.js";
+import type { JsonObject } from "./uctp_json.js";
 import { type VoiceDiagnostics } from "./browser_voice_stats.js";
 import { type VideoDiagnostics } from "./browser_video_stats.js";
 export type { VideoDiagnostics } from "./browser_video_stats.js";
-/** Optional audio supplied by an application, such as processed or generated speech. */
+/** Explicit canonical Connection intent, snapshotted before capture permission. */
 export interface BrowserVoiceOptions extends BrowserSessionSelection, BrowserCaptureDevices {
-    /**
-     * A live stream matching the selected profile: one audio track by default,
-     * or one audio and one video track with video=true. The session owns and
-     * stops its tracks on failure/hangup. Clone tracks first to retain a source.
-     * Omit this to acquire the user's microphone.
-     */
+    /** A live one-audio or one-audio/one-video stream. Ownership transfers after validation.
+     * Clone tracks first to retain a source. Omit to acquire microphone/camera capture. */
     inputStream?: MediaStream;
-    /** Opt into the VP8/640×360 audio/video profile. Audio-only remains the default. */
+    /** Opt into bounded VP8 camera capture; audio uses mono Opus/48000. */
     video?: boolean;
 }
-/** One authenticated browser WebRTC leg retained by its signaling lease. */
+/** An unsuccessful open retains its original offer for authoritative status recovery.
+ * This snapshot can contain private SDP; keep it in application-owned private state. */
+export declare class BrowserVoiceOpenError extends ConnectError {
+    readonly savedOffer?: SavedWebRtcOffer | undefined;
+    constructor(error: unknown, savedOffer?: SavedWebRtcOffer | undefined);
+}
+export interface SavedWebRtcEnd {
+    scope: Scope;
+    payload: JsonObject;
+    submissionAttempted: boolean;
+}
+/** Owns capture, the RTC peer and video worker; borrows the shared signed client.
+ * open() establishes signaling only. Observe actual media/playback independently. */
 export declare class BrowserVoiceSession {
-    private readonly peer;
-    private readonly socket;
-    private readonly localStream;
-    private readonly videoWorker?;
+    private readonly client;
+    private readonly selection;
     readonly remoteStream: MediaStream;
-    private connectionId?;
     private closed;
+    private failure?;
     private readonly captureEvents;
     private closing?;
     private resolveEnded;
-    /** Settles after either side ends this leg and microphone capture stops. */
+    /** Settles after local media resources retire. It is not a durable end receipt. */
     readonly ended: Promise<void>;
+    private peer?;
+    private localStream?;
+    private ownedTracks;
+    private videoWorker?;
+    private signaling?;
+    private stopLifetime?;
+    private stopEvents?;
+    private endIntent?;
+    private ending?;
     private constructor();
-    static open(signalingUrl: string, credential: string, timeoutMs?: number, options?: BrowserVoiceOptions): Promise<BrowserVoiceSession>;
+    private check;
+    private fail;
+    private bound;
+    static open(client: BrowserClient, options: BrowserVoiceOptions, request?: RequestOptions): Promise<BrowserVoiceSession>;
+    /** A private snapshot of original SDP/operation intent, including uncertain submission. */
+    get savedOffer(): SavedWebRtcOffer | undefined;
+    get savedEnd(): SavedWebRtcEnd | undefined;
     /** Local capture for a muted preview; this session still owns its tracks. */
     get localPreview(): MediaStream;
     /** Independently mute a captured kind without ending the durable Session. */
@@ -41,7 +67,11 @@ export declare class BrowserVoiceSession {
     attach(element: HTMLMediaElement, timeoutMs?: number): Promise<void>;
     /** Inspect the negotiated path and audio counters without exposing SDP. */
     diagnostics(): Promise<VoiceDiagnostics>;
+    /** Submit one explicit durable end, then observe its original journal status.
+     * Repeating the same call shares its result; another operation/revision refuses.
+     * Local capture retires even when the durable outcome remains uncertain. */
+    end(operationId: string, expectedRevision: number, request?: RequestOptions): Promise<void>;
+    /** Local retirement only; never sends a durable end or closes the shared client. */
     close(): Promise<void>;
     private release;
-    private watchEnd;
 }

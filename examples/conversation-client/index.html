@@ -21,15 +21,16 @@
           >HTTP API <input id="http" value="http://127.0.0.1:3018"
         /></label>
         <label
-          >WebRTC signaling
+          >Signed WSS endpoint
           <input
             id="webrtc"
             readonly
-            placeholder="Read from the server before joining"
+            placeholder="Read from signed media configuration"
         /></label>
         <label
           >Credential <input id="credential" type="password" autocomplete="off"
         /></label>
+        <label>Signed media configuration <input id="media-config" type="file" accept="application/json,.json" /></label>
         <label>Your identity ID <input id="identity" /></label>
         <label>Other identity ID <input id="participant" /></label>
         <label>Conversation ID <input id="conversation" /></label>
@@ -168,6 +169,7 @@
             <div class="actions">
               <button id="refresh-devices">List devices</button
               ><button id="join-video">Join video</button
+              ><button id="receive-video" disabled>Receive selected sources</button
               ><button id="end-video" disabled>Leave video</button>
             </div>
             <video id="local-video" muted playsinline autoplay></video
@@ -190,6 +192,7 @@
             </p>
             <div class="actions">
               <button id="join">Join voice</button
+              ><button id="receive-voice" disabled>Receive selected sources</button
               ><button id="hangup" disabled>Hang up</button>
             </div>
             <audio id="remote" controls></audio>
