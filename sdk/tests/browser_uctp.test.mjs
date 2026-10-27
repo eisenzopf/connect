@@ -116,3 +116,9 @@ test('server replay and unconsumed event overflow retire physical peer',()=>mock
   for(let i=0;i<257;i++)await transport().emit('conversation.event',{sequence:i},undefined);
   await new Promise(r=>setTimeout(r,20));assert.equal(client.closed,true);
 }));
+
+test('default actual WebTransport remains immutable when caller edits its construction options',()=>mockClient(async({options})=>{
+  const client=await BrowserClient.open(options);options.transport='websocket';
+  assert.equal(client.controlTransport,'webtransport');client.close();
+  assert.equal(client.controlTransport,'webtransport');
+}));

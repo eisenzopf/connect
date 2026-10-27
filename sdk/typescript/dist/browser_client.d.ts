@@ -33,6 +33,7 @@ export declare function browserTransportSupport(): {
 export declare class BrowserClient {
     private readonly options;
     private readonly transport;
+    private readonly selectedTransport;
     private reader?;
     private writer?;
     private readonly pending;
@@ -47,6 +48,8 @@ export declare class BrowserClient {
     private auth?;
     private constructor();
     static open(options: BrowserClientOptions): Promise<BrowserClient>;
+    /** Actual physical control selected at construction; caller option edits cannot change it. */
+    get controlTransport(): "webtransport" | "websocket";
     get identityId(): string;
     get participantId(): string | undefined;
     get closed(): boolean;

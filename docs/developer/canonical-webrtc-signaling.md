@@ -658,3 +658,25 @@ installed Chrome/Firefox, permissions/background/resume/reoffer/DTMF/data, priva
 consultation/handoff/preparation, complete
 forced fallback, Linux/remote and packages remain required. G6-051 remains in
 progress and no Gate 6 acceptance is promoted.
+
+
+## Browser control and pending capture lifetime
+
+`BrowserClient.controlTransport` records the physical transport selected at
+construction. Mutating the caller's options cannot change that observation.
+Canonical WebRTC rejects a non-WebSocket or closed client before taking the
+supplied peer. ICE failure also retires that peer and its observers while keeping
+the shared signed client and original operation identity.
+
+The capture helper accepts an optional cancellation signal. Cancellation before
+capture does not prompt; cancellation or timeout during permission acquisition
+stops every late track. Successful capture transfers ownership and removes that
+callback. This prepares the coordinated public voice/video wrapper migration;
+the existing public wrappers have not yet been migrated.
+
+[Evidence](../evidence/gate-6/browser-webrtc-capture-lifetime.json) records all 289
+SDK methods passing with source/generated-module guards, including ten new
+transport/ICE/capture methods. Edited sources pass formatting. The SDK-wide format
+check remains failed on three byte-identical HEAD files, recorded explicitly.
+These synthetic boundary checks do not qualify installed-browser media or close
+G6-051.

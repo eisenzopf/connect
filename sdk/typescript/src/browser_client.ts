@@ -64,6 +64,7 @@ export function browserTransportSupport(): {
 /** Canonical connect/2 client. A failed mutation retains its caller's logical ID. */
 export class BrowserClient {
     private readonly transport: BrowserControlTransport;
+    private readonly selectedTransport: "webtransport" | "websocket";
     private reader?: ReadableStreamDefaultReader<Uint8Array>;
     private writer?: WritableStreamDefaultWriter<Uint8Array>;
     private readonly pending = new Map<string, Pending>();
@@ -77,8 +78,9 @@ export class BrowserClient {
     private queuedWrites = 0;
     private auth?: Envelope;
     private constructor(private readonly options: BrowserClientOptions) {
+        this.selectedTransport = options.transport ?? "webtransport";
         this.transport =
-            options.transport === "websocket"
+            this.selectedTransport === "websocket"
                 ? new WebSocketControl(options.url)
                 : new WebTransportControl(
                       options.url,
@@ -219,6 +221,10 @@ export class BrowserClient {
             client.close(error);
             throw error;
         }
+    }
+    /** Actual physical control selected at construction; caller option edits cannot change it. */
+    get controlTransport(): "webtransport" | "websocket" {
+        return this.selectedTransport;
     }
     get identityId(): string {
         return this.options.identityId;

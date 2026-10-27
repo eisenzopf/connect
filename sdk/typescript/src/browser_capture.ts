@@ -120,11 +120,21 @@ export function validateVideoAnswer(sdp: string): void {
     }
 }
 
+/** Capture owns late permission results after deadline or caller cancellation. */
 export async function microphoneStream(
     timeoutMs: number,
     video: boolean,
     devices: BrowserCaptureDevices = {},
+    signal?: AbortSignal,
 ): Promise<MediaStream> {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 60000)
+        throw new ConnectError(
+            "invalid-request",
+            "Capture deadline must be positive and at most 60000 ms",
+        );
+    const cancelled = () =>
+        new ConnectError("cancelled", "Capture wait cancelled");
+    if (signal?.aborted) throw cancelled();
     const pending = navigator.mediaDevices.getUserMedia({
         audio: devices.audioDeviceId
             ? { deviceId: { exact: devices.audioDeviceId } }
@@ -141,25 +151,35 @@ export async function microphoneStream(
             : false,
     });
     return new Promise((resolve, reject) => {
-        let expired = false;
+        let settled = false;
+        const cleanup = () => {
+            clearTimeout(timer);
+            signal?.removeEventListener("abort", abort);
+        };
+        const fail = (error: unknown) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
+        const abort = () => fail(cancelled());
         const timer = setTimeout(() => {
-            expired = true;
-            reject(new ConnectError("timeout", "Microphone access timed out"));
+            fail(new ConnectError("timeout", "Microphone access timed out"));
         }, timeoutMs);
+        signal?.addEventListener("abort", abort, { once: true });
+        // A synchronous getUserMedia implementation may have retired the owner.
+        if (signal?.aborted) abort();
         pending.then(
             (stream) => {
-                if (expired) {
+                if (settled) {
                     for (const track of stream.getTracks()) track.stop();
                     return;
                 }
-                clearTimeout(timer);
+                settled = true;
+                cleanup();
                 resolve(stream);
             },
-            (error) => {
-                if (expired) return;
-                clearTimeout(timer);
-                reject(error);
-            },
+            (error) => fail(error),
         );
     });
 }

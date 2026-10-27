@@ -19,7 +19,8 @@ export interface WebRtcSignalingOptions {
 /** Internal canonical signaling owner. Owns the supplied RTCPeerConnection, not
  * its capture tracks or the shared signed client. An applied answer establishes
  * signaling only; media readiness needs independent WebRTC/media observations.
- * The current server has not yet wired this WebRTC substrate into canonical IO.
+ * The explicit server host admits its bounded negotiated profile; an answer
+ * alone does not establish Core readiness or decoded playback.
  */
 export declare class CanonicalWebRtcSignaling {
     private readonly client;

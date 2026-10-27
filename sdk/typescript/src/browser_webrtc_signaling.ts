@@ -61,7 +61,8 @@ function candidate(value: JsonObject): RTCIceCandidateInit {
 /** Internal canonical signaling owner. Owns the supplied RTCPeerConnection, not
  * its capture tracks or the shared signed client. An applied answer establishes
  * signaling only; media readiness needs independent WebRTC/media observations.
- * The current server has not yet wired this WebRTC substrate into canonical IO.
+ * The explicit server host admits its bounded negotiated profile; an answer
+ * alone does not establish Core readiness or decoded playback.
  */
 export class CanonicalWebRtcSignaling {
     readonly finished: Promise<void>;
@@ -84,7 +85,10 @@ export class CanonicalWebRtcSignaling {
     private rejectWait?: (error: Error) => void;
     private readonly peerStateChanged = () => {
         if (this.stopped) return;
-        if (this.peer.connectionState === "failed")
+        if (
+            this.peer.connectionState === "failed" ||
+            this.peer.iceConnectionState === "failed"
+        )
             this.die(
                 new ConnectError(
                     "webrtc-failed",
@@ -98,6 +102,13 @@ export class CanonicalWebRtcSignaling {
         private readonly peer: RTCPeerConnection,
         options: WebRtcSignalingOptions,
     ) {
+        if (client.controlTransport !== "websocket")
+            throw new ConnectError(
+                "unsupported-transport",
+                "Canonical WebRTC requires an existing signed WebSocket client",
+            );
+        if (client.closed)
+            throw new ConnectError("closed", "Canonical control client closed");
         if (
             ![
                 options.conversationId,
@@ -300,6 +311,10 @@ export class CanonicalWebRtcSignaling {
                 "connectionstatechange",
                 this.peerStateChanged,
             );
+            this.peer.addEventListener(
+                "iceconnectionstatechange",
+                this.peerStateChanged,
+            );
             this.peerStateChanged();
             this.check();
             const offer = await bound(this.peer.createOffer());
@@ -423,6 +438,10 @@ export class CanonicalWebRtcSignaling {
         this.stopped = true;
         this.peer.removeEventListener(
             "connectionstatechange",
+            this.peerStateChanged,
+        );
+        this.peer.removeEventListener(
+            "iceconnectionstatechange",
             this.peerStateChanged,
         );
         this.gatheringCleanup?.();

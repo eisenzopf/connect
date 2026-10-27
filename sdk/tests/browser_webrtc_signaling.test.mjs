@@ -24,6 +24,7 @@ class Peer extends EventTarget {
     close(){this.closed++;}
 }
 class Client {
+    controlTransport="websocket";
     events=new Set();lifetimes=new Set();requests=[];closed=0;
     response=async()=>[answer()];
     onEvent(fn){this.events.add(fn);return()=>this.events.delete(fn);}
@@ -166,4 +167,23 @@ test('terminal retirement removes peer-state callbacks and late failure cannot c
     const f=fixture();await f.owner.offer();f.owner.close();await f.owner.finished;
     f.peer.connectionState='failed';f.peer.dispatchEvent(new Event('connectionstatechange'));await f.owner.finished;
     assert.equal(f.peer.closed,1);assert.equal(f.client.requests.length,1);
+});
+
+test('WebRTC refuses a different or retired physical control before peer ownership',()=>{
+    for(const transport of ['webtransport',undefined]){
+        const client=new Client(),peer=new Peer();client.controlTransport=transport;
+        assert.throws(()=>new CanonicalWebRtcSignaling(client,peer,options()),{code:'unsupported-transport'});
+        assert.equal(peer.closed,0);assert.equal(peer.offers,0);assert.equal(client.requests.length,0);
+    }
+    const client=new Client(),peer=new Peer();client.closed=true;
+    assert.throws(()=>new CanonicalWebRtcSignaling(client,peer,options()),{code:'closed'});
+    assert.equal(peer.closed,0);assert.equal(client.events.size,0);assert.equal(client.lifetimes.size,0);
+});
+test('ICE failure retires the original signaling owner even before aggregate peer failure',async()=>{
+    const f=fixture();await f.owner.offer();f.peer.connectionState='connected';
+    f.peer.iceConnectionState='failed';f.peer.dispatchEvent(new Event('iceconnectionstatechange'));
+    await assert.rejects(f.owner.finished,{code:'webrtc-failed'});assert.equal(f.peer.closed,1);
+    assert.equal(f.client.events.size,0);assert.equal(f.client.lifetimes.size,0);assert.equal(f.client.closed,0);
+    assert.equal(f.owner.savedOffer.scope.operation_id,'original-offer');assert.equal(f.client.requests.length,1);
+    f.peer.dispatchEvent(new Event('iceconnectionstatechange'));assert.equal(f.peer.closed,1);
 });

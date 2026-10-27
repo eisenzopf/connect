@@ -31,7 +31,8 @@ function candidate(value) {
 /** Internal canonical signaling owner. Owns the supplied RTCPeerConnection, not
  * its capture tracks or the shared signed client. An applied answer establishes
  * signaling only; media readiness needs independent WebRTC/media observations.
- * The current server has not yet wired this WebRTC substrate into canonical IO.
+ * The explicit server host admits its bounded negotiated profile; an answer
+ * alone does not establish Core readiness or decoded playback.
  */
 export class CanonicalWebRtcSignaling {
     client;
@@ -57,7 +58,8 @@ export class CanonicalWebRtcSignaling {
     peerStateChanged = () => {
         if (this.stopped)
             return;
-        if (this.peer.connectionState === "failed")
+        if (this.peer.connectionState === "failed" ||
+            this.peer.iceConnectionState === "failed")
             this.die(new ConnectError("webrtc-failed", "WebRTC peer transport failed; retain original operation ID"));
         else if (this.peer.connectionState === "closed")
             this.close();
@@ -65,6 +67,10 @@ export class CanonicalWebRtcSignaling {
     constructor(client, peer, options) {
         this.client = client;
         this.peer = peer;
+        if (client.controlTransport !== "websocket")
+            throw new ConnectError("unsupported-transport", "Canonical WebRTC requires an existing signed WebSocket client");
+        if (client.closed)
+            throw new ConnectError("closed", "Canonical control client closed");
         if (![
             options.conversationId,
             options.sessionId,
@@ -212,6 +218,7 @@ export class CanonicalWebRtcSignaling {
                 this.check();
             }
             this.peer.addEventListener("connectionstatechange", this.peerStateChanged);
+            this.peer.addEventListener("iceconnectionstatechange", this.peerStateChanged);
             this.peerStateChanged();
             this.check();
             const offer = await bound(this.peer.createOffer());
@@ -311,6 +318,7 @@ export class CanonicalWebRtcSignaling {
     retire() {
         this.stopped = true;
         this.peer.removeEventListener("connectionstatechange", this.peerStateChanged);
+        this.peer.removeEventListener("iceconnectionstatechange", this.peerStateChanged);
         this.gatheringCleanup?.();
         this.stopEvents?.();
         this.stopLifetime?.();

@@ -127,3 +127,10 @@ test('explicit WSS control never constructs an unusable WebTransport path',()=>f
   let attempts=0;Object.defineProperty(globalThis,'WebTransport',{configurable:true,value:class {constructor(){attempts++;throw Error('UDP unavailable');}}});
   const client=await BrowserClient.open(options);assert.equal((await client.createConversation('wss-after-unusable-wt')).receipt.state,'completed');assert.equal(attempts,0);client.close();
 }));
+
+test('actual WSS transport remains immutable when caller edits its construction options',()=>fixture(async({options})=>{
+  const client=await BrowserClient.open(options);options.transport='webtransport';
+  assert.equal(client.controlTransport,'websocket');
+  assert.throws(()=>client.datagrams,{code:'unsupported-transport'});
+  client.close();assert.equal(client.controlTransport,'websocket');
+}));

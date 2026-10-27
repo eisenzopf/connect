@@ -1,0 +1,114 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T14:23:59.867481+00:00",
+  "source_revision_before_checkpoint": "b5e5d52ae346cde5e052120ae4b7f26baa548b74",
+  "scope": "Local TypeScript SDK and synthetic browser boundary fixtures; no installed browser, TLS/network/media playback, physical device or full fallback qualification.",
+  "implementation": [
+    "BrowserClient exposes the immutable actual physical control transport chosen during construction; caller option mutation cannot claim a different substrate.",
+    "CanonicalWebRtcSignaling refuses non-WebSocket or already retired control before transferring peer ownership. Actual ICE failure retires the same peer/listeners and preserves the original offer operation without closing the borrowed client or sending a replacement.",
+    "Capture can be cancelled while permission remains pending. Already-cancelled and invalid-budget calls do not prompt. Cancel/timeout stop each late supplied track; success removes the cancellation callback and transfers capture ownership. Positive fractional remaining budgets are preserved."
+  ],
+  "verification": {
+    "sdk_methods": 289,
+    "new_methods": 10,
+    "checks": [
+      {
+        "name": "format",
+        "command": [
+          "npm",
+          "exec",
+          "--",
+          "prettier",
+          "--check",
+          "src/browser_client.ts",
+          "src/browser_webrtc_signaling.ts",
+          "src/browser_capture.ts"
+        ],
+        "exit_code": 0,
+        "seconds": 0.25910637504421175,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "f7661d7758c6cff00debac90b56b2ece75090943dc6ceb25e8685dd5e2ae4aee",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 npx",
+          "npm notice run 'prettier' --check src/browser_client.ts src/browser_webrtc_signaling.ts src/browser_capture.ts",
+          "Checking formatting...",
+          "All matched files use Prettier code style!"
+        ]
+      },
+      {
+        "name": "build",
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "exit_code": 0,
+        "seconds": 0.27509058313444257,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02",
+        "tail": [
+          "npm notice run @rudeless/connect@0.1.0 build",
+          "npm notice run tsc -p tsconfig.json"
+        ]
+      },
+      {
+        "name": "sdk",
+        "command": [
+          "node",
+          "--test",
+          "../tests/clients.test.mjs"
+        ],
+        "exit_code": 0,
+        "seconds": 3.3484337080735713,
+        "changed_sources": [],
+        "changed_generated": [],
+        "log_sha256": "fee7f74ec179caa1dc31020ea6460537bd803513970a4eee31873b03dcef5b94",
+        "tail": [
+          "\u2714 HTTP artifact helpers preserve raw bytes and framing (10.441042ms)",
+          "\u2714 Rust result fixtures validate in TypeScript (2.489291ms)",
+          "\u2714 native audio reports remote end promptly and preserves the terminal code (92.698292ms)",
+          "\u2714 health readiness validates observations and still accepts older servers (0.538375ms)",
+          "\u2139 tests 289",
+          "\u2139 suites 0",
+          "\u2139 pass 289",
+          "\u2139 fail 0",
+          "\u2139 cancelled 0",
+          "\u2139 skipped 0",
+          "\u2139 todo 0",
+          "\u2139 duration_ms 3309.877542"
+        ]
+      }
+    ],
+    "input_manifest_sha256": "8d41bb14a4cb769e0b49218aaf7ed1f8348ec094e337695d50af14e70ee8af87",
+    "guarded_sources": 122,
+    "guarded_generated_files": 102,
+    "baseline_format": [
+      {
+        "path": "sdk/typescript/src/protocol.ts",
+        "unchanged_from_head": true,
+        "head_format_exit_code": 1,
+        "output": "npm notice run @rudeless/connect@0.1.0 npx\nnpm notice run 'prettier' --check --stdin-filepath src/protocol.ts\n(stdin)\n"
+      },
+      {
+        "path": "sdk/typescript/src/record_context.ts",
+        "unchanged_from_head": true,
+        "head_format_exit_code": 1,
+        "output": "npm notice run @rudeless/connect@0.1.0 npx\nnpm notice run 'prettier' --check --stdin-filepath src/record_context.ts\n(stdin)\n"
+      },
+      {
+        "path": "sdk/typescript/src/task_protocol.ts",
+        "unchanged_from_head": true,
+        "head_format_exit_code": 1,
+        "output": "npm notice run @rudeless/connect@0.1.0 npx\nnpm notice run 'prettier' --check --stdin-filepath src/task_protocol.ts\n(stdin)\n"
+      }
+    ],
+    "earlier_attempts": [
+      "First test edit used the wrong working directory, so its file edit failed. A subsequent build/test command ran against the unchanged mock and failed the expected new transport guard. The corrected fixture explicitly identifies physical WSS; the final guarded suite is separate.",
+      "The first guarded attempt stopped at repository-wide SDK formatting: three untouched files fail identically from HEAD. Edited files pass focused formatting; all 289 SDK methods pass after the corrected build."
+    ]
+  },
+  "remaining": "Public BrowserVoiceSession/BrowserVideoSession still use the legacy signaling path until their coordinated API/caller migration. This checkpoint supplies transport/lifetime prerequisites only. Browser capture integration, signed actual installed-browser AV, broader profiles, original-operation end/recovery, data, complete forced fallback and the wider G6-051 scope remain required."
+}

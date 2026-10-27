@@ -20,6 +20,7 @@ import {createServer} from 'node:http';
 import {NativeAudioClient,NativeClient,HttpClient,ConnectError} from '../typescript/dist/index.js';
 import {decodeResponse} from '../typescript/dist/protocol.js';
 import './browser_voice.test.mjs';
+import './browser_capture_wait.test.mjs';
 const helper=fileURLToPath(new URL('./helper_fixture.py',import.meta.url));
 const rejects=(code)=>error=>error instanceof ConnectError&&error.code===code;
 test('browser entry point loads without Node helper modules',async()=>{const browser=await import('../typescript/dist/browser.js');assert.equal(typeof browser.BrowserHttpClient,'function');assert.equal(typeof browser.BrowserVoiceSession,'function');});

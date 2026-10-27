@@ -15,6 +15,7 @@ export function browserTransportSupport() {
 export class BrowserClient {
     options;
     transport;
+    selectedTransport;
     reader;
     writer;
     pending = new Map();
@@ -29,8 +30,9 @@ export class BrowserClient {
     auth;
     constructor(options) {
         this.options = options;
+        this.selectedTransport = options.transport ?? "webtransport";
         this.transport =
-            options.transport === "websocket"
+            this.selectedTransport === "websocket"
                 ? new WebSocketControl(options.url)
                 : new WebTransportControl(options.url, options.serverCertificateHashes);
         void this.transport.closed.then(() => this.close(), (error) => this.close(error instanceof ConnectError
@@ -120,6 +122,10 @@ export class BrowserClient {
             client.close(error);
             throw error;
         }
+    }
+    /** Actual physical control selected at construction; caller option edits cannot change it. */
+    get controlTransport() {
+        return this.selectedTransport;
     }
     get identityId() {
         return this.options.identityId;

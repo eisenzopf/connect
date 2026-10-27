@@ -6,5 +6,6 @@ export interface BrowserCaptureDevices {
 export declare function captureDevices(options: BrowserCaptureDevices, video: boolean, supplied: boolean): BrowserCaptureDevices;
 /** A video join must not turn an audio-only or inactive answer into success. */
 export declare function validateVideoAnswer(sdp: string): void;
-export declare function microphoneStream(timeoutMs: number, video: boolean, devices?: BrowserCaptureDevices): Promise<MediaStream>;
+/** Capture owns late permission results after deadline or caller cancellation. */
+export declare function microphoneStream(timeoutMs: number, video: boolean, devices?: BrowserCaptureDevices, signal?: AbortSignal): Promise<MediaStream>;
 export declare function waitForIce(peer: RTCPeerConnection, timeoutMs: number): Promise<void>;
