@@ -14,8 +14,8 @@ use rvoip_core::{
     ids::{ConnectionId, DeviceId, EndpointId, IdentityId, SessionId},
     relationships::{ConnectionBinding, EndpointBinding, IdentityBinding, SessionAppearance},
     staged_streams::{
-        ControlResult, MediaAuthorityLease, MediaControl, MediaControlIntent, MediaOwner,
-        MediaPolicy, MediaPurpose, MediaScope, MediaSource, PreparedMediaObservation,
+        ControlResult, MediaActivation, MediaAuthorityLease, MediaControl, MediaControlIntent,
+        MediaOwner, MediaPolicy, MediaPurpose, MediaScope, MediaSource, PreparedMediaObservation,
         StreamControlError,
     },
     stream_lifecycle::{EndpointMediaCapabilities, MediaCapability, MediaFormat, Medium},
@@ -23,7 +23,7 @@ use rvoip_core::{
 };
 use rvoip_uctp::v2::{
     auth_dispatch::AuthorizedEnvelope,
-    native_negotiation::{NativeMediaActivation, NativeMediaProfile, NativeOfferPlan},
+    native_negotiation::{NativeMediaProfile, NativeOfferPlan},
     Scope,
 };
 use std::{
@@ -42,7 +42,7 @@ pub(crate) struct Connection {
     // Peer support established by the initial offer and actual later commits.
     // Declarations alone never remove rights from an existing usable binding.
     negotiated_remote: Mutex<EndpointMediaCapabilities>,
-    activation: Mutex<Option<Arc<NativeMediaActivation>>>,
+    activation: Mutex<Option<Arc<dyn MediaActivation>>>,
     binding: Mutex<Option<ConnectionBinding>>,
     preparation: Mutex<
         Option<Arc<rvoip_core::staged_streams::endpoint_preparation::AudioEndpointPreparation>>,
@@ -251,14 +251,14 @@ impl Connection {
             }
         }
     }
-    pub(crate) fn activation(&self) -> ControlResult<Option<Arc<NativeMediaActivation>>> {
+    pub(crate) fn activation(&self) -> ControlResult<Option<Arc<dyn MediaActivation>>> {
         Ok(self
             .activation
             .try_lock()
             .map_err(metadata_contention)?
             .clone())
     }
-    pub fn set_activation(&self, value: Arc<NativeMediaActivation>) -> ControlResult<()> {
+    pub fn set_activation(&self, value: Arc<dyn MediaActivation>) -> ControlResult<()> {
         let mut activation = self.activation.lock().map_err(denied)?;
         if activation
             .as_ref()

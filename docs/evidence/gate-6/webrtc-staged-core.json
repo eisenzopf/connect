@@ -2,7 +2,7 @@
   "task": "G6-051",
   "status": "in-progress",
   "base_revision": "789c906b",
-  "checked_at": "2026-10-27T03:28:50.404137+00:00",
+  "checked_at": "2026-10-27T04:13:08.027216+00:00",
   "scope": "Local macOS arm64 ordinary production Core/UCTP/RTC/WebRTC libraries with isolated identity, membership, participant and media-policy fixtures. Two actual independent loopback ICE/DTLS/SRTP peers, PCMU at negotiated dynamic PT109; actual Core controllers and participant mixer. Canonical Store/service/WSS composition remains separate.",
   "source_inputs": {
     "Cargo.lock": "6b8421b32ed000a141390be9b00cd61cb85b59b9828d49895ce123ee93871b72",
@@ -17,7 +17,8 @@
     ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical/media.rs": "bf1bfa4d9410f6bf2fcf8adf7e0885183f5d2c09bc1f72867822adaff9bdd8ae",
     ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical.rs": "dcd41ec5ac1497637f3b9eec327414751f701afc9509316d3d2341bc89e0c27a",
     ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/peer/session.rs": "159b28ac4b7b3fe0ef29a9dc1c82cd6d3ced815fbca3ea04b13212f045a38ddb",
-    ".deps/rvoip/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs": "1192d9065add0306aec6f00e7a502d01a835d9e933d23e6e092df3e73385e846"
+    ".deps/rvoip/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs": "1192d9065add0306aec6f00e7a502d01a835d9e933d23e6e092df3e73385e846",
+    "crates/connect-service/src/canonical_media.rs": "4bd29337ff044f073798d7c4c5aff127ac3b572cc99751b00baad25658660a52"
   },
   "dependency_preparation": {
     "verified": true,
@@ -154,7 +155,8 @@
     "Core media activation is a transport-neutral adapter SPI around the existing sealed resource observation. Native implementations delegate to their existing exact signed-confirmation and replacement checks.",
     "Core publication can retain an adapter-owned original monotonic receive instant across queued media and metadata retries; reliable data does not borrow this lossy-media API.",
     "WebRTC handle allocation remains monotonic for the full physical peer lifetime. Source/egress workers register cleanup before readiness; original write owners are retained through actual cancel-and-drain. Lost individual write outcomes never become inferred success.",
-    "Canonical SDP G.711 names map to the existing Core pcmu/pcma formats. Unsupported media or synchronized-AV profiles refuse preparation explicitly."
+    "Canonical SDP G.711 names map to the existing Core pcmu/pcma formats. Unsupported media or synchronized-AV profiles refuse preparation explicitly.",
+    "The canonical service media registry stores the shared Core MediaActivation SPI. Native confirmation/replacement implementations remain adapter-specific; the existing Store/connection facade behavior passes its selected regressions."
   ],
   "historical_attempts": [
     {
@@ -175,10 +177,400 @@
     }
   ],
   "verification_limits": [
-    "Connect regression rebuild is running at this checkpoint and is not claimed as passed here. The pending service activation storage generalization is excluded from this component commit.",
+    "The current compilation returns success with unchanged guarded inputs and verified Mach-O test executables. Twenty signed-WSS/owned-RTC/actual-decoded-WebTransport test methods pass, and all sixteen Core WebRTC resource groups plus the seven new staged-media groups pass against that exact build normal production libraries. These are local regression/component scopes, not canonical Store-to-Core RTC media or browser acceptance.",
     "The policy/identity/participant domain is synthetic. This does not prove canonical Store/journal readiness, signed WSS-to-Core media composition, browser capture or browser replacement.",
     "Initial backend supports one logical G.711 audio port. Opus, VP8/video/screen, reliable data, synchronized A/V/source-clock, MID/SSRC/ICE and further transition work remain required by the full task.",
-    "Linux x86_64, installed-browser forced WebTransport/UDP fallback and named remote/provider G6-093 rehearsals remain unqualified. G6-051 stays in progress; no acceptance criterion is promoted. Publication remains separate."
+    "Linux x86_64, installed-browser forced WebTransport/UDP fallback and named remote/provider G6-093 rehearsals remain unqualified. G6-051 stays in progress; no acceptance criterion is promoted. Publication remains separate.",
+    "Debug stripping remains unresolved after an ENOSPC warning. Verified retained Mach-O executables qualify the recorded local behavior scopes only; stripped/package artifacts are not qualified. Wider worker-failure/current-resource readiness is still under review and is not qualified by the seven basic component groups."
   ],
-  "private_evidence": ".local/gate-6/webrtc-staged/"
+  "private_evidence": ".local/gate-6/webrtc-staged/",
+  "connect_build": {
+    "exit_code": 0,
+    "seconds": 6.6150092501193285,
+    "source_unchanged": true,
+    "source_count": 5146,
+    "command": [
+      "cargo",
+      "-vv",
+      "test",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-456d973275220a3b",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/server-library-test-05",
+        "sha256": "3a146c151581ac3465b8c0700fa84bd6ed54745de4d6ddfe5746618000a0b6a3",
+        "bytes": 106434832
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-b78a1d2be46d58ba",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/wss-integration-test-05",
+        "sha256": "d915d9596d3977c455e9c447cc784831d729fec771cec935227a60b648b1e438",
+        "bytes": 203959264
+      }
+    ],
+    "log_sha256": "5fe6e3cf6490eeb924567665888e284750cf257e1dc0ad37923637220690240d",
+    "diagnostic_warnings": [
+      {
+        "rendered": "warning: stripping debug info with `rust-objcopy` failed: exit status: 1\n  |\n  = note: LLVM ERROR: IO failure on output stream: No space left on device\n          \n\n",
+        "$message_type": "diagnostic",
+        "children": [
+          {
+            "children": [],
+            "code": null,
+            "level": "note",
+            "message": "LLVM ERROR: IO failure on output stream: No space left on device\n",
+            "rendered": null,
+            "spans": []
+          }
+        ],
+        "level": "warning",
+        "message": "stripping debug info with `rust-objcopy` failed: exit status: 1",
+        "spans": [],
+        "code": null
+      }
+    ],
+    "qualification_scope": "Compilation and verified executable behavior only. Debug stripping emitted an ENOSPC warning; the retained actual Mach-O test executables are used and immutable hashes checked. Stripped/package artifact qualification remains unresolved."
+  },
+  "connect_regressions": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/wss-integration-test-05",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.123812499921769,
+        "log_sha256": "1805b31e78c4ecb8e72390d4ea3ec09cf88584e51b808742d1d402ee55c5bb89",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.70s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/server-library-test-05",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.258331000106409,
+        "log_sha256": "24a5df02d03623ba8f5e7139905961b1e212ae540be46cc223bffca30c90609d",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.33s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/wss-integration-test-05",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.375742958160117,
+        "log_sha256": "66d5a4fa524b1272852e8c1f1c5292043a32eeed9d821add1adc38009f11e533",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.36s"
+        ]
+      }
+    ],
+    "source_count": 5739,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
+  "production_component_regressions": {
+    "results": [
+      {
+        "name": "webrtc-core-resource",
+        "exit_code": 0,
+        "seconds": 0.380235250107944,
+        "compile_command": [
+          "rustc",
+          "--edition",
+          "2024",
+          "-C",
+          "opt-level=1",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-core-resource-probe.rs",
+          "-L",
+          "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+          "-o",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/webrtc-core-resource-root",
+          "--extern",
+          "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+          "--extern",
+          "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+          "--extern",
+          "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+          "--extern",
+          "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+          "--extern",
+          "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+          "--extern",
+          "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+          "--extern",
+          "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+          "--extern",
+          "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+          "--extern",
+          "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+          "--extern",
+          "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+        ],
+        "probe_sha256": "d587a2ef140cdb13400e62e8646eb52f78edc046efada0f9dcf26d6a017ec826",
+        "executable_sha256": "719e619f3e1fa4990724b96d1f80c17b58547f4e7d8072ec56476fdda5221863",
+        "log_sha256": "18b0f7df525e97ac856db7b1cd5e32e527ceb2c667091597b665776cfe3236c5",
+        "checks": [
+          "PASS RTC allocation requires an original Core reservation",
+          "PASS native entrypoint cannot allocate WebRTC",
+          "PASS identity expiry Endpoint transport current grant and context denials precede RTC allocation",
+          "PASS a context rejects a foreign authenticated physical peer before first claim",
+          "PASS typed preparation reserves a dormant Core route without Participant or media readiness",
+          "PASS a physical binding cannot reserve a second Core Connection",
+          "PASS exactly one original RTC allocation owns the configured UDP socket",
+          "PASS canceled close observation retains original close and a live Arc does not retain the RTC socket",
+          "PASS actual cleanup precedes Core quota refund and connection IDs never reuse",
+          "PASS default 64-Connection quota precedes adapter callback and EOF retires all routes",
+          "PASS default 32-Session union quota precedes adapter allocation",
+          "PASS an unretained candidate closes its actual RTC driver before refund despite retained RTC Arc",
+          "PASS current retention denial cancels the original Core reservation",
+          "PASS definite RTC construction failure safely retires without a socket leak",
+          "PASS allocation observations cannot restart work and physical EOF joins actual cleanup",
+          "PASS a missing original allocation join stays unconfirmed and quarantines Core quota"
+        ]
+      },
+      {
+        "name": "webrtc-staged-core",
+        "exit_code": 0,
+        "seconds": 2.24508333299309,
+        "compile_command": [
+          "rustc",
+          "--edition",
+          "2024",
+          "-C",
+          "opt-level=1",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-staged-core-probe.rs",
+          "-L",
+          "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+          "-o",
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/webrtc-staged-core-root",
+          "--extern",
+          "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+          "--extern",
+          "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+          "--extern",
+          "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+          "--extern",
+          "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+          "--extern",
+          "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+          "--extern",
+          "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+          "--extern",
+          "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+          "--extern",
+          "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib",
+          "--extern",
+          "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+          "--extern",
+          "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib"
+        ],
+        "probe_sha256": "043b15d58437f789424c6d1cf3d0f207bcabcbccc911af18c7c70b6e10483e6b",
+        "executable_sha256": "9a08910d472e177217f45572e43c13b5d270ef547251efc9f787b610bb067180",
+        "log_sha256": "7279f5624849142a3b1569d3db6189e5ae4c22154fc6b91a8b32edaeaf2a69f1",
+        "checks": [
+          "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+          "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+          "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+          "PASS original RTC drivers and all Core port resources close before quota refund"
+        ]
+      }
+    ],
+    "source_count": 5745,
+    "changed_inputs": [],
+    "artifacts": [
+      {
+        "name": "rtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/normal-rtc-root.rlib",
+        "sha256": "4edc0d61f42cd1d9cad523977f0a7ab2282e6c0faaf37eab8efb692aa7de2b2c",
+        "cfg_test": false,
+        "features": []
+      },
+      {
+        "name": "webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/normal-webrtc-root.rlib",
+        "sha256": "633f46c04ad9fe6d12215b1c41f890719c4738a796e5e98a6f9483cfc8077b4e",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "runtime-tokio"
+        ]
+      },
+      {
+        "name": "rvoip_core",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-18d14d1c659f5c4a.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/normal-rvoip_core-root.rlib",
+        "sha256": "8d268c62bede5d4030179feb63381c20e1925008723e13464fdcf698894e4152",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ]
+      },
+      {
+        "name": "rvoip_webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_webrtc-b11ba26276917c3d.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/normal-rvoip_webrtc-root.rlib",
+        "sha256": "1077924c05cd47bccbda8d96f21c12304cc192bf089b3912d3d217becd8d3a2b",
+        "cfg_test": false,
+        "features": [
+          "client",
+          "comprehensive",
+          "default",
+          "signaling-ws"
+        ]
+      }
+    ],
+    "artifacts_unchanged": true
+  },
+  "historical_connect_build_failure": {
+    "outcome": {
+      "exit_code": 101,
+      "seconds": 1294.1489622499794,
+      "source_unchanged": true,
+      "source_count": 5146,
+      "command": [
+        "cargo",
+        "test",
+        "--jobs",
+        "1",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--lib",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--no-run",
+        "--message-format=json"
+      ]
+    },
+    "failure": "ENOSPC writing rvoip-vapi full.rmeta; completed Core/SIP/service/RTC/MCP artifacts were reused by unchanged-source retry02. No runtime pass claimed for attempt01.",
+    "log_sha256": "663cf8bb67d96a73a2df74dba2b750267e5f1230a4090fa6a31ea68fdfff9a4c",
+    "preservation_manifest_sha256": "df1b97ee8acea12fc670b6a0296a72d788cc4be02a8cb41ab665a2eb9b7aa210",
+    "unused_cache_manifests": [
+      "9c28648e9a624cc1c247533553d12eee31700a0763109f37886623b550a7267b",
+      "685b034f0c055abba4afa60940d05bc5eed5d5f4a5e5b371ecb8ba62602aaa40"
+    ]
+  },
+  "historical_connect_sealing_rejection": {
+    "cargo_exit_code": 0,
+    "runtime_qualified": false,
+    "reason": "Artifact sealing rejected 3040-byte non-executable data despite successful Cargo completion. Retained bytes and rebuild only invalid derived executable.",
+    "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-b78a1d2be46d58ba",
+    "preserved": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/rejected-wss-artifact-build02.bin",
+    "sha256": "36359fcbbbf64dc555335dfaabd4267a881737be57d214e646f7a04b03328b57",
+    "bytes": 3040,
+    "mode": "0o100644",
+    "mtime_ns": 1793073258240906171
+  },
+  "artifact_qualification_recovery": {
+    "strip_failure_diagnosis": {
+      "cargo_exit_code": 0,
+      "qualified": false,
+      "same_rejected_bytes_sha256": "36359fcbbbf64dc555335dfaabd4267a881737be57d214e646f7a04b03328b57",
+      "cause": [
+        {
+          "$message_type": "diagnostic",
+          "message": "stripping debug info with `rust-objcopy` failed: exit status: 1",
+          "code": null,
+          "level": "warning",
+          "spans": [],
+          "children": [
+            {
+              "message": "LLVM ERROR: IO failure on output stream: No space left on device\n",
+              "code": null,
+              "level": "note",
+              "spans": [],
+              "children": [],
+              "rendered": null
+            }
+          ],
+          "rendered": "\u001b[1m\u001b[33mwarning\u001b[0m\u001b[1m: stripping debug info with `rust-objcopy` failed: exit status: 1\u001b[0m\n  \u001b[1m\u001b[94m|\u001b[0m\n  \u001b[1m\u001b[94m= \u001b[0m\u001b[1mnote\u001b[0m: LLVM ERROR: IO failure on output stream: No space left on device\n          \n\n"
+        }
+      ],
+      "diagnostic_reproduction": "direct-link-result-01.json",
+      "original_bytes_preserved": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/rejected-wss-artifact-build02.bin"
+    },
+    "earlier_identical_rejection": {
+      "cargo_exit_code": 0,
+      "source_unchanged": true,
+      "same_rejected_bytes_sha256": "36359fcbbbf64dc555335dfaabd4267a881737be57d214e646f7a04b03328b57",
+      "retained_original_bytes": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/rejected-wss-artifact-build02.bin",
+      "fingerprint_preserved": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/rejected-wss-fingerprint-build03",
+      "runtime_qualified": false
+    },
+    "direct_compiler_diagnostic": {
+      "exit_code": 0,
+      "seconds": 2.5981626249849796,
+      "executable": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/direct-link-01/gate6_canonical_webtransport-b78a1d2be46d58ba",
+      "exists": true,
+      "bytes": 3040,
+      "executable_bit": false,
+      "sha256": "36359fcbbbf64dc555335dfaabd4267a881737be57d214e646f7a04b03328b57"
+    },
+    "explanation": "Rust debug stripping reported ENOSPC only as a warning and Cargo returned zero. Damaged non-executable outputs were rejected. After reclaiming cache/consolidating byte-identical proof archives, build05 retains actual executable Mach-O outputs and all selected behavior runs pass. Its stripping warning remains explicit; no stripped or packaged artifact pass is claimed.",
+    "archive_byte_preservation_manifests": [
+      "0c71c2b9c028eca5b16758a909de8f8caf0f833754560ba41f33b14d50ca8a81",
+      "df6babd77134cc6d217af8f552623338a42b4b16f1253da06f91f8a2e560323e",
+      "4c9f0a431cf7f9bf7df3a0a09904fde82201fbe261bd87500e94c8be7f17c078"
+    ]
+  }
 }
