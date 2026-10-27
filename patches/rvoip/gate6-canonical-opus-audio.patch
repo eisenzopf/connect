@@ -1,0 +1,619 @@
+diff --git a/crates/media/media-core/src/codec/factory.rs b/crates/media/media-core/src/codec/factory.rs
+--- a/crates/media/media-core/src/codec/factory.rs
++++ b/crates/media/media-core/src/codec/factory.rs
+@@ -58,7 +58,10 @@
+                 Ok(Box::new(OpusCodec::new(
+                     sample_rate,
+                     channels,
+-                    OpusConfig::default(),
++                    OpusConfig {
++                        bitrate: if channels == 1 { 32_000 } else { 64_000 },
++                        ..OpusConfig::default()
++                    },
+                 )?))
+             }
+             // G.722 RTP payload handling remains available, but there is no
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+@@ -181,12 +181,12 @@
+ pub(crate) mod rtp_send_parameters;
+ pub(crate) mod set_parameter_options;
+ 
++use crate::media_stream::track::MediaStreamTrack;
+ use crate::media_stream::MediaStreamId;
+-use crate::media_stream::track::MediaStreamTrack;
++use crate::peer_connection::message::RTCMessage;
+ use crate::peer_connection::RTCPeerConnection;
+-use crate::peer_connection::message::RTCMessage;
++use crate::rtp_transceiver::rtp_sender::rtp_codec::{codec_parameters_fuzzy_search, CodecMatch};
+ use crate::rtp_transceiver::RTCRtpSenderId;
+-use crate::rtp_transceiver::rtp_sender::rtp_codec::{CodecMatch, codec_parameters_fuzzy_search};
+ use interceptor::{Interceptor, NoopInterceptor};
+ use sansio::Protocol;
+ use shared::error::{Error, Result};
+@@ -470,9 +470,14 @@
+             .find(|c| c.payload_type == packet.header.payload_type)
+             .ok_or(Error::ErrRTPTransceiverCodecUnsupported)?;
+         let mime = &codec.rtp_codec.mime_type;
+-        if !(mime.eq_ignore_ascii_case("audio/PCMU") || mime.eq_ignore_ascii_case("audio/PCMA"))
+-            || codec.rtp_codec.clock_rate != 8000
+-            || codec.rtp_codec.channels != 1
++        let g711 = (mime.eq_ignore_ascii_case("audio/PCMU")
++            || mime.eq_ignore_ascii_case("audio/PCMA"))
++            && codec.rtp_codec.clock_rate == 8000
++            && codec.rtp_codec.channels == 1;
++        let opus = mime.eq_ignore_ascii_case("audio/opus")
++            && codec.rtp_codec.clock_rate == 48000
++            && codec.rtp_codec.channels == 2;
++        if !(g711 || opus)
+             || codec
+                 .rtp_codec
+                 .rtcp_feedback
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -18,8 +18,8 @@
+     task::JoinHandle,
+ };
+ use webrtc::media_stream::{
++    track_remote::{TrackRemote, TrackRemoteEvent},
+     Track,
+-    track_remote::{TrackRemote, TrackRemoteEvent},
+ };
+ type Done = Shared<BoxFuture<'static, std::result::Result<(), ()>>>;
+ struct Reservation {
+@@ -171,7 +171,11 @@
+                         clean = false;
+                     }
+                 }
+-                if clean { Ok(()) } else { Err(()) }
++                if clean {
++                    Ok(())
++                } else {
++                    Err(())
++                }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -379,14 +383,7 @@
+         ) => (&remote.sdp, &local.sdp),
+         _ => return Err(StreamControlError::NotReady),
+     };
+-    let mapping = crate::sdp::negotiated_single_audio_payload(offer, answer)
+-        .map_err(|_| StreamControlError::Unsupported)?;
+-    if !matches!(mapping.codec.name.as_str(), "g.711-mu" | "g.711-a")
+-        || mapping.codec.clock_rate_hz != 8000
+-        || mapping.codec.channels != 1
+-    {
+-        return Err(StreamControlError::Unsupported);
+-    }
++    let (mapping, codec) = crate::media::core_audio_profile::negotiated_profile(offer, answer)?;
+     fn direction(s: &str) -> ControlResult<(bool, bool)> {
+         let parsed = s
+             .parse::<rvoip_sip_core::types::sdp::SdpSession>()
+@@ -420,15 +417,16 @@
+     }
+     Ok((
+         MediaFormat::Encoded {
+-            name: match mapping.codec.name.as_str() {
++            name: match codec.name.as_str() {
+                 "g.711-mu" => "pcmu",
+                 "g.711-a" => "pcma",
++                "opus" => "opus",
+                 _ => return Err(StreamControlError::Unsupported),
+             }
+             .into(),
+-            clock_rate_hz: 8000,
+-            channels: 1,
+-            fmtp: mapping.codec.fmtp,
++            clock_rate_hz: codec.clock_rate_hz,
++            channels: codec.channels,
++            fmtp: codec.fmtp,
+         },
+         mapping.payload_type,
+         lr && rs,
+@@ -446,7 +444,7 @@
+         if self.lifetime.is_cancelled() || !self.physical.owner_current() {
+             return Err(StreamControlError::Cancelled);
+         }
+-        // This initial backend is one logical G.711 audio source, not an
++        // This initial backend is one logical mono audio source, not an
+         // implicit codec/transport fallback for unsupported media.
+         if ports.len() != 1 {
+             return Err(StreamControlError::Unsupported);
+@@ -593,11 +591,16 @@
+     let expected = match &format {
+         MediaFormat::Encoded { name, .. } if name == "pcmu" => "audio/pcmu",
+         MediaFormat::Encoded { name, .. } if name == "pcma" => "audio/pcma",
++        MediaFormat::Encoded { name, .. } if name == "opus" => "audio/opus",
+         _ => return Err(StreamControlError::Unsupported),
+     };
+     if !codec.mime_type.eq_ignore_ascii_case(expected)
+-        || codec.clock_rate != 8000
+-        || codec.channels != 1
++        || crate::media::core_audio_profile::wire_shape(
++            &codec.mime_type,
++            codec.clock_rate,
++            codec.channels,
++        )
++        .is_err()
+     {
+         return Err(StreamControlError::Unsupported);
+     }
+@@ -621,6 +624,11 @@
+                 if packet.header.ssrc != ssrc
+                     || packet.header.payload_type != pt
+                     || at.elapsed() >= Duration::from_millis(200)
++                    || crate::media::core_audio_profile::packet_samples(
++                        codec.clock_rate,
++                        &packet.payload,
++                    )
++                    .is_err()
+                 {
+                     continue;
+                 }
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -13,10 +13,10 @@
+     sync::{Arc, Mutex},
+     time::Instant,
+ };
+-use tokio::sync::{OwnedMutexGuard, mpsc};
++use tokio::sync::{mpsc, OwnedMutexGuard};
+ use webrtc::media_stream::{
++    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+     Track,
+-    track_local::{owned_rtp::*, static_rtp::TrackLocalStaticRTP},
+ };
+ 
+ /// Consumes only the receiver belonging to one exact Core port. Callers cannot
+@@ -51,11 +51,12 @@
+         let mime = match name.to_ascii_lowercase().as_str() {
+             "pcmu" | "g.711-mu" => "audio/PCMU",
+             "pcma" | "g.711-a" => "audio/PCMA",
++            "opus" if *clock_rate_hz == 48000 => "audio/opus",
+             _ => return Err(StreamControlError::Unsupported),
+         };
+         if binding.negotiated.requested.medium != Medium::Audio
+             || !binding.sink_ready
+-            || *clock_rate_hz != 8000
++            || !matches!(*clock_rate_hz, 8000 | 48000)
+             || *channels != 1
+             || fmtp.as_ref().is_some_and(|f| !f.is_empty())
+             || payload_type >= 128
+@@ -69,7 +70,12 @@
+                 .ok_or(StreamControlError::NotReady)?;
+         if !codec.mime_type.eq_ignore_ascii_case(mime)
+             || codec.clock_rate != *clock_rate_hz
+-            || codec.channels != u16::from(*channels)
++            || super::core_audio_profile::wire_shape(
++                &codec.mime_type,
++                codec.clock_rate,
++                codec.channels,
++            )
++            .is_err()
+         {
+             return Err(StreamControlError::Unsupported);
+         }
+@@ -149,7 +155,10 @@
+                 {
+                     return Err(StreamControlError::NotReady);
+                 }
+-                let samples = frame.payload.len() as u32; // G.711 mono: one sample/byte.
++                let samples = super::core_audio_profile::packet_samples(
++                    self.writer.clock_rate_hz(),
++                    &frame.payload,
++                )?;
+                 let timestamp = state.allocate_audio_timestamp(frame.timestamp_rtp, samples);
+                 let packet = rtc::rtp::Packet {
+                     header: rtc::rtp::Header {
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/core_audio_profile.rs b/crates/webrtc/rvoip-webrtc/src/media/core_audio_profile.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio_profile.rs
+@@ -0,0 +1,204 @@
++//! The bounded canonical audio profile, distinct from SDP's channel capability.
++use crate::sdp::NegotiatedAudioPayload;
++use rvoip_core::{
++    capability::CodecInfo,
++    staged_streams::{ControlResult, StreamControlError as E},
++};
++
++/// Derive the actual mapping and reject packet-duration preferences outside
++/// this fixed encoder profile before any Core resources are activated.
++pub fn negotiated_profile(
++    offer: &str,
++    answer: &str,
++) -> ControlResult<(NegotiatedAudioPayload, CodecInfo)> {
++    use rvoip_sip_core::types::sdp::{ParsedAttribute, SdpSession};
++    for sdp in [offer, answer] {
++        let parsed: SdpSession = sdp.parse().map_err(|_| E::Unsupported)?;
++        let mut media = parsed
++            .media_descriptions
++            .iter()
++            .filter(|m| m.media == "audio" && m.port != 0);
++        let audio = media.next().ok_or(E::Unsupported)?;
++        if media.next().is_some() || audio.ptime.is_some_and(|p| p != 20) {
++            return Err(E::Unsupported);
++        }
++        for attr in &audio.generic_attributes {
++            if let ParsedAttribute::Ptime(ms) = attr {
++                if *ms != 20 {
++                    return Err(E::Unsupported);
++                }
++            }
++            if let ParsedAttribute::MaxPtime(ms) = attr {
++                if *ms < 20 {
++                    return Err(E::Unsupported);
++                }
++            }
++            if let ParsedAttribute::Value(name, value) = attr {
++                if name == "maxptime" && value.parse::<u32>().map_or(true, |ms| ms < 20) {
++                    return Err(E::Unsupported);
++                }
++            }
++        }
++    }
++    let mapping =
++        crate::sdp::negotiated_single_audio_payload(offer, answer).map_err(|_| E::Unsupported)?;
++    let codec = negotiated_codec(&mapping)?;
++    Ok((mapping, codec))
++}
++
++/// Validate both directional SDP parameter sets before selecting the fixed
++/// Core mono profile. RFC 7587 requires opus/48000/2 even for mono audio.
++/// The original SDP/PT remain the transport authority; this descriptor is only
++/// the supported decoded/encoded Core layout, never another negotiation.
++pub fn negotiated_codec(mapping: &NegotiatedAudioPayload) -> ControlResult<CodecInfo> {
++    for codec in [&mapping.offered_codec, &mapping.codec] {
++        wire_shape(&codec.name, codec.clock_rate_hz, u16::from(codec.channels))?;
++        if codec.name == "opus" {
++            opus_parameters(codec.fmtp.as_deref())?;
++        } else if codec.fmtp.as_ref().is_some_and(|p| !p.is_empty()) {
++            return Err(E::Unsupported);
++        }
++    }
++    let mut codec = mapping.codec.clone();
++    codec.channels = 1;
++    // The fixed Core profile uses 20 ms / 32 kbit/s mono Opus, no DTX or
++    // constant bitrate requirement. Only SDP preferences it can meet enter.
++    codec.fmtp = None;
++    Ok(codec)
++}
++
++pub(crate) fn wire_shape(name: &str, rate: u32, channels: u16) -> ControlResult<()> {
++    match name.to_ascii_lowercase().as_str() {
++        "opus" | "audio/opus" if rate == 48000 && channels == 2 => Ok(()),
++        "pcmu" | "g.711-mu" | "audio/pcmu" | "pcma" | "g.711-a" | "audio/pcma"
++            if rate == 8000 && channels == 1 =>
++        {
++            Ok(())
++        }
++        _ => Err(E::Unsupported),
++    }
++}
++
++fn opus_parameters(fmtp: Option<&str>) -> ControlResult<()> {
++    let mut seen = std::collections::BTreeSet::new();
++    for parameter in fmtp
++        .unwrap_or_default()
++        .split(';')
++        .filter(|p| !p.trim().is_empty())
++    {
++        let (name, value) = parameter.trim().split_once('=').ok_or(E::Unsupported)?;
++        let name = name.trim().to_ascii_lowercase();
++        if !seen.insert(name.clone()) {
++            return Err(E::Unsupported);
++        }
++        let value = value.trim().parse::<u32>().map_err(|_| E::Unsupported)?;
++        let supported = match name.as_str() {
++            "stereo" | "sprop-stereo" | "cbr" => value == 0,
++            "useinbandfec" | "usedtx" => value <= 1,
++            "minptime" => (1..=20).contains(&value),
++            "maxaveragebitrate" => (32000..=510000).contains(&value),
++            "maxplaybackrate" => value == 48000,
++            "sprop-maxcapturerate" => (8000..=48000).contains(&value),
++            _ => false,
++        };
++        if !supported {
++            return Err(E::Unsupported);
++        }
++    }
++    Ok(())
++}
++
++/// This first profile admits one 20 ms mono frame per packet. Inspect Opus's
++/// TOC, never estimate its duration from its variable encoded byte count.
++/// Longer/multi-frame/stereo packets need a separately supported profile.
++pub(crate) fn packet_samples(rate: u32, bytes: &[u8]) -> ControlResult<u32> {
++    if bytes.is_empty() || bytes.len() > 1600 {
++        return Err(E::NotReady);
++    }
++    if rate == 8000 {
++        return Ok(bytes.len() as u32);
++    }
++    if rate != 48000 || bytes.len() < 2 || bytes.len() > 1276 || bytes[0] & 7 != 0 {
++        return Err(E::NotReady);
++    }
++    let config = bytes[0] >> 3;
++    let twenty_ms = match config {
++        0..=11 => config & 3 == 1,
++        12..=15 => config & 1 == 1,
++        _ => config & 3 == 3,
++    };
++    if twenty_ms {
++        Ok(960)
++    } else {
++        Err(E::NotReady)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn mono_opus_retains_wire_mapping_and_rejects_unmet_directional_parameters() {
++        let mut wire = CodecInfo::from_name_with_defaults("opus");
++        wire.channels = 2;
++        wire.fmtp = Some("minptime=10;useinbandfec=1".into());
++        let mut mapping = NegotiatedAudioPayload {
++            codec: wire.clone(),
++            offered_codec: wire,
++            payload_type: 103,
++        };
++        let core = negotiated_codec(&mapping).unwrap();
++        assert_eq!(
++            (core.channels, core.clock_rate_hz, core.fmtp),
++            (1, 48000, None)
++        );
++        assert_eq!((mapping.codec.channels, mapping.payload_type), (2, 103));
++        for bad in [
++            "stereo=1",
++            "maxaveragebitrate=16000",
++            "cbr=1",
++            "minptime=40",
++            "usedtx=2",
++            "stereo=0;stereo=1",
++        ] {
++            mapping.offered_codec.fmtp = Some(bad.into());
++            assert!(negotiated_codec(&mapping).is_err(), "{bad}");
++        }
++        mapping.offered_codec.fmtp = None;
++        mapping.codec.channels = 1;
++        assert!(negotiated_codec(&mapping).is_err());
++    }
++
++    #[test]
++    fn packet_duration_limits_are_checked_before_canonical_admission() {
++        let sdp = "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nc=IN IP4 127.0.0.1\r\nm=audio 9 UDP/TLS/RTP/SAVPF 103\r\na=rtpmap:103 opus/48000/2\r\n";
++        let answer = format!("{sdp}a=ptime:20\r\na=maxptime:20\r\n");
++        assert_eq!(
++            negotiated_profile(sdp, &answer).unwrap().0.payload_type,
++            103
++        );
++        for bound in ["a=maxptime:10\r\n", "a=ptime:40\r\n"] {
++            assert!(negotiated_profile(&format!("{sdp}{bound}"), &answer).is_err());
++            assert!(negotiated_profile(sdp, &format!("{sdp}{bound}")).is_err());
++        }
++    }
++
++    #[test]
++    fn opus_timestamp_duration_is_independent_of_compressed_packet_size() {
++        for bytes in [vec![0xf8, 0xff, 0xfe], vec![0x08; 80], vec![0x98; 140]] {
++            assert_eq!(packet_samples(48000, &bytes).unwrap(), 960);
++        }
++        for bytes in [
++            vec![],
++            vec![0xf8],
++            vec![0xfc, 0xff],
++            vec![0xf9, 0xff],
++            vec![0xf0, 0xff],
++            vec![0xf8; 1277],
++        ] {
++            assert!(packet_samples(48000, &bytes).is_err());
++        }
++        assert_eq!(packet_samples(8000, &[0x80; 160]).unwrap(), 160);
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/media/mod.rs b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+--- a/crates/webrtc/rvoip-webrtc/src/media/mod.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/mod.rs
+@@ -12,19 +12,22 @@
+ pub(crate) mod video_reorder;
+ 
+ pub use fixtures::{
+-    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD, opus_rtp_packet_for_ssrc,
+-    send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
++    opus_rtp_packet_for_ssrc, send_fixture_media_burst, vp8_rtp_packet_for_ssrc,
++    OPUS_FIXTURE_PAYLOAD, VP8_KEYFRAME_FIXTURE_PAYLOAD,
+ };
+ pub use pump::{
+-    CandidatePairStats, FRAME_CHANNEL_CAP, InboundStats, OutboundStats, WebRtcStatsSnapshot,
+     silent_opus_payload, silent_rtp_packet, silent_rtp_payload, silent_rtp_payload_for_ssrc,
++    CandidatePairStats, InboundStats, OutboundStats, WebRtcStatsSnapshot, FRAME_CHANNEL_CAP,
+ };
+ pub use stream::{
+-    WebRtcMediaStream, from_tracks, from_tracks_with_audio_queue_capacity,
+-    from_tracks_with_dtmf_codecs, from_tracks_with_dtmf_events,
++    from_tracks, from_tracks_with_audio_queue_capacity, from_tracks_with_dtmf_codecs,
++    from_tracks_with_dtmf_events, WebRtcMediaStream,
+ };
+ 
+ pub(crate) mod clock;
+ 
+ /// Guarded Core audio egress through driver-owned RTP IO.
+ pub mod core_audio;
++
++/// Fixed canonical mono audio profile checked against both SDP directions.
++pub mod core_audio_profile;
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1,8 +1,8 @@
+ //! `RvoipPeerConnection` — offer/answer lifecycle on webrtc-rs 0.20.
+ 
+ use std::collections::HashMap;
++use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::sync::Arc;
+-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+ use std::time::Duration;
+ 
+ use parking_lot::Mutex as SyncMutex;
+@@ -11,10 +11,10 @@
+ use rtc::rtp_transceiver::rtp_sender::{
+     RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters,
+ };
+-use tokio::sync::{Mutex as AsyncMutex, mpsc};
++use tokio::sync::{mpsc, Mutex as AsyncMutex};
+ use webrtc::data_channel::{DataChannel, DataChannelEvent, RTCDataChannelState};
++use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+ use webrtc::media_stream::track_local::TrackLocal;
+-use webrtc::media_stream::track_local::static_rtp::TrackLocalStaticRTP;
+ use webrtc::media_stream::track_remote::TrackRemote;
+ use webrtc::peer_connection::PeerConnection;
+ use webrtc::peer_connection::{RTCIceCandidate, RTCIceCandidateInit, RTCSdpType};
+@@ -25,15 +25,15 @@
+ use crate::media::dtmf::{OutboundDtmfNegotiation, TelephoneEventCodec};
+ use crate::media::outbound::OutboundAudioRtpWriter;
+ use crate::peer::builder::{
+-    self, MIME_TYPE_VP8, TELEPHONE_EVENT_MAPPINGS, video_track_rtcp_feedback,
++    self, video_track_rtcp_feedback, MIME_TYPE_VP8, TELEPHONE_EVENT_MAPPINGS,
+ };
+ use crate::peer::handler::{
+     ConnectionHandler, HandlerChannels, HandlerDropCounters, LocalIceEvent,
+ };
+ use crate::peer::ice::IceCandidateLog;
+ use crate::sdp::inspect::{
+-    NegotiatedAudioMid, negotiated_sdes_mid_for_outbound_audio, negotiated_telephone_event_codec,
+-    preferred_telephone_event_codec_in_sdp, sdp_has_media_line,
++    negotiated_sdes_mid_for_outbound_audio, negotiated_telephone_event_codec,
++    preferred_telephone_event_codec_in_sdp, sdp_has_media_line, NegotiatedAudioMid,
+ };
+ use crate::sdp::session::{parse_sdp, sdp_to_string};
+ 
+@@ -518,43 +518,43 @@
+         deadline: std::time::Instant,
+     ) -> rvoip_core::staged_streams::ControlResult<crate::media::core_audio::CoreAudioEgress> {
+         use rvoip_core::staged_streams::StreamControlError as E;
+-        let mapping = tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
+-            if !self.connected_flag.load(Ordering::Acquire)
+-                || self.failed_flag.load(Ordering::Acquire)
+-                || !self.signaling_is_stable().await
+-            {
+-                return Err(E::NotReady);
+-            }
+-            let local = self.pc.local_description().await.ok_or(E::NotReady)?;
+-            let remote = self.pc.remote_description().await.ok_or(E::NotReady)?;
+-            for sdp in [&local.sdp, &remote.sdp] {
+-                let parsed = sdp
+-                    .parse::<rvoip_sip_core::types::sdp::SdpSession>()
+-                    .map_err(|_| E::Unsupported)?;
+-                if parsed
+-                    .media_descriptions
+-                    .iter()
+-                    .filter(|m| m.media == "audio" && m.port != 0)
+-                    .count()
+-                    != 1
++        let (mapping, codec) =
++            tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
++                if !self.connected_flag.load(Ordering::Acquire)
++                    || self.failed_flag.load(Ordering::Acquire)
++                    || !self.signaling_is_stable().await
+                 {
+-                    return Err(E::Unsupported);
++                    return Err(E::NotReady);
+                 }
+-            }
+-            let (offer, answer) = match (local.sdp_type, remote.sdp_type) {
+-                (RTCSdpType::Offer, RTCSdpType::Answer) => (&local.sdp, &remote.sdp),
+-                (RTCSdpType::Answer, RTCSdpType::Offer) => (&remote.sdp, &local.sdp),
+-                _ => return Err(E::NotReady),
+-            };
+-            let mapping = crate::sdp::negotiated_single_audio_payload(offer, answer)
+-                .map_err(|_| E::Unsupported)?;
+-            if !self.signaling_is_stable().await {
+-                return Err(E::NotReady);
+-            }
+-            Ok(mapping)
+-        })
+-        .await
+-        .map_err(|_| E::Deadline)??;
++                let local = self.pc.local_description().await.ok_or(E::NotReady)?;
++                let remote = self.pc.remote_description().await.ok_or(E::NotReady)?;
++                for sdp in [&local.sdp, &remote.sdp] {
++                    let parsed = sdp
++                        .parse::<rvoip_sip_core::types::sdp::SdpSession>()
++                        .map_err(|_| E::Unsupported)?;
++                    if parsed
++                        .media_descriptions
++                        .iter()
++                        .filter(|m| m.media == "audio" && m.port != 0)
++                        .count()
++                        != 1
++                    {
++                        return Err(E::Unsupported);
++                    }
++                }
++                let (offer, answer) = match (local.sdp_type, remote.sdp_type) {
++                    (RTCSdpType::Offer, RTCSdpType::Answer) => (&local.sdp, &remote.sdp),
++                    (RTCSdpType::Answer, RTCSdpType::Offer) => (&remote.sdp, &local.sdp),
++                    _ => return Err(E::NotReady),
++                };
++                let mapping = crate::media::core_audio_profile::negotiated_profile(offer, answer)?;
++                if !self.signaling_is_stable().await {
++                    return Err(E::NotReady);
++                }
++                Ok(mapping)
++            })
++            .await
++            .map_err(|_| E::Deadline)??;
+         let rvoip_core::stream_lifecycle::MediaFormat::Encoded {
+             name,
+             clock_rate_hz,
+@@ -567,12 +567,19 @@
+         let canonical = match name.to_ascii_lowercase().as_str() {
+             "pcmu" | "g.711-mu" => "g.711-mu",
+             "pcma" | "g.711-a" => "g.711-a",
++            "opus" => "opus",
+             _ => return Err(E::Unsupported),
+         };
+-        if mapping.codec.name != canonical
+-            || mapping.codec.clock_rate_hz != *clock_rate_hz
+-            || mapping.codec.channels != *channels
+-            || mapping.codec.fmtp.as_ref().is_some_and(|f| !f.is_empty())
++        if codec.name != canonical
++            || codec.clock_rate_hz != *clock_rate_hz
++            || codec.channels != *channels
++            || port.binding().negotiated.format
++                != (rvoip_core::stream_lifecycle::MediaFormat::Encoded {
++                    name: name.clone(),
++                    clock_rate_hz: codec.clock_rate_hz,
++                    channels: codec.channels,
++                    fmtp: codec.fmtp,
++                })
+         {
+             return Err(E::Unsupported);
+         }
+diff --git a/crates/webrtc/rvoip-webrtc/src/sdp/session.rs b/crates/webrtc/rvoip-webrtc/src/sdp/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/sdp/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/sdp/session.rs
+@@ -41,6 +41,8 @@
+ #[derive(Clone, Debug, Eq, PartialEq)]
+ pub struct NegotiatedAudioPayload {
+     pub codec: CodecInfo,
++    /// Original offer parameters: Opus fmtp is directional, not an echo.
++    pub offered_codec: CodecInfo,
+     pub payload_type: u8,
+ }
+ 
+@@ -92,6 +94,7 @@
+             ));
+         }
+         primary.push(NegotiatedAudioPayload {
++            offered_codec: offered,
+             codec,
+             payload_type,
+         });

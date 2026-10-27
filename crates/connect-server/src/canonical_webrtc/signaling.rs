@@ -13,25 +13,34 @@ pub struct SignalingHost {
     adapter: Arc<rvoip_webrtc::canonical::CanonicalWebRtcAdapter>,
 }
 impl SignalingHost {
-    /// A single G.711 codec preserves an exact canonical/SDP channel binding.
-    /// Opus mono, video and SCTP need their Core media adapters before enabling.
+    /// One exact mono audio codec; Opus retains its required SDP /2 mapping.
+    /// Video and SCTP require their independently supported Core adapters.
     pub fn new(config: WebRtcConfig, capacity: usize) -> Result<Arc<Self>> {
         let audio = &config.capabilities.audio_codecs;
+        let supported = audio.len() == 1
+            && audio[0].channels == 1
+            && audio[0].fmtp.as_ref().is_none_or(|p| p.is_empty())
+            && match audio[0].name.as_str() {
+                "g.711-mu" | "pcmu" | "g.711-a" | "pcma" => audio[0].clock_rate_hz == 8000,
+                "opus" => {
+                    audio[0].clock_rate_hz == 48000
+                        && !config.opus_settings.stereo
+                        && (1..=20).contains(&config.opus_settings.min_ptime_ms)
+                        && (config.opus_settings.max_average_bitrate_bps == 0
+                            || (32000..=510000)
+                                .contains(&config.opus_settings.max_average_bitrate_bps))
+                }
+                _ => false,
+            };
         if capacity == 0
             || capacity > 512
-            || audio.len() != 1
-            || !matches!(
-                audio[0].name.as_str(),
-                "g.711-mu" | "pcmu" | "g.711-a" | "pcma"
-            )
-            || audio[0].clock_rate_hz != 8000
-            || audio[0].channels != 1
+            || !supported
             || config.trickle_ice
             || config.require_vp8_audio_video_profile
         {
             return Err(Error::new(
                 "unsupported-media-profile",
-                "Canonical WebRTC signaling requires one exact G.711 audio profile",
+                "Canonical WebRTC signaling requires one supported mono audio profile",
             ));
         }
         Ok(Arc::new(Self {
@@ -86,7 +95,6 @@ impl Attempt for Owned {
     }
     async fn answer(&self, deadline: Instant) -> Result<ConnectionAnswer> {
         let peer = &self.0;
-        let answer = peer.answer_sdp(deadline).await?;
         let read = peer.source_read(deadline).await?;
         let offer = &read.target().offer;
         let streams = offer["streams_offered"]
@@ -102,21 +110,39 @@ impl Attempt for Owned {
         let original = offer["substrate_setup"]["sdp"]
             .as_str()
             .ok_or_else(Error::forbidden)?;
-        let negotiated = rvoip_webrtc::sdp::negotiated_single_audio_payload(original, &answer)
-            .map_err(|_| {
-                Error::new(
-                    "incompatible-capabilities",
-                    "WebRTC answer has no unique negotiated audio mapping",
-                )
-            })?;
-        if negotiated.codec.channels != 1 || negotiated.codec.clock_rate_hz != 8000 {
+        let original_parsed = rvoip_sip_core::types::sdp::SdpSession::from_str(original)
+            .map_err(|_| engine_error())?;
+        if original_parsed
+            .media_descriptions
+            .iter()
+            .any(|m| m.port != 0 && m.media != "audio")
+        {
             return Err(Error::new(
                 "unsupported-media-profile",
-                "Canonical WebRTC selected audio mapping is unsupported",
+                "Canonical WebRTC audio profile cannot negotiate other active media",
             ));
         }
+        let answer = peer.answer_sdp(deadline).await?;
+        let (negotiated, codec) =
+            rvoip_webrtc::media::core_audio_profile::negotiated_profile(original, &answer)
+                .map_err(|_| {
+                    Error::new(
+                        "unsupported-media-profile",
+                        "Canonical WebRTC selected audio mapping is unsupported",
+                    )
+                })?;
         let parsed = rvoip_sip_core::types::sdp::SdpSession::from_str(&answer)
             .map_err(|_| engine_error())?;
+        if parsed
+            .media_descriptions
+            .iter()
+            .any(|m| m.port != 0 && m.media != "audio")
+        {
+            return Err(Error::new(
+                "unsupported-media-profile",
+                "Canonical WebRTC audio profile cannot negotiate other active media",
+            ));
+        }
         let media = parsed
             .media_descriptions
             .iter()
@@ -129,9 +155,9 @@ impl Attempt for Owned {
             .map(ToString::to_string)
             .unwrap_or_else(|| "sendrecv".into());
         let value = json!({"by_participant":peer.origin.participant_id(),"substrate":"websocket+webrtc",
-            "capabilities":{"audio_codecs":[{"name":negotiated.codec.name,"params":{"sample_rate":8000,"channels":1}}],"max_streams_per_connection":1},
+            "capabilities":{"audio_codecs":[{"name":codec.name,"params":{"sample_rate":codec.clock_rate_hz,"channels":codec.channels}}],"max_streams_per_connection":1},
             "streams_answered":[{"id":streams[0]["id"],"kind":"audio","direction":direction,
-                "codec":{"name":negotiated.codec.name,"params":{"sample_rate":8000,"channels":1,"payload_type":negotiated.payload_type}}}],
+                "codec":{"name":codec.name,"params":{"sample_rate":codec.clock_rate_hz,"channels":codec.channels,"payload_type":negotiated.payload_type}}}],
             "substrate_setup":{"kind":"websocket+webrtc","sdp":answer}});
         serde_json::from_value(value).map_err(|_| engine_error())
     }

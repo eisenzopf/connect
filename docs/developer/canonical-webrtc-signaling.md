@@ -4,7 +4,7 @@ G6-051 is in progress. The internal TypeScript module
 `browser_webrtc_signaling.ts` implements a signaling owner against the frozen
 `connect/2` envelope shapes. It is not exported from the browser entry point yet.
 The default canonical server does not enable a WebRTC media route. Protected
-startup composition can install the G.711 staged media host described below.
+startup composition can install the bounded mono Opus/G.711 staged media host.
 The older browser voice/video entry points still use their historical signaling
 dialect. These components do not establish browser fallback support or media
 interoperability.
@@ -126,8 +126,8 @@ canonical WSS dispatch, browser interoperability or decoded media. Details are i
 first physical admission. Configuration is sealed by that admission. This hook
 is not a public command or JSON configuration field. The server's
 `canonical_webrtc::SignalingHost` composes the existing owned peer with a bounded
-capacity pool. Its initial profile requires exactly one G.711 mono audio codec
-and one logical audio stream. Opus mono, video and SCTP remain implementation
+capacity pool. Its protected profile requires exactly one mono Opus or G.711
+audio codec and one logical audio stream. Video and SCTP remain implementation
 work; this is not the final Gate 6 browser media profile.
 
 A WebSocket offer enters the same signed canonical handler and Store authority
@@ -355,7 +355,7 @@ methods and one decoded WebTransport regression pass. Separately injected
 service-level pending-close/lost-receipt/deadline uncertainty remains unqualified.
 
 The default host still makes no browser media advertisement. Wider RTC lifecycle control, reoffers, DTMF,
-reconciliation/query/credential refresh, Opus/video/data,
+reconciliation/query/credential refresh, broader Opus/video/data profiles,
 ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and
 approved Linux/remote hosting, package and full acceptance qualification remain
 required. G6-051 remains in progress.
@@ -406,3 +406,34 @@ original-resource termination. All23 selected RTC/WSS/WebTransport methods,
 four quiet eight-method RTC rounds,40 Core component methods and six native
 regressions pass. Service failure/deadline and broader media/browser/hosting
 profiles remain separate qualifications; G6-051 remains in progress.
+
+
+## Bounded canonical Opus audio
+
+The protected host accepts one mono Opus stream at 48 kHz, 20 ms and a
+32 kbit/s encoder target. Its canonical channel count is one; its actual SDP
+retains `opus/48000/2`, as required even for mono by
+[RFC 7587](https://www.rfc-editor.org/rfc/rfc7587.html#section-7).
+Both actual offer/answer parameter sets must fit the fixed encoder profile.
+Incompatible bitrate, stereo, constant bitrate or packet-duration preferences
+refuse. Additional active video/SCTP sections refuse even when the logical offer
+claims only audio. Video and data need their own canonical adapters.
+
+The actual track, SSRC and selected payload type remain bound to the exact Core
+port. This first profile admits one mono 20 ms Opus frame per RTP packet,
+checking its TOC and length using the
+[RFC 6716 framing](https://www.rfc-editor.org/rfc/rfc6716.html#section-3).
+Egress advances by 960 samples rather than compressed byte length. Current Core
+source/audience permission and the original owned driver write still cover IO.
+The shared codec factory now uses the approved 32 kbit/s mono target; stereo
+retains its existing 64 kbit/s target.
+
+The [local evidence](../evidence/gate-6/webrtc-opus-audio.json) records both
+signatures with real Opus encoding and independent decoded duplex tones,
+48 kHz RTP timing, explicit subscription withdrawal/reselection and original
+resource cleanup. Four signed unsupported SDP profiles retire without media
+admission. There are 27 final RTC/WSS/WT, six native, 94 Core, seven SDP/profile
+and one codec-factory checks. An earlier invalid SDP test fixture and an
+interrupted build remain recorded. These checks do not qualify actual browser
+fallback, wider Opus profiles, VP8/data, Linux/remote hosting or full Gate 6.
+G6-051 remains in progress and default browser media advertisement stays disabled.

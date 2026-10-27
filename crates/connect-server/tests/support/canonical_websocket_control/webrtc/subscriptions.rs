@@ -2,6 +2,8 @@
 use super::*;
 #[path = "gates.rs"]
 mod gates;
+#[path = "opus.rs"]
+mod opus;
 use rvoip_core::participant::ParticipantRole;
 use rvoip_core::{adapter::ConnectionAdapter, ids::StreamId, stream::MediaStream};
 use tokio::sync::mpsc;

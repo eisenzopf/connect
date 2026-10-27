@@ -1,0 +1,274 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "scope": "Local macOS arm64 isolated synthetic canonical WSS/RTC mono Opus audio. No installed-browser, remote/provider/model-host, Linux, release, acceptance or publication qualification in this checkpoint.",
+  "contract": [
+    "One canonical mono audio stream: Opus at 48 kHz with 20 ms frames and 32 kbit/s encoder target, or the retained PCMU/PCMA 8 kHz profile. The logical channel count remains one; actual Opus SDP must retain its required /2 mapping.",
+    "The selected payload type and both directional parameter sets come from the actual offer/answer. The fixed Core profile explicitly refuses unmet stereo/constant-bitrate/bitrate/packet-duration preferences, ambiguous primaries, and other active SDP media. The answer cannot silently enable video or SCTP outside the logical audio program.",
+    "Actual remote track/SSRC, current stable peer, negotiated codec/PT and exact Core port still determine readiness and IO. The owned RTP driver checks its current sender, direction, encoding and negotiated payload. No wire claim or metadata helper grants media authority.",
+    "Opus TOC/length checks admit one mono 20 ms frame per RTP packet. RTP duration is 960 samples regardless of compressed byte count. Checks remain within the original Core queued delivery and driver-owned write; no IO retry, new mutation ID, alternate source authority or native adapter is introduced.",
+    "The shared real codec factory now targets 32 kbit/s for mono Opus and retains 64 kbit/s for stereo. Canonical Opus SDP parameters normalize only after validating both directional preferences against this fixed Core encoder profile."
+  ],
+  "behavior": [
+    "EdDSA and ES256 actual signed WSS SDP/media admission with real Opus encoders and independent remote libopus decoders. Logical answer is mono 48 kHz; actual SDP remains opus/48000/2 with negotiated PT111 in these network fixtures.",
+    "No implicit receive subscription. Explicit selections yield at least five identified decoded frames of the other Participant tone in each direction; outgoing packets decode to 960 mono samples and preserve the 48 kHz RTP tick cadence. Sender sequence crosses the 16-bit wrap boundary.",
+    "Subscription withdrawal removes only the selected playback; reverse decoded audio continues. Reselection restores the identified tone without another RTC allocation. Owned streams, senders, peers and WSS are joined; original two routes and capacity slots retire.",
+    "Actual signed offers with maxptime10, stereo preference, an additional active VP8 m-line or SCTP m-line refuse with unsupported-media-profile, record failed original operations, restore capacity/routes and leave no canonical media connection. Startup also refuses unsupported stereo channel/configuration, bitrate and frame-duration profiles.",
+    "The eight retained G.711 RTC role/subscription/end/gate journeys, fourteen WSS controls/refusals, one decoded WebTransport regression and six native gate/subscription/captured-receipt cases remain green."
+  ],
+  "verification": {
+    "connect_methods": 27,
+    "native_methods": 6,
+    "core_methods": 94,
+    "sdp_profile_methods": 7,
+    "real_codec_factory_methods": 1,
+    "total_distinct_methods": 135,
+    "main": [
+      {
+        "exit_code": 0,
+        "seconds": 53.14575850008987,
+        "log_sha256": "d4ee91cd0a2116bbcfd75ec269b84c7989a43c2ca82c025972b1e3313aa452f6",
+        "test_results": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 51.69s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.572443957906216,
+        "log_sha256": "0aa41e67bfaf2ef8b0352d5edb657463f9ebb73c9c9d375f14ae8527489faf9e",
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 46 filtered out; finished in 39.55s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.283534249989316,
+        "log_sha256": "bedd269eade12b3d451e381382cf0ff2c53405db1ae62b1edf70d64e4b3849a1",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 4.25s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa"
+      }
+    ],
+    "native": [
+      {
+        "exit_code": 0,
+        "seconds": 62.07391337491572,
+        "results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 344 filtered out; finished in 60.32s"
+        ],
+        "log_sha256": "a05b405d66fdf78e157fa6f918cc23f96bedc83a0053578f69f93888a3267b4a",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::gates::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.237518833018839,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.21s"
+        ],
+        "log_sha256": "56b4fc0736757a7a819ffe26d7ef1067b19385f71c323f6180cb4aff8205d44a",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.450379459187388,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.40s"
+        ],
+        "log_sha256": "f9cf37240f5eb0a4299bf6ff2f1ab94ea6d876af37de96aa0687aecfd2c4d0a1",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_native_stream_captured_commit_recovers_storage_without_retaining_original_readers_or_reapplying"
+      }
+    ],
+    "core": [
+      {
+        "name": "core-harness-build-01",
+        "exit_code": 0,
+        "seconds": 0.5086933339480311,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-build-01",
+        "exit_code": 0,
+        "seconds": 14.663266333984211,
+        "log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-runtime-01",
+        "exit_code": 0,
+        "seconds": 0.5689473750535399,
+        "log_sha256": "29d7fe309e038f102a90440514fd913172ed62a9a919340c28389a52fda35424",
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 525 filtered out; finished in 0.04s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-existing-gates-runtime-01",
+        "exit_code": 0,
+        "seconds": 0.04822266707196832,
+        "log_sha256": "e1d287798f2b9803bbf98960dfd848e684d8432b1be32be02c05a7ec9aa50e4b",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 526 filtered out; finished in 0.03s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-scene-runtime-01",
+        "exit_code": 0,
+        "seconds": 0.32743937498889863,
+        "log_sha256": "148ba2c1956d3a477a87ed0b594e8d5dfc39b81a1f1342c4398d7f0b6663ba54",
+        "results": [
+          "test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 493 filtered out; finished in 0.27s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-guarded-mixer-runtime-01",
+        "exit_code": 0,
+        "seconds": 2.0129495828878134,
+        "log_sha256": "97f60cfe51023efda5c01a779a0edb9ae72d63c733907f8ae70cb14b42e27e73",
+        "results": [
+          "test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 474 filtered out; finished in 1.96s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      }
+    ],
+    "sdp_profile": [
+      {
+        "name": "profile-probe-02-build",
+        "exit_code": 0,
+        "seconds": 0.20171574992127717,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": [],
+        "results": []
+      },
+      {
+        "name": "profile-probe-02-runtime",
+        "exit_code": 0,
+        "seconds": 0.21709258412010968,
+        "log_sha256": "a89c8ea56ea7d25df76c8a2f4b4c265ca2d628e00df56a0721e3bfd2d632d29f",
+        "changed_inputs": [],
+        "results": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ]
+      }
+    ],
+    "codec_factory": [
+      {
+        "name": "codec-probe-build",
+        "exit_code": 0,
+        "seconds": 0.14675724995322526,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": [],
+        "results": []
+      },
+      {
+        "name": "codec-probe-runtime",
+        "exit_code": 0,
+        "seconds": 0.2652668331284076,
+        "log_sha256": "560ac45c501f430d50fa2c181bf5fd9c16932e53c112200f051d7023f54c41a7",
+        "changed_inputs": [],
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ]
+      }
+    ],
+    "root_build": {
+      "exit_code": 0,
+      "seconds": 82.90319491596892,
+      "source_count": 5164,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "37e9a519e82702004d8692172afbe9e6bbc22a5940fecddc7b9219a77083bb87",
+      "artifact": {
+        "sha256": "ca1326144f92662c48f2b1d7e0df3443ab22c420ee51670fd092eab19fdeac82",
+        "bytes": 213558400
+      }
+    },
+    "native_build": {
+      "exit_code": 0,
+      "seconds": 17.714594583027065,
+      "source_count": 5164,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "327c369e4643251d3e226553de4853debb5a34045896dcb3d3b6061daa0373ce",
+      "artifact": {
+        "sha256": "385815c1d96d8e3cad1d6cc16515eccdc4e4704ca7d04f67e51760f91fce92bc",
+        "bytes": 259519896
+      }
+    },
+    "runtime_source_count": 5320,
+    "component_to_final_changed_files": [
+      "crates/connect-server/src/canonical_webrtc/signaling.rs",
+      "crates/connect-server/tests/support/canonical_websocket_control/webrtc/opus.rs"
+    ],
+    "component_to_final_scope": "Only host answer ordering/active-media rejection and its server test changed after the Core component run. Core/media/dependency source bytes remain identical. Final Connect builds/runtime checks use the final host and fixtures with unchanged source/executable guards.",
+    "source_lock_sha256": "5fa33deb5bf2e7e3c9b111238e5a76c61c56241d7d002ab88a306910b4a07f89",
+    "upstream_patch_sha256": "6d423a40d623bc6addd79f779c671d9a1a5a78ff0279ba38035c2d88f71a7d2d",
+    "cli": {
+      "sha256": "4c7158567cd001d079577181024b25eb2461ac7f185fae19105dde9ab5ba84e5",
+      "bytes": 234369504,
+      "mach_o_executable": true,
+      "version_output": "connect 0.1.0",
+      "scope": "CLI executable health only; not CLI behavior qualification"
+    }
+  },
+  "attempt_history": [
+    "The first staged profile harness had an invalid SDP test fixture missing its required connection line: six methods passed and one failed. Correcting that fixture, without weakening production checks, passes all seven real-source profile/SDP methods.",
+    "The first composition build was deliberately interrupted before Connect service compilation to add the missing incompatible SDP ptime/maxptime refusal. Completed dependency artifacts were reused; the interrupted build is not a pass. The corrected 815.973-second build passes26 selected methods with all source/executable guards intact.",
+    "The final host additionally refuses other active SDP media before observing its engine answer. The final82.903-second Root build and17.715-second native build pass, without strip warnings; final27 plus6 Connect methods pass. The prior26-method executable is losslessly archived with decoded SHA/mode/mtime custody.",
+    "Closed previous checkpoint executable proofs were compressed with verification before removing exact aliases. One idle reproducible Rust debug incremental cache was discarded after verifying it contained only old compiler intermediates, unused by the release target. Sources, dependency rlibs, test proofs, private state and raw logs were preserved."
+  ],
+  "remaining": [
+    "G6-051 remains in progress. This is a bounded mono single-frame Opus profile. Wider codec/packetization cases, Opus-specific gate/impairment/lifecycle scopes, multiConnection roles, quality/query/reconciliation, reoffers, DTMF and credential refresh still require their planned implementation/evidence.",
+    "VP8 and reliable data canonical adapters, full ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and combined native/browser lanes, approved Linux/remote hosting, packages and full acceptance remain required. Default browser media advertisement stays disabled."
+  ],
+  "private_evidence": {
+    ".local/gate-6/rtc-opus/build-03-summary.json": "bbe2d6dce819d712df1db7e29f280d09c796c428fc81d72b1e7ee3033f80f0ab",
+    ".local/gate-6/rtc-opus/native-build-01-summary.json": "3c60211c0c9dc328c89a9cbf24638002d4c42512f4a90e9b5eb4e8fd591780f4",
+    ".local/gate-6/rtc-opus/runtime-03-summary.json": "55de8257b0298859c0f83c3a39d3e385e34668c16b2481c2d74ca0d0996a6e73",
+    ".local/gate-6/rtc-opus/native-runtime-01-summary.json": "8514a77ce5fd6e6da2c40c5c4998d5c7a8a8e4315c825935bebf8518dc5a38af",
+    ".local/gate-6/rtc-opus/runtime-inputs-03.json": "a0a2f1756b20de03d19fd7157821acabb4456000ce607317360a4236f38ef499",
+    ".local/gate-6/rtc-opus/core-tests-current-graph-summary.json": "bf1c46d342fc9b96f0edaf025a29f99fbed30fafcbcf52ad6f1fec54411f92d4",
+    ".local/gate-6/rtc-opus/component-inputs-02.json": "aedfbb78e0f8954e64b5f6fbd4feb561528f5f321d2572dc7a0f1ebd741ba931",
+    ".local/gate-6/rtc-opus/profile-probe-02-summary.json": "a1ca7f928b7e9bca53b5f7899b7313cf0c86ce02b9144f58d535e9c399870f0b",
+    ".local/gate-6/rtc-opus/profile-probe-summary.json": "03c5eb3a7f95a8c6c177e6f7e9d37d0cd2bf75e936073be128aae09229a98752",
+    ".local/gate-6/rtc-opus/codec-probe-summary.json": "a0e003f429e5ae2d8b542e622fc83228b2af8e522f11cb6aa480aa271f9bb1bb",
+    ".local/gate-6/rtc-opus/build-01-interruption.json": "e8adfda3b9aaa107d2997d62304e9528d07599339ff7d54732a20696168498dd",
+    ".local/gate-6/rtc-opus/baseline-proof-archive.json": "67439d613bc03a855b082e54a9bd3bc642123288107d6e76413bf469ea926b76",
+    ".local/gate-6/rtc-opus/closed-proof-archives.json": "8e5e041f456d6cad87df1391cc1df5e46ccde3215261974419168d7baf98b9da",
+    ".local/gate-6/rtc-opus/discarded-idle-incremental-cache.json": "14853d5b49e0c5c5f915b45cea001bb63136ae4a43f1ad2258eb7f921824f622",
+    ".local/gate-6/rtc-opus/cli-artifact-03.json": "ce174941f549b097e1c084e2c7fabdc639601b5c67af68e6f1ba4e4b0b60018a",
+    ".local/gate-6/rtc-opus/final-guards.json": "90ec7c412fe1ceafa932375ae102757161ed2c54d0df494445f5486bf1c3fb80"
+  },
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}
