@@ -184,7 +184,7 @@
         "G6-089",
         "G6-103"
       ],
-      "observation": "9/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "10/12 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-01"
       ],
@@ -206,6 +206,7 @@
         "docs/developer/upstream-contract.md",
         "docs/evidence/gate-6/contract-checks.json",
         "docs/evidence/gate-6/contract-review.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/participant-orchestration.json",
         "docs/evidence/gate-6/protocol-audit.json",
         "docs/evidence/gate-6/relationships.json",
@@ -269,7 +270,7 @@
         "G6-101",
         "G6-103"
       ],
-      "observation": "19/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "20/26 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-02"
       ],
@@ -802,6 +803,7 @@
         "docs/evidence/gate-6/media-subscriptions.json",
         "docs/evidence/gate-6/membership-control.json",
         "docs/evidence/gate-6/messages.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/native-activation.json",
         "docs/evidence/gate-6/native-codec.json",
         "docs/evidence/gate-6/native-control.json",
@@ -1704,7 +1706,7 @@
         "G6-096",
         "G6-101"
       ],
-      "observation": "17/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "18/24 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-03",
         "R6-04"
@@ -2149,6 +2151,7 @@
         "docs/evidence/gate-6/incoming-contact-voice-custody.json",
         "docs/evidence/gate-6/membership.json",
         "docs/evidence/gate-6/messages.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/native-assistant-context-phases.json",
         "docs/evidence/gate-6/native-assistant-provider.json",
         "docs/evidence/gate-6/native-assistant-receipts-audio.json",
@@ -2584,7 +2587,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "8/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "9/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-06"
       ],
@@ -2677,6 +2680,7 @@
         "docs/evidence/gate-6/crash-recovery-audit.json",
         "docs/evidence/gate-6/crash-recovery-scope.json",
         "docs/evidence/gate-6/membership.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/native-assistant-context-phases.json",
         "docs/evidence/gate-6/native-assistant-provider.json",
         "docs/evidence/gate-6/native-assistant-receipts-audio.json",
@@ -2730,7 +2734,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "8/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "9/14 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-07"
       ],
@@ -2762,6 +2766,7 @@
         "docs/evidence/gate-6/contract-checks.json",
         "docs/evidence/gate-6/crash-recovery-audit.json",
         "docs/evidence/gate-6/crash-recovery-scope.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/native-handoff-complete.json",
         "docs/evidence/gate-6/native-handoff-prepared-runtime.json",
         "docs/evidence/gate-6/operations.json",
@@ -2805,7 +2810,7 @@
         "G6-098",
         "G6-100"
       ],
-      "observation": "10/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "11/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-08"
       ],
@@ -2934,6 +2939,7 @@
         "docs/evidence/gate-6/crash-recovery-audit.json",
         "docs/evidence/gate-6/crash-recovery-scope.json",
         "docs/evidence/gate-6/device-replacement.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json",
         "docs/evidence/gate-6/native-replacement-lifetime.json",
         "docs/evidence/gate-6/native-replacement-movement.json",
         "docs/evidence/gate-6/native-replacement-private-readiness.json",
@@ -7106,12 +7112,13 @@
         "G6-103",
         "G6-104"
       ],
-      "observation": "1/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
+      "observation": "2/17 mapped implementation tasks complete. Acceptance remains unqualified until its full required evidence passes.",
       "requirements": [
         "R6-15"
       ],
       "implementation_evidence": [
-        "docs/evidence/gate-6/developer-documentation-structure.json"
+        "docs/evidence/gate-6/developer-documentation-structure.json",
+        "docs/evidence/gate-6/model-lifecycle-concepts.json"
       ]
     },
     {

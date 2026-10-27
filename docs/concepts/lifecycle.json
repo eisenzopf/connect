@@ -1,0 +1,717 @@
+{
+  "profile": "connect-concepts/1",
+  "scope": "Conceptual schema-checked synthetic examples, not executed SDK/provider/media evidence. Handoff and return are alternative branches; failed and unknown are alternative status observations, never a failed-to-unknown transition.",
+  "term_sources": {
+    "Connect": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Ownership"
+      },
+      {
+        "path": "docs/decisions/016-gate-6-sdk.md",
+        "heading": "Public objects"
+      }
+    ],
+    "UCTP": [
+      {
+        "path": "contracts/connect-uctp.md",
+        "heading": "Target and dispatch"
+      }
+    ],
+    "rvoip": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Ownership"
+      },
+      {
+        "path": "contracts/connect-uctp.md",
+        "heading": "Target and dispatch"
+      }
+    ],
+    "Parley": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Ownership"
+      }
+    ],
+    "Conversation": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Lifecycles"
+      }
+    ],
+    "Participant": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Membership and effective access"
+      }
+    ],
+    "Message": [
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Message audiences"
+      },
+      {
+        "path": "contracts/connect-uctp.md",
+        "heading": "Canonical application mapping"
+      }
+    ],
+    "Session": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-events.md",
+        "heading": "Session start"
+      }
+    ],
+    "Connection": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Same-participant endpoint replacement"
+      }
+    ],
+    "Stream": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-media-v2.md",
+        "heading": "Framing and route authority"
+      }
+    ],
+    "Identity / Device / Endpoint": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Membership and effective access"
+      }
+    ],
+    "Operation": [
+      {
+        "path": "contracts/connect-operations.md",
+        "heading": "Admission and identity"
+      },
+      {
+        "path": "contracts/connect-operations.md",
+        "heading": "Allowed transitions"
+      }
+    ],
+    "Handoff / device movement": [
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Participant handoff"
+      },
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Same-participant endpoint replacement"
+      }
+    ]
+  },
+  "section_sources": {
+    "model": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Ownership"
+      }
+    ],
+    "lifetimes": [
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Lifecycles"
+      },
+      {
+        "path": "contracts/connect-events.md",
+        "heading": "Session start"
+      }
+    ],
+    "audience": [
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Membership and effective access"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Message audiences"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Uniform projection"
+      },
+      {
+        "path": "docs/decisions/013-gate-6-model.md",
+        "heading": "Six nouns and their bindings"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Media and consultation"
+      },
+      {
+        "path": "docs/decisions/016-gate-6-sdk.md",
+        "heading": "Provisioning and context"
+      }
+    ],
+    "operations": [
+      {
+        "path": "contracts/connect-operations.md",
+        "heading": "Admission and identity"
+      },
+      {
+        "path": "contracts/connect-operations.md",
+        "heading": "Signed transport retry"
+      },
+      {
+        "path": "contracts/connect-operations.md",
+        "heading": "Allowed transitions"
+      },
+      {
+        "path": "contracts/connect-uctp.md",
+        "heading": "Envelope"
+      }
+    ],
+    "readiness": [
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "State and readiness"
+      },
+      {
+        "path": "contracts/connect-media-v2.md",
+        "heading": "Streams and readiness"
+      },
+      {
+        "path": "contracts/connect-uctp.md",
+        "heading": "Target and dispatch"
+      },
+      {
+        "path": "contracts/connect-media-v2.md",
+        "heading": "Framing and route authority"
+      }
+    ],
+    "consultation": [
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Consultation"
+      },
+      {
+        "path": "contracts/connect-audiences.md",
+        "heading": "Media and consultation"
+      }
+    ],
+    "handoff": [
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Participant handoff"
+      },
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Identity and stream invariants"
+      }
+    ],
+    "movement": [
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Same-participant endpoint replacement"
+      },
+      {
+        "path": "contracts/connect-transitions.md",
+        "heading": "Failures and concurrency"
+      }
+    ],
+    "context": [
+      {
+        "path": "contracts/connect-records.md",
+        "heading": "Record projection"
+      },
+      {
+        "path": "contracts/connect-records.md",
+        "heading": "Context delivery"
+      },
+      {
+        "path": "contracts/connect-events.md",
+        "heading": "Durable facts"
+      },
+      {
+        "path": "contracts/connect-records.md",
+        "heading": "Connect records, vCon and model context"
+      },
+      {
+        "path": "contracts/connect-records.md",
+        "heading": "Retention and redaction"
+      }
+    ]
+  },
+  "figures": [
+    {
+      "id": "conversation-lifetime",
+      "kind": "lifetime",
+      "title": "A Conversation outlives voice Sessions",
+      "description": "An illustrative persistent Conversation contains two independent Sessions and a later private Message. Ending a Session does not close the Conversation; current authorization still governs history.",
+      "sources": [
+        {
+          "path": "docs/decisions/013-gate-6-model.md",
+          "heading": "Lifecycles"
+        },
+        {
+          "path": "contracts/connect-events.md",
+          "heading": "Session start"
+        },
+        {
+          "path": "contracts/connect-records.md",
+          "heading": "Context delivery"
+        }
+      ],
+      "commands": [
+        "session.invite",
+        "session.accept",
+        "session.end",
+        "message.send",
+        "conversation.close"
+      ]
+    },
+    {
+      "id": "operation-states",
+      "kind": "states",
+      "title": "Selected legal operation paths",
+      "description": "Accepted work can prepare, become ready, commit and complete. Interruption is retryable only when proven safe. A possibly submitted effect is unknown; it needs attributed reconciliation. Failed, cancelled and completed are terminal. Not all legal edges or repeated same-state observations are drawn.",
+      "sources": [
+        {
+          "path": "contracts/connect-operations.md",
+          "heading": "Allowed transitions"
+        },
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "State and readiness"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "accepted",
+          "x": 20,
+          "y": 50
+        },
+        {
+          "id": "preparing",
+          "x": 210,
+          "y": 50
+        },
+        {
+          "id": "ready",
+          "x": 400,
+          "y": 50
+        },
+        {
+          "id": "committing",
+          "x": 590,
+          "y": 50
+        },
+        {
+          "id": "completed",
+          "x": 780,
+          "y": 50
+        },
+        {
+          "id": "cancelled",
+          "x": 20,
+          "y": 235
+        },
+        {
+          "id": "interrupted",
+          "x": 210,
+          "y": 235
+        },
+        {
+          "id": "unknown",
+          "x": 590,
+          "y": 235
+        },
+        {
+          "id": "failed",
+          "x": 780,
+          "y": 235
+        }
+      ],
+      "edges": [
+        [
+          "accepted",
+          "preparing"
+        ],
+        [
+          "preparing",
+          "ready"
+        ],
+        [
+          "ready",
+          "committing"
+        ],
+        [
+          "committing",
+          "completed"
+        ],
+        [
+          "accepted",
+          "cancelled"
+        ],
+        [
+          "preparing",
+          "interrupted"
+        ],
+        [
+          "interrupted",
+          "preparing"
+        ],
+        [
+          "preparing",
+          "unknown"
+        ],
+        [
+          "committing",
+          "unknown"
+        ],
+        [
+          "unknown",
+          "completed"
+        ],
+        [
+          "unknown",
+          "failed"
+        ]
+      ]
+    },
+    {
+      "id": "private-consultation",
+      "kind": "sequence",
+      "title": "Private consultation, then an explicit decision",
+      "description": "The app requests a private audience. Connect retains the organizer leg, prepares private context and media, and observes actual private duplex. The application separately obtains consent and chooses handoff or return under current authority. The media/role outcome must be observed.",
+      "sources": [
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "Consultation"
+        },
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "Participant handoff"
+        },
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "Native authorized return"
+        },
+        {
+          "path": "contracts/connect-audiences.md",
+          "heading": "Media and consultation"
+        },
+        {
+          "path": "contracts/connect-records.md",
+          "heading": "Context delivery"
+        }
+      ],
+      "actors": [
+        "App / owner",
+        "Connect",
+        "Private owner + AI",
+        "Organizer"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "session.consult \u00b7 original operation ID",
+          "example": "consult"
+        },
+        {
+          "from": 1,
+          "to": 2,
+          "label": "Prepare isolated leg + permitted context"
+        },
+        {
+          "from": 1,
+          "to": 3,
+          "label": "Hold treatment only \u00b7 retain conn_organizer"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "Actual private duplex observed",
+          "observation": true
+        },
+        {
+          "from": 0,
+          "to": 0,
+          "label": "App consent + action-request gates"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "Choose handoff OR return; fresh authority",
+          "alternatives": [
+            "handoff",
+            "return"
+          ]
+        },
+        {
+          "from": 1,
+          "to": 0,
+          "label": "Observe outcome, roles and retained IDs",
+          "observation": true
+        }
+      ]
+    },
+    {
+      "id": "failed-move",
+      "kind": "sequence",
+      "title": "An unconfirmed phone cannot take the route",
+      "description": "The original owner and organizer route remains usable while a candidate is prepared. Wrong or missing configured confirmation cannot commit. A known no-commit outcome retires only the candidate; uncertain work stays unknown and is reconciled under the original operation ID.",
+      "sources": [
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "Same-participant endpoint replacement"
+        },
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "State and readiness"
+        },
+        {
+          "path": "contracts/connect-transitions.md",
+          "heading": "Identity and stream invariants"
+        },
+        {
+          "path": "contracts/connect-operations.md",
+          "heading": "External effects"
+        }
+      ],
+      "actors": [
+        "Owner app",
+        "Connect",
+        "Phone candidate",
+        "Retained organizer"
+      ],
+      "steps": [
+        {
+          "from": 0,
+          "to": 1,
+          "label": "connection.replace \u00b7 op_move_once",
+          "example": "move"
+        },
+        {
+          "from": 1,
+          "to": 2,
+          "label": "Prepare the current verified Endpoint"
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "Answer + observed media are not confirmation",
+          "observation": true
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "label": "Confirmation deadline: wrong / missing DTMF",
+          "observation": true
+        },
+        {
+          "from": 1,
+          "to": 2,
+          "label": "Known no commit: retire prepared candidate"
+        },
+        {
+          "from": 0,
+          "to": 1,
+          "label": "operation.get \u00b7 original op_move_once",
+          "example": "move_status"
+        },
+        {
+          "from": 1,
+          "to": 0,
+          "label": "Known failed OR unknown; never invent rollback",
+          "observation": true,
+          "alternatives": [
+            "move_failed",
+            "move_unknown"
+          ]
+        }
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "id": "consult",
+      "frame": {
+        "v": 2,
+        "id": "env_consult",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "session.consult",
+        "payload": {
+          "retained_connid": "conn_organizer",
+          "private_participants": [
+            "prt_assistant",
+            "prt_owner"
+          ],
+          "hold_treatment": "silence"
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_assistant",
+        "operation_id": "op_consult_once",
+        "expected_revision": 7
+      }
+    },
+    {
+      "id": "return",
+      "frame": {
+        "v": 2,
+        "id": "env_return",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "session.consult.return",
+        "payload": {
+          "consultation_record_id": "opr_consult",
+          "retained_connid": "conn_organizer"
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_assistant",
+        "operation_id": "op_return_once",
+        "expected_revision": 8
+      }
+    },
+    {
+      "id": "handoff",
+      "frame": {
+        "v": 2,
+        "id": "env_handoff",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "session.handoff",
+        "payload": {
+          "source_participant": "prt_assistant",
+          "target_participant": "prt_owner",
+          "retained_connid": "conn_organizer",
+          "candidate_connid": "conn_private_owner",
+          "outgoing": "leave",
+          "role_scope": "session"
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_assistant",
+        "operation_id": "op_handoff_once",
+        "expected_revision": 8
+      }
+    },
+    {
+      "id": "move",
+      "frame": {
+        "v": 2,
+        "id": "env_move",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "connection.replace",
+        "payload": {
+          "endpoint_id": "ep_owner_phone",
+          "retained_connid": "conn_organizer"
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_private_owner",
+        "operation_id": "op_move_once",
+        "expected_revision": 9
+      }
+    },
+    {
+      "id": "move_status",
+      "frame": {
+        "v": 2,
+        "id": "env_move_status",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "operation.get",
+        "payload": {
+          "operation_id": "op_move_once"
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_private_owner"
+      }
+    },
+    {
+      "id": "move_failed",
+      "frame": {
+        "v": 2,
+        "id": "env_move_failed",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "operation.updated",
+        "payload": {
+          "operation_id": "op_move_once",
+          "record_id": "opr_move",
+          "command_type": "connection.replace",
+          "expected_revision": 9,
+          "state": "failed",
+          "revision": 3
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_private_owner",
+        "operation_id": "op_move_once",
+        "in_reply_to": "env_move_status"
+      }
+    },
+    {
+      "id": "move_unknown",
+      "frame": {
+        "v": 2,
+        "id": "env_move_unknown",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "operation.updated",
+        "payload": {
+          "operation_id": "op_move_once",
+          "record_id": "opr_move",
+          "command_type": "connection.replace",
+          "expected_revision": 9,
+          "state": "unknown",
+          "revision": 2
+        },
+        "cid": "con_example",
+        "sid": "ses_main",
+        "connid": "conn_private_owner",
+        "operation_id": "op_move_once",
+        "in_reply_to": "env_move_status"
+      }
+    },
+    {
+      "id": "follow_up",
+      "frame": {
+        "v": 2,
+        "id": "env_follow_up",
+        "ts": "2026-10-27T12:00:00Z",
+        "type": "message.send",
+        "payload": {
+          "msg_id": "msg_follow_up",
+          "to": [
+            "prt_owner"
+          ],
+          "content_type": "text/plain",
+          "body": "I can follow up after your decision on the exact proposal."
+        },
+        "cid": "con_example",
+        "operation_id": "op_follow_up_once"
+      }
+    }
+  ],
+  "schema": "contracts/schemas/uctp-envelope-2.schema.json"
+}

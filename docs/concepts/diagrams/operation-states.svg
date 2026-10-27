@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 350" role="img" aria-labelledby="title description">
+<title id="title">Selected legal operation paths</title><desc id="description">Accepted work can prepare, become ready, commit and complete. Interruption is retryable only when proven safe. A possibly submitted effect is unknown; it needs attributed reconciliation. Failed, cancelled and completed are terminal. Not all legal edges or repeated same-state observations are drawn.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#62ddff"/></marker></defs>
+<style>text{fill:#edf5ff;font:17px system-ui,sans-serif}rect{fill:#102033;stroke:#62ddff;stroke-width:1.5}.edge{stroke:#62ddff;stroke-width:2;fill:none;marker-end:url(#arrow)}.life{stroke:#58728d;stroke-dasharray:5 5}.note{fill:#b5c5d8;font-size:15px}</style>
+<path d="M0 0H960V350H0Z" fill="#07111d"/>
+<path class="edge" data-from="accepted" data-to="preparing" d="M170 77L210 77"/>
+<path class="edge" data-from="preparing" data-to="ready" d="M360 77L400 77"/>
+<path class="edge" data-from="ready" data-to="committing" d="M550 77L590 77"/>
+<path class="edge" data-from="committing" data-to="completed" d="M740 77L780 77"/>
+<path class="edge" data-from="accepted" data-to="cancelled" d="M95 104L95 235"/>
+<path class="edge" data-from="preparing" data-to="interrupted" d="M275 104L275 235"/>
+<path class="edge" data-from="interrupted" data-to="preparing" d="M295 235L295 104"/>
+<path class="edge" data-from="preparing" data-to="unknown" d="M335 104L615 235"/>
+<path class="edge" data-from="committing" data-to="unknown" d="M665 104L665 235"/>
+<path class="edge" data-from="unknown" data-to="completed" d="M715 235L805 104"/>
+<path class="edge" data-from="unknown" data-to="failed" d="M740 262L780 262"/>
+<g data-state="accepted"><rect x="20" y="50" width="150" height="54" rx="8"/><text x="95" y="83" text-anchor="middle">accepted</text></g>
+<g data-state="preparing"><rect x="210" y="50" width="150" height="54" rx="8"/><text x="285" y="83" text-anchor="middle">preparing</text></g>
+<g data-state="ready"><rect x="400" y="50" width="150" height="54" rx="8"/><text x="475" y="83" text-anchor="middle">ready</text></g>
+<g data-state="committing"><rect x="590" y="50" width="150" height="54" rx="8"/><text x="665" y="83" text-anchor="middle">committing</text></g>
+<g data-state="completed"><rect x="780" y="50" width="150" height="54" rx="8"/><text x="855" y="83" text-anchor="middle">completed</text></g>
+<g data-state="cancelled"><rect x="20" y="235" width="150" height="54" rx="8"/><text x="95" y="268" text-anchor="middle">cancelled</text></g>
+<g data-state="interrupted"><rect x="210" y="235" width="150" height="54" rx="8"/><text x="285" y="268" text-anchor="middle">interrupted</text></g>
+<g data-state="unknown"><rect x="590" y="235" width="150" height="54" rx="8"/><text x="665" y="268" text-anchor="middle">unknown</text></g>
+<g data-state="failed"><rect x="780" y="235" width="150" height="54" rx="8"/><text x="855" y="268" text-anchor="middle">failed</text></g>
+<text class="note" x="20" y="325">Selected legal edges. Safe retry and attributed reconciliation require current authority.</text>
+</svg>

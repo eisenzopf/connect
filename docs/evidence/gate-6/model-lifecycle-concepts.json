@@ -1,0 +1,229 @@
+{
+  "task": "G6-083",
+  "status": "done for approved contract-traced conceptual documentation scope",
+  "recorded_at": "2026-10-27T22:56:17.147470+00:00",
+  "base_revision": "a00fcffe",
+  "scope": "Current pre-alpha model/protocol/lifecycle guide and synthetic schema examples, with a current-source public protocol state-matrix cross-check. No SDK commands, media, provider/model/account, remote or installed-package qualification.",
+  "requirement_audit": [
+    {
+      "requirement": "Six nouns, Identity/Device and ownership boundaries",
+      "evidence": "model section plus all13shared terms and named frozen-contract section references. Identity, Device and provisioned Endpoint stay distinct from Participant appearance and current authority."
+    },
+    {
+      "requirement": "Conversation vs Session lifetime; acceptance vs media readiness",
+      "evidence": "Persistent Conversation lifetime figure and lifetimes/readiness sections. Public readiness is per accepted Participant; private preparation cannot supply public readiness. Protocol/control/media versions and explicit unsupported capability behavior are sourced."
+    },
+    {
+      "requirement": "Recipient audiences, current authority and operation state",
+      "evidence": "Audience section covers original membership epochs and uniform projections. Nine schema operation states,11selected diagram edges, complete81-pair compiled state matrix, saved logical identity/current-authorized recovery and terminal non-regression."
+    },
+    {
+      "requirement": "Private consultation and handoff vs failed device movement",
+      "evidence": "Two sequence figures and synthetic consult/return/handoff/move/status frames. App consent stays separate; retained CID/SID/remote and handoff-target Connection remain consistent. Known failed and unknown status examples are alternatives, with no success result."
+    },
+    {
+      "requirement": "Context continuity and truthful capability scope",
+      "evidence": "Context section covers journal cursor/order/resync, selected sources, initialization-only provider context, private leg memory separation, outcome metadata and audience-filtered vCon. Scope section retains current native/browser findings and denies new runtime/profile qualification."
+    },
+    {
+      "requirement": "Every figure and term traces to frozen contracts",
+      "evidence": "lifecycle.json maps all4figures,13terms and9sections to actual Markdown headings; deterministic generator renders checked SVG/examples/source links. Canonical v2 schema validates all8shapes and rejects8malformed variants. Actual rendered code equals the model and all339local navigation links/anchors resolve."
+    }
+  ],
+  "schema_and_trace_verification": {
+    "check": true,
+    "figures": 4,
+    "terms": 13,
+    "selected_operation_edges": 11,
+    "synthetic_scope_and_lineage_checked": true,
+    "schema_validation": {
+      "positive_examples": 8,
+      "malformed_examples_refused": 8,
+      "jsonschema": "4.26.0",
+      "date_time_checker_installed": true
+    },
+    "changed": [],
+    "source_sha256": {
+      "contracts/connect-audiences.md": "a163aad5218f11fa03ad364230327653f5b1cedbfa37dbabc0700f188da285b1",
+      "contracts/connect-events.md": "cd490fd4124d8babd1736d8f981764fa0ed62aca97fdf9f3e594e760be6c1515",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/connect-operations.md": "7a9b71d77245faef57accbc5da5a46d288f10a5a0f03f38f884f8a0af42ca860",
+      "contracts/connect-records.md": "fa2e6354b24e3e8f1454b5696cba7766fc8bfc9c946102c2de4a0a2e611af5ca",
+      "contracts/connect-transitions.md": "db04ce75853054f42da08d2645e94e9cc9958bdcba95a2b829fbf60a9c21d155",
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/schemas/uctp-envelope-2.schema.json": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+      "docs/concepts/lifecycle.json": "fb650aeab350c8fe695a325ae7e3df1074282dbde0224f856c5c2cafc50b4495",
+      "docs/decisions/013-gate-6-model.md": "b659fbc125496d56c5c2993192c184b1f6e9e32f76144d7a7e7e4fd6fd68ed3d",
+      "docs/decisions/016-gate-6-sdk.md": "fa6073a72c1f932408753dc91418329119afe4df620ea56bcff252cc4cd7a15f"
+    },
+    "scope": "Documentation syntax, trace and diagram generation; no command/media/provider execution."
+  },
+  "protocol_state_runtime": {
+    "scope": "Current-source normal-graph public OperationState.permits executed for all81state pairs; not media/SDK/provider execution.",
+    "exit_code": 0,
+    "seconds": 0.5851464169099927,
+    "source_guard_count": 5223,
+    "changed_inputs": [],
+    "schema_states": [
+      "accepted",
+      "cancelled",
+      "committing",
+      "completed",
+      "failed",
+      "interrupted",
+      "preparing",
+      "ready",
+      "unknown"
+    ],
+    "executed_state_pairs": 81,
+    "allowed_state_pairs": 35,
+    "diagram_edges_checked": 11,
+    "complete_contract_matrix_matches_runtime": true,
+    "negative_edges_refused": [
+      [
+        "unknown",
+        "preparing"
+      ],
+      [
+        "completed",
+        "ready"
+      ],
+      [
+        "failed",
+        "unknown"
+      ]
+    ],
+    "library_sha256": "7b27339b500c7848e44ea379835b23627f556dd2cdbdccd386dcacf064a98bc6",
+    "source_sha256": "1974f92a5a02dc20c16b9fe9b54ae8ba18a16aa381dddc92a5281001153cda98",
+    "artifact_sha256": "39039d0c6727c364d34f49609f143204ee937d27add972e2dbe11df9e89cb7f5",
+    "matrix_sha256": "235d50aca602ca95f99138b8f9913a14a2e12f669f13bb2d6765662c0700d929",
+    "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "arguments": [
+      "rustc",
+      "--edition=2024",
+      "-C",
+      "debuginfo=0",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/concepts/state-matrix.rs",
+      "--extern",
+      "connect_protocol=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_protocol-7bb49f1c9cd9b92e.rlib",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/concepts/state-matrix"
+    ]
+  },
+  "rendered_source_verification": {
+    "scope": "Owned public-file loopback preview and final rendered source checks; no SDK/media/provider execution.",
+    "http_assets": [
+      {
+        "path": "docs/concepts/index.html",
+        "status": 200,
+        "sha256": "13c12adab6745f7b387b8e436d66597d18462fbc7fb9ad56507ff0455c271d0d"
+      },
+      {
+        "path": "docs/concepts/diagrams/conversation-lifetime.svg",
+        "status": 200,
+        "sha256": "bcd8c9277de9dcddf50c131487ca605bd6a1ce59aff2cab40f68726a44bd4414"
+      },
+      {
+        "path": "docs/concepts/diagrams/operation-states.svg",
+        "status": 200,
+        "sha256": "19527eb66061ca233ef156e395887cee63aa35567a7d3c81f8cdabe69d6626a2"
+      },
+      {
+        "path": "docs/concepts/diagrams/private-consultation.svg",
+        "status": 200,
+        "sha256": "fe6174b1b89c12c0660b519ce728be177169c7c91e92f0c72ddc2378795ebc8c"
+      },
+      {
+        "path": "docs/concepts/diagrams/failed-move.svg",
+        "status": 200,
+        "sha256": "d8e7c7cabe31cd98af21123c91f0221f94d50faba510b2a4fd2c5e09521f6ae5"
+      }
+    ],
+    "figures_with_alternative_text": 4,
+    "rendered_json_examples_equal_model": 8,
+    "unique_page_ids": 10,
+    "final_diagram_edges_match_retained_runtime_matrix": 11
+  },
+  "controlled_findings": {
+    "optional_format_gap": {
+      "initial_diagnostic": {
+        "jsonschema": "4.26.0",
+        "date_time_checker_installed": false,
+        "malformed_vector_is_valid": {
+          "private audience too small": false,
+          "two replacement selectors": false,
+          "missing expected revision": false,
+          "failed claims result": false,
+          "ringing operation state": false,
+          "empty message audience": false,
+          "default handoff missing conversation revision": false,
+          "bad timestamp": true
+        }
+      },
+      "current_missing_format_refusal": {
+        "scope": "Controlled old validation environment without optional date-time support. No source/schema relaxation.",
+        "exit_code": 1,
+        "explicit_format_refusal": true
+      },
+      "fix": "docs/requirements.txt explicitly selects jsonschema[format]==4.26.0; --validate refuses when date-time checking is unavailable. A separate fresh documentation venv passes the malformed timestamp check. Existing validation environments were not modified."
+    },
+    "synthetic_lineage": {
+      "scope": "Earlier staged synthetic examples passed shape validation but renamed the handoff target before move. New contextual check refuses; current model preserves the same Connection. No runtime effect.",
+      "refusal": "move source must remain the handoff target Connection"
+    },
+    "state_figure_layout": "Separate diagonal attachment points avoid making an incoming interruption arrow look like an illegal unknown-to-preparing edge; all legal edges remain unchanged. Failed-move sequence explicitly waits for an unsatisfied confirmation deadline."
+  },
+  "visual_review": {
+    "surface": "Owned loopback public-file preview, ChatGPT in-app browser,1280x720 screenshots",
+    "figures_inspected": 4,
+    "jpeg_sha256": {
+      "operation-states": "eb9c48500321784a36038dd8fdfc599c16be944264dbfd747ee1f717925c51cf",
+      "private-consultation": "40196d5087e8d5efa2c38d135866f22774772684a70a0622849e0b90230d61f6",
+      "failed-move": "256937dd4a4a2fab0296311916047cbbcb2aaec4320c3836196bde64f2e0dd6c",
+      "conversation-lifetime": "8e186a6ed6ca01b6860cb6cd3da13c1aec82e47d1434c8955287a6b63bc15504"
+    },
+    "guide_accessibility_state_sha256": "76b19e5ab6089281c2ccc5b6ae3ef1a77ebae644ca1537bd10f22968a3365bd1",
+    "expanded_unknown_example_sha256": "3f2d2aa7fce94bced28f72854e704fd62bcbf87b36cd86ced52e019a411aa432",
+    "observed": "Readable complete figures, contract-source captions, ordered textual alternatives and expandable unknown-status example showing original Connection/operation and no result. Full mobile/accessibility matrix remains G6-090.",
+    "owned_preview_cleanup": {
+      "exit_code": 143,
+      "reason": "Intentional SIGTERM after closing the owned browser tab.",
+      "manifest_sha256": "5bf4d57bf1879a33034e8534f92f205d2aa7686b2566010d2ede5a06a5dd9230"
+    }
+  },
+  "source_inputs_sha256": {
+    "docs/concepts/index.html": "13c12adab6745f7b387b8e436d66597d18462fbc7fb9ad56507ff0455c271d0d",
+    "docs/concepts/lifecycle.json": "fb650aeab350c8fe695a325ae7e3df1074282dbde0224f856c5c2cafc50b4495",
+    "docs/navigation.json": "70e47a01965d1f303b1518740b15c8aea3d319cf8a37feb63842f3e34eecd108",
+    "docs/developer-docs.css": "44c83912a2deecd9be899b137756c9835173e219588e366d972da2615b696328",
+    "docs/DOCUMENTATION.md": "84455adb93a5bde14c230f74127b31349c089ddb5da020e461873466c8997eea",
+    "docs/requirements.txt": "5601280e981e1254adf5717dd8ab47ebf17b8e2023e5a0b249fb5359d2b81b97",
+    "scripts/generate-concept-diagrams.py": "94e0858f9139c6d2ab332f1805344f479b38a5b29d32163d15e16df959f1dcec",
+    "docs/concepts/diagrams/conversation-lifetime.svg": "bcd8c9277de9dcddf50c131487ca605bd6a1ce59aff2cab40f68726a44bd4414",
+    "docs/concepts/diagrams/operation-states.svg": "19527eb66061ca233ef156e395887cee63aa35567a7d3c81f8cdabe69d6626a2",
+    "docs/concepts/diagrams/private-consultation.svg": "fe6174b1b89c12c0660b519ce728be177169c7c91e92f0c72ddc2378795ebc8c",
+    "docs/concepts/diagrams/failed-move.svg": "d8e7c7cabe31cd98af21123c91f0221f94d50faba510b2a4fd2c5e09521f6ae5"
+  },
+  "private_report_hashes": {
+    "schema-completion.json": "f982a836bb5de77bbec845c466a28b052fc76468ea3aacc41e55fcaf94bc2180",
+    "state-summary.json": "f68c0d76799f65fa00e87a537ae30f0745a72a18285174c60d852865d01d40a5",
+    "render-summary.json": "5d913cb7fa054d52ed63f8b092b920282ca2c1da460151f2958786afbb247cff",
+    "negative-diagnostic.json": "ae989e7bc02e89fbe5ccca6afd5ca45851906ad63040c7e3cf25f12af9ca97a3",
+    "missing-format-refusal.json": "6bb820194ba885b9de9e3292bdbe6084713da247b7257fe1ada0b9843be5c149",
+    "lineage-refusal.json": "84ab35c1ba07c3543d55678abd12118456ad75cd01825e9346cc29349dc035d9",
+    "environment.txt": "bf1156f0d633701fa25ad7510f25cf0722d6bb07584faa49562673213e4b8da6",
+    "install.log": "b71d643cdca319973b18a3809866c2f8d446249be87737a9dfa52be322a31e37",
+    "prepare.log": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+    "schema-final-audit.json": "f982a836bb5de77bbec845c466a28b052fc76468ea3aacc41e55fcaf94bc2180"
+  },
+  "not_qualified": [
+    "Documentation vectors are synthetic shape/lineage checks, not an executed private consultation, handoff, phone move or message journey.",
+    "OperationState.permits is the only compiled production API executed by the component cross-check; no Core media, SDK transport, account or provider execution is inferred.",
+    "The existing native private-reverse and browser audio findings remain open. No G6-050/G6-051/G6-065 closure or Gate6 acceptance promotion.",
+    "Installed tutorials/references, Linux/remote/providers, complete responsive/accessibility audit and publication remain in their assigned tasks."
+  ],
+  "source_inputs_unchanged_at_completion": true,
+  "final_navigation_format": "Retained the original manifest formatting; parsed JSON content is identical to the verified model."
+}

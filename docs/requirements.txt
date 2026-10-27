@@ -1,0 +1,2 @@
+# Documentation schema validation; runtime packages are independent.
+jsonschema[format]==4.26.0

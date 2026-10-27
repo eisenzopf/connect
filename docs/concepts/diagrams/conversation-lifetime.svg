@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="title description">
+<title id="title">A Conversation outlives voice Sessions</title><desc id="description">An illustrative persistent Conversation contains two independent Sessions and a later private Message. Ending a Session does not close the Conversation; current authorization still governs history.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#62ddff"/></marker></defs>
+<style>text{fill:#edf5ff;font:17px system-ui,sans-serif}rect{fill:#102033;stroke:#62ddff;stroke-width:1.5}.edge{stroke:#62ddff;stroke-width:2;fill:none;marker-end:url(#arrow)}.life{stroke:#58728d;stroke-dasharray:5 5}.note{fill:#b5c5d8;font-size:15px}</style>
+<path d="M0 0H960V280H0Z" fill="#07111d"/>
+<text x="30" y="30">Persistent Conversation con_example</text>
+<rect x="25" y="48" width="910" height="50" rx="8"/>
+<text x="480" y="80" text-anchor="middle">Messages and authorized history continue across Session boundaries</text>
+<rect x="35" y="135" width="365" height="65" rx="8"/>
+<text x="217" y="161" text-anchor="middle">Session A</text><text x="217" y="187" text-anchor="middle" class="note">Invite → accept → actual media → end</text>
+<rect x="445" y="135" width="300" height="65" rx="8"/>
+<text x="595" y="161" text-anchor="middle">Session B</text><text x="595" y="187" text-anchor="middle" class="note">Independent live interaction</text>
+<text x="835" y="160" text-anchor="middle">Private</text><text x="835" y="186" text-anchor="middle">follow-up</text>
+<path class="edge" d="M35 232H930"/><text class="note" x="35" y="262">Illustrative time → ending voice is separate from an authorized Conversation close.</text>
+</svg>

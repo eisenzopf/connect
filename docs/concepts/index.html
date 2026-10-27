@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect concepts and terminology</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect model, authority and lifecycle concepts</title><link rel="stylesheet" href="../developer-docs.css"></head><body>
 <a class="dev-skip" href="#main">Skip to content</a>
 <!-- CONNECT:NAV:START -->
 <nav class="dev-nav" aria-label="Developer documentation"><div class="dev-shell"><ul>
@@ -15,8 +15,10 @@
 <li><a href="../engineering/index.html">Engineering</a></li>
 </ul></div></nav>
 <!-- CONNECT:NAV:END -->
-<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Concepts</p><h1>One model across communication channels.</h1><p class="dev-lead">Keep durable conversation state, live interaction and current authority distinct.</p></header>
-<main id="main" tabindex="-1" class="dev-shell"><section class="dev-section"><h2>Shared vocabulary</h2>
+<header class="dev-shell dev-hero"><p class="dev-eyebrow"><a href="../index.html">Build with Connect</a> / Concepts</p><h1>Keep the conversation. Change the live interaction.</h1><p class="dev-lead">A durable conversation, a live Session, a command receipt and permission to receive content are different things. This guide follows the current pre-alpha contract.</p></header>
+<main id="main" tabindex="-1" class="dev-shell">
+<nav aria-label="Concept sections"><a href="#model">Model</a> · <a href="#lifetimes">Lifetimes</a> · <a href="#audience">Audiences</a> · <a href="#operations">Operations</a> · <a href="#readiness">Readiness</a> · <a href="#consultation">Consultation</a> · <a href="#handoff">Handoff</a> · <a href="#movement">Failed movement</a> · <a href="#context">Context and recovery</a></nav>
+<section id="model" class="dev-section"><h2>Six communication nouns</h2><p>A <strong>Conversation</strong> contains <strong>Participants</strong>, durable <strong>Messages</strong> and live <strong>Sessions</strong>. Each Session has Participant appearances and their <strong>Connections</strong>; Connections carry negotiated <strong>Streams</strong>. One Participant may use several devices or concurrent Sessions.</p><p>An Identity is the durable tenant-scoped entity behind a Participant. A Device identifies its physical or software endpoint. A provisioned Endpoint is a reachable binding with capabilities, verification and freshness. A claimed device name, verified Endpoint or role label alone grants no Conversation access or media readiness.</p>
 <!-- CONNECT:TERMS:START -->
 <table><caption>Shared Connect terminology</caption><tbody>
 <tr><th scope="row">Connect</th><td>The communications server and public SDKs. Applications use this boundary instead of constructing media bridges or calling provider communications APIs.</td></tr>
@@ -34,5 +36,202 @@
 <tr><th scope="row">Handoff / device movement</th><td>Handoff changes Participant responsibility and the selected media audience. Device movement changes one Participant&#x27;s leg. Both preserve the retained remote leg when committed.</td></tr>
 </tbody></table>
 <!-- CONNECT:TERMS:END -->
-</section><section class="dev-section"><h2>Follow the contract</h2><p>This terminology map follows the <a href="../decisions/013-gate-6-model.md">current model decision</a> and <a href="../../contracts/connect-uctp.md">canonical protocol mapping</a>. The <a href="connect-baseline.html">earlier baseline</a> retains its original scope; accepted Gate 6 lifecycle changes are described in the current decision.</p><p>Application business approval and Connect authorization are separate. Preserve saved logical operation IDs through uncertainty; current authority is checked again on replay. Neither a label nor a copied handle grants permission.</p><p class="dev-status">The full lifecycle concepts guide, contract-traced diagrams and failed-move walkthrough are G6-083 work. This page provides the shared vocabulary and its source map.</p></section></main>
-<footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../reference/index.html">API reference</a></footer></body></html>
+<p>Connect owns durable state, current authority and orchestration. UCTP/rvoip supplies protocol, transport and media mechanics. An app such as Parley owns goals, prompts, scheduling and business approval. Applications communicate through the public client interface; they do not construct internal bridges.</p></section>
+<section id="lifetimes" class="dev-section"><h2>Voice can end while the Conversation continues</h2><p>The default Conversation is persistent. Ending a Session terminates its live resources and produces an outcome record; it does not remove Conversation membership or erase authorized history. Closing the Conversation is a separate authorized decision. An explicitly selected ephemeral policy has its own declared close conditions.</p>
+<!-- CONNECT:FIGURE:conversation-lifetime:START -->
+<figure><div class="dev-diagram" tabindex="0" role="region" aria-label="A Conversation outlives voice Sessions; scroll horizontally if needed"><img src="diagrams/conversation-lifetime.svg" alt="An illustrative persistent Conversation contains two independent Sessions and a later private Message. Ending a Session does not close the Conversation; current authorization still governs history."></div>
+<figcaption>An illustrative persistent Conversation contains two independent Sessions and a later private Message. Ending a Session does not close the Conversation; current authorization still governs history. Sources: <a href="../decisions/013-gate-6-model.md#lifecycles">013-gate-6-model.md / Lifecycles</a> · <a href="../../contracts/connect-events.md#session-start">connect-events.md / Session start</a> · <a href="../../contracts/connect-records.md#context-delivery">connect-records.md / Context delivery</a>.</figcaption></figure>
+<!-- CONNECT:FIGURE:conversation-lifetime:END -->
+<p>Each accepted Participant needs its own current, ready public Connection before the initial Session starts. Multiple Connections for one Participant cannot stand in for another; a private preparation cannot supply public readiness. Pending invitees are distinct from accepted appearances.</p><p>After last-Connection loss without explicit end, the declared reconnect policy uses a bounded grace period (30 seconds by default) and accounts for permitted negotiation. A successful reconnect has fresh physical bindings. Server restart preserves intent and history, not a resurrected media socket. Explicit Session end and membership withdrawal have their own current-authorized effects.</p></section>
+<section id="audience" class="dev-section"><h2>Membership does not mean everyone receives everything</h2><p>A Message names a nonempty set of Participant recipients or the explicit value <code>all</code>. <code>all</code> resolves to authorized membership epochs at acceptance; later members do not silently inherit earlier private content. Re-admission creates a new epoch. A reply reference must be visible to its sender and cannot silently widen a private audience.</p><p>Apply the same audience to bodies, attachments, receipts, history, queued events, transcripts, exports and AI context. Removing a member revokes current resource access; a cached result cannot restore it. An operator is not automatically a private-content reader. Explicit authorized sharing records source, audience and provenance.</p><p>Effective access requires an authenticated, unexpired, unrevoked principal, current membership or delegation, the named operation/resource scope, and the content audience. Kind, role, Session presence and effective permission are independent. Conversation role defaults and Session role overrides do not grant authority.</p><p>The app may use prior delegated authority or a configured approval policy. A model action request is intent; <code>approved: true</code> in incoming content cannot authorize itself. Tasks and grants remain optional higher-level workflows, not a compulsory prompt for every preauthorized communication.</p></section>
+<section id="operations" class="dev-section"><h2>Keep the logical action separate from one request</h2><table><caption>Identifiers have different jobs</caption><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+<tr><th scope="row"><code>id</code></th><td>One fresh transport envelope. A signed retry uses a new ID, current timestamp and signature.</td></tr>
+<tr><th scope="row"><code>operation_id</code></th><td>The saved logical mutation under its installation/tenant and authenticated stable principal. Preserve its complete intent, resource scope and expected revision across uncertainty.</td></tr>
+<tr><th scope="row"><code>record_id</code></th><td>The server's durable operation record reference. It is distinct from the caller's operation ID and grants no permission.</td></tr>
+<tr><th scope="row"><code>msg_id</code></th><td>The intended Message identity; it is not a fresh envelope ID.</td></tr>
+<tr><th scope="row">Resource IDs and revisions</th><td>Use the required revision family: Conversation membership, Session topology, or Connection/stream routing. A journal cursor or operation revision is not a topology revision. IDs are opaque references, not credentials.</td></tr>
+</tbody></table><p>Save the logical ID and exact intent before IO. Matching same-ID intent returns the existing authorized operation; changed intent conflicts. The service computes the business digest independently of transport metadata and credentials. Credential rotation does not mint a new logical owner; replay still checks current authority.</p>
+<!-- CONNECT:FIGURE:operation-states:START -->
+<figure><div class="dev-diagram" tabindex="0" role="region" aria-label="Selected legal operation paths; scroll horizontally if needed"><img src="diagrams/operation-states.svg" alt="Accepted work can prepare, become ready, commit and complete. Interruption is retryable only when proven safe. A possibly submitted effect is unknown; it needs attributed reconciliation. Failed, cancelled and completed are terminal. Not all legal edges or repeated same-state observations are drawn."></div>
+<figcaption>Accepted work can prepare, become ready, commit and complete. Interruption is retryable only when proven safe. A possibly submitted effect is unknown; it needs attributed reconciliation. Failed, cancelled and completed are terminal. Not all legal edges or repeated same-state observations are drawn. Sources: <a href="../../contracts/connect-operations.md#allowed-transitions">connect-operations.md / Allowed transitions</a> · <a href="../../contracts/connect-transitions.md#state-and-readiness">connect-transitions.md / State and readiness</a>.</figcaption></figure>
+<!-- CONNECT:FIGURE:operation-states:END -->
+<table><caption>Read operation state honestly</caption><tbody>
+<tr><th scope="row">accepted / preparing</th><td>Durable admission / preparation. Neither proves usable media or provider delivery.</td></tr>
+<tr><th scope="row">ready / committing</th><td>Required preparation has been observed / commit is in progress. A stale readiness receipt does not replace current checks.</td></tr>
+<tr><th scope="row">completed</th><td>The operation's defined result is known. A completed local message mutation is acceptance, not proof of delivery, reading or an actual reply.</td></tr>
+<tr><th scope="row">failed / cancelled</th><td>Known terminal outcomes. A cancellation decision cannot invent rollback or prove that an uncertain remote effect never happened.</td></tr>
+<tr><th scope="row">interrupted / unknown</th><td>Interrupted work resumes only when proven safe. A possibly submitted effect stays unknown until attributed reconciliation; conflicting reservations are retained.</td></tr>
+</tbody></table><p>Completed, cancelled and failed outcomes do not regress. A timeout or cancelled local wait is not a durable cancel. Query the original operation first; do not redial, resend or switch transport under a replacement logical ID. A missing response is not proof of no effect. Durable cancellation is a separate current-authorized action with its own saved ID.</p></section>
+<section id="readiness" class="dev-section"><h2>Acceptance, consent and media readiness are separate</h2><p>A correlated ACK ends a response batch. An accepted operation records work. A capability declaration, SDP answer, SIP answer or connected transport does not prove compatible bidirectional media. Readiness requires current permitted sources and endpoints, negotiated routes, actual direction-appropriate IO and any configured endpoint confirmation, all in the current generation.</p><p>Business consent belongs to the app. Invitation acceptance alone is not permission for a business takeover. Missing provider speech events are not proof of silence. Identified decode/render observations qualify media; a tool's text output cannot substitute for hearing it.</p><p>Native QUIC uses <code>uctp/2</code>; the application profile is <code>connect/2</code>. WebTransport uses HTTP/3 (<code>h3</code>). Reliable control envelopes use version 2 while RTP datagram framing remains version 1. WSS fallback carries canonical control with separately negotiated WebRTC media. HTTP/CLI/MCP finite controls do not carry live audio/video frames.</p><p>Negotiate the intersection of capabilities, authority, audience and configured adapters. A transport may be available while capture, codec or rendering is unsupported. Unsupported profiles refuse explicitly; no silent downgrade or automatic replay of an accepted effect is implied.</p></section>
+<section id="consultation" class="dev-section"><h2>Consult privately while retaining the organizer</h2><p>Here the app chooses an owner/assistant private audience and silence for the organizer. The Conversation <code>con_example</code>, main Session <code>ses_main</code> and remote <code>conn_organizer</code> stay the same. Connect prepares isolated media and permitted context before switching the authorized audience. The organizer and a public AI leg must not receive private media or derived context.</p>
+<!-- CONNECT:FIGURE:private-consultation:START -->
+<figure><div class="dev-diagram" tabindex="0" role="region" aria-label="Private consultation, then an explicit decision; scroll horizontally if needed"><img src="diagrams/private-consultation.svg" alt="The app requests a private audience. Connect retains the organizer leg, prepares private context and media, and observes actual private duplex. The application separately obtains consent and chooses handoff or return under current authority. The media/role outcome must be observed."></div>
+<figcaption>The app requests a private audience. Connect retains the organizer leg, prepares private context and media, and observes actual private duplex. The application separately obtains consent and chooses handoff or return under current authority. The media/role outcome must be observed. Sources: <a href="../../contracts/connect-transitions.md#consultation">connect-transitions.md / Consultation</a> · <a href="../../contracts/connect-transitions.md#participant-handoff">connect-transitions.md / Participant handoff</a> · <a href="../../contracts/connect-transitions.md#native-authorized-return">connect-transitions.md / Native authorized return</a> · <a href="../../contracts/connect-audiences.md#media-and-consultation">connect-audiences.md / Media and consultation</a> · <a href="../../contracts/connect-records.md#context-delivery">connect-records.md / Context delivery</a>.</figcaption></figure>
+<ol><li>session.consult · original operation ID</li><li>Prepare isolated leg + permitted context</li><li>Hold treatment only · retain conn_organizer</li><li>Actual private duplex observed</li><li>App consent + action-request gates</li><li>Choose handoff OR return; fresh authority</li><li>Observe outcome, roles and retained IDs</li></ol>
+<!-- CONNECT:FIGURE:private-consultation:END -->
+<details><summary>Illustrative consultation envelope</summary><!-- CONNECT:EXAMPLE:consult:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_consult&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;session.consult&quot;,
+  &quot;payload&quot;: {
+    &quot;retained_connid&quot;: &quot;conn_organizer&quot;,
+    &quot;private_participants&quot;: [
+      &quot;prt_assistant&quot;,
+      &quot;prt_owner&quot;
+    ],
+    &quot;hold_treatment&quot;: &quot;silence&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_assistant&quot;,
+  &quot;operation_id&quot;: &quot;op_consult_once&quot;,
+  &quot;expected_revision&quot;: 7
+}</code></pre>
+<!-- CONNECT:EXAMPLE:consult:END --></details>
+<p>The return branch is a new <code>session.consult.return</code> operation referencing the original consultation record. It restores surviving authorized original speaking relationships and retires the private candidate; it cannot fabricate a continuing remote call after hangup. A record ID or earlier preparation receipt cannot grant new media access.</p>
+<details><summary>Alternative: explicit return envelope</summary><!-- CONNECT:EXAMPLE:return:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_return&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;session.consult.return&quot;,
+  &quot;payload&quot;: {
+    &quot;consultation_record_id&quot;: &quot;opr_consult&quot;,
+    &quot;retained_connid&quot;: &quot;conn_organizer&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_assistant&quot;,
+  &quot;operation_id&quot;: &quot;op_return_once&quot;,
+  &quot;expected_revision&quot;: 8
+}</code></pre>
+<!-- CONNECT:EXAMPLE:return:END --></details></section>
+<section id="handoff" class="dev-section"><h2>Handoff changes responsibility; movement changes the leg</h2><p><code>session.handoff</code> selects source and target Participants, a retained remote Connection, current topology revision and outgoing <code>leave</code> or permitted <code>observe</code> disposition. Target admission, policy and actual readiness precede commit. Observe grants no automatic private access. Leave ends Session presence, not Conversation membership or historical access.</p><p>The default <code>role_scope</code> is <code>conversation</code>: it additionally requires <code>expected_conversation_revision</code> and updates the default responsibility plus the selected Session atomically. Other active Sessions retain their admitted roles. The example below explicitly selects <code>session</code> scope, so Conversation defaults remain unchanged.</p>
+<details><summary>Alternative to return: Session-scoped handoff envelope</summary><!-- CONNECT:EXAMPLE:handoff:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_handoff&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;session.handoff&quot;,
+  &quot;payload&quot;: {
+    &quot;source_participant&quot;: &quot;prt_assistant&quot;,
+    &quot;target_participant&quot;: &quot;prt_owner&quot;,
+    &quot;retained_connid&quot;: &quot;conn_organizer&quot;,
+    &quot;candidate_connid&quot;: &quot;conn_private_owner&quot;,
+    &quot;outgoing&quot;: &quot;leave&quot;,
+    &quot;role_scope&quot;: &quot;session&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_assistant&quot;,
+  &quot;operation_id&quot;: &quot;op_handoff_once&quot;,
+  &quot;expected_revision&quot;: 8
+}</code></pre>
+<!-- CONNECT:EXAMPLE:handoff:END --></details>
+<p>The app must separately validate its chosen consent/action gates. A model proposal or an answer event is not a successful handoff. Observe current roles, retained IDs and actual media; uncertain commit remains an original-operation recovery problem.</p></section>
+<section id="movement" class="dev-section"><h2>A failed move must not steal the original route</h2><p><code>connection.replace</code> keeps the Participant, Conversation, main Session and retained organizer Connection while replacing the owner's endpoint Connection and physical stream bindings. Use a current provisioned, verified Endpoint or a prepared candidate, not an arbitrary caller-supplied phone number.</p><p>In this continuation, <code>conn_private_owner</code> is the same owner leg selected by the preceding handoff. The failed move keeps that leg and <code>conn_organizer</code>; it does not rename the source Connection or claim a successful phone binding.</p>
+<!-- CONNECT:FIGURE:failed-move:START -->
+<figure><div class="dev-diagram" tabindex="0" role="region" aria-label="An unconfirmed phone cannot take the route; scroll horizontally if needed"><img src="diagrams/failed-move.svg" alt="The original owner and organizer route remains usable while a candidate is prepared. Wrong or missing configured confirmation cannot commit. A known no-commit outcome retires only the candidate; uncertain work stays unknown and is reconciled under the original operation ID."></div>
+<figcaption>The original owner and organizer route remains usable while a candidate is prepared. Wrong or missing configured confirmation cannot commit. A known no-commit outcome retires only the candidate; uncertain work stays unknown and is reconciled under the original operation ID. Sources: <a href="../../contracts/connect-transitions.md#same-participant-endpoint-replacement">connect-transitions.md / Same-participant endpoint replacement</a> · <a href="../../contracts/connect-transitions.md#state-and-readiness">connect-transitions.md / State and readiness</a> · <a href="../../contracts/connect-transitions.md#identity-and-stream-invariants">connect-transitions.md / Identity and stream invariants</a> · <a href="../../contracts/connect-operations.md#external-effects">connect-operations.md / External effects</a>.</figcaption></figure>
+<ol><li>connection.replace · op_move_once</li><li>Prepare the current verified Endpoint</li><li>Answer + observed media are not confirmation</li><li>Confirmation deadline: wrong / missing DTMF</li><li>Known no commit: retire prepared candidate</li><li>operation.get · original op_move_once</li><li>Known failed OR unknown; never invent rollback</li></ol>
+<!-- CONNECT:FIGURE:failed-move:END -->
+<p>For an Endpoint requiring configured DTMF, answer and media alone are insufficient. Wrong/no digit, voicemail, no-answer, cancellation or timeout cannot commit the new speaking route. While the original leg itself remains live and permitted, keep it usable until commit. After a known no-commit failure, retire only prepared resources. If actual submission/commit is uncertain, keep <code>unknown</code> and reconcile; do not claim rollback.</p>
+<details><summary>Illustrative move and original status read</summary><!-- CONNECT:EXAMPLE:move:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_move&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;connection.replace&quot;,
+  &quot;payload&quot;: {
+    &quot;endpoint_id&quot;: &quot;ep_owner_phone&quot;,
+    &quot;retained_connid&quot;: &quot;conn_organizer&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_private_owner&quot;,
+  &quot;operation_id&quot;: &quot;op_move_once&quot;,
+  &quot;expected_revision&quot;: 9
+}</code></pre>
+<!-- CONNECT:EXAMPLE:move:END -->
+<!-- CONNECT:EXAMPLE:move_status:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_move_status&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;operation.get&quot;,
+  &quot;payload&quot;: {
+    &quot;operation_id&quot;: &quot;op_move_once&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_private_owner&quot;
+}</code></pre>
+<!-- CONNECT:EXAMPLE:move_status:END --></details>
+<details><summary>Alternative status A: known failed, no success result</summary><!-- CONNECT:EXAMPLE:move_failed:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_move_failed&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;operation.updated&quot;,
+  &quot;payload&quot;: {
+    &quot;operation_id&quot;: &quot;op_move_once&quot;,
+    &quot;record_id&quot;: &quot;opr_move&quot;,
+    &quot;command_type&quot;: &quot;connection.replace&quot;,
+    &quot;expected_revision&quot;: 9,
+    &quot;state&quot;: &quot;failed&quot;,
+    &quot;revision&quot;: 3
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_private_owner&quot;,
+  &quot;operation_id&quot;: &quot;op_move_once&quot;,
+  &quot;in_reply_to&quot;: &quot;env_move_status&quot;
+}</code></pre>
+<!-- CONNECT:EXAMPLE:move_failed:END --></details>
+<details><summary>Alternative status B: uncertain, no success result</summary><!-- CONNECT:EXAMPLE:move_unknown:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_move_unknown&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;operation.updated&quot;,
+  &quot;payload&quot;: {
+    &quot;operation_id&quot;: &quot;op_move_once&quot;,
+    &quot;record_id&quot;: &quot;opr_move&quot;,
+    &quot;command_type&quot;: &quot;connection.replace&quot;,
+    &quot;expected_revision&quot;: 9,
+    &quot;state&quot;: &quot;unknown&quot;,
+    &quot;revision&quot;: 2
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;sid&quot;: &quot;ses_main&quot;,
+  &quot;connid&quot;: &quot;conn_private_owner&quot;,
+  &quot;operation_id&quot;: &quot;op_move_once&quot;,
+  &quot;in_reply_to&quot;: &quot;env_move_status&quot;
+}</code></pre>
+<!-- CONNECT:EXAMPLE:move_unknown:END --></details>
+<p>Those status examples are alternatives, not a <code>failed → unknown</code> transition. Late events from an old generation cannot reactivate a retired leg. QUIC network migration changes a physical path, while explicit endpoint replacement creates a new Connection; do not report their identities as equivalent.</p></section>
+<section id="context" class="dev-section"><h2>Context continues through explicit sources</h2><p>The journal is authoritative and notifications are hints. Resume from the last actually processed cursor under fresh authorization, drain pagination before treating a snapshot as complete, and handle duplicate facts idempotently. Timestamps do not establish order. Filtered cursor gaps reveal neither private bodies nor private event counts. Retention loss requires explicit resync.</p><p>After voice ends, an authorized Message can refer to permitted results in the same Conversation. Select visible source items first, then bound or summarize them. Retain source IDs/revisions, watermark, omissions, transcript completeness and audience. A matching Conversation ID does not prove the model received that context.</p><p>Some providers consume instructions at initialization and require a fresh private leg. Keep logical AI identity while isolating provider memory; private consultation must not leak into the public leg's persistent context. Record context as prepared, delivered, rejected or unknown from actual observations.</p><p>Ended Sessions produce outcome/vCon metadata even with media capture disabled. Metadata is not proof that audio was recorded. Record fetches are current-authorized per-source projections; Session membership alone cannot reveal every private segment. Missing/redacted source material stays explicit, and local deletion cannot imply provider deletion.</p>
+<details><summary>Illustrative later private Message</summary><!-- CONNECT:EXAMPLE:follow_up:START -->
+<pre><code>{
+  &quot;v&quot;: 2,
+  &quot;id&quot;: &quot;env_follow_up&quot;,
+  &quot;ts&quot;: &quot;2026-10-27T12:00:00Z&quot;,
+  &quot;type&quot;: &quot;message.send&quot;,
+  &quot;payload&quot;: {
+    &quot;msg_id&quot;: &quot;msg_follow_up&quot;,
+    &quot;to&quot;: [
+      &quot;prt_owner&quot;
+    ],
+    &quot;content_type&quot;: &quot;text/plain&quot;,
+    &quot;body&quot;: &quot;I can follow up after your decision on the exact proposal.&quot;
+  },
+  &quot;cid&quot;: &quot;con_example&quot;,
+  &quot;operation_id&quot;: &quot;op_follow_up_once&quot;
+}</code></pre>
+<!-- CONNECT:EXAMPLE:follow_up:END --></details></section>
+<section class="dev-section"><h2>Scope and contract trace</h2><p>These are conceptual, synthetic, schema-checked shapes with placeholder IDs and revisions. They are not ready-to-run commands or executed media evidence. SDKs supply fresh transport metadata and native signatures; a schema-valid object still needs current authorization and configured capabilities.</p><p>The <a href="../reference/index.html#voice">current media/reference limits</a> retain unresolved native private-audio and browser findings. This guide does not qualify browser capture, remote hosting, provider calls, package parity or the complete example. The <a href="connect-baseline.html">earlier baseline</a> keeps its historical scope where lifecycle rules differ.</p><details><summary>Sources for every term and concept section</summary><!-- CONNECT:CONCEPT-SOURCES:START -->
+<table><caption>Contract trace for every shared term and concept section</caption><tbody><tr><th scope="row">Term: Connect</th><td><a href="../decisions/013-gate-6-model.md#ownership">013-gate-6-model.md / Ownership</a> · <a href="../decisions/016-gate-6-sdk.md#public-objects">016-gate-6-sdk.md / Public objects</a></td></tr><tr><th scope="row">Term: UCTP</th><td><a href="../../contracts/connect-uctp.md#target-and-dispatch">connect-uctp.md / Target and dispatch</a></td></tr><tr><th scope="row">Term: rvoip</th><td><a href="../decisions/013-gate-6-model.md#ownership">013-gate-6-model.md / Ownership</a> · <a href="../../contracts/connect-uctp.md#target-and-dispatch">connect-uctp.md / Target and dispatch</a></td></tr><tr><th scope="row">Term: Parley</th><td><a href="../decisions/013-gate-6-model.md#ownership">013-gate-6-model.md / Ownership</a></td></tr><tr><th scope="row">Term: Conversation</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../decisions/013-gate-6-model.md#lifecycles">013-gate-6-model.md / Lifecycles</a></td></tr><tr><th scope="row">Term: Participant</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-audiences.md#membership-and-effective-access">connect-audiences.md / Membership and effective access</a></td></tr><tr><th scope="row">Term: Message</th><td><a href="../../contracts/connect-audiences.md#message-audiences">connect-audiences.md / Message audiences</a> · <a href="../../contracts/connect-uctp.md#canonical-application-mapping">connect-uctp.md / Canonical application mapping</a></td></tr><tr><th scope="row">Term: Session</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-events.md#session-start">connect-events.md / Session start</a></td></tr><tr><th scope="row">Term: Connection</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-transitions.md#same-participant-endpoint-replacement">connect-transitions.md / Same-participant endpoint replacement</a></td></tr><tr><th scope="row">Term: Stream</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-media-v2.md#framing-and-route-authority">connect-media-v2.md / Framing and route authority</a></td></tr><tr><th scope="row">Term: Identity / Device / Endpoint</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-audiences.md#membership-and-effective-access">connect-audiences.md / Membership and effective access</a></td></tr><tr><th scope="row">Term: Operation</th><td><a href="../../contracts/connect-operations.md#admission-and-identity">connect-operations.md / Admission and identity</a> · <a href="../../contracts/connect-operations.md#allowed-transitions">connect-operations.md / Allowed transitions</a></td></tr><tr><th scope="row">Term: Handoff / device movement</th><td><a href="../../contracts/connect-transitions.md#participant-handoff">connect-transitions.md / Participant handoff</a> · <a href="../../contracts/connect-transitions.md#same-participant-endpoint-replacement">connect-transitions.md / Same-participant endpoint replacement</a></td></tr><tr><th scope="row">Section: model</th><td><a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../decisions/013-gate-6-model.md#ownership">013-gate-6-model.md / Ownership</a></td></tr><tr><th scope="row">Section: lifetimes</th><td><a href="../decisions/013-gate-6-model.md#lifecycles">013-gate-6-model.md / Lifecycles</a> · <a href="../../contracts/connect-events.md#session-start">connect-events.md / Session start</a></td></tr><tr><th scope="row">Section: audience</th><td><a href="../../contracts/connect-audiences.md#membership-and-effective-access">connect-audiences.md / Membership and effective access</a> · <a href="../../contracts/connect-audiences.md#message-audiences">connect-audiences.md / Message audiences</a> · <a href="../../contracts/connect-audiences.md#uniform-projection">connect-audiences.md / Uniform projection</a> · <a href="../decisions/013-gate-6-model.md#six-nouns-and-their-bindings">013-gate-6-model.md / Six nouns and their bindings</a> · <a href="../../contracts/connect-audiences.md#media-and-consultation">connect-audiences.md / Media and consultation</a> · <a href="../decisions/016-gate-6-sdk.md#provisioning-and-context">016-gate-6-sdk.md / Provisioning and context</a></td></tr><tr><th scope="row">Section: operations</th><td><a href="../../contracts/connect-operations.md#admission-and-identity">connect-operations.md / Admission and identity</a> · <a href="../../contracts/connect-operations.md#signed-transport-retry">connect-operations.md / Signed transport retry</a> · <a href="../../contracts/connect-operations.md#allowed-transitions">connect-operations.md / Allowed transitions</a> · <a href="../../contracts/connect-uctp.md#envelope">connect-uctp.md / Envelope</a></td></tr><tr><th scope="row">Section: readiness</th><td><a href="../../contracts/connect-transitions.md#state-and-readiness">connect-transitions.md / State and readiness</a> · <a href="../../contracts/connect-media-v2.md#streams-and-readiness">connect-media-v2.md / Streams and readiness</a> · <a href="../../contracts/connect-uctp.md#target-and-dispatch">connect-uctp.md / Target and dispatch</a> · <a href="../../contracts/connect-media-v2.md#framing-and-route-authority">connect-media-v2.md / Framing and route authority</a></td></tr><tr><th scope="row">Section: consultation</th><td><a href="../../contracts/connect-transitions.md#consultation">connect-transitions.md / Consultation</a> · <a href="../../contracts/connect-audiences.md#media-and-consultation">connect-audiences.md / Media and consultation</a></td></tr><tr><th scope="row">Section: handoff</th><td><a href="../../contracts/connect-transitions.md#participant-handoff">connect-transitions.md / Participant handoff</a> · <a href="../../contracts/connect-transitions.md#identity-and-stream-invariants">connect-transitions.md / Identity and stream invariants</a></td></tr><tr><th scope="row">Section: movement</th><td><a href="../../contracts/connect-transitions.md#same-participant-endpoint-replacement">connect-transitions.md / Same-participant endpoint replacement</a> · <a href="../../contracts/connect-transitions.md#failures-and-concurrency">connect-transitions.md / Failures and concurrency</a></td></tr><tr><th scope="row">Section: context</th><td><a href="../../contracts/connect-records.md#record-projection">connect-records.md / Record projection</a> · <a href="../../contracts/connect-records.md#context-delivery">connect-records.md / Context delivery</a> · <a href="../../contracts/connect-events.md#durable-facts">connect-events.md / Durable facts</a> · <a href="../../contracts/connect-records.md#connect-records-vcon-and-model-context">connect-records.md / Connect records, vCon and model context</a> · <a href="../../contracts/connect-records.md#retention-and-redaction">connect-records.md / Retention and redaction</a></td></tr></tbody></table>
+<!-- CONNECT:CONCEPT-SOURCES:END --></details><p>Figure captions cite their own contract sections. The reproducible <a href="lifecycle.json">diagram/example model</a> and <a href="../DOCUMENTATION.md">documentation checks</a> bind the figures to operation state edges and the canonical v2 schema.</p></section>
+</main><footer class="dev-shell"><a href="../index.html">Developer home</a> · <a href="../reference/index.html">API reference</a></footer></body></html>

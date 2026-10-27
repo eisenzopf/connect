@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 678" role="img" aria-labelledby="title description">
+<title id="title">An unconfirmed phone cannot take the route</title><desc id="description">The original owner and organizer route remains usable while a candidate is prepared. Wrong or missing configured confirmation cannot commit. A known no-commit outcome retires only the candidate; uncertain work stays unknown and is reconciled under the original operation ID.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#62ddff"/></marker></defs>
+<style>text{fill:#edf5ff;font:17px system-ui,sans-serif}rect{fill:#102033;stroke:#62ddff;stroke-width:1.5}.edge{stroke:#62ddff;stroke-width:2;fill:none;marker-end:url(#arrow)}.life{stroke:#58728d;stroke-dasharray:5 5}.note{fill:#b5c5d8;font-size:15px}</style>
+<path d="M0 0H960V678H0Z" fill="#07111d"/>
+<rect x="21" y="24" width="208" height="48" rx="7"/>
+<text x="125" y="54" text-anchor="middle">Owner app</text>
+<path class="life" d="M125 72V648"/>
+<rect x="261" y="24" width="208" height="48" rx="7"/>
+<text x="365" y="54" text-anchor="middle">Connect</text>
+<path class="life" d="M365 72V648"/>
+<rect x="501" y="24" width="208" height="48" rx="7"/>
+<text x="605" y="54" text-anchor="middle">Phone candidate</text>
+<path class="life" d="M605 72V648"/>
+<rect x="741" y="24" width="208" height="48" rx="7"/>
+<text x="845" y="54" text-anchor="middle">Retained organizer</text>
+<path class="life" d="M845 72V648"/>
+<text x="245" y="128" text-anchor="middle">connection.replace · op_move_once</text>
+<path class="edge" d="M125 140H365"/>
+<text x="485" y="202" text-anchor="middle">Prepare the current verified Endpoint</text>
+<path class="edge" d="M365 214H605"/>
+<text x="485" y="276" text-anchor="middle">Answer + observed media are not confirmation</text>
+<path class="edge" stroke-dasharray="6 4" d="M605 288H365"/>
+<text x="485" y="350" text-anchor="middle">Confirmation deadline: wrong / missing DTMF</text>
+<path class="edge" stroke-dasharray="6 4" d="M605 362H365"/>
+<text x="485" y="424" text-anchor="middle">Known no commit: retire prepared candidate</text>
+<path class="edge" d="M365 436H605"/>
+<text x="245" y="498" text-anchor="middle">operation.get · original op_move_once</text>
+<path class="edge" d="M125 510H365"/>
+<text x="245" y="572" text-anchor="middle">Known failed OR unknown; never invent rollback</text>
+<path class="edge" stroke-dasharray="6 4" d="M365 584H125"/>
+</svg>

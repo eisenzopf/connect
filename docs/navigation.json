@@ -6,7 +6,7 @@
     { "id": "voice", "label": "Voice and video", "href": "reference/index.html#voice", "scope": "Development media guides; browser qualification remains open." },
     { "id": "handoff", "label": "Handoff", "href": "reference/index.html#handoff", "scope": "Development consultation, handoff and movement guides with current limits." },
     { "id": "parley", "label": "Parley tutorial", "href": "tutorials/parley.html", "scope": "Shared scenario and deterministic fixtures; runnable installed tutorial pending." },
-    { "id": "concepts", "label": "Concepts", "href": "concepts/index.html", "scope": "Model and terminology; full lifecycle teaching material follows separately." },
+    { "id": "concepts", "label": "Concepts", "href": "concepts/index.html", "scope": "Current contract-traced model and lifecycle guide; runtime qualification remains separate." },
     { "id": "hosting", "label": "Hosting", "href": "hosting/index.html", "scope": "Local source operation; Linux deployment qualification and guide pending." },
     { "id": "reference", "label": "SDK and HTTP reference", "href": "reference/index.html", "scope": "Current source guides, generated contracts and published-version references." },
     { "id": "contribute", "label": "Contribute", "href": "../CONTRIBUTING.md", "scope": "Server, SDK, connector and protocol contribution entry." },

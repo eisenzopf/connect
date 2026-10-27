@@ -12,7 +12,7 @@ are supporting engineering material, not the first reading assignment.
 | --- | --- | --- |
 | Repository README and `docs/index.html` | Goals, matching version, direct topic navigation | Shared navigation generated from `navigation.json`; source capabilities carry current limits |
 | `docs/start/` | Published first conversation and current source entry | Published demo remains explicitly versioned; clean installed Gate 6 quickstart is G6-082 |
-| `docs/concepts/` | Shared vocabulary and model sources | Full contract-traced diagrams/lifecycle examples are G6-083 |
+| `docs/concepts/` | Shared vocabulary, authority, lifecycles and context | G6-083 adds contract-traced state/sequence figures and schema-checked synthetic consultation/failed-move examples; runtime qualification stays separate |
 | `docs/tutorials/parley.html` | Progressive application path | Scenario/fixtures are G6-071; executed installed checkpoints require G6-079/G6-084 |
 | `docs/reference/` | SDK, generated HTTP contracts and UCTP discovery | Standalone rendered references and installed snippet/curl execution are G6-085 |
 | `docs/hosting/` | Local configuration, target platform and truthful readiness | Complete Linux/provider guide requires G6-086 prerequisites |
@@ -37,3 +37,22 @@ The public website change set and capability story are G6-089. G6-090 owns full
 internal/external link, accessibility, responsive-layout, installed-example and
 claim verification. The G6-081 local link/layout checks do not substitute for
 those tasks or any Gate 6 acceptance criterion.
+
+The concept guide's `lifecycle.json` binds every shared term, concept section and
+figure to named frozen contract sections. `generate-concept-diagrams.py` renders
+the SVG figures and example envelopes, rejects state edges absent from the
+operation contract, and checks output drift. To validate the examples against
+the canonical schema, use an explicit documentation environment:
+
+```sh
+python3 -m venv .local/docs-env
+.local/docs-env/bin/python -m pip install -r docs/requirements.txt
+python3 scripts/generate-concept-diagrams.py
+.local/docs-env/bin/python scripts/generate-concept-diagrams.py --check --validate
+python3 scripts/generate-developer-navigation.py --check
+```
+
+The schema examples and malformed-vector refusals are documentation checks. They
+execute no SDK commands, carry no native signatures, and prove neither current
+authorization nor actual provider/media behavior. Diagrams have textual
+descriptions; wide figures can be scrolled with keyboard focus.
