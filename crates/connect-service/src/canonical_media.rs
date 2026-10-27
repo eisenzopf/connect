@@ -253,11 +253,11 @@ impl Connection {
         }
     }
     pub(crate) fn activation(&self) -> ControlResult<Option<Arc<dyn MediaActivation>>> {
-        Ok(self
-            .activation
-            .try_lock()
-            .map_err(metadata_contention)?
-            .clone())
+        // Holders only clone this metadata or check the first assignment; no
+        // Store, Core callback or IO runs under the leaf lock. Wait for that
+        // short exclusion instead of mistaking another lookup for withdrawal.
+        // The lock is released before callers derive current media authority.
+        Ok(self.activation.lock().map_err(denied)?.clone())
     }
     pub fn set_activation(&self, value: Arc<dyn MediaActivation>) -> ControlResult<()> {
         let mut activation = self.activation.lock().map_err(denied)?;
@@ -399,6 +399,39 @@ impl Connection {
     }
 }
 impl Policy {
+    #[cfg(feature = "test-support")]
+    pub(crate) fn with_registry_for_test(
+        &self,
+        hold: impl FnOnce(),
+    ) -> connect_protocol::Result<()> {
+        let _entries = self
+            .entries
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        hold();
+        Ok(())
+    }
+    #[cfg(feature = "test-support")]
+    pub(crate) fn with_activation_for_test(
+        &self,
+        connection_id: &str,
+        hold: impl FnOnce(),
+    ) -> connect_protocol::Result<()> {
+        let entry = self
+            .entries
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?
+            .values()
+            .find(|e| e.origin.connection_id() == connection_id)
+            .cloned()
+            .ok_or_else(connect_protocol::Error::forbidden)?;
+        let _activation = entry
+            .activation
+            .lock()
+            .map_err(|_| connect_protocol::Error::storage())?;
+        hold();
+        Ok(())
+    }
     #[cfg(feature = "test-support")]
     pub(crate) fn with_native_binding_for_test(
         &self,

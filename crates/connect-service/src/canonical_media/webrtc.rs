@@ -24,8 +24,18 @@ impl RtcInvocation {
     pub(crate) fn check(&self, policy: &Policy) -> ControlResult<()> {
         let id =
             ConnectionId::from_string(self.connection.origin.runtime_connection_id().to_owned());
-        let current = policy.entry(&id)?;
-        if !Arc::ptr_eq(&current, &self.connection)
+        // Registry holders only copy/compare/replace bounded metadata; they
+        // release this leaf lock before Store, Core or IO. A brief concurrent
+        // lookup cannot establish withdrawal of this exact original entry.
+        let registered = policy
+            .entries
+            .lock()
+            .map_err(|_| StreamControlError::Authority)?
+            .get(&id)
+            .is_some_and(|current| Arc::ptr_eq(current, &self.connection));
+        // The registry lock is gone before all current authority/expiry checks
+        // and before any control callback or physical effect.
+        if !registered
             || !std::ptr::eq(policy, Arc::as_ptr(&self.policy))
             || !self
                 .connection

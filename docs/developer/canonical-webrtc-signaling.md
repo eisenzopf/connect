@@ -354,9 +354,23 @@ scope while duplex stays usable. Four RTC methods plus all fourteen existing WSS
 methods and one decoded WebTransport regression pass. Separately injected
 service-level pending-close/lost-receipt/deadline uncertainty remains unqualified.
 
-The default host still makes no browser media advertisement. RTC durable role
-projection and wider lifecycle control, reoffers, DTMF,
+The default host still makes no browser media advertisement. Wider RTC lifecycle control, reoffers, DTMF,
 reconciliation/query/credential refresh, Opus/video/data,
 ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and
 approved Linux/remote hosting, package and full acceptance qualification remain
 required. G6-051 remains in progress.
+
+
+Idle RTC readiness now reconciles current durable Session roles through the
+shared bounded role projection. Signed EdDSA/ES256 fixtures verify actual Core
+observer projection, publication silence with reverse decoded audio, restoration
+and superseded-operation replay without reinstating an old role. Short registry
+and activation metadata exclusion no longer establishes withdrawn authority;
+fresh authority and actual resource checks still follow after unlocking.
+
+The [current role checkpoint](../evidence/gate-6/webrtc-current-roles.json) records
+controlled negative/fixed cases, a passing 21-method run and two native
+regressions. Quiet repetition still exposes original RTC subscription outcomes
+recorded as uncertain after a Core conflict. Those outcomes are retained and
+never resubmitted. Repeat stability and G6-051 remain unqualified while this
+control contention is investigated.

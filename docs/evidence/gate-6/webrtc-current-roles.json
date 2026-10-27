@@ -1,0 +1,193 @@
+{
+  "task": "G6-051",
+  "status": "partial checkpoint; role projection implemented; repeat stability unresolved",
+  "based_on": "548be339",
+  "scope": "Local macOS arm64 stock signed WSS, Store, Core and RTC G.711. No account/model-host/provider invocation.",
+  "implementation": [
+    "Idle RTC readiness invokes shared current durable Session role projection after the original offer handler has released its readers. Original roles, actual Core role changes and current authorization remain bounded by the existing projection lease.",
+    "RTC original-attempt registry identity checks wait for bounded leaf metadata rather than interpreting concurrent lookup as withdrawn authority. All current proof, peer, expiry, endpoint, generation, domain and cancellation checks still follow after unlocking.",
+    "Original RTC admission retries only Store authority-busy observation before staging or effects, under one cutoff created before blocking-task scheduling, clamped by original authority/attempt expiry. Failed readers drop before waiting; no SDP/allocation/admission effect is retried.",
+    "Shared Connection activation lookup clones its Arc under a bounded leaf metadata lock, released before current resource checks, Store, Core and IO. Packet registry try-lock semantics remain unchanged."
+  ],
+  "verification": {
+    "build": {
+      "exit_code": 0,
+      "seconds": 646.6114220831078,
+      "source_count": 5156,
+      "changed_inputs": [],
+      "diagnostic_warnings": [],
+      "log_sha256": "34b5f6c4a0d7bb1361854ca1c53455ddd2d87d99b66b7ef53383c59b3c12dcd5"
+    },
+    "artifact": {
+      "sha256": "345e10ef8f726a8b6fe6253e277239ef9779ccfcab05febb284f5e68152b97c4",
+      "bytes": 213080720
+    },
+    "runtime_input_count": 5312,
+    "main_run": [
+      {
+        "exit_code": 0,
+        "seconds": 28.977909917011857,
+        "log_sha256": "88524111a5663930dd5bd10a59323449cea919acd6cb000aa4e7ffa74bfbf638",
+        "test_results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 27.35s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 39.36698687495664,
+        "log_sha256": "d0e2325450c21cc9c8269ccba784eaca4fda221cb1b68c8238310cef3210e8bb",
+        "test_results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 39.34s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 4.349842208903283,
+        "log_sha256": "1a8ed5528c254f203bea992cc21d5fc758ec6aff3607d9be49b7a901de4ebc09",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 4.29s"
+        ],
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa"
+      }
+    ],
+    "native_regressions": [
+      {
+        "exit_code": 0,
+        "seconds": 6.997332667000592,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.26s"
+        ],
+        "log_sha256": "be950c4f69202250a2082105a5254256c64217b5ac2e1ffe27da55b7c8487060",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_signed_native_stream_subscription_routes_audio_and_replays_without_another_effect"
+      },
+      {
+        "exit_code": 0,
+        "seconds": 5.384302790975198,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.36s"
+        ],
+        "log_sha256": "73281ce073abc4efaae876fce9d3e3c63ae9397546ad9d12439eebbdefb5716e",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_native_connections::production_native_stream_captured_commit_recovers_storage_without_retaining_original_readers_or_reapplying"
+      }
+    ],
+    "quiet_repeat": [
+      {
+        "round": 1,
+        "exit_code": 101,
+        "seconds": 25.93764500017278,
+        "results": [
+          "test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 48 filtered out; finished in 25.89s"
+        ],
+        "log_sha256": "b7cccbabdcd081539e12221954d2d22f89b275ba499d2e1b53be5a4f6cd2ff3e",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      }
+    ],
+    "narrow_error_diagnostic": [
+      {
+        "round": 1,
+        "exit_code": 0,
+        "seconds": 27.071370417019352,
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 27.04s"
+        ],
+        "log_sha256": "599219cea9b23d509c12a1e322bd19fe89ae0ec8df7033e3318e6d6151a981a1",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      },
+      {
+        "round": 2,
+        "exit_code": 101,
+        "seconds": 23.752224416006356,
+        "results": [
+          "test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 48 filtered out; finished in 23.72s"
+        ],
+        "log_sha256": "a64eb7ca6a4a0f98e6459de3a885ca487a50878b341ca2069a25771411d6a54e",
+        "changed_inputs": [],
+        "artifact_unchanged": true,
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::"
+      }
+    ],
+    "diagnostic_environment": "warn,connect_service::canonical_webrtc::streams=debug; summary environment label was corrected here (runner label incorrectly said warn)",
+    "role_assertions": [
+      "EdDSA/ES256 actual marked decoded duplex and typed signed Session topology/role snapshots; nonmanager role refusal.",
+      "Observer projection reaches actual Core, silences only observer publication and preserves reverse decoded audio, stream revisions, original physical allocations and route counts.",
+      "Current original-role restore reaches Core and restores marked duplex; original and superseded operation replays do not add effects or reinstate observer state.",
+      "Controlled actual registry and activation mutex exclusion reproduce failures before fixes and pass identical signed fixtures after fixes; no grants or IO escape through test hooks."
+    ]
+  },
+  "unresolved": [
+    "Main 21-method run (6 RTC, 14 existing WSS, 1 decoded WebTransport) and both native QUIC regressions pass, but quiet repeat fails 5/6 at rtc-reselect-a Unknown. This is not a stability pass.",
+    "Narrow logging on unchanged candidate07 passes first round then fails 5/6 at rtc-select-b Unknown with Core Model(Conflict), mapped to subscription revision conflict. Original uncertain effect is never resubmitted or inferred successful from controller state. Investigate source-state metadata contention in guarded audio validation.",
+    "Both role methods pass the main run; a later diagnostic role method hits the same pre-role stream control conflict. Full task and acceptance remain unqualified.",
+    "RTC lifecycle/reoffer/DTMF/query/reconciliation/refresh, multiConnection and failure/deadline cases, Opus/video/data, installed browser forced fallback, Linux/remote/package profiles and full acceptance remain required."
+  ],
+  "history": [
+    {
+      "candidate": "01",
+      "result": "4/6 RTC; initial admission failures retained"
+    },
+    {
+      "candidate": "02",
+      "result": "21 methods pass with broad debug; timing change alone did not resolve failures"
+    },
+    {
+      "candidate": "03",
+      "result": "3/6 RTC; controlled registry exclusion fails both role fixtures, plus unforced authority-busy"
+    },
+    {
+      "candidate": "04",
+      "result": "Build deliberately interrupted before qualification to correct cutoff creation before blocking scheduling"
+    },
+    {
+      "candidate": "05",
+      "result": "5/6 RTC; controlled registry role cases pass, original end journey select-b Unknown remains"
+    },
+    {
+      "candidate": "06",
+      "result": "4/6 RTC; controlled activation exclusion deterministically fails both role cases with NotReady; old four pass"
+    },
+    {
+      "candidate": "07",
+      "result": "Identical controlled fixture, activation getter only production difference from06. Main21 and native2 pass; quiet/narrow diagnostic failures retained as unresolved."
+    }
+  ],
+  "private_evidence": {
+    ".local/gate-6/webrtc-roles/build-01-summary.json": "e12fa456ec244b0a8607dec93e5163a06663fe77950b8663cb0b1450440a02b4",
+    ".local/gate-6/webrtc-roles/build-02-summary.json": "4f7237a553e052df5eb71b791117575bfba4ba6b1acc038f87ecf3c12800c315",
+    ".local/gate-6/webrtc-roles/build-03-summary.json": "6591f38be13f0169ecc41a9e9acb3acd83202d5e96cbe72f78d9447bed3de8e6",
+    ".local/gate-6/webrtc-roles/build-05-summary.json": "76da5f1ea161a8c54df0c6afb72136046ba02ee581de43af0b5f5c3b4cbfbced",
+    ".local/gate-6/webrtc-roles/build-06-summary.json": "4bacbe08002158b02a5af421ed17f0da89fef9b7d1836aa8e120768816dc4bf6",
+    ".local/gate-6/webrtc-roles/build-07-summary.json": "c1feaa04029747ff9393369eb8a7205733fabfbb7c563cde9af1c1cb3aff606e",
+    ".local/gate-6/webrtc-roles/diagnostic-07-summary.json": "6ebe70e410862eac40ce53317d9f2f887e1e50e73d8c953ede2be92df65e3b6a",
+    ".local/gate-6/webrtc-roles/native-build-07-summary.json": "bd56220c2f8ca1ac813bca1f33742942b3387fdddd834aaf57f9f32a3bb50b13",
+    ".local/gate-6/webrtc-roles/native-runtime-07-summary.json": "64ebb8f44693b316dde84ec01236153a12fa9b27b4ec03c709e7714cac0166db",
+    ".local/gate-6/webrtc-roles/quiet-07-summary.json": "438e0d27765a0e7bf4d432e46af4c91a115ab6b3ffce8e74d351f0438b4c787f",
+    ".local/gate-6/webrtc-roles/runtime-01-summary.json": "d7dd3407282cc445e1789d5ed1f55eff02c3a6b62037e2a876c485bd62cd439c",
+    ".local/gate-6/webrtc-roles/runtime-02-summary.json": "5a57c91d9223c99cb6206db1d8db73ef50c0a72de65e95fba4b11db5c66eabbc",
+    ".local/gate-6/webrtc-roles/runtime-03-summary.json": "5b1bd90d04fa5074e4cfcc4e1689036c58ee7ba99cda5fcad91f99fea2ec9839",
+    ".local/gate-6/webrtc-roles/runtime-05-summary.json": "4bcf1bf105bc00b10e978527d9e35c6728b4bb070c6f93e54b38e1a2e34ec57d",
+    ".local/gate-6/webrtc-roles/runtime-06-summary.json": "918cc230cffc515ed6e7b78afb5f0cfec5d6e308f1edb7df128f9927d0afba80",
+    ".local/gate-6/webrtc-roles/runtime-07-summary.json": "59a7fe703fca8d40c9b75952e864385bbb9d0e328806490d66a9a8685a949e8e"
+  },
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

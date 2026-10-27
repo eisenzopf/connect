@@ -1,5 +1,6 @@
 //! Real WSS/Store/Core RTC audio, with explicit subscriptions and wire decoding.
 use super::*;
+use rvoip_core::participant::ParticipantRole;
 use rvoip_core::{adapter::ConnectionAdapter, ids::StreamId, stream::MediaStream};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -97,6 +98,73 @@ async fn refused(ws: &mut Peer, value: Value, code: &str, public_code: u16) {
         }
     }
     panic!("refusal did not finish")
+}
+async fn session_role_snapshot(ws: &mut Peer, cid: &str, participant: &str) -> (u64, String) {
+    use connect_client::events::SnapshotItem;
+    let mut request = envelope("conversation.get", json!({"limit":100}));
+    request["cid"] = json!(cid);
+    let id = ws.send(request, true).await;
+    let mut topology = None;
+    let mut role = None;
+    for _ in 0..128 {
+        let e = ws.read().await;
+        assert_eq!(e.original()["in_reply_to"], id);
+        match e.payload() {
+            rvoip_uctp::v2::Payload::ConversationSnapshot(snapshot) => {
+                assert!(
+                    !snapshot.has_more,
+                    "bounded fixture must fit one snapshot page"
+                );
+                for item in &snapshot.items {
+                    match serde_json::from_value::<SnapshotItem>(item.clone()).unwrap() {
+                        SnapshotItem::Session(s) if s.id == "http3-media-session" => {
+                            topology = Some(s.topology_revision)
+                        }
+                        SnapshotItem::SessionParticipant(p)
+                            if p.session_id == "http3-media-session"
+                                && p.participant_id == participant =>
+                        {
+                            assert_eq!(p.state, "present");
+                            role = Some(p.role);
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            rvoip_uctp::v2::Payload::Ack(_) => return (topology.unwrap(), role.unwrap()),
+            _ => panic!("unexpected signed snapshot frame: {:?}", e.original()),
+        }
+    }
+    panic!("snapshot did not finish")
+}
+fn role_command(cid: &str, participant: &str, role: &str, op: &str, topology: u64) -> Value {
+    let mut request = envelope(
+        "session.update",
+        json!({"kind":"role-change","details":{"participant_id":participant,"role":role}}),
+    );
+    request["cid"] = json!(cid);
+    request["sid"] = json!("http3-media-session");
+    request["operation_id"] = json!(op);
+    request["expected_revision"] = json!(topology);
+    request
+}
+async fn projected_role(f: &Fixture, participant: &str, role: &ParticipantRole) {
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            if f.server
+                .service
+                .canonical_session_role_for_test("http3-media-session", participant)
+                .unwrap()
+                .as_ref()
+                == Some(role)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("actual Core participant role follows the current durable role");
 }
 fn publish(
     peer: &Arc<RvoipPeerConnection>,
@@ -198,7 +266,15 @@ async fn inaudible(rx: &mut mpsc::Receiver<rvoip_core::stream::MediaFrame>) {
         }
     }
 }
-async fn scenario(algorithm: &str, end: bool) {
+async fn scenario(algorithm: &str, end: bool, roles: bool) {
+    if roles {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "warn".into()),
+            )
+            .try_init();
+    }
     let f = configured_end_scope(algorithm, 8, None, end).await;
     let host = SignalingHost::new(audio_config(), 2).unwrap();
     f.server
@@ -241,7 +317,34 @@ async fn scenario(algorithm: &str, end: bool) {
         .await
         .unwrap();
         peer.wait_connected(Duration::from_secs(5)).await.unwrap();
+        let held_registry = if roles && i == 1 {
+            let service = f.server.service.clone();
+            let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            let owner = tokio::task::spawn_blocking(move || {
+                service.with_canonical_media_registry_for_test(|| {
+                    let _ = entered_tx.send(());
+                    // Bounded even if an assertion cancels the observer.
+                    let _ = release_rx.recv_timeout(Duration::from_secs(3));
+                })
+            });
+            entered_rx.await.unwrap();
+            Some((release_tx, owner))
+        } else {
+            None
+        };
         senders.push(publish(&peer, if i == 0 { 0x80 } else { 0x00 }));
+        if let Some((release, owner)) = held_registry {
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            let waiting = record(&f, config, &format!("rtc-offer-{i}"));
+            release.send(()).unwrap();
+            owner.await.unwrap().unwrap();
+            assert_eq!(
+                waiting.state,
+                OperationState::Preparing,
+                "metadata exclusion cannot withdraw the actual original admission"
+            );
+        }
         completed(&f, config, &format!("rtc-offer-{i}")).await;
         peers.push(peer);
     }
@@ -299,6 +402,22 @@ async fn scenario(algorithm: &str, end: bool) {
     drop(foreign);
     command(&mut first, selection.clone()).await;
     let original = completed(&f, &f.client, "rtc-select-a").await;
+    let held_activation = if roles {
+        let service = f.server.service.clone();
+        let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+        let owner = tokio::task::spawn_blocking(move || {
+            service.with_canonical_media_activation_for_test("rtc-connection-1", || {
+                let _ = entered_tx.send(());
+                // Independent release also progresses when packet/control
+                // workers are waiting on this deliberately held leaf mutex.
+                std::thread::sleep(Duration::from_millis(500));
+            })
+        });
+        entered_rx.await.unwrap();
+        Some(owner)
+    } else {
+        None
+    };
     command(
         &mut second,
         scoped(
@@ -311,6 +430,9 @@ async fn scenario(algorithm: &str, end: bool) {
         ),
     )
     .await;
+    if let Some(owner) = held_activation {
+        owner.await.unwrap().unwrap();
+    }
     completed(&f, &other, "rtc-select-b").await;
     assert_eq!(controllers[0].revision(), 2);
     assert_eq!(controllers[1].revision(), 2);
@@ -389,6 +511,119 @@ async fn scenario(algorithm: &str, end: bool) {
     assert_eq!(controllers[0].revision(), 4);
     audible(&mut audio_a, -1).await;
     audible(&mut audio_b, 1).await;
+    if roles {
+        let (topology, original_role) = session_role_snapshot(&mut first, &cid, &recipient).await;
+        let original_core_role = f
+            .server
+            .service
+            .canonical_session_role_for_test("http3-media-session", &recipient)
+            .unwrap()
+            .unwrap();
+        assert_ne!(original_core_role, ParticipantRole::Observer);
+        let initial_projections = f
+            .server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .role_projections;
+        refused(
+            &mut second,
+            role_command(&cid, &initiator, "observer", "rtc-refused-role", topology),
+            "forbidden",
+            403,
+        )
+        .await;
+        assert_eq!(
+            session_role_snapshot(&mut first, &cid, &recipient).await,
+            (topology, original_role.clone())
+        );
+        audible(&mut audio_a, -1).await;
+        audible(&mut audio_b, 1).await;
+        let observer = role_command(&cid, &recipient, "observer", "rtc-observe-b", topology);
+        command(&mut first, observer.clone()).await;
+        let receipt = completed(&f, &f.client, "rtc-observe-b").await;
+        let (observer_topology, role) = session_role_snapshot(&mut first, &cid, &recipient).await;
+        assert_eq!(role, "observer");
+        assert_eq!(observer_topology, topology + 1);
+        projected_role(&f, &recipient, &ParticipantRole::Observer).await;
+        inaudible(&mut audio_a).await;
+        audible(&mut audio_b, 1).await;
+        assert_eq!(controllers[0].revision(), 4);
+        assert_eq!(controllers[1].revision(), 2);
+        assert_eq!(host.adapter().total_allocations(), 2);
+        assert_eq!(host.adapter().route_count(), 2);
+        let observed_projections = f
+            .server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .role_projections;
+        assert_eq!(observed_projections, initial_projections + 1);
+        let mut replay = observer.clone();
+        replay["id"] = json!(uuid::Uuid::new_v4().to_string());
+        command(&mut first, replay).await;
+        assert_eq!(record(&f, &f.client, "rtc-observe-b"), receipt);
+        assert_eq!(
+            session_role_snapshot(&mut first, &cid, &recipient).await,
+            (observer_topology, "observer".into())
+        );
+        command(
+            &mut first,
+            role_command(
+                &cid,
+                &recipient,
+                &original_role,
+                "rtc-restore-b",
+                observer_topology,
+            ),
+        )
+        .await;
+        completed(&f, &f.client, "rtc-restore-b").await;
+        projected_role(&f, &recipient, &original_core_role).await;
+        assert_eq!(
+            session_role_snapshot(&mut first, &cid, &recipient).await,
+            (observer_topology + 1, original_role.clone())
+        );
+        audible(&mut audio_a, -1).await;
+        audible(&mut audio_b, 1).await;
+        let restored_projections = f
+            .server
+            .service
+            .canonical_runtime_snapshot()
+            .unwrap()
+            .role_projections;
+        assert_eq!(restored_projections, initial_projections + 2);
+        // Historical replay must not reinstate a superseded observer role.
+        let mut replay = observer;
+        replay["id"] = json!(uuid::Uuid::new_v4().to_string());
+        command(&mut first, replay).await;
+        assert_eq!(record(&f, &f.client, "rtc-observe-b"), receipt);
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        assert_eq!(
+            f.server
+                .service
+                .canonical_session_role_for_test("http3-media-session", &recipient)
+                .unwrap(),
+            Some(original_core_role)
+        );
+        assert_eq!(
+            session_role_snapshot(&mut first, &cid, &recipient).await,
+            (observer_topology + 1, original_role)
+        );
+        assert_eq!(
+            f.server
+                .service
+                .canonical_runtime_snapshot()
+                .unwrap()
+                .role_projections,
+            restored_projections
+        );
+        assert_eq!(controllers[0].revision(), 4);
+        assert_eq!(controllers[1].revision(), 2);
+        assert!(ids.iter().all(|id| host.adapter().is_connection_live(id)));
+        audible(&mut audio_a, -1).await;
+        audible(&mut audio_b, 1).await;
+    }
     if end {
         let request = scoped(
             &cid,
@@ -501,17 +736,25 @@ async fn scenario(algorithm: &str, end: bool) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_eddsa() {
-    scenario("EdDSA", false).await;
+    scenario("EdDSA", false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_explicit_subscriptions_decode_duplex_replay_and_withdrawal_es256() {
-    scenario("ES256", false).await;
+    scenario("ES256", false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_eddsa() {
-    scenario("EdDSA", true).await;
+    scenario("EdDSA", true, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn signed_rtc_end_joins_original_resources_and_replays_es256() {
-    scenario("ES256", true).await;
+    scenario("ES256", true, false).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_eddsa() {
+    scenario("EdDSA", false, true).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn signed_rtc_current_roles_project_and_restore_decoded_duplex_es256() {
+    scenario("ES256", false, true).await;
 }

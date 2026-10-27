@@ -183,6 +183,12 @@ impl Runtime {
                                 Err(e) if e.code == "authority-busy" => continue,
                                 Err(_) => break,
                             }
+                            // Project the latest durable Session role under its
+                            // own bounded current read; no offer reader survives
+                            // into this idle loop or becomes role authority.
+                            if let Some(id) = &owned.id {
+                                self.reconcile_connection_role(id).await;
+                            }
                         },
                         Err(e) => {
                             tracing::debug!(code=%e.code,"RTC original media admission refused")

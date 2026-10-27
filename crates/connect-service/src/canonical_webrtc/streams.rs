@@ -353,7 +353,8 @@ impl Runtime {
             drop(invocation);
             let revision = match outcome {
                 Ok(r) => r,
-                Err(_) => {
+                Err(error) => {
+                    tracing::debug!(?error, "RTC original stream effect requires reconciliation");
                     let _ = tx.send(store.native_stream_attempt_uncertain(&lease).map(reply));
                     return;
                 }

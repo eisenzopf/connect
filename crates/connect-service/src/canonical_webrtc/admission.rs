@@ -100,7 +100,8 @@ fn same_bindings(current: &[ReadyMediaBinding], expected: &[ReadyMediaBinding]) 
                 && a.sink_ready == b.sink_ready
         })
 }
-fn denied<T>(_: T) -> Error {
+fn denied<T: std::fmt::Debug>(error: T) -> Error {
+    tracing::debug!(?error, "RTC actual admission boundary refused");
     Error::forbidden()
 }
 impl Runtime {
@@ -141,15 +142,41 @@ impl Runtime {
             .min(Duration::from_secs(2));
         // Await this original bounded blocking acquisition; cancellation must
         // not detach a task that could still return a live authority interval.
+        let until = deadline.min(Instant::now() + remaining);
+        let wait =
+            connect_store::AuthorityWait::new(until.saturating_duration_since(Instant::now()));
         let (proof, read) = tokio::task::spawn_blocking(move || {
-            let proof = store.resume_webrtc_offer_authority(
-                &credential_for_read,
-                &origin,
-                owner.original_attempt(),
-                &connect_store::AuthorityWait::new(remaining),
-            )?;
-            let read = store.native_media_read_with_peer(&origin, None, &proof)?;
-            Ok::<_, Error>((Arc::new(proof), Arc::new(read)))
+            loop {
+                if Instant::now() >= until {
+                    return Err(Error::new(
+                        "authority-busy",
+                        "RTC original observation metadata is busy",
+                    ));
+                }
+                let observed = (|| {
+                    let proof = store.resume_webrtc_offer_authority(
+                        &credential_for_read,
+                        &origin,
+                        owner.original_attempt(),
+                        &wait,
+                    )?;
+                    let read = store.native_media_read_with_peer(&origin, None, &proof)?;
+                    Ok::<_, Error>((Arc::new(proof), Arc::new(read)))
+                })();
+                match observed {
+                    Err(error) if error.code == "authority-busy" && Instant::now() < until => {
+                        // No control effect has started. Every failed proof/read
+                        // is already dropped before waiting, so a queued writer
+                        // can enter. Reuse the original wait, never renew it or
+                        // reenter a reader retained from the previous attempt.
+                        std::thread::sleep(
+                            Duration::from_millis(5)
+                                .min(until.saturating_duration_since(Instant::now())),
+                        );
+                    }
+                    result => return result,
+                }
+            }
         })
         .await
         .map_err(denied)??;

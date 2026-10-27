@@ -200,6 +200,45 @@ impl Service {
             .ok_or_else(Error::forbidden)?;
         Ok(session)
     }
+    /// Actual coordinator metadata only; this exposes no media or control grant.
+    #[cfg(feature = "test-support")]
+    pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .with_registry_for_test(hold)
+    }
+    /// Actual coordinator metadata only; this exposes no media or control grant.
+    #[cfg(feature = "test-support")]
+    pub fn with_canonical_media_activation_for_test(
+        &self,
+        connection_id: &str,
+        hold: impl FnOnce(),
+    ) -> Result<()> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .media
+            .with_activation_for_test(connection_id, hold)
+    }
+    /// Actual coordinator metadata only; this exposes no media or control grant.
+    #[cfg(feature = "test-support")]
+    pub fn canonical_session_role_for_test(
+        &self,
+        session_id: &str,
+        participant_id: &str,
+    ) -> Result<Option<rvoip_core::participant::ParticipantRole>> {
+        self.canonical_runtime
+            .get()
+            .ok_or_else(Error::forbidden)?
+            .core
+            .participant_session_role(
+                &rvoip_core::ids::SessionId::from_string(session_id),
+                &rvoip_core::ids::ParticipantId::from_string(participant_id),
+            )
+            .map_err(|_| Error::forbidden())
+    }
     /// Hold actual leaf binding metadata for isolated contention tests. The
     /// callback receives no binding, credential or authority object.
     #[cfg(feature = "test-support")]
