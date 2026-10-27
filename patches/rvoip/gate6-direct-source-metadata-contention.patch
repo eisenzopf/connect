@@ -1,0 +1,188 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -303,10 +303,14 @@
+             let binding = if std::ptr::eq(publisher.as_ref(), self) {
+                 get(&selection.source.logical)?
+             } else {
+-                let source_state = publisher
+-                    .state
+-                    .try_lock()
+-                    .map_err(|_| MediaTransitionError::Conflict)?;
++                let source_state = publisher.state.try_lock().map_err(|error| match error {
++                    // A concurrent packet/control metadata observation is
++                    // precommit backpressure, not a routing revision change.
++                    // The original command releases its guards and retries
++                    // within the same cutoff, with fresh source authority.
++                    std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
++                    std::sync::TryLockError::Poisoned(_) => MediaTransitionError::Conflict.into(),
++                })?;
+                 Self::direct_port(&source_state, &selection.source.logical)?
+                     .binding
+                     .clone()
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -1759,3 +1759,162 @@
+         .is_err());
+     assert_eq!(s.f.b.revision(), before);
+ }
++
++fn video_contention_change(s: &Scene) -> MediaSubscriptionChange {
++    MediaSubscriptionChange {
++        selection: None,
++        audio: None,
++        direct: Some(DirectSubscriptionChange::Subscribe(vec![
++            DirectSubscription::new(
++                &s.f.a,
++                desired(Medium::Video).logical_id.clone(),
++                desired(Medium::Video).logical_id,
++            ),
++        ])),
++    }
++}
++#[tokio::test]
++async fn direct_video_publisher_contention_waits_with_original_revision_and_ports() {
++    let s = Scene::new(&[Medium::Video]).await;
++    let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    let revision = s.f.b.revision();
++    let before = s.f.b.active_bindings();
++    let budget = s.f.b.stream_open_budget();
++    let change = video_contention_change(&s);
++    let source_state = s.f.a.state.lock().unwrap();
++    let command = s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        change.clone(),
++        deadline(),
++        CancellationToken::new(),
++        None,
++    );
++    tokio::pin!(command);
++    assert!(
++        tokio::time::timeout(Duration::from_millis(30), &mut command)
++            .await
++            .is_err(),
++        "a busy source cannot manufacture a completed/conflicted routing result"
++    );
++    assert_eq!(s.f.b.revision(), revision);
++    drop(source_state);
++    assert_eq!(command.await.unwrap(), revision + 1);
++    assert_eq!(
++        s.f.b
++            .active_bindings()
++            .iter()
++            .map(|b| (
++                &b.transport_id,
++                b.stream_local_id,
++                b.generation,
++                b.connection_generation,
++                &b.negotiated,
++                b.source_ready,
++                b.sink_ready,
++            ))
++            .collect::<Vec<_>>(),
++        before
++            .iter()
++            .map(|b| (
++                &b.transport_id,
++                b.stream_local_id,
++                b.generation,
++                b.connection_generation,
++                &b.negotiated,
++                b.source_ready,
++                b.sink_ready,
++            ))
++            .collect::<Vec<_>>()
++    );
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++    s.publish(Medium::Video, 321);
++    s.scene.tick();
++    outgoing(&mut out)
++        .await
++        .deliver(|f| async move {
++            assert_eq!(f.timestamp_rtp, 321);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    assert!(matches!(
++        s.scene
++            .change_media_subscriptions(
++                &s.f.b.connection,
++                revision,
++                change,
++                deadline(),
++                CancellationToken::new(),
++                None,
++            )
++            .await,
++        Err(StreamControlError::Model(MediaTransitionError::Conflict))
++    ));
++    assert_eq!(s.f.b.revision(), revision + 1);
++}
++#[tokio::test]
++async fn direct_video_publisher_contention_obeys_original_cancellation() {
++    let s = Scene::new(&[Medium::Video]).await;
++    let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    let revision = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let cancel = CancellationToken::new();
++    let source_state = s.f.a.state.lock().unwrap();
++    let command = s.scene.change_media_subscriptions(
++        &s.f.b.connection,
++        revision,
++        video_contention_change(&s),
++        deadline(),
++        cancel.clone(),
++        None,
++    );
++    tokio::pin!(command);
++    assert!(
++        tokio::time::timeout(Duration::from_millis(30), &mut command)
++            .await
++            .is_err()
++    );
++    cancel.cancel();
++    assert!(matches!(
++        tokio::time::timeout(Duration::from_millis(100), &mut command)
++            .await
++            .unwrap(),
++        Err(StreamControlError::Cancelled)
++    ));
++    drop(source_state);
++    assert_eq!(s.f.b.revision(), revision);
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++    s.publish(Medium::Video, 322);
++    s.scene.tick();
++    assert!(
++        out.try_recv().is_err(),
++        "cancelled intent installed a route"
++    );
++}
++#[tokio::test]
++async fn direct_video_publisher_contention_obeys_original_deadline() {
++    let s = Scene::new(&[Medium::Video]).await;
++    let mut out = s.f.ba.port(Medium::Video).take_egress().unwrap();
++    let revision = s.f.b.revision();
++    let source_state = s.f.a.state.lock().unwrap();
++    let result = tokio::time::timeout(
++        Duration::from_millis(200),
++        s.scene.change_media_subscriptions(
++            &s.f.b.connection,
++            revision,
++            video_contention_change(&s),
++            tokio::time::Instant::now() + Duration::from_millis(40),
++            CancellationToken::new(),
++            None,
++        ),
++    )
++    .await
++    .unwrap();
++    assert!(matches!(result, Err(StreamControlError::Deadline)));
++    drop(source_state);
++    assert_eq!(s.f.b.revision(), revision);
++    s.publish(Medium::Video, 323);
++    s.scene.tick();
++    assert!(out.try_recv().is_err(), "expired intent installed a route");
++}

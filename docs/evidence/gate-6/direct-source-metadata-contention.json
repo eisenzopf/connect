@@ -1,0 +1,137 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T16:12:01.299918+00:00",
+  "source_revision_before_checkpoint": "7fb98a76234c06ce77c5cec417532d92ec773074",
+  "scope": "Local macOS arm64 Core component/ordinary production library with actual production feature set and controlled current-policy scene/port fixtures. No full rebuilt Connect signed-runtime or actual browser/fallback/hosting/acceptance claim.",
+  "implementation": [
+    "Direct video/screen/data source validation reports publisher metadata WouldBlock as Backpressure, preserving Poisoned and real routing-revision Conflict.",
+    "The existing Core precommit retry loop releases scene/state/policy guards and retries inside the original command, cutoff, cancellation, expected revision, ports and current authority. It does not repeat a committed mutation or replace an operation ID.",
+    "Three deterministic cases hold the actual publisher-state mutex across execution: wait/release then one revision commit and actual frame delivery with identical binding/budget; original cancellation with no installed route; original deadline with no installed route. A real stale revision still refuses."
+  ],
+  "patch": {
+    "files": [
+      "crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs",
+      "crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs"
+    ],
+    "patch_sha256": "7579e6ad17ddd4138e6ee91fe00af6eed058ee79b6e7906d92c954be177852a0"
+  },
+  "verification": {
+    "selected_core_methods_distinct": 49,
+    "scene_methods": 40,
+    "direct_methods": 9,
+    "new_contention_methods_included": 3,
+    "prior_mapping_control_failed_methods": 3,
+    "normal_production_core_compile": true,
+    "normal_stacks": true,
+    "all_input_guards_closed_unchanged": true,
+    "input_manifest_sha256": "5f7a4e687cbb27924c96f2f744e41deed5c3ebae77b941921fbb9798895c37f4",
+    "input_count": 350,
+    "checks": [
+      {
+        "name": "core-harness-build-02",
+        "exit_code": 0,
+        "seconds": 0.5104032908566296,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-build-02",
+        "exit_code": 0,
+        "seconds": 14.114438541000709,
+        "log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-contention-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.7230016668327153,
+        "log_sha256": "9d335579be6247e0c5be19bc25b397296b6e17bad2bf55025282c35204aca6c4",
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 540 filtered out; finished in 0.12s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-scene-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.4291286668740213,
+        "log_sha256": "0c0439c3c37d750d9f057368bc79fa0461d430ecbbc06c445495028ff1f1a569",
+        "results": [
+          "test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 503 filtered out; finished in 0.42s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-direct-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.09060787502676249,
+        "log_sha256": "f80a47b42588f894036db584c08f9fb58d6a42090bf10ade8172e9a7968de8ad",
+        "results": [
+          "test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 534 filtered out; finished in 0.06s"
+        ],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-production-build-02",
+        "exit_code": 0,
+        "seconds": 9.54266362497583,
+        "log_sha256": "273a943f5e38e9d8bbed12c8f00196cff9dae810056a6a4835c9dddec13b23b0",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-prior-unit-build-02",
+        "exit_code": 0,
+        "seconds": 14.079891792032868,
+        "log_sha256": "33ed393c983d9a7fb446d490f03cf5c1223382838c33118caa60a6c692a0627e",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-prior-contention-runtime-02",
+        "exit_code": 101,
+        "seconds": 0.609981584129855,
+        "log_sha256": "1005049ce63cd80b8a92a2bfd2c0fddd1cead03c82f1cb18ba24a3b925e0861d",
+        "results": [
+          "test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 540 filtered out; finished in 0.01s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "artifacts": [
+      {
+        "name": "core-unit-tests-02",
+        "sha256": "4b29cd38a026fbd50eeb1a605ff4b2a20f3ecaa9dfae7c6446d1964301352be0",
+        "bytes": 46642512
+      },
+      {
+        "name": "core-unit-tests-prior-02",
+        "sha256": "f3cc0d7b39e21e76c31cd4a647b1cbfa795259b028d33e97f77308072084683e",
+        "bytes": 46642936
+      },
+      {
+        "name": "librvoip_core_contention.rlib",
+        "sha256": "3501e7fbeb9c217696a2f2f081e88699f9b19fc0a35297ec04743837fdc0d106",
+        "bytes": 110317976
+      }
+    ]
+  },
+  "causal_control": "Same source/features, fixtures and tests; only the publisher-state lookup is replaced with the exact prior file. All three new methods fail (0pass/3fail), while the corrected mapping passes. The private prior tree and original compiler/runtime logs are retained.",
+  "retained_wrapper_errors": [
+    "The first helper transformation accidentally rewrote edition/version digits, so the compiler refused before compiling Core. Corrected arguments use the original Rust2021 and target paths.",
+    "A wrapper substring check misread 40 passed as 0 passed after an actual 40pass/0fail run with unchanged guards. Its rows/logs are retained; remaining checks resumed against that existing binary with exact result matching."
+  ],
+  "next_required": [
+    "Whole Connect rebuild and current signed Opus/VP8 AV/refusal/subscription/control/native WT regressions.",
+    "Observe the formerly failing signed contention class without weakening authority/revision/media/deadline checks; historical unknown records remain unchanged.",
+    "Install the explicit production canonical WebRTC profile and complete actual signed Chrome/Firefox media and real forced fallback/transition checks.",
+    "Full unchanged G6-051/all105/acceptance scope remains open."
+  ]
+}
