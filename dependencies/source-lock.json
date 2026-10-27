@@ -1216,6 +1216,11 @@
       "path": "patches/rvoip/gate6-canonical-video-ports.patch",
       "source": "G6-051 canonical guarded audio/VP8 physical peer and exact SDP/Core port binding, source-worker/media lifetime and ingress normalization, actual guarded audio/video source-clock writes and MID-preserving repair. Root signed-host/browser qualification remains required.",
       "sha256": "6bd99c5f11f2f888f972bc2c9fc6e48ba39563e9aae7e1b4b0af379fa07479ec"
+    },
+    {
+      "path": "patches/rvoip/gate6-existing-port-selection.patch",
+      "source": "G6-051 exact source selection onto existing confirmed direct sinks without creating foreign logical ports; preserve original source/receiver identity and installed-route unsubscribe, refuse ambiguous sinks and future non-audio selectors.",
+      "sha256": "f96d21254717708440848caeb658484435bb55094de509752fec54c720832ac9"
     }
   ]
 }

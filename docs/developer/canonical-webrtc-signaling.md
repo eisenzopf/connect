@@ -566,3 +566,26 @@ Opus+VP8 composition, actual SR/A/V synchronization, motion/camera capture,
 installed browsers, full fallback, data, Linux/remote and package qualification
 remain open. G6-051 stays in progress; default browser media advertisement remains
 disabled.
+
+
+## Planning exact video onto existing negotiated ports
+
+Core now provides a separate existing-port planning SPI. Exact current direct
+sources map onto one compatible confirmed receiver for that medium, retaining
+different source and target logical IDs. It creates no new port, changes no
+direction and chooses no replacement format. Unsubscribe names source IDs and
+resolves the actual installed route, so a receiver ID cannot remove another
+source. Current authorization and old queued-route invalidation remain in Core.
+
+The [evidence](../evidence/gate-6/webrtc-existing-port-selection.json) records two
+new methods and all 37 media-scene methods (the new two are included), plus an
+ordinary production Core compile. Existing target transport/local IDs and opening
+budget survive selection/removal/restoration. Ambiguous sinks and future video
+participant selectors refuse without revision or budget changes. An initial
+fixture lookup assumed equal source/target IDs; the corrected test reads the
+actual distinct target and retains the original assertions.
+
+This is an isolated Core fixture qualification. The signed AV composition that
+uses the new SPI is being rebuilt separately and remains unqualified here.
+Future non-audio selectors, wider media/browser/fallback/clock/hosting/package
+scopes remain required. G6-051 stays in progress.

@@ -1,0 +1,788 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -569,6 +569,30 @@
+             }
+         }
+         Ok(scene.plan_selection(connection, expected, input)?)
++    }
++    /// Plan exact sources onto one existing compatible direct sink per medium.
++    /// No ports or directions are added. Future non-audio participant selectors
++    /// require a separate resource-reconciliation profile and refuse here.
++    pub fn plan_staged_media_selection_on_existing_ports(
++        &self,
++        session: &SessionId,
++        connection: &ConnectionId,
++        expected: u64,
++        input: &crate::staged_streams::subscription_plan::MediaSelectionChange,
++    ) -> ControlResult<crate::staged_streams::subscription_plan::MediaSubscriptionPlan> {
++        let runtime = self.participant_runtime(session)?;
++        let scene = runtime
++            .mixer
++            .staged
++            .as_ref()
++            .ok_or(ParticipantControlError::Unsupported)?;
++        {
++            let state = runtime.state.lock().unwrap_or_else(|p| p.into_inner());
++            if state.ended || !state.routes.contains_key(connection) {
++                return Err(ParticipantTransitionError::Inactive.into());
++            }
++        }
++        Ok(scene.plan_selection_existing_ports(connection, expected, input)?)
+     }
+     pub fn audio_audience_revision(&self, session: &SessionId) -> ControlResult<u64> {
+         let runtime = self.participant_runtime(session)?;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/direct_subscriptions.rs
+@@ -76,6 +76,15 @@
+             }),
+             cancel,
+         })
++    }
++    pub(super) fn receivers_for_sources(&self, sources: &[StreamId]) -> Vec<StreamId> {
++        let state = self.routing.lock().unwrap_or_else(|p| p.into_inner());
++        state
++            .program
++            .iter()
++            .filter(|(_, route)| sources.contains(&route.selection.source.logical))
++            .map(|(receiver, _)| receiver.clone())
++            .collect()
+     }
+     pub(super) fn receivers(
+         &self,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/subscription_plan.rs
+@@ -94,6 +94,23 @@
+         target_id: &ConnectionId,
+         expected: u64,
+         input: &MediaSelectionChange,
++    ) -> ControlResult<MediaSubscriptionPlan> {
++        self.plan_selection_inner(target_id, expected, input, false)
++    }
++    pub(crate) fn plan_selection_existing_ports(
++        &self,
++        target_id: &ConnectionId,
++        expected: u64,
++        input: &MediaSelectionChange,
++    ) -> ControlResult<MediaSubscriptionPlan> {
++        self.plan_selection_inner(target_id, expected, input, true)
++    }
++    fn plan_selection_inner(
++        &self,
++        target_id: &ConnectionId,
++        expected: u64,
++        input: &MediaSelectionChange,
++        existing_ports: bool,
+     ) -> ControlResult<MediaSubscriptionPlan> {
+         let members = self.members.try_lock().map_err(|error| match error {
+             std::sync::TryLockError::WouldBlock => StreamControlError::Backpressure,
+@@ -319,6 +336,7 @@
+             }
+         }
+         let mut direct = Vec::new();
++        let mut receivers = BTreeSet::new();
+         let mut snapshot = Vec::new();
+         let mut ids = BTreeSet::new();
+         for (publisher, binding) in &selected {
+@@ -345,8 +363,32 @@
+                     }));
+                 }
+             } else {
+-                direct.push(DirectSubscription::new(publisher, id.clone(), id.clone()));
+-                if let Some(port) = desired.iter_mut().find(|p| &p.logical_id == id) {
++                // A fixed negotiated transport cannot create a foreign logical
++                // sink for each selected source. Reuse exactly one matching,
++                // already confirmed sink; this is planning metadata, no grant.
++                let receiver = if existing_ports {
++                    let mut matches = state.active.values().filter(|p| {
++                        p.binding.sink_ready
++                            && p.binding.negotiated.requested.medium == medium
++                            && p.binding.negotiated.format == binding.negotiated.format
++                    });
++                    let target = matches.next().ok_or(StreamControlError::Unsupported)?;
++                    if matches.next().is_some() {
++                        return Err(StreamControlError::Unsupported);
++                    }
++                    target.binding.negotiated.requested.logical_id.clone()
++                } else {
++                    id.clone()
++                };
++                if !receivers.insert(receiver.clone()) {
++                    return Err(StreamControlError::Unsupported);
++                }
++                direct.push(DirectSubscription::new(
++                    publisher,
++                    id.clone(),
++                    receiver.clone(),
++                ));
++                if let Some(port) = desired.iter_mut().find(|p| p.logical_id == receiver) {
+                     if port.medium != medium {
+                         return Err(StreamControlError::Unsupported);
+                     }
+@@ -355,12 +397,12 @@
+                     }
+                 } else {
+                     desired.push(DesiredStream {
+-                        logical_id: id.clone(),
++                        logical_id: receiver.clone(),
+                         medium,
+                         direction: StreamDirection::Send,
+                     });
+                 }
+-                exact.insert(id.clone(), binding.negotiated.format.clone());
++                exact.insert(receiver, binding.negotiated.format.clone());
+             }
+         }
+         if !audio.is_empty() {
+@@ -416,10 +458,21 @@
+                 keys.extend(target.audio_consumer.subscriptions.exact_keys(ids));
+                 keys.sort();
+                 keys.dedup();
++                let direct_ids = if existing_ports {
++                    // Wire removals name sources. Consult the actual installed
++                    // routes rather than treating a source ID as a local sink.
++                    target
++                        .controller
++                        .direct_subscriptions
++                        .receivers_for_sources(ids)
++                } else {
++                    ids.clone()
++                };
+                 MediaSubscriptionChange {
+                     selection: None,
+                     audio: (!keys.is_empty()).then_some(AudioSubscriptionChange::Unsubscribe(keys)),
+-                    direct: Some(DirectSubscriptionChange::Unsubscribe(ids.clone())),
++                    direct: (!direct_ids.is_empty())
++                        .then_some(DirectSubscriptionChange::Unsubscribe(direct_ids)),
+                 }
+             }
+             _ => MediaSubscriptionChange {
+@@ -432,7 +485,22 @@
+             .participants
+             .values()
+             .any(|p| p.media.iter().any(|m| *m != Medium::Audio));
+-        let intent = if previous.is_some()
++        if existing_ports
++            && (future
++                || desired.len() != state.active.len()
++                || desired.iter().any(|d| {
++                    !state
++                        .active
++                        .values()
++                        .any(|p| &p.binding.negotiated.requested == d)
++                }))
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        // Even an unknown exact removal has an owned, authorized no-op model
++        // delta; no synthetic receiver ID or cached service route is needed.
++        let intent = if existing_ports
++            || previous.is_some()
+             || participant_intent
+             || matches!(input, MediaSelectionChange::Reconcile)
+         {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/media_scene/subscriptions.rs
+@@ -102,12 +102,10 @@
+         .collect::<Vec<_>>();
+     assert_eq!(apply(&s, clear()).await.unwrap(), revision + 2);
+     for packet in queued {
+-        assert!(
+-            packet
+-                .deliver(|_| async { panic!("old mixed routing reached IO") })
+-                .await
+-                .is_err()
+-        );
++        assert!(packet
++            .deliver(|_| async { panic!("old mixed routing reached IO") })
++            .await
++            .is_err());
+     }
+     publish(&s, 4);
+     silent(&mut out);
+@@ -126,82 +124,73 @@
+         desired(Medium::Screen).logical_id,
+     );
+     wrong.source.logical = StreamId::from_string("unknown");
+-    assert!(
+-        apply(
+-            &s,
+-            MediaSubscriptionChange {
+-                selection: None,
+-                audio: Some(AudioSubscriptionChange::Clear),
+-                direct: Some(DirectSubscriptionChange::Subscribe(vec![wrong]))
+-            }
+-        )
+-        .await
+-        .is_err()
+-    );
+-    assert!(
+-        apply(
+-            &s,
+-            MediaSubscriptionChange {
+-                selection: None,
+-                audio: Some(AudioSubscriptionChange::Subscribe(vec![
+-                    AudioSubscription::Stream(MediaStreamRef {
+-                        connection: s.f.a.connection.clone(),
+-                        logical: StreamId::from_string("missing")
+-                    })
+-                ])),
+-                direct: Some(DirectSubscriptionChange::Clear)
+-            }
+-        )
+-        .await
+-        .is_err()
+-    );
++    assert!(apply(
++        &s,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: Some(AudioSubscriptionChange::Clear),
++            direct: Some(DirectSubscriptionChange::Subscribe(vec![wrong]))
++        }
++    )
++    .await
++    .is_err());
++    assert!(apply(
++        &s,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: Some(AudioSubscriptionChange::Subscribe(vec![
++                AudioSubscription::Stream(MediaStreamRef {
++                    connection: s.f.a.connection.clone(),
++                    logical: StreamId::from_string("missing")
++                })
++            ])),
++            direct: Some(DirectSubscriptionChange::Clear)
++        }
++    )
++    .await
++    .is_err());
+     let foreign = setup().await;
+-    assert!(
+-        apply(
+-            &s,
+-            MediaSubscriptionChange {
+-                selection: None,
+-                audio: Some(AudioSubscriptionChange::Clear),
+-                direct: Some(DirectSubscriptionChange::Subscribe(vec![
+-                    DirectSubscription::new(
+-                        &foreign.f.a,
+-                        desired(Medium::Video).logical_id.clone(),
+-                        desired(Medium::Video).logical_id
+-                    )
+-                ]))
+-            }
+-        )
+-        .await
+-        .is_err()
+-    );
++    assert!(apply(
++        &s,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: Some(AudioSubscriptionChange::Clear),
++            direct: Some(DirectSubscriptionChange::Subscribe(vec![
++                DirectSubscription::new(
++                    &foreign.f.a,
++                    desired(Medium::Video).logical_id.clone(),
++                    desired(Medium::Video).logical_id
++                )
++            ]))
++        }
++    )
++    .await
++    .is_err());
+     assert_eq!(before, s.f.b.revision());
+     publish(&s, 5);
+     heard_all(&mut out, 5).await;
+-    assert!(
+-        s.scene
+-            .change_media_subscriptions(
+-                &s.f.b.connection,
+-                before - 1,
+-                clear(),
+-                deadline(),
+-                CancellationToken::new(),
+-                None
+-            )
+-            .await
+-            .is_err()
+-    );
+-    assert!(
+-        apply(
+-            &s,
+-            MediaSubscriptionChange {
+-                selection: None,
+-                audio: None,
+-                direct: None
+-            }
++    assert!(s
++        .scene
++        .change_media_subscriptions(
++            &s.f.b.connection,
++            before - 1,
++            clear(),
++            deadline(),
++            CancellationToken::new(),
++            None
+         )
+         .await
+-        .is_err()
+-    );
++        .is_err());
++    assert!(apply(
++        &s,
++        MediaSubscriptionChange {
++            selection: None,
++            audio: None,
++            direct: None
++        }
++    )
++    .await
++    .is_err());
+     s.f.policy.0.write().await.private = true;
+     assert!(apply(&s, mixed(&s)).await.is_err());
+     s.f.policy.0.write().await.private = false;
+@@ -486,19 +475,18 @@
+     });
+     tokio::time::sleep(Duration::from_millis(10)).await;
+     let before = policy.fresh.load(Ordering::Acquire);
+-    assert!(
+-        s.scene
+-            .change_media_subscriptions(
+-                &held.target,
+-                held.expected,
+-                clear(),
+-                deadline(),
+-                CancellationToken::new(),
+-                Some(&held)
+-            )
+-            .await
+-            .is_err()
+-    );
++    assert!(s
++        .scene
++        .change_media_subscriptions(
++            &held.target,
++            held.expected,
++            clear(),
++            deadline(),
++            CancellationToken::new(),
++            Some(&held)
++        )
++        .await
++        .is_err());
+     assert_eq!(s.f.b.revision(), held.expected);
+     assert_eq!(
+         s.scene
+@@ -654,11 +642,9 @@
+     }
+     assert_eq!(s.f.b.revision(), before);
+     assert_eq!(s.f.b.active_bindings().len(), 1);
+-    assert!(
+-        tokio::time::timeout(Duration::from_millis(20), &mut update)
+-            .await
+-            .is_err()
+-    );
++    assert!(tokio::time::timeout(Duration::from_millis(20), &mut update)
++        .await
++        .is_err());
+     s.f.ba.release.notify_one();
+     update.await.unwrap().unwrap();
+     drop(held);
+@@ -692,21 +678,21 @@
+     let mut audio = s.f.ba.port(Medium::Audio).take_egress().unwrap();
+     let held = held_resources(&s, receiver_plan(&s)).await;
+     s.f.ba.mode.store(2, Ordering::Release);
+-    assert!(
+-        s.f.b
+-            .change_selected_and_subscriptions(
+-                before,
+-                held.selected.as_ref().unwrap(),
+-                &BTreeSet::new(),
+-                s.scene.clone(),
+-                &held.change,
+-                deadline(),
+-                CancellationToken::new(),
+-                Arc::new(held.clone())
+-            )
+-            .await
+-            .is_err()
+-    );
++    assert!(s
++        .f
++        .b
++        .change_selected_and_subscriptions(
++            before,
++            held.selected.as_ref().unwrap(),
++            &BTreeSet::new(),
++            s.scene.clone(),
++            &held.change,
++            deadline(),
++            CancellationToken::new(),
++            Arc::new(held.clone())
++        )
++        .await
++        .is_err());
+     let failed = s.f.ba.port(Medium::Video).binding().stream_local_id;
+     assert_eq!(s.f.b.revision(), before);
+     assert_eq!(s.f.b.active_bindings().len(), 1);
+@@ -734,12 +720,12 @@
+     drop(held);
+     assert_eq!(s.f.b.revision(), before + 1);
+     assert_ne!(s.f.ba.port(Medium::Video).binding().stream_local_id, failed);
+-    assert!(
+-        s.f.b
+-            .active_bindings()
+-            .iter()
+-            .any(|b| b.transport_id == old.transport_id)
+-    );
++    assert!(s
++        .f
++        .b
++        .active_bindings()
++        .iter()
++        .any(|b| b.transport_id == old.transport_id));
+ }
+ 
+ fn future_video(s: &Scene) -> crate::staged_streams::subscription_plan::MediaSelectionChange {
+@@ -758,8 +744,8 @@
+         .unwrap()
+ }
+ #[tokio::test]
+-async fn participant_future_selection_commits_without_ports_and_revalidates_before_materializing_video()
+- {
++async fn participant_future_selection_commits_without_ports_and_revalidates_before_materializing_video(
++) {
+     use crate::staged_streams::subscription_plan::MediaSelectionChange;
+     let s = Scene::new(&[Medium::Audio]).await;
+     let budget = s.f.b.stream_open_budget();
+@@ -798,11 +784,9 @@
+     assert_eq!(s.f.b.revision(), 2);
+     assert_eq!(s.f.b.stream_open_budget(), budget);
+     s.f.policy.0.write().await.private = true;
+-    assert!(
+-        apply(&s, planned(&s, &future_video(&s)).routing().clone())
+-            .await
+-            .is_err()
+-    );
++    assert!(apply(&s, planned(&s, &future_video(&s)).routing().clone())
++        .await
++        .is_err());
+     assert_eq!(s.f.b.revision(), 2);
+     s.f.policy.0.write().await.private = false;
+ }
+@@ -950,16 +934,14 @@
+         .await
+         .unwrap();
+     let foreign = Scene::new(&[Medium::Audio]).await;
+-    assert!(
+-        apply(
+-            &foreign,
+-            planned(&s, &MediaSelectionChange::Reconcile)
+-                .routing()
+-                .clone()
+-        )
+-        .await
+-        .is_err()
+-    );
++    assert!(apply(
++        &foreign,
++        planned(&s, &MediaSelectionChange::Reconcile)
++            .routing()
++            .clone()
++    )
++    .await
++    .is_err());
+     s.scene.remove(&s.f.a.connection);
+     s.f.a.retire();
+     let mut next = owner("alice");
+@@ -1090,14 +1072,12 @@
+         .await
+         .deliver(|frame| async move {
+             let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-            assert!(
+-                codec
+-                    .decode(&frame.payload)
+-                    .unwrap()
+-                    .samples
+-                    .iter()
+-                    .any(|x| x.abs() > 1000)
+-            );
++            assert!(codec
++                .decode(&frame.payload)
++                .unwrap()
++                .samples
++                .iter()
++                .any(|x| x.abs() > 1000));
+             Ok(())
+         })
+         .await
+@@ -1116,14 +1096,12 @@
+         let _ = frame
+             .deliver(|frame| async move {
+                 let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-                assert!(
+-                    codec
+-                        .decode(&frame.payload)
+-                        .unwrap()
+-                        .samples
+-                        .iter()
+-                        .all(|x| x.abs() <= 1000)
+-                );
++                assert!(codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .all(|x| x.abs() <= 1000));
+                 Ok(())
+             })
+             .await;
+@@ -1133,11 +1111,9 @@
+         &MediaSelectionChange::Subscribe(vec![MediaSelection::Stream(stream)]),
+     );
+     apply(&s, plan.routing().clone()).await.unwrap();
+-    assert!(
+-        s.scene.selections.lock().unwrap()[&s.f.b.connection]
+-            .participants
+-            .contains_key(s.f.a.origin_member.participant())
+-    );
++    assert!(s.scene.selections.lock().unwrap()[&s.f.b.connection]
++        .participants
++        .contains_key(s.f.a.origin_member.participant()));
+     for timestamp in [102, 103] {
+         if timestamp == 103 {
+             let revision = s.f.b.revision();
+@@ -1157,14 +1133,12 @@
+             .await
+             .deliver(|frame| async move {
+                 let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-                assert!(
+-                    codec
+-                        .decode(&frame.payload)
+-                        .unwrap()
+-                        .samples
+-                        .iter()
+-                        .any(|x| x.abs() > 1000)
+-                );
++                assert!(codec
++                    .decode(&frame.payload)
++                    .unwrap()
++                    .samples
++                    .iter()
++                    .any(|x| x.abs() > 1000));
+                 Ok(())
+             })
+             .await
+@@ -1310,14 +1284,12 @@
+     use crate::staged_streams::subscription_plan::*;
+     let s = wildcard_scene().await;
+     let source = s.f.a.clone();
+-    assert!(
+-        std::thread::spawn(move || {
+-            let _held = source.state.lock().unwrap();
+-            panic!("controlled source-state poison");
+-        })
+-        .join()
+-        .is_err()
+-    );
++    assert!(std::thread::spawn(move || {
++        let _held = source.state.lock().unwrap();
++        panic!("controlled source-state poison");
++    })
++    .join()
++    .is_err());
+     let input = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
+         participant: s.f.a.origin_member.participant().clone(),
+         media: BTreeSet::from([Medium::Audio]),
+@@ -1442,14 +1414,12 @@
+         .deliver(|frame| async move {
+             use rvoip_media_core::codec::factory::CodecFactory;
+             let mut codec = CodecFactory::create_codec(0, Some(8000), Some(1)).unwrap();
+-            assert!(
+-                codec
+-                    .decode(&frame.payload)
+-                    .unwrap()
+-                    .samples
+-                    .iter()
+-                    .any(|sample| *sample > 1000)
+-            );
++            assert!(codec
++                .decode(&frame.payload)
++                .unwrap()
++                .samples
++                .iter()
++                .any(|sample| *sample > 1000));
+             Ok(())
+         })
+         .await
+@@ -1628,3 +1598,164 @@
+     ));
+     assert_eq!(s.f.b.revision(), revision + 1);
+ }
++
++async fn fixed_video_scene(two_sinks: bool) -> Scene {
++    let f = Fixture::new(8);
++    f.a.change(
++        0,
++        &[desired(Medium::Video)],
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let mut sink = desired(Medium::Video);
++    sink.logical_id = StreamId::from_string("camera-target");
++    let mut sinks = vec![sink.clone()];
++    if two_sinks {
++        sink.logical_id = StreamId::from_string("camera-other");
++        sinks.push(sink);
++    }
++    f.b.change(
++        0,
++        &sinks,
++        &BTreeSet::new(),
++        deadline(),
++        CancellationToken::new(),
++    )
++    .await
++    .unwrap();
++    let scene = GuardedMediaScene::new(
++        ConversationId::from_string("conversation"),
++        SessionId::from_string("session"),
++        f.policy.clone(),
++        8000,
++    );
++    for c in [&f.a, &f.b] {
++        let mut m = scene.prepare(c.clone()).unwrap();
++        m.quiesce(deadline(), CancellationToken::new())
++            .await
++            .unwrap();
++        scene.insert(c.connection.clone(), m, true);
++    }
++    Scene { f, scene }
++}
++#[tokio::test]
++async fn existing_port_selection_preserves_distinct_source_and_target_and_current_removals() {
++    use crate::staged_streams::subscription_plan::{MediaSelection, MediaSelectionChange};
++    let s = fixed_video_scene(false).await;
++    let mut out = current(&s.f.b, "camera-target").take_egress().unwrap();
++    let before = s.f.b.active_bindings();
++    let budget = s.f.b.stream_open_budget();
++    let source = desired(Medium::Video).logical_id;
++    let select = MediaSelectionChange::Subscribe(vec![MediaSelection::Stream(source.clone())]);
++    let plan = s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, s.f.b.revision(), &select)
++        .unwrap();
++    assert_eq!(plan.desired().len(), 1);
++    assert_eq!(plan.desired()[0].logical_id.as_str(), "camera-target");
++    let Some(DirectSubscriptionChange::Subscribe(items)) = &plan.routing().direct else {
++        panic!()
++    };
++    assert_eq!(items[0].source.logical, source);
++    assert_eq!(items[0].receiver.as_str(), "camera-target");
++    assert!(!plan.requires_reconciliation());
++    s.publish(Medium::Video, 10);
++    s.scene.tick();
++    assert!(out.try_recv().is_err());
++    apply(&s, plan.routing().clone()).await.unwrap();
++    s.publish(Medium::Video, 11);
++    s.scene.tick();
++    let old = outgoing(&mut out).await;
++    // A local target ID is not the subscribed source and cannot clear it.
++    let unknown = MediaSelectionChange::Unsubscribe(vec![StreamId::from_string("camera-target")]);
++    let noop = s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, s.f.b.revision(), &unknown)
++        .unwrap();
++    assert!(noop.routing().direct.is_none());
++    apply(&s, noop.routing().clone()).await.unwrap();
++    s.publish(Medium::Video, 12);
++    s.scene.tick();
++    outgoing(&mut out)
++        .await
++        .deliver(|f| async move {
++            assert_eq!(f.timestamp_rtp, 12);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    let remove = MediaSelectionChange::Unsubscribe(vec![source.clone()]);
++    let plan = s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, s.f.b.revision(), &remove)
++        .unwrap();
++    let Some(DirectSubscriptionChange::Unsubscribe(ids)) = &plan.routing().direct else {
++        panic!()
++    };
++    assert_eq!(ids, &vec![StreamId::from_string("camera-target")]);
++    apply(&s, plan.routing().clone()).await.unwrap();
++    assert!(old
++        .deliver(|_| async { panic!("withdrawn selection reached IO") })
++        .await
++        .is_err());
++    s.publish(Medium::Video, 13);
++    s.scene.tick();
++    assert!(out.try_recv().is_err());
++    let plan = s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, s.f.b.revision(), &select)
++        .unwrap();
++    apply(&s, plan.routing().clone()).await.unwrap();
++    s.publish(Medium::Video, 14);
++    s.scene.tick();
++    outgoing(&mut out)
++        .await
++        .deliver(|f| async move {
++            assert_eq!(f.timestamp_rtp, 14);
++            Ok(())
++        })
++        .await
++        .unwrap();
++    assert_eq!(
++        s.f.b
++            .active_bindings()
++            .iter()
++            .map(|b| (&b.transport_id, b.stream_local_id))
++            .collect::<Vec<_>>(),
++        before
++            .iter()
++            .map(|b| (&b.transport_id, b.stream_local_id))
++            .collect::<Vec<_>>()
++    );
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++}
++#[tokio::test]
++async fn existing_port_selection_refuses_ambiguous_sinks_and_future_video_without_changes() {
++    use crate::staged_streams::subscription_plan::{MediaSelection, MediaSelectionChange};
++    let s = fixed_video_scene(true).await;
++    let before = s.f.b.revision();
++    let budget = s.f.b.stream_open_budget();
++    let select = MediaSelectionChange::Subscribe(vec![MediaSelection::Stream(
++        desired(Medium::Video).logical_id,
++    )]);
++    assert!(s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, before, &select)
++        .is_err());
++    assert_eq!(s.f.b.revision(), before);
++    assert_eq!(s.f.b.stream_open_budget(), budget);
++    let s = fixed_video_scene(false).await;
++    let before = s.f.b.revision();
++    let future = MediaSelectionChange::Subscribe(vec![MediaSelection::Participant {
++        participant: s.f.a.origin_member.participant().clone(),
++        media: BTreeSet::from([Medium::Video]),
++    }]);
++    assert!(s
++        .scene
++        .plan_selection_existing_ports(&s.f.b.connection, before, &future)
++        .is_err());
++    assert_eq!(s.f.b.revision(), before);
++}

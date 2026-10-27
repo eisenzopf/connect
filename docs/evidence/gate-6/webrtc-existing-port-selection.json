@@ -1,0 +1,90 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "executed_at": "2026-10-27T13:30:35.706932+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "source_revision_before_checkpoint": "6b84ba40baa464d05c7d426769b7815492bf31e9",
+  "scope": "Typed Core scene planning, actual guarded Core queues and installed direct routes with isolated policy/adapter fixtures. Ordinary production Core library also compiles. No signed WSS, decoded picture, browser, provider or acceptance qualification in this checkpoint.",
+  "implementation": [
+    "A separate existing-port planning SPI maps exact current direct sources onto one existing compatible confirmed sink per medium. It retains original source and receiver logical IDs separately and never adds ports, changes direction or chooses another codec/format. Multiple compatible sinks or multiple selected sources for one sink refuse.",
+    "Source-ID unsubscribe resolves the actual installed Core direct program. A receiver logical ID cannot clear an unrelated selected source. Unknown removals use an owned authorized no-op selection delta; no service routing cache or synthetic receiver ID is introduced.",
+    "Existing Core admission, source/member/credential identity, current source and target authorization, route tickets and queued-packet fencing apply at actual delivery. Plans and route metadata are not permission grants.",
+    "Audio participant pins remain supported when they fit existing ports. Future non-audio participant/wildcard selectors explicitly refuse in this bounded SPI. The generic native resource-planning API retains its existing behavior. Broader fixed-port/future/video scenarios remain Gate6 work."
+  ],
+  "verification": {
+    "distinct_core_media_scene_methods": 37,
+    "new_existing_port_methods_included": 2,
+    "repeat_scope": "The focused two-method run is repeated within the37-method scene run; it does not raise the distinct count to39.",
+    "checks": [
+      {
+        "name": "core-harness-build-02",
+        "exit_code": 0,
+        "seconds": 0.4817732088267803,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-unit-build-02",
+        "exit_code": 0,
+        "seconds": 14.07347391708754,
+        "log_sha256": "7197f7b09ee9c084f048c9ebc2cc3010e6ed3f5151d01ac0964a3fbfbd1559ec",
+        "results": [],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-existing-ports-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.5566730420105159,
+        "log_sha256": "0ca6d77090edd9a01eb1766c8b58911ae079eb840b779345ed00f28febc0e842",
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 538 filtered out; finished in 0.01s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      },
+      {
+        "name": "core-scene-runtime-02",
+        "exit_code": 0,
+        "seconds": 0.3174502910114825,
+        "log_sha256": "ae57ea1fb3d6144ff9327f0598526eb52f5d6679cd24f0bc22e7c3eca7a3c6c3",
+        "results": [
+          "test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 503 filtered out; finished in 0.28s"
+        ],
+        "changed_source_inputs": [],
+        "changed_libraries": []
+      }
+    ],
+    "production_core_libraries": [
+      {
+        "sha256": "f60e53a050706d57cf3e3d679213ebe71a62e276931d8076cb24339151d96fd7",
+        "bytes": 26819872
+      }
+    ],
+    "behavior": [
+      "No delivery before explicit selection; distinct source video ID and camera-target ID select the correct existing Core sink.",
+      "A receiver-ID removal cannot clear the different current source. Exact source-ID removal invalidates already queued old output; restoration resumes the same original sink.",
+      "Original target transport/local stream IDs and stream-open budget are preserved.",
+      "Ambiguous compatible sinks and future video participant selection refuse without changing controller revision or budget.",
+      "All37 media-scene regressions pass, including the original generic/native planning scopes."
+    ]
+  },
+  "failures_and_recovery": [
+    "The first new positive test used Adapter.port(Video), whose fixture lookup assumes the logical ID is literally video. It failed before the new routing assertions. Corrected the lookup to the actual camera-target controller port; the assertions and distinct source/target requirement remain intact. Both new methods and all37 scene methods then pass.",
+    "The in-progress signed AV composition exposed the need for this SPI: its generic planner tried to add a source-named video receiver while WebRTC already had a distinct negotiated camera sink. That signed path is still unqualified in this commit and is being rebuilt separately."
+  ],
+  "private_evidence": {
+    "directory": ".local/gate-6/rtc-existing-ports/",
+    "input_manifest_sha256": "8b0a6b5c4009c0fc8bcc0f6eccb216e2744a1cf60e8a224fc48e05978a43ccbb",
+    "unit_executable_sha256": "5a348779d6c4fbd6db069b5cf6e53d5ddfb7ab9e2578a0eba66b4f37815c073b",
+    "source_lock_sha256": "9cf08d0a86fa436b7c1c887e277689a44fa327ec17935bd7a63d4abfbb82f276",
+    "patch_sha256": "f96d21254717708440848caeb658484435bb55094de509752fec54c720832ac9",
+    "guard_scope": "Source/library hashes remained unchanged during passing Core checks. Subsequent full composition rebuild is a separate phase; earlier retained libraries are not asserted to remain unchanged forever."
+  },
+  "remaining": [
+    "Complete and verify signed WSS/Store/Core Opus+VP8 hosting and gates using this SPI. Current Root host changes are not part of this Core-only checkpoint.",
+    "Complete future non-audio selectors, broader media/directions/fmtp, installed browser migration/forced fallback, actual clock/sync/capture, data, Linux/remote and package evidence. All105 tasks retain their full scope; no acceptance criterion is qualified."
+  ]
+}
