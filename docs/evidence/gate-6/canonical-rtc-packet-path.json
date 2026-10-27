@@ -1,0 +1,355 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T17:33:49.508344+00:00",
+  "scope": "Numeric canonical RTC refusal diagnostics, normal production libraries and full Connect graph; no media behavior or age/permission/source/observer/threshold changes. Installed browser remains failing.",
+  "patch": {
+    "directory": "/Users/jonathaneisenzopf/.local/share/connect/deps-rtc-packet-diagnostics-20261027-v18",
+    "patch_sha256": "1fd16c1091b91443d11e0a5d9bd6ad84d6089203789549bf70b12dd6e80d6b20",
+    "changed_files": [
+      "crates/webrtc/rvoip-webrtc/src/canonical/media.rs"
+    ]
+  },
+  "component": {
+    "distinct_existing_upper_webrtc_methods": 191,
+    "passed": 191,
+    "guards_closed_before_cargo_replaced_shared_libraries": true,
+    "checks": [
+      {
+        "name": "upper-unit-build",
+        "exit_code": 0,
+        "seconds": 15.243183250073344,
+        "changed_inputs": [],
+        "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+        "test_results": []
+      },
+      {
+        "name": "upper-units",
+        "exit_code": 0,
+        "seconds": 6.091963791986927,
+        "changed_inputs": [],
+        "log_sha256": "48deb6215fb0284c6c8044d1707a137d90d3990ef5ef36c2656faad85ce1c2f9",
+        "test_results": [
+          "test result: ok. 191 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.65s"
+        ]
+      }
+    ]
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 703.817405999871,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5216,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-20",
+      "sha256": "9760bf978870939a22d589928ac899fe08fc307b2d8f52ead165053a26992b63",
+      "bytes": 214590496
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "6377af389b4abf7900a96385d65513bcd6cdd6aa5d6e57f06a8825dc441a3824"
+  },
+  "native": {
+    "distinct_existing_methods": 6,
+    "passed": 6,
+    "scope": "4 actual signed AV methods across manual/configured host and both signing algorithms,2 profile refusals; remaining27 retained methods were not rerun in this checkpoint.",
+    "checks": [
+      {
+        "label": "packet-path-native-av-20",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 8.012957375030965,
+            "log_sha256": "3e522684c1116118ddd5f52972fdf9292abac0e9cf96c5514b63b55c44d248b8",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 7.96s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "label": "packet-path-configured-av-20",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 15.845184125006199,
+            "log_sha256": "12de7bcbe312c6d5848f57bd555b86547579e2a00647a998288d73fdd0a2a637",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 15.82s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "label": "packet-path-refusal-20",
+        "steps": [
+          {
+            "exit_code": 0,
+            "seconds": 1.39607891603373,
+            "log_sha256": "81b38301d2ff667fde466e2eed61b9477649df9922aea2632f8b4190295b661a",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 61 filtered out; finished in 1.33s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ]
+  },
+  "browser": {
+    "distinct_methods": 1,
+    "fresh_diagnostic_runs": 2,
+    "complete_verdict": "failed",
+    "runs": [
+      {
+        "label": "chrome-packet-trace-20",
+        "status": "failed",
+        "seconds": 66.16504162503406,
+        "diagnostic_filter": "warn,connect_service::canonical_webrtc=debug,rvoip_webrtc::canonical::media=debug",
+        "log_sha256": "594244e3ae03423c403389de3f6d474808df53811dd71d7fb3ca2383b523f51b",
+        "result_sha256": "4a748ac5632c0cc90fe0b24344ba8f117d43baa0aea299f9d0619cd1c65f9c01",
+        "input_manifest_sha256": "f63e50e97232fbdf4694044693e1ec9d30dc200f93e7f6cd55ecb60a738da6b6",
+        "guards_closed_unchanged": true,
+        "ownership": {
+          "original_listener_addresses_reclaimed": 3,
+          "owned_chrome_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.0018495830000028945,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.07008924999999726,
+        "power_of_two_refusal_observations": [
+          {
+            "medium": "Audio",
+            "stage": "core-publish",
+            "reason": "NotReady",
+            "emitted_rows": 14,
+            "maximum_observed_counter": 64
+          },
+          {
+            "medium": "Video",
+            "stage": "core-publish",
+            "reason": "Authority",
+            "emitted_rows": 1,
+            "maximum_observed_counter": 32
+          },
+          {
+            "medium": "Video",
+            "stage": "core-publish",
+            "reason": "NotReady",
+            "emitted_rows": 11,
+            "maximum_observed_counter": 32
+          },
+          {
+            "medium": "Video",
+            "stage": "original-driver-write",
+            "reason": "DeadlineBeforeWrite",
+            "emitted_rows": 1,
+            "maximum_observed_counter": 1
+          },
+          {
+            "medium": "Video",
+            "stage": "original-driver-write",
+            "reason": "Refused",
+            "emitted_rows": 2,
+            "maximum_observed_counter": 2
+          }
+        ],
+        "counter_scope": "Each worker/source owns its own counter; only powers of two emit. Rows/maxima are not exact packet totals and cannot be summed into a delivery count.",
+        "current_policy_problem_rows": {},
+        "participants": [
+          {
+            "decoded_fps": 20.66463459447102,
+            "changing_fps": 17.66492957269297,
+            "video_packets_lost": 47,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_acceptance": "passed"
+            },
+            "sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 31.79999995231597,
+              "p95_abs_skew_ms": 60.799999952315886
+            }
+          },
+          {
+            "decoded_fps": 23.46443750154262,
+            "changing_fps": 19.948104893001787,
+            "video_packets_lost": 30,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_acceptance": "passed"
+            },
+            "sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 27.099999904635297,
+              "p95_abs_skew_ms": 61.399999856948995
+            }
+          }
+        ]
+      },
+      {
+        "label": "chrome-policy-trace-21",
+        "status": "failed",
+        "seconds": 64.52556937513873,
+        "diagnostic_filter": "warn,connect_service::canonical_webrtc=debug,rvoip_webrtc::canonical::media=debug,connect_service::canonical_packet=trace",
+        "log_sha256": "ba7f8c6eb3cb96472871c19bb5780b7e39c1eab31d5ab19de4a746782902505e",
+        "result_sha256": "fae12967baba9f18bd14bd933aff8778a2e1afc819b6aec24ec70b45d4b14614",
+        "input_manifest_sha256": "0dc5a97f34a7fc956090e6a929cb23b6603707342c79538a53406d9897545385",
+        "guards_closed_unchanged": true,
+        "ownership": {
+          "original_listener_addresses_reclaimed": 3,
+          "owned_chrome_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.05706037500000093,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.08822945800000162,
+        "power_of_two_refusal_observations": [
+          {
+            "medium": "Audio",
+            "stage": "core-publish",
+            "reason": "NotReady",
+            "emitted_rows": 14,
+            "maximum_observed_counter": 64
+          },
+          {
+            "medium": "Video",
+            "stage": "core-publish",
+            "reason": "NotReady",
+            "emitted_rows": 13,
+            "maximum_observed_counter": 64
+          },
+          {
+            "medium": "Video",
+            "stage": "original-driver-write",
+            "reason": "DeadlineBeforeWrite",
+            "emitted_rows": 1,
+            "maximum_observed_counter": 2
+          },
+          {
+            "medium": "Video",
+            "stage": "original-driver-write",
+            "reason": "Refused",
+            "emitted_rows": 4,
+            "maximum_observed_counter": 4
+          }
+        ],
+        "counter_scope": "Each worker/source owns its own counter; only powers of two emit. Rows/maxima are not exact packet totals and cannot be summed into a delivery count.",
+        "current_policy_problem_rows": {
+          "authority-busy": 3,
+          "forbidden": 4
+        },
+        "participants": [
+          {
+            "decoded_fps": 19.331110309233868,
+            "changing_fps": 16.414779012582205,
+            "video_packets_lost": 67,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_acceptance": "passed"
+            },
+            "sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 30.999999999998806,
+              "p95_abs_skew_ms": 64.79999995231367
+            }
+          },
+          {
+            "decoded_fps": 19.39776931030019,
+            "changing_fps": 16.414779012582205,
+            "video_packets_lost": 67,
+            "subchecks": {
+              "source_identity": "passed",
+              "audio_profile": "failed",
+              "motion_profile": "passed",
+              "worker_pipeline": "passed",
+              "av_acceptance": "passed"
+            },
+            "sync": {
+              "status": "passed",
+              "median_abs_skew_ms": 22.39999985695107,
+              "p95_abs_skew_ms": 66.5999999046325
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "interpretation": "Frequent Core ingress NotReady is now visible for both audio and video; occasional actual writer Refused/DeadlineBeforeWrite also occurs. Current-policy trace includes temporary authority-busy projection reads and terminal-time forbidden refusals. The exact source of every NotReady is not established; this is not a fix or passing throughput result.",
+  "next": "Test bounded retries of known registry metadata lookups within the existing10ms packet-read budget. Those lookup methods use NotReady only for transient mutex contention; actual missing/poisoned registries and readiness/authority checks must remain terminal. Preserve original200ms packet age, exact tickets and once-only IO; then retake same browser quality profile.",
+  "fixture_ownership": "Parent now retains original Node Child across timeout and explicitly kills/waits before browser/host cleanup and verdict. Both actual completed failed-verdict runs report original Node/browser joined, routes/slots retired, server joined and3 original listener addresses reclaimed. Timeout branch is compiled but not separately runtime-qualified.",
+  "failure_retained": "Initial diagnostic component build used nonexistent TrySendError.is_closed; no production library built. Correct enum match is prepared in patch+source-lock and passes191 methods. Existing browser/native failures remain retained.",
+  "firefox_preparation": {
+    "scope": "Private public-API BiDi adapter smoke only; no Connect/control/TLS/media qualification and no public runner integration yet.",
+    "runtime": "firefox/158.0.1",
+    "automation": "puppeteer-core25.16.0;25 packages installed privately with scripts/browser downloads disabled; registry integrity locked",
+    "smokes": [
+      {
+        "name": "firefox-bidi-smoke-01",
+        "summary_sha256": "4effeaec5d64851c18110b2ee2430f98271f1736427df87edc9cf8d033808688",
+        "result_sha256": "f05307cd3ff5fb30148e84679803f2be8a6e328548efe67fb97f89762d2ca7c8"
+      },
+      {
+        "name": "firefox-bidi-adapter-smoke-02",
+        "summary_sha256": "c0ddb5aa41873a4b7644cd8e28e597ad2a4d1a375d522ccc55776f7f2c74b6f0",
+        "result_sha256": "f05307cd3ff5fb30148e84679803f2be8a6e328548efe67fb97f89762d2ca7c8"
+      }
+    ],
+    "public_api_sources": [
+      "https://pptr.dev/api/puppeteer.connectoptions",
+      "https://pptr.dev/api/puppeteer.browser.createbrowsercontext"
+    ]
+  },
+  "qualification": "G6-051/all105/acceptance remain open. Current browser throughput, prior native post-mute audio failure, actual forced WT/UDP fallback and Chrome/Firefox transition/current-auth/profile matrix remain required."
+}

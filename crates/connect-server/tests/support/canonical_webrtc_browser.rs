@@ -284,18 +284,22 @@ async fn run(algorithm: &str) {
     );
     node.arg(root.join("scripts/video/browser-qualify.mjs"))
         .stdin(std::fs::File::open(input).unwrap())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(std::fs::File::create(output.join("browser-result.jsonl")).unwrap())
+        .stderr(std::fs::File::create(output.join("runner.log")).unwrap())
         .kill_on_drop(true);
-    let result = tokio::time::timeout(
-        Duration::from_secs(110),
-        node.spawn().unwrap().wait_with_output(),
-    )
-    .await;
+    let mut runner = node.spawn().unwrap();
+    // Keep the original child across timeout so its actual kill and wait join
+    // precede browser/host cleanup and the failing test verdict.
+    let result = tokio::time::timeout(Duration::from_secs(110), runner.wait()).await;
+    let runner_timed_out = result.is_err();
+    let status = match result {
+        Ok(status) => status.unwrap(),
+        Err(_) => {
+            runner.kill().await.unwrap();
+            runner.wait().await.unwrap()
+        }
+    };
     drop(browser);
-    let result = result.expect("bounded owned browser runner").unwrap();
-    std::fs::write(output.join("browser-result.jsonl"), &result.stdout).unwrap();
-    std::fs::write(output.join("runner.log"), &result.stderr).unwrap();
     let cleanup = tokio::time::timeout(Duration::from_secs(5), async {
         while host.available_slots() != 2 || host.adapter().route_count() != 0 {
             tokio::time::sleep(Duration::from_millis(20)).await;
@@ -312,13 +316,15 @@ async fn run(algorithm: &str) {
     let tcp = std::net::TcpListener::bind(addresses[1]).unwrap();
     let http = std::net::TcpListener::bind(addresses[2]).unwrap();
     drop((udp, tcp, http));
-    std::fs::write(output.join("ownership.json"), serde_json::to_vec(&json!({"owned_chrome_joined":true,"physical_routes_and_slots_retired":cleanup.is_ok(),"server_shutdown_joined":true,"original_listener_addresses_reclaimed":3})).unwrap()).unwrap();
+    std::fs::write(output.join("ownership.json"), serde_json::to_vec(&json!({"owned_chrome_joined":true,"owned_node_joined":true,"runner_timed_out":runner_timed_out,"physical_routes_and_slots_retired":cleanup.is_ok(),"server_shutdown_joined":true,"original_listener_addresses_reclaimed":3})).unwrap()).unwrap();
     assert!(cleanup.is_ok(), "physical host routes/slots did not retire");
     assert!(
-        result.status.success(),
+        !runner_timed_out && status.success(),
         "browser qualification failed; inspect private report"
     );
-    let report: Value = serde_json::from_slice(&result.stdout).unwrap();
+    let report: Value =
+        serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
+            .unwrap();
     assert_eq!(report["status"], "passed");
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

@@ -1241,6 +1241,11 @@
       "path": "patches/rvoip/gate6-direct-source-metadata-contention.patch",
       "source": "G6-051 direct video/source validation treats concurrent publisher metadata as precommit Backpressure, so original routing command retries under its same revision/ports/authority/deadline; preserve poisoned-state and real revision conflicts; deterministic delivery/cancellation/deadline causal tests.",
       "sha256": "7579e6ad17ddd4138e6ee91fe00af6eed058ee79b6e7906d92c954be177852a0"
+    },
+    {
+      "path": "patches/rvoip/gate6-rtc-packet-path-diagnostics.patch",
+      "source": "G6-051 numeric power-of-two packet refusal observations at the canonical RTC source/normalization/port-input/Core-publish/original-driver-write boundaries. No payload/SDP/credential logging and no delivery, permission, queue, cadence or original deadline changes.",
+      "sha256": "1fd16c1091b91443d11e0a5d9bd6ad84d6089203789549bf70b12dd6e80d6b20"
     }
   ]
 }

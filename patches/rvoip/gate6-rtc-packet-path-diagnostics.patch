@@ -1,0 +1,195 @@
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -12,7 +12,7 @@
+     stream_lifecycle::*,
+ };
+ use std::{
+-    sync::atomic::{AtomicBool, AtomicU32},
++    sync::atomic::{AtomicBool, AtomicU32, AtomicU64},
+     time::{Duration, Instant},
+ };
+ use tokio::sync::{mpsc, watch};
+@@ -69,12 +69,31 @@
+     packet: rtc::rtp::Packet,
+     at: Instant,
+ }
++// Power-of-two numeric refusal observations only. Never log packet payloads,
++// credentials or SDP, and never alter a delivery, deadline or permission check.
++fn packet_refusal(
++    counter: &AtomicU64,
++    medium: Medium,
++    stage: &'static str,
++    reason: impl std::fmt::Debug,
++) {
++    let count = counter
++        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
++            Some(n.saturating_add(1))
++        })
++        .unwrap()
++        .saturating_add(1);
++    if count.is_power_of_two() {
++        tracing::debug!(target: "rvoip_webrtc::canonical::media", ?medium, stage, count, ?reason, "RTC original packet path refused");
++    }
++}
+ struct Source {
+     format: MediaFormat,
+     medium: Medium,
+     ssrc: u32,
+     payload_type: u8,
+     lease: Arc<InboundClockLease>,
++    refused: AtomicU64,
+ }
+ struct SourceJob {
+     ready: watch::Receiver<Option<std::result::Result<Arc<Source>, ()>>>,
+@@ -101,6 +120,7 @@
+     physical: Arc<WebRtcPhysicalBinding>,
+     health: WorkerHealth,
+     input: mpsc::Sender<Received>,
++    input_refused: AtomicU64,
+     close: OnceLock<Done>,
+     map: Weak<DashMap<StreamId, Arc<PortIo>>>,
+ }
+@@ -571,6 +591,7 @@
+             physical: self.physical.clone(),
+             health: WorkerHealth::new(self.lifetime.child_token()),
+             input: tx,
++            input_refused: AtomicU64::new(0),
+             close: OnceLock::new(),
+             map: Arc::downgrade(&self.ports),
+         });
+@@ -637,7 +658,11 @@
+             io.start(ingress(io.port.clone(), io.health.stop.clone(), rx, source))?;
+         }
+         if let Some(egress) = egress {
+-            io.start(egress_loop(egress, io.health.stop.clone()))?;
++            io.start(egress_loop(
++                egress,
++                io.health.stop.clone(),
++                b.negotiated.requested.medium,
++            ))?;
+         }
+         if !self.current() || cancel.is_cancelled() || io.health.stop.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+@@ -665,6 +690,12 @@
+     ready: &watch::Sender<Option<std::result::Result<Arc<Source>, ()>>>,
+ ) {
+     if at.elapsed() >= Duration::from_millis(200) {
++        packet_refusal(
++            &source.refused,
++            source.medium,
++            "source-age",
++            "original 200ms bound",
++        );
+         return;
+     }
+     if ready.borrow().is_none() {
+@@ -682,10 +713,16 @@
+         {
+             continue;
+         }
+-        let _ = io.input.try_send(Received {
++        if let Err(error) = io.input.try_send(Received {
+             packet: packet.clone(),
+             at,
+-        });
++        }) {
++            let reason = match error {
++                mpsc::error::TrySendError::Closed(_) => "closed",
++                mpsc::error::TrySendError::Full(_) => "full",
++            };
++            packet_refusal(&io.input_refused, source.medium, "port-input", reason);
++        }
+     }
+ }
+ fn publish_video(
+@@ -697,12 +734,21 @@
+ ) {
+     for received in output.packets {
+         if received.inserted.elapsed() >= Duration::from_millis(200) {
++            packet_refusal(
++                &source.refused,
++                source.medium,
++                "video-reorder-age",
++                "original 200ms bound",
++            );
+             continue;
+         }
+-        if let Ok(packets) = crate::media::video_normalize::normalize(received.packet, mapping) {
+-            for packet in packets {
+-                publish_source(packet, received.inserted, source, ports, ready);
+-            }
++        match crate::media::video_normalize::normalize(received.packet, mapping) {
++            Ok(packets) => {
++                for packet in packets {
++                    publish_source(packet, received.inserted, source, ports, ready);
++                }
++            }
++            Err(error) => packet_refusal(&source.refused, source.medium, "video-normalize", error),
+         }
+     }
+ }
+@@ -760,6 +806,7 @@
+         ssrc,
+         payload_type: pt,
+         lease,
++        refused: AtomicU64::new(0),
+     });
+     let mut reorder = crate::media::video_reorder::PacketReorder::default();
+     let mut mapping = crate::media::video_normalize::SequenceMapper::default();
+@@ -830,6 +877,7 @@
+     mut input: mpsc::Receiver<Received>,
+     source: Arc<Source>,
+ ) -> ControlResult<()> {
++    let refused = AtomicU64::new(0);
+     loop {
+         let received = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),p=input.recv()=>match p{Some(p)=>p,None=>return Ok(())}};
+         let Some(port) = port.upgrade() else {
+@@ -866,6 +914,12 @@
+                 return Ok(());
+             };
+             if received.at.elapsed() >= Duration::from_millis(200) {
++                packet_refusal(
++                    &refused,
++                    source.medium,
++                    "core-publish-age",
++                    "original 200ms bound",
++                );
+                 break;
+             }
+             let result = port.try_publish_clocked_received(&frame, received.at, |route| {
+@@ -892,7 +946,10 @@
+                 Err(StreamControlError::Backpressure) => {
+                     tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=tokio::time::sleep_until(tokio::time::Instant::from_std(received.at+Duration::from_millis(200)))=>break,_=tokio::time::sleep(Duration::from_millis(2))=>{}}
+                 }
+-                Err(_) => break,
++                Err(error) => {
++                    packet_refusal(&refused, source.medium, "core-publish", error);
++                    break;
++                }
+             }
+         }
+     }
+@@ -912,12 +969,20 @@
+         }
+     }
+ }
+-async fn egress_loop(mut egress: Egress, stop: CancellationToken) -> ControlResult<()> {
++async fn egress_loop(
++    mut egress: Egress,
++    stop: CancellationToken,
++    medium: Medium,
++) -> ControlResult<()> {
++    let refused = AtomicU64::new(0);
+     loop {
+         let write = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),w=egress.submit_next(Instant::now()+Duration::from_millis(100))=>match w {
+             Ok(Some(w))=>w,Ok(None)=>return Ok(()),Err(StreamControlError::Deadline)=>continue,Err(e)=>return Err(e),
+         }};
+-        let _ = tokio::select! {biased;_=stop.cancelled()=>None,r=write.result()=>Some(r)};
++        let result = tokio::select! {biased;_=stop.cancelled()=>None,r=write.result()=>Some(r)};
++        if let Some(Err(error)) = result {
++            packet_refusal(&refused, medium, "original-driver-write", error);
++        }
+         // Original submission custody never moves into an observation waiter.
+         write
+             .cancel_and_drain()
