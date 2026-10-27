@@ -207,6 +207,9 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: String,
     ) -> Result<crate::canonical_native::Reply> {
+        if physical.binding.transport() == rvoip_core::Transport::WebSocket {
+            return self.webrtc_stream(a, physical, credential).await;
+        }
         let (tx, rx) = tokio::sync::oneshot::channel();
         let runtime = self.clone();
         {

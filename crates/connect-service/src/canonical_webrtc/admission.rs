@@ -24,7 +24,7 @@ impl Ready {
     // Resource observation only. These saved relationship values never grant
     // packet IO; the installed policy still derives fresh current authority.
     pub(super) fn current(&self) -> Result<()> {
-        self.observe().map(|_| ())
+        self.observe_resources(false).map(|_| ())
     }
 }
 impl NativeOfferRuntimeObservation for Ready {
@@ -33,10 +33,19 @@ impl NativeOfferRuntimeObservation for Ready {
         crate::canonical_native_streams::codec_bindings(&self.bindings)
     }
     fn observe(&self) -> Result<NativeOfferObservation> {
+        self.observe_resources(true)
+    }
+}
+impl Ready {
+    fn observe_resources(&self, original_revision: bool) -> Result<NativeOfferObservation> {
         if self.physical.lifetime.is_cancelled()
             || self.runtime.stop.is_cancelled()
             || self.peer.is_closed()
-            || self.controller.revision() != self.expected.stream_revision
+            || (if original_revision {
+                self.controller.revision() != self.expected.stream_revision
+            } else {
+                self.controller.revision() < self.expected.stream_revision
+            })
             || !same_bindings(&self.controller.active_bindings(), &self.bindings)
             || self.activation.confirmed_generation() != Some(self.expected.generation)
         {

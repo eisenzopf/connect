@@ -1,0 +1,109 @@
+{
+  "task": "G6-051",
+  "status": "partial; task remains in progress",
+  "scope": "Protected stock signed WSS + Store + Core + actual loopback RTC G.711 audio on local macOS arm64. No browser/default capability or full Gate 6 acceptance claim.",
+  "implementation": [
+    "RTC stream.subscribe/stream.unsubscribe use the original WSS PeerAdmission and installed CanonicalWebRtcAdapter route, exact current WebRTC Endpoint/runtime Connection/generation, signed command proof and original Store NativeStreamLease. A same-credential foreign physical peer cannot begin or poison the logical operation.",
+    "Typed public UCTP selectors resolve through Core.plan_staged_media_selection; current StreamInvocation holds source/receiver reads under the same original command interval and permits only that exact routing plan. Core.change_staged_media_subscriptions commits once on the existing mixed audio port; no native counteroffer, implicit audience, second RTC allocation or resource mutation.",
+    "Only audio selectors matching unchanged negotiated resources are installed. Unsupported media/resource negotiation is explicit. Original captured routing outcome/effect alone is retried through metadata contention, with original command readers released.",
+    "Initial readiness completion still requires its exact original revision and bindings. Subsequent idle resource monitoring accepts later routing revisions only while the original actual port bindings/activation/generation remain current."
+  ],
+  "verification": {
+    "new_methods": 2,
+    "existing_wss_methods": 14,
+    "decoded_webtransport_regression_methods": 1,
+    "total_selected_methods_passed": 17,
+    "new_case_signatures": [
+      "EdDSA",
+      "ES256"
+    ],
+    "assertions": [
+      "Two identities join one publicly invited/accepted Session, each makes one signed RTC offer and completes only after real primary RTP and actual Core admission.",
+      "Completed healthy source peers have no inbound remote RTP track before explicit subscriptions. Both identical receiver paths subsequently decode the opposite signed G.711 marker through actual SRTP/RTP and Core mixer/egress, using an independent mu-law decoder.",
+      "The same credential on another WSS physical peer is refused before the original logical subscription root/effect is issued; the original physical peer then completes that same operation.",
+      "Participant/audio and omitted-compatible-kind selectors commit stream revision 1 to 2. Current completed replay preserves the exact operation receipt/effect and revision, with only two original physical allocations.",
+      "A new stale-revision command and a video selector are refused without media revision/allocation changes; both existing decoded directions continue.",
+      "Explicit source unsubscribe changes revision 2 to 3 and removes audible delivery while reverse marked media continues. Exact stream reselect changes revision 3 to 4 and restores marked duplex on those same peers.",
+      "Current publisher Endpoint withdrawal removes audible delivery and retires only that original RTC route/capacity. The receiver route remains current at revision 4. Original senders/receiver pumps/peers and WSS shutdown are joined.",
+      "All 14 existing WSS methods and actual decoded WebTransport EdDSA regression pass on the same final source/artifact; default worker/test stacks, local ignored runtime state and no account/provider invocation."
+    ],
+    "runtime_groups": [
+      {
+        "pattern": "canonical_websocket_control::webrtc::subscriptions::",
+        "seconds": 8.888876250013709,
+        "results": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 7.49s"
+        ],
+        "log_sha256": "e953feef6369a0f552629ea8bc7f3ed3f22628a79c3786abd8c87e10bb86a668"
+      },
+      {
+        "pattern": "canonical_websocket_control::",
+        "seconds": 39.44212808413431,
+        "results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 39.38s"
+        ],
+        "log_sha256": "336b03ab34c5f3c949cdfa70da55ae6e1338372a1430653a4d569dbd9ac3faf4"
+      },
+      {
+        "pattern": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "seconds": 4.302049749996513,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 49 filtered out; finished in 4.29s"
+        ],
+        "log_sha256": "4629b54c00360b104f5b5e4973e40b04d20409b73bd9e512a4e94f9b9d59d5b1"
+      }
+    ],
+    "runtime_input_count": 5312,
+    "runtime_inputs_unchanged": true,
+    "original_and_sealed_artifacts_unchanged": true,
+    "artifact": {
+      "sha256": "88168021bccf32dab50d4f829cba9a4605b944ee22cd50156af18d5423752421",
+      "bytes": 212718784,
+      "validated": "Executable Mach-O; source-guarded release integration target with selected test strip disabled. Ordinary dependency graph; package/full release profile not qualified."
+    },
+    "builds": [
+      {
+        "sequence": "01",
+        "exit_code": 0,
+        "seconds": 674.4662373329047,
+        "source_count": 5156,
+        "changed_inputs": [],
+        "diagnostic_warnings": []
+      },
+      {
+        "sequence": "04",
+        "exit_code": 0,
+        "seconds": 3.125380250159651,
+        "source_count": 5156,
+        "changed_inputs": [],
+        "diagnostic_warnings": []
+      }
+    ],
+    "source_sha256": {
+      "crates/connect-service/src/canonical_webrtc/streams.rs": "deac228f8b3d5edeb74ebe3653f1b7ed8e98f2102c286471bb88c9d7c99b73b7",
+      "crates/connect-service/src/canonical_webrtc/admission.rs": "40fc4a743b4fe56131779de124cb40cac21bbd452929c59c6c549ce6161fefb7",
+      "crates/connect-service/src/canonical_media/streams.rs": "13e18320704d10d612562a60e6a1e8a320001bc779286edf09dcfbfd8c6374dc",
+      "crates/connect-service/src/canonical_native_streams.rs": "c1ba44619d72e84299007c3f67568ecdbeeaa9c06e5f34f897304d20516bbba5",
+      "crates/connect-service/src/canonical_webrtc.rs": "0d352f1df75b89b1e6fe8b87f2b4192dcce600b5c25a6387e335360f2386fbd7",
+      "crates/connect-server/tests/support/canonical_websocket_control.rs": "06dedbda71357da4f0d10b1fb038c10bde9f8d67d793d4f6ae96e3392651e36a",
+      "crates/connect-server/tests/support/canonical_websocket_control/webrtc.rs": "2868af7f193d3cda1d13ce5ab05e1e1363af4b31f06822333ea29f5a3b17b082",
+      "crates/connect-server/tests/support/canonical_websocket_control/webrtc/subscriptions.rs": "394f88286260d36d057aae2fed09326d490ae9585c0f9ac1ee8c95c0af9a9721"
+    },
+    "dependency_source_lock_sha256": "667500f92375a0a4f83ae97bddb513c2a50cc9a711b2b3a3532db3046c961ed2",
+    "upstream_staged_patch_sha256": "2b689ebd466aaa771dc6c50d45403dc59b12d1844c11be52e03fa62bd61f8128",
+    "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "http_reference": "24 declared mounts / 25 explicit operations / 0 uncovered; source inventory only. No endpoint changes."
+  },
+  "retained_findings": [
+    "Initial compiled fixture was not run: code review found that no selected source means suppressed output rather than mandatory silence packets. Final test requires absent pre-subscription RTP, decoded positive controls and no audible output during withdrawal; no fabricated silence minimum is used.",
+    "Runtime02 failed both signatures before RTC allocation: test used accepted Session revision1 for a new Connection requiring revision0. The Store correctly returned conflict. Corrected only fixture initial Connection revision.",
+    "Runtime03 failed both signatures at legitimate selection: fixture reused a signed envelope ID from the refused foreign physical attempt and was correctly refused as replay_detected. Corrected only envelope correlation IDs, retaining the same logical operation ID. Both failure logs/source/artifacts are retained; neither is a production pass.",
+    "Closed browser SDK rehearsal netlogs were losslessly gzipped and decoded SHA-verified before removing raw aliases to recover 1,654,877,723 bytes. No active source, private state or credentials removed. Private manifest: .local/gate-6/webrtc-subscriptions/closed-browser-netlogs-preserved.json."
+  ],
+  "private_evidence_root": ".local/gate-6/webrtc-subscriptions/",
+  "remaining_scope": [
+    "RTC lifecycle/end/role control, reoffers and resource negotiation, DTMF, reconciliation/query/credential-refresh integration and further failure/uncertainty qualification.",
+    "Opus/VP8/data and advanced source clocks/ICE/MID/SSRC profiles; installed Chrome/Firefox forced WebTransport/UDP fallback with same Conversation/transitions.",
+    "Approved Linux/remote hosting, package qualification, complete browser/media acceptance and all other Gate6 plan tasks. Publication remains separate."
+  ]
+}

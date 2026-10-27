@@ -6,6 +6,7 @@ use rvoip_uctp::v2::native_subscriptions::NativeSubscriptionPlan;
 #[derive(Clone)]
 pub(crate) enum Plan {
     Subscriptions(NativeSubscriptionPlan),
+    RtcSubscriptions(rvoip_core::staged_streams::subscription_plan::MediaSubscriptionPlan),
     Codecs(NativeOfferPlan),
     Gates(rvoip_uctp::v2::native_control::NativeControlPlan),
 }
@@ -14,7 +15,7 @@ impl Plan {
         match self {
             Self::Subscriptions(p) => Some(p.media()),
             Self::Codecs(p) => Some(p),
-            Self::Gates(_) => None,
+            Self::Gates(_) | Self::RtcSubscriptions(_) => None,
         }
     }
 }
@@ -242,6 +243,13 @@ impl Policy {
                 _ => return Err(StreamControlError::Authority),
             },
             Plan::Subscriptions(plan) => check_plan(plan, intent)?,
+            Plan::RtcSubscriptions(plan) => match intent {
+                MediaControlIntent::Subscriptions { expected, change }
+                    if *expected == i.revision
+                        && *expected == plan.expected_revision()
+                        && *change == plan.routing() => {}
+                _ => return Err(StreamControlError::Authority),
+            },
             Plan::Codecs(plan) => match intent {
                 MediaControlIntent::Change {
                     expected,

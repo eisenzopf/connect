@@ -4,7 +4,7 @@ G6-051 is in progress. The internal TypeScript module
 `browser_webrtc_signaling.ts` implements a signaling owner against the frozen
 `connect/2` envelope shapes. It is not exported from the browser entry point yet.
 The default canonical server does not enable a WebRTC media route. Protected
-startup composition can install the limited SDP signaling host described below.
+startup composition can install the G.711 staged media host described below.
 The older browser voice/video entry points still use their historical signaling
 dialect. These components do not establish browser fallback support or media
 interoperability.
@@ -48,7 +48,7 @@ not TLS/network, installed Chrome/Firefox, Core WebRTC or actual media tests.
 The subsequent peer-state correction has 279 passing SDK tests, including
 15 signaling methods; see the separate peer-lifetime evidence.
 
-Next, complete the canonical Core media adapter/controller, then integrate capture,
+Next, complete the wider media profiles and integrate capture,
 track/data routing and the public browser surface, remove the old offer-ready
 dialect, and run forced WT/UDP failure in Chrome and Firefox with the same
 Conversation and transition intents. Current authorization, uncertainty,
@@ -77,7 +77,8 @@ It allocates no WebRTC peer, starts no physical effect, and reports no media
 readiness. Endpoint revocation prevents current selection, projection and new
 attempt issuance. Under current owner authorization, historical receipt reads
 remain possible; those reads do not restore the revoked Endpoint or grant IO.
-The canonical WebRTC engine and physical lifetime integration remain unfinished.
+The protected service composition below retains this preparation boundary before
+starting its original physical effect.
 
 ## Owned transport preparation
 
@@ -102,8 +103,8 @@ current answer/connection observations reacquire their own source read.
 Before allocation, the worker parses the saved original SDP and checks active
 media kinds/counts against the original logical stream intent. SCTP channels share
 one application m-line. This is transport preparation, not Core stream admission:
-codec, direction, MID/SSRC, subscription, media packet and transition authorization
-still require the canonical adapter/controller integration. The component exposes
+Codec, direction, MID/SSRC, subscription, media packet and transition authorization
+belong to the canonical adapter/controller integration. The component exposes
 no media frame interface. An SDP answer or ICE/DTLS connection cannot complete the
 durable media operation. The default canonical WSS route does not install this component; no new HTTP
 endpoint or fallback support is advertised.
@@ -154,7 +155,7 @@ worker releases every initial reader after answer/refusal, retains the peer afte
 answer delivery, releases the original command grant during idle waits, and observes spontaneous peer closure, physical
 retirement, installation stop and the original preparation deadline. It joins
 actual peer close before recording Store retirement. SDP and ICE/DTLS leave the
-operation preparing, with no Core Connection, media-ready result or fabricated
+operation preparing, with no admitted managed Session Connection, media-ready result or fabricated
 lifecycle success. The default host continues to advertise control only.
 
 
@@ -184,8 +185,8 @@ and earlier failures are recorded in [the WSS dispatch evidence](../evidence/gat
 The recorded `gate6-deferred-owned-rtp.patch` adds a driver-owned primary RTP
 submission boundary. Queued jobs hold an opaque producer and a one-use delivery
 ticket. The producer supplies its packet only when the RTC driver invokes it
-against a borrowed socket sink. This is the boundary where the forthcoming Core
-adapter must call `QueuedMedia::deliver`, retaining fresh source and target
+against a borrowed socket sink. This is the boundary where the Core
+adapter calls `QueuedMedia::deliver`, retaining fresh source and target
 permission through the actual UDP future.
 
 `TrackLocalStaticRTP::owned_rtp` returns an owner before asynchronous queue
@@ -200,8 +201,8 @@ The initial supported path is negotiated PCMU/PCMA, 8 kHz, one channel, with an
 exact sender SSRC and payload binding, current and requested sending direction,
 and the reviewed immediate interceptor pipeline. Its transport-cc feedback is
 allowed; retaining repair profiles are refused. The ordinary queued RTP writer
-is unchanged. Canonical wiring must consume the exact port-owned queued frames;
-that wiring is not installed yet.
+is unchanged. The staged canonical adapter consumes the exact port-owned queued
+frames through this boundary.
 
 The [reproducible probe](../evidence/gate-6/webrtc-owned-rtp-probe.rs) exercises
 actual loopback ICE/DTLS/SRTP with an instrumented permission fixture. It verifies
@@ -241,8 +242,8 @@ driver receipt remains unconfirmed cleanup even if another owner subsequently
 closes the physical peer. The driver destroys uninvoked producers and their
 sequence custody before acknowledging definite pre-write refusal.
 
-This is the initial G.711 mono egress implementation. It is not installed in the
-canonical server adapter yet. The peer and engine now share one configured
+This is the initial G.711 mono egress implementation used by the protected
+canonical server adapter. The peer and engine share one configured
 primary codec table, so single G.711 peers allocate an actual G.711/8 kHz track
 and shared writer. `RvoipPeerConnection::core_audio_egress` derives the unique
 completed SDP mapping and peer-owned track/SSRC, checks stable connected state
@@ -256,8 +257,8 @@ actual PCMU with dynamic PT109 and PCMA with PT8, two exact packets per peer,
 refusal without queue consumption, retained ownership and physical close. Its
 [scoped evidence](../evidence/gate-6/webrtc-peer-audio.json) records eight assertion
 groups, the twelve Core probe regressions and twenty Connect methods separately.
-Ingress, owned port pumps and cleanup, canonical Core admission and sealed actual
-readiness are still required before media can be enabled. Opus/VP8/data, timing,
+The protected service integration now supplies ingress, owned port pumps and
+cleanup, canonical Core admission and sealed actual readiness. Opus/VP8/data, timing,
 MID/SSRC mapping and browser qualification remain open. The [Core egress probe](../evidence/gate-6/webrtc-core-egress-probe.rs) uses
 actual Core controllers/queues and a real RTC pair with isolated policy and
 synthetic capture fixtures; its [evidence](../evidence/gate-6/webrtc-core-egress.json)
@@ -299,10 +300,39 @@ rather than an invented close acknowledgement. Retirement appends its causal
 journal event while preserving the original completed result and effect. WSS
 control remains usable after the media route retires.
 
-This path adds no implicit receive subscription or default browser advertisement.
-Explicit RTC subscriptions, role/lifecycle/reoffer/DTMF/reconciliation integration,
-Opus/video/data, ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced
-fallback and approved Linux/remote hosting qualification remain required. The
-isolated component probe's decoded Core duplex is separate from the current
-Store/WSS admission cases; these cases do not qualify decoded stock RTC duplex or
-full browser/media/hosting acceptance.
+## Explicit RTC audio subscriptions
+
+Protected WSS `stream.subscribe` and `stream.unsubscribe` use their own current
+signed command and original Store stream-operation lease. The service checks the
+actual originating WSS `PeerAdmission` against the installed RTC route, as well
+as the current WebRTC Endpoint and original runtime Connection/generation. A
+second WSS peer using the same credential cannot begin the original route's
+mutation. Completed replay reads the same journal outcome under current authority.
+
+Typed public participant and stream selectors resolve through the guarded Core
+scene. The current source/receiver reads belong to that same command interval;
+Core commits only its exact selection plan. Audio routing uses the existing
+negotiated mixed port, with no SDP/native counteroffer or resource replacement.
+Other media or a selection requiring new negotiated resources is explicitly
+unsupported in this profile. Later routing revisions keep the original resource
+monitor current while its actual bindings and activation remain identical;
+initial readiness completion still requires its exact original revision.
+
+With no selected source, the mixer emits no audio packet. Actual received media
+continues to require fresh source and receiver permission through the final UDP
+write. Unsubscribe removes delivery, and explicit reselect can restore it on the
+same physical peers. Metadata contention retries only the captured original
+outcome; it cannot repeat the routing effect or retain idle command readers.
+
+The [stock RTC subscription evidence](../evidence/gate-6/webrtc-explicit-subscriptions.json)
+records two signed EdDSA/ES256 journeys with independent G.711 decoding, no
+implicit receive, same-credential foreign-peer refusal, replay, stale/unsupported
+refusal, unsubscribe/reselect with reverse positive control, and publisher
+Endpoint withdrawal. Those cases and all fourteen existing WSS methods plus one
+decoded WebTransport regression pass on the same guarded source and executable.
+
+The default host still makes no browser media advertisement. RTC lifecycle/role
+control, reoffers, DTMF, reconciliation/query/credential refresh, Opus/video/data,
+ICE/MID/SSRC/source-clock profiles, actual Chrome/Firefox forced fallback and
+approved Linux/remote hosting, package and full acceptance qualification remain
+required. G6-051 remains in progress.

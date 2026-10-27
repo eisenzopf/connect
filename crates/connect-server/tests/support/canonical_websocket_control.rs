@@ -104,7 +104,9 @@ struct Peer {
 }
 impl Peer {
     async fn open(f: &Fixture) -> Self {
-        let config = &f.client;
+        Self::open_config(f, &f.client).await
+    }
+    async fn open_config(f: &Fixture, config: &CanonicalClientConfig) -> Self {
         let secret = std::fs::read(&config.signing_private_key).unwrap();
         let signer = if config.signing_algorithm == "ES256" {
             Sig9421Signer::es256(&config.signing_key_id, &secret)

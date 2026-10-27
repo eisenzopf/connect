@@ -2,6 +2,8 @@
 use super::*;
 #[path = "webrtc/admission.rs"]
 mod admission;
+#[path = "webrtc/subscriptions.rs"]
+mod subscriptions;
 use connect_protocol::{
     session_control::{Action, Request},
     transitions::{OperationAction, OperationState},
@@ -20,6 +22,9 @@ fn audio_config() -> WebRtcConfig {
     c
 }
 async fn provision(f: &Fixture) -> String {
+    provision_config(f, &f.client, 0).await
+}
+async fn provision_config(f: &Fixture, config: &CanonicalClientConfig, index: usize) -> String {
     let admin = f.server.store.authenticate(&f.admin).unwrap().credential_id;
     let ProvisioningOutcome::Endpoint { endpoint_id, .. } = f
         .server
@@ -27,15 +32,15 @@ async fn provision(f: &Fixture) -> String {
         .execute_provisioning(
             &admin,
             ProvisioningCommand::Endpoint {
-                operation_id: "wss-webrtc-endpoint".into(),
-                identity_id: f.client.identity_id.clone(),
+                operation_id: format!("wss-webrtc-endpoint-{index}"),
+                identity_id: config.identity_id.clone(),
                 device: DeviceSpec {
-                    id: f.client.device_id.clone(),
-                    kind: f.client.device_kind.clone(),
-                    platform: f.client.device_platform.clone(),
+                    id: config.device_id.clone(),
+                    kind: config.device_kind.clone(),
+                    platform: config.device_platform.clone(),
                 },
                 transport: EndpointTransport::Webrtc,
-                address: "https://localhost/webrtc".into(),
+                address: format!("https://localhost/webrtc/{index}"),
                 capabilities: vec!["audio".into()],
                 secret_ref: None,
             },
@@ -49,7 +54,7 @@ async fn provision(f: &Fixture) -> String {
         .execute_provisioning(
             &admin,
             ProvisioningCommand::VerifyEndpoint {
-                operation_id: "wss-webrtc-verify".into(),
+                operation_id: format!("wss-webrtc-verify-{index}"),
                 endpoint_id: endpoint_id.clone(),
                 expected_revision: 0,
                 evidence_ref: "designated-loopback-wss".into(),
