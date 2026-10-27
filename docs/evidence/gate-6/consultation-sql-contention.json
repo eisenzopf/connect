@@ -31,7 +31,51 @@
     "Initial mutex fixture held a full media reader and watched the later Conversation scope; completion correctly queued first on an earlier Identity scope, so this harness observation failed. The retained final negative observes a Conversation-only held interval and fails on the intended SQL wait. These initial attempts are not product qualification."
   ],
   "additional_verification": {
-    "store_regressions": "running; not yet qualified",
+    "store_regressions": {
+      "status": "All 187 distinct selected cases passed across retained partial and complete runs; not a single full-suite pass.",
+      "consultation_cases": 162,
+      "first_run": "180-second harness timeout after 124 passing cases; child killed/reaped. This incomplete run is not called a suite pass.",
+      "remaining_run": [
+        "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 1202 filtered out; finished in 72.97s"
+      ],
+      "packet_snapshot_cases": 19,
+      "installation_cases": 6,
+      "distinct_passed": 187,
+      "ignored": "One installation process_worker subprocess fixture remains ignored in the ordinary parent filter; its ownership/process-death parents explicitly execute it. No separately ignored case claimed as a pass.",
+      "changed_inputs": [],
+      "logs": [
+        {
+          "name": "consultation-remaining",
+          "status": "completed",
+          "exit_code": 0,
+          "seconds": 73.00469179218635,
+          "results": [
+            "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 1202 filtered out; finished in 72.97s"
+          ],
+          "log_sha256": "a1d530c9f1ab163bcfb0d4087eeae8cce3352ff1f3af9c085e781376fa72d18c"
+        },
+        {
+          "name": "packet-snapshot",
+          "status": "completed",
+          "exit_code": 0,
+          "seconds": 6.810557249933481,
+          "results": [
+            "test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1221 filtered out; finished in 6.80s"
+          ],
+          "log_sha256": "245875f9e3d3fcef8369dcfb3fcc3a7404d2f27c2fe96865dc77515521f8e38e"
+        },
+        {
+          "name": "installation",
+          "status": "completed",
+          "exit_code": 0,
+          "seconds": 3.4031824578996748,
+          "results": [
+            "test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 1233 filtered out; finished in 3.34s"
+          ],
+          "log_sha256": "c59a0dd1000e06433b3ba6f6796a1172cbaabb7e31765011d7aa9215ec4baa34"
+        }
+      ]
+    },
     "native_mcp_handoff": "current server rebuild running; not yet qualified"
   },
   "limitations": [
