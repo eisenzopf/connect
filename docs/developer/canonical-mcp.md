@@ -1,14 +1,16 @@
 # Canonical MCP control migration
 
-G6-065 is in progress. Ordinary identity access exposes finite canonical
+G6-065 implementation is complete. Ordinary identity access exposes finite canonical
 conversation, participant, Message, Session, Connection, stream-selection and
 operation tools. Current HTTP/MCP/CLI, issuance and recovery checks are recorded
-in the [facade audit](../evidence/gate-6/facade-scope-audit.json). Configured
+in the [completion evidence](../evidence/gate-6/facade-completion.json). Configured
 hosting, scoped-agent export and native transitions have separate local evidence.
 One explicitly authorized supported Codex host requested and observed a handoff;
 see the [recorded rehearsal](agent-host-rehearsal.md#recorded-actual-host-result).
-The current audit retains an unresolved private-audio probe failure before a
-handoff request. Later diagnostic passes do not establish a repair. Remote,
+A controlled SQL-contention outage was reproduced and fixed; fresh native
+consultation, eight handoff scenes and eight movement scenes pass. The historical
+one-frame audio failure remains recorded with unproven causation. G6-096/G6-098
+retain the broader failure and transition-quality qualification. Remote,
 provider, package and independent acceptance profiles remain separate.
 
 Each tool advertises the canonical payload schema and explicit resource scope.

@@ -513,5 +513,11 @@
       "underlying_native_audio_repaired": false,
       "unexpected_media_probe_failure_reproduced": false
     }
+  },
+  "superseded_current_scope": {
+    "recorded_at": "2026-10-27T23:33:43.749975+00:00",
+    "evidence": "docs/evidence/gate-6/facade-completion.json",
+    "task_status": "done",
+    "note": "This report retains the historical failed cohort and diagnostics. The later current artifact passes all facade, Task and native functions after a separately reproduced/fixed SQL contention outage. Original one-frame event causation remains unproven and carried into G6-096/G6-098. No historical failure erased or acceptance promoted."
   }
 }

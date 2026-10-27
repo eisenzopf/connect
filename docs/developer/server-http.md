@@ -176,9 +176,11 @@ The earlier local [protected HTTP checkpoint](../evidence/gate-6/protected-http.
 passes52 actual exchanges,51 checked against OpenAPI; the remaining Task-create
 exchange is fixture setup. It also records five reference-sensitivity witnesses
 and clean HTTP/MCP shutdown. This qualifies its local unsigned HTTP scope.
-The [current facade audit](../evidence/gate-6/facade-scope-audit.json) records 280
+The [current facade completion](../evidence/gate-6/facade-completion.json) records 280
 actual exchanges, all schema-checked without setup-only exclusions, plus current
 CLI/MCP/scoped issuance and recovery checks. One supported actual-host rehearsal
-has separate bounded evidence. G6-065 remains open with a native private-audio
-probe finding; Linux, remote/provider/media, distribution and independent
-acceptance profiles remain separate.
+has separate bounded evidence. G6-065 implementation is complete, including fresh
+native consultation, eight handoff scenes and eight movement scenes. A reproduced
+SQL-contention outage is fixed; historical audio-failure causation remains unproven
+and is retained for G6-096/G6-098 qualification. Linux, remote/provider/media,
+distribution and independent acceptance profiles remain separate.

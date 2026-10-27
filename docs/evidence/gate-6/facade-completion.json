@@ -1,0 +1,297 @@
+{
+  "task": "G6-065",
+  "status": "done",
+  "recorded_at": "2026-10-27T23:33:43.749975+00:00",
+  "base_revision": "f787aaab8144ee2fe1403e5b48b3748b10894031",
+  "scope": "Implementation and local macOS arm64 verification of JSON CLI, HTTP and MCP facades under the approved dependency graph. No Gate 6 acceptance, independent conformance, Linux/remote/provider/browser profile, package publication or new model/account execution is claimed.",
+  "completion_basis": "All approved facade subrequirements have implementation and behavior evidence. A deterministic SQL-induced media exclusion defect now has before/after proof; the current compiled control and decoded native transition cohort passes. The historical one-frame event remains retained with unproven causation; its broader failure/quality qualification belongs to G6-096/G6-098. A later healthy scene is not presented as a failed-event witness.",
+  "requirements": [
+    {
+      "requirement": "Authorized controls/status/events preserve permission, audience, original operation identity and error semantics",
+      "evidence": "17 current HTTP/MCP/JSON CLI/credential installation/issuance functions; 3 current native MCP functions across 18 synthetic decoded media scenes, original recovery/replay and current revocation.",
+      "result": "passed in declared local scope"
+    },
+    {
+      "requirement": "Preserve Task/grant workflows",
+      "evidence": "All 5 current public SDK Task/grant/provider workflows pass, including actual authority clock boundary, scoped bootstrap, reader revocation, restart/uncertainty and no redispatch. HTTP also checks 85 dispatch/Task and 85 authentication cases.",
+      "result": "passed in declared local scope"
+    },
+    {
+      "requirement": "Server HTTP/OpenAPI includes supported operations, privileged provisioning, recovery and file endpoints",
+      "evidence": "280 actual exchanges all schema-checked with jsonschema 4.26.0 and date-time checker installed; no setup-only exclusion. Current balanced source inventory matches 24 declarations/25 HTTP operations.",
+      "result": "passed in declared local scope"
+    },
+    {
+      "requirement": "Finite control outputs distinguish capabilities/actions from actual audio and exclude media frames",
+      "evidence": "Current 29-tool finite canonical MCP catalog uses contract-derived schemas and current service dispatch. Actual decoded PCMU is checked independently by native fixture clients; tool responses are metadata. CLI/MCP current behavior checks pass.",
+      "result": "passed in declared local scope"
+    },
+    {
+      "requirement": "An actual supported agent host requests/observes an authorized transition",
+      "evidence": "Retained separately human-authorized Codex 0.164.0-alpha.11.1 run completed in 47.635 seconds of its one 120-second budget. All five host/worker adapter sources match. Current control/native checks requalify changed service/media sources without another model run.",
+      "result": "recorded actual-host subrequirement fulfilled; exact historical candidate only"
+    }
+  ],
+  "current_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 706.3802398338448,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5224,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/consultation-sql-contention/runtime/test-snapshot",
+      "sha256": "0313b9d42d485ec4e72ce44c32023601d37cd63970e36369f7f1d75e6f9ddd9c",
+      "bytes": 265388184
+    },
+    "snapshot_warnings": [],
+    "log_sha256": "fc0c710e036b193525c9f7b56cd6fdb675eceb896e09aeaed17102a8c4504501"
+  },
+  "current_cli": {
+    "sha256": "e9a3dd92c9830f56963ed7902f2c52afb6a3677f1f5a3932869f2828a8968014",
+    "bytes": 236030896,
+    "help_exit_code": 0,
+    "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/consultation-sql-contention/runtime/connect",
+    "magic": "cffaedfe"
+  },
+  "facade_runtime": {
+    "scope": "Current production listener/public signed HTTP/MCP/CLI/credential facade cohort; synthetic loopback only, no model or live provider execution.",
+    "source_count": 5228,
+    "artifact_sha256": "0313b9d42d485ec4e72ce44c32023601d37cd63970e36369f7f1d75e6f9ddd9c",
+    "cli_sha256": "e9a3dd92c9830f56963ed7902f2c52afb6a3677f1f5a3932869f2828a8968014",
+    "steps": [
+      {
+        "name": "http",
+        "expected": [
+          "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+          "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+          "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+          "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+          "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+          "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts"
+        ],
+        "exit_code": 0,
+        "seconds": 3.0527350830379874,
+        "test_result": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 346 filtered out; finished in 3.02s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "f791e0a46ccc3dd2f73781ce6f30ea794214827385c1c38ca4ea5b920cf1881e"
+      },
+      {
+        "name": "mcp",
+        "expected": [
+          "canonical_mcp::application_dispatch::identity_application_dispatch_refuses_retired_mutations_keeps_tasks_and_rechecks_auth",
+          "canonical_mcp::canonical_agent_export_retains_narrow_control_scope_and_current_revocation_without_parent_fallback",
+          "canonical_mcp::canonical_mcp_configuration_rejects_public_or_provider_admission_before_startup",
+          "canonical_mcp::canonical_mcp_failed_bind_releases_installation_and_repeated_shutdown_drop_releases_ports",
+          "canonical_mcp::canonical_mcp_public_control_preserves_messages_session_ids_original_status_and_current_revocation"
+        ],
+        "exit_code": 0,
+        "seconds": 1.4699056250974536,
+        "test_result": [
+          "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 1.43s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "6d5d412323a4f5e0fd1fbec780de2d8de4c73c40c0efff66d136e39de00758b3"
+      },
+      {
+        "name": "stdio",
+        "expected": [
+          "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+          "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration"
+        ],
+        "exit_code": 0,
+        "seconds": 3.6620007909368724,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 350 filtered out; finished in 3.64s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "ba8a766e19a246e4a2b122190689c05298a829535584cbc4a17c7131ce9b416c"
+      },
+      {
+        "name": "install",
+        "expected": [
+          "credential_installation::actual_cli_issues_independent_native_assets_rechecks_completion_and_exports_scoped_agent",
+          "credential_installation::actual_cli_resumes_committed_lost_issuance_device_key_and_failed_native_admission"
+        ],
+        "exit_code": 0,
+        "seconds": 12.020683042006567,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 350 filtered out; finished in 12.00s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "d48f821dad0d91a1dc84fd6c44fad005d93abc9391762ff277dfdf38d46fa1d3"
+      },
+      {
+        "name": "issuance",
+        "expected": [
+          "credential_issuance::protected_issuance_authenticates_before_body_and_refuses_header_shape_and_authority_changes",
+          "credential_issuance::protected_issuance_recovers_original_after_disconnect_restart_and_native_enrollment"
+        ],
+        "exit_code": 0,
+        "seconds": 1.0735943750478327,
+        "test_result": [
+          "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 350 filtered out; finished in 1.03s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "c616dc73ecd0d51063438d67e792e6c212be398ea6851fec03277bce20f0bc56"
+      }
+    ]
+  },
+  "task_workflows": {
+    "exit_code": 0,
+    "seconds": 5.877147707855329,
+    "results": [
+      "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 347 filtered out; finished in 5.85s"
+    ],
+    "changed_inputs": [],
+    "log_sha256": "9769eea64af5a26e0a41216dc5ae4fb46c46cfed33b3699ef6dbe41827608a89"
+  },
+  "native_runtime": {
+    "scope": "Fresh exact three existing actual native PCM MCP consultation/return, handoff and movement functions after upstream Core changes; local default synthetic fixtures, no actual model/provider/remote execution.",
+    "artifact_sha256": "0313b9d42d485ec4e72ce44c32023601d37cd63970e36369f7f1d75e6f9ddd9c",
+    "guarded_inputs": 5226,
+    "steps": [
+      {
+        "name": "consult-return",
+        "test": "canonical_native_connections::consultation::production_mcp_consultation_return_preserves_private_audio_original_recovery_and_current_authority",
+        "exit_code": 0,
+        "seconds": 38.50207566586323,
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 38.48s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "3169abc64ef97a61803d3bcd27ebbd97cc4b5b0b80544de139c20d100b29fd6a"
+      },
+      {
+        "name": "handoff",
+        "test": "canonical_native_connections::consultation::groups::handoff::production_mcp_handoff_keeps_decoded_native_audio_roles_original_recovery_and_one_effect",
+        "exit_code": 0,
+        "seconds": 178.33097458281554,
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 178.27s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "98a0d55999d968f9cbeb830490341ed78813e38f07de2fd7410ff09d479a49de"
+      },
+      {
+        "name": "movement",
+        "test": "canonical_native_connections::consultation::groups::replacement::production_mcp_device_movement_keeps_decoded_generation_two_audio_original_recovery_and_current_authority",
+        "exit_code": 0,
+        "seconds": 223.37839679117315,
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 351 filtered out; finished in 223.32s"
+        ],
+        "changed_inputs": [],
+        "log_sha256": "1906941d4a059e603f49e5fa8f00bb49c3770e7fb1c1e8b38b82cffd586ad552"
+      }
+    ]
+  },
+  "http_wire": {
+    "cases": 280,
+    "schema_checked": 280,
+    "dispatch_and_task_cases": 85,
+    "authentication_cases": 85,
+    "source_unchanged": true,
+    "setup_only": [],
+    "sigterm_exit": 0,
+    "jsonschema_version": "4.26.0",
+    "date_time_checker_available": true,
+    "summary_sha256": "212bbdd6842af7bcf5ef1d5079e6954bcab54fb030a02b2734ef76c6ed8fe8b1",
+    "outcome": {
+      "exit_code": 0,
+      "seconds": 1.5819209169130772,
+      "changed_inputs": [],
+      "log_sha256": "288fa16781b00532dc9c0c88baf0cace86ce418dd19e2baaa756c4bdf79e66c5"
+    },
+    "source_reference_inventory": 24
+  },
+  "sql_contention": {
+    "evidence": "docs/evidence/gate-6/consultation-sql-contention.json",
+    "before": "Both final controlled actual Store tests fail on the intended SQL wait and exclusion of private packet readers.",
+    "after": "Both pass with immediate refusal, preserved outside exclusion and same-receipt exactly-once completion/replay; 187 distinct selected Store regressions pass.",
+    "incomplete_run": "First consultation regression run hit 180-second harness cap after124passing cases. All38remaining cases subsequently pass on the same unchanged artifact. This is not called one complete suite pass."
+  },
+  "actual_host": {
+    "evidence": "docs/evidence/gate-6/canonical-agent-host-authorized.json",
+    "adapter_source_matches": {
+      "crates/connect-server/tests/support/canonical_agent_rehearsal.rs": true,
+      "crates/connect-server/src/cli/agent_access/host.rs": true,
+      "crates/connect-server/src/cli/agent_access/preflight.rs": true,
+      "crates/connect-server/src/cli/task_access/codex_host/process.rs": true,
+      "crates/connect-server/src/cli/task_access/codex_host/child.rs": true
+    },
+    "all_recorded_host_input_matches": {
+      "crates/connect-server/tests/support/canonical_agent_rehearsal.rs": true,
+      "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": false,
+      "crates/connect-server/src/cli/agent_access/host.rs": true,
+      "crates/connect-server/src/cli/agent_access/preflight.rs": true,
+      "crates/connect-server/src/cli/task_access/codex_host/process.rs": true,
+      "crates/connect-server/src/cli/task_access/codex_host/child.rs": true,
+      "dependencies/source-lock.json": false
+    },
+    "new_model_execution": false
+  },
+  "carried_forward": [
+    {
+      "tasks": [
+        "G6-096",
+        "G6-098"
+      ],
+      "finding": "Original EdDSA/Leave/Conversation pre-handoff private-reverse [0,1,0] marker failure remains historical evidence. Current equivalent scene has97partner frames, all8handoff scenes pass after the separately proven SQL contention fix, but original event causation is unproven. Keep bounded failed-event capture; run the already-required frozen failure, clean/impaired and >=20-per-topology qualification.",
+      "evidence": [
+        "docs/evidence/gate-6/facade-scope-audit.json",
+        "docs/evidence/gate-6/native-handoff-failure-capture.json"
+      ]
+    },
+    {
+      "tasks": [
+        "G6-097"
+      ],
+      "finding": "Retained failures from old ConnectClient/generic canonical command paths are not passes and are not acceptance targets. G6-097 explicitly re-expresses retained behaviors on the new contract and removes obsolete API-shape tests. Preserve their recovery/visibility/receipt assertions; do not restore compatibility dispatch.",
+      "evidence": [
+        "docs/evidence/gate-6/session-presence.json"
+      ]
+    }
+  ],
+  "limits": [
+    "Only the declared existing local default fixture profiles ran; broad Gate 6 acceptance remains unqualified.",
+    "No provider, PSTN, SMS, new actual agent/model or named remote execution occurred.",
+    "Historical reports and failed logs remain retained; the earlier lost failed-event database has not been recovered."
+  ],
+  "private_reports": {
+    ".local/gate-6/consultation-sql-contention/runtime/build-snapshot-summary.json": "b200ede3239c56b99f08918b33869e7fd5bf2cd00847f274a0fb606c211114f6",
+    ".local/gate-6/consultation-sql-contention/runtime/native-transitions-summary.json": "25f8981596c92bf276ce853237a681890b1a4bc39b4a5bdc93c86faa3913f82f",
+    ".local/gate-6/consultation-sql-contention/runtime/runtime-summary.json": "66ef5aa1faaa4b33fc1123a13378157d88454404e9b336a7a6d6bb15bff51db1",
+    ".local/gate-6/consultation-sql-contention/runtime/task-workflows-summary.json": "cdbb0315b2c38617b4fd86df6ff0c054af6e24708b0884ddb59d46fa55388cde",
+    ".local/gate-6/consultation-sql-contention/runtime/http-wire/summary.json": "212bbdd6842af7bcf5ef1d5079e6954bcab54fb030a02b2734ef76c6ed8fe8b1",
+    ".local/gate-6/consultation-sql-contention/regressions-summary.json": "7f08298aede2d8039efbd4b79e5b6141631d26c29f7c2f4bfb0e62d0209e3088"
+  },
+  "publication": false
+}

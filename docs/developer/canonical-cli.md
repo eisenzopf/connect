@@ -55,8 +55,11 @@ Scoped issuance and native enrollment use the
 [saved-intent credential installer](credential-installation.md), with explicit
 `issue-resume` after uncertainty. Retained inspection uses the
 [application diagnostics](application-sdk.md#retained-task-diagnostics) config.
-G6-065 remains in progress. Current CLI/HTTP/MCP, scoped issuance/recovery and
-OpenAPI checks are recorded in the [facade audit](../evidence/gate-6/facade-scope-audit.json).
-The actual supported-host rehearsal passed for its recorded candidate; a later
-native private-audio probe failure remains unresolved. Remote, provider, Linux,
-distribution and independent acceptance profiles need their own qualification.
+G6-065 implementation is complete. Current CLI/HTTP/MCP, scoped issuance/recovery,
+Task workflows and OpenAPI checks are recorded in the
+[completion evidence](../evidence/gate-6/facade-completion.json), alongside fresh
+native consultation, handoff and movement results. The actual supported-host
+rehearsal remains evidence for its recorded candidate. A reproduced SQL-contention
+outage is fixed; the historical audio failure's exact cause remains unproven and
+is retained for G6-096/G6-098 qualification. Remote, provider, Linux, distribution
+and independent acceptance profiles need their own qualification.

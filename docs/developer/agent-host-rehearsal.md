@@ -109,9 +109,12 @@ original prompt/session, native state and redacted JSONL remain under ignored
 
 See [the bounded actual-host evidence](../evidence/gate-6/canonical-agent-host-authorized.json).
 This fulfills the actual supported-host request/observe subrequirement locally.
-This is the recorded candidate's actual-host result. The later
-[facade audit](../evidence/gate-6/facade-scope-audit.json) retains a native
-private-audio probe failure on changed service/media sources; historical host
-success does not resolve that finding. Remote/provider/telephone/browser
-qualification and Gate 6 acceptance remain open. This one authorization does not
-authorize another model rehearsal.
+This is the recorded candidate's actual-host result. The
+[current facade completion](../evidence/gate-6/facade-completion.json) records
+fresh control, HTTP/schema and decoded native transition checks after a controlled
+SQL-contention fix. The five host/worker adapter sources still match this rehearsal;
+the media sources and diagnostic handoff fixture have changed. No new model run
+is claimed. The earlier one-frame audio failure's exact cause remains unproven;
+broader failure/quality qualification remains G6-096/G6-098 work.
+Remote/provider/telephone/browser qualification and Gate 6 acceptance remain open.
+This one authorization does not authorize another model rehearsal.
