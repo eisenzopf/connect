@@ -1164,6 +1164,11 @@
       "path": "patches/rvoip/gate6-webrtc-original-receive-time.patch",
       "source": "G6-051 preserve original monotonic UDP receipt through RTC read/event queues and derive media frame age from that receipt. Outbound RTP stamps local request creation separately. Update breaking event consumers/docs; never refresh stale audio/video/DTMF on application poll. No canonical readiness or remote-capture claim.",
       "sha256": "18416382b5f0b578ad31535a5c59279d53853a776247fc502b37c6c2581aba49"
+    },
+    {
+      "path": "patches/rvoip/gate6-webrtc-staged-core-media.patch",
+      "source": "G6-051 actual Core staged WebRTC audio backend, shared physical handle allocation, exact resource activation and owned per-port ingress/egress/cleanup. Preserve original receive age across Core admission; retain capacity through confirmed route cleanup. Initial G711 path; service composition and wider profiles remain required, no default advertisement or SDP-only readiness.",
+      "sha256": "a8467694b0861d929a12512bdf5a2def5c21a36e69f59835d84cd964a2f17b0a"
     }
   ]
 }

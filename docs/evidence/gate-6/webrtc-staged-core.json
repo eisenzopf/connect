@@ -1,0 +1,184 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "base_revision": "789c906b",
+  "checked_at": "2026-10-27T03:28:50.404137+00:00",
+  "scope": "Local macOS arm64 ordinary production Core/UCTP/RTC/WebRTC libraries with isolated identity, membership, participant and media-policy fixtures. Two actual independent loopback ICE/DTLS/SRTP peers, PCMU at negotiated dynamic PT109; actual Core controllers and participant mixer. Canonical Store/service/WSS composition remains separate.",
+  "source_inputs": {
+    "Cargo.lock": "6b8421b32ed000a141390be9b00cd61cb85b59b9828d49895ce123ee93871b72",
+    "dependencies/source-lock.json": "776b18a451a10053a98af90753816b8fda95e7e934ec73b3a81fd81ec190fa8a",
+    "patches/rvoip/gate6-webrtc-staged-core-media.patch": "a8467694b0861d929a12512bdf5a2def5c21a36e69f59835d84cd964a2f17b0a",
+    "docs/evidence/gate-6/webrtc-staged-core-probe.rs": "043b15d58437f789424c6d1cf3d0f207bcabcbccc911af18c7c70b6e10483e6b",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs": "64e9fd602ae4bb5b151188192df067edaab8622458590d2d54e184c9dcf3d20d",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/activation.rs": "b0e80ec774ccc39d3c348cbf94ca454f2865732064628c3bc44c22cf713e7fed",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs": "b18b062c54c018494660b6a8375d65710cedfdaaa6fe8785fc12875e5cdb1dca",
+    ".deps/rvoip/crates/foundation/rvoip-core/src/staged_streams.rs": "0bfcc60813caa6c6e0a07d973a0e1a94d07b9ef021085333e3723e60e062780c",
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs": "80f6267b37b47524dd0bfa7bafa25177d9a4b1f1b1c707836e41daaa815f03c9",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical/media.rs": "bf1bfa4d9410f6bf2fcf8adf7e0885183f5d2c09bc1f72867822adaff9bdd8ae",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical.rs": "dcd41ec5ac1497637f3b9eec327414751f701afc9509316d3d2341bc89e0c27a",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/peer/session.rs": "159b28ac4b7b3fe0ef29a9dc1c82cd6d3ced815fbca3ea04b13212f045a38ddb",
+    ".deps/rvoip/crates/foundation/rvoip-core/tests/support/participant_control_fixture.rs": "1192d9065add0306aec6f00e7a502d01a835d9e933d23e6e092df3e73385e846"
+  },
+  "dependency_preparation": {
+    "verified": true,
+    "original_prepare_terminal_before_symlink_adoption": true,
+    "unchanged_files_only_mtime_restoration": true,
+    "patch_sha256": "a8467694b0861d929a12512bdf5a2def5c21a36e69f59835d84cd964a2f17b0a"
+  },
+  "build": {
+    "exit_code": 0,
+    "command": [
+      "cargo",
+      "build",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "-p",
+      "rvoip-webrtc",
+      "-p",
+      "rvoip-uctp",
+      "--message-format=json"
+    ],
+    "result": "Finished release profile in 59.05s; original Core/admission build03 passed in 178s before the codec-name correction.",
+    "source_count": 2717,
+    "changed_inputs": [],
+    "normal_artifacts": [
+      {
+        "crate": "rvoip_core",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "identity",
+          "media",
+          "opus",
+          "rtp",
+          "sip",
+          "uctp",
+          "vcon"
+        ],
+        "sha256": "3d9ec468a0cf8fba745052c8c74a0bab342fe1a0e92e82b980a9c54b0ee78f4d"
+      },
+      {
+        "crate": "rvoip_uctp",
+        "cfg_test": false,
+        "features": [],
+        "sha256": "d296e267a20333f09fcfae336392c5bff984065f2a7e3851ee32d742c0c25dee"
+      },
+      {
+        "crate": "rvoip_webrtc",
+        "cfg_test": false,
+        "features": [
+          "client",
+          "comprehensive",
+          "default",
+          "signaling-ws"
+        ],
+        "sha256": "fe8d9ba5303ae55c8a9ae0e8a4e4cc1ed2b26ca7d306d169f0d5663a96ad57bc"
+      },
+      {
+        "crate": "rtc",
+        "cfg_test": false,
+        "features": [],
+        "sha256": "4edc0d61f42cd1d9cad523977f0a7ab2282e6c0faaf37eab8efb692aa7de2b2c"
+      },
+      {
+        "crate": "webrtc",
+        "cfg_test": false,
+        "features": [
+          "default",
+          "runtime-tokio"
+        ],
+        "sha256": "633f46c04ad9fe6d12215b1c41f890719c4738a796e5e98a6f9483cfc8077b4e"
+      }
+    ],
+    "log_sha256": "e3142dbd3535cbcc2fe16affd1292ce0f75f6cc5be147b421c19e57773cc86f4"
+  },
+  "runtime": {
+    "exit_code": 0,
+    "seconds": 2.2741466669831425,
+    "compile_command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-staged-core-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-staged/probe-07",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib",
+      "--extern",
+      "bytes=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libbytes-95ba356a115a28dd.rlib",
+      "--extern",
+      "chrono=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libchrono-f5fdb99c2381e010.rlib",
+      "--extern",
+      "rvoip_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_core-bdff9490ba05b475.rlib",
+      "--extern",
+      "rvoip_webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/librvoip_webrtc.rlib",
+      "--extern",
+      "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-80b143e01fc711fc.rlib",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "tokio_util=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio_util-dc649fa1e826e772.rlib"
+    ],
+    "probe_sha256": "043b15d58437f789424c6d1cf3d0f207bcabcbccc911af18c7c70b6e10483e6b",
+    "executable_sha256": "52d696246f522d2e940ddeb86f4f3ea017b0579d7fc27e8b48d2d49f0dd19620",
+    "log_sha256": "7279f5624849142a3b1569d3db6189e5ae4c22154fc6b91a8b32edaeaf2a69f1",
+    "checks": [
+      "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+      "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+      "PASS explicit current Core participant subscriptions authorize both receive directions",
+      "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+      "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+      "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+      "PASS original RTC drivers and all Core port resources close before quota refund"
+    ]
+  },
+  "behavior": [
+    "Allocation reservation alone refuses readiness and leaves revision zero, no active ports, the original Core charge and host slot retained. The same controller then recovers through actual peer allocation, SDP/ICE/DTLS and actual first primary RTP.",
+    "Actual Core stream preparation registers original source/egress worker cleanup before sealed resource activation. Explicit WebRTC participant admission verifies the reserved current peer/context; replay of each original participant mutation returns its original observation without a second charge.",
+    "Explicit current participant receive subscriptions establish the audio routes. Independently decoded PCMU samples carry opposite marked sources through the Core mixer and actual SRTP egress at negotiated PT109 and actual sender SSRC.",
+    "Fresh incoming-source permission withdrawal stops audible output while reverse audio continues; restoring permission restores decoded audio on the original peers. Actual Core Observer/Agent transitions stop and restore publication without another RTC allocation.",
+    "Original RTC driver close, source actor and per-port worker joins complete before route removal, Core connection quota return and host slot refund. Both routes and both physical Core charges end at zero."
+  ],
+  "implementation": [
+    "Core media activation is a transport-neutral adapter SPI around the existing sealed resource observation. Native implementations delegate to their existing exact signed-confirmation and replacement checks.",
+    "Core publication can retain an adapter-owned original monotonic receive instant across queued media and metadata retries; reliable data does not borrow this lossy-media API.",
+    "WebRTC handle allocation remains monotonic for the full physical peer lifetime. Source/egress workers register cleanup before readiness; original write owners are retained through actual cancel-and-drain. Lost individual write outcomes never become inferred success.",
+    "Canonical SDP G.711 names map to the existing Core pcmu/pcma formats. Unsupported media or synchronized-AV profiles refuse preparation explicitly."
+  ],
+  "historical_attempts": [
+    {
+      "attempt": "01",
+      "result": "Both actual ports prepared; participant admission refused Media(Unsupported). Backend used canonical SDP g.711-mu where the Core mixer requires normalized pcmu. Corrected in the patch."
+    },
+    {
+      "attempt": "02-03",
+      "result": "Participant admission passed, but decoded receive timed out because the fixture had no explicit receive subscriptions. Added authorized participant selections; no default permission was added to the backend."
+    },
+    {
+      "attempt": "04",
+      "result": "Decoded duplex passed; withdrawal assertion failed because the fixture cleared the outgoing Core grant instead of the incoming source grant. Corrected fixture mapping and accepted either absent packets or decoded silence during withdrawal."
+    },
+    {
+      "attempt": "05-06",
+      "result": "Seven groups passed; final07 compiles and runs the exact committed public probe, including no-allocation failure/recovery and original participant replay."
+    }
+  ],
+  "verification_limits": [
+    "Connect regression rebuild is running at this checkpoint and is not claimed as passed here. The pending service activation storage generalization is excluded from this component commit.",
+    "The policy/identity/participant domain is synthetic. This does not prove canonical Store/journal readiness, signed WSS-to-Core media composition, browser capture or browser replacement.",
+    "Initial backend supports one logical G.711 audio port. Opus, VP8/video/screen, reliable data, synchronized A/V/source-clock, MID/SSRC/ICE and further transition work remain required by the full task.",
+    "Linux x86_64, installed-browser forced WebTransport/UDP fallback and named remote/provider G6-093 rehearsals remain unqualified. G6-051 stays in progress; no acceptance criterion is promoted. Publication remains separate."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-staged/"
+}

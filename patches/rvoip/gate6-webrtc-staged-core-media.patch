@@ -1,0 +1,1314 @@
+diff --git a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+--- a/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
++++ b/crates/foundation/rvoip-core/src/orchestrator/participant_control.rs
+@@ -1428,9 +1428,17 @@
+                         }
+                         if let Some(permit) = &current.peer_admission {
+                             if !permit.belongs_to(peer.incarnation())
+-                                || !self
+-                                    .adapter(endpoint.transport())?
+-                                    .is_peer_native_preparation_current(connection, peer)
++                                || !{
++                                    let adapter = self.adapter(endpoint.transport())?;
++                                    if endpoint.transport() == Transport::WebRtc {
++                                        adapter.supports_peer_webrtc_preparation()
++                                            && adapter.is_peer_webrtc_preparation_current(
++                                                connection, peer,
++                                            )
++                                    } else {
++                                        adapter.is_peer_native_preparation_current(connection, peer)
++                                    }
++                                }
+                                 || permit.transport != endpoint.transport()
+                                 || !current.peer_preparation.as_ref().is_some_and(|scope| {
+                                     scope.matches(session_id, &authority.target, endpoint)
+@@ -1497,7 +1505,12 @@
+                     let managed_sip = outbound.is_some_and(|owned| {
+                         adapter.transport() == Transport::Sip && owned.is_current()
+                     });
+-                    if !native && !managed_sip {
++                    let webrtc = peer.as_ref().is_some_and(|peer| {
++                        adapter.transport() == Transport::WebRtc
++                            && adapter.supports_peer_webrtc_preparation()
++                            && adapter.is_peer_webrtc_preparation_current(&ready.connection, peer)
++                    });
++                    if !native && !webrtc && !managed_sip {
+                         return Err(ParticipantControlError::Unsupported);
+                     }
+                     loop {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/activation.rs b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/activation.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/activation.rs
+@@ -176,3 +176,33 @@
+         self.committed.store(true, Ordering::Release);
+     }
+ }
++
++/// Adapter-owned endpoint confirmation composed with a sealed exact Core
++/// resource observation. It carries no current grant. Implementations must
++/// verify their actual negotiated resources before calling activate_for_commit.
++pub trait MediaActivation: Send + Sync {
++    fn prepare(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++    ) -> ControlResult<MediaOwner>;
++    fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner>;
++    fn confirmed_generation(&self) -> Option<u64>;
++    fn prepare_replacement(
++        &self,
++        _prepared: &Arc<PreparedMediaObservation>,
++        _current: MediaOwner,
++        _source: &MediaOwner,
++        _pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        Err(StreamControlError::Unsupported)
++    }
++    fn current_replacement(
++        &self,
++        _current: MediaOwner,
++        _source: &MediaOwner,
++        _pending: &crate::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        Err(StreamControlError::Unsupported)
++    }
++}
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/reliable_data.rs
+@@ -77,7 +77,7 @@
+             captured_at: chrono::Utc::now(),
+             payload_type: None,
+         };
+-        self.publish_data_frame(&frame, Some(data), held, None)
++        self.publish_data_frame(&frame, Some(data), held, None, None)
+     }
+ }
+ struct OwnedGuards {
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -16,12 +16,12 @@
+     collections::{BTreeMap, BTreeSet},
+     future::Future,
+     sync::{
++        Arc, Mutex, Weak,
+         atomic::{AtomicU32, Ordering},
+-        Arc, Mutex, Weak,
+     },
+     time::{Duration, Instant},
+ };
+-use tokio::sync::{mpsc, OwnedSemaphorePermit, Semaphore};
++use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
+ use tokio_util::sync::CancellationToken;
+ 
+ #[derive(Debug, thiserror::Error)]
+@@ -670,7 +670,7 @@
+     /// A full queue is explicit backpressure. Reliable data adapters must stop
+     /// reading/retry the same message; they must never acknowledge a drop.
+     pub fn try_publish(&self, frame: &MediaFrame) -> ControlResult<()> {
+-        self.publish_data_frame(frame, None, None, None)
++        self.publish_data_frame(frame, None, None, None, None)
+     }
+     /// Observe timing only while the exact current ingress gates are held.
+     /// The callback cannot establish media readiness, enqueue a packet or keep
+@@ -717,7 +717,7 @@
+         if self.0.kind() == StreamKind::Data {
+             return Err(StreamControlError::Unsupported);
+         }
+-        self.publish_data_frame(frame, None, None, Some(Box::new(observe)))
++        self.publish_data_frame(frame, None, None, Some(Box::new(observe)), None)
+     }
+     fn clock_liveness(
+         &self,
+@@ -740,6 +740,34 @@
+             })
+         })
+     }
++    /// Publish from an actual adapter-owned receive observation. This can only
++    /// tighten the normal Core packet budget; callers retain the SAME instant
++    /// across metadata/backpressure retries. Reliable data has separate custody.
++    pub fn try_publish_received(
++        &self,
++        frame: &MediaFrame,
++        received_at: Instant,
++    ) -> ControlResult<()> {
++        self.publish_data_frame(frame, None, None, None, Some(received_at))
++    }
++    /// Clock observation runs under the same fresh ingress guards as this
++    /// original receive, never from a separately cached authority snapshot.
++    pub fn try_publish_clocked_received(
++        &self,
++        frame: &MediaFrame,
++        received_at: Instant,
++        observe: impl FnOnce(
++            Arc<dyn Fn() -> bool + Send + Sync>,
++        ) -> Option<crate::stream::MediaSourceClock>,
++    ) -> ControlResult<()> {
++        self.publish_data_frame(
++            frame,
++            None,
++            None,
++            Some(Box::new(observe)),
++            Some(received_at),
++        )
++    }
+     fn publish_data_frame(
+         &self,
+         frame: &MediaFrame,
+@@ -753,7 +781,17 @@
+                     + '_,
+             >,
+         >,
++        received_at: Option<Instant>,
+     ) -> ControlResult<()> {
++        if let Some(at) = received_at {
++            let now = Instant::now();
++            if self.0.kind() == StreamKind::Data {
++                return Err(StreamControlError::Unsupported);
++            }
++            if at > now || now.duration_since(at) >= Duration::from_millis(200) {
++                return Err(StreamControlError::Deadline);
++            }
++        }
+         self.0.validate(frame)?;
+         if self
+             .0
+@@ -807,6 +845,9 @@
+         if tokio::time::Instant::now() >= deadline {
+             return Err(StreamControlError::Deadline);
+         }
++        if received_at.is_some_and(|at| at.elapsed() >= Duration::from_millis(200)) {
++            return Err(StreamControlError::Deadline);
++        }
+         let mut observed_frame = frame.clone();
+         if let Some(observe) = clock {
+             observed_frame.source_clock = observe(self.clock_liveness(ticket.clone(), &admission));
+@@ -818,7 +859,7 @@
+                 data: data.cloned(),
+                 source: self.0.clone(),
+                 ticket,
+-                admitted_at: Instant::now(),
++                admitted_at: received_at.unwrap_or_else(Instant::now),
+                 consumer: admission.consumer.clone(),
+                 scene: admission.scene.clone(),
+                 custody: if self.0.kind() == StreamKind::Audio {
+@@ -3004,7 +3045,7 @@
+                     .filter(|(_, status)| {
+                         matches!(status, PortStatus::Retired | PortStatus::Quarantined)
+                     })
+-                    .count()
++                    .count();
+             }
+         };
+         let ports = {
+@@ -3136,7 +3177,7 @@
+ pub mod reliable_data;
+ 
+ mod activation;
+-pub use activation::PreparedMediaObservation;
++pub use activation::{MediaActivation, PreparedMediaObservation};
+ 
+ pub mod media_subscriptions;
+ 
+diff --git a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/activation.rs
+@@ -122,3 +122,36 @@
+             .committed_generation()
+     }
+ }
++
++impl rvoip_core::staged_streams::MediaActivation for NativeMediaActivation {
++    fn prepare(
++        &self,
++        p: &Arc<PreparedMediaObservation>,
++        o: MediaOwner,
++    ) -> ControlResult<MediaOwner> {
++        NativeMediaActivation::prepare(self, p, o)
++    }
++    fn current(&self, o: MediaOwner) -> ControlResult<MediaOwner> {
++        NativeMediaActivation::current(self, o)
++    }
++    fn confirmed_generation(&self) -> Option<u64> {
++        NativeMediaActivation::confirmed_generation(self)
++    }
++    fn prepare_replacement(
++        &self,
++        p: &Arc<PreparedMediaObservation>,
++        o: MediaOwner,
++        s: &MediaOwner,
++        r: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        NativeMediaActivation::prepare_replacement(self, p, o, s, r)
++    }
++    fn current_replacement(
++        &self,
++        o: MediaOwner,
++        s: &MediaOwner,
++        r: &rvoip_core::participant_transitions::PreparedParticipantReplacement,
++    ) -> ControlResult<MediaOwner> {
++        NativeMediaActivation::current_replacement(self, o, s, r)
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -0,0 +1,746 @@
++//! Owned initial canonical audio ports on one actual RTC peer. No signaling
++//! answer or remote declaration alone establishes a source/sink resource.
++use super::*;
++use crate::media::core_audio::CoreAudioEgress;
++use crate::peer::source_clock::InboundClockLease;
++use chrono::Utc;
++use rvoip_core::{
++    staged_streams::*,
++    stream::{MediaFrame, StreamKind},
++    stream_lifecycle::*,
++};
++use std::{
++    sync::atomic::{AtomicBool, AtomicU32},
++    time::{Duration, Instant},
++};
++use tokio::{
++    sync::{mpsc, watch},
++    task::JoinHandle,
++};
++use webrtc::media_stream::{
++    Track,
++    track_remote::{TrackRemote, TrackRemoteEvent},
++};
++type Done = Shared<BoxFuture<'static, std::result::Result<(), ()>>>;
++struct Reservation {
++    peer: Weak<PeerAdmission>,
++    id: u16,
++    claimed: AtomicBool,
++}
++#[async_trait::async_trait]
++impl MediaPortCleanup for Reservation {
++    async fn close(&self) -> ControlResult<()> {
++        if self.claimed.load(Ordering::Acquire) {
++            Err(StreamControlError::CleanupUnconfirmed)
++        } else {
++            Ok(())
++        }
++    }
++}
++struct Handles {
++    peer: Weak<PeerAdmission>,
++    next: AtomicU32,
++}
++impl StreamHandleReserver for Handles {
++    fn reserve(&self) -> ControlResult<StreamHandleAllocation> {
++        if self.peer.upgrade().is_none_or(|p| p.is_closed()) {
++            return Err(StreamControlError::Cancelled);
++        }
++        let id = self
++            .next
++            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
++                (n <= u16::MAX as u32).then_some(n + 1)
++            })
++            .map_err(|_| StreamControlError::from(MediaTransitionError::Capacity))?
++            as u16;
++        let owner = Arc::new(Reservation {
++            peer: self.peer.clone(),
++            id,
++            claimed: AtomicBool::new(false),
++        });
++        Ok(StreamHandleAllocation::new(id, owner.clone())?.with_unprepared_cleanup(owner))
++    }
++}
++pub(super) fn handles(peer: &Arc<PeerAdmission>) -> Arc<StreamHandleAllocator> {
++    StreamHandleAllocator::shared(Arc::new(Handles {
++        peer: Arc::downgrade(peer),
++        next: AtomicU32::new(1),
++    }))
++}
++#[derive(Clone)]
++struct Received {
++    packet: rtc::rtp::Packet,
++    at: Instant,
++}
++struct Source {
++    format: MediaFormat,
++    ssrc: u32,
++    payload_type: u8,
++    lease: Arc<InboundClockLease>,
++}
++struct SourceJob {
++    ready: watch::Receiver<Option<std::result::Result<Arc<Source>, ()>>>,
++    done: Done,
++}
++struct Setup {
++    closing: bool,
++    tasks: Vec<JoinHandle<ControlResult<()>>>,
++}
++struct PortIo {
++    port: WeakAdapterMediaPort,
++    binding: ReadyMediaBinding,
++    physical: Arc<WebRtcPhysicalBinding>,
++    stop: CancellationToken,
++    input: mpsc::Sender<Received>,
++    setup: Arc<Mutex<Setup>>,
++    close: OnceLock<Done>,
++    ready: Arc<AtomicBool>,
++    map: Weak<DashMap<StreamId, Arc<PortIo>>>,
++}
++impl PortIo {
++    fn start(
++        &self,
++        f: impl std::future::Future<Output = ControlResult<()>> + Send + 'static,
++    ) -> ControlResult<()> {
++        let mut setup = self.setup.lock().unwrap_or_else(|p| p.into_inner());
++        if setup.closing || self.stop.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let state = self.setup.clone();
++        let ready = self.ready.clone();
++        let port = self.port.clone();
++        let stop = self.stop.clone();
++        setup.tasks.push(tokio::spawn(async move {
++            let result = f.await;
++            {
++                let mut state = state.lock().unwrap_or_else(|p| p.into_inner());
++                state.closing = true;
++                ready.store(false, Ordering::Release);
++            }
++            if !stop.is_cancelled() {
++                stop.cancel();
++                if let Some(port) = port.upgrade() {
++                    let _ = port.report_terminal();
++                }
++            }
++            result
++        }));
++        Ok(())
++    }
++}
++impl Drop for PortIo {
++    fn drop(&mut self) {
++        self.stop.cancel();
++    }
++}
++#[async_trait::async_trait]
++impl MediaPortCleanup for PortIo {
++    async fn close(&self) -> ControlResult<()> {
++        self.stop.cancel();
++        let done = self.close.get_or_init(|| {
++            let tasks = {
++                let mut setup = self.setup.lock().unwrap_or_else(|p| p.into_inner());
++                setup.closing = true;
++                std::mem::take(&mut setup.tasks)
++            };
++            let task = tokio::spawn(async move {
++                let mut clean = true;
++                for task in tasks {
++                    if !matches!(task.await, Ok(Ok(()))) {
++                        clean = false;
++                    }
++                }
++                if clean { Ok(()) } else { Err(()) }
++            });
++            async move { task.await.unwrap_or(Err(())) }
++                .boxed()
++                .shared()
++        });
++        let result = done.clone().await;
++        // This is actual original parent-driver destruction, not an inferred
++        // packet result. It resolves no-IO cleanup while preserving uncertainty
++        // about a write whose original receipt was lost.
++        if result.is_err() && !self.physical.actual_close_confirmed() {
++            return Err(StreamControlError::CleanupUnconfirmed);
++        }
++        if let Some(map) = self.map.upgrade() {
++            map.remove_if(&self.binding.transport_id, |_, v| {
++                std::ptr::eq(self, Arc::as_ptr(v))
++            });
++        }
++        Ok(())
++    }
++}
++pub(super) struct Backend {
++    id: ConnectionId,
++    physical: Arc<WebRtcPhysicalBinding>,
++    lifetime: CancellationToken,
++    ports: Arc<DashMap<StreamId, Arc<PortIo>>>,
++    source: OnceLock<SourceJob>,
++    close: OnceLock<Done>,
++    source_lock: Mutex<()>,
++}
++impl Drop for Backend {
++    fn drop(&mut self) {
++        self.lifetime.cancel();
++    }
++}
++impl Backend {
++    pub(super) fn new(
++        id: ConnectionId,
++        physical: Arc<WebRtcPhysicalBinding>,
++        lifetime: CancellationToken,
++    ) -> Arc<Self> {
++        Arc::new(Self {
++            id,
++            physical,
++            lifetime,
++            ports: Arc::new(DashMap::new()),
++            source: OnceLock::new(),
++            close: OnceLock::new(),
++            source_lock: Mutex::new(()),
++        })
++    }
++    fn current(&self) -> bool {
++        !self.lifetime.is_cancelled()
++            && self.physical.owner_current()
++            && self.physical.rtc_current()
++    }
++    pub(super) async fn close(&self) -> ControlResult<()> {
++        let original = {
++            let _source_guard = self.source_lock.lock().unwrap_or_else(|p| p.into_inner());
++            self.lifetime.cancel();
++            self.close
++                .get_or_init(|| {
++                    let ports = self
++                        .ports
++                        .iter()
++                        .map(|p| p.value().clone())
++                        .collect::<Vec<_>>();
++                    let source = self.source.get().map(|s| s.done.clone());
++                    let physical = self.physical.clone();
++                    let task = tokio::spawn(async move {
++                        let mut clean = true;
++                        for port in ports {
++                            if port.close().await.is_err() {
++                                clean = false;
++                            }
++                        }
++                        if let Some(source) = source {
++                            if source.await.is_err() {
++                                clean = false;
++                            }
++                        }
++                        if clean || physical.actual_close_confirmed() {
++                            Ok(())
++                        } else {
++                            Err(())
++                        }
++                    });
++                    async move { task.await.unwrap_or(Err(())) }
++                        .boxed()
++                        .shared()
++                })
++                .clone()
++        };
++        original
++            .await
++            .map_err(|_| StreamControlError::CleanupUnconfirmed)
++    }
++    fn source(
++        &self,
++        peer: Arc<RvoipPeerConnection>,
++        payload_type: u8,
++        format: MediaFormat,
++    ) -> ControlResult<watch::Receiver<Option<std::result::Result<Arc<Source>, ()>>>> {
++        let _guard = self.source_lock.lock().unwrap_or_else(|p| p.into_inner());
++        if self.lifetime.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let source = self.source.get_or_init(|| {
++            let (tx, ready) = watch::channel(None);
++            let stop = self.lifetime.clone();
++            let ports = self.ports.clone();
++            let task = tokio::spawn(async move {
++                let result =
++                    source_loop(peer, payload_type, format, stop.clone(), ports, &tx).await;
++                if tx.borrow().is_none() {
++                    tx.send_replace(Some(Err(())));
++                }
++                if result.is_err() {
++                    stop.cancel();
++                }
++                result.map_err(|_| ())
++            });
++            let done = async move { task.await.unwrap_or(Err(())) }
++                .boxed()
++                .shared();
++            SourceJob { ready, done }
++        });
++        Ok(source.ready.clone())
++    }
++    async fn source_ready(
++        &self,
++        peer: Arc<RvoipPeerConnection>,
++        pt: u8,
++        format: &MediaFormat,
++        deadline: tokio::time::Instant,
++        cancel: &CancellationToken,
++    ) -> ControlResult<Arc<Source>> {
++        let mut ready = self.source(peer, pt, format.clone())?;
++        loop {
++            if let Some(result) = ready.borrow().clone() {
++                let source = result.map_err(|_| StreamControlError::NotReady)?;
++                if source.payload_type != pt || source.format != *format {
++                    return Err(StreamControlError::Unsupported);
++                }
++                return Ok(source);
++            }
++            tokio::select! {biased;
++                _=self.lifetime.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++                _=tokio::time::sleep_until(deadline)=>return Err(StreamControlError::Deadline),
++                r=ready.changed()=>if r.is_err(){return Err(StreamControlError::NotReady);},
++            }
++        }
++    }
++    fn confirms(&self, bindings: &[ReadyMediaBinding]) -> bool {
++        self.current()
++            && !bindings.is_empty()
++            && bindings.iter().all(|b| {
++                self.ports.get(&b.transport_id).is_some_and(|p| {
++                    p.ready.load(Ordering::Acquire)
++                        && !p.stop.is_cancelled()
++                        && same_binding(&p.binding, b)
++                })
++            })
++    }
++}
++fn same_binding(a: &ReadyMediaBinding, b: &ReadyMediaBinding) -> bool {
++    a.transport_id == b.transport_id
++        && a.stream_local_id == b.stream_local_id
++        && a.generation == b.generation
++        && a.connection_generation == b.connection_generation
++        && a.negotiated == b.negotiated
++        && a.source_ready == b.source_ready
++        && a.sink_ready == b.sink_ready
++}
++async fn shape(peer: &RvoipPeerConnection) -> ControlResult<(MediaFormat, u8, bool, bool)> {
++    if !peer.core_transport_current() || !peer.signaling_is_stable().await {
++        return Err(StreamControlError::NotReady);
++    }
++    let pc = peer.peer_connection();
++    let local = pc
++        .local_description()
++        .await
++        .ok_or(StreamControlError::NotReady)?;
++    let remote = pc
++        .remote_description()
++        .await
++        .ok_or(StreamControlError::NotReady)?;
++    let (offer, answer) = match (local.sdp_type, remote.sdp_type) {
++        (
++            webrtc::peer_connection::RTCSdpType::Offer,
++            webrtc::peer_connection::RTCSdpType::Answer,
++        ) => (&local.sdp, &remote.sdp),
++        (
++            webrtc::peer_connection::RTCSdpType::Answer,
++            webrtc::peer_connection::RTCSdpType::Offer,
++        ) => (&remote.sdp, &local.sdp),
++        _ => return Err(StreamControlError::NotReady),
++    };
++    let mapping = crate::sdp::negotiated_single_audio_payload(offer, answer)
++        .map_err(|_| StreamControlError::Unsupported)?;
++    if !matches!(mapping.codec.name.as_str(), "g.711-mu" | "g.711-a")
++        || mapping.codec.clock_rate_hz != 8000
++        || mapping.codec.channels != 1
++    {
++        return Err(StreamControlError::Unsupported);
++    }
++    fn direction(s: &str) -> ControlResult<(bool, bool)> {
++        let parsed = s
++            .parse::<rvoip_sip_core::types::sdp::SdpSession>()
++            .map_err(|_| StreamControlError::Unsupported)?;
++        let mut audio = parsed
++            .media_descriptions
++            .iter()
++            .filter(|m| m.media == "audio" && m.port != 0);
++        let one = audio.next().ok_or(StreamControlError::NotReady)?;
++        if audio.next().is_some() {
++            return Err(StreamControlError::Unsupported);
++        }
++        let direction = one
++            .direction
++            .as_ref()
++            .or(parsed.direction.as_ref())
++            .map(ToString::to_string)
++            .unwrap_or_else(|| "sendrecv".into());
++        match direction.as_str() {
++            "sendrecv" => Ok((true, true)),
++            "sendonly" => Ok((true, false)),
++            "recvonly" => Ok((false, true)),
++            "inactive" => Ok((false, false)),
++            _ => Err(StreamControlError::Unsupported),
++        }
++    }
++    let (ls, lr) = direction(&local.sdp)?;
++    let (rs, rr) = direction(&remote.sdp)?;
++    if !peer.core_transport_current() || !peer.signaling_is_stable().await {
++        return Err(StreamControlError::NotReady);
++    }
++    Ok((
++        MediaFormat::Encoded {
++            name: match mapping.codec.name.as_str() {
++                "g.711-mu" => "pcmu",
++                "g.711-a" => "pcma",
++                _ => return Err(StreamControlError::Unsupported),
++            }
++            .into(),
++            clock_rate_hz: 8000,
++            channels: 1,
++            fmtp: mapping.codec.fmtp,
++        },
++        mapping.payload_type,
++        lr && rs,
++        ls && rr,
++    ))
++}
++#[async_trait::async_trait]
++impl StagedMediaAdapter for Backend {
++    async fn prepare(
++        &self,
++        ports: Vec<PortPreparation>,
++        deadline: tokio::time::Instant,
++        cancel: CancellationToken,
++    ) -> ControlResult<()> {
++        if self.lifetime.is_cancelled() || !self.physical.owner_current() {
++            return Err(StreamControlError::Cancelled);
++        }
++        // This initial backend is one logical G.711 audio source, not an
++        // implicit codec/transport fallback for unsupported media.
++        if ports.len() != 1 {
++            return Err(StreamControlError::Unsupported);
++        }
++        let prepared = &ports[0];
++        let b = prepared.port.binding();
++        if !prepared.is_new {
++            return if self.confirms(std::slice::from_ref(b)) {
++                Ok(())
++            } else {
++                Err(StreamControlError::NotReady)
++            };
++        }
++        let allocation = prepared
++            .port
++            .allocation_owner()?
++            .downcast::<Reservation>()
++            .map_err(|_| StreamControlError::Authority)?;
++        {
++            let owner = self
++                .physical
++                .owner
++                .lock()
++                .unwrap_or_else(|p| p.into_inner());
++            if allocation.id != b.stream_local_id
++                || !owner
++                    .as_ref()
++                    .is_some_and(|o| Weak::ptr_eq(&o.peer, &allocation.peer))
++            {
++                return Err(StreamControlError::Authority);
++            }
++        }
++        let (_, _, connection) = prepared.port.context_ids()?;
++        if connection != self.id {
++            return Err(StreamControlError::Authority);
++        }
++        let (tx, rx) = mpsc::channel(10);
++        let io = Arc::new(PortIo {
++            port: prepared.port.downgrade(),
++            binding: b.clone(),
++            physical: self.physical.clone(),
++            stop: self.lifetime.child_token(),
++            input: tx,
++            setup: Arc::new(Mutex::new(Setup {
++                closing: false,
++                tasks: vec![],
++            })),
++            close: OnceLock::new(),
++            ready: Arc::new(AtomicBool::new(false)),
++            map: Arc::downgrade(&self.ports),
++        });
++        prepared.port.install_cleanup(io.clone())?;
++        if allocation.claimed.swap(true, Ordering::AcqRel) {
++            return Err(StreamControlError::Authority);
++        }
++        match self.ports.entry(b.transport_id.clone()) {
++            dashmap::mapref::entry::Entry::Vacant(e) => {
++                e.insert(io.clone());
++            }
++            _ => return Err(StreamControlError::Authority),
++        }
++        if io.stop.is_cancelled() || cancel.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let peer = tokio::select! {biased;_=cancel.cancelled()=>return Err(StreamControlError::Cancelled),_=io.stop.cancelled()=>return Err(StreamControlError::Cancelled),p=self.physical.peer(deadline)=>p.map_err(|_|StreamControlError::NotReady)?};
++        tokio::select! {biased;
++            _=cancel.cancelled()=>return Err(StreamControlError::Cancelled),
++            _=io.stop.cancelled()=>return Err(StreamControlError::Cancelled),
++            r=peer.wait_connected(deadline.saturating_duration_since(tokio::time::Instant::now()))=>r.map_err(|_|StreamControlError::NotReady)?,
++        }
++        let (format, pt, can_receive, can_send) = tokio::time::timeout_at(deadline, shape(&peer))
++            .await
++            .map_err(|_| StreamControlError::Deadline)??;
++        if b.negotiated.requested.medium != Medium::Audio
++            || b.negotiated.format != format
++            || b.source_ready && !can_receive
++            || b.sink_ready && !can_send
++        {
++            return Err(StreamControlError::Unsupported);
++        }
++        let source = if b.source_ready {
++            Some(
++                self.source_ready(peer.clone(), pt, &format, deadline, &cancel)
++                    .await?,
++            )
++        } else {
++            None
++        };
++        let egress = if b.sink_ready {
++            Some(
++                peer.core_audio_egress(&prepared.port, deadline.into_std())
++                    .await?,
++            )
++        } else {
++            None
++        };
++        if let Some(source) = source {
++            io.start(ingress(io.port.clone(), io.stop.clone(), rx, source))?;
++        }
++        if let Some(egress) = egress {
++            io.start(egress_loop(egress, io.stop.clone()))?;
++        }
++        if !self.current() || cancel.is_cancelled() || io.stop.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        let setup = io.setup.lock().unwrap_or_else(|p| p.into_inner());
++        if setup.closing || io.stop.is_cancelled() {
++            return Err(StreamControlError::Cancelled);
++        }
++        prepared.port.observe_ready(
++            &format,
++            b.source_ready && can_receive,
++            b.sink_ready && can_send,
++            Some(pt),
++        )?;
++        io.ready.store(true, Ordering::Release);
++        drop(setup);
++        Ok(())
++    }
++}
++async fn source_loop(
++    peer: Arc<RvoipPeerConnection>,
++    pt: u8,
++    format: MediaFormat,
++    stop: CancellationToken,
++    ports: Arc<DashMap<StreamId, Arc<PortIo>>>,
++    ready: &watch::Sender<Option<std::result::Result<Arc<Source>, ()>>>,
++) -> ControlResult<()> {
++    let track = loop {
++        let track = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=peer.wait_failed()=>return Err(StreamControlError::NotReady),t=peer.recv_remote_track()=>t.ok_or(StreamControlError::NotReady)?};
++        if track.kind().await == rtc::rtp_transceiver::rtp_sender::RtpCodecKind::Audio {
++            break track;
++        }
++    };
++    let ssrcs = track.ssrcs().await;
++    if ssrcs.len() != 1 {
++        return Err(StreamControlError::Unsupported);
++    }
++    let ssrc = ssrcs[0];
++    let codec = track
++        .codec(ssrc)
++        .await
++        .ok_or(StreamControlError::NotReady)?;
++    let expected = match &format {
++        MediaFormat::Encoded { name, .. } if name == "pcmu" => "audio/pcmu",
++        MediaFormat::Encoded { name, .. } if name == "pcma" => "audio/pcma",
++        _ => return Err(StreamControlError::Unsupported),
++    };
++    if !codec.mime_type.eq_ignore_ascii_case(expected)
++        || codec.clock_rate != 8000
++        || codec.channels != 1
++    {
++        return Err(StreamControlError::Unsupported);
++    }
++    let identity: Arc<dyn Send + Sync> = track.clone();
++    let lease = Arc::new(peer.source_clock.lease_identity(&ssrcs, &identity));
++    // Advanced synchronized A/V needs its independently qualified source-clock
++    // profile; never silently remove that requirement for this initial audio.
++    if lease.required {
++        return Err(StreamControlError::Unsupported);
++    }
++    let source = Arc::new(Source {
++        format,
++        ssrc,
++        payload_type: pt,
++        lease,
++    });
++    loop {
++        let event = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=peer.wait_failed()=>return Err(StreamControlError::NotReady),e=track.poll()=>e};
++        match event {
++            Some(TrackRemoteEvent::OnRtpPacket(packet, at)) => {
++                if packet.header.ssrc != ssrc
++                    || packet.header.payload_type != pt
++                    || at.elapsed() >= Duration::from_millis(200)
++                {
++                    continue;
++                }
++                if ready.borrow().is_none() {
++                    ready.send_replace(Some(Ok(source.clone())));
++                }
++                for entry in ports.iter() {
++                    let io = entry.value();
++                    // Arrival before activation can establish resources but
++                    // cannot be replayed as a new generation's publication.
++                    if !io.ready.load(Ordering::Acquire)
++                        || io.stop.is_cancelled()
++                        || io
++                            .port
++                            .upgrade()
++                            .is_none_or(|p| p.status() != PortStatus::Active)
++                    {
++                        continue;
++                    }
++                    let _ = io.input.try_send(Received {
++                        packet: packet.clone(),
++                        at,
++                    });
++                }
++            }
++            None | Some(TrackRemoteEvent::OnError | TrackRemoteEvent::OnEnded) => {
++                return if stop.is_cancelled() {
++                    Ok(())
++                } else {
++                    Err(StreamControlError::NotReady)
++                };
++            }
++            _ => {}
++        }
++    }
++}
++async fn ingress(
++    port: WeakAdapterMediaPort,
++    stop: CancellationToken,
++    mut input: mpsc::Receiver<Received>,
++    source: Arc<Source>,
++) -> ControlResult<()> {
++    loop {
++        let received = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),p=input.recv()=>match p{Some(p)=>p,None=>return Ok(())}};
++        let Some(port) = port.upgrade() else {
++            return Ok(());
++        };
++        let frame = MediaFrame {
++            stream_id: port.binding().transport_id.clone(),
++            kind: StreamKind::Audio,
++            payload: received.packet.payload.clone(),
++            timestamp_rtp: received.packet.header.timestamp,
++            captured_at: Utc::now()
++                .checked_sub_signed(
++                    chrono::Duration::from_std(received.at.elapsed())
++                        .unwrap_or(chrono::Duration::MAX),
++                )
++                .unwrap_or(chrono::DateTime::<Utc>::MIN_UTC),
++            payload_type: Some(source.payload_type),
++            source_clock: None,
++        };
++        loop {
++            if stop.is_cancelled() {
++                return Ok(());
++            };
++            if received.at.elapsed() >= Duration::from_millis(200) {
++                break;
++            }
++            let result = port.try_publish_clocked_received(&frame, received.at, |_| {
++                source.lease.capture(source.ssrc)
++            });
++            match result {
++                Ok(()) => break,
++                Err(StreamControlError::Backpressure) => {
++                    tokio::select! {biased;_=stop.cancelled()=>return Ok(()),_=tokio::time::sleep_until(tokio::time::Instant::from_std(received.at+Duration::from_millis(200)))=>break,_=tokio::time::sleep(Duration::from_millis(2))=>{}}
++                }
++                Err(_) => break,
++            }
++        }
++    }
++}
++async fn egress_loop(mut egress: CoreAudioEgress, stop: CancellationToken) -> ControlResult<()> {
++    loop {
++        let write = tokio::select! {biased;_=stop.cancelled()=>return Ok(()),w=egress.submit_next(Instant::now()+Duration::from_millis(100))=>match w {
++            Ok(Some(w))=>w,Ok(None)=>return Ok(()),Err(StreamControlError::Deadline)=>continue,Err(e)=>return Err(e),
++        }};
++        let _ = tokio::select! {biased;_=stop.cancelled()=>None,r=write.result()=>Some(r)};
++        // Original submission custody never moves into an observation waiter.
++        write
++            .cancel_and_drain()
++            .await
++            .map_err(|_| StreamControlError::CleanupUnconfirmed)?;
++    }
++}
++/// Metadata-only initial activation. Fresh host authority is still mandatory.
++pub struct RtcMediaActivation {
++    controller: Weak<StreamController>,
++    backend: Weak<Backend>,
++    prepared: Mutex<Option<Arc<PreparedMediaObservation>>>,
++}
++impl RtcMediaActivation {
++    pub(super) fn new(controller: &Arc<StreamController>, backend: &Arc<Backend>) -> Arc<Self> {
++        Arc::new(Self {
++            controller: Arc::downgrade(controller),
++            backend: Arc::downgrade(backend),
++            prepared: Mutex::new(None),
++        })
++    }
++}
++impl MediaActivation for RtcMediaActivation {
++    fn prepare(
++        &self,
++        prepared: &Arc<PreparedMediaObservation>,
++        current: MediaOwner,
++    ) -> ControlResult<MediaOwner> {
++        let controller = self
++            .controller
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !prepared.belongs_to(&controller) || !backend.confirms(prepared.bindings()) {
++            return Err(StreamControlError::NotReady);
++        }
++        let owner = prepared.activate_for_commit(current)?;
++        *self.prepared.lock().unwrap_or_else(|p| p.into_inner()) = Some(prepared.clone());
++        Ok(owner)
++    }
++    fn current(&self, current: MediaOwner) -> ControlResult<MediaOwner> {
++        let backend = self
++            .backend
++            .upgrade()
++            .ok_or(StreamControlError::Cancelled)?;
++        if !backend.current() {
++            return Err(StreamControlError::Cancelled);
++        }
++        self.prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .ok_or(StreamControlError::NotReady)?
++            .current(current)
++    }
++    fn confirmed_generation(&self) -> Option<u64> {
++        self.prepared
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()?
++            .committed_generation()
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc/src/canonical.rs b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+--- a/crates/webrtc/rvoip-webrtc/src/canonical.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical.rs
+@@ -4,11 +4,13 @@
+     WebRtcConfig,
+     peer::{PeerRole, RvoipPeerConnection},
+ };
++mod media;
+ use dashmap::DashMap;
+ use futures::{
+     FutureExt,
+     future::{BoxFuture, Shared},
+ };
++pub use media::RtcMediaActivation;
+ use rvoip_core::{
+     adapter::*,
+     capability::{CapabilityDescriptor, NegotiatedCodecs},
+@@ -21,6 +23,12 @@
+     peer_admission::PeerAdmission,
+     stream::MediaStream,
+ };
++use rvoip_core::{
++    identity::AuthenticatedPrincipal,
++    relationships::{EndpointBinding, Membership},
++    staged_streams::{MediaPolicy, StagedMediaAdapter, StreamController, StreamHandleAllocator},
++};
++use std::any::Any;
+ use std::sync::{
+     Arc, Mutex, OnceLock, Weak,
+     atomic::{AtomicUsize, Ordering},
+@@ -43,6 +51,7 @@
+ /// Created by the trusted WSS factory before Core reservation. No wire body
+ /// can construct the Core request or substitute this original owner/context.
+ pub struct WebRtcPhysicalBinding {
++    capacity: Arc<Mutex<Option<tokio::sync::OwnedSemaphorePermit>>>,
+     accepted_peer: Weak<PeerAdmission>,
+     lifetime: CancellationToken,
+     owner: Mutex<Option<Owner>>,
+@@ -52,12 +61,38 @@
+ impl WebRtcPhysicalBinding {
+     pub fn new(peer: &Arc<PeerAdmission>, physical: CancellationToken) -> Arc<Self> {
+         Arc::new(Self {
++            capacity: Arc::new(Mutex::new(None)),
+             accepted_peer: Arc::downgrade(peer),
+             lifetime: physical.child_token(),
+             owner: Mutex::new(None),
+             allocation: Mutex::new(None),
+             completion: OnceLock::new(),
+         })
++    }
++    /// The deployment slot is retained by the original close worker and route,
++    /// never released by a failed allocation/observation worker.
++    pub fn with_capacity(
++        peer: &Arc<PeerAdmission>,
++        physical: CancellationToken,
++        permit: tokio::sync::OwnedSemaphorePermit,
++    ) -> Arc<Self> {
++        let value = Self::new(peer, physical);
++        *value.capacity.lock().unwrap_or_else(|p| p.into_inner()) = Some(permit);
++        value
++    }
++    pub(crate) fn rtc_current(&self) -> bool {
++        self.allocation
++            .lock()
++            .unwrap_or_else(|p| p.into_inner())
++            .as_ref()
++            .and_then(|f| f.peek())
++            .is_some_and(|r| r.as_ref().is_ok_and(|p| p.core_transport_current()))
++    }
++    pub(crate) fn actual_close_confirmed(&self) -> bool {
++        self.completion
++            .get()
++            .and_then(|f| f.peek())
++            .is_some_and(|r| r.is_ok())
+     }
+     fn bind(
+         &self,
+@@ -189,6 +224,7 @@
+                 .lock()
+                 .unwrap_or_else(|p| p.into_inner())
+                 .clone();
++            let capacity = self.capacity.clone();
+             let task = tokio::spawn(async move {
+                 if let Some(allocation) = allocation {
+                     match allocation.await {
+@@ -202,6 +238,9 @@
+                         }
+                     }
+                 }
++                // The Core route retains capacity through port/controller
++                // cleanup. Merely closing the parent socket cannot refund it.
++                drop(capacity);
+                 Ok(())
+             });
+             async move {
+@@ -230,9 +269,12 @@
+             .take()
+         {
+             if let Ok(runtime) = tokio::runtime::Handle::try_current() {
++                let capacity = self.capacity.clone();
+                 runtime.spawn(async move {
+                     if let Ok(peer) = allocation.await {
+-                        let _ = peer.close().await;
++                        if peer.close().await.is_ok() {
++                            capacity.lock().unwrap_or_else(|p| p.into_inner()).take();
++                        }
+                     }
+                 });
+             }
+@@ -240,6 +282,10 @@
+     }
+ }
+ struct Route {
++    session: SessionId,
++    member: Membership,
++    endpoint: EndpointBinding,
++    installation: Mutex<Option<Installation>>,
+     binding: Arc<WebRtcPhysicalBinding>,
+     peer: Weak<PeerAdmission>,
+     cancel: CancellationToken,
+@@ -251,7 +297,13 @@
+ }
+ /// Explicit canonical resource adapter. It has no legacy signaling/outbound
+ /// fallback and does not advertise staged media until that backend is installed.
++struct Installation {
++    controller: Arc<StreamController>,
++    backend: Arc<media::Backend>,
++    activation: Arc<RtcMediaActivation>,
++}
+ pub struct CanonicalWebRtcAdapter {
++    handle_pools: Mutex<Vec<(Weak<PeerAdmission>, Arc<StreamHandleAllocator>)>>,
+     routes: DashMap<ConnectionId, Arc<Route>>,
+     allocated: AtomicUsize,
+     events: mpsc::Sender<OrchestratorAdapterEvent>,
+@@ -262,12 +314,96 @@
+     pub fn new() -> Arc<Self> {
+         let (tx, rx) = mpsc::channel(64);
+         Arc::new(Self {
++            handle_pools: Mutex::new(Vec::new()),
+             routes: DashMap::new(),
+             allocated: AtomicUsize::new(0),
+             events: tx,
+             receiver: Mutex::new(Some(rx)),
+             lifecycle: Default::default(),
+         })
++    }
++    /// Install one controller/backend on the exact already-reserved route.
++    /// Its actual RTC resources are prepared later, after signed SDP delivery.
++    pub fn configure_media(
++        &self,
++        id: &ConnectionId,
++        principal: AuthenticatedPrincipal,
++        conversation: ConversationId,
++        policy: Arc<dyn MediaPolicy>,
++        maximum_ports: usize,
++        held: &(dyn Any + Send + Sync),
++    ) -> Result<(Arc<StreamController>, Arc<RtcMediaActivation>)> {
++        let route = self
++            .routes
++            .get(id)
++            .map(|r| r.value().clone())
++            .ok_or_else(|| RvoipError::ConnectionNotFound(id.clone()))?;
++        let peer = route
++            .peer
++            .upgrade()
++            .ok_or(RvoipError::AdmissionRejected("RTC owner retired"))?;
++        peer.validate_principal(&principal)
++            .map_err(|_| RvoipError::AdmissionRejected("RTC owner denied"))?;
++        if !route.binding.current(&peer, id) {
++            return Err(RvoipError::AdmissionRejected("RTC route retired"));
++        }
++        let mut installation = route.installation.lock().unwrap_or_else(|p| p.into_inner());
++        if installation.is_some() {
++            return Err(RvoipError::InvalidState("RTC media already installed"));
++        }
++        let handles = {
++            let mut pools = self.handle_pools.lock().unwrap_or_else(|p| p.into_inner());
++            pools.retain(|(p, _)| p.upgrade().is_some_and(|p| !p.is_closed()));
++            match pools
++                .iter()
++                .find(|(p, _)| Weak::ptr_eq(p, &Arc::downgrade(&peer)))
++            {
++                Some((_, h)) => h.clone(),
++                None => {
++                    let h = media::handles(&peer);
++                    pools.push((Arc::downgrade(&peer), h.clone()));
++                    h
++                }
++            }
++        };
++        let backend = media::Backend::new(
++            id.clone(),
++            route.binding.clone(),
++            route.cancel.child_token(),
++        );
++        let controller = StreamController::with_held_control(
++            conversation,
++            route.session.clone(),
++            id.clone(),
++            principal,
++            policy,
++            backend.clone(),
++            handles,
++            maximum_ports,
++            rvoip_core::stream_lifecycle::DEFAULT_OPENED_STREAM_LIMIT,
++            route.cancel.child_token(),
++            held,
++        )
++        .map_err(|_| RvoipError::AdmissionRejected("RTC media policy denied"))?;
++        if !controller.is_bound_to(&route.member, &route.endpoint) {
++            return Err(RvoipError::AdmissionRejected("RTC media owner changed"));
++        }
++        let activation = RtcMediaActivation::new(&controller, &backend);
++        *installation = Some(Installation {
++            controller: controller.clone(),
++            backend,
++            activation: activation.clone(),
++        });
++        Ok((controller, activation))
++    }
++    fn capacity_release(&self, binding: &WebRtcPhysicalBinding) {
++        if binding.actual_close_confirmed() {
++            binding
++                .capacity
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .take();
++        }
+     }
+     pub fn route_count(&self) -> usize {
+         self.routes.len()
+@@ -315,6 +451,10 @@
+         binding.bind(request.peer(), request.connection(), request.cancellation())?;
+         let id = request.connection().clone();
+         let route = Arc::new(Route {
++            session: request.session().clone(),
++            member: request.frozen_member().clone(),
++            endpoint: request.frozen_endpoint().clone(),
++            installation: Mutex::new(None),
+             binding,
+             peer: Arc::downgrade(request.peer()),
+             cancel: request.cancellation(),
+@@ -353,6 +493,24 @@
+                 && r.binding.current(peer, id)
+         })
+     }
++    fn staged_controller(&self, id: &ConnectionId) -> Option<Arc<StreamController>> {
++        self.routes
++            .get(id)?
++            .installation
++            .lock()
++            .ok()?
++            .as_ref()
++            .map(|i| i.controller.clone())
++    }
++    fn staged_media(&self, id: &ConnectionId) -> Option<Arc<dyn StagedMediaAdapter>> {
++        self.routes
++            .get(id)?
++            .installation
++            .lock()
++            .ok()?
++            .as_ref()
++            .map(|i| i.backend.clone() as Arc<dyn StagedMediaAdapter>)
++    }
+     fn is_connection_live(&self, id: &ConnectionId) -> bool {
+         self.routes.contains_key(id)
+     }
+@@ -373,7 +531,29 @@
+         let route = self.routes.get(&id).map(|r| r.value().clone());
+         if let Some(route) = route {
+             route.cancel.cancel();
++            let installation = route
++                .installation
++                .lock()
++                .unwrap_or_else(|p| p.into_inner())
++                .as_ref()
++                .map(|i| (i.controller.clone(), i.backend.clone()));
++            // Parent transport destruction also resolves port IO whose original
++            // driver receipt was lost; outcome uncertainty remains historical.
+             route.binding.shutdown().await?;
++            if let Some((controller, backend)) = installation {
++                backend
++                    .close()
++                    .await
++                    .map_err(|_| RvoipError::InvalidState("RTC port cleanup unconfirmed"))?;
++                if controller
++                    .shutdown(tokio::time::Instant::now() + std::time::Duration::from_secs(1))
++                    .await
++                    != 0
++                {
++                    return Err(RvoipError::InvalidState("RTC Core cleanup unconfirmed"));
++                }
++            }
++            self.capacity_release(&route.binding);
+             if self
+                 .routes
+                 .remove_if(&id, |_, r| Arc::ptr_eq(r, &route))
+diff --git a/crates/webrtc/rvoip-webrtc/src/peer/session.rs b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+--- a/crates/webrtc/rvoip-webrtc/src/peer/session.rs
++++ b/crates/webrtc/rvoip-webrtc/src/peer/session.rs
+@@ -1225,6 +1225,9 @@
+     }
+ 
+     /// Returns true once ICE/DTLS has reached `Connected`.
++    pub(crate) fn core_transport_current(&self) -> bool {
++        self.connected_flag.load(Ordering::Acquire) && !self.failed_flag.load(Ordering::Acquire)
++    }
+     pub fn is_connected(&self) -> bool {
+         self.connected_flag.load(Ordering::Acquire)
+     }
