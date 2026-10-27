@@ -1,0 +1,325 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "executed_at": "2026-10-27T12:36:04.619799+00:00",
+  "source_revision_before_checkpoint": "cef655b7b173b827a9474d516c9410351f9249f8",
+  "scope": "Actual CanonicalWebRtcAdapter, staged RTC controllers, Core routes and owned RTC IO through local ICE/DTLS/SRTP/SRTCP. Synthetic identities, current policy/readers and capture fixtures; no Store/signed WSS host, physical camera or installed browser qualification.",
+  "implementation": [
+    "Canonical protected peers use the reviewed video repair/clock profile without exposing a public opt-in config. Ordinary peer constructors retain their previous profile. Per-kind source observation and bounded video reorder/normalization feed exact actual audio/video Core ports; no-RTP peers cannot become source ready.",
+    "Readiness requires original live ingress workers and actual matching media. Independent audio/video cancellation and failed-worker invalidation retain original peer/port/controller custody until joined cleanup. Desired programs validate one logical stream per medium without rejecting stale failed preparations.",
+    "One bounded VP8/90000 primary mapping and optional exact RTX apt are negotiated from actual matching offer/answer m-sections. Ambiguous payloads, MID extension collisions, unsupported VP8 fmtp, RID/simulcast including dangling raw declarations and non-FID video groups refuse. Peer-bound CoreVideoEgress carries the same negotiated MID on original and repaired RTP.",
+    "Audio writers receive the exact peer sender-clock handle when created. Core audio and video preserve original clock provenance and source-route liveness through owned IO. Missing required source timing cannot silently become native timing. This does not qualify actual RTCP SR timing or A/V synchronization.",
+    "Canonical ingress receives only original matching media, shares existing bounded VP8 reorder/repacketization and original 200ms age bounds, and fans out only to active exact per-kind ports. Video repair remains explicit, bounded and authorized at actual IO by opaque Core VideoRepair handles."
+  ],
+  "verification": {
+    "complete_stack_methods": 24,
+    "complete_interceptor_methods": 135,
+    "core_video_network_methods": 14,
+    "video_profile_methods": 6,
+    "total_distinct_methods": 179,
+    "canonical_av_assertion_groups": 11,
+    "resource_lifetime_assertion_groups": 14,
+    "staged_audio_assertion_groups": 7,
+    "overlap": "Resource-lifetime includes the seven staged-audio groups; the repeat standalone run is regression confirmation, not seven additional distinct groups.",
+    "builds_and_dependency_units": [
+      {
+        "name": "rtc_interceptor-production",
+        "seconds": 0.15736395795829594,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rtc-production",
+        "seconds": 1.0681584170088172,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rvoip_core-production",
+        "seconds": 9.507349000079557,
+        "exit_code": 0,
+        "log_sha256": "273a943f5e38e9d8bbed12c8f00196cff9dae810056a6a4835c9dddec13b23b0",
+        "changed_inputs": []
+      },
+      {
+        "name": "webrtc-production",
+        "seconds": 1.0063532500062138,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rvoip_webrtc-production",
+        "seconds": 20.292889582924545,
+        "exit_code": 0,
+        "log_sha256": "d57db7b5f6b232722fa505e69f21ce35eb4ad4614526692e4e2079bbc35ff06d",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-build",
+        "seconds": 1.4785842089913785,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-runtime",
+        "seconds": 2.7473090409766883,
+        "exit_code": 0,
+        "log_sha256": "b97d41a868145500bd0a738ca240b38308227f938270b37b0e07fa6e3567f06e",
+        "changed_inputs": []
+      },
+      {
+        "name": "interceptor-unit-build",
+        "seconds": 0.4009282081387937,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "interceptor-unit-runtime",
+        "seconds": 0.19602216710336506,
+        "exit_code": 0,
+        "log_sha256": "cd1edc7738ee7e920c3ad045c87078a7cf8651b5f58394a1309f9707e83edbb1",
+        "changed_inputs": []
+      }
+    ],
+    "canonical_av": [
+      {
+        "name": "canonical-av-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.7869928749278188,
+        "log_sha256": "ee5245bcd3252829db70e1c4067bf76f7dfd8787cb523b498ba13bc5c84e1e1d",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "canonical-av-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 3.1028650410007685,
+        "log_sha256": "88f4f1da2c71c87747b5d06ced4342eada00baee26a49e896671af2830d863a6",
+        "results": [
+          "PASS unallocated resources refuse readiness then recover into four actual Core AV ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS independently decoded duplex audio continues on the actual canonical AV peers",
+          "PASS no implicit video playback before explicit Core selection",
+          "PASS actual negotiated VP8 PT/SSRC/MID and original pictures traverse both canonical Core AV routes",
+          "PASS actual canonical NACK/RTX repair preserves original picture identity and negotiated MID",
+          "PASS independent FFmpeg decoding identifies the other participant's distinct 64x64 picture in each direction",
+          "PASS video selection withdrawal and restoration leave duplex audio and reverse video running",
+          "PASS current video-only publication permission withdraws/restores independently of audio and reverse video",
+          "PASS both original canonical AV peers and all four actual Core ports join before quota refund"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "resource_lifetime": [
+      {
+        "name": "resource-lifetime-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.5996660410892218,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "resource-lifetime-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 2.903582749888301,
+        "log_sha256": "53490cef76b68bb1e933bb191c7c6bc1cb6760e1657ea5c9705e5c23d05fa695",
+        "results": [
+          "PASS carol: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS carol: actual parent close ends a pending no-RTP observation before original source/controller joins and quota refund",
+          "PASS alice: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS alice: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+          "PASS bob: actual connected peer without RTP refuses and cancelled source observation retains original resource custody without active ports",
+          "PASS bob: same original source recovers after deadline/cancellation and observes actual primary RTP without activating or publishing a port",
+          "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+          "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+          "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+          "PASS original RTC drivers and all Core port resources close before quota refund",
+          "PASS actual ingress worker failure invalidates current media readiness while retaining peer quota and capacity until original joined cleanup"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "staged_audio": [
+      {
+        "name": "staged-audio-sealed-build",
+        "exit_code": 0,
+        "seconds": 0.5522118750959635,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "staged-audio-sealed-runtime",
+        "exit_code": 0,
+        "seconds": 2.3907411249820143,
+        "log_sha256": "7279f5624849142a3b1569d3db6189e5ae4c22154fc6b91a8b32edaeaf2a69f1",
+        "results": [
+          "PASS unallocated resources refuse readiness then recover into two actual Core RTC ports without synthetic callbacks",
+          "PASS actual staged RTC Controllers admit and replay original participant operations with one peer charge",
+          "PASS explicit current Core participant subscriptions authorize both receive directions",
+          "PASS Core participant bridge delivers independently decoded marked duplex audio through owned RTC egress pumps",
+          "PASS fresh publication authority withdraws and restores actual decoded audio while the reverse direction continues",
+          "PASS actual Core observer and speaking role transitions gate decoded publication without reallocating the RTC peers",
+          "PASS original RTC drivers and all Core port resources close before quota refund"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "video_profile": [
+      {
+        "name": "profile-public-build",
+        "exit_code": 0,
+        "seconds": 0.19997254200279713,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "profile-public-runtime",
+        "exit_code": 0,
+        "seconds": 0.2575945418793708,
+        "log_sha256": "e88f624f21a727968c18c9b964e7a3d790f835e570d81fba3570e260a6c93ba4",
+        "results": [
+          "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "core_video": [
+      {
+        "name": "core-video-final-build",
+        "exit_code": 0,
+        "seconds": 0.6168268339242786,
+        "log_sha256": "a208d94fbe7dde7eb122f0c06bfbe668eb6450369d204c59bd8853c927483c83",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-video-final-runtime",
+        "exit_code": 0,
+        "seconds": 4.29476804099977,
+        "log_sha256": "4608ddaf00cc360171c071e11b1c1506cf2b6466522fe1d01891e2100c332409",
+        "results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.95s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "actual_picture_decode": {
+      "generator": "FFmpeg libvpx, one synthetic 64x64 solid-color keyframe per source; fixture sends one complete keyframe every 60ms alongside 20ms mono PCMU at negotiated dynamic PT109.",
+      "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "ffmpeg_binary_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "generation_command": "ffmpeg -hide_banner -loglevel error -f lavfi -i color=c={red|blue}:s=64x64:r=1 -frames:v 1 -c:v libvpx -deadline realtime -f ivf {color}.ivf; extract the first IVF frame payload to {color}.vp8",
+      "decoder": "ffmpeg -nostdin -y -hide_banner -loglevel error -f ivf -c:v vp8 -i received-{label}.ivf -frames:v 1 -f rawvideo -pix_fmt rgb24 received-{label}.rgb",
+      "source_frames": {
+        "red": {
+          "encoded_bytes": 64,
+          "sha256": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "width": 64,
+          "height": 64
+        },
+        "blue": {
+          "encoded_bytes": 64,
+          "sha256": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566",
+          "width": 64,
+          "height": 64
+        }
+      },
+      "decoded_images": {
+        "received-alice-reselected.rgb": {
+          "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+          "bytes": 12288,
+          "mean_rgb": [
+            0.0,
+            0.0,
+            255.0
+          ],
+          "ivf_sha256": "ddcdbab4d899f3748eaa05a824dd3f74e966786f90257978cd396e29b84434ec"
+        },
+        "received-alice.rgb": {
+          "sha256": "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+          "bytes": 12288,
+          "mean_rgb": [
+            0.0,
+            0.0,
+            255.0
+          ],
+          "ivf_sha256": "4a6e2546a1c9a67643ff62cfb98bc97680b588a7e91fd451052696670a81f197"
+        },
+        "received-bob-restored.rgb": {
+          "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+          "bytes": 12288,
+          "mean_rgb": [
+            254.0,
+            0.0,
+            0.0
+          ],
+          "ivf_sha256": "0b1997d1379128f906d308bf177ffbafab20d7b619a7323dff1fd73c253ec322"
+        },
+        "received-bob.rgb": {
+          "sha256": "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+          "bytes": 12288,
+          "mean_rgb": [
+            254.0,
+            0.0,
+            0.0
+          ],
+          "ivf_sha256": "698a23e2efd7f80ea670acde317b769f622370d7026b22709795fc12f4180cf7"
+        }
+      },
+      "limits": "Distinct decoded static synthetic pictures, no motion, camera, playout, lip-sync or latency qualification."
+    },
+    "repair_fixture": "Receiver drops one primary after actual encrypted UDP delivery and SRTP decrypt. Explicit SRTCP NACK yields negotiated RTX PT121/different SSRC/OSN and restores the missing original sequence/timestamp/body/MID. An already delivered duplicate is not used as repair evidence."
+  },
+  "reproduce": {
+    "production_build": ".local/gate-6/rtc-canonical-video/build.py uses exact retained dependency artifacts from .local/gate-6/rtc-opus/build-03.jsonl; five ordinary production libraries, no unit-test-only IO shortcut, opt-level=0/default worker stacks.",
+    "probe_sources": [
+      "docs/evidence/gate-6/webrtc-canonical-av-probe.rs",
+      "docs/evidence/gate-6/webrtc-canonical-video-profile-probe.rs"
+    ],
+    "compile_environment": {
+      "CONNECT_AV_FIXTURE_DIR": "absolute isolated fixture directory containing generated red.vp8 and blue.vp8",
+      "CONNECT_AV_FFMPEG": "absolute decoder binary"
+    },
+    "input_guards": "Successful current build marker checks source/library hashes. Sealed AV/audio/lifetime probes also hash public probe, direct path support fixture, selected retained libraries, source frames, FFmpeg and executable. No input drift in passing runs.",
+    "private_manifests": {
+      "build-complete.json": "11ba6b9556091eb1ee73d001676bb07229fd905bc53a1645ff1ba02301dac09f",
+      "build-inputs.json": "80155b8816897828c194dcadba7a750fe0e22848e6e6f9c5d2248bac341cafe8",
+      "canonical-av-sealed-inputs.json": "e085511aefae14e8f6922b74da429c3960b18a92cfad1122b2477d372ecf3dc8",
+      "resource-lifetime-sealed-inputs.json": "7a85b6dc27be77d2ead90327d972bc7497f76b2fe717fe1f4296dd9ff1db9d59",
+      "staged-audio-sealed-inputs.json": "83c9da25480f8b7aff2b78731780766f8025bc4453d39ed8170485c21d0c862d",
+      "profile-public-inputs.json": "82d05e968a0ac5ece76e7e782a6ba715283973f511bc0ef101c0c8e0258d6022",
+      "core-video-final-inputs.json": "6266b1c123ebb2cbcee53383884fb92aa70ae682aa6525332254f0bdd529fa77"
+    },
+    "source_lock_sha256": "abe51b48f8e71cdfafd803c7e0d2fe42b6afc78f6463c74a97f2a3f2c9fa724b",
+    "patch_sha256": "6bd99c5f11f2f888f972bc2c9fc6e48ba39563e9aae7e1b4b0af379fa07479ec",
+    "raw_logs": ".local/gate-6/rtc-canonical-video/; private generated media, build arguments, libraries and executables retained there."
+  },
+  "failures_and_recovery": [
+    "Initial upper build failed on an outdated audio-only initial_resources caller and a Simulcast enum pattern; generalized per-kind preparation and corrected the pattern, then rebuilt the entire affected five-library graph successfully.",
+    "An initial audio regression refused a valid retry because validation consulted old port preparations. Removed that restriction and retained per-program duplicate-kind validation; all seven staged audio and fourteen resource-lifetime groups pass.",
+    "Initial AV admitted four ports but delivered no decoded audio. The legacy audio writer had not received its peer clock outside stream conversion. Assigning the clock at physical track creation and preserving route-liveness provenance fixes actual guarded audio without dropping timing metadata.",
+    "An initial repair fixture NACKed an already delivered packet and timed out waiting for an application duplicate; duplicate suppression versus expiry was not independently determined. Replaced it with actual receiver-side primary loss and confirmed decrypted RTX/restored missing identity.",
+    "A negative profile test initially accepted dangling a=simulcast:send f because the shared parser omitted it. Raw original SDP checks now refuse it; all six profile tests pass.",
+    "A staging script partially edited a private source before a destination-exists assertion; no build or test success was claimed for that state. A fresh prepared snapshot and complete successful build precede final evidence.",
+    "The resource-lifetime test intentionally panics an actual ingress policy worker; subsequent invalidated-readiness and joined-cleanup assertions pass. The logged panic is the exercised failure fixture."
+  ],
+  "remaining": [
+    "Root signed WSS server still refuses AV; integrate exact per-stream negotiated answers and rebuild current server/client/service binaries before claiming that host path.",
+    "This AV fixture composes PCMU+VP8. Actual Opus+VP8 composition remains to verify despite separately qualified mono Opus support.",
+    "Actual authoritative SR/clock-retirement/A-V synchronization, physical capture, motion and browser playback remain unqualified.",
+    "Installed Chrome/Firefox, capture permissions, renegotiation, DTMF, refresh/query, complete fallback and browser dialect migration remain implementation/qualification work. Nonempty VP8 fmtp currently refuses.",
+    "SCTP/data, Linux x86_64, named authorized remote/provider lanes, package/install evidence and complete Gate 6 acceptance remain open. No account/model/provider run used for this checkpoint."
+  ]
+}

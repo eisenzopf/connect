@@ -1211,6 +1211,11 @@
       "target": "rtc-interceptor",
       "source": "Guarded RTP timing must belong to the exact sender-clock instance installed by its reviewed physical peer pipeline. Identity is not media authorization.",
       "sha256": "37fc41fa9043ca31deabe4f8dc41f5dd02648ff11786b15535de4e6889f95cb6"
+    },
+    {
+      "path": "patches/rvoip/gate6-canonical-video-ports.patch",
+      "source": "G6-051 canonical guarded audio/VP8 physical peer and exact SDP/Core port binding, source-worker/media lifetime and ingress normalization, actual guarded audio/video source-clock writes and MID-preserving repair. Root signed-host/browser qualification remains required.",
+      "sha256": "6bd99c5f11f2f888f972bc2c9fc6e48ba39563e9aae7e1b4b0af379fa07479ec"
     }
   ]
 }

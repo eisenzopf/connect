@@ -531,3 +531,38 @@ admission, original port/controller cleanup, independently decoded pictures,
 actual SR/A/V synchronization, installed browsers or full fallback/hosting.
 Canonical video integration and whole Connect rebuilding remain next; G6-051
 remains in progress and default browser media advertisement stays disabled.
+
+
+## Canonical audio/video Core ports
+
+Protected canonical peers now use the reviewed video repair and sender-clock
+pipeline. The adapter owns separate audio and video ingress jobs and prepares
+one exact Core port per selected medium. Actual matching RTP and live original
+workers are required for readiness. Cancellation and worker failure preserve
+original peer/port custody until joined cleanup; a failed preparation can recover
+without reallocating the original peer.
+
+Video negotiation accepts one exact VP8/90000 primary with optional matching
+RTX apt. Original and repaired packets carry the negotiated MID. Ambiguous
+mappings, MID collisions, unsupported fmtp and RID/simulcast declarations refuse,
+including declarations omitted by the shared SDP parser. Audio writers receive
+the peer clock on creation, preserving Core source provenance through guarded IO.
+
+The [canonical AV probe](../evidence/gate-6/webrtc-canonical-av-probe.rs),
+[profile probe](../evidence/gate-6/webrtc-canonical-video-profile-probe.rs) and
+[evidence](../evidence/gate-6/webrtc-canonical-av.json) record 179 distinct
+methods, 11 AV assertion groups and 14 lifetime groups. The latter include the
+seven staged audio regression groups. Actual encrypted peers deliver independently
+decoded duplex PCMU audio and distinct synthetic VP8 pictures. Receiver-side
+primary loss recovers through authenticated RTX with original packet identity.
+Explicit video selection and current video permission withdrawal/restoration
+leave audio and reverse video active. All four ports and original peers join
+before quota refund. Initial compile, preparation, clock, repair-fixture and
+SDP-parser failures are recorded with their passing recovery checks.
+
+These are real canonical Core/RTC paths with isolated policy and capture fixtures.
+Root signed WSS still rejects AV and awaits integration and a current rebuild.
+Opus+VP8 composition, actual SR/A/V synchronization, motion/camera capture,
+installed browsers, full fallback, data, Linux/remote and package qualification
+remain open. G6-051 stays in progress; default browser media advertisement remains
+disabled.
