@@ -1,0 +1,169 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "in-progress",
+  "recorded_at": "2026-10-27T20:32:46.153084+00:00",
+  "scope": "Exact-source Core skipped-original regression and candidate103focused methods. Full frozen production build69/runtime PENDING; no claim of fixed browser audio.",
+  "previous_runtime": "canonical-mixer-publication.json records33native functions passing, both normal EdDSA browser profiles passing and both ES256profiles failing one660Hz-direction audio sample each. All other AV/originalUDP-WSS/terminal/cleanup subchecks passed. Those failures remain failures.",
+  "implementation": [
+    "After one mixed quantum, keep at most two newest not-yet-started original PCM chunks. In the frozen20ms profile this allows40ms pending lookahead, preserving the middle original in a three-packet burst.",
+    "A playing long original still retains its remainder plus only the newest future original, as before. Existing10chunk/200ms insertion bound, original packet age/current source/target/scene/subscription authorization/cadence/cancellation/once-only IO remain.",
+    "No source/gain/observer/threshold/sample/timestamp rewrite. This is an engine buffer change; short-profile latency may increase by one20ms quantum and must satisfy the unchanged measured AVsync and age bounds."
+  ],
+  "causal_component_witness": {
+    "input_original_values": [
+      1000,
+      3000,
+      7000
+    ],
+    "input_rtp_timestamps_8khz": [
+      0,
+      160,
+      320
+    ],
+    "previous_second_output_decoded_pcm": 6908,
+    "expected_second_original_value": 3000,
+    "scope": "Actual Core PCMU decode/mix/encode and egress receiver. Prior production discards the middle still-valid original; candidate preserves order. Not an attribution of every historical live tone failure.",
+    "rates_and_wrap": "8k/48k mix rates, original8k source clock and RTP wrap, no duplicate output, unchanged stream-allocation budget, no idle authority reader."
+  },
+  "patch_sha256": "75fc1f0eb9387c705e67f0abd9944c924350beeb2add5cc0906049496afc4c98",
+  "source_lock_sha256": "da81b82d66e040df863ab5f6f03a61763104d3cf461012c7474c3f6f3e31005a",
+  "negative": [
+    {
+      "name": "harness-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.510666707996279,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unit-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 14.196911416947842,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "29fdc099fea5766c48035b30583a52380ea90bc1016435359995b2762c1de1e7"
+    },
+    {
+      "name": "negative-witness",
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "seconds": 0.5876862918958068,
+      "results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 544 filtered out; finished in 0.01s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "2bb8228cf4c538472596d15dafb1fd3bc249d0ba2d735ee16de72eceff22bf10"
+    }
+  ],
+  "positive": [
+    {
+      "name": "harness-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.4972574170678854,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unit-build",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 14.49995141592808,
+      "results": [],
+      "changed_inputs": [],
+      "log_sha256": "624af2f9ecda446f845b0e038f5fc3f77c9c0fb83955123c5028c89cc1eeab55"
+    },
+    {
+      "name": "mixer",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 2.63336362503469,
+      "results": [
+        "test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 489 filtered out; finished in 2.07s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "ef11c5c35d948d5f9fbd0b134d1ffc20a0b7b04c898b56f9631db0caea2a4646"
+    },
+    {
+      "name": "scene",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.42535491613671184,
+      "results": [
+        "test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 505 filtered out; finished in 0.38s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "5cd8c2de6c612ca742f52e232ae7307ec8aa3a4c98ef6cc7c0a2bc57c99f8d0a"
+    },
+    {
+      "name": "queued",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.441504750167951,
+      "results": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 540 filtered out; finished in 0.43s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "2d25ecd2bd604c625427c6eb4c8ec3621e405ebada784bef3b46d1ca0fc0d855"
+    },
+    {
+      "name": "cadence",
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "seconds": 0.006581833120435476,
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 543 filtered out; finished in 0.00s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "7b7f643363bb5bc63d1c21f1aa84b12c09b93b4af3404005ad3d206d953e42c0"
+    }
+  ],
+  "positive_methods": 103,
+  "method_counts": {
+    "mixer": 56,
+    "scene": 40,
+    "original_queued_contention": 5,
+    "cadence": 2
+  },
+  "prepared_source": {
+    "whole_core_matches_positive_source_exactly": true,
+    "official_dependency_patch_verification": "passed",
+    "rust_format_check": "passed",
+    "unchanged_files_cow_mtime_preserved": 4130,
+    "scope": "Original complete Core lib.rs with normal upstream dependencies/features, standalone opt0/no stack override; component scope only."
+  },
+  "closed_proof_preservation": {
+    "baseline_and_unit_archive_manifest_sha256": "aead6e060d0d275e7f51bd517de39c9b0b5fddb97d12339c36417716d5c23b70",
+    "browser_profile_manifest_sha256": "09cc21ee93ab1aaf9ed9e063baa4d51665114e4612ac2fc736edc459a1e9d27e",
+    "scope": "Closed native67and completed unit proofs/replaced baseline libraries/4owned closed browser profiles: SHA/streaming roundtrip before unlink, modes/times/restore mappings retained; no live lsof owners. Source/state/CA/logs retained."
+  },
+  "declined_cache_cleanup": {
+    "record_sha256": "f03233b1e196b1fba6ca485fd65385da38ef612b67c287f393e17eb8118a45e4",
+    "scope": "Failed Linux build target remains untouched because a live VM has open entries. No VM/container was stopped; no data archive/unlink occurred."
+  },
+  "pending": [
+    "Full frozen build69 in existing intended release cache,2Cargo jobs; Store/Service/Server opt0, upstream release optimization.",
+    "New native33and original60s Chrome/Firefox x EdDSA/ES256matrix; measure actual added latency and audio against unchanged thresholds.",
+    "Further task work and full105Gate6 objective. No Linux/remote/provider/physical-device/package/acceptance qualification."
+  ],
+  "progress": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  },
+  "additional_closed_netlog_preservation": {
+    "files": 98,
+    "original_bytes": 72214068,
+    "archive_bytes": 9995806,
+    "manifest_sha256": "a7064239f8127d622e73912194677748a15ea8ecba6478641f3040c7afc4014a",
+    "scope": "Only completed source-guarded old browser-SDK netlogs, no lsof owner; complete bytes/metadata streamed-roundtrip verified before unlink. Source/state/CA untouched."
+  }
+}

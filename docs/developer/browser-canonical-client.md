@@ -434,3 +434,13 @@ fails an actual receiver/lease-release regression;102focused Core methods pass.
 Full native/browser verification remains pending; this does not establish a
 repair of the tone failures. See
 [component evidence](../evidence/gate-6/canonical-mixer-publication.json).
+
+
+The short-audio candidate retains two pending original chunks after each mixed
+quantum (40ms in the frozen20ms profile). It prevents a three-packet burst from
+skipping its middle still-valid PCM. A playing long original keeps its remainder
+and only the newest future packet. Original200ms age,10chunk insertion and fresh
+authority remain.103focused Core methods pass; prior production fails the same
+new regression. Added latency can be one20ms quantum, so unchanged AVsync/audio
+qualification remains required. The full native/browser candidate is pending.
+See [component evidence](../evidence/gate-6/canonical-audio-lookahead.json).

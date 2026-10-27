@@ -1261,6 +1261,11 @@
       "path": "patches/rvoip/gate6-mixer-publish-after-readers.patch",
       "source": "G6-050/G6-051 close mixer producer source/target/subscription reader intervals before publishing original queued frames. Fresh queued IO still reacquires current authority within original age/deadline. Exact negative/positive observer regression covers publication order and current revocation; no source/observer/profile relaxation.",
       "sha256": "4e88ebe1f59ffa6416294e5d371d103e93d93efcaf33b8082da729f328342b90"
+    },
+    {
+      "path": "patches/rvoip/gate6-audio-short-lookahead.patch",
+      "source": "G6-050/G6-051 retain two pending short original PCM chunks after each mixed quantum (40ms for frozen20ms profile), avoiding skipped middle audio in three-packet bursts. Playing long original still keeps remainder plus newest future. Existing10chunk/200ms insertion/original age/current authority/cadence/IO ownership retained. Exact prior/candidate regression and focused Core tests.",
+      "sha256": "75fc1f0eb9387c705e67f0abd9944c924350beeb2add5cc0906049496afc4c98"
     }
   ]
 }

@@ -1,0 +1,72 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/guarded_audio.rs
+@@ -484,13 +484,13 @@
+         }
+     }
+     fn keep_next_original(&mut self) {
+-        // Once one quantum has played, a burst must not become permanent FIFO
+-        // latency. Retain the newest not-yet-started original, plus the remainder
+-        // of an original packet already being played (which may exceed20ms).
+-        // The separate ten-chunk/200ms insertion bound and original age/current
+-        // authority checks remain in force. No authority is retained by trimming.
++        // Bound burst latency while retaining two not-yet-started originals
++        // (40ms for the frozen20ms profile). A small arrival burst must not
++        // skip its middle PCM interval. A playing long original instead keeps
++        // its remainder plus the newest future packet. The separate ten-chunk/
++        // 200ms insertion bound, original age and fresh authority still apply.
+         let partial = self.pending.front().is_some_and(|chunk| chunk.started);
+-        let keep = if partial { 2 } else { 1 };
++        let keep = 2;
+         let mut discarded = 0u64;
+         while self.pending.len() > keep {
+             self.pending.remove(if partial { 1 } else { 0 });
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer.rs
+@@ -1507,3 +1507,5 @@
+ }
+ 
+ mod tick_publication;
++
++mod lookahead;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/lookahead.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/lookahead.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/guarded_mixer/lookahead.rs
+@@ -0,0 +1,35 @@
++use super::*;
++#[tokio::test]
++async fn three_short_contiguous_originals_keep_bounded_lookahead_without_skipping_the_middle() {
++    for (rate, start) in [(8000, 0u32), (48000, u32::MAX - 79)] {
++        let s = Scene::new(&four()[..2], rate).await;
++        s.bind(0, true).await;
++        s.bind(1, false).await;
++        let mut out = s.port(1).take_egress().unwrap();
++        let budget = s.controllers[0].stream_open_budget();
++        // Three original20ms packets cover60ms, well inside the existing200ms
++        // insertion/age bound. After the first tick, retain the two originals
++        // that have not played, rather than skipping the middle PCM interval.
++        for (offset, value) in [(0, 1000), (160, 3000), (320, 7000)] {
++            s.publish_at(0, value, start.wrapping_add(offset));
++        }
++        for value in [1000, 3000, 7000] {
++            s.mixer.tick();
++            heard_labeled(
++                out.try_recv().unwrap(),
++                value,
++                "valid short original audio was skipped inside bounded lookahead",
++            )
++            .await;
++            drop(
++                s.policy
++                    .0
++                    .try_write()
++                    .expect("lookahead retained idle authority"),
++            );
++        }
++        s.mixer.tick();
++        assert!(out.try_recv().is_err(), "original lookahead PCM repeated");
++        assert_eq!(budget, s.controllers[0].stream_open_budget());
++    }
++}
