@@ -1,0 +1,296 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "executed_at": "2026-10-27T11:46:18.299048+00:00",
+  "source_revision_before_checkpoint": "02d313984c37e18ee29723ebbe4f2f126d8ddbf8",
+  "scope": "Actual production Core QueuedMedia/VideoRepair plus CoreVideoEgress, persistent target RTP mapping and guarded source-clock IO through local ICE/DTLS/SRTP/SRTCP peers. Policy/relationships/capture and port-cleanup adapters are isolated fixtures. No Store/canonical video host, decoded-picture/browser/full-fallback qualification.",
+  "implementation": [
+    "CoreVideoEgress validates one exact VP8/90000 video or screen port and physical track before consuming its queue. Queue/sequence waits hold no permission reader. The original owned write invokes QueuedMedia::deliver_video_with_repair inside the actual RTC driver; only successful original IO returns an opaque Core repair handle.",
+    "Every explicit NACK repair calls VideoRepair::repair, reacquiring current source/target/audience, route generation, gate and explicit selection permissions. The original full RTP is disclosed only within those guards; its original target SSRC/PT/sequence/timestamp mapping is reconstructed, then driver fact equality and current negotiated identity checks apply. Repair never advances the primary timeline or replaces the current sender-clock mapping.",
+    "TrackLocalStaticRTP now owns one typed timeline per actual primary SSRC, shared even by cloned track handles. Unknown SSRCs and competing state types refuse. Metadata persists through expired repair producers, egress drop/rebind and source replacement, and is released with the physical track. It holds no policy reader, Core controller or packet payload.",
+    "Target mapping preserves source fragment timestamps, sequence loss gaps and wrapping arithmetic. Duplicate/older source packets and backward timestamps refuse. A new original Core source generation or SSRC starts at the next target sequence/tick; the same constant timestamp offset is applied to its source-clock metadata. Explicit repair reuses its original mapping.",
+    "Owned RTP IO can carry source timing. The driver checks the exact SenderClockHandle installed by its reviewed physical peer profile, repeats source lifetime immediately before actual UDP, and commits timing only after successful primary socket submission. Repair checks lifetime without applying an older source mapping. Unreviewed wrappers do not inherit clock ownership.",
+    "Core native/local None clock provenance retains native timing. Some provenance without an authoritative anchor stays pending, and retired predicates refuse IO. Clock metadata is never authorization. Core original age and the driver one-use deadline still bound pending IO, whose destruction precedes permission release. Canonical video host/controller/cleanup installation remains required."
+  ],
+  "verification": {
+    "core_video_network_methods": 14,
+    "complete_stack_methods": 24,
+    "complete_interceptor_methods": 135,
+    "timeline_clock_methods": 3,
+    "retained_video_driver_methods": 13,
+    "total_distinct_methods": 189,
+    "retained_audio_assertion_groups": 20,
+    "builds_and_dependency_units": [
+      {
+        "name": "rtc_interceptor-production",
+        "seconds": 0.15788824995979667,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rtc-production",
+        "seconds": 1.0944877078291029,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rvoip_core-production",
+        "seconds": 9.534197041997686,
+        "exit_code": 0,
+        "log_sha256": "273a943f5e38e9d8bbed12c8f00196cff9dae810056a6a4835c9dddec13b23b0",
+        "changed_inputs": []
+      },
+      {
+        "name": "webrtc-production",
+        "seconds": 0.9977949580643326,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "rvoip_webrtc-production",
+        "seconds": 20.83526329183951,
+        "exit_code": 0,
+        "log_sha256": "80000f0f78594d2a4310cc58732a93aab7ff0407e4098778d7578e4466f4c562",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-build",
+        "seconds": 1.4766862080432475,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "stack-unit-runtime",
+        "seconds": 2.8620432089082897,
+        "exit_code": 0,
+        "log_sha256": "702f4f690119c0d1a6d4317b00b63c969531b2ccc2f6c8be516cd672a20c0b49",
+        "changed_inputs": []
+      },
+      {
+        "name": "interceptor-unit-build",
+        "seconds": 0.4137812089174986,
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "changed_inputs": []
+      },
+      {
+        "name": "interceptor-unit-runtime",
+        "seconds": 0.27334075001999736,
+        "exit_code": 0,
+        "log_sha256": "cd1edc7738ee7e920c3ad045c87078a7cf8651b5f58394a1309f9707e83edbb1",
+        "changed_inputs": []
+      }
+    ],
+    "core_video_network": [
+      {
+        "name": "probe-build",
+        "seconds": 0.7174958749674261,
+        "exit_code": 0,
+        "log_sha256": "a208d94fbe7dde7eb122f0c06bfbe668eb6450369d204c59bd8853c927483c83",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "probe-runtime",
+        "seconds": 4.298720249906182,
+        "exit_code": 0,
+        "log_sha256": "8b070f603b04a5221d29106f1d5b3e8ace4ff65f9c69943d5c260d035b75ab09",
+        "results": [
+          "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.96s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "timeline_and_clock": [
+      {
+        "name": "timeline-build",
+        "seconds": 0.33459874987602234,
+        "exit_code": 0,
+        "log_sha256": "75e1b43d8a563fc101210871402d41ab042ea1d7f7f9d3630361f729e8e11580",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "timeline-runtime",
+        "seconds": 0.25586812500841916,
+        "exit_code": 0,
+        "log_sha256": "80b5af327dbf119cd3dd31337b53b3861dff53b25b7197180bad4961de1abd3e",
+        "results": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "regressions": [
+      {
+        "name": "audio-driver-build",
+        "exit_code": 0,
+        "seconds": 0.42847170890308917,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "audio-driver-runtime",
+        "exit_code": 0,
+        "seconds": 0.5750889999326319,
+        "log_sha256": "ffd475135fc76b604d37eee1d4394f4bb85f4cf1d3a7f76cc85171b25f0142ef",
+        "results": [
+          "PASS actual ICE/DTLS/SRTP G.711 plaintext delivery, exact SSRC/PT/sequence/timestamp/payload",
+          "PASS no-IO success cannot forge a delivery receipt",
+          "PASS mismatched sender SSRC and unnegotiated payload refuse before UDP",
+          "PASS queued expiry invokes no producer and retains no permission reader",
+          "PASS revocation between enqueue and callback refuses without wire submission",
+          "PASS cancelled observer preserves original IO; actual UDP future drops before both permission readers; original drain acknowledges; no late packet",
+          "PASS same RTC peer remains healthy after cancellation",
+          "PASS immediate requested send-direction withdrawal refuses output"
+        ],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-audio-build",
+        "exit_code": 0,
+        "seconds": 0.5686696250922978,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "core-audio-runtime",
+        "exit_code": 0,
+        "seconds": 1.2069445410743356,
+        "log_sha256": "18318e3586752ffeb385b146b75e5c0648c8d4bd4ec3b5f0255f6a0436998908",
+        "results": [
+          "PASS a negotiated sibling codec/PT cannot silently retarget Core audio onto a different encoding",
+          "PASS exact production Core port queue delivers expected packet through actual ICE/DTLS/SRTP",
+          "PASS Core source and target revocation after enqueue refuse before UDP with no queued reader",
+          "PASS production Core source/target metadata retries preserve original packet and release all readers between attempts",
+          "PASS cancelled result observation retains original IO and both actual Core permission leases until driver destroys UDP future before releasing them",
+          "PASS original frame/write deadline destroys pending UDP before actual Core leases, original drain confirms, no late packet",
+          "PASS same Core queue and RTC peer deliver subsequent authorized frame after cancelled/expired writes",
+          "PASS Core original queued-frame age cannot be refreshed by a new submission deadline",
+          "PASS replaced original Core source generation fences old queued bytes before UDP",
+          "PASS dropped egress preserves the original shared SSRC timeline through pending write ownership and rebind",
+          "PASS replacement Core source delivers on unchanged target and RTC peer",
+          "PASS missing original driver receipt remains unconfirmed; actual parent RTC close destroys pending IO before actual Core permission release"
+        ],
+        "changed_inputs": []
+      },
+      {
+        "name": "video-driver-build",
+        "exit_code": 0,
+        "seconds": 0.455220916075632,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "results": [],
+        "changed_inputs": []
+      },
+      {
+        "name": "video-driver-runtime",
+        "exit_code": 0,
+        "seconds": 3.9604385001584888,
+        "log_sha256": "e1009eae173faca85aa353d1ffcce5e473037ecc558d33f95719a035c28ecb08",
+        "results": [
+          "test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.50s"
+        ],
+        "changed_inputs": []
+      }
+    ],
+    "guarded_inputs": 433,
+    "source_and_library_inputs_unchanged": true,
+    "production_libraries": "Interceptor,RTC,Core,WebRTC stack and upper rvoip-webrtc compiled unconditionally with cfg(test)=false, exact retained Root dependencies/features and opt-level0. Upper rvoip-webrtc uses its normal comprehensive/client/signaling-ws profile. Whole Connect was not rebuilt.",
+    "build_success_gate": "Probes require a successful build-completion marker and matching current source/artifact hashes; a failed build removes that marker. Subsequent scripts use fail-fast orchestration.",
+    "artifacts_sha256": {
+      "librtc_interceptor_owned_video.rlib": "fbe9abbe4de2e5c909c2c65c767cb6e2ec52bb24857ae31f90a07820cbc7164c",
+      "librtc_owned_video.rlib": "bc8e66d986f66a569911701746ddd388b36a7d409aed295d63108e83362ae008",
+      "librvoip_core_owned_video.rlib": "7640f9147d5db192c5a402cd40e734a31137dacac2cd96bbc9714e21b14fb79f",
+      "libwebrtc_owned_video.rlib": "04609df481ea893ee305367af1519e8c642e5d58bad97c7d7e1b4399f7aa8a3a",
+      "librvoip_webrtc_owned_video.rlib": "136766e2c6b33388c315be84c4176b28f883b38dc5b510e3d248c4bde8c81899",
+      "stack-unit-tests": "fb732e9f4ddb019b6f59a75eb4bbcbd6e4cf16f37cfe9c870779e854d73fe870",
+      "interceptor-unit-tests": "02cd512e2f0664bb9137051c31b909767575ef78a87d174e43763899d373d74e",
+      "core-video-probe": "0e47477df4dc7acafb85eb6ea3fcebcbc6881b9323180a91f19cfe889574d958",
+      "timeline-tests": "a6edec336357cdc18115eb730f91d2addf3f56a71a608225202ca0cd0c3dc18a",
+      "regression-audio-driver": "1a88cf75c88a4e28fd7292ad4e33ddf9ad009a3ba71799a879ca70226c9df13a",
+      "regression-core-audio": "14ac1e461fb85aca512642ccd5f5f560942894ca3fe02991e0e66dd57a84cce6",
+      "regression-video-driver": "5646b87f51c8e8012b8e75ceed158a21b2a18e718b47994cb4790691d17b2bcc"
+    },
+    "patches": {
+      "patches/rvoip/gate6-core-video-egress.patch": "921ac5b8691c1bb8a1f2716f061ce3a9db34055dd422ea9c7eede3b7cb37e3fa",
+      "patches/rtc-interceptor/gate6-owned-clock-binding.patch": "37fc41fa9043ca31deabe4f8dc41f5dd02648ff11786b15535de4e6889f95cb6"
+    },
+    "source_lock_sha256": "ab03d0ecbe9eba830cb6a9ea1c31464a5faea9c4f381327bc78cedb5650353b6",
+    "public_probe_sha256": "3ea9dcf1dafd7a4475b77a46be253dbed573bd3ce1526e2e1a0d9c47b27881c8",
+    "standard_stack": true
+  },
+  "behavior": [
+    "Core source RTP with SSRC3333/PT95 is delivered and repaired as the exact negotiated target SSRC1111/PT96, over actual encrypted packets, with negotiated RTX, no RTX and declined RTX answers. Loss uses a successful real UDP submission to a designated local discard sink, then explicit encrypted SRTCP NACK.",
+    "Current source and recipient revocation and private-audience withdrawal refuse repairs with no native cached send. Restoration plus a new explicit NACK succeeds on the same peer. No idle Core policy reader remains.",
+    "Clearing/reselecting explicit video subscriptions and pausing/resuming the original source invalidate old repair handles. The repaired packet cannot inherit a new selection or gate generation.",
+    "An actual pending repair socket retains both Core policy leases. Original expiry drops the socket future while both leases are still live, then releases them; releasing the old socket gate later emits no late packet. Cancelling a pending original yields OutcomeUnknown, drains original IO and creates no repair handle; subsequent authorized video succeeds.",
+    "After every old repair producer expires and the egress is dropped, replacement source and target Core ports reuse the same physical track timeline. Input source seq5/timestamp15000 maps to target seq12/timestamp33001 after original seq11/timestamp33000; an explicit NACK12 repairs that exact target mapping, without reallocation.",
+    "Retired source-clock provenance refuses both original and retained repair IO. A later current source frame succeeds. A different connected peer clock, despite the same negotiated primary SSRC, cannot write or retime this sender. Both peers remain separately owned and close.",
+    "All135interceptor and24stack methods pass, including native/pending/source report behavior, four ordinary encrypted repair profiles, existing DTMF/owned close and cloned-track timeline lifetime. The prior13video methods and8audio-driver plus12actual-Core-audio groups pass against the final library graph."
+  ],
+  "attempt_history": [
+    "The first preparation-stage formatter found an unparenthesized cast comparison; corrected before build. Early direct-build harness selection needed semver-compatible dependency resolution and the retained modified RTC dependency search path; no runtime passes were claimed for these harness failures.",
+    "Initial upper production compilation found a returned async future borrowing the owned frame. The closure now owns that frame and explicitly borrows only its result metadata; complete upper production compilation passes.",
+    "The first network fixture had a BytesMut/Bytes construction error, then all11methods refused forwarding because the copied audio fixture omitted required explicit video receive selection. Corrected the fixture to select video; production default-deny subscription semantics were preserved. All11initial methods passed.",
+    "Disk exhaustion interrupted a subsequent Core archive build. The non-fail-fast shell then compiled the expanded probe against prior libraries:12methods passed and the newly added retired-repair clock case failed. This run is disqualified as current-source evidence. Its raw logs/manifest remain. A successful-build/source/artifact marker now prevents stale-library probes and orchestration stops at the first failure.",
+    "Two verified idle debug incremental compiler cache directories (1042regular old .o/.bin/.rmeta/.lock files,4190142212logical bytes) were discarded; no compiler was active. Sources, state, raw logs, release dependencies and proof executables were preserved. The bounded disk recovery was followed by a full successful component rebuild.",
+    "Exact physical clock ownership and Core native-versus-pending provenance were finalized before the final build. The standalone clock test harness initially omitted its new chrono dependency; adding the exact retained library passes all3methods. Final14Core video,24stack,135interceptor,3mapping/clock and13priorvideo methods plus20audio groups pass on unchanged guarded inputs. Existing Core and upper unused-code/import warnings are recorded; no new component warning is hidden."
+  ],
+  "remaining": [
+    "Install the guarded video profile and actual negotiated VP8/MID/SSRC/RTX/clock binding in the canonical physical peer. Implement canonical ingress, current Store/media admission, staged adapter/controller readiness, owned port pumps and original physical cleanup; the generic RTC pair and fixture port cleanup do not qualify them.",
+    "Independently decoded pictures, source-to-recipient A/V synchrony and actual SR timing over the canonical host, actual browser capture/Chrome/Firefox forced fallback and public legacy-dialect replacement remain required. These packets are synthetic VP8-declared RTP; no decoded-video or end-to-end A/V claim is made.",
+    "Whole Connect Root rebuild/regressions remain pending for these dependency changes; earlier Root executables are historical. Canonical host still refuses video/SCTP. Reliable data, wider media/transition/query/quality/reoffer/DTMF/refresh, Linux/remote/package and every other required Gate6scope remain open. No task/acceptance/publication closure."
+  ],
+  "private_evidence": {
+    ".local/gate-6/rtc-core-video/prepared.json": "9154818af354c4578b40546afc0f04b3c48f1d4b5e7a56a35d61308fd6f4f6ec",
+    ".local/gate-6/rtc-core-video/prepare-05.log": "eca8bbe79ee46dc4a3df4dc659d86b0a7852d84d5f34406761da5db1348b12c2",
+    ".local/gate-6/rtc-core-video/build.py": "bbce08af44ed0d6292d710f19a077679c306cd7c88a8617bbe888835d5452e82",
+    ".local/gate-6/rtc-core-video/build-summary.json": "ff5a354a5dde22aa8bc7abfa61157aa2decd4c5a745679ad0e9a10fdccd705f8",
+    ".local/gate-6/rtc-core-video/build-inputs.json": "4be51ff58facbb7d89bf1e4ae8c051ad829d79eb9fa20be8e1b36de69cdc7a79",
+    ".local/gate-6/rtc-core-video/build-complete.json": "72a32d481017245d9a99160bb65caf2ba305379a6e97a69dd89697cb4ba41847",
+    ".local/gate-6/rtc-core-video/probe.py": "9a7f35bbd8ee00851fc9dc0c0c7b4bab6965417962c6f3c6d2d3093ec1ee7691",
+    ".local/gate-6/rtc-core-video/probe-summary.json": "e0a32128378247078749dc2ae1755e927f1f21aa35e53b385c58c3678aecc630",
+    ".local/gate-6/rtc-core-video/probe-inputs.json": "bc37d39326fade75efb828ec8a9b9d4490b8428bf90229318349bf2d7c10d410",
+    ".local/gate-6/rtc-core-video/probe-build.log": "a208d94fbe7dde7eb122f0c06bfbe668eb6450369d204c59bd8853c927483c83",
+    ".local/gate-6/rtc-core-video/probe-runtime.log": "8b070f603b04a5221d29106f1d5b3e8ace4ff65f9c69943d5c260d035b75ab09",
+    ".local/gate-6/rtc-core-video/timeline-tests.py": "0e2bd1664ffe830603573f5a246eaf8cd62254ad0083672d8dfc5fd210275407",
+    ".local/gate-6/rtc-core-video/timeline-summary.json": "a36bf0cb6272ea4280a87e2435fb1f54079ec9d016fd13a1670ede33912defad",
+    ".local/gate-6/rtc-core-video/timeline-inputs.json": "c450f6d827b3288238d9f728bd12340c7d70891bd5bca54a824ce7cf62c84039",
+    ".local/gate-6/rtc-core-video/timeline-runtime.log": "80b5af327dbf119cd3dd31337b53b3861dff53b25b7197180bad4961de1abd3e",
+    ".local/gate-6/rtc-core-video/regressions.py": "6586a0564728eeb4aa091de0449aeca49b22ac585c39d24a424d1a8ee5ec0c40",
+    ".local/gate-6/rtc-core-video/regression-summary.json": "38c4ed38bfd611013196ad897a623cb46ecd05ba03a9624e25844bafb3ed5022",
+    ".local/gate-6/rtc-core-video/regression-inputs.json": "c8ffadd4f06059140ed9c4a9eb1d9d2683f84df20b63d6cdaaab9c838404b1ee",
+    ".local/gate-6/rtc-core-video/stack-unit-runtime.log": "702f4f690119c0d1a6d4317b00b63c969531b2ccc2f6c8be516cd672a20c0b49",
+    ".local/gate-6/rtc-core-video/interceptor-unit-runtime.log": "cd1edc7738ee7e920c3ad045c87078a7cf8651b5f58394a1309f9707e83edbb1",
+    ".local/gate-6/rtc-core-video/first-build-summary.json": "bbe51200c486d9f007ec6c0f79bbf377705e1b477d666b66527fb0ef37fd9eb2",
+    ".local/gate-6/rtc-core-video/second-build-summary.json": "881f8618b2ed7b82f822ebac3dfa38a55e8a56a2b3931ec6d1ee51700532ebbc",
+    ".local/gate-6/rtc-core-video/first-probe-summary.json": "48ec49da14d23214de6a37c3c563b0e08b83345a04b34a73cb670437956d274f",
+    ".local/gate-6/rtc-core-video/unsubscribed-probe-summary.json": "36f92c3be22b30a9666d2f630977bbaad58e8480460a3dbc6f76d9a9d4125662",
+    ".local/gate-6/rtc-core-video/unsubscribed-probe-runtime.log": "4e7aada36c6b73eade605510f55ddc2156aa92c86a68c436986c0011f0241469",
+    ".local/gate-6/rtc-core-video/disk-full-build-summary.json": "0d0dd694dab4758e9f246d38c325e2f217c607b7c99908710a48ba90ab852db3",
+    ".local/gate-6/rtc-core-video/disk-full-rvoip_core-production.log": "11777863ceda42af2161e1f35bb537b82a0b58d53689ed8fc4f6778f827aecc1",
+    ".local/gate-6/rtc-core-video/disk-full-probe-summary.json": "c7a389dbe9d5979fd487c554c3883d1af5fb4819d39ebdfc896e1a38a1c49bd3",
+    ".local/gate-6/rtc-core-video/disk-full-probe-runtime.log": "28bfb6cf8cb45f0948ffea03b7d88a79d1e8ca22cc2a6b40ae9c30a79a10534b",
+    ".local/gate-6/rtc-core-video/clock-test-first-timeline-summary.json": "5c4fc02b7e6f2e186d20d09465b2213a118bae1e33e588778ba1133c6a727e72",
+    ".local/gate-6/rtc-core-video/discarded-idle-incremental-cache.json": "818a7f287bd8e6e0558e9bcfef86572d6ffe475cf7e70928accf099170ca6992",
+    ".local/gate-6/rtc-core-video/regression-video-driver-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-core-video/regression-audio-driver-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".local/gate-6/rtc-core-video/regression-audio-driver-runtime.log": "ffd475135fc76b604d37eee1d4394f4bb85f4cf1d3a7f76cc85171b25f0142ef",
+    ".local/gate-6/rtc-core-video/regression-video-driver-runtime.log": "e1009eae173faca85aa353d1ffcce5e473037ecc558d33f95719a035c28ecb08",
+    ".local/gate-6/rtc-core-video/regression-core-audio-runtime.log": "18318e3586752ffeb385b146b75e5c0648c8d4bd4ec3b5f0255f6a0436998908",
+    ".local/gate-6/rtc-core-video/regression-core-audio-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "gate_status": {
+    "done": 53,
+    "in_progress": 4,
+    "not_started": 48,
+    "acceptance_qualified": 0
+  }
+}

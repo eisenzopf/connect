@@ -1,0 +1,31 @@
+diff --git a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -334,6 +334,12 @@
+         false
+     }
+ 
++    /// Exact sender-clock instance installed by the reviewed pipeline. Custom
++    /// wrappers do not inherit ownership. This never grants media permission.
++    fn owns_sender_clock(&self, _clock: &SenderClockHandle) -> bool {
++        false
++    }
++
+     /// Wrap this interceptor with another layer.
+     ///
+     /// The wrapper function receives `self` and returns a new interceptor
+diff --git a/src/report/sender_clock.rs b/src/report/sender_clock.rs
+--- a/src/report/sender_clock.rs
++++ b/src/report/sender_clock.rs
+@@ -59,6 +59,11 @@
+ #[derive(Clone, Default)]
+ pub struct SenderClockHandle(Arc<Mutex<HashMap<u32, Slot>>>);
+ impl SenderClockHandle {
++    /// Identity only: clones refer to the same installed sender-clock table.
++    pub fn same_instance(&self, other: &Self) -> bool {
++        Arc::ptr_eq(&self.0, &other.0)
++    }
++
+     pub(crate) fn bind(&self, ssrc: u32, rate: u32) {
+         let mut slots = self.0.lock().unwrap_or_else(|p| p.into_inner());
+         if slots.get(&ssrc).is_some_and(|s| s.rate == rate) {

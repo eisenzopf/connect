@@ -491,3 +491,43 @@ Canonical video still requires its actual Core retainer producer, ingress,
 source clocks, port/controller lifetime and readiness integration. The canonical
 host continues to refuse video/SCTP. Whole Connect, actual browsers, fallback,
 Linux/remote and full Gate 6 qualification remain open.
+
+
+## Core video egress and repair
+
+`CoreVideoEgress` consumes the exact VP8 Core port queue. Inside the owned RTC
+driver, original delivery calls `QueuedMedia::deliver_video_with_repair`; each
+explicit repair calls the resulting opaque `VideoRepair::repair`. Both calls
+retain current Core source/recipient permission through actual socket IO. A
+failed or uncertain original creates no repair entry. Subscription changes,
+gate transitions, route generations and the original age budget still apply.
+
+One timeline belongs to the physical track and primary SSRC, shared by cloned
+track handles and retained through egress rebinding. Target sequence gaps,
+fragment timestamps and wrap are preserved. Source replacement advances the
+target timeline and translates source-clock RTP offsets consistently. Repair
+reconstructs the original target mapping rather than allocating another one.
+The timeline stores metadata and holds no current authorization reader.
+
+Clock-carrying IO must use the exact clock instance installed by that peer's
+reviewed pipeline. Source lifetime is checked before UDP; primary clock mapping
+is committed after successful submission. Repair checks lifetime without
+replacing current sender timing. Core `None` provenance retains native timing;
+`Some` without an authoritative anchor stays pending. Clock metadata grants no
+media permission and cannot substitute for Core admission.
+
+The [actual Core/RTC probe](../evidence/gate-6/webrtc-core-video-probe.rs) and
+[evidence](../evidence/gate-6/webrtc-core-video.json) record 14 network methods,
+24 stack methods, 135 interceptor methods, three timeline/clock methods,
+13 prior video methods and 20 prior audio assertion groups. Exact original
+mapping, current revocation, old-selection invalidation, pending IO custody,
+source/egress replacement and foreign peer-clock refusal pass. Initial fixture,
+compile and disk-full/stale-library failures are explicitly retained. Probes now
+require a successful current build marker with matching source/artifact hashes.
+
+This uses real Core controllers and encrypted RTC sockets with isolated policy,
+capture and port-cleanup fixtures. It does not qualify Store/canonical video
+admission, original port/controller cleanup, independently decoded pictures,
+actual SR/A/V synchronization, installed browsers or full fallback/hosting.
+Canonical video integration and whole Connect rebuilding remain next; G6-051
+remains in progress and default browser media advertisement stays disabled.

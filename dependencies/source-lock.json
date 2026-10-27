@@ -1200,6 +1200,17 @@
       "path": "patches/rvoip/gate6-owned-video-repair.patch",
       "source": "G6-051 opt-in guarded VP8 RTP and explicit bounded NACK repair callbacks; suppress native outgoing video byte cache, validate original packet/current negotiated track, derive actual negotiated RTX identity, retain immutable expiry and destroy pending IO before permission release. Canonical host integration remains required.",
       "sha256": "df93bf180e0c6835f355a35d6d271715902a41601035f05cd985a05e99eb827d"
+    },
+    {
+      "path": "patches/rvoip/gate6-core-video-egress.patch",
+      "source": "G6-051 actual Core VP8 egress/repair producers: exact port queue, original opaque repair handle with fresh Core grants, persistent physical-track timeline and exact original target mapping, guarded actual-write source-clock commit. Canonical video host integration/decoded-picture qualification remains required.",
+      "sha256": "921ac5b8691c1bb8a1f2716f061ce3a9db34055dd422ea9c7eede3b7cb37e3fa"
+    },
+    {
+      "path": "patches/rtc-interceptor/gate6-owned-clock-binding.patch",
+      "target": "rtc-interceptor",
+      "source": "Guarded RTP timing must belong to the exact sender-clock instance installed by its reviewed physical peer pipeline. Identity is not media authorization.",
+      "sha256": "37fc41fa9043ca31deabe4f8dc41f5dd02648ff11786b15535de4e6889f95cb6"
     }
   ]
 }
