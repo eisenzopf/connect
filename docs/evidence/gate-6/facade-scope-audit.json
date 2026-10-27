@@ -1,6 +1,6 @@
 {
   "task": "G6-065",
-  "status": "in-progress; current native handoff probe fails, completion audit does not pass",
+  "status": "in-progress; retained pre-handoff private-reverse failure remains unresolved",
   "recorded_at": "2026-10-27T21:44:14.954679+00:00",
   "base_revision": "c498b978",
   "scope": "Current local macOS arm64 stock facade/runtime composition, synthetic bounded fixtures. No new model, real provider, remote, Linux, install-package, acceptance or publication qualification.",
@@ -312,8 +312,8 @@
     "http-wire/summary.json": "00f7ef7b4b276f37f9b2687517f1e102551ad660dd4b15963213d6cd3cbe18e3"
   },
   "pending": [
-    "Diagnose retained original one-frame private-reverse failure; later instrumented passes are not a root-cause fix.",
-    "Finish separately running current native movement verification.",
+    "Diagnose retained original one-frame private-reverse failure; later instrumented handoff/movement passes are not a root-cause fix.",
+    "Snapshot-on-failure branch has not executed in the two passing handoff followups.",
     "Full105-task Gate6 objective and independent acceptance remain open."
   ],
   "diagnostic_followup": {
@@ -368,7 +368,21 @@
     "full_sequence_probe_count": 54,
     "full_sequence_summary_sha256": "55a1f36464c118b779485350bf706e5c151c73a6c834f20324738dd002e82757",
     "interpretation": "Focused traced scene and later full8-scene non-TRACE run pass. Neither contains a failure witness; new snapshot-on-failure branch was not exercised. Original source-frozen1frame/failed probe remains unexplained and unresolved. No causal repair, task completion or acceptance promotion.",
-    "movement": "Running separately; no result credited yet.",
+    "movement": {
+      "scope": "Current eight-scene MCP native movement function with packet counters; original content/audience/expiry and teardown checks, TRACE disabled. Separate from unresolved handoff failure; no model/provider execution.",
+      "exit_code": 0,
+      "seconds": 223.75476704211906,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 349 filtered out; finished in 223.72s"
+      ],
+      "changed_inputs": [],
+      "log_sha256": "410144cef217687d4c705a47c0f611ec87ba511fed734a36702e2912865e5cec",
+      "private_snapshots": [],
+      "snapshot_errors": [],
+      "scenes": 8,
+      "probe_reports": 90,
+      "summary_sha256": "79547f9f10d2c6e1dc6a64641bf74dbd405faa5861cf0108f3d6b12b0b429e2a"
+    },
     "production_code_changed": false
   }
 }
