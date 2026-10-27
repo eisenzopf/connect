@@ -1,0 +1,502 @@
+diff --git a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs
+@@ -438,6 +438,58 @@
+         Ok((packet, clock))
+     }
+ 
++    /// A reviewed immediate primary-audio write, validated without enqueueing.
++    /// NACK/repair/paced media is not admitted by this first owned RTP profile.
++    pub fn prepare_owned_rtp(&mut self, mut packet: rtp::Packet) -> Result<(rtp::Packet, u32)> {
++        use crate::rtp_transceiver::RTCRtpTransceiverDirection::{Sendonly, Sendrecv};
++        let transceiver = &self.peer_connection.rtp_transceivers[self.id.0];
++        if !matches!(transceiver.direction(), Sendonly | Sendrecv)
++            || !matches!(transceiver.current_direction(), Sendonly | Sendrecv)
++        {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
++        if packet.payload.is_empty() || packet.payload.len() > 1600 || packet.header.version != 2 {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
++        let sender = self.peer_connection.rtp_transceivers[self.id.0]
++            .sender_mut()
++            .as_mut()
++            .ok_or(Error::ErrSenderWithNoSSRCs)?;
++        if !sender
++            .track()
++            .ssrcs()
++            .any(|ssrc| ssrc == packet.header.ssrc)
++        {
++            return Err(Error::ErrSenderWithNoSSRCs);
++        }
++        let parameters = sender.get_parameters(&mut self.peer_connection.media_engine);
++        let codec = parameters
++            .rtp_parameters
++            .codecs
++            .iter()
++            .find(|c| c.payload_type == packet.header.payload_type)
++            .ok_or(Error::ErrRTPTransceiverCodecUnsupported)?;
++        let mime = &codec.rtp_codec.mime_type;
++        if !(mime.eq_ignore_ascii_case("audio/PCMU") || mime.eq_ignore_ascii_case("audio/PCMA"))
++            || codec.rtp_codec.clock_rate != 8000
++            || codec.rtp_codec.channels != 1
++            || codec
++                .rtp_codec
++                .rtcp_feedback
++                .iter()
++                .any(|f| f.typ != "transport-cc" || !f.parameter.is_empty())
++        {
++            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++        }
++        let clock = codec.rtp_codec.clock_rate;
++        bind_outbound_packet_to_encoding(
++            &mut packet,
++            &parameters.rtp_parameters.codecs,
++            &parameters.encodings,
++        )?;
++        Ok((packet, clock))
++    }
++
+     pub fn write_rtp(&mut self, mut packet: rtp::Packet) -> Result<()> {
+         // peer_connection is mutable borrow, its rtp_transceivers won't be resized and
+         // the direction won't be changed too, so, unwrap() here is safe.
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs
+@@ -8,6 +8,7 @@
+ use rtc::{rtcp, rtp};
+ 
+ pub mod owned_dtmf;
++pub mod owned_rtp;
+ pub mod static_rtp;
+ pub mod static_sample;
+ 
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs
+@@ -75,7 +75,7 @@
+         self.0.cancelled.notify_waiters();
+         uncertain
+     }
+-    async fn cancelled(&self) {
++    pub(crate) async fn cancelled(&self) {
+         // Register before checking current state so cancellation cannot fall
+         // between the check and waiter installation. A queued request also
+         // observes cancellation that happened before this future existed.
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs
+@@ -0,0 +1,168 @@
++//! Deferred, driver-owned primary RTP writes. Queues contain no permission lease.
++use super::owned_dtmf::OwnedDtmfControl;
++use futures::{
++    FutureExt,
++    future::{BoxFuture, Shared},
++};
++use rtc::{rtp, shared::error::Result};
++use std::{sync::Arc, time::Instant};
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum OwnedRtpError {
++    Unsupported,
++    NotReady,
++    Refused,
++    DeadlineBeforeWrite,
++    OutcomeUnknown,
++}
++pub type OwnedRtpResult = std::result::Result<(), OwnedRtpError>;
++
++/// A borrowed actual driver sink. It accepts at most one negotiated G.711 RTP
++/// packet. It cannot be retained by the producer or detached from its guard.
++#[async_trait::async_trait]
++pub trait OwnedRtpIo: Send {
++    async fn write(&mut self, packet: rtp::Packet) -> Result<()>;
++    fn written(&self) -> bool;
++}
++/// Runs in the driver immediately before wire IO, not while enqueuing a job.
++/// A Core producer calls QueuedMedia::deliver here, supplying its packet only
++/// under fresh source/target permission. That future owns its guard and IO;
++/// destruction must drop IO before releasing authorization.
++#[async_trait::async_trait]
++pub trait OwnedRtpProducer: Send + Sync {
++    async fn write(&self, io: &mut dyn OwnedRtpIo) -> OwnedRtpResult;
++}
++/// The qualified one-use delivery state is shared with the existing owned DTMF
++/// path. This separate type prevents exchanging tickets between those jobs.
++#[derive(Clone)]
++pub struct OwnedRtpControl {
++    inner: OwnedDtmfControl,
++    deadline: Instant,
++}
++impl OwnedRtpControl {
++    pub fn new(deadline: Instant) -> Self {
++        let inner = OwnedDtmfControl::new();
++        Self {
++            deadline: deadline.min(inner.deadline()),
++            inner,
++        }
++    }
++    pub fn deadline(&self) -> Instant {
++        self.deadline
++    }
++    /// True means actual submission may have started; never retry that packet.
++    pub fn cancel(&self) -> bool {
++        self.inner.cancel()
++    }
++    pub(crate) fn claim(&self) -> bool {
++        self.current() && self.inner.claim()
++    }
++    pub(crate) fn begin(&self) -> bool {
++        self.current() && self.inner.begin()
++    }
++    pub(crate) fn current(&self) -> bool {
++        self.inner.current(self.deadline)
++    }
++    async fn cancelled(&self) {
++        self.inner.cancelled().await;
++    }
++}
++pub(crate) fn stopped(control: &OwnedRtpControl) -> OwnedRtpError {
++    if control.cancel() {
++        OwnedRtpError::OutcomeUnknown
++    } else {
++        OwnedRtpError::DeadlineBeforeWrite
++    }
++}
++#[derive(Clone)]
++pub(crate) struct Receipt {
++    pub delivery: OwnedRtpResult,
++    pub drained: bool,
++}
++impl Receipt {
++    pub(crate) fn not_submitted(error: OwnedRtpError) -> Self {
++        Self {
++            delivery: Err(error),
++            drained: true,
++        }
++    }
++}
++type Completion = Shared<BoxFuture<'static, Receipt>>;
++/// Owns the original submission/receipt worker outside any observation future.
++/// Cancelling a result wait does not consume its join or confirm cleanup.
++pub struct OwnedRtpWrite {
++    control: OwnedRtpControl,
++    completion: Completion,
++}
++impl OwnedRtpWrite {
++    pub(crate) fn new(control: OwnedRtpControl, task: tokio::task::JoinHandle<Receipt>) -> Self {
++        let completion = async move {
++            task.await.unwrap_or(Receipt {
++                delivery: Err(OwnedRtpError::OutcomeUnknown),
++                drained: false,
++            })
++        }
++        .boxed()
++        .shared();
++        Self {
++            control,
++            completion,
++        }
++    }
++    pub fn cancel(&self) -> bool {
++        self.control.cancel()
++    }
++    pub async fn result(&self) -> OwnedRtpResult {
++        self.completion.clone().await.delivery
++    }
++    /// Requires the exact driver's acknowledgement after callback destruction.
++    /// A missing receipt is unconfirmed cleanup, even if its task disappeared.
++    pub async fn cancel_and_drain(&self) -> OwnedRtpResult {
++        self.control.cancel();
++        if self.completion.clone().await.drained {
++            Ok(())
++        } else {
++            Err(OwnedRtpError::OutcomeUnknown)
++        }
++    }
++}
++impl Drop for OwnedRtpWrite {
++    fn drop(&mut self) {
++        self.control.cancel();
++    }
++}
++pub(crate) struct OwnedRtpRequest {
++    pub producer: Arc<dyn OwnedRtpProducer>,
++    pub control: OwnedRtpControl,
++    pub completion: tokio::sync::oneshot::Sender<OwnedRtpResult>,
++}
++impl std::fmt::Debug for OwnedRtpRequest {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("OwnedRtpRequest(redacted)")
++    }
++}
++/// Shared custody seam for actual driver IO and forced-pending-IO tests.
++pub(crate) async fn complete(
++    producer: &dyn OwnedRtpProducer,
++    io: &mut dyn OwnedRtpIo,
++    control: &OwnedRtpControl,
++) -> OwnedRtpResult {
++    let mut flight = Box::pin(producer.write(io));
++    let result = tokio::select! {biased;
++        _=tokio::time::sleep_until(tokio::time::Instant::from_std(control.deadline()))=>Err(stopped(control)),
++        _=control.cancelled()=>Err(stopped(control)),
++        result=&mut flight=>result,
++    };
++    // No receipt can release caller custody until the IO/authorization future
++    // has actually been destroyed, including cancellation and deadline races.
++    drop(flight);
++    if !control.current() {
++        return Err(stopped(control));
++    }
++    match result {
++        Ok(()) if io.written() => Ok(()),
++        Ok(()) => Err(OwnedRtpError::Refused),
++        Err(_) if control.inner.started() => Err(OwnedRtpError::OutcomeUnknown),
++        result => result,
++    }
++}
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs
+@@ -95,6 +95,69 @@
+             .unwrap_or_else(|_| Err(stopped(&control)))
+     }
+ 
++    /// Own a deferred primary RTP job before asynchronous track/queue admission.
++    /// The producer runs only in the driver and must supply one authorized packet.
++    pub fn owned_rtp(
++        &self,
++        producer: std::sync::Arc<dyn super::owned_rtp::OwnedRtpProducer>,
++        deadline: std::time::Instant,
++    ) -> super::owned_rtp::OwnedRtpWrite {
++        use super::owned_rtp::*;
++        let control = OwnedRtpControl::new(deadline);
++        let lifetime = control.clone();
++        let track = self.clone();
++        let task = tokio::spawn(async move {
++            if !lifetime.claim() {
++                return Receipt::not_submitted(OwnedRtpError::Refused);
++            }
++            let deadline = tokio::time::Instant::from_std(lifetime.deadline());
++            let context = match tokio::time::timeout_at(deadline, track.ctx.lock()).await {
++                Ok(context) => context.clone(),
++                Err(_) => return Receipt::not_submitted(stopped(&lifetime)),
++            };
++            let Some(context) = context else {
++                return Receipt::not_submitted(OwnedRtpError::NotReady);
++            };
++            if !lifetime.current() {
++                return Receipt::not_submitted(stopped(&lifetime));
++            }
++            let (completion, receipt) = tokio::sync::oneshot::channel();
++            let request = OwnedRtpRequest {
++                producer,
++                control: lifetime.clone(),
++                completion,
++            };
++            let queued = tokio::time::timeout_at(
++                deadline,
++                context
++                    .driver_event_tx
++                    .send(PeerConnectionDriverEvent::OwnedRtp(
++                        context.rtp_sender_id,
++                        request,
++                    )),
++            )
++            .await;
++            match queued {
++                Ok(Ok(())) => {}
++                _ => return Receipt::not_submitted(stopped(&lifetime)),
++            }
++            // Once queued, retain the ORIGINAL driver receipt even after the
++            // frame deadline/caller cancellation. Only the driver can confirm
++            // that its callback and actual IO future have both been destroyed.
++            match receipt.await {
++                Ok(result) => Receipt {
++                    delivery: result,
++                    drained: true,
++                },
++                Err(_) => Receipt {
++                    delivery: Err(OwnedRtpError::OutcomeUnknown),
++                    drained: false,
++                },
++            }
++        });
++        OwnedRtpWrite::new(control, task)
++    }
++
+     pub async fn write_rtp_with_clock(
+         &self,
+         packet: rtp::Packet,
+diff --git a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -51,6 +51,10 @@
+ pub(crate) enum PeerConnectionDriverEvent {
+     SenderRtp(RTCRtpSenderId, rtp::Packet),
+     OwnedDtmf(RTCRtpSenderId, OwnedDtmfRequest),
++    OwnedRtp(
++        RTCRtpSenderId,
++        crate::media_stream::track_local::owned_rtp::OwnedRtpRequest,
++    ),
+     SenderRtpWithClock(
+         RTCRtpSenderId,
+         rtp::Packet,
+@@ -395,6 +399,56 @@
+         let _ = completion.send(result);
+     }
+ 
++    async fn handle_owned_rtp(
++        &mut self,
++        sender: RTCRtpSenderId,
++        request: crate::media_stream::track_local::owned_rtp::OwnedRtpRequest,
++    ) {
++        use crate::media_stream::track_local::owned_rtp::*;
++        let OwnedRtpRequest {
++            producer,
++            control,
++            completion,
++        } = request;
++        let inner = self.inner.clone();
++        let ready =
++            tokio::time::timeout_at(tokio::time::Instant::from_std(control.deadline()), async {
++                let mut core = inner.core.lock().await;
++                if !control.current() {
++                    return Err(stopped(&control));
++                }
++                if !core.supports_owned_dtmf_io() {
++                    return Err(OwnedRtpError::Unsupported);
++                }
++                if !core.owned_dtmf_io_ready() {
++                    return Err(OwnedRtpError::NotReady);
++                }
++                if let Some(prior) = core.poll_write() {
++                    self.deferred_transmits.push_back(prior);
++                    return Err(OwnedRtpError::NotReady);
++                }
++                Ok(())
++            })
++            .await
++            .unwrap_or_else(|_| Err(stopped(&control)));
++        let result = match ready {
++            Err(error) => Err(error),
++            Ok(()) => {
++                let mut io = RtpIo {
++                    driver: self,
++                    sender,
++                    control: &control,
++                    attempted: false,
++                    written: false,
++                };
++                complete(producer.as_ref(), &mut io, &control).await
++            }
++        };
++        // `complete` destroys the producer's future (and hence Core guards)
++        // before this exact original receipt is acknowledged.
++        let _ = completion.send(result);
++    }
++
+     async fn handle_write(&self, msg: TaggedBytesMut) {
+         let socket_addr = self
+             .advertised_to_socket
+@@ -753,6 +807,9 @@
+ 
+     async fn handle_driver_event(&mut self, evt: PeerConnectionDriverEvent) -> bool {
+         match evt {
++            PeerConnectionDriverEvent::OwnedRtp(sender, request) => {
++                self.handle_owned_rtp(sender, request).await;
++            }
+             PeerConnectionDriverEvent::OwnedDtmf(sender, request) => {
+                 self.handle_owned_dtmf(sender, request).await;
+             }
+@@ -828,3 +885,89 @@
+ 
+ #[cfg(test)]
+ mod outbound_rtx_tests;
++
++struct RtpIo<'a, I: Interceptor + 'static> {
++    driver: &'a mut PeerConnectionDriver<I>,
++    sender: RTCRtpSenderId,
++    control: &'a crate::media_stream::track_local::owned_rtp::OwnedRtpControl,
++    attempted: bool,
++    written: bool,
++}
++#[async_trait::async_trait]
++impl<I: Interceptor + 'static> crate::media_stream::track_local::owned_rtp::OwnedRtpIo
++    for RtpIo<'_, I>
++{
++    fn written(&self) -> bool {
++        self.written
++    }
++    async fn write(&mut self, packet: rtp::Packet) -> Result<()> {
++        if self.attempted {
++            return Err(Error::ErrConnectionClosed);
++        }
++        self.attempted = true;
++        let inner = self.driver.inner.clone();
++        let (fact, output) = {
++            let mut core = inner.core.lock().await;
++            if !self.control.current() || !core.owned_dtmf_io_ready() {
++                return Err(Error::ErrConnectionClosed);
++            }
++            if let Some(prior) = core.poll_write() {
++                self.driver.deferred_transmits.push_back(prior);
++                return Err(Error::ErrConnectionClosed);
++            }
++            let mut sender = core
++                .rtp_sender(self.sender)
++                .ok_or(Error::ErrConnectionClosed)?;
++            let (packet, _) = sender.prepare_owned_rtp(packet)?;
++            let fact = packet.clone();
++            if !self.control.begin() {
++                return Err(Error::ErrConnectionClosed);
++            }
++            sender.write_rtp(packet)?;
++            let mut output = Vec::new();
++            while let Some(message) = core.poll_write() {
++                output.push(message);
++            }
++            (fact, output)
++        };
++        if output.len() != 1 {
++            return Err(Error::ErrConnectionClosed);
++        }
++        let message = output
++            .into_iter()
++            .next()
++            .ok_or(Error::ErrConnectionClosed)?;
++        let bytes = &message.message;
++        if bytes.len() < 12
++            || bytes[0] >> 6 != 2
++            || bytes[1] & 127 != fact.header.payload_type
++            || (bytes[1] & 128 != 0) != fact.header.marker
++            || u16::from_be_bytes([bytes[2], bytes[3]]) != fact.header.sequence_number
++            || u32::from_be_bytes(bytes[4..8].try_into().unwrap()) != fact.header.timestamp
++            || u32::from_be_bytes(bytes[8..12].try_into().unwrap()) != fact.header.ssrc
++            || !self.control.current()
++        {
++            return Err(Error::ErrConnectionClosed);
++        }
++        let address = self
++            .driver
++            .advertised_to_socket
++            .get(&message.transport.local_addr)
++            .copied()
++            .unwrap_or(message.transport.local_addr);
++        let socket = self
++            .driver
++            .sockets
++            .get(&address)
++            .ok_or(Error::ErrConnectionClosed)?;
++        let written = socket
++            .send_to(bytes, message.transport.peer_addr)
++            .await
++            .map_err(|_| Error::ErrConnectionClosed)?;
++        if written != bytes.len() {
++            return Err(Error::ErrConnectionClosed);
++        }
++        self.written = true;
++        Ok(())
++    }
++}

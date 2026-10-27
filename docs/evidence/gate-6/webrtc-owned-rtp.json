@@ -1,0 +1,243 @@
+{
+  "task": "G6-051",
+  "status": "in-progress",
+  "checked_at": "2026-10-27T00:24:45.162092+00:00",
+  "base_revision": "85007329",
+  "scope": "Local macOS arm64 production-library RTC driver custody. An instrumented RwLock permission fixture exercises the exact asynchronous UDP boundary; Core QueuedMedia, canonical media admission/readiness, browser fallback and acceptance qualification remain pending.",
+  "source_inputs": {
+    "dependencies/source-lock.json": "8f7af7693b4c5539eab7c74ffff67133704e7b464b4947efaadd20a84905ac1a",
+    "patches/rvoip/gate6-deferred-owned-rtp.patch": "b0397a21f28c7ec6835e3acdf3f36eed334aea87076e8af7eeeb71a201a197c3",
+    "docs/evidence/gate-6/webrtc-owned-rtp-probe.rs": "f6ccf668494a26f511de4bb37fcca82fd607241a31732e9a5fc915d994aca342",
+    ".deps/rvoip/crates/webrtc/rvoip-rtc/src/rtp_transceiver/rtp_sender/mod.rs": "f5859c35177fc1b2fa6c3ab1d627c99d0cf5bd81f8afeeb2a2d3e269d42386d5",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/mod.rs": "9d5d7b3a114fa297e3b92e1144653e593683f0bb5e7f455367ad27164ed85c02",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_dtmf.rs": "0a4a2b539e943d60b39f33e2e506b6fddb70c0fb178adf022951b3e37706ac8d",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/owned_rtp.rs": "845ca2a59e081db4117e6a4816efa960a284dc1bca991b19100865dbc5d1c683",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/media_stream/track_local/static_rtp.rs": "9d3e832eb347f4e1b345e14bc0dcdd3d2bed627a5f2a0d6cafc25dfcea6890fc",
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs": "223d76ecef8b708ada3503a27fb54f36e77c6080c70cb41f62f5413d5c8ae5f4"
+  },
+  "dependency_preparation": {
+    "root": "/Users/jonathaneisenzopf/.local/share/connect/deps-deferred-owned-rtp-20261026-v3",
+    "unchanged_mtimes": 4122
+  },
+  "build": {
+    "exit_code": 0,
+    "seconds": 3.226482958998531,
+    "source_unchanged": true,
+    "source_count": 1796,
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--lib",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "artifacts": [
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-3040a430b3e3a7af",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/server-library-test-04",
+        "sha256": "0e5978a62591be5857ae07c037aff1596a0449faaf96e18df2bf946305ad0fa5",
+        "bytes": 106382880
+      },
+      {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-d8a5afc4603da809",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/wss-integration-test-04",
+        "sha256": "d9a8355546d890fdf926507e500ab8641760261973427822857ef80f0347ba8d",
+        "bytes": 203939264
+      }
+    ],
+    "log_sha256": "4c2fc3cc3e6e3cf1d05a2a84452ae9409b56817152aec510189e1927daddd507"
+  },
+  "connect_regressions": {
+    "results": [
+      {
+        "scope": "canonical_websocket_control::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/wss-integration-test-04",
+          "canonical_websocket_control::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 10.032309541013092,
+        "log_sha256": "a2d9fb8d821a05325949d6147cc9a716048045c683aa1caa696152d0152c9fa9",
+        "test_result": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 34 filtered out; finished in 8.52s"
+        ]
+      },
+      {
+        "scope": "canonical_webrtc::tests::",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/server-library-test-04",
+          "canonical_webrtc::tests::",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 3.283912332961336,
+        "log_sha256": "9474b14ee30b04b86a3a1026c63f57697abb8ea5a59d41a153071ea63ec05d6e",
+        "test_result": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 2.35s"
+        ]
+      },
+      {
+        "scope": "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+        "command": [
+          "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/wss-integration-test-04",
+          "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 4.363468582974747,
+        "log_sha256": "597880996709bd13932c1e5758e04067c53961726cbabde858fabc65045ceb8b",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 45 filtered out; finished in 4.30s"
+        ]
+      }
+    ],
+    "source_count": 2389,
+    "changed_inputs": [],
+    "artifacts_unchanged": true
+  },
+  "driver_probe": {
+    "exit_code": 0,
+    "seconds": 0.5507162909489125,
+    "compile_command": [
+      "rustc",
+      "--edition",
+      "2024",
+      "-C",
+      "opt-level=1",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/webrtc-owned-rtp-probe.rs",
+      "-L",
+      "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+      "-o",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/probe-03",
+      "--extern",
+      "webrtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+      "--extern",
+      "rtc=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+      "--extern",
+      "tokio=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib",
+      "--extern",
+      "async_trait=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libasync_trait-143fd6a0b4c90767.dylib"
+    ],
+    "probe_sha256": "f6ccf668494a26f511de4bb37fcca82fd607241a31732e9a5fc915d994aca342",
+    "executable_sha256": "9e97ed16092c95a4b44f754092357c731e7bcc552beb5d4ee307c48d1c1213df",
+    "log_sha256": "ffd475135fc76b604d37eee1d4394f4bb85f4cf1d3a7f76cc85171b25f0142ef",
+    "artifacts": [
+      {
+        "name": "webrtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libwebrtc-39674c6ee10dc3af.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/normal-webrtc-03.rlib",
+        "sha256": "36a25b87d2ce1670f2ecec53289b926ae0af2126a178d82eebde343efb5734fa",
+        "cfg_test": false
+      },
+      {
+        "name": "rtc",
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librtc-1d0e7a5ab6de6849.rlib",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/normal-rtc-03.rlib",
+        "sha256": "dd3cebf058192bf444437ee818a12561013448df9de759ff8494e9bc1f2ae88e",
+        "cfg_test": false
+      }
+    ],
+    "input_count": 5,
+    "unchanged_inputs": true,
+    "checks": [
+      "PASS actual ICE/DTLS/SRTP G.711 plaintext delivery, exact SSRC/PT/sequence/timestamp/payload",
+      "PASS no-IO success cannot forge a delivery receipt",
+      "PASS mismatched sender SSRC and unnegotiated payload refuse before UDP",
+      "PASS queued expiry invokes no producer and retains no permission reader",
+      "PASS revocation between enqueue and callback refuses without wire submission",
+      "PASS cancelled observer preserves original IO; actual UDP future drops before both permission readers; original drain acknowledges; no late packet",
+      "PASS same RTC peer remains healthy after cancellation",
+      "PASS immediate requested send-direction withdrawal refuses output"
+    ]
+  },
+  "ordinary_server_library": {
+    "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libconnect_server-21a33fe28737a7c4.rlib",
+    "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/webrtc-owned-rtp/normal-server-lib-04.rlib",
+    "sha256": "240b5aa4db8d3851d94cd87e5bbed37c28fb21882dbedb398153fd054f477c4b",
+    "cfg_test": false,
+    "features": [
+      "test-support"
+    ]
+  },
+  "implementation": [
+    "Opaque deferred producer, bounded one-use ticket and original shared receipt worker are owned before asynchronous queue admission. Queued work retains no permission reader.",
+    "The driver invokes the producer against a borrowed actual socket sink. Callback destruction precedes original receipt acknowledgement; missing receipt cannot confirm drain. Cancelled observations cannot take the original worker.",
+    "Exact sender SSRC, negotiated PT, PCMU/PCMA 8000 Hz mono, current/requested send direction and reviewed immediate pipeline required. Only transport-cc feedback is allowed; retaining repair profiles refuse.",
+    "Actual writes are one-use; cancellation after submission starts remains OutcomeUnknown and never automatically retries. Producer-only success cannot forge a socket receipt."
+  ],
+  "historical_failures": [
+    {
+      "scope": "Prospective first packet probe",
+      "result": "Refused, not a pass. The default reviewed interceptor registry added transport-cc; an overly strict empty-feedback validator rejected it. Corrected to admit only transport-cc with empty parameter, preserving refusal of repair feedback.",
+      "log_sha256": "59a31ac1af40a523cf81ab9b6832a180fd763c8c3ac2e914392597e0fb49603f"
+    },
+    {
+      "scope": "Final regression build03",
+      "result": "Link failed with errno 28, No space left on device. No runtime pass claimed for that invocation. Closed proof executables were gzip archived with restored-content digest checks; unchanged sources rebuilt successfully in build04.",
+      "build_outcome": {
+        "exit_code": 101,
+        "seconds": 103.22849820787087,
+        "source_unchanged": true,
+        "source_count": 1796,
+        "command": [
+          "cargo",
+          "test",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--lib",
+          "--test",
+          "gate6_canonical_webtransport",
+          "--no-run",
+          "--message-format=json"
+        ]
+      },
+      "archive_manifest_sha256": "6c555b6c62f19d234085cdbb7fa86f130a7ffc21bec111a78bc548c06b6c2d6a"
+    }
+  ],
+  "verification_limits": [
+    "The eight probe PASS lines are assertion groups in one external production-library program, not eight Cargo test methods. They are separate from the 20 Connect test methods.",
+    "The probe models fresh source/target permission with an instrumented RwLock. It does not exercise Core QueuedMedia or Store media permission.",
+    "No browser, Linux hosting, Opus/VP8/SCTP, retaining repair, complete canonical media route or default server media advertisement is qualified.",
+    "Dependency dev-tests are not selected by the root Cargo workspace. The checked-in probe is compiled with rustc against the ordinary cfg(test)=false libraries from the exact server build."
+  ],
+  "pending": [
+    "Wire exact Core port-owned QueuedMedia through the deferred producer and original drain; implement canonical Core adapter/controller, binding/admission/readiness, ingress and cleanup.",
+    "Complete Opus/VP8/data, MID/SSRC/direction/channel policy, canonical ICE current authorization, public browser capture/routing and remove old offer-ready dialect.",
+    "Run actual Chrome/Firefox forced WT/UDP failure with same Conversation/transition and original accepted/uncertain dial/message IDs; qualify Linux/remote profiles with approved bounded G6-093 configuration."
+  ],
+  "private_evidence": ".local/gate-6/webrtc-owned-rtp/",
+  "publication": "Not performed; separate action."
+}

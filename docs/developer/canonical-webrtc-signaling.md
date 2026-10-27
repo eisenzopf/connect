@@ -172,3 +172,38 @@ The current protected integration has 20 passing selected methods: 12 WSS,
 7 RTC owner and 1 decoded WebTransport regression. The final run uses
 the default worker stack. Full scope, bounded repetitions, source/artifact guards
 and earlier failures are recorded in [the WSS dispatch evidence](../evidence/gate-6/webrtc-wss-dispatch.json).
+
+
+## Deferred primary RTP delivery
+
+The recorded `gate6-deferred-owned-rtp.patch` adds a driver-owned primary RTP
+submission boundary. Queued jobs hold an opaque producer and a one-use delivery
+ticket. The producer supplies its packet only when the RTC driver invokes it
+against a borrowed socket sink. This is the boundary where the forthcoming Core
+adapter must call `QueuedMedia::deliver`, retaining fresh source and target
+permission through the actual UDP future.
+
+`TrackLocalStaticRTP::owned_rtp` returns an owner before asynchronous queue
+admission. Result observations share the original worker; cancelling an observer
+does not cancel that ownership. `cancel_and_drain` requires the original driver
+receipt after callback and IO destruction. Missing receipts remain unconfirmed.
+A cancelled write that may have started reports an unknown outcome and is never
+automatically retried. A producer returning success without a socket write cannot
+produce a successful delivery receipt.
+
+The initial supported path is negotiated PCMU/PCMA, 8 kHz, one channel, with an
+exact sender SSRC and payload binding, current and requested sending direction,
+and the reviewed immediate interceptor pipeline. Its transport-cc feedback is
+allowed; retaining repair profiles are refused. The ordinary queued RTP writer
+is unchanged. Canonical wiring must consume the exact port-owned queued frames;
+that wiring is not installed yet.
+
+The [reproducible probe](../evidence/gate-6/webrtc-owned-rtp-probe.rs) exercises
+actual loopback ICE/DTLS/SRTP with an instrumented permission fixture. It verifies
+packet content, queued expiry, revocation before callback, foreign SSRC/payload,
+direction withdrawal, a cancelled result observer, actual pending UDP destruction
+before permission release, no late packet, and subsequent delivery on the same
+peer. These are driver-boundary checks. The probe does not implement or qualify
+Core `QueuedMedia`, canonical media admission/readiness, Opus/VP8/SCTP, installed
+browsers, or the complete fallback journey. See
+[the scoped evidence](../evidence/gate-6/webrtc-owned-rtp.json).
