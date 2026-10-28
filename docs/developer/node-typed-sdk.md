@@ -135,3 +135,9 @@ cause is still unproven. The downloaded Ubuntu Node22/26 artifacts independently
 pass all41synthetic checks, negative declarations and generated dist equality;
 see [`node-linux-control.json`](../evidence/gate-6/node-linux-control.json).
 Neither result qualifies the remaining full SDK or resolves the failed events.
+
+The isolated Ubuntu x86_64 native job now has independent Node22/26 cells, each
+running the same source-bound fixtures and preserving all request/phase/function
+bounds. Native evidence artifact names include the Node major version. Configuring
+this matrix does not qualify either runtime; each cell must provide actual results.
+See [the runtime matrix record](../evidence/gate-6/node-native-runtime-matrix.json).

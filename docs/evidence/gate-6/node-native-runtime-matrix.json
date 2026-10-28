@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "native-runtime-matrix-configured-execution-pending",
+  "runtime_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "verification": {
+    "passed": true,
+    "scope": "Workflow syntax and source-preservation checks only; Node22 actual native runtime pending",
+    "native_node_versions": [
+      "22",
+      "26"
+    ],
+    "fail_fast": false,
+    "runner_fixture_source_unchanged": true,
+    "all_24_cases_and_request_phase_function_bounds_retained": true,
+    "distinct_native_artifacts": true,
+    "original_live_runs_preserved": true,
+    "workflow_sha256": "92b9fc7616b9fd338a5b784ee5fda7ce811a9b4711ff05f23a67949216bc33ef"
+  },
+  "scope": "Existing isolated Ubuntu24.04 x86_64 source-bound native fixture job, Rust1.97.1, installed public Node package and original SDK processes. Same 24 movement cases, consultation/remote EOF, receipts/raw/native controls, baseline Store/security/RTCP/HTTPS/SIP synthetic fixtures. No new remote/provider/model/PSTN/SMS lane.",
+  "qualification_limit": "71 synthetic functions/type checks pass Node22/26 at02238a30. Actual native evidence currently exists only for recorded Node26 cohorts; neither configured matrix cell is a new runtime pass.",
+  "runtime_bounds": {
+    "request_ms": 4000,
+    "node_phase_seconds": 15,
+    "sdk_function_seconds": 90,
+    "ci_job_minutes": 90
+  },
+  "preservation": "Workflow uses fail-fast:false and distinct native artifact names. Rust sources, fixtures, runner, assertions, cleanup and source guard unchanged by matrix configuration. Existing original live022 run remains active; workflow scheduling may replace older pending runs with the newer source."
+}
