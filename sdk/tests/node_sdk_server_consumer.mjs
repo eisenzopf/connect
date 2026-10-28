@@ -68,6 +68,8 @@ try {
  const peerRoom=peerClient.conversations.byId(room.id),peerSolo=peerRoom.sessions.byId(solo.id);
  current=await peerSolo.refresh(opts);
  await (await peerSolo.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend-accept'})).wait(opts);
+ emit({phase:'controls-ready',session_participants_accepted:true});
+ await resume('native');
  progress('native-offer');
  const nativeInput=(connectionId,streamId)=>({connectionId,streams:{first:{id:streamId,kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:['g.711-a']}},rest:[]}});
  const nativeOffer=await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'}),native=(await nativeOffer.wait(opts)).value;
@@ -96,6 +98,9 @@ try {
  progress('native-end');
  const nativeEnd=await native.end({reasonCode:1000,reason:'control complete',expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-end'}),nativeEndSaved=nativeEnd.referenceJson();assert.equal((await nativeEnd.wait(opts)).value.id,native.id);
  await (await remote.end({reasonCode:1000,reason:'peer complete'},{...opts,operationId:'typed-peer-end'})).wait(opts);
+ emit({phase:'native-complete',native_controls_completed:true});
+ await resume('finish');
+ progress('session-finish');
  current=await solo.refresh(opts);
  await (await solo.update({action:'participant-leave',participantId:peer.id},current.topologyRevision,{...opts,operationId:'typed-session-peer-leave'})).wait(opts);
  current=await solo.refresh(opts);

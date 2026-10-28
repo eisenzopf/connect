@@ -125,6 +125,16 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 return value;
             }
         }
+        // These are separate bounded functional scenarios. The installed
+        // journey grew beyond the original single Session-only phase; preserve
+        // every 4s SDK request and 15s absolute scenario deadline. The source
+        // runner independently retains its 90s whole-function limit.
+        let controls = phase(&mut lines, "controls-ready").await;
+        assert_eq!(controls["session_participants_accepted"], true);
+        stdin.write_all(b"native\n").await.unwrap();
+        let native_phase = phase(&mut lines, "native-complete").await;
+        assert_eq!(native_phase["native_controls_completed"], true);
+        stdin.write_all(b"finish\n").await.unwrap();
         let initial = phase(&mut lines, "initial").await;
         assert_eq!(
             std::fs::metadata(&native).unwrap().permissions().mode() & 0o777,
@@ -197,7 +207,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"initial":initial,"recovered":recovered,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/2","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

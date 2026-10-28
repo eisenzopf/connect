@@ -109,5 +109,68 @@
     "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "5df103e5f22ef986040c9070b79a98f57d3174d2b66bc06c0d19a7de984e6bdf",
     "sdk/tests/node_sdk_server_consumer.mjs": "a744e34bdc6b1f37a357e1b053ee8c3b9fe30abcaffafc8adda89f131dad80b3",
     "scripts/check-gate6-linux-hosting.py": "b835e06364fdd7b0279f80c1aa4f3827b6bc2c688eb0caf6a96ae73218fc66d5"
-  }
+  },
+  "ubuntu_node_synthetic": {
+    "commit": "bb981bbc6f2e90e65c556fba3c32e88eb94c5047",
+    "run_id": 40730777968,
+    "passed": true,
+    "functions_each": 53,
+    "source_count": 194,
+    "source_maps_match_local356": true,
+    "artifacts": [
+      {
+        "id": 12833929589,
+        "node": "v22.23.4",
+        "sha256": "92badf629ebf190657d808a8542dba6446254abea123dcc00cca703143064b52"
+      },
+      {
+        "id": 12835375948,
+        "node": "v26.12.1",
+        "sha256": "0ece5c86fe1832cede5c952cb15762faa0d55a2e662c77a36d0ac4e2d517f493"
+      }
+    ],
+    "native_lane": "Compiled new consultation helper source successfully; existing77nativefunctions pass, installed Node Connection journey fails combinedphase at native-offer. Actual Node consultation/audio still pending."
+  },
+  "ubuntu_native_source_compile": {
+    "commit": "bb981bbc6f2e90e65c556fba3c32e88eb94c5047",
+    "run_id": 40730777968,
+    "artifact_id": 12834814103,
+    "zip_sha256": "43046583f88d23b16f293deb59b9c791b337fbb48ae49d733cd00041ae870d9c",
+    "source_bound_tracked_files_verified": 3976,
+    "guarded_inputs": 8068,
+    "source_inputs_unchanged": true,
+    "compiled_artifacts": {
+      "library": "56bfbd0c9d8077d339f729f1df717c476edeace11ddad47c7bb8f32db33de625",
+      "hosting": "278004f2fd8ae5b00ac113a11775295f851baf2ba365b14ab91124ff9ecea68e",
+      "cli": "df0886edc64e4a4f98768ad92c3302273c9d029d41b65c9778ebaeec72010d36",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "prior_native_functions_passed": 77,
+    "installed_node_native_passed": false,
+    "failure": {
+      "name": "installed-node-native-control",
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 15.681645253999989,
+      "log_sha256": "82f2ed750e04e6f802bca4e16f65d6838cec7dd3987978d99e4e25ccf1b96114",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 368 filtered out; finished in 15.64s"
+      ],
+      "panic_locations": [],
+      "node_failures": [
+        {
+          "certainty": null,
+          "checkpoint": "native-offer",
+          "column": null,
+          "kind": "deadline",
+          "line": null,
+          "phase": "failed"
+        }
+      ],
+      "compiler_diagnostics": []
+    },
+    "finding": "Original combined phase timed out at fixed native-offer checkpoint. This identifies the active block, not a proven product defect or exact sub-call. Original4sSDKrequests/15scombinedphase failed; no native Node qualification."
+  },
+  "next_native_functional_profile": "node-controls/2; pending, documented in node-connection-sdk.json; no consultation-media qualification inferred."
 }

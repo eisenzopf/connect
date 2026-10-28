@@ -4,7 +4,7 @@
   "date": "2026-10-28",
   "implementation_status": "in-progress",
   "synthetic_passed": true,
-  "actual_runtime_status": "pending new source-bound Ubuntu execution",
+  "actual_runtime_status": "Ubuntu source-bound helper compile passed; original installed Node native journey failed; no native Node qualification.",
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
@@ -125,5 +125,57 @@
     },
     "stdout_sha256": "73bc2a2d8387c2a775e31c4ddea2a522c5255aeafe91d9979175220fbe1885f1",
     "stderr_sha256": "e1e29a117bdd37a60d9ee123d943b82ae73fb4f2dbce0824a1751742045227f4"
+  },
+  "ubuntu_node_synthetic": {
+    "commit": "48f711b5e63b04d295088872f925f23b65116e11",
+    "run_id": 40729674279,
+    "passed": true,
+    "functions_each": 50,
+    "source_count": 194,
+    "source_maps_match_local350": true,
+    "artifacts": [
+      {
+        "id": 12834119259,
+        "node": "v22.23.4",
+        "sha256": "7cad07199854415958056531702755dc3e41dad98c30f5ce35b6d0206fba7b4c"
+      },
+      {
+        "id": 12833303738,
+        "node": "v26.12.1",
+        "sha256": "3f039bdbf9f9d37a4f433c5c3835d6e449f63fcd281fc56738a27c90c66d553f"
+      }
+    ]
+  },
+  "ubuntu_native_failure": {
+    "commit": "48f711b5e63b04d295088872f925f23b65116e11",
+    "run_id": 40729674279,
+    "artifact_id": 12833574205,
+    "zip_sha256": "a06ce495223536362d739fca5d87bb7d3c418ef232a04da402a4c5bec475aeaa",
+    "source_bound_tracked_files_verified": 3974,
+    "guarded_inputs": 8066,
+    "source_inputs_unchanged": true,
+    "compiled_artifacts": {
+      "library": "501052b961ca4ec0d4d1cf8c16c0a9a4401a64b1b0379fe0219d043ba1181d4c",
+      "hosting": "2a68dbfc9fa6e9698d760a071564dd61cb413e08713475daffc18bc3fedb2262",
+      "cli": "b0d0a9c5b00cca2e63f0449e25c9bf49c564b71cf3619fdf8004e107e5287502",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "prior_native_functions_passed": 77,
+    "installed_node_native_passed": false,
+    "failure": {
+      "name": "installed-node-native-control",
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 15.400017394000031,
+      "log_sha256": "8c69cb4b4c3b84374023c4a0cb8fa7adf646b360790459aaf62e85cfe8e259d1",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 368 filtered out; finished in 15.36s"
+      ],
+      "panic_locations": [],
+      "node_failures": [],
+      "compiler_diagnostics": []
+    },
+    "finding": "Original phase failed15.40s, no Node failed witness observed. Location/cause remains unproven. bb981bbc adds fixed progress-stage reporting under same15sabsolute deadline; no retry/cancellation of live runs."
   }
 }

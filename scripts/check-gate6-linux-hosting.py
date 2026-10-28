@@ -119,7 +119,7 @@ def run(node_sdk=False):
                 failure = json.loads(line.split(' ', 1)[1])
                 assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'line', 'column'}
                 assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-                    'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'current-revocation'}
+                    'session-finish', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
@@ -203,6 +203,9 @@ def run(node_sdk=False):
             assert len(witnesses) == 2
             assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
             for witness in witnesses:
+                assert witness['functional_phase_profile'] == 'node-controls/2'
+                assert witness['controls']['session_participants_accepted']
+                assert witness['native']['native_controls_completed']
                 assert witness['initial']['node_capability_support_only']
                 assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
                 assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
@@ -210,6 +213,8 @@ def run(node_sdk=False):
                 assert witness['completed']['helpers_joined'] == 3
                 assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
             report['installed_node_native'] = {'passed': True, 'package': node_package,
+                'functional_phase_profile': 'node-controls/2', 'request_budget_ms': 4000,
+                'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
                 'physical_peers_drained': True, 'media_readers_drained': True,
                 'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
