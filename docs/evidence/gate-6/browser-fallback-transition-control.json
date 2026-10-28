@@ -1,0 +1,849 @@
+{
+  "format": 1,
+  "task": "G6-051",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Actual installed Chrome155.0.8059.85 and Firefox158.0.1, both signing algorithms, normal isolated CA trust and real loopback UDP blackholes. Signed transition control admission/refusal/cancellation/replay; separate from decoded movement quality.",
+  "passed": 4,
+  "total": 4,
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 3.6708655830007046,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5232,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-127",
+      "sha256": "8e6b60386b174b487758071bced60dddf4c94f706e089758fea8c94f5267a961",
+      "bytes": 215232496
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "776a2a7490838cc94e9ba10ddc2b9b097c5670205bf85d14283e05f89684f3c0"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "db1877022d38ad47beec064196490957f28c06ddb38c90b0bb6eda5d6654304b",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/transitions.rs": "a1aabf5bca942f9c4e7ba8b54c9dfc7ff7aeb7ee2225a42baba3be3ece53632c",
+    "scripts/video/browser-control-transitions.mjs": "f304952a8ccc39e3854c1a94e8baf2908dc32755f0b3ee00d8c937c84d0e5eff"
+  },
+  "media_observer_unchanged_sha256": "4b39d793a8949a1bd2b26abfe247b3761c331c5f45b6139943de63b2a2689667",
+  "rows": [
+    {
+      "mode": "control",
+      "browser": "chrome",
+      "algorithm": "eddsa",
+      "label": "chrome-transition-control-128",
+      "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_transition_control_eddsa",
+      "passed": true,
+      "seconds": 2.556611374951899,
+      "source_and_executable_guards_unchanged": true,
+      "summary_sha256": "0dc9c352bbf2f58ecf0f6c02900c748468850c4ce9e346bc3be05d518a5f7617",
+      "reused_unchanged_single_first_cell": true,
+      "browser_report": {
+        "status": "passed",
+        "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+        "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+        "browser": "chrome",
+        "fallback": [
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.0014000000953673,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "message.send",
+                "operation_id": "browser-original-message-op",
+                "state": "completed"
+              },
+              {
+                "type": "session.invite",
+                "operation_id": "browser-invite",
+                "state": "completed"
+              }
+            ]
+          },
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.0017000000476837,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "session.accept",
+                "operation_id": "browser-accept",
+                "state": "completed"
+              }
+            ]
+          }
+        ],
+        "unsupported_migration": [
+          "unsupported-transport",
+          "unsupported-transport"
+        ],
+        "transitions": [
+          {
+            "type": "session.consult",
+            "operation_id": "browser-transition-0-original",
+            "terminal_status": {
+              "command_type": "session.consult",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-0-original",
+              "record_id": "opr_249951e2-b026-486a-a89e-9548fe36dc32",
+              "revision": 1,
+              "state": "cancelled"
+            },
+            "original_record_id": "opr_249951e2-b026-486a-a89e-9548fe36dc32",
+            "original_expected_revision": 0,
+            "terminal_state": "cancelled",
+            "replay_state": "cancelled",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242372,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "session.handoff",
+            "operation_id": "browser-transition-1-original",
+            "terminal_status": {
+              "command_type": "session.handoff",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-1-original",
+              "problem": {
+                "code": "invalid-request",
+                "source": "native-handoff"
+              },
+              "record_id": "opr_c05b58a2-284b-4c1f-b80f-47b5c8b33ac2",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_c05b58a2-284b-4c1f-b80f-47b5c8b33ac2",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242372,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "connection.replace",
+            "operation_id": "browser-transition-2-original",
+            "terminal_status": {
+              "command_type": "connection.replace",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-2-original",
+              "problem": {
+                "code": "forbidden",
+                "source": "native-replacement"
+              },
+              "record_id": "opr_9ea0372f-f76d-4169-a1dd-3f4afcbda84d",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_9ea0372f-f76d-4169-a1dd-3f4afcbda84d",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242372,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          }
+        ],
+        "owned_control_cleanup": true
+      },
+      "native_http_journal_audit": {
+        "passed": true,
+        "rows": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242372,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242372,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242372,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ],
+        "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+      },
+      "actual_transport": {
+        "actual_loopback_quic_initial_datagrams": [
+          4,
+          4
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "owned_cleanup": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "input_manifest_sha256": "3876b8052eaea5cff6768da5b4e53e7c7911aa36ac356336ffa86d80dada6b8d"
+    },
+    {
+      "mode": "control",
+      "browser": "chrome",
+      "algorithm": "es256",
+      "label": "chrome-transition-control-129",
+      "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_transition_control_es256",
+      "passed": true,
+      "seconds": 2.451690792106092,
+      "source_and_executable_guards_unchanged": true,
+      "summary_sha256": "45f450286471bf58a720c7812ab333ad73930cecb7b36a891de4bbe61a586daf",
+      "reused_unchanged_single_first_cell": false,
+      "browser_report": {
+        "status": "passed",
+        "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+        "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+        "browser": "chrome",
+        "fallback": [
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.0029000000953674,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "message.send",
+                "operation_id": "browser-original-message-op",
+                "state": "completed"
+              },
+              {
+                "type": "session.invite",
+                "operation_id": "browser-invite",
+                "state": "completed"
+              }
+            ]
+          },
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.0025,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "session.accept",
+                "operation_id": "browser-accept",
+                "state": "completed"
+              }
+            ]
+          }
+        ],
+        "unsupported_migration": [
+          "unsupported-transport",
+          "unsupported-transport"
+        ],
+        "transitions": [
+          {
+            "type": "session.consult",
+            "operation_id": "browser-transition-0-original",
+            "terminal_status": {
+              "command_type": "session.consult",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-0-original",
+              "record_id": "opr_6de73c1f-4b7b-4152-b60a-9d2d5d92315f",
+              "revision": 1,
+              "state": "cancelled"
+            },
+            "original_record_id": "opr_6de73c1f-4b7b-4152-b60a-9d2d5d92315f",
+            "original_expected_revision": 0,
+            "terminal_state": "cancelled",
+            "replay_state": "cancelled",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242455,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "session.handoff",
+            "operation_id": "browser-transition-1-original",
+            "terminal_status": {
+              "command_type": "session.handoff",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-1-original",
+              "problem": {
+                "code": "invalid-request",
+                "source": "native-handoff"
+              },
+              "record_id": "opr_7365aca2-0346-4a24-bf3c-3ef29e8ddbf2",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_7365aca2-0346-4a24-bf3c-3ef29e8ddbf2",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242455,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "connection.replace",
+            "operation_id": "browser-transition-2-original",
+            "terminal_status": {
+              "command_type": "connection.replace",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-2-original",
+              "problem": {
+                "code": "forbidden",
+                "source": "native-replacement"
+              },
+              "record_id": "opr_9c866d01-7f89-4f6a-b8ec-3ae439390665",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_9c866d01-7f89-4f6a-b8ec-3ae439390665",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242455,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          }
+        ],
+        "owned_control_cleanup": true
+      },
+      "native_http_journal_audit": {
+        "passed": true,
+        "rows": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242455,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242455,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242455,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ],
+        "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+      },
+      "actual_transport": {
+        "actual_loopback_quic_initial_datagrams": [
+          4,
+          4
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "owned_cleanup": {
+        "browser_kind": "chrome",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "input_manifest_sha256": "df395138f3344e2a38432866fc7567cbcee91544352c3f358ff9df50d7077448"
+    },
+    {
+      "mode": "control",
+      "browser": "firefox",
+      "algorithm": "eddsa",
+      "label": "firefox-transition-control-129",
+      "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_transition_control_eddsa",
+      "passed": true,
+      "seconds": 5.505061999894679,
+      "source_and_executable_guards_unchanged": true,
+      "summary_sha256": "4173492585398ea0dfa7b451d052c98d461f2416ed5fbc7aab264022ca1ce936",
+      "reused_unchanged_single_first_cell": false,
+      "browser_report": {
+        "status": "passed",
+        "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+        "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+        "browser": "firefox",
+        "fallback": [
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.01,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "message.send",
+                "operation_id": "browser-original-message-op",
+                "state": "completed"
+              },
+              {
+                "type": "session.invite",
+                "operation_id": "browser-invite",
+                "state": "completed"
+              }
+            ]
+          },
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.01,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "session.accept",
+                "operation_id": "browser-accept",
+                "state": "completed"
+              }
+            ]
+          }
+        ],
+        "unsupported_migration": [
+          "unsupported-transport",
+          "unsupported-transport"
+        ],
+        "transitions": [
+          {
+            "type": "session.consult",
+            "operation_id": "browser-transition-0-original",
+            "terminal_status": {
+              "command_type": "session.consult",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-0-original",
+              "record_id": "opr_88985a09-c4d8-4646-b28a-df6a7abe5393",
+              "revision": 1,
+              "state": "cancelled"
+            },
+            "original_record_id": "opr_88985a09-c4d8-4646-b28a-df6a7abe5393",
+            "original_expected_revision": 0,
+            "terminal_state": "cancelled",
+            "replay_state": "cancelled",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242464,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "session.handoff",
+            "operation_id": "browser-transition-1-original",
+            "terminal_status": {
+              "command_type": "session.handoff",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-1-original",
+              "problem": {
+                "code": "invalid-request",
+                "source": "native-handoff"
+              },
+              "record_id": "opr_f2ed9012-ca40-4eea-824a-d96c2a54f6c3",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_f2ed9012-ca40-4eea-824a-d96c2a54f6c3",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242464,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "connection.replace",
+            "operation_id": "browser-transition-2-original",
+            "terminal_status": {
+              "command_type": "connection.replace",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-2-original",
+              "problem": {
+                "code": "forbidden",
+                "source": "native-replacement"
+              },
+              "record_id": "opr_73a4b7c6-f878-4563-9c3d-631b42969a33",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_73a4b7c6-f878-4563-9c3d-631b42969a33",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242464,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          }
+        ],
+        "owned_control_cleanup": true
+      },
+      "native_http_journal_audit": {
+        "passed": true,
+        "rows": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242464,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242464,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242464,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ],
+        "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+      },
+      "actual_transport": {
+        "actual_loopback_quic_initial_datagrams": [
+          12,
+          12
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "owned_cleanup": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "input_manifest_sha256": "bb532fcaa6776fd9a18e5e4865c464335bc4c9af76f65c922b7078bcc8b08d5b"
+    },
+    {
+      "mode": "control",
+      "browser": "firefox",
+      "algorithm": "es256",
+      "label": "firefox-transition-control-es256-129",
+      "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_transition_control_es256",
+      "passed": true,
+      "seconds": 3.396110374946147,
+      "source_and_executable_guards_unchanged": true,
+      "summary_sha256": "ae1bc410015adb6b64479966c6600b1f5dcd33ad310268972e3f929ff3ec0b14",
+      "reused_unchanged_single_first_cell": false,
+      "browser_report": {
+        "status": "passed",
+        "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+        "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+        "browser": "firefox",
+        "fallback": [
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.008,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "message.send",
+                "operation_id": "browser-original-message-op",
+                "state": "completed"
+              },
+              {
+                "type": "session.invite",
+                "operation_id": "browser-invite",
+                "state": "completed"
+              }
+            ]
+          },
+          {
+            "status": "refused",
+            "error_code": "timeout",
+            "seconds": 1.008,
+            "application_mutations_attempted": 0,
+            "replayed_originals": [
+              {
+                "type": "session.accept",
+                "operation_id": "browser-accept",
+                "state": "completed"
+              }
+            ]
+          }
+        ],
+        "unsupported_migration": [
+          "unsupported-transport",
+          "unsupported-transport"
+        ],
+        "transitions": [
+          {
+            "type": "session.consult",
+            "operation_id": "browser-transition-0-original",
+            "terminal_status": {
+              "command_type": "session.consult",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-0-original",
+              "record_id": "opr_99d3508d-89f6-4cb7-b494-8b102b4e0279",
+              "revision": 1,
+              "state": "cancelled"
+            },
+            "original_record_id": "opr_99d3508d-89f6-4cb7-b494-8b102b4e0279",
+            "original_expected_revision": 0,
+            "terminal_state": "cancelled",
+            "replay_state": "cancelled",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242469,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "session.handoff",
+            "operation_id": "browser-transition-1-original",
+            "terminal_status": {
+              "command_type": "session.handoff",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-1-original",
+              "problem": {
+                "code": "invalid-request",
+                "source": "native-handoff"
+              },
+              "record_id": "opr_1dd3d4cb-c3f0-43aa-a38a-b544c753f560",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_1dd3d4cb-c3f0-43aa-a38a-b544c753f560",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242469,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          },
+          {
+            "type": "connection.replace",
+            "operation_id": "browser-transition-2-original",
+            "terminal_status": {
+              "command_type": "connection.replace",
+              "expected_revision": 0,
+              "operation_id": "browser-transition-2-original",
+              "problem": {
+                "code": "forbidden",
+                "source": "native-replacement"
+              },
+              "record_id": "opr_24d51aee-5eeb-4d5d-b0c1-06c69b2db67c",
+              "revision": 1,
+              "state": "failed"
+            },
+            "original_record_id": "opr_24d51aee-5eeb-4d5d-b0c1-06c69b2db67c",
+            "original_expected_revision": 0,
+            "terminal_state": "failed",
+            "replay_state": "failed",
+            "changed_revision_refused": true,
+            "foreign_scope_refused": true,
+            "original_expires_at": 1793242469,
+            "oracle_effects": 0,
+            "expiry_unchanged": true
+          }
+        ],
+        "owned_control_cleanup": true
+      },
+      "native_http_journal_audit": {
+        "passed": true,
+        "rows": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242469,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242469,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793242469,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ],
+        "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+      },
+      "actual_transport": {
+        "actual_loopback_quic_initial_datagrams": [
+          12,
+          12
+        ],
+        "forced_fallback": true,
+        "original_message_counts": [
+          1,
+          2,
+          1
+        ],
+        "original_message_counts_preserved": true
+      },
+      "owned_cleanup": {
+        "browser_kind": "firefox",
+        "original_listener_addresses_reclaimed": 3,
+        "owned_browser_joined": true,
+        "owned_node_joined": true,
+        "physical_routes_and_slots_retired": true,
+        "runner_timed_out": false,
+        "server_shutdown_joined": true
+      },
+      "input_manifest_sha256": "63bb8847be3fcb183a5da72a0979deb1c7b0a095ea9c925e068672903be08105"
+    }
+  ],
+  "assertions": [
+    "Both owned UDP blackholes must receive actual QUIC Initial datagrams; failed transport probe submits no application mutation.",
+    "Original preaccepted message, Session invite and Session accept retain original IDs/current completed status; message/journal/operation counts remain unchanged.",
+    "Actual signed WSS refuses construction of a WT datagram MediaPeer with unsupported-transport, without changing selected control path or retiring it.",
+    "Browser-origin consult admission cancels before media readiness. Unowned handoff/replacement fixture rows retain exact original preflight refusals, zero external effects and unchanged topology/source Connection.",
+    "Replayed original transition keeps record, precondition, terminal state and expiry. Changed precondition and foreign-but-owned Conversation assertions are refused.",
+    "Current native QUIC and canonical HTTP replies match the browser common status fields; browser-visible expected revision matches the private journal.",
+    "Wire operation status does not expose effects or expiry. A bounded read-only NodeSQLite oracle observes only the three original fixture operations, before/after replay. No browser storage capability or product API is added.",
+    "Owned WSS controls, browser profiles, native audit peer, host routes/intake and original listeners retire."
+  ],
+  "unqualified_candidates": [
+    {
+      "label": "chrome-transition-control-124",
+      "reason": "Fixture incorrectly assumed effects/expiry were visible in browser wire status. Corrected to read-only private journal oracle.",
+      "summary_sha256": "51d476d4e7ff38cd1848f9a939ee4a876d1e91de253ae141917b9cecab6785cf"
+    },
+    {
+      "label": "chrome-transition-control-126",
+      "reason": "Browser workflow completed; audit incorrectly assumed the low-level typed native OperationUpdated models expected_revision. Corrected common status projection and strict private-journal precondition check. No production API was changed.",
+      "summary_sha256": "b4e9b6ca8ad83f985810e7e521af7a08dee67a0f45b139fde2878edd41c01abd"
+    }
+  ],
+  "not_qualified": [
+    "Current full four-cell60second fallback media rerun is still running; this control checkpoint cannot qualify decoded media.",
+    "Live successful consult/handoff/device-movement media continuity and transition quality are not inferred from trusted unready adapter rows.",
+    "Linux/remote/TURN/impaired profiles, G6-052 repeated outage/uncertainty recovery, acceptance and publication."
+  ],
+  "acceptance_qualified": false
+}

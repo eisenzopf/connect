@@ -894,3 +894,25 @@ for frozen inputs, digests, counts and limits. Optional Session identifier field
 are omitted according to the current wire schema; sending literal null is invalid.
 The full browser/algorithm/profile matrix and the earlier audio failures remain
 open. G6-050/G6-051 and acceptance are unchanged.
+
+
+### Installed-browser transition control
+
+The explicit ignored `canonical_*_actual_udp_failure_transition_control_*`
+methods run Chrome and Firefox with both signing algorithms, normal isolated CA
+trust and actual owned UDP blackholes. The production BrowserClient then opens
+signed WSS, recovers the original accepted message/invite/accept intents and
+submits consult, handoff and replacement commands. The short control lane
+checks admission, current refusal, cancellation, unchanged-ID replay and scoped
+status parity against public native QUIC and canonical HTTP.
+
+Trusted unready adapter rows cannot establish live movement media: consult is
+cancelled while unprepared; handoff/replacement retain their exact preflight
+refusals. A bounded read-only private journal oracle verifies unchanged expiry,
+one original operation and zero external effects. Those private fields are not
+invented in the browser status API. Constructing a WT datagram MediaPeer on the
+actual WSS control explicitly refuses `unsupported-transport`.
+
+All four control cells pass. The original 60-second AV observer remains unchanged
+and is checked separately. See
+[`browser-fallback-transition-control.json`](../evidence/gate-6/browser-fallback-transition-control.json).

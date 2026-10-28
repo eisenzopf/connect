@@ -1,6 +1,8 @@
 //! Explicit installed-browser lane: synthetic sources, normal private CA trust.
 #[path = "canonical_webrtc_browser/audio_trace.rs"]
 mod audio_trace;
+#[path = "canonical_webrtc_browser/transitions.rs"]
+mod transitions;
 use super::*;
 use connect_client::{
     canonical::CanonicalHttpClient,
@@ -265,6 +267,14 @@ fn original_message_counts(f: &Fixture) -> (i64, i64, i64) {
 }
 
 async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
+    Box::pin(run_profile(algorithm, browser_kind, forced_fallback, false)).await;
+}
+async fn run_profile(
+    algorithm: &str,
+    browser_kind: &str,
+    forced_fallback: bool,
+    transition_control: bool,
+) {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
@@ -284,7 +294,24 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
     );
     assert!(output.is_absolute());
     std::fs::create_dir_all(&output).unwrap();
-    let mut f = Fixture::with_native_end_scope(algorithm, 8).await;
+    let mut f = if transition_control {
+        Fixture::with_extra_scopes(
+            algorithm,
+            8,
+            true,
+            true,
+            true,
+            &[
+                "session.consult",
+                "session.handoff",
+                "connection.replace",
+                "operation.cancel",
+            ],
+        )
+        .await
+    } else {
+        Fixture::with_native_end_scope(algorithm, 8).await
+    };
     let ca = certificate(&mut f);
     f.server.shutdown().await.unwrap();
     let asset = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -401,6 +428,11 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
         assert_eq!(messages, 1);
         assert_eq!(operations, 1);
     }
+    let transition_probes = if transition_control {
+        transitions::seed(&f, &other)
+    } else {
+        Vec::new()
+    };
     native.shutdown().await.unwrap();
     assert!(["chrome", "firefox"].contains(&browser_kind));
     let binary = PathBuf::from(
@@ -549,21 +581,27 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
             participants[index]["fallbackProbe"] = json!({"url":format!("https://127.0.0.1:{}/connect",hole.address.port()),"timeoutMs":1000});
         }
     }
-    let spec = json!({"browser":browser_kind,"root":root,"assetPort":asset_port,"debugPort":debug_port,"seconds":60,"profileMode":"clean","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],"participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
+    let mut spec = json!({"browser":browser_kind,"root":root,"assetPort":asset_port,"debugPort":debug_port,"seconds":60,"profileMode":"clean","sourceIds":[0,1],"sourceToneHz":[440,660],"expectedToneHz":[660,440],"participants":participants,"terminal":{"operationId":"browser-session-end","expectedRevision":accepted.session.topology_revision}});
+    if transition_control {
+        spec["controlOnly"] = json!(true);
+        spec["controlDatabase"] = json!(f.server.store.path());
+        spec["controlTransitions"] = json!(transition_probes);
+    }
     let input = f.temp.path().join("private-browser-input.json");
     std::fs::write(&input, serde_json::to_vec(&spec).unwrap()).unwrap();
     drop(asset);
-    let runner_script =
-        if let Some(path) = std::env::var_os("CONNECT_GATE6_CANONICAL_BROWSER_RUNNER") {
-            let path = PathBuf::from(path).canonicalize().unwrap();
-            assert!(
-                path.starts_with(root.join(".local")) && path.is_file(),
-                "diagnostic runner must be an explicit private local file"
-            );
-            path
-        } else {
-            root.join("scripts/video/browser-qualify.mjs")
-        };
+    let runner_script = if transition_control {
+        root.join("scripts/video/browser-control-transitions.mjs")
+    } else if let Some(path) = std::env::var_os("CONNECT_GATE6_CANONICAL_BROWSER_RUNNER") {
+        let path = PathBuf::from(path).canonicalize().unwrap();
+        assert!(
+            path.starts_with(root.join(".local")) && path.is_file(),
+            "diagnostic runner must be an explicit private local file"
+        );
+        path
+    } else {
+        root.join("scripts/video/browser-qualify.mjs")
+    };
     let mut node = tokio::process::Command::new(
         std::env::var_os("CONNECT_GATE6_NODE").expect("explicit Node runtime"),
     );
@@ -610,6 +648,17 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
         original_counts.is_none_or(|before| original_message_counts(&f) == before);
     std::fs::write(output.join("transport-switch.json"),serde_json::to_vec(&json!({"forced_fallback":forced_fallback,"actual_loopback_quic_initial_datagrams":blackhole_packets,"original_message_counts_preserved":message_preserved,"original_message_counts":original_counts})).unwrap()).unwrap();
 
+    if transition_control && !runner_timed_out && status.success() {
+        let report: Value =
+            serde_json::from_slice(&std::fs::read(output.join("browser-result.jsonl")).unwrap())
+                .unwrap();
+        let audit = transitions::audit(&f, &transition_probes, &report).await;
+        std::fs::write(
+            output.join("transition-parity.json"),
+            serde_json::to_vec(&audit).unwrap(),
+        )
+        .unwrap();
+    }
     let cleanup = tokio::time::timeout(Duration::from_secs(5), async {
         while host.available_slots() != 2 || host.adapter().route_count() != 0 {
             tokio::time::sleep(Duration::from_millis(20)).await;
@@ -681,4 +730,25 @@ async fn canonical_firefox_actual_udp_failure_original_wss_intents_eddsa() {
 #[ignore = "explicit installed firefox, owned UDP blackhole, original native message/Session replay and synthetic AV"]
 async fn canonical_firefox_actual_udp_failure_original_wss_intents_es256() {
     Box::pin(run("ES256", "firefox", true)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
+async fn canonical_chrome_actual_udp_failure_transition_control_eddsa() {
+    Box::pin(run_profile("EdDSA", "chrome", true, true)).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Chrome; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
+async fn canonical_chrome_actual_udp_failure_transition_control_es256() {
+    Box::pin(run_profile("ES256", "chrome", true, true)).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Firefox; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
+async fn canonical_firefox_actual_udp_failure_transition_control_eddsa() {
+    Box::pin(run_profile("EdDSA", "firefox", true, true)).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed Firefox; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
+async fn canonical_firefox_actual_udp_failure_transition_control_es256() {
+    Box::pin(run_profile("ES256", "firefox", true, true)).await;
 }
