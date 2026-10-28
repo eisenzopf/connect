@@ -298,5 +298,15 @@
     "decoded_directions": 4,
     "physical_peers_drained": true,
     "scope": "Owned Linux/amd64 guest on local Lima arm64 VM to macOS server; public canonical SDK PCMU. No native x86 performance, native video, browser, SIP or full G6-054 qualification."
+  },
+  "native_network_loss": {
+    "evidence": "docs/evidence/gate-6/native-network-loss.json",
+    "component_passed": true,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "decoded_directions": 4,
+    "scope": "Every tenth encrypted UDP datagram after media-go dropped per direction; 22-23 actual drops per direction, decoded opposite tones and original offer/peer/proxy drains. Only this bounded transport fault, not full loss-quality profiles."
   }
 }

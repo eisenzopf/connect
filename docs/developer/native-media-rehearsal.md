@@ -40,6 +40,17 @@ exceed the self tone by four times in at least 80 percent of active frames.
 Silence or self echo cannot qualify duplex audio. These are fixture signal
 identification thresholds, not a performance or packet-loss acceptance profile.
 
+Add `--drop-every 10` for the bounded transport-loss case. An owned UDP proxy
+accepts one guest tuple and forwards only to the fixture server's fixed local
+port. After `media-go`, it drops every tenth encrypted UDP datagram separately
+in each direction. The report distinguishes eligible, dropped and forwarded
+datagrams, checks actual drops in both directions and joins the proxy worker.
+Forwarded counts include setup traffic before loss starts. These are encrypted
+transport datagrams, not a claim about a measured percentage of RTP frames.
+The same tone-identification thresholds and peer-drain checks apply. The
+fixture rewrites only the designated private client endpoint port; trust roots
+and verified server name remain unchanged.
+
 The server checks completion of both original signed offer operation IDs,
 exactly two durable native offer records, explicit peer shutdown and zero
 physical peers before its own shutdown. The runner checks both actual process
@@ -50,4 +61,6 @@ created. Raw logs, credentials, audio and build records stay beneath `.local/`.
 
 The Linux/amd64 guest uses QEMU on an arm64 Lima VM. This does not qualify native
 Linux x86_64 performance, a Linux-hosted server, WAN deployment, video, browser,
-SIP/RTP, TURN, packet loss or ICE restart. Those Gate 6 checks remain separate.
+SIP/RTP, TURN, frozen packet-loss quality profiles or ICE restart. Those Gate 6
+checks remain separate. The bounded injected-loss observation supplies only
+the transport case described above.

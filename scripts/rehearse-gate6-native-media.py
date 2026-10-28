@@ -10,14 +10,75 @@ import os
 from pathlib import Path
 import re
 import runpy
+import select
 import signal
+import socket
 import subprocess
 import sys
+import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPERS = runpy.run_path(str(ROOT / "scripts/rehearse-gate6-fifty-participants.py"))
 CASE = "canonical_native_connections::remote::media::distinct_network_audio_server_child"
+
+
+class LossProxy:
+    """One owned guest tuple and one fixed local server; no arbitrary forwarding."""
+    def __init__(self, server_port, fixture, every):
+        self.front = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.front.bind(("0.0.0.0", 0))
+        self.upstream = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.upstream.bind(("127.0.0.1", 0))
+        self.server = ("127.0.0.1", server_port)
+        self.fixture = fixture
+        self.every = every
+        self.cancel = threading.Event()
+        self.stats = {"drop_every_after_media_go": every, "foreign_datagrams": 0,
+                      "guest_to_server": {"eligible": 0, "dropped": 0, "forwarded": 0},
+                      "server_to_guest": {"eligible": 0, "dropped": 0, "forwarded": 0}}
+        self.thread = threading.Thread(target=self.run, daemon=True)
+        self.thread.start()
+
+    def run(self):
+        guest = None
+        try:
+            while not self.cancel.is_set():
+                for source in select.select([self.front, self.upstream], [], [], .05)[0]:
+                    packet, address = source.recvfrom(65535)
+                    if source is self.front:
+                        if guest is None:
+                            guest = address
+                        if address != guest:
+                            self.stats["foreign_datagrams"] += 1
+                            continue
+                        direction, output, target = "guest_to_server", self.upstream, self.server
+                    else:
+                        if address != self.server or guest is None:
+                            self.stats["foreign_datagrams"] += 1
+                            continue
+                        direction, output, target = "server_to_guest", self.front, guest
+                    counters = self.stats[direction]
+                    if (self.fixture / "media-go").exists():
+                        counters["eligible"] += 1
+                        if counters["eligible"] % self.every == 0:
+                            counters["dropped"] += 1
+                            continue
+                    output.sendto(packet, target)
+                    counters["forwarded"] += 1
+        except Exception as error:
+            self.stats["error"] = type(error).__name__ + ": " + str(error)
+
+    def close(self):
+        self.cancel.set()
+        self.thread.join(timeout=1)
+        try:
+            assert not self.thread.is_alive(), "Owned UDP proxy did not drain"
+            assert "error" not in self.stats, "Owned UDP proxy failed"
+        finally:
+            self.front.close()
+            self.upstream.close()
+        self.stats["worker_joined"] = True
 
 
 def digest(path):
@@ -68,6 +129,8 @@ def main():
     parser.add_argument("--image", default="connect-gate6-native-client:clang1971-ubuntu2404")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ffmpeg", default="ffmpeg")
+    parser.add_argument("--drop-every", type=int, choices=(0, 10), default=0,
+                        help="Drop every tenth encrypted UDP datagram in each direction after media starts")
     args = parser.parse_args()
     out = args.output.absolute()
     assert out.parent.resolve().is_relative_to((ROOT / ".local/gate-6/native-remote").resolve())
@@ -90,7 +153,7 @@ def main():
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_inputs_sha256": before, "server_executable_sha256": digest(binary),
               "guest_executable_sha256": digest(probe), "image_id": image["Id"],
-              "runner_sha256": digest(__file__), "profiles": [],
+              "runner_sha256": digest(__file__), "drop_every": args.drop_every, "profiles": [],
               "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
     try:
         for algorithm in ["EdDSA", "ES256"]:
@@ -103,6 +166,7 @@ def main():
             env = dict(os.environ, CONNECT_G6_DISTINCT_NATIVE_DIR=str(fixture),
                        CONNECT_G6_DISTINCT_NATIVE_ALGORITHM=algorithm, TMPDIR=str(fixture))
             with (fixture / "server.log").open("w") as log:
+                proxy = None
                 process = subprocess.Popen([str(binary), CASE, "--exact", "--ignored", "--test-threads=1", "--nocapture"],
                                            cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
                 try:
@@ -111,6 +175,16 @@ def main():
                         assert process.poll() is None, "Server ended before readiness"
                         assert time.monotonic() - started < 60, "Server readiness deadline"
                         time.sleep(.02)
+                    if args.drop_every:
+                        ready = json.loads((fixture / "ready.json").read_text())
+                        proxy = LossProxy(ready["port"], fixture, args.drop_every)
+                        config_path = fixture / "client.toml"
+                        config, replacements = re.subn(
+                            r'^endpoint = "127\.0\.0\.1:' + str(ready["port"]) + r'"$',
+                            'endpoint = "127.0.0.1:' + str(proxy.front.getsockname()[1]) + '"',
+                            config_path.read_text(), flags=re.M)
+                        assert replacements == 1, "Fixture endpoint was not the designated local server"
+                        config_path.write_text(config)
                     command = ["docker", "run", "--rm", "--cidfile", str(fixture / "container.id"), "--read-only",
                                "--platform", "linux/amd64", "--cpus", "2", "--memory", "1g", "--cap-drop", "ALL",
                                "--security-opt", "no-new-privileges", "--mount", f"type=bind,source={probe.parent},target=/probe,readonly",
@@ -130,6 +204,8 @@ def main():
                     server_code = process.wait(timeout=30)
                 finally:
                     stop(process)
+                    if proxy is not None:
+                        proxy.close()
             guest_rows = [json.loads(line) for line in (fixture / "guest.log").read_text().splitlines() if line.startswith("{")]
             server_raw = (fixture / "server.log").read_text()
             server_rows = [json.loads(line.split("distinct-media-server-witness ", 1)[1]) for line in server_raw.splitlines() if "distinct-media-server-witness " in line]
@@ -138,6 +214,11 @@ def main():
                    "guest_witness": guest_rows, "server_witness": server_rows,
                    "guest_log_sha256": digest(fixture / "guest.log"), "server_log_sha256": digest(fixture / "server.log")}
             row["passed"] = guest_code == server_code == 0 and len(guest_rows) == len(server_rows) == 1
+            if proxy is not None:
+                row["transport_fault"] = proxy.stats
+                row["passed"] = (row["passed"] and proxy.stats["worker_joined"]
+                                 and proxy.stats["foreign_datagrams"] == 0
+                                 and all(proxy.stats[d]["dropped"] >= 1 for d in ("guest_to_server", "server_to_guest")))
             if row["passed"]:
                 gw, sw = guest_rows[0], server_rows[0]
                 row["decoded_at_host"] = decoded_tone(fixture / "host-received.pcmu", 660, 440, args.ffmpeg)

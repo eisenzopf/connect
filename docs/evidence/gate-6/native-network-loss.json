@@ -1,0 +1,274 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "component_passed": true,
+  "implementation_status": "in-progress",
+  "scope": "Owned Linux/amd64 guest on local Lima arm64 VM to macOS server via an owned UDP proxy, with every tenth encrypted UDP datagram dropped in each direction after media starts. Public canonical SDK PCMU duplex under this measured bounded transport fault. No full packet-loss quality, native x86 performance, WAN, video, browser, SIP, TURN or ICE-restart qualification.",
+  "implementation_base_revision": "a14abbe5f7271f2456df9253f466cf13d4454f5d",
+  "procedure": "docs/developer/native-media-rehearsal.md",
+  "profiles": [
+    {
+      "algorithm": "EdDSA",
+      "guest_exit_code": 0,
+      "server_exit_code": 0,
+      "elapsed_seconds": 5.186162415891886,
+      "guest_witness": [
+        {
+          "algorithm": "EdDSA",
+          "architecture": "x86_64",
+          "os": "linux",
+          "owned_peer_shutdown": true,
+          "profile": "remote",
+          "received_bytes": 28320,
+          "sent_frames": 200
+        }
+      ],
+      "server_witness": [
+        {
+          "algorithm": "EdDSA",
+          "durable_native_offers": 2,
+          "physical_peers_drained": true,
+          "received_bytes": 28320,
+          "sent_frames": 200
+        }
+      ],
+      "guest_log_sha256": "07b3a507ab547c5d43cef1ee20004962c1082e822c0d61c9067d45f4c284acea",
+      "server_log_sha256": "0acbff82c70f7c83d2a50f5e204451b4be36b7c67a7c6b7be8cac3badbf3c6b3",
+      "passed": true,
+      "transport_fault": {
+        "drop_every_after_media_go": 10,
+        "foreign_datagrams": 0,
+        "guest_to_server": {
+          "eligible": 230,
+          "dropped": 23,
+          "forwarded": 226
+        },
+        "server_to_guest": {
+          "eligible": 233,
+          "dropped": 23,
+          "forwarded": 234
+        },
+        "worker_joined": true
+      },
+      "decoded_at_host": {
+        "expected_hz": 660,
+        "excluded_self_hz": 440,
+        "decoded_samples": 28320,
+        "active_frames": 177,
+        "matching_frames": 177,
+        "pcmu_sha256": "f470b208107e4cf2e09898492a2eae3f89df05ad24d6c1e081b24a4214d637cb",
+        "decoded_s16le_sha256": "19e402403b897bc620acc4d63915b0b4ac4ef026199dc6898a44c68ae0427175",
+        "passed": true
+      },
+      "decoded_at_guest": {
+        "expected_hz": 440,
+        "excluded_self_hz": 660,
+        "decoded_samples": 28320,
+        "active_frames": 177,
+        "matching_frames": 177,
+        "pcmu_sha256": "c9f12a62b9530030f0525f4a8af9cfd21a03ed4339973c67407df20d37422add",
+        "decoded_s16le_sha256": "227d710215f8a8ffc2484d76cc0e110784bce7df8c0fa5c31f41feeec549e70d",
+        "passed": true
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "guest_exit_code": 0,
+      "server_exit_code": 0,
+      "elapsed_seconds": 5.27634874987416,
+      "guest_witness": [
+        {
+          "algorithm": "ES256",
+          "architecture": "x86_64",
+          "os": "linux",
+          "owned_peer_shutdown": true,
+          "profile": "remote",
+          "received_bytes": 28000,
+          "sent_frames": 200
+        }
+      ],
+      "server_witness": [
+        {
+          "algorithm": "ES256",
+          "durable_native_offers": 2,
+          "physical_peers_drained": true,
+          "received_bytes": 28000,
+          "sent_frames": 200
+        }
+      ],
+      "guest_log_sha256": "4b211e93195895d887fdbcc19ad26b887995f035ce620c138c23def2a081747d",
+      "server_log_sha256": "1a252854fa30ed3de23dac33b7c25f3976495a722fa206e7200fbc0708583804",
+      "passed": true,
+      "transport_fault": {
+        "drop_every_after_media_go": 10,
+        "foreign_datagrams": 0,
+        "guest_to_server": {
+          "eligible": 226,
+          "dropped": 22,
+          "forwarded": 223
+        },
+        "server_to_guest": {
+          "eligible": 230,
+          "dropped": 23,
+          "forwarded": 232
+        },
+        "worker_joined": true
+      },
+      "decoded_at_host": {
+        "expected_hz": 660,
+        "excluded_self_hz": 440,
+        "decoded_samples": 28000,
+        "active_frames": 175,
+        "matching_frames": 175,
+        "pcmu_sha256": "67c067fa1eb6806dc047f9c319bed2e8acbcf718df8c472d86dabb28c433bd92",
+        "decoded_s16le_sha256": "380f5931e2bc755c63ec9ecd38343086a532c3102ef0e5433f5038dfea752e4d",
+        "passed": true
+      },
+      "decoded_at_guest": {
+        "expected_hz": 440,
+        "excluded_self_hz": 660,
+        "decoded_samples": 28000,
+        "active_frames": 175,
+        "matching_frames": 175,
+        "pcmu_sha256": "99b60873d6b5aba0b5bdfdf0ff4cc81d810d2fa3182d4b2a45ef75fb814b4f26",
+        "decoded_s16le_sha256": "49230381c10a228c26d2f38e38f6c2bd52e084afe13dad7b31b53b8af9d8c04a",
+        "passed": true
+      }
+    }
+  ],
+  "source_binding": {
+    "server_executable_sha256": "34808819f0fb99f0f8e16fad0edb2dac43b854f3da94d0bd6a388be9534e086e",
+    "guest_executable_sha256": "a7d50c17c6dd16619537e2c0f6969a5a53ec024005923d896f87d2e65c0530aa",
+    "builds": "Same unchanged sealed server191 and Linux guest190 used by native-distinct-network-audio.json. Runner verifies their original source manifests before and after actual execution.",
+    "runtime_source_count": 2243,
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "runner_sha256": "a727e5c676b5ca6284ce4421363aff04859b255b7535326647707a5f36f75487",
+    "private_run_summary": ".local/gate-6/native-remote/media-loss193/summary.json",
+    "private_run_summary_sha256": "9514776cf69ee8550bdce09045e29345ad65ccd74d19ce45038993ce4093f51d"
+  },
+  "interpretation": [
+    "Both algorithms retain exactly two original durable native offers, independently decoded opposite tones and zero physical peers at shutdown.",
+    "Proxy counters cover encrypted QUIC datagrams. Forwarded counts include setup traffic; eligible and dropped counters begin after media-go. They are not an RTP loss-rate or latency measurement.",
+    "The proxy worker joined and both owned process exit codes were zero. No foreign datagram was forwarded."
+  ],
+  "source_sha256": {
+    "scripts/rehearse-gate6-native-media.py": "a727e5c676b5ca6284ce4421363aff04859b255b7535326647707a5f36f75487",
+    "docs/developer/native-media-rehearsal.md": "9c2d4cd15768f555b1cffb6e4b9337dbc2b2b31566ee6be36197675f8a8b8a76",
+    "crates/connect-client/examples/native_media_probe.rs": "2054dcda30b5084015f7f787a170aabeddfe0061243ae62c5e8ebb2ad99d1efa",
+    "crates/connect-server/tests/support/canonical_native_connections/remote/media.rs": "4e9190c1a114bdcb572011f927bdfa2ce5fbbbb8f2776f9bb7f1c9ff847b60ba",
+    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
+  },
+  "acceptance_qualified": false,
+  "publication": false,
+  "default_path_regression": {
+    "passed": true,
+    "profiles": [
+      {
+        "algorithm": "EdDSA",
+        "guest_exit_code": 0,
+        "server_exit_code": 0,
+        "elapsed_seconds": 5.224728582892567,
+        "guest_witness": [
+          {
+            "algorithm": "EdDSA",
+            "architecture": "x86_64",
+            "os": "linux",
+            "owned_peer_shutdown": true,
+            "profile": "remote",
+            "received_bytes": 31520,
+            "sent_frames": 200
+          }
+        ],
+        "server_witness": [
+          {
+            "algorithm": "EdDSA",
+            "durable_native_offers": 2,
+            "physical_peers_drained": true,
+            "received_bytes": 31360,
+            "sent_frames": 200
+          }
+        ],
+        "guest_log_sha256": "7a5ff3e118e83d457d665cebb0fa9164be2de8e8ff701cb3e0863d1c9f68aaa9",
+        "server_log_sha256": "849ff625cc41df5bb4550bd6770e2263c1cfd5bb97d7baf7a0c9b8a4a48abd7b",
+        "passed": true,
+        "decoded_at_host": {
+          "expected_hz": 660,
+          "excluded_self_hz": 440,
+          "decoded_samples": 31360,
+          "active_frames": 196,
+          "matching_frames": 196,
+          "pcmu_sha256": "db62b562c0849b9990cbe95f62ba580ff43eceaf4c052a56f23852388f565696",
+          "decoded_s16le_sha256": "55ac7cffa0508e3b1b71737c0487a39c83f443d22f60e060d88e6608725c04e6",
+          "passed": true
+        },
+        "decoded_at_guest": {
+          "expected_hz": 440,
+          "excluded_self_hz": 660,
+          "decoded_samples": 31520,
+          "active_frames": 197,
+          "matching_frames": 197,
+          "pcmu_sha256": "b08b8dc451f36776328c464019d9f976cd2181604e3a9a20cdbd43eaee733ad9",
+          "decoded_s16le_sha256": "79e5ef1d83484777f4de8b379234b10da4a02088274e5605702e710a05101ae1",
+          "passed": true
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "guest_exit_code": 0,
+        "server_exit_code": 0,
+        "elapsed_seconds": 5.215078083099797,
+        "guest_witness": [
+          {
+            "algorithm": "ES256",
+            "architecture": "x86_64",
+            "os": "linux",
+            "owned_peer_shutdown": true,
+            "profile": "remote",
+            "received_bytes": 31840,
+            "sent_frames": 200
+          }
+        ],
+        "server_witness": [
+          {
+            "algorithm": "ES256",
+            "durable_native_offers": 2,
+            "physical_peers_drained": true,
+            "received_bytes": 28000,
+            "sent_frames": 200
+          }
+        ],
+        "guest_log_sha256": "80a32e445826d6f78f013160c25b73b8bb03238e7dec35cf2c825572608029f8",
+        "server_log_sha256": "c094988c0069547cb36f0331b6356240cc99a1b2fedad624030780344a472f3f",
+        "passed": true,
+        "decoded_at_host": {
+          "expected_hz": 660,
+          "excluded_self_hz": 440,
+          "decoded_samples": 28000,
+          "active_frames": 175,
+          "matching_frames": 175,
+          "pcmu_sha256": "edeb445657b0f87c1a97d60b2b78a9a0a041dbb9fa74b5c2c4deb7fde6027fd8",
+          "decoded_s16le_sha256": "59bb35c7273a9f8cd46c3bdedaceea1b94360cff5731dbed89831bad2225a490",
+          "passed": true
+        },
+        "decoded_at_guest": {
+          "expected_hz": 440,
+          "excluded_self_hz": 660,
+          "decoded_samples": 31840,
+          "active_frames": 199,
+          "matching_frames": 199,
+          "pcmu_sha256": "66889f88c5221003bbd9d8797d776e782f2b9f217837f6eddee95bbf12c82a19",
+          "decoded_s16le_sha256": "f5808e4951b7ae1969226ba28764b446fb71c701eff3131e2ea7834b6c5e50a3",
+          "passed": true
+        }
+      }
+    ],
+    "private_summary": ".local/gate-6/native-remote/media-direct194/summary.json",
+    "private_summary_sha256": "09f6c5c980eec8ddecf8a9bd716509f79a638442c9a16fb929b4ca85ad7612ca",
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executables_unchanged": true
+  }
+}
