@@ -57,16 +57,24 @@ Private nonce/configuration, databases, raw logs and captured synthetic media
 remain under ignored `.local/`. The runner hashes actual build inputs, fixture
 sources, image and executable, and checks them again after execution.
 
-Current observations are in
+Recorded observations are in
 [`remote-telephone-network.json`](../evidence/gate-6/remote-telephone-network.json).
 The first Linux attempt rejected an escaped SIP user; a subsequent admission
 wait used the wrong nested journal path. Those fixture failures remain retained.
-After correction, the actual network run exposes RTCP on the RTP socket without
-SDP multiplexing negotiation. The whole rehearsal remains failed. Neither the
-telephone component nor G6-054 is qualified by these partial observations.
+The original network failure exposes RTCP on RTP without SDP multiplexing
+negotiation. That failure remains retained. After the negotiated routing fix,
+both EdDSA and ES256 pass the complete direct and packet-loss profiles: opposite
+decoded tones, original replay, signed Session end/SIP BYE and original drains.
 
 The recorded routing fix is in
 [`negotiated-rtcp-routing.json`](../evidence/gate-6/negotiated-rtcp-routing.json).
 It retains adjacent original sockets and carries actual SDP mux/split RTCP
 negotiation into the media owner. All 52 UDP/allocator and seven SIP unit
-functions pass. Both complete distinct-network profiles remain pending.
+functions pass. A separate manual SR/RR/RTCP-BYE destination regression is
+being corrected; the network profiles do not qualify those manual API callers.
+
+Use `--network-profile loss` for deterministic loss. The owned NAT witness drops
+every fifth PCMU RTP packet independently in each direction, records seen and
+dropped counters, and leaves SIP and RTCP untouched. Decoder thresholds and
+original-owner drain requirements are identical to the direct profile. This is
+a functional controlled-loss fixture, not a latency or load qualification.

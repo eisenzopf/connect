@@ -53,10 +53,13 @@ def reserve(ip, count):
 
 class PeerNat:
     """Two fixed authenticated guest mappings; no arbitrary target forwarding."""
-    def __init__(self, directory, nonce, host_ip, server_sip, media_start):
+    def __init__(self, directory, nonce, host_ip, server_sip, media_start, network_profile):
         self.directory, self.nonce, self.host_ip = directory, nonce, host_ip
         self.targets = {"sip": server_sip, "rtp": None}
         self.media_start = media_start
+        self.network_profile = network_profile
+        self.rtp_seen = {"guest_to_server": 0, "server_to_guest": 0}
+        self.rtp_dropped = {"guest_to_server": 0, "server_to_guest": 0}
         sip = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sip.bind(("0.0.0.0", 0))
         _, media = reserve("0.0.0.0", 2)
@@ -117,6 +120,11 @@ class PeerNat:
                         self.stats["foreign_datagrams"] += 1
                         continue
                     assert target is not None
+                    if name == "rtp" and len(data) >= 12 and data[0] >> 6 == 2 and data[1] & 0x7f == 0:
+                        self.rtp_seen[direction] += 1
+                        if self.network_profile == "loss" and self.rtp_seen[direction] % 5 == 0:
+                            self.rtp_dropped[direction] += 1
+                            continue
                     sock.sendto(data, target)
                     self.stats[name][direction] += 1
         except Exception as error:
@@ -130,6 +138,9 @@ class PeerNat:
             sock.close()
         self.stats["worker_joined"] = True
         self.stats["unique_calls"] = len(self.calls)
+        self.stats["network_profile"] = self.network_profile
+        self.stats["pcmu_rtp_seen"] = self.rtp_seen
+        self.stats["pcmu_rtp_dropped"] = self.rtp_dropped
 
 
 def stop(process):
@@ -147,6 +158,7 @@ def main():
     parser.add_argument("--host-media-ip", required=True, help="Explicit concrete IPv4 interface on this owned Mac")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ffmpeg", default="ffmpeg")
+    parser.add_argument("--network-profile", choices=["direct", "loss"], default="direct", help="Loss drops every fifth PCMU RTP packet in each direction; signaling and RTCP remain untouched")
     args = parser.parse_args()
     socket.inet_pton(socket.AF_INET, args.host_media_ip)
     assert not args.host_media_ip.startswith(("127.", "0.", "224."))
@@ -172,6 +184,7 @@ def main():
         return result
     before = sources()
     report = {"passed": False, "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
+              "network_profile": args.network_profile,
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "image_id": IMAGE, "server_sha256": digest(binary), "source_inputs_sha256": before,
               "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "profiles": []}
@@ -184,7 +197,7 @@ def main():
             sip_port, sip_held = reserve(args.host_media_ip, 1)
             media_start, media_held = reserve(args.host_media_ip, 16)
             server_sip = (args.host_media_ip, sip_port)
-            nat = PeerNat(directory, secrets.token_hex(32), args.host_media_ip, server_sip, media_start)
+            nat = PeerNat(directory, secrets.token_hex(32), args.host_media_ip, server_sip, media_start, args.network_profile)
             private_json(directory / "guest-input.json", {"nonce": nat.nonce, "gateway": "192.168.5.2", "host_media_ip": args.host_media_ip, "sip_front": nat.front["sip"], "rtp_front": nat.front["rtp"], "media_port_start": media_start})
             private_json(directory / "server-input.json", {"algorithm": algorithm, "host_media_ip": args.host_media_ip, "server_sip": f"{args.host_media_ip}:{sip_port}", "peer_sip": f'{args.host_media_ip}:{nat.front["sip"]}', "media_port_start": media_start})
             guest = server = None
@@ -228,6 +241,10 @@ def main():
                     held.close()
                 row["peer_nat"] = nat.stats
                 row["passed"] = bool(row["passed"] and not row["forced_server_cleanup"] and not row["forced_guest_cleanup"] and nat.stats["journal_before_first_invite"] and nat.stats["unique_calls"] == 1 and nat.stats["foreign_datagrams"] == 0 and "error" not in nat.stats and all(nat.stats["rtp"][k] >= 50 for k in ["guest_to_server", "server_to_guest"]))
+                if args.network_profile == "loss":
+                    row["passed"] = bool(row["passed"] and all(nat.rtp_seen[k] >= 100 and nat.rtp_dropped[k] == nat.rtp_seen[k] // 5 for k in nat.rtp_seen))
+                else:
+                    row["passed"] = bool(row["passed"] and all(count == 0 for count in nat.rtp_dropped.values()))
                 row["logs_sha256"] = {name: digest(directory / name) for name in ["server.log", "guest.log"] if (directory / name).exists()}
                 report["profiles"].append(row)
                 print(json.dumps({"algorithm": algorithm, "passed": row["passed"]}), flush=True)

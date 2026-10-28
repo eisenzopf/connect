@@ -332,12 +332,12 @@
   },
   "distinct_network_telephone": {
     "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
-    "status": "failed",
-    "result": "Actual Linux SIP INVITE/200/ACK, journal-before-effect and bidirectional PCMU packets observed through owned UDP NAT. Whole run fails valid RTCP on RTP without negotiated mux; no complete decoder/end/drain pass. Both-algorithm qualification remains pending."
+    "status": "owned-direct-and-loss-profiles-passed",
+    "result": "Actual Linuxarm64-to-Mac controlled peerNAT EdDSA/ES256 direct and20percentPCMUloss pass opposite FFmpeg-decoded tones, journal-before-effect, stable original replay, paired signed Session end/SIPBYE and all original drains. All5255buildinputs unchanged. Manual RTCP report/bye API follow-up remains open; no WAN/Linuxx86/fullG6-054qualification."
   },
   "negotiated_rtcp_routing": {
     "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
-    "status": "protocol-tests-passed-remote-pending",
+    "status": "selected-tests-and-network-passed-manual-caller-fix-pending",
     "result": "Patch239 retains adjacent original sockets and commits actual SIP mux/split RTCP routing. All52UDP/allocator and7SIPfunctions pass on5255unchanged inputs. Full server253 and both-algorithm distinct-network telephone execution remain pending; no G6-054 qualification."
   }
 }

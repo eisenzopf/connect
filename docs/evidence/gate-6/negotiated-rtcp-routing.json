@@ -3,8 +3,8 @@
   "task": "G6-054",
   "date": "2026-10-28",
   "implementation_status": "in-progress",
-  "protocol_component_passed": true,
-  "distinct_network_component_passed": false,
+  "protocol_component_passed": false,
+  "distinct_network_component_passed": true,
   "scope": "Actual local UDP sockets, original receiver tasks and indexed adjacent allocator; actual SDP negotiation and rollback unit functions. No account/provider/PSTN/SMS/model execution. Full remote telephone profiles remain pending.",
   "patch": "patches/rvoip/gate6-negotiated-rtcp-routing.patch",
   "patch_sha256": "59b9d46c643e916169b4e3387eb88caea01472f5566ec374a9fae4cee8583b92",
@@ -224,11 +224,166 @@
     "sip249": "Terminal compile failure in a preexisting cfg(test) OriginateRequest constructor missing request_write_authority. Test-only constructor now explicitly uses None; final252 compiles and seven selected functions pass. Production request authority remains unchanged."
   },
   "pending": [
-    "Full canonical runtime253 and Linux-to-Mac nat254 EdDSA/ES256 opposite-tone/replay/signed-end/original-owner drain checks.",
-    "Canonical SIP configuration library test and relevant current-source telephone integration regressions.",
+    "Manual SR/RR/BYE/close caller fix, focused realUDP split/mux/drain regression and a new source-bound canonical runtime execution.",
+    "Current-source canonical SIP configuration4functions and SIP integration4regressions now pass; full v41manualcaller follow-up still pending.",
     "Ubuntu CI runner now selects76functions including52RTP/allocator and4SIPconfiguration; this new group has not executed. The inspected40393b03 CI artifact passes its old23functions and predates patch239.",
     "Browser rendered24fps requirement, durable authorized ICE restart, remaining remote/loss/relay/secure-transport profiles and whole G6-054 qualification remain open."
   ],
   "acceptance_qualified": false,
-  "publication": "not performed"
+  "publication": "not performed",
+  "selected_unit_group_passed": true,
+  "manual_report_follow_up": {
+    "status": "actual-negative-reproduced-fix-prepared",
+    "observation": "A standalone source-bound public RtpSession probe sets an explicit split RTCP peer, then send_sender_report() incorrectly supplies config.remote_addr (RTP), which the strict UDP route refuses as stale. Manual BYE/receiver reports and close have the same caller bug; periodic compound reports already resolve negotiated RTCP.",
+    "probe": {
+      "exit_code": 101,
+      "source_sha256": "78e9130e576fbf7a2c812bc40c56d76979409a77549a22dbfa403046ed176c3e",
+      "library_inputs": {
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_rtp_core-e2afe64aa2a62f9a.rlib": "11f8374acce90bb5bda70bb3e0091164a917a91dc09bd4e44123002ca24a7f3a",
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/libtokio-fc6daa5d5b320af1.rlib": "beeb709bf32fbedf58a2fcb82077ec1676ea00f51d42fe44861346e76d898b62"
+      },
+      "expected_failure": true
+    },
+    "raw_log_sha256": "66364099d2bcba9f9c31aa5eacde4b48ce39c2ca82a211fc99a3bbbf2123bb2a",
+    "scope": "The59selected unit functions remain passes on their recorded v40 source. They do not cover these manual session callers. Full routing component remains open until the focused regression and correction pass."
+  },
+  "network_verification": {
+    "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
+    "direct_profiles": 2,
+    "loss_profiles": 2,
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 1020.6222116670106,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5255,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-253",
+        "sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+        "bytes": 268370952
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "f450e6911b6b4df0201c1dc44ea1119426885a1ad01c905831afa6d731f00448"
+    },
+    "regressions": {
+      "steps": [
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip",
+          "exit_code": 0,
+          "seconds": 0.20239287498407066,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
+          ],
+          "log_sha256": "bf57dcc99c769976e5283284985f005590dfc2eedc607988e39188ecbf7bfa78"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip",
+          "exit_code": 0,
+          "seconds": 0.20037833391688764,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.19s"
+          ],
+          "log_sha256": "1cb13cedf418d5c8a6ec0134f852660dbbdbba5f34a228ba9e2717a93b307e54"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
+          "exit_code": 0,
+          "seconds": 4.646902082953602,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.64s"
+          ],
+          "log_sha256": "08836796a4f513ba99e6c8e94562c04ccddb40fb6bf860d10a1b6ca52a26ad44"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+          "exit_code": 0,
+          "seconds": 4.197512667160481,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.18s"
+          ],
+          "log_sha256": "0b7214a17fb8cfbfab95588bc3d3ac43a80e389e704a48b19fef0344fcba20bf"
+        }
+      ],
+      "binary_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+      "changed_inputs": []
+    },
+    "limitation": "Manual RTCP caller negative261 remains open; protocol_component_passed remains false until its focused correction passes."
+  },
+  "configuration_verification": {
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 57.688379333820194,
+      "arguments": [
+        "cargo",
+        "test",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "source_count": 5255,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-a82006a77c6e6ce7",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-config-unit-test-258",
+        "sha256": "aa6b755c420f659ad83a30f386cb060fd50322b8f737ce78a40e035f3bde966c",
+        "bytes": 114008608
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "910ebeee288000f6baee6d5e037f9a02285bd3d247d9a4e072569468efed4962"
+    },
+    "result": {
+      "functions_passed": 4,
+      "prefix": "canonical_telephone::tests::",
+      "exit_code": 0,
+      "seconds": 0.015134582994505763,
+      "results": [
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s"
+      ],
+      "binary_sha256": "aa6b755c420f659ad83a30f386cb060fd50322b8f737ce78a40e035f3bde966c",
+      "log_sha256": "4f08c5ee64376240cb5513ca377ff97d07a1836cf9c387b65af1f0016bb07b52",
+      "changed_inputs": []
+    }
+  }
 }
