@@ -1291,6 +1291,11 @@
       "path": "patches/rvoip/gate6-stun-turn-demultiplex.patch",
       "source": "G6-054 parse default/explicit IPv4/IPv6 STUN ports using the pinned URI parser; route shared-endpoint Binding replies to the original STUN transaction while TURN remains pending. Causal negative/positive protocol cases include unrelated transaction refusal.",
       "sha256": "fd12b6811958796473b56e458423059545a6a561c33f8b898dd8124e8aa12435"
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch",
+      "source": "G6-054 bounded explicit synthetic-trace stage/error diagnostics for guarded original RTC RTP write refusals. Return values and all ownership/clock/pipeline/socket checks are preserved; this is diagnostic instrumentation, not a media fix or qualification.",
+      "sha256": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a"
     }
   ]
 }

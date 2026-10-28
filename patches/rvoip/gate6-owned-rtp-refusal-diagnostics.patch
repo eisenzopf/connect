@@ -1,0 +1,151 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -977,8 +977,13 @@
+             Option<rtc::interceptor::SenderClockUpdate>,
+         )>,
+     ) -> Result<()> {
++        let refused = |stage: &'static str, error: Error| {
++            log::trace!(target: "rvoip_webrtc_stack::owned_rtp",
++                "Original guarded RTC RTP write refused stage={} error={:?}", stage, error);
++            error
++        };
+         if self.attempted {
+-            return Err(Error::ErrConnectionClosed);
++            return Err(refused("reused-io", Error::ErrConnectionClosed));
+         }
+         self.attempted = true;
+         let primary_ssrc = packet.header.ssrc;
+@@ -986,48 +991,48 @@
+             .as_ref()
+             .is_some_and(|(clock, update)| !clock.permits(primary_ssrc, update.as_ref()))
+         {
+-            return Err(Error::ErrRTPTransceiverCodecUnsupported);
++            return Err(refused("clock-before-core", Error::ErrRTPTransceiverCodecUnsupported));
+         }
+         let inner = self.driver.inner.clone();
+         let (fact, output) = {
+             let mut core = inner.core.lock().await;
+             if !self.control.current() || !core.owned_dtmf_io_ready() {
+-                return Err(Error::ErrConnectionClosed);
++                return Err(refused("current-or-core-ready", Error::ErrConnectionClosed));
+             }
+             if timing
+                 .as_ref()
+                 .is_some_and(|(clock, _)| !core.owns_sender_clock(clock))
+             {
+-                return Err(Error::ErrRTPTransceiverCodecUnsupported);
++                return Err(refused("clock-custody", Error::ErrRTPTransceiverCodecUnsupported));
+             }
+             if let Some(prior) = core.poll_write() {
+                 self.driver.deferred_transmits.push_back(prior);
+-                return Err(Error::ErrConnectionClosed);
++                return Err(refused("prior-output", Error::ErrConnectionClosed));
+             }
+             let mut sender = core
+                 .rtp_sender(self.sender)
+-                .ok_or(Error::ErrConnectionClosed)?;
++                .ok_or_else(|| refused("sender-lookup", Error::ErrConnectionClosed))?;
+             if let Some((expected, track)) = &self.expected {
+                 if sender.track().track_id() != track
+                     || !owned_video::same_primary(&packet, expected)
+                 {
+-                    return Err(Error::ErrRTPTransceiverCodecUnsupported);
+-                }
+-            }
+-            let (packet, clock) = sender.prepare_owned_rtp(packet)?;
++                    return Err(refused("repair-primary", Error::ErrRTPTransceiverCodecUnsupported));
++                }
++            }
++            let (packet, clock) = sender.prepare_owned_rtp(packet).map_err(|error| refused("sender-prepare", error))?;
+             let original = packet.clone();
+             let track = sender.track().track_id().to_string();
+             if clock == 90000 && rtc::shared::marshal::MarshalSize::marshal_size(&packet) > 1600 {
+-                return Err(Error::ErrRTPTransceiverCodecUnsupported);
++                return Err(refused("packet-size", Error::ErrRTPTransceiverCodecUnsupported));
+             }
+             if !self.control.begin() {
+-                return Err(Error::ErrConnectionClosed);
++                return Err(refused("begin-io", Error::ErrConnectionClosed));
+             }
+             let fact = if self.expected.is_some() {
+-                sender.write_owned_video_repair(packet)?
++                sender.write_owned_video_repair(packet).map_err(|error| refused("repair-pipeline", error))?
+             } else {
+                 let fact = packet.clone();
+-                sender.write_rtp(packet)?;
++                sender.write_rtp(packet).map_err(|error| refused("sender-pipeline", error))?;
+                 fact
+             };
+             if clock == 90000 {
+@@ -1040,12 +1045,12 @@
+             (fact, output)
+         };
+         if output.len() != 1 {
+-            return Err(Error::ErrConnectionClosed);
++            return Err(refused("output-count", Error::ErrConnectionClosed));
+         }
+         let message = output
+             .into_iter()
+             .next()
+-            .ok_or(Error::ErrConnectionClosed)?;
++            .ok_or_else(|| refused("output-empty", Error::ErrConnectionClosed))?;
+         let bytes = &message.message;
+         if bytes.len() < 12
+             || bytes[0] >> 6 != 2
+@@ -1056,12 +1061,12 @@
+             || u32::from_be_bytes(bytes[8..12].try_into().unwrap()) != fact.header.ssrc
+             || !self.control.current()
+         {
+-            return Err(Error::ErrConnectionClosed);
++            return Err(refused("wire-fact-or-current", Error::ErrConnectionClosed));
+         }
+         let message = self
+             .driver
+             .ice_gatherer
+-            .relay_output(&message)?
++            .relay_output(&message).map_err(|error| refused("relay-encapsulation", error))?
+             .unwrap_or(message);
+         let address = self
+             .driver
+@@ -1073,25 +1078,25 @@
+             .driver
+             .sockets
+             .get(&address)
+-            .ok_or(Error::ErrConnectionClosed)?;
++            .ok_or_else(|| refused("socket-lookup", Error::ErrConnectionClosed))?;
+         if timing
+             .as_ref()
+             .is_some_and(|(clock, update)| !clock.permits(primary_ssrc, update.as_ref()))
+         {
+-            return Err(Error::ErrConnectionClosed);
++            return Err(refused("clock-before-socket", Error::ErrConnectionClosed));
+         }
+         let written = socket
+             .send_to(&message.message, message.transport.peer_addr)
+             .await
+-            .map_err(|_| Error::ErrConnectionClosed)?;
++            .map_err(|_| refused("socket-send", Error::ErrConnectionClosed))?;
+         if written != message.message.len() {
+-            return Err(Error::ErrConnectionClosed);
++            return Err(refused("short-socket-write", Error::ErrConnectionClosed));
+         }
+         self.written = true;
+         if self.expected.is_none() {
+             if let Some((clock, update)) = timing {
+                 if !clock.apply_after_rtp(primary_ssrc, update) {
+-                    return Err(Error::ErrConnectionClosed);
++                    return Err(refused("clock-after-write", Error::ErrConnectionClosed));
+                 }
+             }
+         }
+--- a/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
++++ b/crates/webrtc/rvoip-webrtc/src/media/core_audio.rs
+@@ -210,7 +210,7 @@
+                         target_ssrc=self.writer.ssrc(),source_timestamp=frame.timestamp_rtp,
+                         wire_timestamp=timestamp,sequence,samples,
+                         age_us=chrono::Utc::now().signed_duration_since(frame.captured_at).num_microseconds(),
+-                        write_us=timing_started.map(|at|at.elapsed().as_micros()as u64),accepted=result.is_ok(),
++                        write_us=timing_started.map(|at|at.elapsed().as_micros()as u64),accepted=result.is_ok(),error=?result.as_ref().err(),
+                         "Original RTC audio timing");
+                 }
+                 result.map_err(|_| StreamControlError::NotReady)

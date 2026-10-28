@@ -458,7 +458,9 @@
     "scripts/video/linux_browser_trust.py": "df58a2ae49717d7c9f69e265efe35e251ef95bf437c5404cd3083bd772d101ec",
     "scripts/video/Dockerfile.remote-browser": "0ec3ba806338b2146d8747f9bcde0890df2b21b5fc2dc002531daa4d26e9bac9",
     "docs/developer/remote-browser-rehearsal.md": "4b0523d1c5e2ee663b9c4173c7f8f4eaa5a2bbf3e7d8d7ccb1e875d47e1d8b71",
-    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
+    "dependencies/source-lock.json": "ca67cedb3f6065ee5adef32e3fa06913c069e98c19b6e00e7a691db88daad4c6",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/audio_trace.rs": "96417ac7c88d8b26a712bdde49c912b309f219d56f455c5afca9519841503b05",
+    "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a"
   },
   "acceptance_qualified": false,
   "publication": false,
@@ -535,5 +537,129 @@
     "private_build_summary": ".local/gate-6/rtc-signed-av/build-217-summary.json",
     "private_build_summary_sha256": "a4f374f8b7adb83b94a5844a2180f6464f0c8ac91a6122a616cf991e31e3cf41",
     "interpretation": "Authenticated input reaches Core, while the guarded original RTC write returns failure before any successful physical-write observation. Inspect exact writer/clock/ownership/pipeline failure stages next; this does not prove an ICE route or UDP return-path cause."
+  },
+  "sender_prepare_diagnostic": {
+    "whole_rehearsal_passed": false,
+    "normal_profile_qualification": false,
+    "recorded_patch": "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch",
+    "patch_sha256": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a",
+    "source_lock_sha256": "ca67cedb3f6065ee5adef32e3fa06913c069e98c19b6e00e7a691db88daad4c6",
+    "patch_count": 237,
+    "preparation": "Fresh immutable preparedv34. Originalv32baseline files unchanged; private before/after bytes match the newly recorded patch. No direct prepared-source edits. Existing log dependency carries bounded stage/error labels; no added dependency or Cargo.lock change.",
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 3.8833433748222888,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5252,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-browser-server-223",
+        "sha256": "f9be90d94ccbe2430eb3bb99d782b78d0a48c3c64bf1d8c9e5f77a00939f9d5e",
+        "bytes": 216375280
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "1efac3f2ca1f97b0037a6eec5626551a553122270583a8be5f36f6bb951fd590"
+    },
+    "private_build_summary_sha256": "6265f14e92cffff7382db45f98aaf235f0c0dfd8d7d9f43a9c19c8d06277c78f",
+    "collector_unit_tests": {
+      "passed": true,
+      "cases": [
+        {
+          "case": "canonical_webrtc_browser::audio_trace::tests::native_log_bridge_keeps_only_owned_writer_stage_and_error",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "1395548ea22aee15d31a2290b44fcc12a61dd581ab4618f681acf08172f6b09f"
+        },
+        {
+          "case": "canonical_webrtc_browser::audio_trace::tests::private_timeline_bounds_actual_events_whitelists_fields_and_flushes_on_unwind",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "577005da8ae10946f09d0f012779978c29e1cd8081bd6acbac999fe4302b8417"
+        },
+        {
+          "case": "canonical_webrtc_browser::audio_trace::tests::timeline_refuses_escaped_paths_and_records_byte_budget_omissions",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "e15dd04ab0b8f60a2b8cc563fe1248a0123073b7e966b78b52025e2f8ebc9a0c"
+        },
+        {
+          "case": "canonical_webrtc_browser::audio_trace::tests::repeated_successes_do_not_spend_the_refusal_timeline_budget",
+          "passed": true,
+          "exit_code": 0,
+          "log_sha256": "7a8142fed465e7b36887813a19b6f2921f4d36dfdcde6288f7a16848339f9c85"
+        }
+      ],
+      "source_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "executable_sha256": "f9be90d94ccbe2430eb3bb99d782b78d0a48c3c64bf1d8c9e5f77a00939f9d5e"
+    },
+    "private_unit_summary": ".local/gate-6/browser-remote/refusal-units224/summary.json",
+    "private_unit_summary_sha256": "93aa6e1c13a85cc3054da84bdcdabd38bf8b789cd8a6fd1e47f47bfd83fcaede",
+    "private_runtime_summary": ".local/gate-6/browser-remote/trace224/summary.json",
+    "private_runtime_summary_sha256": "05d3a22d9ba14a29e3026d32604b6474f24b38f67e31358f35e8dfabf4012431",
+    "private_timeline": ".local/gate-6/browser-remote/trace224/core-audio-timeline.json",
+    "private_timeline_sha256": "5f36f5b885082bb0d6ef998f25414d60020247b2fc87df69fb2010db9e885d50",
+    "capture_header": {
+      "captured_event_bytes": 3607381,
+      "maximum_event_bytes": 33554432,
+      "maximum_events": 65536,
+      "omitted_events": 0,
+      "scope": "Bounded numeric synthetic-lane source/mixer/publication/write diagnostics; not a normal-profile qualification",
+      "selection": "Only repeated successful Current native packet authority events are suppressed; refusals and source/mixer/publication/write timing remain selected",
+      "suppressed_known_successes": 19452
+    },
+    "refusal_stages": [
+      {
+        "stage": "sender-prepare",
+        "error": "ErrRTPTransceiverCodecUnsupported",
+        "count": 3285
+      }
+    ],
+    "interpretation": "All labeled failures are inside negotiated sender preparation. Inspect direction, codec/PT, payload constraints and encoding binding; the generic error does not identify which preparation condition failed. No media behavior or authority/clock/pipeline/socket check was relaxed. Whole decoded-media rehearsal remains failed.",
+    "failed_compile_attempts": [
+      {
+        "passed": false,
+        "private_outcome": ".local/gate-6/rtc-signed-av/build-219-outcome.json",
+        "private_outcome_sha256": "2f3028afe587291270b46d1411dd01171cdc193e709156dc31d89a0c21e44d2f",
+        "result": "ImmediateE0433: tracing macro used in an upstream crate exposing log. Corrected to existing log dependency; failed patch+lock+collector source preserved under owned-rtp219/failed-build219.",
+        "seconds": 1.2411215000320226,
+        "source_count": 5252
+      },
+      {
+        "passed": false,
+        "private_outcome": ".local/gate-6/rtc-signed-av/build-221-outcome.json",
+        "private_outcome_sha256": "574668c822cd542e5423565a3c6bd47802ef5bdd01a19f4f482a08552917dd45",
+        "result": "Upstream libraries compiled; final test executable failed on ambiguous dotted log.target field syntax in new collector test. Corrected to quoted field name in braces, then cached full build223 and all4collector functions passed.",
+        "seconds": 674.7092804161366,
+        "source_count": 5252
+      }
+    ],
+    "reference_refresh": "Only three64hex provenance leaves changed across application dispatch/OpenAPI and HTTPinventory. No schema/dispatch contents changed. All4OpenAPI generators --check and HTTPinventory --check pass;25declarations26ops0uncovered."
   }
 }

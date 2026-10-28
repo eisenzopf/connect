@@ -18,12 +18,14 @@ use tracing_subscriber::{
 const MAX_EVENTS: usize = 65_536;
 const MAX_BYTES: usize = 32 * 1024 * 1024;
 const TARGETS: &[&str] = &[
+    "rvoip_webrtc_stack::owned_rtp",
     "rvoip_core::audio_path",
     "rvoip_webrtc::audio_timing",
     "rvoip_webrtc::canonical::media",
     "connect_service::canonical_packet",
 ];
 const FIELDS: &[&str] = &[
+    "log.target",
     "connection",
     "error",
     "role",
@@ -127,7 +129,37 @@ impl<S: Subscriber> Layer<S> for Capture {
     fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         let mut fields = Fields::default();
         event.record(&mut fields);
-        if event.metadata().target() == "connect_service::canonical_packet"
+        let bridged_target = fields
+            .0
+            .remove("log.target")
+            .and_then(|value| value.as_str().map(str::to_owned));
+        let target = if event.metadata().target() == "log" {
+            match bridged_target.as_deref() {
+                Some("rvoip_webrtc_stack::owned_rtp") => "rvoip_webrtc_stack::owned_rtp",
+                _ => return,
+            }
+        } else {
+            event.metadata().target()
+        };
+        if target == "rvoip_webrtc_stack::owned_rtp" {
+            let refusal = fields
+                .0
+                .get("message")
+                .and_then(|value| value.as_str())
+                .and_then(|message| {
+                    message.strip_prefix("Original guarded RTC RTP write refused stage=")
+                })
+                .and_then(|detail| detail.split_once(" error="))
+                .filter(|(stage, _)| {
+                    stage.len() <= 64 && stage.bytes().all(|b| b.is_ascii_lowercase() || b == b'-')
+                })
+                .map(|(stage, error)| (stage.to_owned(), error.to_owned()));
+            if let Some((stage, error)) = refusal {
+                fields.0.insert("stage".into(), stage.into());
+                fields.0.insert("error".into(), error.into());
+            }
+        }
+        if target == "connect_service::canonical_packet"
             && fields.0.get("message")
                 == Some(&serde_json::json!("Current native packet authority"))
             && !fields.0.contains_key("problem")
@@ -140,7 +172,7 @@ impl<S: Subscriber> Layer<S> for Capture {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default();
         let row = serde_json::json!({
-            "unix_nanos":at.as_nanos(), "target":event.metadata().target(),
+            "unix_nanos":at.as_nanos(), "target":target,
             "level":event.metadata().level().as_str(), "fields":fields.0,
         });
         let Ok(bytes) = serde_json::to_vec(&row) else {
@@ -226,7 +258,9 @@ pub(super) fn install(root: &Path) -> Option<TraceGuard> {
     let guard = TraceGuard::open(&root.join(".local"), Path::new(&directory), capture.clone())
         .expect("explicit private audio timeline destination");
     tracing_subscriber::registry()
-        .with(capture.with_filter(filter_fn(|meta| TARGETS.contains(&meta.target()))))
+        .with(capture.with_filter(filter_fn(|meta| {
+            TARGETS.contains(&meta.target()) || meta.target() == "log"
+        })))
         .with(tracing_subscriber::fmt::layer().with_filter(LevelFilter::WARN))
         .try_init()
         .expect("audio timeline subscriber must be the original test subscriber");
@@ -236,6 +270,32 @@ pub(super) fn install(root: &Path) -> Option<TraceGuard> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_log_bridge_keeps_only_owned_writer_stage_and_error() {
+        let root = tempfile::tempdir().unwrap();
+        let capture = Capture::new(4, 4096);
+        let guard = TraceGuard::open(root.path(), root.path(), capture.clone()).unwrap();
+        let subscriber = tracing_subscriber::registry().with(capture);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::trace!(target:"log", { "log.target" = "foreign" }, "synthetic-offlist-secret");
+            tracing::trace!(target:"log", { "log.target" = "rvoip_webrtc_stack::owned_rtp" },
+                "Original guarded RTC RTP write refused stage=clock-custody error=ErrRTPTransceiverCodecUnsupported");
+        });
+        drop(guard);
+        let text = std::fs::read_to_string(root.path().join("core-audio-timeline.json")).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert!(!text.contains("synthetic-offlist-secret"));
+        assert_eq!(value["events"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            value["events"][0]["target"],
+            "rvoip_webrtc_stack::owned_rtp"
+        );
+        assert_eq!(value["events"][0]["fields"]["stage"], "clock-custody");
+        assert_eq!(
+            value["events"][0]["fields"]["error"],
+            "ErrRTPTransceiverCodecUnsupported"
+        );
+    }
     #[test]
     fn private_timeline_bounds_actual_events_whitelists_fields_and_flushes_on_unwind() {
         let root = tempfile::tempdir().unwrap();
