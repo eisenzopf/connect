@@ -845,5 +845,6 @@
     "Live successful consult/handoff/device-movement media continuity and transition quality are not inferred from trusted unready adapter rows.",
     "Linux/remote/TURN/impaired profiles, G6-052 repeated outage/uncertainty recovery, acceptance and publication."
   ],
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "superseded_by": "docs/evidence/gate-6/browser-fallback-completion.json"
 }

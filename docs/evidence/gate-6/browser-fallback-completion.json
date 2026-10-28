@@ -1,0 +1,2535 @@
+{
+  "format": 1,
+  "task": "G6-051",
+  "implementation_status": "done",
+  "date": "2026-10-27",
+  "scope": "Canonical signed WSS control with explicit local WebRTC media composition, recorded macOS arm64 installed Chrome/Firefox functional profiles. This closes implementation; remote/Linux/TURN, repeated reconnect and movement-quality qualification remain separate tasks.",
+  "dependency_order": [
+    "G6-016",
+    "G6-020",
+    "G6-037",
+    "G6-049"
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "db1877022d38ad47beec064196490957f28c06ddb38c90b0bb6eda5d6654304b",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/transitions.rs": "a1aabf5bca942f9c4e7ba8b54c9dfc7ff7aeb7ee2225a42baba3be3ece53632c",
+    "scripts/video/browser-control-transitions.mjs": "f304952a8ccc39e3854c1a94e8baf2908dc32755f0b3ee00d8c937c84d0e5eff",
+    "scripts/video/browser-qualify.mjs": "4b39d793a8949a1bd2b26abfe247b3761c331c5f45b6139943de63b2a2689667",
+    "sdk/typescript/src/browser_client.ts": "7b1a0a76da3178510db25e61bb7a78c800bb198098fdf6f2492a86dd379fe274",
+    "sdk/typescript/src/browser_control_transport.ts": "0e21b99a5c841c647895817522a15d25844d2f0f5a602f206c18d872f8222cad",
+    "sdk/typescript/src/browser_webrtc_signaling.ts": "6c78e507fa1edc861d899237861807dd8dd17259d6af7a3069c4ea99ddbcc8c3",
+    "sdk/typescript/src/browser_voice.ts": "77b6c5194585bf88f276a79d490841b0873fa0100095f9ad78789d67c5fa5a22",
+    "sdk/typescript/src/browser_video.ts": "30dc0981dd0f55d89bbf89041ccf7e2270fed9c5d215b5604a3cc3ff7ed77d49",
+    "contracts/schemas/uctp-envelope-2.schema.json": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+    "dependencies/source-lock.json": "e43f5c04b7680857406fe603953f9267437a24c2c607e3f0dbcc41a25ddc044f"
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 3.6708655830007046,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5232,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-127",
+      "sha256": "8e6b60386b174b487758071bced60dddf4c94f706e089758fea8c94f5267a961",
+      "bytes": 215232496
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "776a2a7490838cc94e9ba10ddc2b9b097c5670205bf85d14283e05f89684f3c0"
+  },
+  "matrix": {
+    "passed": 8,
+    "total": 8,
+    "control_cells": 4,
+    "original60second_media_cells": 4,
+    "source_and_executable_guards_unchanged": true,
+    "all_cohort_input_hashes_agree": true,
+    "union_static_input_count": 8187,
+    "private_summary_sha256": "667096093a55745684d63a3d146e13fe6e630307a8c7d0999e2d55537ae2eb25",
+    "rows": [
+      {
+        "mode": "control",
+        "browser": "chrome",
+        "algorithm": "eddsa",
+        "label": "chrome-transition-control-128",
+        "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_transition_control_eddsa",
+        "passed": true,
+        "seconds": 2.556611374951899,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "0dc9c352bbf2f58ecf0f6c02900c748468850c4ce9e346bc3be05d518a5f7617",
+        "reused_unchanged_single_first_cell": true,
+        "input_manifest_sha256": "3876b8052eaea5cff6768da5b4e53e7c7911aa36ac356336ffa86d80dada6b8d",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            4,
+            4
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "control_report": {
+          "status": "passed",
+          "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+          "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+          "browser": "chrome",
+          "fallback": [
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0014000000953673,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0017000000476837,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "unsupported_migration": [
+            "unsupported-transport",
+            "unsupported-transport"
+          ],
+          "transitions": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "terminal_status": {
+                "command_type": "session.consult",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-0-original",
+                "record_id": "opr_249951e2-b026-486a-a89e-9548fe36dc32",
+                "revision": 1,
+                "state": "cancelled"
+              },
+              "original_record_id": "opr_249951e2-b026-486a-a89e-9548fe36dc32",
+              "original_expected_revision": 0,
+              "terminal_state": "cancelled",
+              "replay_state": "cancelled",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242372,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "terminal_status": {
+                "command_type": "session.handoff",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-1-original",
+                "problem": {
+                  "code": "invalid-request",
+                  "source": "native-handoff"
+                },
+                "record_id": "opr_c05b58a2-284b-4c1f-b80f-47b5c8b33ac2",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_c05b58a2-284b-4c1f-b80f-47b5c8b33ac2",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242372,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "terminal_status": {
+                "command_type": "connection.replace",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-2-original",
+                "problem": {
+                  "code": "forbidden",
+                  "source": "native-replacement"
+                },
+                "record_id": "opr_9ea0372f-f76d-4169-a1dd-3f4afcbda84d",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_9ea0372f-f76d-4169-a1dd-3f4afcbda84d",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242372,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            }
+          ],
+          "owned_control_cleanup": true
+        },
+        "native_http_journal_audit": {
+          "passed": true,
+          "rows": [
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-0-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242372,
+              "source_connection_state": "active",
+              "state": "cancelled",
+              "topology_revision": 0,
+              "type": "session.consult"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-1-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242372,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "session.handoff"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-2-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242372,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "connection.replace"
+            }
+          ],
+          "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+        }
+      },
+      {
+        "mode": "control",
+        "browser": "chrome",
+        "algorithm": "es256",
+        "label": "chrome-transition-control-129",
+        "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_transition_control_es256",
+        "passed": true,
+        "seconds": 2.451690792106092,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "45f450286471bf58a720c7812ab333ad73930cecb7b36a891de4bbe61a586daf",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "df395138f3344e2a38432866fc7567cbcee91544352c3f358ff9df50d7077448",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            4,
+            4
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "control_report": {
+          "status": "passed",
+          "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+          "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+          "browser": "chrome",
+          "fallback": [
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0029000000953674,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0025,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "unsupported_migration": [
+            "unsupported-transport",
+            "unsupported-transport"
+          ],
+          "transitions": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "terminal_status": {
+                "command_type": "session.consult",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-0-original",
+                "record_id": "opr_6de73c1f-4b7b-4152-b60a-9d2d5d92315f",
+                "revision": 1,
+                "state": "cancelled"
+              },
+              "original_record_id": "opr_6de73c1f-4b7b-4152-b60a-9d2d5d92315f",
+              "original_expected_revision": 0,
+              "terminal_state": "cancelled",
+              "replay_state": "cancelled",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242455,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "terminal_status": {
+                "command_type": "session.handoff",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-1-original",
+                "problem": {
+                  "code": "invalid-request",
+                  "source": "native-handoff"
+                },
+                "record_id": "opr_7365aca2-0346-4a24-bf3c-3ef29e8ddbf2",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_7365aca2-0346-4a24-bf3c-3ef29e8ddbf2",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242455,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "terminal_status": {
+                "command_type": "connection.replace",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-2-original",
+                "problem": {
+                  "code": "forbidden",
+                  "source": "native-replacement"
+                },
+                "record_id": "opr_9c866d01-7f89-4f6a-b8ec-3ae439390665",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_9c866d01-7f89-4f6a-b8ec-3ae439390665",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242455,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            }
+          ],
+          "owned_control_cleanup": true
+        },
+        "native_http_journal_audit": {
+          "passed": true,
+          "rows": [
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-0-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242455,
+              "source_connection_state": "active",
+              "state": "cancelled",
+              "topology_revision": 0,
+              "type": "session.consult"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-1-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242455,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "session.handoff"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-2-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242455,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "connection.replace"
+            }
+          ],
+          "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+        }
+      },
+      {
+        "mode": "control",
+        "browser": "firefox",
+        "algorithm": "eddsa",
+        "label": "firefox-transition-control-129",
+        "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_transition_control_eddsa",
+        "passed": true,
+        "seconds": 5.505061999894679,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "4173492585398ea0dfa7b451d052c98d461f2416ed5fbc7aab264022ca1ce936",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "bb532fcaa6776fd9a18e5e4865c464335bc4c9af76f65c922b7078bcc8b08d5b",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            12,
+            12
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "control_report": {
+          "status": "passed",
+          "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+          "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+          "browser": "firefox",
+          "fallback": [
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.01,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.01,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "unsupported_migration": [
+            "unsupported-transport",
+            "unsupported-transport"
+          ],
+          "transitions": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "terminal_status": {
+                "command_type": "session.consult",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-0-original",
+                "record_id": "opr_88985a09-c4d8-4646-b28a-df6a7abe5393",
+                "revision": 1,
+                "state": "cancelled"
+              },
+              "original_record_id": "opr_88985a09-c4d8-4646-b28a-df6a7abe5393",
+              "original_expected_revision": 0,
+              "terminal_state": "cancelled",
+              "replay_state": "cancelled",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242464,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "terminal_status": {
+                "command_type": "session.handoff",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-1-original",
+                "problem": {
+                  "code": "invalid-request",
+                  "source": "native-handoff"
+                },
+                "record_id": "opr_f2ed9012-ca40-4eea-824a-d96c2a54f6c3",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_f2ed9012-ca40-4eea-824a-d96c2a54f6c3",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242464,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "terminal_status": {
+                "command_type": "connection.replace",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-2-original",
+                "problem": {
+                  "code": "forbidden",
+                  "source": "native-replacement"
+                },
+                "record_id": "opr_73a4b7c6-f878-4563-9c3d-631b42969a33",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_73a4b7c6-f878-4563-9c3d-631b42969a33",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242464,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            }
+          ],
+          "owned_control_cleanup": true
+        },
+        "native_http_journal_audit": {
+          "passed": true,
+          "rows": [
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-0-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242464,
+              "source_connection_state": "active",
+              "state": "cancelled",
+              "topology_revision": 0,
+              "type": "session.consult"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-1-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242464,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "session.handoff"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-2-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242464,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "connection.replace"
+            }
+          ],
+          "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+        }
+      },
+      {
+        "mode": "control",
+        "browser": "firefox",
+        "algorithm": "es256",
+        "label": "firefox-transition-control-es256-129",
+        "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_transition_control_es256",
+        "passed": true,
+        "seconds": 3.396110374946147,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "ae1bc410015adb6b64479966c6600b1f5dcd33ad310268972e3f929ff3ec0b14",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "63bb8847be3fcb183a5da72a0979deb1c7b0a095ea9c925e068672903be08105",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            12,
+            12
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "control_report": {
+          "status": "passed",
+          "scope": "Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",
+          "transition_scope": "signed control admission/refusal/cancellation/replay; no live movement media claim",
+          "browser": "firefox",
+          "fallback": [
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.008,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.008,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "unsupported_migration": [
+            "unsupported-transport",
+            "unsupported-transport"
+          ],
+          "transitions": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "terminal_status": {
+                "command_type": "session.consult",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-0-original",
+                "record_id": "opr_99d3508d-89f6-4cb7-b494-8b102b4e0279",
+                "revision": 1,
+                "state": "cancelled"
+              },
+              "original_record_id": "opr_99d3508d-89f6-4cb7-b494-8b102b4e0279",
+              "original_expected_revision": 0,
+              "terminal_state": "cancelled",
+              "replay_state": "cancelled",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242469,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "terminal_status": {
+                "command_type": "session.handoff",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-1-original",
+                "problem": {
+                  "code": "invalid-request",
+                  "source": "native-handoff"
+                },
+                "record_id": "opr_1dd3d4cb-c3f0-43aa-a38a-b544c753f560",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_1dd3d4cb-c3f0-43aa-a38a-b544c753f560",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242469,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "terminal_status": {
+                "command_type": "connection.replace",
+                "expected_revision": 0,
+                "operation_id": "browser-transition-2-original",
+                "problem": {
+                  "code": "forbidden",
+                  "source": "native-replacement"
+                },
+                "record_id": "opr_24d51aee-5eeb-4d5d-b0c1-06c69b2db67c",
+                "revision": 1,
+                "state": "failed"
+              },
+              "original_record_id": "opr_24d51aee-5eeb-4d5d-b0c1-06c69b2db67c",
+              "original_expected_revision": 0,
+              "terminal_state": "failed",
+              "replay_state": "failed",
+              "changed_revision_refused": true,
+              "foreign_scope_refused": true,
+              "original_expires_at": 1793242469,
+              "oracle_effects": 0,
+              "expiry_unchanged": true
+            }
+          ],
+          "owned_control_cleanup": true
+        },
+        "native_http_journal_audit": {
+          "passed": true,
+          "rows": [
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-0-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242469,
+              "source_connection_state": "active",
+              "state": "cancelled",
+              "topology_revision": 0,
+              "type": "session.consult"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-1-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242469,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "session.handoff"
+            },
+            {
+              "external_effects": 0,
+              "native_http_browser_common_status_match": true,
+              "operation_id": "browser-transition-2-original",
+              "operation_rows": 1,
+              "original_expires_at": 1793242469,
+              "source_connection_state": "active",
+              "state": "failed",
+              "topology_revision": 0,
+              "type": "connection.replace"
+            }
+          ],
+          "scope": "Canonical transition command parity on actual browser fallback control. Trusted adapter rows; no live handoff/replacement or decoded movement quality claim."
+        }
+      },
+      {
+        "mode": "media",
+        "browser": "chrome",
+        "algorithm": "eddsa",
+        "label": "chrome-fallback-current-eddsa-129",
+        "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_original_wss_intents_eddsa",
+        "passed": true,
+        "seconds": 65.54545962507837,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "1ca74186ac48df2d52f3d2959dd81841215ae9be3767ebcad35a8226c6a1ac43",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "76ba2a123397fbaeffbf8e8a98bad098184c5c91ac65560c4cbfa40fea54cb73",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "media": {
+          "browser_version": "155.0.8059.85",
+          "profile": "connect-video-vp8/1",
+          "acceptance_policy": "connect-media-acceptance/2",
+          "fallback": [
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0025999999046327,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.003,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 1,
+                "recognized_expected_frames": 1405,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 229,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 0,
+                  "1": 1405,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 660,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11269998550415039,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1468,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156076.2062001,
+                    "end_unix_seconds": 1793156136.2129002,
+                    "maximum_freshness_gap_seconds": 0.7003998756408691,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.7003998756408691
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1800,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 63,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 121,
+                "maximum_snapshot_observation_gap_seconds": 0.5116000175476074,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1734,
+              "changing": 1468,
+              "rendered": 1634,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 424325.94999374263,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.7003998756408691,
+              "expected_audio_frequency_hz": 660,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00670003890991,
+              "decoded_fps": 28.896773174922618,
+              "av_sync": {
+                "status": "passed",
+                "paired": 80,
+                "median_abs_skew_ms": 17.2499999999971,
+                "p95_abs_skew_ms": 94.70000004768409,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            },
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 0,
+                "recognized_expected_frames": 1409,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 240,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 1409,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 440,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11309981346130371,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1474,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156076.2062,
+                    "end_unix_seconds": 1793156136.2129,
+                    "maximum_freshness_gap_seconds": 0.7506999969482422,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.7506999969482422
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1800,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 63,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 122,
+                "maximum_snapshot_observation_gap_seconds": 0.5085997581481934,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1755,
+              "changing": 1474,
+              "rendered": 1649,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 427698.37340427475,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.7506999969482422,
+              "expected_audio_frequency_hz": 440,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00670003890991,
+              "decoded_fps": 29.24673409572618,
+              "av_sync": {
+                "status": "passed",
+                "paired": 84,
+                "median_abs_skew_ms": 25.350000143049556,
+                "p95_abs_skew_ms": 67.49999999999989,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            }
+          ],
+          "teardown_seconds": 0.061823124999995344,
+          "paired_termination": {
+            "status": "passed",
+            "seconds": 0.0019142080000019632,
+            "limit_seconds": 5,
+            "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+          },
+          "private_report_sha256": "80740d090658bfe8c3e5b53826b818c2cb9a865624ec11484624eeeebcfc04b3"
+        }
+      },
+      {
+        "mode": "media",
+        "browser": "firefox",
+        "algorithm": "eddsa",
+        "label": "firefox-fallback-current-eddsa-129",
+        "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_original_wss_intents_eddsa",
+        "passed": true,
+        "seconds": 66.47068212507293,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "6b10f72d263cd75d38a506f5ed9581e83f31ff47d5c6bf63329d1997bdb95b57",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "076d24dec158fb41cab56782e33bee3b980dddf1eee4eda88327bfe55e3befad",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "media": {
+          "browser_version": "firefox/158.0.1",
+          "profile": "connect-video-vp8/1",
+          "acceptance_policy": "connect-media-acceptance/2",
+          "fallback": [
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.006,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.002,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 1,
+                "recognized_expected_frames": 1489,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 240,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 0,
+                  "1": 1489,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 660,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.1100001335144043,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1542,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156144.243,
+                    "end_unix_seconds": 1793156204.25,
+                    "maximum_freshness_gap_seconds": 0.4509999752044678,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.4509999752044678
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1744,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 64,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 121,
+                "maximum_snapshot_observation_gap_seconds": 0.504000186920166,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1728,
+              "changing": 1542,
+              "rendered": 1729,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 423198.62704209506,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.4509999752044678,
+              "expected_audio_frequency_hz": 660,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00699996948242,
+              "decoded_fps": 28.79664040659929,
+              "av_sync": {
+                "status": "passed",
+                "paired": 83,
+                "median_abs_skew_ms": 48.99999999999949,
+                "p95_abs_skew_ms": 64.00000000000006,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            },
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 0,
+                "recognized_expected_frames": 1502,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 242,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 1502,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 440,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11299991607666016,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1554,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156144.242,
+                    "end_unix_seconds": 1793156204.248,
+                    "maximum_freshness_gap_seconds": 0.11800003051757812,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.11800003051757812
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1741,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 63,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 121,
+                "maximum_snapshot_observation_gap_seconds": 0.505000114440918,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1743,
+              "changing": 1554,
+              "rendered": 1744,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 422945.706814162,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.11800003051757812,
+              "expected_audio_frequency_hz": 440,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00599980354309,
+              "decoded_fps": 29.04709538556982,
+              "av_sync": {
+                "status": "passed",
+                "paired": 84,
+                "median_abs_skew_ms": 46.50000000000176,
+                "p95_abs_skew_ms": 74.99999999999929,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            }
+          ],
+          "teardown_seconds": 0.09583354200000758,
+          "paired_termination": {
+            "status": "passed",
+            "seconds": 0.04373037500000646,
+            "limit_seconds": 5,
+            "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+          },
+          "private_report_sha256": "2be0de99953188f42d4843edd521673c094d9f4c16cda764195b0a6adc49c32e"
+        }
+      },
+      {
+        "mode": "media",
+        "browser": "chrome",
+        "algorithm": "es256",
+        "label": "chrome-fallback-current-es256-129",
+        "method": "canonical_webrtc_browser::canonical_chrome_actual_udp_failure_original_wss_intents_es256",
+        "passed": true,
+        "seconds": 65.70586483296938,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "9abdd4e9ba784460ff5184b462f503f453679228b7c870fa70b49e6e55c23071",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "cc797bfaa7647bc64429d33df34fdf62a1f218b2a3919d393c4253262ad2f747",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "media": {
+          "browser_version": "155.0.8059.85",
+          "profile": "connect-video-vp8/1",
+          "acceptance_policy": "connect-media-acceptance/2",
+          "fallback": [
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0019000000953675,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.0024000000953674,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 1,
+                "recognized_expected_frames": 1461,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 238,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 0,
+                  "1": 1461,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 660,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11480021476745605,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1526,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156210.9301,
+                    "end_unix_seconds": 1793156270.9378998,
+                    "maximum_freshness_gap_seconds": 0.21650004386901855,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.21650004386901855
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1801,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 63,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 122,
+                "maximum_snapshot_observation_gap_seconds": 0.5094001293182373,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1795,
+              "changing": 1526,
+              "rendered": 1699,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 424449.88914447086,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.21650004386901855,
+              "expected_audio_frequency_hz": 660,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00779986381531,
+              "decoded_fps": 29.9127780734115,
+              "av_sync": {
+                "status": "passed",
+                "paired": 84,
+                "median_abs_skew_ms": 26.250000000000995,
+                "p95_abs_skew_ms": 86.70000004768319,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            },
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 0,
+                "recognized_expected_frames": 1450,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 232,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 1450,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 440,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.1146998405456543,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1515,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156210.9311001,
+                    "end_unix_seconds": 1793156270.9378998,
+                    "maximum_freshness_gap_seconds": 0.3826000690460205,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.3826000690460205
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1801,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 62,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 122,
+                "maximum_snapshot_observation_gap_seconds": 0.5113999843597412,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1787,
+              "changing": 1515,
+              "rendered": 1682,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 424966.77257231966,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.3826000690460205,
+              "expected_audio_frequency_hz": 440,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00679969787598,
+              "decoded_fps": 29.77995842133293,
+              "av_sync": {
+                "status": "passed",
+                "paired": 84,
+                "median_abs_skew_ms": 25.399999976158938,
+                "p95_abs_skew_ms": 82.39999985694979,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            }
+          ],
+          "teardown_seconds": 0.09771491700000479,
+          "paired_termination": {
+            "status": "passed",
+            "seconds": 0.05851583400000527,
+            "limit_seconds": 5,
+            "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+          },
+          "private_report_sha256": "1db1ed21e393dbba2577b9f408a5a1452c81537de1188ee8ae3c9fd8ed93ddca"
+        }
+      },
+      {
+        "mode": "media",
+        "browser": "firefox",
+        "algorithm": "es256",
+        "label": "firefox-fallback-current-es256-129",
+        "method": "canonical_webrtc_browser::canonical_firefox_actual_udp_failure_original_wss_intents_es256",
+        "passed": true,
+        "seconds": 66.6305797919631,
+        "source_and_executable_guards_unchanged": true,
+        "summary_sha256": "6a6eae1687997bd07e0561c8f73d0bb64e51e075797fbad271bec756836afd71",
+        "reused_unchanged_single_first_cell": false,
+        "input_manifest_sha256": "7353c86aa1c08c061eb2dba3bd0479ba31079333da0a4df9728dac1651468b17",
+        "actual_transport": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "owned_cleanup": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "media": {
+          "browser_version": "firefox/158.0.1",
+          "profile": "connect-video-vp8/1",
+          "acceptance_policy": "connect-media-acceptance/2",
+          "fallback": [
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.006,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "message.send",
+                  "operation_id": "browser-original-message-op",
+                  "state": "completed"
+                },
+                {
+                  "type": "session.invite",
+                  "operation_id": "browser-invite",
+                  "state": "completed"
+                }
+              ]
+            },
+            {
+              "transport": "webtransport",
+              "status": "refused",
+              "error_code": "timeout",
+              "seconds": 1.009,
+              "original_timeout_ms": 1000,
+              "application_mutations_attempted": 0,
+              "replayed_originals": [
+                {
+                  "type": "session.accept",
+                  "operation_id": "browser-accept",
+                  "state": "completed"
+                }
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 1,
+                "recognized_expected_frames": 1468,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 237,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 0,
+                  "1": 1468,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 660,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11400008201599121,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1535,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156279.182,
+                    "end_unix_seconds": 1793156339.185,
+                    "maximum_freshness_gap_seconds": 0.8320000171661377,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.8320000171661377
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1742,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 63,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 121,
+                "maximum_snapshot_observation_gap_seconds": 0.505000114440918,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1706,
+              "changing": 1535,
+              "rendered": 1705,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 426910.65431800176,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.8320000171661377,
+              "expected_audio_frequency_hz": 660,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.003000020980835,
+              "decoded_fps": 28.431911727804856,
+              "av_sync": {
+                "status": "passed",
+                "paired": 82,
+                "median_abs_skew_ms": 47.999999999998266,
+                "p95_abs_skew_ms": 64.00000000000006,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            },
+            {
+              "stats_available": true,
+              "source_identity": {
+                "status": "passed",
+                "expected_source_id": 0,
+                "recognized_expected_frames": 1456,
+                "recognized_wrong_source_frames": 0,
+                "unclassified_frames": 0,
+                "full_white_pulse_frames": 234,
+                "black_frames": 0,
+                "muted_black_permitted": false,
+                "recognized_source_counts": {
+                  "0": 1456,
+                  "1": 0,
+                  "2": 0,
+                  "3": 0
+                },
+                "method": "independent decoded 8\u00d78 cell-centre pixels without spatial blending: four large gray cells encode two source bits plus complements; white AV pulses excluded from identity only"
+              },
+              "audio_profile": {
+                "status": "passed",
+                "method": "throughout-window independent received AudioContext RMS/frequency samples; no physical speaker claim",
+                "expected_frequency_hz": 440,
+                "samples": 600,
+                "coverage_complete": true,
+                "maximum_sampling_gap_seconds": 0.11500000953674316,
+                "configured_interval_seconds": 0.1,
+                "coverage_bounds": {
+                  "maximum_samples": 2000,
+                  "minimum_expected_sample_fraction": 0.9,
+                  "maximum_gap_seconds": 0.2
+                },
+                "observed_exceptions": [],
+                "bad_unexcepted_samples": 0,
+                "limits": {
+                  "identified_rms_above": 0.001,
+                  "frequency_error_below_hz": 35,
+                  "recovery_seconds": 2,
+                  "mute_silence_rms_at_most": 0.003,
+                  "mute_observation_seconds": 0.5
+                }
+              },
+              "motion_profile": {
+                "status": "passed",
+                "method": "successive independently decoded pixel changes on actual receiver observation/emission times; no physical display or native decoder-completion claim",
+                "freshness_limit_seconds": 2,
+                "changing_time_bound": 10000,
+                "changing_observations_in_window": 1521,
+                "observed_exclusions": [],
+                "active_segments": [
+                  {
+                    "start_unix_seconds": 1793156279.181,
+                    "end_unix_seconds": 1793156339.185,
+                    "maximum_freshness_gap_seconds": 0.8670001029968262,
+                    "status": "passed"
+                  }
+                ],
+                "maximum_unexcluded_freshness_gap_seconds": 0.8670001029968262
+              },
+              "worker_pipeline": {
+                "status": "passed",
+                "scope": "aggregate worker passthrough, subsequent keyframe, request and completion during actual measured window; counts do not bound inter-keyframe gaps",
+                "deltas": {
+                  "observedFrames": 1743,
+                  "observedKeyframes": 63,
+                  "keyframeRequests": 62,
+                  "keyframeCompletions": 63,
+                  "keyframeFailures": 0
+                },
+                "snapshot_samples_in_window": 121,
+                "maximum_snapshot_observation_gap_seconds": 0.5060000419616699,
+                "keyframe_interval_proof": "unmeasured by aggregate counters; independent decoded keyframe journals measure received intervals"
+              },
+              "decoded": 1691,
+              "changing": 1521,
+              "rendered": 1690,
+              "width": 640,
+              "height": 360,
+              "codec": "video/VP8",
+              "video_rtp_bitrate_bits_per_second": 419853.2101463532,
+              "maximum_changing_decoded_frame_observation_gap_seconds": 0.8670001029968262,
+              "expected_audio_frequency_hz": 440,
+              "av_acceptance": {
+                "policy": "connect-media-acceptance/2",
+                "scenario": "clean",
+                "status": "passed",
+                "quality_status": "passed",
+                "reason": "quality-met"
+              },
+              "recovery": [],
+              "elapsed_seconds": 60.00399994850159,
+              "decoded_fps": 28.181454593882076,
+              "av_sync": {
+                "status": "passed",
+                "paired": 80,
+                "median_abs_skew_ms": 40.99999999999682,
+                "p95_abs_skew_ms": 57.00000000000216,
+                "limits": {
+                  "median_abs_skew_ms": 80,
+                  "p95_abs_skew_ms": 120
+                },
+                "quantile_method": "median averages the two middle values; p95 uses nearest rank",
+                "calibration_tolerance_seconds": 0.15
+              },
+              "audio_envelope_status": "observer-valid"
+            }
+          ],
+          "teardown_seconds": 0.12519174999999813,
+          "paired_termination": {
+            "status": "passed",
+            "seconds": 0.07523637499999312,
+            "limit_seconds": 5,
+            "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+          },
+          "private_report_sha256": "740ff0099a26ee7823c99e0a688b5d89454d86bbd96ff4496ea256bdf99c59d7"
+        }
+      }
+    ]
+  },
+  "original_intent_journal_audit": {
+    "scope": "Read-only post-shutdown audit of each isolated fixture: original message/invite/accept/end, one completed operation each, no external provider effects; exactly one Session and one lifecycle fact per recipient/action. No PSTN/provider qualification.",
+    "passed": true,
+    "rows": [
+      {
+        "label": "chrome-transition-control-128",
+        "mode": "control",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "6d2f24b58ea29bd04646e3e9d4a06aff5a630342ef4c8963a5120570ff5899ff",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "chrome-transition-control-129",
+        "mode": "control",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "d8a5093e114c7879d858a3f95dd85b3f853ab52f428cf6613907ca8eda7bdb90",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "firefox-transition-control-129",
+        "mode": "control",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "3967f975bdccd46a72c42d6fd984e18c861d0428bfc5e1a97cc77c8c19c86a04",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "firefox-transition-control-es256-129",
+        "mode": "control",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "d0e9e4cfcdf9952edc82e8a96143448b339e699055d7e1edf1768d9d2dbf768f",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "chrome-fallback-current-eddsa-129",
+        "mode": "media",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "41e88c1e4c403d28eb320dc1f080c139a4ee9bef2c898939f48ad1b0784161cd",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "firefox-fallback-current-eddsa-129",
+        "mode": "media",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "94e6bf419f304d4fba5f312ea56bc90ae69e96a9d5ad7cd5d7f7bd2819460ec6",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "chrome-fallback-current-es256-129",
+        "mode": "media",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "4274e312d171ab4b4e063590cc6f8dcc0709dcb7e6bee404c26a2b2f3cf99f70",
+        "database_unchanged_by_readonly_audit": true
+      },
+      {
+        "label": "firefox-fallback-current-es256-129",
+        "mode": "media",
+        "operation_counts": {
+          "browser-original-message-op": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "send",
+            "external_effects": 0
+          },
+          "browser-invite": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.invite",
+            "external_effects": 0
+          },
+          "browser-accept": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.accept",
+            "external_effects": 0
+          },
+          "browser-session-end": {
+            "rows": 1,
+            "state": "completed",
+            "command_type": "session.end",
+            "external_effects": 0
+          }
+        },
+        "main_session": {
+          "rows": 1,
+          "state": "ended",
+          "topology_revision": 2
+        },
+        "session_journal_actions": [
+          {
+            "action": "session.accept",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.end",
+            "rows": 2,
+            "distinct_recipients": 2
+          },
+          {
+            "action": "session.invite",
+            "rows": 2,
+            "distinct_recipients": 2
+          }
+        ],
+        "private_database_sha256": "02ded32ddbd010ce89aad87a4d1f5de206041d5d039a438d3c2ef613ba43b137",
+        "database_unchanged_by_readonly_audit": true
+      }
+    ]
+  },
+  "http_reference": {
+    "path": "contracts/openapi-canonical-http.json",
+    "sha256": "b99251e0ee40fe472497db520469434c9c544aa870c9150a1c2005863f50f399",
+    "generator": "scripts/generate-canonical-http-openapi.py",
+    "inventory": "contracts/http-endpoints.json",
+    "inventory_sha256": "a3bdf2f3bbcf28db09567931f58c7b475cbfc07ca8fee651d7350174590e711a",
+    "source_route_declarations": 24,
+    "explicit_http_operations": 25,
+    "uncovered_source_routes": 0,
+    "reference_only_change": {
+      "scope": "Reference update only: all normative HTTP paths/components are identical. Update WSS media composition documentation and describe its existing strict Local-only WebRTC config.",
+      "paths_identical": true,
+      "components_identical": true,
+      "changed_document_extensions": [
+        "x-connect-canonical-websocket",
+        "x-connect-canonical-webrtc"
+      ],
+      "before_sha256": "5c5b3bbb1f1d4cd55328bffe624537c4c204c499a9162d1f053ad4745b5a3c78",
+      "after_sha256": "b99251e0ee40fe472497db520469434c9c544aa870c9150a1c2005863f50f399"
+    }
+  },
+  "obligations": [
+    {
+      "obligation": "Use canonical lifecycle/control and common current authorization",
+      "evidence": "Current BrowserVoiceSession/BrowserVideoSession borrow BrowserClient through CanonicalWebRtcSignaling; Connection-scoped signed offer/answer/ICE, explicit receive/gates/end, current owner/source policy and shared operation ledger. Earlier exact service authority/gating/host boundaries remain in their recorded evidence; current original browser profiles pass.",
+      "passed": true
+    },
+    {
+      "obligation": "Force actual WebTransport/UDP failure on Chrome and Firefox",
+      "evidence": "Every cell observes real QUIC Initial datagrams at both owned UDP blackholes, then actual signed WSS with normal private CA verification. Both signing algorithms.",
+      "passed": true
+    },
+    {
+      "obligation": "Same Conversation and transition commands after fallback",
+      "evidence": "Original message/invite/accept receipts plus browser-origin consult admission/cancel, handoff/replacement preflight refusals, current scoped status and original-ID replay. Public nativeQUIC/canonicalHTTP common status fields agree. Trusted unready rows do not qualify successful movement media.",
+      "passed": true
+    },
+    {
+      "obligation": "Explicit unsupported migration and no duplicate accepted message/call intent",
+      "evidence": "Actual WSS rejects WT datagram MediaPeer construction with unsupported-transport and retains selected WSS control. Read-only post-shutdown journal proves one original message/invite/accept/end operation, exactly one Session and one lifecycle fact per recipient/action. No automatic accepted mutation resend.",
+      "passed": true
+    },
+    {
+      "obligation": "Usable actual browser WebRTC media and owned teardown",
+      "evidence": "Four unchanged original60second source/observer profiles pass identified duplex Opus/VP8, source identity, worker/keyframe pipeline, audio cadence, AV calibration/skew, confirmed Session end, paired terminal delivery, graph/route/intake cleanup and listener reclamation.",
+      "passed": true
+    }
+  ],
+  "historical_evidence": [
+    "docs/evidence/gate-6/browser-fallback-transition-control.json",
+    "docs/evidence/gate-6/canonical-fresh-metadata-recovery.json"
+  ],
+  "not_qualified": [
+    "Successful consult/handoff/device-movement media continuity or switch-gap qualification is not inferred from unready transition-control fixtures. G6-098 owns the frozen movement quality runs.",
+    "G6-052 preferred transport, cursor recovery and repeated WSS/WT outages/expired credentials/reconnect during ongoing operations.",
+    "WebRTC currently explicitly requires Local network profile; remote ICE/TURN, Linux host and native-live/browser remote combinations remain G6-058/G6-092/G6-095.",
+    "Frozen impaired-network/concurrency/capacity qualification, Gate6 acceptance and publication."
+  ],
+  "acceptance_qualified": false
+}

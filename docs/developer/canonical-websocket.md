@@ -47,10 +47,15 @@ with the WebTransport client. A timeout after mutation submission preserves
 uncertainty; use current authority on a fresh client to query the original
 operation status. There is no automatic mutation resend or transport migration.
 
-WSS control hosting does not establish WebRTC media. The current native media
-path refuses WSS datagrams. Canonical Connection/operation-bound SDP/ICE/media,
-forced WebTransport failure in Chrome/Firefox, transitions and operating-profile
-qualification remain G6-051 work.
+WSS control hosting alone does not establish media. An explicit protected
+`[webrtc]` configuration installs Connection-bound canonical SDP/ICE and staged
+mono Opus with optional VP8. It currently requires Local media addressing and a
+bounded peer capacity. Both Chrome and Firefox pass the original 60-second
+functional profiles after actual UDP failure, with original operation IDs and
+owned teardown. The signed transition-control matrix also passes; see the
+[G6-051 completion evidence](../evidence/gate-6/browser-fallback-completion.json).
+Remote ICE/TURN, repeated outage recovery and live movement quality retain their
+separate scope. A WT datagram MediaPeer on WSS refuses `unsupported-transport`.
 
 ## Isolated rehearsal
 

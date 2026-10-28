@@ -1,14 +1,19 @@
 # Canonical WebRTC signaling component
 
-G6-051 is in progress. The public TypeScript browser surface exports
-`CanonicalWebRtcSignaling` and owned voice/video sessions against the frozen
-`connect/2` envelope shapes.
-The default canonical server does not enable a WebRTC media route. Protected
-startup composition can install bounded mono Opus/G.711 audio or explicitly opt
-into one duplex audio plus VP8 camera staged media host.
-Browser voice/video now borrow signed canonical control. The former SDK signaling
-dialect has been removed. Installed-browser fallback/media qualification remains
-open.
+G6-051 implementation is complete for the recorded local functional scope. The
+public browser surface exports `CanonicalWebRtcSignaling` and owned voice/video
+sessions using signed `connect/2` control. All four installed Chrome/Firefox
+60-second AV profiles and all four transition-control cells pass with both signing
+algorithms and real UDP failure. See the
+[completion evidence](../evidence/gate-6/browser-fallback-completion.json) for exact
+versions, hashes, original-intent journal counts and requirement mapping.
+
+The default canonical server leaves WebRTC disabled. Protected `[webrtc]`
+composition requires signed WSS, Local media addressing, an `opus` or `opus-vp8`
+profile and 1–512 peers within the connection limit. Remote ICE/TURN remains a
+separate task. Current control parity does not qualify successful movement-media
+quality, repeated outage recovery or Gate 6 acceptance. The chronological
+checkpoints below retain their original source-specific observations.
 
 The component borrows the authenticated `BrowserClient` and takes ownership of
 one supplied `RTCPeerConnection`. The caller configures transceivers, channels

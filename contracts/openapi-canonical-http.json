@@ -6414,8 +6414,20 @@
     },
     "authority": "The same canonical identity, signed control protocol, current Store authentication/authorization, operation ledger and global physical peer budget as QUIC/WebTransport.",
     "lifetime": "Owned bounded intake and TLS/authentication; server key expiry, shutdown or drop retires active physical peers. WSS and QUIC/WebTransport intake failure retire linked transports.",
-    "media": "Control hosting only. WebRTC SDP/ICE/media integration and forced-browser fallback qualification remain G6-051 work.",
+    "media": "Optional protected [webrtc] composition installs Connection-owned signed SDP/ICE with staged mono Opus and optional VP8 media. WSS alone advertises control only; media readiness requires current admission and actual decoded evidence. WebTransport datagrams cannot migrate onto WSS.",
     "recovery": "Keep original mutation IDs across uncertainty; observe status using current authority. No automatic mutation retry or transport migration."
+  },
+  "x-connect-canonical-webrtc": {
+    "enabled": "Optional protected [webrtc] configuration; disabled by default and requires configured signed WSS control.",
+    "configuration": {
+      "profile": "opus or opus-vp8; mono48kHz/20ms Opus at32kbit/s; optional640x360 VP8 up to30fps with500kbit/s target and1Mbit/s bound.",
+      "max_peers": "1..=512 and no greater than the canonical connection limit.",
+      "network": "Local media addressing only. Remote ICE/TURN remains G6-058/G6-095 qualification work."
+    },
+    "lifecycle": "Canonical connection.offer/answer and Connection-correlated ICE candidates; exact original Conversation, Session, Connection, operation and revision scopes. SDP answer alone does not prove media readiness.",
+    "authority": "Current common Store authorization gates admission, subscriptions, runtime controls, packet publication and teardown. Historical receipts and status never reopen media or grant receive selection.",
+    "qualification": "G6-051 local functional evidence includes installed Chrome155.0.8059.85 and Firefox158.0.1, both signing algorithms, real UDP failure and original60second decoded AV/cleanup profiles; see docs/evidence/gate-6/browser-fallback-completion.json. Transition control parity is separate from live movement-media quality. Remote/Linux/TURN/impaired/native-live profiles and Gate6 acceptance remain unqualified.",
+    "recovery": "Keep original logical operation IDs and query status under current authority. No automatic accepted mutation resend or silent live datagram migration; repeated outage/reconnect behavior is G6-052."
   },
   "x-connect-canonical-webtransport": {
     "enabled": "Optional protected canonical server webtransport config; disabled by default.",
