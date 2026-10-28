@@ -34,6 +34,24 @@ fn version(c: &Connection) -> Result<Version> {
     })
 }
 
+// A failed multi-query resolution needs the same snapshot boundary as a
+// successful one. A concurrent commit or clock edge can mix pre-transition
+// context with post-transition execution and manufacture a definitive refusal.
+// Such an observation grants no IO and is not proof of physical retirement.
+fn current_refusal<T>(c: &Connection, before: Version, result: Result<T>) -> Result<T> {
+    if result.is_err() && version(c)? != before {
+        if let Err(error) = &result {
+            tracing::debug!(target: "connect_store::canonical_snapshot", code = %error.code,
+                reason = %error.message, "Refused packet resolution crossed a snapshot boundary");
+        }
+        return Err(Error::new(
+            "authority-busy",
+            "Current packet state changed during refused resolution",
+        ));
+    }
+    result
+}
+
 type MediaFacts = (
     PeerConnectionProjection,
     Option<PeerConnectionProjection>,
@@ -233,7 +251,7 @@ fn acquire_with<T>(
     let (before, facts, scopes) = {
         let c = store.try_packet_connection()?;
         let before = version(&c)?;
-        let (facts, scopes) = derive(&c, before)?;
+        let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
         (before, facts, scopes)
     };
     // File opens, hashing and try-locks over a large scene must not monopolize
@@ -264,7 +282,7 @@ fn acquire_under<T>(
 ) -> Result<(T, Arc<AuthorityGuardSet>)> {
     let c = store.try_packet_connection()?;
     let before = version(&c)?;
-    let (facts, scopes) = derive(&c, before)?;
+    let (facts, scopes) = current_refusal(&c, before, derive(&c, before))?;
     if !store.authority_covers(held, &scopes) {
         return Err(Error::forbidden());
     }
@@ -304,7 +322,7 @@ fn seal<T>(
     if after.second != before.second {
         // Revalidate a clock edge under this already-owned reader. No second
         // file admission behind a queued writer and no original expiry extension.
-        (facts, scopes) = derive(c, after)?;
+        (facts, scopes) = current_refusal(c, after, derive(c, after))?;
         if version(c)? != after {
             return Err(Error::new(
                 "authority-busy",

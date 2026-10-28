@@ -285,18 +285,30 @@ impl Runtime {
         if succeeded {
             loop {
                 tokio::time::sleep(Duration::from_millis(100)).await;
-                if self.stop.is_cancelled()
-                    || physical.lifetime.is_cancelled()
-                    || !native.is_connection_live(&id)
-                {
+                let stopped = self.stop.is_cancelled();
+                let physical_closed = physical.lifetime.is_cancelled();
+                let route_live = native.is_connection_live(&id);
+                if stopped || physical_closed || !route_live {
+                    tracing::debug!(connection = %id, stopped, physical_closed, route_live,
+                        "Native custodian observed terminal lifetime");
                     break;
                 }
                 let origin = self.media.origin(&id);
-                let Some(origin) = origin else { break };
+                let Some(origin) = origin else {
+                    tracing::debug!(connection = %id, "Native custodian lost media origin");
+                    break;
+                };
                 match self.media.store.try_native_connection_current(&origin) {
                     Ok(true) => (),
-                    Ok(_) => break,
-                    Err(e) if e.code == "forbidden" => break,
+                    Ok(_) => {
+                        tracing::debug!(connection = %id, "Native custodian observed noncurrent source");
+                        break;
+                    }
+                    Err(e) if e.code == "forbidden" => {
+                        tracing::debug!(connection = %id, code = %e.code, reason = %e.message,
+                            "Native custodian observed refused source");
+                        break;
+                    }
                     // Fresh packet grants still refuse unavailable state. An
                     // unavailable policy read is not proof that the source
                     // ended; retain custody until definite retirement or EOF.

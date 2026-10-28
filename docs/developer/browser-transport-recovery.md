@@ -145,3 +145,11 @@ the candidate had already retired, leaving one private-reverse marked packet.
 A consistent private failure snapshot was retained. An unchanged-source trace
 diagnostic later passed; it does not establish a fix. G6-052 remains in progress
 while premature native retirement is investigated and its contract is audited.
+
+The [snapshot-refusal boundary proof](../evidence/gate-6/snapshot-refusal-boundary.json)
+reproduces a separate native custody defect: a multi-query policy refusal could
+return before detecting a concurrent SQL/clock change. Changed failed reads now
+report temporary unavailability and grant no IO; unchanged authorization refusals
+still retire the source. One controlled before-fail/after-pass case and all 22
+snapshot/private-presence tests pass. The initial one-frame native event is not
+assigned this cause without its missing retirement-reason observation.

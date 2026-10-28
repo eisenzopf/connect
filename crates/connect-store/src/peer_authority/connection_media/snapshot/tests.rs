@@ -250,6 +250,40 @@ fn packet_snapshot_external_commit_refuses_stale_facts_releases_reader_and_recov
 }
 
 #[test]
+fn packet_snapshot_refusal_after_a_commit_is_unavailable_not_definite_retirement() {
+    for borrowed in [false, true] {
+        let f = Fixture::new();
+        let external = Connection::open(f.store.path()).unwrap();
+        let held = borrowed.then(|| f.store.try_acquire_authority(&[f.read.clone()]).unwrap());
+        let derive = |c: &Connection| -> Result<(i64, Vec<AuthorityScope>)> {
+            assert_eq!(f.derive(c)?.0, 1);
+            // A multi-query policy resolver can observe preparation before a
+            // commit and terminal execution afterwards. That mixed refusal is
+            // not proof that the physical source lost current authority.
+            external
+                .execute("UPDATE packet_snapshot_test SET value=2", [])
+                .unwrap();
+            Err(Error::forbidden())
+        };
+        let result = if let Some(held) = &held {
+            current_under(&f.store, held, derive)
+        } else {
+            acquire(&f.store, derive).map(|(value, _)| value)
+        };
+        assert_eq!(
+            result.unwrap_err().code,
+            "authority-busy",
+            "borrowed={borrowed}"
+        );
+        drop(held);
+        assert!(f.store.try_acquire_authority(&[f.write.clone()]).is_ok());
+        assert_eq!(acquire(&f.store, |c| f.derive(c)).unwrap().0, 2);
+        let refusal = acquire::<i64>(&f.store, |_| Err(Error::forbidden()));
+        assert_eq!(refusal.unwrap_err().code, "forbidden");
+    }
+}
+
+#[test]
 fn packet_snapshot_primary_connection_write_also_invalidates_capture() {
     let f = Fixture::new();
     let result = acquire(&f.store, |c| {

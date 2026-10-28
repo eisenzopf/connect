@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "status": "Proven mixed-snapshot refusal defect fixed; actual native failure causation remains under investigation.",
+  "date": "2026-10-27",
+  "problem": "A failed multi-query native policy resolution returned its refusal before checking whether SQL/clock state changed during resolution. Native custody treats forbidden as definitive retirement, so a mixed transitional read could retire a current route. Successful resolutions already had a snapshot seal.",
+  "change": "Recheck the exact existing SQL/clock version before propagating failed resolution in fresh, borrowed and clock-revalidation paths. Changed observations return authority-busy, grant no packet IO and leave custody for a later current check. Stable refusals retain their original code. Existing authority admission, version seals, absolute expiry and scope coverage remain in force. Add bounded debug retirement reasons and snapshot-boundary observations.",
+  "negative_control": {
+    "test": "peer_authority::connection_media::snapshot::tests::packet_snapshot_refusal_after_a_commit_is_unavailable_not_definite_retirement",
+    "exit_code": 101,
+    "seconds": 0.1217414999846369,
+    "observed": "forbidden, expected authority-busy after a committed update during failed resolution",
+    "artifact_sha256": "63da12dc3f78c9390017506fbcd23649ceec19936c3c268770fcaf49f0968441",
+    "snapshot_source_sha256": "68223ab138505174563a7e5dd02d711186ee51881612a7b45b59b4358babc582",
+    "test_source_sha256": "354cbf921348f0bf143aea60e49e832e8958c3c62ac8b7cb5daf8be6b958b12b",
+    "changed_inputs": [],
+    "log_sha256": "1f1b5d637e9e12f867abfd643f4210ce0036ea16db2752e86941f2042ea21c80",
+    "artifact_custody": "Executable fingerprint recorded before execution; later Cargo replacement of this cache path is not represented as retention of the original negative binary. Old snapshot source is available at revision735551cc; the added test and retained failure log reproduce the boundary.",
+    "initial_command_correction": "The first short-name --exact Cargo invocation ran zero tests and is not a passing/negative behavior result. The recorded exact fully-qualified invocation ran one test and failed at the intended assertion."
+  },
+  "positive_control": {
+    "tests_passed": 22,
+    "tests": [
+      "connection_control::tests::consultation_presence::native_private_custody_survives_quarantine_and_preparation_without_signal_authority",
+      "connection_control::tests::consultation_presence::pending_native_private_custody_still_requires_original_current_physical_and_execution_facts",
+      "peer_authority::connection_media::snapshot::tests::current_packet_metadata_survives_unrelated_sql_custody_but_observes_commits_and_authority",
+      "peer_authority::connection_media::snapshot::tests::fresh_projection_resolves_once_when_sql_and_clock_are_unchanged",
+      "peer_authority::connection_media::snapshot::tests::hints::packet_metadata_hint_peek_checks_clock_and_refuses_sql_without_waiting_on_metadata",
+      "peer_authority::connection_media::snapshot::tests::hints::packet_metadata_hint_peek_owns_no_reader_and_invalidates_sql_source_and_connection_changes",
+      "peer_authority::connection_media::snapshot::tests::optimistic_metadata_uses_only_fresh_scope_coverage_after_a_version_change",
+      "peer_authority::connection_media::snapshot::tests::owned::packet_owned_sql_clock_edge_rederives_under_the_same_interval_behind_a_waiting_writer",
+      "peer_authority::connection_media::snapshot::tests::owned::packet_owned_sql_interval_refuses_external_and_own_commits_before_finish_without_leaking_custody",
+      "peer_authority::connection_media::snapshot::tests::owned::packet_snapshot_owned_reader_rechecks_facts_without_reentry_and_refuses_partial_or_foreign",
+      "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_contention_and_failed_capture_keep_no_cached_grant",
+      "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_invalidates_external_own_clock_connection_and_source_changes",
+      "peer_authority::connection_media::snapshot::tests::packet_metadata_memo_reuses_only_unchanged_facts_with_independent_fresh_readers",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_clock_boundary_rechecks_with_owned_reader_behind_queued_writer",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_external_commit_refuses_stale_facts_releases_reader_and_recovers",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_primary_connection_write_also_invalidates_capture",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_refusal_after_a_commit_is_unavailable_not_definite_retirement",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_refuses_queued_writer_without_waiting_under_sql_and_recovers",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_during_actual_admission_and_refuses_reacquire_contention",
+      "peer_authority::connection_media::snapshot::tests::packet_snapshot_releases_sql_for_current_mutation_and_rejects_mixed_capture",
+      "peer_authority::connection_media::snapshot::tests::packet_sql_observers_are_read_only_and_release_after_saturation",
+      "peer_authority::connection_media::snapshot::tests::unchanged_packet_projection_copy_does_not_hold_sql_against_other_current_reads"
+    ],
+    "source_input_count": 615,
+    "changed_inputs": [],
+    "artifact_sha256": "f7fba28496641f4eaa5e0ee6856d75277127487fc8395ee43ea67c37a5fc8c04",
+    "artifact_bytes": 66570752,
+    "test_seconds": 6.914064666023478,
+    "summary_sha256": "e500a38ca9721d960aa4feae23f04fdcfb82296ceb3e7f76ef686b93bc83b7ac",
+    "test_log_sha256": "64c09b1625a451680008f85c338f6f54eeb976e06c0dd722068d5884cd7a144f",
+    "coverage": [
+      "Fresh and borrowed metadata refusal after commit report temporary unavailability, release readers and recover current facts.",
+      "Stable forbidden remains forbidden; actual private custody still requires original credential, device, membership/recipients and generation.",
+      "All20snapshot tests plus both private-presence cases pass; positive quarantine/preparation custody is not signal/media authority."
+    ],
+    "sealed_copy_verified": true
+  },
+  "native_build": {
+    "exit_code": 0,
+    "seconds": 672.4926742920652,
+    "source_count": 5234,
+    "changed_inputs": [],
+    "artifact_sha256": "140f49100af557cc0cb93e68cd302a66901ab902781ccd8253b7eb3165ee8fff",
+    "artifact_bytes": 265664520,
+    "log_sha256": "a735a7baf86ef5ef12023706cf29418fa1a5375f48bd3de98427aefe81be5b47",
+    "behavior_qualification": "Live browser/native cohort still pending at this checkpoint; build success alone is not a media result."
+  },
+  "source_sha256": {
+    "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "9564f1a8fdbc9dffb5e263d7a3829d67e4cc25dff4bec648625bc3d436c3a013",
+    "crates/connect-store/src/peer_authority/connection_media/snapshot/tests.rs": "4f4eb5937ecfeeb6f6f3903ea2b4b1fbe54f23ca5e6d8ebdd13e84cb9fb305e3",
+    "crates/connect-service/src/canonical_native.rs": "b7e0912c1ddd4126fa5729445c389189b728777d935e746adf5f4b107fc2e5d0"
+  },
+  "unresolved": "The initial Firefox/ES256 one-frame private reverse case has a complete pre-cleanup snapshot with a retired candidate. Without a retirement-reason log from that failed event, this controlled metadata race is not asserted as its cause. Later healthy scenes do not erase the failure.",
+  "acceptance_qualified": false,
+  "publication": false
+}
