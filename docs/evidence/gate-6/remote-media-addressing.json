@@ -129,7 +129,7 @@
   "remaining": [
     "Actual remote SIP/NAT path verification and deployment templates. Address mapping is now configured and has Local startup/readiness regression evidence.",
     "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Browser relay policy is implemented at the synthetic native boundary; actual relay traffic remains unqualified.",
-    "Retain the latest native Linux CI result when complete. The first native run passed16functions at20b77823; later SIP/browser code is not covered by that earlier run. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
+    "Latest native Linux configuration/security/SIP fixture lane passed23functions at563d16bc. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
   ],
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "eb62b731189aa45bfb73debead2d37e415990433c7b4a35de85bd1f1ab8ed4f8",
@@ -271,5 +271,10 @@
       "full_log_sha256": "45d04c8125d3c65145c3de7350606d8a755bee2c12f2e8d6de31a49816292863",
       "focused_log_sha256": "0f258acc785343b6debdae50cf8eac02a031f471a2c04a20aeb8053ef8037bdb"
     }
+  },
+  "turn_relay": {
+    "status": "reproduced-failure",
+    "evidence": "docs/evidence/gate-6/turn-relay-negative.json",
+    "scope": "Owned coturn expiry negative caught ignored relay-only policy before any allocation. Actual relay media/fallback/cleanup unqualified; recorded upstream implementation is being verified separately."
   }
 }

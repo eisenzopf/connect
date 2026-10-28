@@ -75,6 +75,16 @@ This is a distinct-kernel local hosting boundary, with no external host/provider
 or model account. It does not substitute for Ubuntu server installation or the
 named remote/media qualifications. Freeze this topology before its wire checks.
 
+October28 owned TURN implementation fixture: coturn4.18.0 on local macOS arm64,
+loopback-only listening/relay addresses, one high listener port, sixteen relay
+ports and eight canonical UDP media ports. The UDP control lane disables TCP;
+the TCP control lane disables UDP. Both use UDP relay allocations, fresh
+synthetic REST credentials, existing synthetic Opus/VP8 sources and independent
+FFmpeg decode. Each test has a90second deadline, followed by a10second owned
+allocation drain. Freeze these bounds before the positive runs. This does not
+qualify distinct-network/browser/telephone, secure TURN, WAN/performance or any
+whole acceptance criterion. See [procedure](../developer/turn-relay-rehearsal.md).
+
 ## Default bounds
 
 | Resource | Default / hard check |

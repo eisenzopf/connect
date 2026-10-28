@@ -207,6 +207,105 @@ async fn run(algorithm: &str) {
     Box::pin(run_profile(algorithm, false)).await;
 }
 async fn run_profile(algorithm: &str, configured: bool) {
+    Box::pin(run_with_relay(algorithm, configured, None)).await;
+}
+
+// This lane only accepts the loopback coturn instance owned by the Python runner.
+// Credentials are synthetic child-process environment values, never SDP/intents.
+struct RelayFixture {
+    url: String,
+    port_start: u16,
+    port_end: u16,
+}
+impl RelayFixture {
+    fn load(transport: &str) -> Self {
+        assert!(matches!(transport, "udp" | "tcp"));
+        let path =
+            std::env::var("CONNECT_GATE6_TURN_FIXTURE").expect("owned TURN fixture manifest");
+        let value: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let port = u16::try_from(value["listener_port"].as_u64().unwrap()).unwrap();
+        let port_start = u16::try_from(value["media_port_start"].as_u64().unwrap()).unwrap();
+        let port_end = u16::try_from(value["media_port_end"].as_u64().unwrap()).unwrap();
+        assert!(port >= 1024 && port_start >= 1024 && port_end >= port_start);
+        assert!(port_end - port_start < 32);
+        Self {
+            url: format!("turn:127.0.0.1:{port}?transport={transport}"),
+            port_start,
+            port_end,
+        }
+    }
+    fn config(&self, expired: bool) -> WebRtcConfig {
+        let mut c = config();
+        c.ice_transport_policy = rvoip_webrtc::config::IceTransportPolicy::Relay;
+        c.gather_timeout_secs = 5;
+        c.ice_servers = vec![rvoip_webrtc::IceServerConfig::turn(
+            &self.url,
+            std::env::var(if expired {
+                "CONNECT_GATE6_TURN_EXPIRED_USER"
+            } else {
+                "CONNECT_GATE6_TURN_USER"
+            })
+            .unwrap(),
+            std::env::var(if expired {
+                "CONNECT_GATE6_TURN_EXPIRED_PASSWORD"
+            } else {
+                "CONNECT_GATE6_TURN_PASSWORD"
+            })
+            .unwrap(),
+        )];
+        c
+    }
+    fn addressing(&self) -> connect_server::canonical_webrtc::CanonicalWebRtcAddressing {
+        use connect_server::canonical_webrtc::*;
+        CanonicalWebRtcAddressing {
+            bind_ip: "127.0.0.1".parse().unwrap(),
+            port_start: self.port_start,
+            port_end: self.port_end,
+            public_ip: None,
+            ice_policy: CanonicalIcePolicy::Relay,
+            ice_services: vec![CanonicalIceService {
+                urls: vec![self.url.clone()],
+                username_ref: Some("CONNECT_GATE6_TURN_USER".into()),
+                credential_ref: Some("CONNECT_GATE6_TURN_PASSWORD".into()),
+            }],
+        }
+    }
+}
+fn only_relay_candidates(sdp: &str) {
+    let candidates: Vec<_> = sdp
+        .lines()
+        .filter(|line| line.starts_with("a=candidate:"))
+        .collect();
+    assert!(!candidates.is_empty(), "TURN must supply actual candidates");
+    assert!(
+        candidates.iter().all(|line| line
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .windows(2)
+            .any(|part| part == ["typ", "relay"])),
+        "relay-only SDP contained a direct candidate"
+    );
+}
+async fn relay_profile(transport: &str) {
+    let relay = RelayFixture::load(transport);
+    let _ = rustls::crypto::ring::default_provider().install_default();
+    let expired = RvoipPeerConnection::new(&relay.config(true), PeerRole::Offerer)
+        .await
+        .unwrap();
+    expired.add_local_audio_track().await.unwrap();
+    expired.add_local_video_track().await.unwrap();
+    let refused = expired.create_offer_and_gather().await;
+    assert!(
+        refused.as_ref().map_or(true, |sdp| !sdp
+            .lines()
+            .any(|line| line.starts_with("a=candidate:"))),
+        "expired TURN credentials allocated a relay"
+    );
+    assert!(!expired.is_connected());
+    expired.close().await.unwrap();
+    Box::pin(run_with_relay("EdDSA", true, Some(&relay))).await;
+}
+async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayFixture>) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -227,7 +326,7 @@ async fn run_profile(algorithm: &str, configured: bool) {
         f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
             profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
             max_peers: 2,
-            addressing: None,
+            addressing: relay.map(RelayFixture::addressing),
         });
         f.server = RunningCanonicalServer::start(f.config.clone())
             .await
@@ -259,12 +358,16 @@ async fn run_profile(algorithm: &str, configured: bool) {
     let mut peers = vec![];
     let mut senders = vec![];
     for (i, ws, credential) in [(0, &mut first, &f.client), (1, &mut second, &other)] {
-        let peer = RvoipPeerConnection::new(&config(), PeerRole::Offerer)
+        let peer_config = relay.map_or_else(config, |relay| relay.config(false));
+        let peer = RvoipPeerConnection::new(&peer_config, PeerRole::Offerer)
             .await
             .unwrap();
         peer.add_local_audio_track().await.unwrap();
         peer.add_local_video_track().await.unwrap();
         let sdp = peer.create_offer_and_gather().await.unwrap();
+        if relay.is_some() {
+            only_relay_candidates(&sdp);
+        }
         let original = request(&cid, i, &sdp);
         let id = ws.send(original.clone(), true).await;
         let answer = ws.read().await;
@@ -298,6 +401,9 @@ async fn run_profile(algorithm: &str, configured: bool) {
                 stream["codec"]["params"],
                 json!({"payload_type":pt,"sample_rate":rate,"channels":channels})
             );
+        }
+        if relay.is_some() {
+            only_relay_candidates(payload["substrate_setup"]["sdp"].as_str().unwrap());
         }
         peer.set_remote_answer(payload["substrate_setup"]["sdp"].as_str().unwrap())
             .await
@@ -567,4 +673,15 @@ async fn configured_signed_av_opus_vp8_decoded_duplex_eddsa() {
 #[ignore = "explicit local decoded AV/production configuration lane"]
 async fn configured_signed_av_opus_vp8_decoded_duplex_es256() {
     Box::pin(run_profile("ES256", true)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned loopback coturn UDP, expiring synthetic credentials and independent AV decoder"]
+async fn configured_relay_udp_expiry_and_decoded_duplex() {
+    Box::pin(relay_profile("udp")).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned loopback coturn TCP, expiring synthetic credentials and independent AV decoder"]
+async fn configured_relay_tcp_expiry_and_decoded_duplex() {
+    Box::pin(relay_profile("tcp")).await;
 }

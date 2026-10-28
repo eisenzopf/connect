@@ -1,0 +1,90 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "status": "reproduced-failure",
+  "source_revision": "563d16bc467dc766582579709b10d93952d47b68 plus the retained AV fixture change",
+  "result": {
+    "format": 1,
+    "passed": false,
+    "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_udp_expiry_and_decoded_duplex",
+    "transport": "udp",
+    "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+    "coturn_version": "4.18.0",
+    "binary_sha256": "dbd3b217c1ad9d9bb2e99b56f0ba66f8cc02d0aa7d49c065a30befde6b8d94f4",
+    "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+    "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+    "runner_sha256": "c07a28a299a851eebfa568e0997727ab13f2c3ecc71dbabfb78c99af0cb0d419",
+    "fixtures_sha256": {
+      "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+      "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+    },
+    "server_pid": 36953,
+    "execution": {
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 0.05666866688989103,
+      "log_sha256": "a02102dc790292b29a78e627f592fbcdad4b436f76507090644470abd0e92904",
+      "results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.01s"
+      ],
+      "panic_locations": [
+        "crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs:298:5:"
+      ]
+    },
+    "cleanup_required_sigterm": true,
+    "server_joined": true
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 4.337875250028446,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5243,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/turn-relay-integration-test-166",
+      "sha256": "dbd3b217c1ad9d9bb2e99b56f0ba66f8cc02d0aa7d49c065a30befde6b8d94f4",
+      "bytes": 215800976
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "14e233c3ed4c1f38c9a853f48c0b549ea4719658fed32faf52c1effcf95853a1"
+  },
+  "input_manifest_sha256": "d18ac394946483bcfc309fe3dcd244582c68a7078913bc3132757d7b475cff28",
+  "coturn_log_sha256": "947667325ca709e2bf9ab0316f3037168e4c3875b8828705f2d246a3b91f3bb5",
+  "finding": "Expired REST credentials still produced a candidate before any real TURN allocation. Inspection of the exact prepared gatherer finds unconditional host candidate generation and skipped TURN URLs. The candidate was direct; the failed assertion text alone does not prove a relay allocation. No TURN media pass is counted.",
+  "upstream_gatherer_sha256": "11516b763b265900f7f27298b6fb97d5c19045afbcae1cb80d748ef561eceafc",
+  "unrun_preflight": [
+    {
+      "attempt": 166,
+      "outcome": "Python Path.open opener argument rejected before coturn/test launch; corrected to builtin open. Not a behavior result."
+    }
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}
