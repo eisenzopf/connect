@@ -100,6 +100,40 @@ export class BrowserClient {
         );
     }
     static async open(options: BrowserClientOptions): Promise<BrowserClient> {
+        // A caller may reuse its draft for the next physical peer. Capture the
+        // enrolled actor/key metadata before the first await; refreshing that
+        // draft cannot change this peer's identity, signature or server trust.
+        const { device, signing, server } = options;
+        options = {
+            ...options,
+            transport: options.transport,
+            url: options.url,
+            credential: options.credential,
+            identityId: options.identityId,
+            device: {
+                ...device,
+                id: device.id,
+                kind: device.kind,
+                platform: device.platform,
+            },
+            signing: {
+                ...signing,
+                key: signing.key,
+                keyId: signing.keyId,
+                algorithm: signing.algorithm,
+            },
+            server: {
+                ...server,
+                key: server.key,
+                keyId: server.keyId,
+                algorithm: server.algorithm,
+                notBefore: server.notBefore,
+                expiresAt: server.expiresAt,
+            },
+            serverCertificateHashes: options.serverCertificateHashes,
+            timeoutMs: options.timeoutMs,
+            signal: options.signal,
+        };
         const support = browserTransportSupport();
         if (
             !support.secureContext ||

@@ -1,0 +1,48 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "First reconnect component: each physical browser client captures enrolled actor/device/signing/server-signature trust values before its first await. Component proof uses bounded Node WebSocket fixtures with actual WebCrypto signatures; no TLS/network/installed-browser/reconnect-matrix qualification.",
+  "behavior": "A caller may prepare a new physical peer by editing its construction draft. Those edits cannot change an existing or still-opening peer identity, device metadata, signing identity or server-signature trust. Required properties are captured through property lookup, including inherited values. CryptoKey handles and caller AbortSignal remain their intended immutable-key/live-cancellation references. No mutation is replayed or new transport automatically selected.",
+  "source_sha256": {
+    "sdk/typescript/src/browser_client.ts": "974b5d6f83de0cf0884560c20fe2109a0f7127f28742710fa44b1bf4bbb849f0",
+    "sdk/typescript/dist/browser_client.js": "70b8769b8c1905678580dc459a97ad2570d5e3c5f10c7229ff82076faf9b9647",
+    "sdk/tests/browser_wss.test.mjs": "4b8c6461f2a7aa6fa8133c36d3818d126d2394f3ae3dd472a0827a7e6084d4e8"
+  },
+  "negative": {
+    "baseline_source_sha256": "7b1a0a76da3178510db25e61bb7a78c800bb198098fdf6f2492a86dd379fe274",
+    "baseline_module_sha256": "35abe97ae1f864f9c03db61205dcc74cda400148c8dbbf52744777b9cfdde209",
+    "cases_failed": 4,
+    "log_sha256": "43e12b4740388d526d8e5ce55f4d4c9480a5d5317833dc26429f13334b3c168c",
+    "scope": "Both signing algorithms: pending-open actor/device draft edits and authenticated-peer server trust edits expose original reference adoption."
+  },
+  "intermediate_candidate": {
+    "cases_failed": 1,
+    "log_sha256": "43868c0dc0971cb646ab95040d11b2131586f7b1216331289b8322e3c964a65e",
+    "disposition": "Own-property-only copying dropped inherited enrollment fields. Final code explicitly captures required properties without changing the public option interface."
+  },
+  "positive": {
+    "sdk_cases_passed": 327,
+    "failed": 0,
+    "new_component_cases": 5,
+    "included_in_sdk_cases": true,
+    "component_log_sha256": "8616810c3fd3a788f2dedad19db2b468e266e58349814811c80e5cb684caca91",
+    "sdk_log_sha256": "b2c3d682a7daecd67327aa83b78499b59206bd1270e1c0c58c2bc8b476b8f3f2",
+    "cases": [
+      "EdDSA pending-open actor/device snapshot",
+      "ES256 pending-open actor/device snapshot",
+      "EdDSA existing peer retains enrolled server-signature trust",
+      "ES256 existing peer retains enrolled server-signature trust",
+      "Inherited enrollment properties retain the same snapshot behavior"
+    ]
+  },
+  "remaining": [
+    "Preferred transport, selected path and fallback reason with bounded physical selection.",
+    "Fresh credential/trust resolution and current authorization after reconnect; no fallback on authentication/trust/protocol refusals.",
+    "Original operation references/status and cursor snapshot recovery without mutation resend.",
+    "Dropped acknowledgments, actual WSS/WT outages, expired credentials and repeated reconnect mid-consult/handoff.",
+    "Distinguish transport migration, media reconnection and explicit device replacement; no uninterrupted media promise after server crash."
+  ],
+  "acceptance_qualified": false
+}

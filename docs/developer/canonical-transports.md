@@ -66,3 +66,19 @@ Qualification is recorded separately in
 `docs/evidence/gate-6/canonical-transports.json`. Local pinned TLS fixtures do
 not qualify browsers, remote deployment/providers, durable Session reconnect,
 media quality, or the remaining Gate 6 acceptance checks.
+
+
+## Transport selection and reconnect implementation (G6-052)
+
+Implementation has started after G6-050/G6-051 completion. Each physical
+`BrowserClient.open()` now captures its enrolled actor/device/signing and server
+signature-trust values before its first await. Editing the caller's draft for a
+new connection cannot change the existing peer. Required inherited properties
+are captured too; key handles and the original cancellation signal retain their
+intended semantics. Five new component cases are included in all 327 passing
+SDK checks. See
+[`transport-reconnect-context.json`](../evidence/gate-6/transport-reconnect-context.json).
+
+Preferred transport selection, fallback reasons, fresh authorization, cursor
+recovery and the required outage/reconnect matrix remain in progress. No new
+automatic mutation resend or transport selection is introduced by this checkpoint.

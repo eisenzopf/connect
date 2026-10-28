@@ -134,3 +134,32 @@ test('actual WSS transport remains immutable when caller edits its construction 
   assert.throws(()=>client.datagrams,{code:'unsupported-transport'});
   client.close();assert.equal(client.controlTransport,'websocket');
 }));
+
+for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} pending open snapshots actor context before caller prepares the next peer`,()=>fixture(async({options,sent})=>{
+  const identity=options.identityId,device=options.device.id,platform=options.device.platform;
+  const pending=BrowserClient.open(options);
+  options.identityId='next_peer_identity';options.device.id='next_peer_device';options.device.platform='next_platform';
+  const client=await pending;
+  assert.equal(client.identityId,identity);
+  const hello=sent.find(frame=>frame.type==='auth.hello');assert.equal(hello.payload.device.id,device);assert.equal(hello.payload.device.platform,platform);
+  const result=await client.createConversation('original-enrolled-actor');assert.equal(result.receipt.operation_id,'original-enrolled-actor');
+  assert.equal(sent.filter(frame=>frame.type==='conversation.create').length,1);client.close();
+},{algorithm}));
+for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} physical peer retains enrolled server trust while caller prepares new trust`,()=>fixture(async({options,sent})=>{
+  const client=await BrowserClient.open(options);
+  // A separately configured next peer may use new trust. It cannot retroactively
+  // expire the already authenticated peer's captured server-key policy.
+  options.server.expiresAt=Date.now()/1000-1;options.server.keyId='next-server-key';
+  const result=await client.createConversation('original-before-reconnect');
+  assert.equal(result.receipt.operation_id,'original-before-reconnect');assert.equal(client.closed,false);
+  assert.equal(sent.filter(frame=>frame.type==='conversation.create').length,1);client.close();
+},{algorithm}));
+test('getter-backed enrollment options retain the same snapshot contract as plain objects',()=>fixture(async({options,sent})=>{
+  const inherited=Object.create(options);
+  inherited.device=Object.create(options.device);inherited.signing=Object.create(options.signing);inherited.server=Object.create(options.server);
+  const originalIdentity=options.identityId,originalDevice=options.device.id;
+  const pending=BrowserClient.open(inherited);options.identityId='next_identity';options.device.id='next_device';options.server.keyId='next_server';
+  const client=await pending;
+  assert.equal(client.identityId,originalIdentity);assert.equal(sent.find(frame=>frame.type==='auth.hello').payload.device.id,originalDevice);
+  assert.equal((await client.createConversation('original-inherited-enrollment')).receipt.state,'completed');client.close();
+}));
