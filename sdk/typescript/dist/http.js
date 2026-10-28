@@ -29,6 +29,7 @@ export class HttpClient extends Operations {
         const body = JSON.stringify(operation);
         if (Buffer.byteLength(body) > MAX_REQUEST - 1)
             throw new ConnectError("invalid-request", "Operation exceeds 64 KiB");
+        let httpStatus;
         try {
             const response = await fetch(this.url, {
                 method: "POST",
@@ -40,6 +41,7 @@ export class HttpClient extends Operations {
                 },
                 signal: AbortSignal.timeout(exchangeTimeout(this.timeoutMs, operation)),
             });
+            httpStatus = response.status;
             if (response.status >= 300 && response.status < 400) {
                 await response.body?.cancel();
                 throw new ConnectError("protocol", "HTTP redirect refused");
@@ -55,9 +57,12 @@ export class HttpClient extends Operations {
             return this.observeOutcome(decodeResponse(parseJson(text), expected));
         }
         catch (error) {
-            if (error instanceof ConnectError)
+            if (error instanceof ConnectError) {
+                if (httpStatus !== undefined)
+                    throw new ConnectError(error.code, error.message, error.problem, httpStatus);
                 throw error;
-            throw new ConnectError("transport-uncertain", "HTTP failed; preserve logical request ID");
+            }
+            throw new ConnectError("transport-uncertain", "HTTP failed; preserve logical request ID", undefined, httpStatus);
         }
     }
     /** Upload one raw artifact chunk without base64 expansion. */

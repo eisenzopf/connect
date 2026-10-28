@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {NodeClient,NodeSdkError,CanonicalError,CanonicalHttpClient} from '@rudeless/connect';
+import {NodeClient,NodeSdkError,CanonicalError,CanonicalHttpClient,HttpClient,ConnectError} from '@rudeless/connect';
 const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project+'/node_modules/'));
 const opts={timeoutMs:4000},mutation={...opts,operationId:'typed-node-original-send'};
@@ -19,9 +19,15 @@ const stopped=async()=>{
 const record=frames=>{const p=frames.find(f=>f.type==='operation.updated')?.payload;assert.ok(p);return p;};
 let client=new NodeClient({config:spec.config,executable:spec.executable});
 let peerClient, rawRevokedClient;
-let checkpoint="create";
-const progress=stage=>{checkpoint=stage;emit({phase:'progress',checkpoint:stage});};
+let checkpoint="create",observedKind=null,observedCertainty=null,observedHttpStatus=null;
+const captureFailure=error=>{
+ observedKind=error instanceof CanonicalError?error.kind:error instanceof ConnectError?['unauthorized','forbidden'].includes(error.code)?'http-'+error.code:'application-error':null;
+ observedCertainty=error instanceof CanonicalError?error.certainty:null;
+ observedHttpStatus=error instanceof ConnectError&&Number.isSafeInteger(error.httpStatus)&&error.httpStatus>=100&&error.httpStatus<=599?error.httpStatus:null;
+};
+const progress=stage=>{checkpoint=stage;observedKind=null;observedCertainty=null;observedHttpStatus=null;emit({phase:'progress',checkpoint:stage});};
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
+const application=new HttpClient(spec.http,spec.credential,opts.timeoutMs);
 try {
  const created=await client.conversations.create({participants:[spec.peer_identity],policy:'persistent'},{...opts,operationId:'typed-node-room'});
  const createSaved=created.referenceJson(),room=(await created.wait(opts)).value;
@@ -177,28 +183,36 @@ try {
  const rawAgain=await client.raw.request(checked,opts);assert.notEqual(rawAgain.at(-1).value.in_reply_to,rawReplies.at(-1).value.in_reply_to);
  rawRevokedClient=new NodeClient({config:spec.config,executable:spec.executable});
  assert.equal(record((await rawRevokedClient.raw.request(checked,opts)).map(v=>v.value)).record_id,original.recordId);
- emit({phase:'receipts-observed',current_delivery_fact:true,raw_signed_original_record:true,raw_same_id_one_message:true,raw_local_configuration_independent:true});
+ const directFacts=await application.messageReceipts(room.id,intent.messageId);
+ assert.ok(directFacts.receipts.some(f=>f.participant_id===peer.id&&f.membership_epoch===currentMemberEpoch&&f.channel==='native'&&f.state==='delivered'&&f.provenance==='client_reported'));
+ emit({phase:'receipts-observed',current_delivery_fact:true,http_same_delivery_fact:true,raw_signed_original_record:true,raw_same_id_one_message:true,raw_local_configuration_independent:true});
  await resume('revoked');
  progress('current-revocation');
- await assert.rejects(rawRevokedClient.raw.request(checked,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.ok(['read-only','refused'].includes(e.certainty));assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind)||e.kind==='application'&&e.certainty==='refused');return true;});
+ await assert.rejects(rawRevokedClient.raw.request(checked,opts),e=>{captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['read-only','refused'].includes(e.certainty));assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind)||e.kind==='application'&&e.certainty==='refused');return true;});
  await rawRevokedClient.close(opts);
+ let receiptHttpStatus,receiptFailure;
+ await assert.rejects(application.messageReceipts(room.id,intent.messageId),e=>{
+  captureFailure(e);assert.ok(e instanceof ConnectError);assert.ok(['unauthorized','forbidden'].includes(e.code));assert.ok([401,403].includes(e.httpStatus));receiptHttpStatus=e.httpStatus;return true;
+ });
  await assert.rejects(client.conversations.byId(room.id).receipts(intent.messageId,opts),e=>{
-  assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'authentication');assert.ok(['read-only','refused'].includes(e.certainty));return true;
+  captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));receiptFailure={kind:e.kind,certainty:e.certainty};return true;
  });
  let nativeFailure,httpFailure;
  await assert.rejects(client.conversations.byId(room.id).send(intent,mutation),e=>{
-  assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','transport-uncertain'].includes(e.kind));assert.ok(['refused','uncertain'].includes(e.certainty));assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
+  captureFailure(e);assert.ok(e instanceof NodeSdkError);
+  assert.ok(e.kind==='authentication'&&e.certainty==='refused'||e.kind==='transport-uncertain'&&e.certainty==='uncertain'||e.kind==='cancelled'&&['not-submitted','uncertain'].includes(e.certainty)||e.kind==='configuration'&&e.certainty==='not-submitted'&&receiptFailure.kind==='transport-uncertain');
+  assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
  });
- await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{assert.equal(e.kind,'authentication');httpFailure={kind:e.kind,certainty:e.certainty};return true;});
+ await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{captureFailure(e);assert.equal(e.kind,'authentication');assert.ok([401,403].includes(e.problem?.code));httpFailure={kind:e.kind,certainty:e.certainty};return true;});
  await client.close(opts);await http.close(opts);assert.equal(await stopped(),4);
  const validators=(await readFile(spec.pid_file+'.validators','utf8')).trim().split('\n').filter(Boolean).map(Number);assert.equal(validators.length,3);assert.equal(new Set(validators).size,3);
  for(const pid of validators)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,raw_current_authority:true});
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.
  const at=/server-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
  const knownStates=new Set(['accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown']);
- emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:knownStates.has(error?.actual)?error.actual:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
+ emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',observedKind,observedCertainty,observedHttpStatus,certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:knownStates.has(error?.actual)?error.actual:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  throw error;
 } finally {await rawRevokedClient?.close(opts);await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

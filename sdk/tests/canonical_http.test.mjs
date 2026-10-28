@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createServer} from 'node:http';
-import {CanonicalHttpClient, CanonicalError} from '../typescript/dist/index.js';
+import {CanonicalHttpClient, CanonicalError, HttpClient, ConnectError} from '../typescript/dist/index.js';
 const options = {timeoutMs: 1500};
 const scope = {cid: 'room', operation_id: 'saved-send'};
 const key = {operationId: 'saved-send', command: 'message.send', scope: {conversationId: 'room'}};
@@ -179,4 +179,21 @@ test('canonical HTTP caps active requests and close joins cancelled work without
     await assert.rejects(client.request('message.send', {}, scope, options), rejects('configuration', 'not-submitted', key));
     assert.ok(calls() <= 16);
   });
+});
+
+test('named application HTTP receipt errors preserve actual status independently of the error code',async()=>{
+ const calls=[];let status=401;
+ const server=createServer(async(request,response)=>{
+  let body='';for await(const chunk of request)body+=chunk;
+  const operation=JSON.parse(body);assert.equal(request.url,'/v1/operations');assert.equal(operation.op,'message_receipts');calls.push(operation);
+  response.writeHead(status,{'content-type':'application/json'});response.end(JSON.stringify({profile:'connect-control/1',result:{Err:{code:'unauthorized',message:'synthetic refusal'}}}));
+ });await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try {
+  const client=new HttpClient(`http://127.0.0.1:${server.address().port}`,'fixture',1500);
+  for(const value of [401,403,500,200]){status=value;await assert.rejects(client.messageReceipts('room','message'),error=>{
+   assert.ok(error instanceof ConnectError);assert.equal(error.code,'unauthorized');assert.equal(error.httpStatus,value);
+   const authenticatedRefusal=['unauthorized','forbidden'].includes(error.code)&&[401,403].includes(error.httpStatus);assert.equal(authenticatedRefusal,value===401||value===403);return true;
+  });}
+  assert.equal(calls.length,4);
+ } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });

@@ -47,6 +47,7 @@ export class HttpClient extends Operations {
                 "invalid-request",
                 "Operation exceeds 64 KiB",
             );
+        let httpStatus: number | undefined;
         try {
             const response = await fetch(this.url, {
                 method: "POST",
@@ -60,6 +61,7 @@ export class HttpClient extends Operations {
                     exchangeTimeout(this.timeoutMs, operation),
                 ),
             });
+            httpStatus = response.status;
             if (response.status >= 300 && response.status < 400) {
                 await response.body?.cancel();
                 throw new ConnectError("protocol", "HTTP redirect refused");
@@ -75,10 +77,21 @@ export class HttpClient extends Operations {
                 decodeResponse(parseJson(text), expected),
             );
         } catch (error) {
-            if (error instanceof ConnectError) throw error;
+            if (error instanceof ConnectError) {
+                if (httpStatus !== undefined)
+                    throw new ConnectError(
+                        error.code,
+                        error.message,
+                        error.problem,
+                        httpStatus,
+                    );
+                throw error;
+            }
             throw new ConnectError(
                 "transport-uncertain",
                 "HTTP failed; preserve logical request ID",
+                undefined,
+                httpStatus,
             );
         }
     }

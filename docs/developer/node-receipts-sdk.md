@@ -26,18 +26,21 @@ the exact Conversation/message, bounded collection, unique recipient/epoch/
 channel/delivery groups, enum strings, provenance and integer bounds. Returned
 arrays and facts are immutable. Metadata grants no transport or media custody.
 
-The current 64 local SDK/helper/HTTP/declaration functions pass with 203 guarded
-inputs unchanged. Cases include empty evidence, unavailable configuration,
-foreign scope, duplicates, malformed state/provenance/epoch/time/channel and
-collection overflow. The installed package matches the generated distribution.
-Local Rust compilation is skipped because the retained Mac linker ENOSPC
-prevents a reliable native build.
+The current 82 local SDK/helper/HTTP/declaration functions pass with 213 guarded
+inputs unchanged. The installed public package also passes all 14 HTTP tests.
+The HTTP error test checks that actual status remains independent of an
+`unauthorized` response body: HTTP 500 or 200 cannot count as authorization refusal.
 
-The Ubuntu fixture now configures the application service explicitly, reports a
-delivery through the independent recipient's public application client, reads
-that fact through Node after helper restart, and refuses the read after current
-credential revocation. This is a separate `receipts-observed` scenario in
-`node-controls/3`: four seconds per SDK request, 15 seconds per phase and the
-original 90-second two-algorithm function cap. Compilation, both-algorithm
-behavior and original drains are pending; the fixture is not recorded as a pass.
-See [the evidence record](../evidence/gate-6/node-receipts-sdk.json).
+The original Ubuntu Node 22 and 26 matrix artifacts at `5d984b57` both show the
+actual delivered native/client_reported fact before revocation. Both failed a
+later assertion that expected only authentication: the SDK correctly returned
+cancellation after revocation closed its native owner. Its read guard remains.
+
+The `node-controls/5` candidate independently requires the same fact through the
+public named application HTTP API, then actual HTTP 401/403 after revocation.
+The owned SDK read must return no data with precise refusal or closed-transport
+certainty. Canonical HTTP must also refuse; SQLite must still contain exactly
+one original message and operation. Original deadlines and joins remain required.
+Current native compilation/execution is pending. Local Rust linking is skipped
+for retained ENOSPC. See [the correction](../evidence/gate-6/node-receipt-authority.json)
+and [the original source-bound results](../evidence/gate-6/node-native-5d.json).

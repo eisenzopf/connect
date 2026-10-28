@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "receipt-authority-witness-corrected-local-passed-native-pending",
+  "implementation_parent_commit": "b2e0cc21",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "problem": "Native credential revocation closes the owned SDK transport. Its intentional OwnedReads guard may return cancelled/read-only before issuing the HTTP receipt read; expecting authentication alone falsely fails correct no-data fencing.",
+  "correction": [
+    "Retain actual HTTP status on public ConnectError independently of remote error code; no retry/status policy change.",
+    "Independently read the same delivered native/client_reported peer epoch fact using the public named application HTTP receipt API. After revocation require unauthorized/forbidden plus actual401/403; JSON unauthorized with500/200 cannot qualify.",
+    "Require owned typed receipt read to return no data with authentication/cancelled/transport-uncertain and read-only/refused certainty. Preserve original logical mutation ID and original SDK certainty for the subsequent refused/closed transport mutation. No production native-closed guard changed.",
+    "Require canonical operation.get current HTTP401/403 and independently retain exactly one original message and operation in SQLite.",
+    "node-controls/5 retains four-second requests,15-second phases,90-second function, original8helpers/6validators/2servers; safe failure fields distinguish actual kind/certainty/status. Preserve installed runtime/package even when later scenes fail."
+  ],
+  "synthetic_component": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.593985500046983,
+    "source_count": 213,
+    "changed_inputs": [],
+    "source_inputs_sha256": "2aa5e11f9883990ee02b8b64eafb0dfadfa13cf7f82f22467bfe95aca3e092bf",
+    "log_sha256": "61449f0351b7a51cabb07928177b60614681391b3b62c8a04cef04a24650be9b",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T21:10:24.881136+00:00"
+  },
+  "functions_passed": 82,
+  "runner_parser": {
+    "passed": true,
+    "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+    "checks": [
+      "valid-retained",
+      "invalid-status-rejected",
+      "invalid-phase-rejected",
+      "unsafe-label-rejected"
+    ]
+  },
+  "installed_package": {
+    "archive_sha256": "5da0762d6aed18759cf342622d2a703b7d18dc5f165368c550c36d1efa4baacb",
+    "installed_dist_matches": true,
+    "dist_files": 128,
+    "consumer_sha256": "cf9c29644e3d7e1d4760b4e66bdb46ab8a9fb057825fa7692595667725861078",
+    "installed_public_http_functions_passed": 14
+  },
+  "native_validation": "Pending current Rust compilation and actual Node22/26 runs; local Rust build skipped for retained linker ENOSPC. Original5d failure remains recorded separately in node-native-5d.json.",
+  "source_sha256": {
+    "sdk/typescript/src/errors.ts": "2dd65dd2003a725850a9b8cf5d06a82f04fb1eff1c7ae7a1a0b249ba59113b6b",
+    "sdk/typescript/src/http.ts": "bb405ab1691e254b1351c211e37ef41518871f9b1bd994bdd31d94dd2e95b730",
+    "sdk/tests/canonical_http.test.mjs": "e609b991a0569b5fab62761be1f0aaf8d32e4d84352fb6c47e00815bc377be8e",
+    "sdk/tests/node_sdk_server_consumer.mjs": "cf9c29644e3d7e1d4760b4e66bdb46ab8a9fb057825fa7692595667725861078",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "16d80735c04a27aa9b02f1af4b5659177a09fae8a818ad0c024f7ad348f3b2ca",
+    "scripts/check-gate6-linux-hosting.py": "bffd10018cb4b1aec116495605a41bdd7f046dc6eac84633b21ce8527dd085d9"
+  }
+}

@@ -89,6 +89,9 @@ def run(node_sdk=False):
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
               "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT, browser/performance or installation qualification."}
+    if node_package is not None:
+        # Preserve the exact installed bytes/runtime even if a later scene fails.
+        report['installed_node_package'] = node_package
 
     def execute(name, command, timeout, *, defer_failure=False, environment=None):
         log = PRIVATE / (name + ".log")
@@ -138,7 +141,8 @@ def run(node_sdk=False):
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
-                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'line', 'column'}
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
+                assert failure['phase'] == 'failed'
                 assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
                     'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
@@ -146,6 +150,9 @@ def run(node_sdk=False):
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
                 assert failure['command'] is None or failure['command'] in {'conversation.create','message.send','operation.cancel','operation.reconcile','session.invite','session.accept','session.update','session.end','session.reject','session.cancel','session.handoff','connection.replace','connection.offer','connection.update','connection.end','stream.subscribe','stream.unsubscribe','operation.get','conversation.get','message.history','conversation.participant.add','conversation.participant.update','conversation.participant.remove'}
                 assert failure['observedState'] is None or failure['observedState'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
+                assert failure['observedKind'] is None or re.fullmatch(r'[a-z-]{1,64}',failure['observedKind'])
+                assert failure['observedCertainty'] is None or re.fullmatch(r'[a-z-]{1,32}',failure['observedCertainty'])
+                assert failure['observedHttpStatus'] is None or type(failure['observedHttpStatus']) is int and 100 <= failure['observedHttpStatus'] <= 599
                 step['node_failures'].append(failure)
         step['node_consultation_phases'] = []
         step['node_consultation_failures'] = []
@@ -381,7 +388,7 @@ def run(node_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/4'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/5'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -390,7 +397,7 @@ def run(node_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/4'
+                    assert witness['functional_phase_profile'] == 'node-controls/5'
                     assert witness['controls']['session_participants_accepted']
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
@@ -400,11 +407,13 @@ def run(node_sdk=False):
                     assert witness['recovered']['typed_connection_end_recovered']
                     assert witness['receipts']['current_delivery_fact'] and witness['completed']['typed_receipts_current_authority']
                     assert all(witness['receipts'][field] for field in ('raw_signed_original_record', 'raw_same_id_one_message', 'raw_local_configuration_independent'))
+                    assert witness['receipts']['http_same_delivery_fact']
+                    assert witness['completed']['http_receipts_current_authority'] and witness['completed']['http_receipts_status'] in (401,403)
                     assert witness['completed']['raw_current_authority']
                     assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/4', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/5', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,

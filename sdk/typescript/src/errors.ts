@@ -6,6 +6,7 @@ export class ConnectError extends Error {
         public readonly code: string,
         message: string,
         public readonly problem?: CanonicalProblem,
+        public readonly httpStatus?: number,
     ) {
         super(message);
         this.name = "ConnectError";

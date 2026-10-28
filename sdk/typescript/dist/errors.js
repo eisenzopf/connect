@@ -2,10 +2,12 @@
 export class ConnectError extends Error {
     code;
     problem;
-    constructor(code, message, problem) {
+    httpStatus;
+    constructor(code, message, problem, httpStatus) {
         super(message);
         this.code = code;
         this.problem = problem;
+        this.httpStatus = httpStatus;
         this.name = "ConnectError";
     }
 }

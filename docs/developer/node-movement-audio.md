@@ -30,23 +30,14 @@ A synthetic subprocess check verifies both continued independent execution and
 final aggregate/default failure. Failed scenes cannot report expected resource
 join counts as verified joins.
 
-The installed consumer passed eight synthetic operation/restore protocols plus
-a deliberate missing-role failure with safe source coordinates. All 17 helpers
-and 11 consumer processes joined. The full 64 SDK functions and negative
-declarations pass with 204 guarded inputs unchanged. These are protocol/process
-checks only. Mac Rust compilation remains skipped for retained ENOSPC;
-Ubuntu compiled the original functions. The recording-failure function passed both algorithms; five batched functions reached the 90-second limit and remain failures.
-See [the evidence record](../evidence/gate-6/node-movement-audio.json).
+The original Ubuntu Node 22 and Node 26 matrix jobs at `5d984b57` each passed
+all 24 independently bounded movement scenes: 48 original helpers and 24 servers
+joined, with physical peers and media readers drained. Private/restored
+consultation audio and remote EOF also passed. Each artifact independently
+matches 4010 tracked Git contents and modes with 8102 guarded inputs unchanged.
 
-The first movement candidate `b36e119b` failed compilation with E0507: its shared
-shutdown helper tried to consume a server behind a borrowed Fixture. No new
-native movement function ran in that cohort. The correction keeps drain checks
-before the fixture's original consuming shutdown and counts the join only after
-success. The corrected source compiled in `a054e258`. Its recording-failure scene passed; other movement functions timed out. The current split gives every one of the same 24 cases its own 90-second process, with all assertions and request/phase bounds retained. Current split runtime results remain pending. See [the exact mixed result](../evidence/gate-6/node-native-a054.json).
-
-The split compiled in `f925a8ac`, but an earlier original Rust consultation EOF
-function failed before movement execution. Its cause remains unresolved;
-[the source-bound failure](../evidence/gate-6/node-native-f925.json) is retained.
-The runner now finishes independent Rust/Node SDK functions and fails the final
-aggregate for any recorded failure. Compilation, source guards and other required
-checks retain immediate failure behavior.
+Each aggregate still failed a later receipt-revocation assertion, so these are
+component passes only. Current source changes, candidate-target movement, full
+SDK qualification and Gate 6 acceptance remain open. Mac Rust linking remains
+skipped for retained ENOSPC. See [the source-bound results](../evidence/gate-6/node-native-5d.json)
+and [the movement evidence](../evidence/gate-6/node-movement-audio.json).

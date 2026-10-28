@@ -189,6 +189,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"receipts\n").await.unwrap();
         let receipts = phase(&mut lines, "receipts-observed", algorithm).await;
         assert_eq!(receipts["current_delivery_fact"], true);
+        assert_eq!(receipts["http_same_delivery_fact"], true);
         for field in [
             "raw_signed_original_record",
             "raw_same_id_one_message",
@@ -206,6 +207,37 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"revoked\n").await.unwrap();
         let completed = phase(&mut lines, "completed", algorithm).await;
         assert_eq!(completed["raw_current_authority"], true);
+        assert_eq!(completed["http_receipts_current_authority"], true);
+        assert!(matches!(
+            completed["http_receipts_status"].as_u64(),
+            Some(401 | 403)
+        ));
+        let database = rusqlite::Connection::open_with_flags(
+            &f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        assert_eq!(
+            database
+                .query_row(
+                    "SELECT COUNT(*) FROM messages WHERE id='typed-node-original-message'",
+                    [],
+                    |row| row.get::<_, u64>(0)
+                )
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            database
+                .query_row(
+                    "SELECT COUNT(*) FROM operations WHERE operation_id='typed-node-original-send'",
+                    [],
+                    |row| row.get::<_, u64>(0)
+                )
+                .unwrap(),
+            1
+        );
+        drop(database);
         assert_eq!(completed["local_validators_joined"], 3);
         assert_eq!(completed["helpers_joined"], 4);
         drop(stdin);
@@ -262,7 +294,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/4","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/5","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }
