@@ -331,5 +331,19 @@
         "executable_sha256": "8d6b70df1f9cf1f197f31234ef463bfe9ef2f5f345931435de2297db80135d6f"
       }
     ]
+  },
+  "sdk_verification": {
+    "counts": {
+      "tests": 320,
+      "pass": 320,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "command": "npm test --prefix sdk/typescript",
+    "log": ".local/gate-6/opus-general-fidelity/sdk-test-corrected.log",
+    "log_sha256": "52dcd06f437422d2f01309bb3ab0c050f4711c45325ac320c225fb66753f17d9",
+    "fixture_repair": "The enrolled-key example fixture now supplies the existing client onClose hook and retires its keepalive in finally. The first suite run retained two fixture TypeErrors; corrected run passes all320 actual cases. No production SDK behavior changed.",
+    "rust_format": "bash scripts/format.sh --check passed"
   }
 }

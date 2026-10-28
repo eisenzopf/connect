@@ -9,8 +9,11 @@ for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} example imports enro
         server:{algorithm,keyId:'enrolled-server',jwk:await crypto.subtle.exportKey('jwk',pair.publicKey),notBefore:1,expiresAt:4000000000},
         connection:{conversationId:'conversation',sessionId:'session',connectionId:'connection',operationId:'offer',participantId:'participant',audioStreamId:'audio',expectedRevision:0,inputStream:'ignored-json-member'},
         subscribe:{operationId:'original-select',expectedRevision:1,subscriptions:[{from_participant:'other',kinds:['audio']}]},end:{operationId:'original-end',expectedRevision:2}};
-    const original=BrowserClient.open;let enrolled;const commands=[];
-    BrowserClient.open=async options=>{enrolled=options;return {request:async(...args)=>{commands.push(args);},operationStatus:async()=>({state:'completed'})};};
+    const original=BrowserClient.open;let enrolled,close;const commands=[];
+    BrowserClient.open=async options=>{enrolled=options;return {
+        request:async(...args)=>{commands.push(args);},operationStatus:async()=>({state:'completed'}),
+        onClose(listener){close=listener;},
+    };};
     try {
         const media=await canonicalMediaClient(configuration,{conversationId:'conversation',sessionId:'session',identityId:'identity'});
         assert.equal(enrolled.transport,'websocket');assert.equal(enrolled.signing.key.type,'private');assert.equal(enrolled.server.key.type,'public');
@@ -19,7 +22,7 @@ for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} example imports enro
         const first=media.receive();assert.equal(first,media.receive());await first;
         assert.equal(commands.length,1);assert.equal(commands[0][0],'stream.subscribe');assert.equal(commands[0][2].operation_id,'original-select');assert.equal(commands[0][2].cid,'conversation');
         await assert.rejects(canonicalMediaClient(configuration,{sessionId:'foreign'}),/configuration for this identity/);
-    } finally {BrowserClient.open=original;}
+    } finally {close?.();BrowserClient.open=original;}
 });
 test('example requires a bounded explicitly selected private configuration file',async()=>{
     await assert.rejects(readCanonicalMedia(undefined,{}),/configuration file/);
