@@ -153,6 +153,7 @@ def run():
             ("sip-config", "library", "canonical_telephone::tests::", 4),
             ("rtcp-udp", "rtp", "transport::udp::tests::", 32),
             ("rtcp-allocator", "rtp", "transport::allocator::tests::", 20),
+            ("rtcp-session-route", "rtp", "session::tests::negotiated_rtcp_manual_reports_and_close_use_original_route", 1),
             ("owned-dtls", "library", "canonical_webrtc::tests::store_bound_peer_completes_actual_dtls_and_original_close_releases_capacity", 1),
             ("https-hosting", "hosting", "canonical_https_hosting::", 7),
             ("sip-unknown-account", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_unknown_account_refuses_before_binding_and_releases_installation", 1),

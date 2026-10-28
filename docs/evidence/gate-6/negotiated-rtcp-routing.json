@@ -3,237 +3,32 @@
   "task": "G6-054",
   "date": "2026-10-28",
   "implementation_status": "in-progress",
-  "protocol_component_passed": false,
-  "distinct_network_component_passed": true,
+  "protocol_component_passed": true,
+  "distinct_network_component_passed": false,
   "scope": "Actual local UDP sockets, original receiver tasks and indexed adjacent allocator; actual SDP negotiation and rollback unit functions. No account/provider/PSTN/SMS/model execution. Full remote telephone profiles remain pending.",
   "patch": "patches/rvoip/gate6-negotiated-rtcp-routing.patch",
-  "patch_sha256": "59b9d46c643e916169b4e3387eb88caea01472f5566ec374a9fae4cee8583b92",
-  "source_lock_sha256": "16bf24e4a8970e15bf971cf522a2eda28222367bdf355b2e8e102e67566c75e7",
-  "prepared_source_policy": "Patch239 applied by prepare-dependencies.sh into a fresh immutable v40 directory; no .deps source was edited in place.",
   "implementation": [
     "Retain both originally allocated adjacent RTP/RTCP ports through the media owner, including pending negotiation and subsequent mux/split changes. Release partial claims if the adjacent RTCP port is already owned.",
     "Derive mux/default-adjacent/explicit RTCP peer from actual SIP offer/answer and carry it through the staged MediaConfig into the original RtpSession and UDP transport. Reject invalid/ambiguous peers before route mutation.",
     "Use one committed RTCP socket/destination route; pending, stale, missing-socket and closed writes refuse instead of falling back to RTP. Receive routing follows the committed mode and peer. Preserve original SRTP/SRTCP protection and receiver drains.",
     "Require the canonical SIP media range to contain an even RTP port and its following RTCP port. Four-vector library test prepared; full server library execution pending."
   ],
-  "builds": {
-    "251": {
-      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
-      "exit_code": 0,
-      "seconds": 21.223447291878983,
-      "arguments": [
-        "cargo",
-        "test",
-        "--jobs",
-        "2",
-        "--release",
-        "--offline",
-        "--locked",
-        "--config",
-        "profile.release.package.connect-store.opt-level=0",
-        "--config",
-        "profile.release.package.connect-service.opt-level=0",
-        "--config",
-        "profile.release.package.connect-server.opt-level=0",
-        "--manifest-path",
-        ".deps/rvoip/Cargo.toml",
-        "--config",
-        "profile.release.lto=false",
-        "--config",
-        "profile.release.codegen-units=16",
-        "--config",
-        "profile.release.debug=0",
-        "--config",
-        "profile.release.panic=\"unwind\"",
-        "--config",
-        "profile.release.strip=\"debuginfo\"",
-        "-p",
-        "rvoip-rtp-core",
-        "--lib",
-        "--no-run",
-        "--message-format=json"
-      ],
-      "source_count": 5255,
-      "changed_inputs": [],
-      "artifact": {
-        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_rtp_core-fea6172a3da66de9",
-        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-unit-test-251",
-        "sha256": "c3af7d68ad9ba0b57d8306fac1d343bb4ca3958597a9ca709c1dd872cf3c0245",
-        "bytes": 8228768
-      },
-      "diagnostic_warnings": [],
-      "log_sha256": "8e4b58b9127f9de1a17545c9d26947809b61ad4347eeb7110ed6bed10fb2e5ce"
-    },
-    "252": {
-      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
-      "exit_code": 0,
-      "seconds": 458.5966284999158,
-      "arguments": [
-        "cargo",
-        "test",
-        "--jobs",
-        "2",
-        "--release",
-        "--offline",
-        "--locked",
-        "--config",
-        "profile.release.package.connect-store.opt-level=0",
-        "--config",
-        "profile.release.package.connect-service.opt-level=0",
-        "--config",
-        "profile.release.package.connect-server.opt-level=0",
-        "--manifest-path",
-        ".deps/rvoip/Cargo.toml",
-        "--config",
-        "profile.release.lto=false",
-        "--config",
-        "profile.release.codegen-units=16",
-        "--config",
-        "profile.release.debug=0",
-        "--config",
-        "profile.release.panic=\"unwind\"",
-        "--config",
-        "profile.release.strip=\"debuginfo\"",
-        "--config",
-        "profile.release.package.rvoip-core.opt-level=0",
-        "--config",
-        "profile.release.package.rvoip-sip.opt-level=0",
-        "-p",
-        "rvoip-sip",
-        "--lib",
-        "--no-run",
-        "--message-format=json"
-      ],
-      "source_count": 5255,
-      "changed_inputs": [],
-      "artifact": {
-        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_sip-9c3d6e898a7c866f",
-        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-sip-unit-test-252",
-        "sha256": "0409c278dce2d3287f2fe645d92bdf622e1a881089ec4a1d77605db05d6159d5",
-        "bytes": 89907344
-      },
-      "diagnostic_warnings": [],
-      "log_sha256": "0c59b6a2a59d17244970d15571efe446690457848386ea86b8bb5b55bfed778f"
-    }
-  },
-  "verification": {
-    "functions_passed": 59,
-    "rtp": {
-      "steps": [
-        {
-          "prefix": "transport::udp::tests::",
-          "functions_selected": 32,
-          "exit_code": 0,
-          "seconds": 1.160889791091904,
-          "results": [
-            "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 379 filtered out; finished in 1.16s"
-          ],
-          "log_sha256": "6a5c541726fac0f3f45ee3b93a1ad8548b80d14c7f8217a90625e6340f19fe12"
-        },
-        {
-          "prefix": "transport::allocator::tests::",
-          "functions_selected": 20,
-          "exit_code": 0,
-          "seconds": 0.016715958015993237,
-          "results": [
-            "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 391 filtered out; finished in 0.01s"
-          ],
-          "log_sha256": "2fd7e6bb6aad9b550e94d585e17f87929dc12af3324820f5034aefd3ba549e61"
-        }
-      ],
-      "binary_sha256": "c3af7d68ad9ba0b57d8306fac1d343bb4ca3958597a9ca709c1dd872cf3c0245",
-      "changed_inputs": []
-    },
-    "sip": {
-      "steps": [
-        {
-          "function": "adapters::media_adapter::gate6_negotiated_rtcp_tests::negotiated_rtcp_default_explicit_and_mux_peers",
-          "exit_code": 0,
-          "seconds": 0.006503541022539139,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "543b41a5a8726d4ed9910aabbd929f8d71309e7617c0bc0f7e370e9714569aa4"
-        },
-        {
-          "function": "adapters::media_adapter::gate6_negotiated_rtcp_tests::negotiated_rtcp_invalid_or_ambiguous_split_peer_refuses",
-          "exit_code": 0,
-          "seconds": 0.005522125167772174,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "c7102468192da90034a22fe62c35753d763be2ea5c4d6288d4f0e8f48ccd80c2"
-        },
-        {
-          "function": "adapters::media_adapter::sdp_format_tests::failed_prepared_media_rollback_quarantines_exact_allocation",
-          "exit_code": 0,
-          "seconds": 0.01168733392842114,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.01s"
-          ],
-          "log_sha256": "2c2e2faf601e4e27765f34b9366f2db469fc3989051d8df8d37846d2bf52d3ce"
-        },
-        {
-          "function": "adapters::media_adapter::sdp_format_tests::port_zero_rejection_echoes_avp_proto_when_offered",
-          "exit_code": 0,
-          "seconds": 0.005885707912966609,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "b3cd9f9dfafeb721b6533063f6b378fcbe834cbc0f8227284b7235e146625b8d"
-        },
-        {
-          "function": "adapters::media_adapter::sdp_format_tests::port_zero_rejection_emits_m_audio_zero_with_offered_proto",
-          "exit_code": 0,
-          "seconds": 0.004811957944184542,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "63507ab9c6c30219e3d28fb6234d2ca50620fd5926b1957ec2848f2ad88b0ef6"
-        },
-        {
-          "function": "adapters::media_adapter::sdp_format_tests::required_rtcp_mux_negotiates_and_refuses_separate_port_peers",
-          "exit_code": 0,
-          "seconds": 0.005686458898708224,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "6d3c999a62465e9944774952009a5dc484cd73dcfec079f3c3aa38065156bba1"
-        },
-        {
-          "function": "adapters::media_adapter::sdp_format_tests::uac_answer_rejects_unoffered_unsupported_and_changed_payloads",
-          "exit_code": 0,
-          "seconds": 0.004941125167533755,
-          "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
-          ],
-          "log_sha256": "04176601ba0d00f2ac3c5b499223adcc08b5107dacf9ee6837edc076aa390659"
-        }
-      ],
-      "binary_sha256": "0409c278dce2d3287f2fe645d92bdf622e1a881089ec4a1d77605db05d6159d5",
-      "changed_inputs": []
-    },
-    "source_inputs_unchanged": true,
-    "source_count": 5255,
-    "profile_note": "RTP unit build retains optimized upstream media. SIP unit-only compilation overrides rvoip-core and rvoip-sip to opt-level0 for bounded functional verification; no performance claim. Full canonical runtime build253 retains its normal upstream optimized profile and is still running.",
-    "format_and_references": "scripts/format.sh --check; all four HTTP/OpenAPI generators --check; HTTP inventory25declarations/26operations/0uncovered; Python syntax compilation pass."
-  },
   "retained_failures": {
     "network_before": "docs/evidence/gate-6/remote-telephone-network.json retains actual unnegotiated compound RTCP on RTP in nat244. Neither decoder/end/drain nor ES256 passed that sequence.",
     "rtp248": "31/32 UDP pass,20/20 allocator pass; old fixed-mux test expected an explicitly supplied RTCP socket to be ignored. Updated it to the explicit single-socket mux configuration and verified the actual local address in final251; draft group remains failed.",
-    "sip249": "Terminal compile failure in a preexisting cfg(test) OriginateRequest constructor missing request_write_authority. Test-only constructor now explicitly uses None; final252 compiles and seven selected functions pass. Production request authority remains unchanged."
+    "sip249": "Terminal compile failure in a preexisting cfg(test) OriginateRequest constructor missing request_write_authority. Test-only constructor now explicitly uses None; final252 compiles and seven selected functions pass. Production request authority remains unchanged.",
+    "unit262": "Terminal E0425 in the newly added regression: compound-BYE assertion helper lives in the original tests module, while the new test was first appended to negotiated_telephone_tests. Moved the new test into the owning module. No production helper or assertion was weakened. Final264/265 pass;262 remains failed."
   },
   "pending": [
-    "Manual SR/RR/BYE/close caller fix, focused realUDP split/mux/drain regression and a new source-bound canonical runtime execution.",
-    "Current-source canonical SIP configuration4functions and SIP integration4regressions now pass; full v41manualcaller follow-up still pending.",
-    "Ubuntu CI runner now selects76functions including52RTP/allocator and4SIPconfiguration; this new group has not executed. The inspected40393b03 CI artifact passes its old23functions and predates patch239.",
-    "Browser rendered24fps requirement, durable authorized ICE restart, remaining remote/loss/relay/secure-transport profiles and whole G6-054 qualification remain open."
+    "Full final v43runtime266, both-algorithm direct267/loss268,4SIPregressions269 and4configuration270 functions.",
+    "Native Ubuntu runner now selects77functions including52RTP/allocator and the exact manual-session route regression. This final group is prepared, not executed. Earlier40694009646 runs the previous76-function source.",
+    "Browser rendered24fps requirement, durable authorized ICE restart, remaining remote/relay/secure-transport/unreachable profiles and whole G6-054 qualification remain open."
   ],
   "acceptance_qualified": false,
   "publication": "not performed",
   "selected_unit_group_passed": true,
   "manual_report_follow_up": {
-    "status": "actual-negative-reproduced-fix-prepared",
+    "status": "fixed-local-verified-full-runtime-pending",
     "observation": "A standalone source-bound public RtpSession probe sets an explicit split RTCP peer, then send_sender_report() incorrectly supplies config.remote_addr (RTP), which the strict UDP route refuses as stale. Manual BYE/receiver reports and close have the same caller bug; periodic compound reports already resolve negotiated RTCP.",
     "probe": {
       "exit_code": 101,
@@ -245,7 +40,10 @@
       "expected_failure": true
     },
     "raw_log_sha256": "66364099d2bcba9f9c31aa5eacde4b48ce39c2ca82a211fc99a3bbbf2123bb2a",
-    "scope": "The59selected unit functions remain passes on their recorded v40 source. They do not cover these manual session callers. Full routing component remains open until the focused regression and correction pass."
+    "scope": "Negative261 is retained. Final265 covers actual original split sockets, mux switch, split restoration and close; all21session/32UDP/20allocator tests pass. Prior full v40 network passes are retained as prior-source evidence.",
+    "fix": "Private rtcp_destination resolves the committed UDP RTCP peer for manual sender/receiver reports, send_bye and close. Generic non-UDP/fixed profile behavior stays bounded by original transport policy; pending/stale/closed original route guards remain enforced.",
+    "regression": "session::tests::negotiated_rtcp_manual_reports_and_close_use_original_route",
+    "final_binary_sha256": "009faec43ec8274850502569951c044e2d823417f4621b12843c9aab605e87fb"
   },
   "network_verification": {
     "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
@@ -333,7 +131,8 @@
       "binary_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
       "changed_inputs": []
     },
-    "limitation": "Manual RTCP caller negative261 remains open; protocol_component_passed remains false until its focused correction passes."
+    "limitation": "Four complete network profiles and four integration regressions pass on v40. Final v43 production runtime266, direct267/loss268, regressions269 and configuration270 are pending and must establish their own source guards.",
+    "prior_source_passed": true
   },
   "configuration_verification": {
     "build": {
@@ -385,5 +184,307 @@
       "log_sha256": "4f08c5ee64376240cb5513ca377ff97d07a1836cf9c387b65af1f0016bb07b52",
       "changed_inputs": []
     }
+  },
+  "initial_protocol_checkpoint": {
+    "patch_sha256": "59b9d46c643e916169b4e3387eb88caea01472f5566ec374a9fae4cee8583b92",
+    "source_lock_sha256": "16bf24e4a8970e15bf971cf522a2eda28222367bdf355b2e8e102e67566c75e7",
+    "prepared_source_policy": "Patch239 applied by prepare-dependencies.sh into a fresh immutable v40 directory; no .deps source was edited in place.",
+    "builds": {
+      "251": {
+        "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+        "exit_code": 0,
+        "seconds": 21.223447291878983,
+        "arguments": [
+          "cargo",
+          "test",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "--config",
+          "profile.release.lto=false",
+          "--config",
+          "profile.release.codegen-units=16",
+          "--config",
+          "profile.release.debug=0",
+          "--config",
+          "profile.release.panic=\"unwind\"",
+          "--config",
+          "profile.release.strip=\"debuginfo\"",
+          "-p",
+          "rvoip-rtp-core",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "source_count": 5255,
+        "changed_inputs": [],
+        "artifact": {
+          "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_rtp_core-fea6172a3da66de9",
+          "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-unit-test-251",
+          "sha256": "c3af7d68ad9ba0b57d8306fac1d343bb4ca3958597a9ca709c1dd872cf3c0245",
+          "bytes": 8228768
+        },
+        "diagnostic_warnings": [],
+        "log_sha256": "8e4b58b9127f9de1a17545c9d26947809b61ad4347eeb7110ed6bed10fb2e5ce"
+      },
+      "252": {
+        "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+        "exit_code": 0,
+        "seconds": 458.5966284999158,
+        "arguments": [
+          "cargo",
+          "test",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "--manifest-path",
+          ".deps/rvoip/Cargo.toml",
+          "--config",
+          "profile.release.lto=false",
+          "--config",
+          "profile.release.codegen-units=16",
+          "--config",
+          "profile.release.debug=0",
+          "--config",
+          "profile.release.panic=\"unwind\"",
+          "--config",
+          "profile.release.strip=\"debuginfo\"",
+          "--config",
+          "profile.release.package.rvoip-core.opt-level=0",
+          "--config",
+          "profile.release.package.rvoip-sip.opt-level=0",
+          "-p",
+          "rvoip-sip",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "source_count": 5255,
+        "changed_inputs": [],
+        "artifact": {
+          "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_sip-9c3d6e898a7c866f",
+          "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-sip-unit-test-252",
+          "sha256": "0409c278dce2d3287f2fe645d92bdf622e1a881089ec4a1d77605db05d6159d5",
+          "bytes": 89907344
+        },
+        "diagnostic_warnings": [],
+        "log_sha256": "0c59b6a2a59d17244970d15571efe446690457848386ea86b8bb5b55bfed778f"
+      }
+    },
+    "verification": {
+      "functions_passed": 59,
+      "rtp": {
+        "steps": [
+          {
+            "prefix": "transport::udp::tests::",
+            "functions_selected": 32,
+            "exit_code": 0,
+            "seconds": 1.160889791091904,
+            "results": [
+              "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 379 filtered out; finished in 1.16s"
+            ],
+            "log_sha256": "6a5c541726fac0f3f45ee3b93a1ad8548b80d14c7f8217a90625e6340f19fe12"
+          },
+          {
+            "prefix": "transport::allocator::tests::",
+            "functions_selected": 20,
+            "exit_code": 0,
+            "seconds": 0.016715958015993237,
+            "results": [
+              "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 391 filtered out; finished in 0.01s"
+            ],
+            "log_sha256": "2fd7e6bb6aad9b550e94d585e17f87929dc12af3324820f5034aefd3ba549e61"
+          }
+        ],
+        "binary_sha256": "c3af7d68ad9ba0b57d8306fac1d343bb4ca3958597a9ca709c1dd872cf3c0245",
+        "changed_inputs": []
+      },
+      "sip": {
+        "steps": [
+          {
+            "function": "adapters::media_adapter::gate6_negotiated_rtcp_tests::negotiated_rtcp_default_explicit_and_mux_peers",
+            "exit_code": 0,
+            "seconds": 0.006503541022539139,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "543b41a5a8726d4ed9910aabbd929f8d71309e7617c0bc0f7e370e9714569aa4"
+          },
+          {
+            "function": "adapters::media_adapter::gate6_negotiated_rtcp_tests::negotiated_rtcp_invalid_or_ambiguous_split_peer_refuses",
+            "exit_code": 0,
+            "seconds": 0.005522125167772174,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "c7102468192da90034a22fe62c35753d763be2ea5c4d6288d4f0e8f48ccd80c2"
+          },
+          {
+            "function": "adapters::media_adapter::sdp_format_tests::failed_prepared_media_rollback_quarantines_exact_allocation",
+            "exit_code": 0,
+            "seconds": 0.01168733392842114,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.01s"
+            ],
+            "log_sha256": "2c2e2faf601e4e27765f34b9366f2db469fc3989051d8df8d37846d2bf52d3ce"
+          },
+          {
+            "function": "adapters::media_adapter::sdp_format_tests::port_zero_rejection_echoes_avp_proto_when_offered",
+            "exit_code": 0,
+            "seconds": 0.005885707912966609,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "b3cd9f9dfafeb721b6533063f6b378fcbe834cbc0f8227284b7235e146625b8d"
+          },
+          {
+            "function": "adapters::media_adapter::sdp_format_tests::port_zero_rejection_emits_m_audio_zero_with_offered_proto",
+            "exit_code": 0,
+            "seconds": 0.004811957944184542,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "63507ab9c6c30219e3d28fb6234d2ca50620fd5926b1957ec2848f2ad88b0ef6"
+          },
+          {
+            "function": "adapters::media_adapter::sdp_format_tests::required_rtcp_mux_negotiates_and_refuses_separate_port_peers",
+            "exit_code": 0,
+            "seconds": 0.005686458898708224,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "6d3c999a62465e9944774952009a5dc484cd73dcfec079f3c3aa38065156bba1"
+          },
+          {
+            "function": "adapters::media_adapter::sdp_format_tests::uac_answer_rejects_unoffered_unsupported_and_changed_payloads",
+            "exit_code": 0,
+            "seconds": 0.004941125167533755,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 829 filtered out; finished in 0.00s"
+            ],
+            "log_sha256": "04176601ba0d00f2ac3c5b499223adcc08b5107dacf9ee6837edc076aa390659"
+          }
+        ],
+        "binary_sha256": "0409c278dce2d3287f2fe645d92bdf622e1a881089ec4a1d77605db05d6159d5",
+        "changed_inputs": []
+      },
+      "source_inputs_unchanged": true,
+      "source_count": 5255,
+      "profile_note": "RTP unit build retains optimized upstream media. SIP unit-only compilation overrides rvoip-core and rvoip-sip to opt-level0 for bounded functional verification; no performance claim. Full canonical runtime build253 retains its normal upstream optimized profile and is still running.",
+      "format_and_references": "scripts/format.sh --check; all four HTTP/OpenAPI generators --check; HTTP inventory25declarations/26operations/0uncovered; Python syntax compilation pass."
+    }
+  },
+  "patch_sha256": "238d81de77b7c436de8aedfc91bd634ababac40d98f305fee59aa2a38e4e4313",
+  "source_lock_sha256": "0d6f562955fbf5f1f17af21e31cd29a92e50345be1c427cade5d4e8ff1ef1458",
+  "prepared_source_policy": "Patch239 applied into fresh immutable v43 by prepare-dependencies.sh; v40/v41/v42 and their terminal results retained. No prepared source edited in place.",
+  "builds": {
+    "265": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 25.35600774991326,
+      "arguments": [
+        "cargo",
+        "test",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "--config",
+        "profile.release.lto=false",
+        "--config",
+        "profile.release.codegen-units=16",
+        "--config",
+        "profile.release.debug=0",
+        "--config",
+        "profile.release.panic=\"unwind\"",
+        "--config",
+        "profile.release.strip=\"debuginfo\"",
+        "-p",
+        "rvoip-rtp-core",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "source_count": 5255,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/rvoip_rtp_core-fea6172a3da66de9",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-unit-test-265",
+        "sha256": "009faec43ec8274850502569951c044e2d823417f4621b12843c9aab605e87fb",
+        "bytes": 8267952
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "d639e5572618d1b50fbcac7c576912746a509a01aa65c052db79e0473742d5e5"
+    }
+  },
+  "verification": {
+    "functions_passed": 73,
+    "result": {
+      "steps": [
+        {
+          "prefix": "session::tests::",
+          "functions_selected": 21,
+          "exit_code": 0,
+          "seconds": 6.0911903330124915,
+          "results": [
+            "test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 391 filtered out; finished in 6.09s"
+          ],
+          "log_sha256": "a9275b5657276950f66787abf1bca69546ef808d81e151a80aa549e6158e43dd"
+        },
+        {
+          "prefix": "transport::udp::tests::",
+          "functions_selected": 32,
+          "exit_code": 0,
+          "seconds": 1.1837603331077844,
+          "results": [
+            "test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 380 filtered out; finished in 1.17s"
+          ],
+          "log_sha256": "95bac22668eaf62c1b8ec724abae69f369e0f63d84f15d5ebaf7e14d51952bb1"
+        },
+        {
+          "prefix": "transport::allocator::tests::",
+          "functions_selected": 20,
+          "exit_code": 0,
+          "seconds": 0.030003583058714867,
+          "results": [
+            "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 392 filtered out; finished in 0.02s"
+          ],
+          "log_sha256": "4bd7e90cbcb841e2fd8d1af1733cab904d4bc6421f4d6e09db6c419d54b14df4"
+        }
+      ],
+      "binary_sha256": "009faec43ec8274850502569951c044e2d823417f4621b12843c9aab605e87fb",
+      "changed_inputs": []
+    },
+    "source_inputs_unchanged": true,
+    "source_count": 5255,
+    "scope": "All21RtpSession functions (including new explicit split/mux/manual SR/RR/BYE/close/original-socket release),32UDP and20indexed allocator functions. Seven actual SIP negotiation functions passed at v40; the SIP adapter source is byte-identical in v43, but they are not counted as a new73-function run.",
+    "checks": "Root scripts/format.sh --check, modified upstream session rustfmt --check, four HTTP generators and route inventory --check, Python syntax compile pass. References changed only source-lock generation provenance."
   }
 }

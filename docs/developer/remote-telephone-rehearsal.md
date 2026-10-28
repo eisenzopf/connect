@@ -70,8 +70,10 @@ The recorded routing fix is in
 [`negotiated-rtcp-routing.json`](../evidence/gate-6/negotiated-rtcp-routing.json).
 It retains adjacent original sockets and carries actual SDP mux/split RTCP
 negotiation into the media owner. All 52 UDP/allocator and seven SIP unit
-functions pass. A separate manual SR/RR/RTCP-BYE destination regression is
-being corrected; the network profiles do not qualify those manual API callers.
+functions pass in the initial checkpoint. The final manual SR/RR/RTCP-BYE/close
+destination fix passes all 73 session, UDP and allocator functions. The four
+recorded network profiles are bound to the initial source; the final production
+runtime and profiles must establish their own verification.
 
 Use `--network-profile loss` for deterministic loss. The owned NAT witness drops
 every fifth PCMU RTP packet independently in each direction, records seen and

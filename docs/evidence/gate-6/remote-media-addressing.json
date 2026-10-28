@@ -337,7 +337,7 @@
   },
   "negotiated_rtcp_routing": {
     "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
-    "status": "selected-tests-and-network-passed-manual-caller-fix-pending",
-    "result": "Patch239 retains adjacent original sockets and commits actual SIP mux/split RTCP routing. All52UDP/allocator and7SIPfunctions pass on5255unchanged inputs. Full server253 and both-algorithm distinct-network telephone execution remain pending; no G6-054 qualification."
+    "status": "final73protocol-functions-passed-runtime-pending",
+    "result": "Final patch239/source-lock uses the committed original route for manual SR/RR/BYE/close too. Exact old-library public probe reproduces stale destination; final265 passes all21RtpSession/32UDP/20allocator functions on5255unchanged inputs. Four complete v40 direct/loss network profiles retained; final production runtime266 and profiles remain pending."
   }
 }

@@ -273,12 +273,10 @@
              }
          }
  
-@@ -1493,6 +1516,27 @@
-             t.set_remote_rtp_addr(addr).await;
-             t.set_remote_rtcp_addr(addr).await;
+@@ -1495,6 +1518,27 @@
          }
-+    }
-+
+     }
+ 
 +    /// Commit RTP and RTCP destinations without replacing the original session.
 +    pub async fn set_remote_media_peers(
 +        &mut self,
@@ -298,9 +296,145 @@
 +        self.stats.lock().remote_addr = Some(rtp);
 +        self.packet_sender.set_remote_addr(rtp);
 +        Ok(())
++    }
++
+     /// Get the local address
+     pub fn local_addr(&self) -> Result<SocketAddr> {
+         self.transport.local_rtp_addr()
+@@ -1505,10 +1549,18 @@
+         self.transport.clone()
      }
  
-     /// Get the local address
++    async fn rtcp_destination(&self) -> Option<SocketAddr> {
++        if let Some(udp) = self.transport.as_any().downcast_ref::<UdpRtpTransport>() {
++            udp.remote_rtcp_addr().await.or(self.config.remote_addr)
++        } else {
++            self.config.remote_addr
++        }
++    }
++
+     /// Close the session and clean up resources
+     pub async fn close(&mut self) -> Result<()> {
+         // Send BYE packet if we have a remote address
+-        if let Some(remote_addr) = self.config.remote_addr {
++        if let Some(remote_addr) = self.rtcp_destination().await {
+             // Create BYE packet
+             let bye = crate::packet::rtcp::RtcpGoodbye::new_with_reason(
+                 self.ssrc,
+@@ -1764,7 +1816,7 @@
+     /// Returns an error if serialization fails or if there's no remote address configured.
+     pub async fn send_bye(&self, reason: Option<String>) -> Result<()> {
+         // Check if we have a remote address
+-        let remote_addr = match self.config.remote_addr {
++        let remote_addr = match self.rtcp_destination().await {
+             Some(addr) => addr,
+             None => {
+                 return Err(Error::SessionError(
+@@ -1812,7 +1864,7 @@
+     /// Returns an error if serialization fails or if there's no remote address configured.
+     pub async fn send_sender_report(&self) -> Result<()> {
+         // Check if we have a remote address
+-        let remote_addr = match self.config.remote_addr {
++        let remote_addr = match self.rtcp_destination().await {
+             Some(addr) => addr,
+             None => {
+                 return Err(Error::SessionError(
+@@ -1882,7 +1934,7 @@
+     /// Returns an error if serialization fails or if there's no remote address configured.
+     pub async fn send_receiver_report(&self) -> Result<()> {
+         // Check if we have a remote address
+-        let remote_addr = match self.config.remote_addr {
++        let remote_addr = match self.rtcp_destination().await {
+             Some(addr) => addr,
+             None => {
+                 return Err(Error::SessionError(
+@@ -2873,6 +2925,86 @@
+         assert!(
+             build_voip_metrics_xr(0x1122_3344, &[], &RtpSessionStats::default(), 8_000,).is_none()
+         );
++    }
++    #[tokio::test]
++    async fn negotiated_rtcp_manual_reports_and_close_use_original_route() {
++        let rtp = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let rtcp = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let a = rtp.local_addr().unwrap();
++        let b = rtcp.local_addr().unwrap();
++        let mut session = RtpSession::new_event_driven_with_rtcp_pair(
++            RtpSessionConfig {
++                local_addr: "127.0.0.1:0".parse().unwrap(),
++                remote_addr: Some(a),
++                ..RtpSessionConfig::default()
++            },
++            SymmetricRtpPolicy::default(),
++            "127.0.0.1:0".parse().unwrap(),
++        )
++        .await
++        .unwrap();
++        session.set_remote_media_peers(a, b, false).await.unwrap();
++        let local_rtp = session.local_addr().unwrap();
++        let local_rtcp = session.transport.local_rtcp_addr().unwrap().unwrap();
++        let mut bytes = [0u8; 1500];
++        for kind in [200u8, 201u8, 203u8] {
++            match kind {
++                200 => session.send_sender_report().await.unwrap(),
++                201 => session.send_receiver_report().await.unwrap(),
++                203 => session
++                    .send_bye(Some("explicit split".into()))
++                    .await
++                    .unwrap(),
++                _ => unreachable!(),
++            }
++            let (size, source) =
++                tokio::time::timeout(Duration::from_secs(1), rtcp.recv_from(&mut bytes))
++                    .await
++                    .unwrap()
++                    .unwrap();
++            assert_eq!(source, local_rtcp);
++            assert!(size >= 8);
++            if kind == 203 {
++                assert_compound_bye(&bytes[..size], session.ssrc, "explicit split");
++            } else {
++                assert_eq!(bytes[1], kind);
++            }
++            assert!(
++                tokio::time::timeout(Duration::from_millis(30), rtp.recv_from(&mut bytes))
++                    .await
++                    .is_err()
++            );
++        }
++        session.set_remote_media_peers(a, a, true).await.unwrap();
++        session.send_receiver_report().await.unwrap();
++        let (_, source) = tokio::time::timeout(Duration::from_secs(1), rtp.recv_from(&mut bytes))
++            .await
++            .unwrap()
++            .unwrap();
++        assert_eq!(source, local_rtp);
++        assert_eq!(bytes[1], 201);
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), rtcp.recv_from(&mut bytes))
++                .await
++                .is_err()
++        );
++        session.set_remote_media_peers(a, b, false).await.unwrap();
++        let ssrc = session.ssrc;
++        session.close().await.unwrap();
++        let (size, source) =
++            tokio::time::timeout(Duration::from_secs(1), rtcp.recv_from(&mut bytes))
++                .await
++                .unwrap()
++                .unwrap();
++        assert_eq!(source, local_rtcp);
++        assert_compound_bye(&bytes[..size], ssrc, "Session closed");
++        drop(session);
++        UdpSocket::bind(local_rtp)
++            .await
++            .expect("original RTP socket released");
++        UdpSocket::bind(local_rtcp)
++            .await
++            .expect("original RTCP socket released");
+     }
+ }
+ 
 --- a/crates/media/rtp-core/src/transport/allocator.rs
 +++ b/crates/media/rtp-core/src/transport/allocator.rs
 @@ -291,7 +291,7 @@

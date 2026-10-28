@@ -786,5 +786,5 @@
     }
   },
   "result": "Both algorithms pass the owned distinct-network direct and deterministic20percent PCMU-loss profiles: opposite decoded tones, journal-before-INVITE, stable replay/one call, native paired signed end/SIP BYE, original physical/SIP/NAT/guest/server drain and unchanged source/binary guards. This is the defined controlled NAT fixture, not direct WAN or whole G6-054 qualification.",
-  "known_follow_up": "A separate actual public RtpSession probe exposes manual SR/RR/RTCP-BYE callers still supplying RTP instead of the committed split RTCP destination. Periodic compound RTCP uses the negotiated separate port. Manual caller regression/fix is prepared, unverified; see negotiated-rtcp-routing.json. The passing network profiles do not cover this API corner."
+  "known_follow_up": "Manual SR/RR/RTCP-BYE/close destination bug is fixed in the final v43 patch. Its actual old-library negative is retained; all73current RtpSession/UDP/allocator functions pass. The four network profiles in this file remain exact v40 evidence until final runtime266/direct267/loss268 are executed."
 }
