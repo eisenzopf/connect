@@ -143,8 +143,8 @@ The same original handoff completes once after its coordinator resumes.
 Firefox ES256 failed its initial native baseline before browser authentication:
 the candidate had already retired, leaving one private-reverse marked packet.
 A consistent private failure snapshot was retained. An unchanged-source trace
-diagnostic later passed; it does not establish a fix. G6-052 remains in progress
-while premature native retirement is investigated and its contract is audited.
+diagnostic later passed; it does not establish a fix. The cause remains unproven
+and is carried into the planned G6-096/G6-098 native failure/quality matrices.
 
 The [snapshot-refusal boundary proof](../evidence/gate-6/snapshot-refusal-boundary.json)
 reproduces a separate native custody defect: a multi-query policy refusal could
@@ -153,3 +153,13 @@ report temporary unavailability and grant no IO; unchanged authorization refusal
 still retire the source. One controlled before-fail/after-pass case and all 22
 snapshot/private-presence tests pass. The initial one-frame native event is not
 assigned this cause without its missing retirement-reason observation.
+
+The [G6-052 completion audit](../evidence/gate-6/transport-reconnect-completion.json)
+now records all four current browser/signature lanes passing on build143 after
+the separately proven refusal-boundary fix. All 36 native marked-wire windows
+pass unchanged thresholds (minimum 76 partner packets, zero outside audience);
+24 observed browser and 24 MCP reopens preserve original status and complete
+one handoff effect per scene. All owned cleanup joins pass. This completes the
+local implementation contract while preserving the failed initial baseline and
+its unresolved cause. Linux/remote deployment, frozen media quality profiles,
+independent Gate 6 acceptance and publication remain separately unqualified.

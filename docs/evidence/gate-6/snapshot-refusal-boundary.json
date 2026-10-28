@@ -66,7 +66,7 @@
     "artifact_sha256": "140f49100af557cc0cb93e68cd302a66901ab902781ccd8253b7eb3165ee8fff",
     "artifact_bytes": 265664520,
     "log_sha256": "a735a7baf86ef5ef12023706cf29418fa1a5375f48bd3de98427aefe81be5b47",
-    "behavior_qualification": "Live browser/native cohort still pending at this checkpoint; build success alone is not a media result."
+    "behavior_qualification": "Subsequent source-bound four-lane actual browser/native cohort passes; see transport-reconnect-completion.json. Original failed baseline causation remains unproven."
   },
   "source_sha256": {
     "crates/connect-store/src/peer_authority/connection_media/snapshot.rs": "9564f1a8fdbc9dffb5e263d7a3829d67e4cc25dff4bec648625bc3d436c3a013",
@@ -75,5 +75,6 @@
   },
   "unresolved": "The initial Firefox/ES256 one-frame private reverse case has a complete pre-cleanup snapshot with a retired candidate. Without a retirement-reason log from that failed event, this controlled metadata race is not asserted as its cause. Later healthy scenes do not erase the failure.",
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "current_native_evidence": "docs/evidence/gate-6/transport-reconnect-completion.json"
 }
