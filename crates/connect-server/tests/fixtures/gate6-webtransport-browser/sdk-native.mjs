@@ -15,6 +15,9 @@ export async function run(config){
   const until=async flag=>{const deadline=performance.now()+15000;while(!(await state())[flag]){check(performance.now()<deadline,'native coordination deadline '+flag);await wait(20);}};
   let client,peer,connection,capture,renderer,context,oscillator,stream,stop=false,pumping;
   const errors=[],audio={decoded:0,identified:0},video={decoded:0,identified:0,motion:new Set()},data=[];
+  // Explicit control-only diagnostic: fixed numeric state, no frame retention.
+  const presentation=config.presentationDiagnostics?{audio:{count:0,accepted:0,missing:0,min_offset_ms:Infinity,max_offset_ms:-Infinity},video:{count:0,accepted:0,missing:0,min_offset_ms:Infinity,max_offset_ms:-Infinity}}:undefined;
+  const observe=(kind,frame,accepted)=>{if(!presentation)return;const p=presentation[kind],offset=frame.timestamp/1000-performance.now();p.count++;if(accepted===undefined)p.missing++;else if(accepted)p.accepted++;p.min_offset_ms=Math.min(p.min_offset_ms,offset);p.max_offset_ms=Math.max(p.max_offset_ms,offset);p.last_offset_ms=offset;};
   const source=document.createElement('canvas'),output=document.createElement('canvas');
   source.width=output.width=640;source.height=output.height=360;
   const paint=n=>{const c=source.getContext('2d');c.fillStyle='rgb(220,20,20)';c.fillRect(0,0,640,360);c.fillStyle='rgb(10,230,10)';c.fillRect((n*7)%608,80,32,200);};
@@ -22,10 +25,10 @@ export async function run(config){
     client=annotateCanonicalRequests(await BrowserClient.open(await options(config.actors[0])),'browser-native');
     const created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
     peer=new BrowserMediaPeer(client,{
-      audio:(binding,frame)=>{audio.decoded++;if(tone(frame,250))audio.identified++;renderer?.audio(binding,frame);},
+      audio:(binding,frame)=>{audio.decoded++;if(tone(frame,250))audio.identified++;const accepted=renderer?.audio(binding,frame);if(presentation)observe('audio',frame,accepted);},
       video:(binding,frame)=>{
         video.decoded++;const out=output.getContext('2d',{willReadFrequently:true});
-        if(config.capture){if(!renderer?.video(binding,frame))return;}else out.drawImage(frame,0,0,640,360);
+        if(config.capture){const accepted=renderer?.video(binding,frame);if(presentation)observe('video',frame,accepted);if(!accepted)return;}else out.drawImage(frame,0,0,640,360);
         const pixel=out.getImageData(0,0,1,1).data;if(pixel[2]>150&&pixel[0]<80)video.identified++;
         const row=out.getImageData(0,180,640,1).data;let sum=0,count=0;
         for(let x=0;x<640;x++)if(row[x*4+1]>120&&row[x*4+1]>row[x*4]*1.5&&row[x*4+1]>row[x*4+2]*1.5){sum+=x;count++;}
@@ -55,7 +58,7 @@ export async function run(config){
       }})(),
     ]);void pumping.catch(()=>{});
     const readyDeadline=performance.now()+5000;
-    while(audio.identified<5||video.identified<3){check(performance.now()<readyDeadline,'browser decoded native readiness '+JSON.stringify({audio,video:{...video,motion:video.motion.size},routes:peer.routeDiagnostics}));await wait(20);}
+    while(audio.identified<5||video.identified<3){check(performance.now()<readyDeadline,'browser decoded native readiness '+JSON.stringify({audio,video:{...video,motion:video.motion.size},routes:peer.routeDiagnostics,...(presentation?{presentation,renderer:renderer?.diagnostics}:{} )}));await wait(20);}
     await state('data-go');
     for(const body of [{type:'text',value:'identified sender 0 😀'},{type:'json',value:{source:0,marker:'ordered-json'}},{type:'binary',value:new Uint8Array([0,255,17,0])}])await connection.sendData('browser-data-0-'+body.type,'browser-message-0-'+body.type,'browser-'+body.type+'-0',body);
     await until('native-data-sent');
@@ -78,6 +81,6 @@ export async function run(config){
     if(renderer){await renderer.finished;check(capture.closed&&stream.getTracks().every(t=>t.readyState==='ended')&&renderer.diagnostics.closed&&renderer.diagnostics.pendingAudio===0,'browser owned capture/render cleanup');}
     const diagnostics=peer.diagnostics;peer.close();check(client.closed&&peer.diagnostics.activeBindings===0&&peer.diagnostics.queuedBytes===0,'browser physical media cleanup');
     check(performance.now()-terminal<=5000,'browser/native terminal teardown exceeds5seconds');
-    return {passed:true,production_sdk_media:true,canonical_public_native_client:true,native_transport:'quic',actual_capture_render:config.capture===true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,reliable_data_duplex:true,owned_cleanup:true,opus:observedAudio,vp8:observedVideo,measured_ms:elapsed,metrics:diagnostics,playback,teardown_ms:performance.now()-terminal,scope:'Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.'};
+    return {passed:true,...(presentation?{presentation}:{}),production_sdk_media:true,canonical_public_native_client:true,native_transport:'quic',actual_capture_render:config.capture===true,algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,reliable_data_duplex:true,owned_cleanup:true,opus:observedAudio,vp8:observedVideo,measured_ms:elapsed,metrics:diagnostics,playback,teardown_ms:performance.now()-terminal,scope:'Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.'};
   }finally{stop=true;if(pumping)await pumping.catch(()=>{});capture?.close();renderer?.close();oscillator?.stop();if(stream)for(const track of stream.getTracks())track.stop();peer?.close();client?.close();if(context&&context.state!=='closed')await context.close().catch(()=>{});}
 }

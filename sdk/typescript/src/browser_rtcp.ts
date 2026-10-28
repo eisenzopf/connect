@@ -292,7 +292,7 @@ interface ReceiveTrack {
     rate: 48000 | 90000;
     ssrc?: number;
     report?: RtcpSenderReport;
-    pending?: RtcpSenderReport;
+    pending?: { report: RtcpSenderReport; receivedAt: number };
     receivedAt: number;
     first?: number;
     newest?: number;
@@ -326,10 +326,19 @@ export class RtcpReceiveClock {
     report(handle: number, report: RtcpSenderReport): boolean {
         const track = this.tracks.get(handle);
         if (!track || this.conflict) return false;
+        const receivedAt = this.nowUs();
         if (track.ssrc !== report.ssrc) {
-            track.pending = { ...report };
+            track.pending = { report: { ...report }, receivedAt };
             return true;
         }
+        return this.applyReport(track, report, receivedAt);
+    }
+    private applyReport(
+        track: ReceiveTrack,
+        report: RtcpSenderReport,
+        receivedAt: number,
+    ): boolean {
+        if (this.conflict) return false;
         if (report.ntp === 0n) {
             track.report = undefined;
             return true;
@@ -348,10 +357,11 @@ export class RtcpReceiveClock {
             return false;
         }
         this.cname ??= report.cname;
-        const now = this.nowUs();
-        this.base ??= { ntp: report.ntp, local: now };
+        // A report can precede the first matching RTP. Its arrival establishes
+        // the clock origin and freshness; delayed activation renews neither.
+        this.base ??= { ntp: report.ntp, local: receivedAt };
         track.report = { ...report };
-        track.receivedAt = now;
+        track.receivedAt = receivedAt;
         return true;
     }
     timestamp(
@@ -369,7 +379,8 @@ export class RtcpReceiveClock {
             track.start = now;
             const pending = track.pending;
             track.pending = undefined;
-            if (pending?.ssrc === ssrc) this.report(handle, pending);
+            if (pending?.report.ssrc === ssrc)
+                this.applyReport(track, pending.report, pending.receivedAt);
         }
         const extended =
             track.newest! + ((timestamp - (track.newest! >>> 0)) | 0);

@@ -45,6 +45,7 @@ export declare class RtcpReceiveClock {
     register(handle: number, rate: 48000 | 90000): void;
     retire(handle: number): void;
     report(handle: number, report: RtcpSenderReport): boolean;
+    private applyReport;
     timestamp(handle: number, ssrc: number, timestamp: number): {
         timestampUs: number;
         synchronized: boolean;

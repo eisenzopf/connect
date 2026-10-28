@@ -45,3 +45,18 @@ test('sender statistics count actual supplied successful submissions and exclude
  const one=s.submitted(packets[0]);assert.equal(one.packets,1);assert.equal(one.octets,3);const two=s.submitted(packets[0]);assert.equal(two.packets,2);assert.equal(two.octets,6);
  const wrong=packets[0].slice();wrong[3]=2;assert.throws(()=>s.submitted(wrong),{code:'protocol'});
 });
+test('a sender report before the first RTP packet retains its original arrival clock',()=>{
+ let now=1000000;const c=new RtcpReceiveClock(()=>now);c.register(1,48000);c.register(2,90000);
+ assert.equal(c.report(1,report(11,100n<<32n,0)),true);
+ assert.equal(c.report(2,report(22,100n<<32n,0)),true);
+ // The first usable RTP arrives later; its source timestamp advances by the
+ // same400ms. It must remain presentable now, not400ms into the future.
+ now+=400000;
+ for(const [handle,ssrc,rtp]of [[1,11,19200],[2,22,36000]]){const value=c.timestamp(handle,ssrc,rtp);assert.equal(value.synchronized,true);assert.ok(Math.abs(value.timestampUs-now)<=1,'retain the report arrival origin within NTP integer rounding');}
+});
+test('a pending sender report cannot renew its age when the first matching RTP arrives',()=>{
+ let now=1000000;const c=new RtcpReceiveClock(()=>now);c.register(1,48000);
+ assert.equal(c.report(1,report(11,100n<<32n,0)),true);
+ now+=3000001;
+ assert.deepEqual(c.timestamp(1,11,144000),{timestampUs:now,synchronized:false});
+});

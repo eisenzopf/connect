@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {createPrivateKey} from 'node:crypto';
 const config=JSON.parse(await readFile(process.argv[2],'utf8'));
 if(process.env.CONNECT_GATE6_BROWSER_CLEAN60==='1'&&config.run.capture===true)config.run.clean60=true;
+if(process.env.CONNECT_GATE6_PACKET_TRACE==='control'&&config.run.native===true)config.run.presentationDiagnostics=true;
 const captureBoundary=process.env.CONNECT_GATE6_BROWSER_CAPTURE_BOUNDARY;
 if(captureBoundary!==undefined){
   if(!['permission-denied','unsupported-api-codec','background-resume','media-loss-recovery'].includes(captureBoundary)||config.run.capture!==true||config.run.clean60||config.run.native)throw Error('Select an explicit short browser/browser capture boundary');

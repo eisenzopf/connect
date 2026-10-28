@@ -1,4 +1,18 @@
-# Canonical browser client (G6-050 in progress)
+# Canonical browser client (G6-050)
+
+G6-050 implementation is complete for the recorded local functional scope.
+The current source passes all 16 installed-browser scenarios, both frozen
+60-second capture profiles and all 322 SDK checks. See the
+[completion evidence](../evidence/gate-6/browser-client-completion.json) for
+exact versions, hashes, decoded native witnesses and requirement mapping.
+The chronological checkpoints below retain their original observations.
+Remote/Linux/native-live qualification, repeated transport recovery and Gate 6
+acceptance remain in their assigned implementation tasks.
+
+Sender reports that arrive before the first matching RTP retain their original
+arrival time when activated. Delayed RTP cannot move the shared clock origin
+forward or renew an expired report. The two negative regressions fail on the
+previous module; all 10 clock cases are included in the 322 passing SDK checks.
 
 `@rudeless/connect/browser` exports `BrowserClient` for the canonical
 `connect/2` WebTransport control path. It requires a secure context, WebTransport

@@ -1,0 +1,2724 @@
+{
+  "format": 1,
+  "task": "G6-050",
+  "implementation_status": "done",
+  "date": "2026-10-27",
+  "scope": "Approved browser client implementation and local macOS arm64 functional verification on frozen Chrome155.0.8059.85. Native synthetic sources use actual public CanonicalClient QUIC. This closes implementation, not complete Gate6 operating/remote/acceptance qualification.",
+  "dependency_order": [
+    "G6-012",
+    "G6-016",
+    "G6-024",
+    "G6-049"
+  ],
+  "obligations": [
+    {
+      "obligation": "signed control, capability detection and original operation status",
+      "matrix_rows": [
+        0,
+        1
+      ],
+      "scope": "322SDK checks also cover unsupported runtime, signatures/correlation and uncertainty without automatic mutation replay.",
+      "passed": true
+    },
+    {
+      "obligation": "identified browser/browser duplex audio, moving video and reliable text/JSON/binary",
+      "matrix_rows": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "scope": "Supplied-stream capture/worklet and actual decoded renderer paths, both signing algorithms.",
+      "passed": true
+    },
+    {
+      "obligation": "identified browser/native duplex media and reliable data",
+      "matrix_rows": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "scope": "Public native QUIC client; FFmpeg independently decodes actual received packets with arrival-window mapping.",
+      "passed": true
+    },
+    {
+      "obligation": "permissions and unsupported codec/API boundaries",
+      "matrix_rows": [
+        12,
+        13
+      ],
+      "scope": "Actual browser permission denial; explicit missing API/codec injections refuse before devices/control mutations.",
+      "passed": true
+    },
+    {
+      "obligation": "background and explicit resume",
+      "matrix_rows": [
+        14
+      ],
+      "scope": "Actual hidden page drains graphs, disables owned tracks and quiesces capture; explicit visible resume produces fresh media.",
+      "passed": true
+    },
+    {
+      "obligation": "loss and fresh recovery with original reliable messages",
+      "matrix_rows": [
+        15
+      ],
+      "scope": "250ms outgoing RTP application-boundary loss; no buffering or UDP-network impairment claim.",
+      "passed": true
+    },
+    {
+      "obligation": "bounded queues and owned teardown",
+      "matrix_rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "scope": "All original assertions pass; both frozen60second profiles additionally confirm terminal end and cleanup within5seconds.",
+      "passed": true
+    }
+  ],
+  "clock_fix": {
+    "trigger": "A sender report precedes its first matching RTP packet. Prior code adopted the report at activation time, renewing the arrival origin/freshness.",
+    "result": "Retain report arrival time through pending activation. A400ms delayed first packet maps to current presentation time within1microsecond NTP rounding; a report older than3seconds stays unsynchronized. No playout lead/queue/observer/threshold changes.",
+    "negative_witness": {
+      "cases_failed": 2,
+      "baseline_module_sha256": "d7ce14e2cf42679b344c1a6cbfaf67858078350b6861dcb52739f8a2aa9065ed",
+      "baseline_source_sha256": "6fe02225cac0970c5eb83d89c8880000f6aa58ae71d4c35dc445c886029cf942",
+      "log_sha256": "c4f93c34328e94b663c3cc8b8fa49efa0e2b4d7b68c3e2c51146db1a94d59424"
+    },
+    "positive_witness": {
+      "clock_cases_passed": 10,
+      "included_in_sdk_cases": 322,
+      "sdk_failed": 0,
+      "clock_log_sha256": "cc744c26015dba38dcb15dbd75cfb8dba9159db73242b65498ff0bfd1ad1f9d9",
+      "sdk_log_sha256": "b37a3cddea870526f66498c893a092dd2d8fa15e8a5708f83dc20c1bb6441ea8"
+    }
+  },
+  "source_inputs_sha256": {
+    "sdk/typescript/src/browser_rtcp.ts": "efaba381750b36d2b5be59a6621e671b273d1631c2cfeb5106a7ba273dc5e8ab",
+    "sdk/typescript/dist/browser_rtcp.js": "80ee2ae8aa07e291f5525ec715fac08d795cac0f6ac1bdee19dc3cecc267495b",
+    "sdk/typescript/dist/browser_rtcp.d.ts": "0a5fc8f2bf3dfd1c0e68870224e695cb0f02c0bb76d037a378f764484558c1f5",
+    "sdk/tests/browser_source_clock.test.mjs": "ae7d0cbcc4106757cc052a52972bc7713f523dd7127f3f4621fdfb327d23ee4e",
+    "sdk/typescript/src/browser_codecs.ts": "fdb3c441db1dfa3d7007a6c463d079b71b1b785c8e7fb7fe89368426e084be6f",
+    "sdk/typescript/dist/browser_codecs.js": "80ddfb3864a5278fcb1105979b899641605eb3fd8e92408c6a1cf68641103206",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "f36ac97d632588c72e475a3dc5162259fe37ef41bfd8825e6e422a96dd396ede",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-native.mjs": "4b1320278efcf601f44dcc752a70ceb68ea8182c48ba4cc0b3c8503469f3ea54",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "77d7278893271eab1dc4de8a76413823a67862e509052a658601fee5000a41de",
+    "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "2b7b10cbf18a90dcf19671158433a621909ff002db137d5dab459d54aa91ed01",
+    "scripts/rehearse-gate6-browser-sdk.py": "1e55266aec4390a3f30333c6e15215b7bb273d9bc6d3e8e1f6a60f20483586d6"
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 0.36403500009328127,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5231,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-120",
+      "sha256": "914fe795174eb0d4f0e2807371adc47e3788d2a231e51e65cb7b707341e985d0",
+      "bytes": 215133344
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "d6f14fa414f78cc9fa069b992a2381a482fd9b613d9c0482bf01a39931f158e1"
+  },
+  "short_matrix": {
+    "passed": 16,
+    "total": 16,
+    "source_and_executable_guards_unchanged": true,
+    "guarded_input_count": 7712,
+    "summary_sha256": "be9f96e68612dd74358b97164d531cd93530a13820ae8d82538dc4062fae8deb",
+    "input_manifest_sha256": "f5b42f5607a9ab56d4500fb557bfdf490d07f47af5448a5d1e5a6fec3c4e4b6e",
+    "rows": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.9621292918454856,
+        "log_sha256": "80b1533e9c5121f9bf2b0530be7c947deb028a0b5cbd8254bafb090612032395",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "algorithm": "EdDSA",
+          "created_cid": "conv_58a5a3a3a4ef4143a49a14ac121d45a9",
+          "credential_refused": true,
+          "operation_state": "completed",
+          "passed": true,
+          "production_sdk": true,
+          "trust_refused": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.8218137500807643,
+        "log_sha256": "f9657aae73e8830e280a3f6547200b9a8fee28b72b59bf73f978851d402ec21a",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "algorithm": "ES256",
+          "created_cid": "conv_af5c797380a649efba2860bd3bdf4cf7",
+          "credential_refused": true,
+          "operation_state": "completed",
+          "passed": true,
+          "production_sdk": true,
+          "trust_refused": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.433790208073333,
+        "log_sha256": "caf04db16b880b6c7adbc6a2786486989ede908eef416b8f4ebb2d7aef611cbe",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "algorithm": "EdDSA",
+          "created_cid": "conv_75a54de822f141398406cd8491171036",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "passed": true,
+          "verified_server_frames": 18
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.407758624991402,
+        "log_sha256": "cf42ec000b03e52989c5d185f92c1a481007a2278f06c7a0677b220ab239e06e",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "algorithm": "ES256",
+          "created_cid": "conv_73d04c5ac6824fcd8a0272c986341f61",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "passed": true,
+          "verified_server_frames": 18
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.65144345886074,
+        "log_sha256": "0eab3175e233e104ebe5ce58f0e53a8832cc7ebcab5fed5b4ef2269adce803a7",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              273,
+              273
+            ],
+            "video": [
+              164,
+              164
+            ]
+          },
+          "actual_capture_render": false,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "clean60": false,
+          "created_cid": "conv_e23be10a89934316a42c65757b9b1be3",
+          "decoded_forward": true,
+          "decoded_fps": [
+            29.439648719773515,
+            29.689137268246174
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4008.2000000476837,
+          "opus": [
+            {
+              "decoded": 191,
+              "identified": 191
+            },
+            {
+              "decoded": 191,
+              "identified": 191
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [],
+          "owned_track_states": [],
+          "passed": true,
+          "playback": [],
+          "production_sdk_media": true,
+          "readiness_ms": 584.7999999523163,
+          "reliable_data_duplex": true,
+          "scope": "short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open",
+          "teardown_ms": 65.89999985694885,
+          "vp8": [
+            {
+              "decoded": 118,
+              "identified": 118,
+              "motion": 118
+            },
+            {
+              "decoded": 119,
+              "identified": 119,
+              "motion": 117
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.250650707865134,
+        "log_sha256": "73f6248fa87e2d59a1ec95875378a1321054755cb4522566735d0d7dbc25237d",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              253,
+              253
+            ],
+            "video": [
+              151,
+              151
+            ]
+          },
+          "actual_capture_render": false,
+          "algorithm": "ES256",
+          "alignment": [],
+          "clean60": false,
+          "created_cid": "conv_978bbce8907e4c02ad6960ea9e85ccc9",
+          "decoded_forward": true,
+          "decoded_fps": [
+            30.848073238930528,
+            30.10174888637576
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4019.7000000476837,
+          "opus": [
+            {
+              "decoded": 195,
+              "identified": 195
+            },
+            {
+              "decoded": 196,
+              "identified": 196
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [],
+          "owned_track_states": [],
+          "passed": true,
+          "playback": [],
+          "production_sdk_media": true,
+          "readiness_ms": 140.20000004768372,
+          "reliable_data_duplex": true,
+          "scope": "short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open",
+          "teardown_ms": 54.5,
+          "vp8": [
+            {
+              "decoded": 124,
+              "identified": 124,
+              "motion": 124
+            },
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 120
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.788874207995832,
+        "log_sha256": "b4da4e718aa6c61b1a98bbcee61416e72df393463e4c3a05fa4d94597e9c1af0",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              270,
+              270
+            ],
+            "video": [
+              156,
+              156
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "clean60": false,
+          "created_cid": "conv_8811a10287be4e88bcb147688d539a6e",
+          "decoded_forward": true,
+          "decoded_fps": [
+            28.16760974117129,
+            27.17052621051036
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4011.7000000476837,
+          "opus": [
+            {
+              "decoded": 193,
+              "identified": 193
+            },
+            {
+              "decoded": 195,
+              "identified": 195
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 191,
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.12839133333333397,
+              "meanQueuedAudioSeconds": 0.08067993717276974,
+              "peakRms": 0.8919401059264241,
+              "queueSamples": 191,
+              "queueSecondsTotal": 15.40986799999902,
+              "video": 108
+            },
+            {
+              "audio": 194,
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.128604333333334,
+              "meanQueuedAudioSeconds": 0.09527158289703348,
+              "peakRms": 0.2729362204642197,
+              "queueSamples": 191,
+              "queueSecondsTotal": 18.196872333333395,
+              "video": 106
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 333.7000000476837,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 59.299999952316284,
+          "vp8": [
+            {
+              "decoded": 113,
+              "identified": 113,
+              "motion": 101
+            },
+            {
+              "decoded": 109,
+              "identified": 109,
+              "motion": 71
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.562415833119303,
+        "log_sha256": "d38d7fbd0b0925a700298699334c69bc6f14e75002a62255a1b2edd45b42cb59",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              260,
+              260
+            ],
+            "video": [
+              151,
+              149
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "ES256",
+          "alignment": [],
+          "clean60": false,
+          "created_cid": "conv_be9d1cdd1ce24a94bb868fcd824fd248",
+          "decoded_forward": true,
+          "decoded_fps": [
+            29.19016017130086,
+            30.18811436519149
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4008.2000000476837,
+          "opus": [
+            {
+              "decoded": 198,
+              "identified": 198
+            },
+            {
+              "decoded": 198,
+              "identified": 198
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 197,
+              "maxPending": 6,
+              "maxQueuedSeconds": 0.10592966666666381,
+              "meanQueuedAudioSeconds": 0.08260041710296667,
+              "peakRms": 0.6809305381044899,
+              "queueSamples": 191,
+              "queueSecondsTotal": 15.776679666666634,
+              "video": 116
+            },
+            {
+              "audio": 194,
+              "maxPending": 8,
+              "maxQueuedSeconds": 0.14378900000000083,
+              "meanQueuedAudioSeconds": 0.09697736823734764,
+              "peakRms": 0.42300011637897855,
+              "queueSamples": 191,
+              "queueSecondsTotal": 18.522677333333398,
+              "video": 117
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 294.60000014305115,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 62.19999980926514,
+          "vp8": [
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 109
+            },
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 79
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.0285132909193635,
+        "log_sha256": "f9e8f8d90817856cc8b1705595fb9a2f8b10bedf6b62583ddfcd3580bd536805",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "actual_capture_render": false,
+          "algorithm": "EdDSA",
+          "canonical_public_native_client": true,
+          "created_cid": "conv_c3cae48760624567a5185d82c4911eaf",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "measured_ms": 4003.9000000953674,
+          "native_received": {
+            "audio": {
+              "decoded": 200,
+              "decoded_sha256": "1d97085926400f49626c0a82a78d307cada380a146817347daa9d27b852ba629",
+              "identified": 200,
+              "input_sha256": "7ec4fc506e96725f9d83f25781bc1da780b35599be876aee07187f50fa41df6f"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4005.0902909999995,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 120,
+              "decoded_sha256": "7fcfe76245465fa21be6875aa3dbd0841abb18b7260d0e8a520d1abbd3a63096",
+              "distinct_motion": 103,
+              "identified": 120,
+              "input_sha256": "05612309a720cb12ee50fe36b07ccc83a40d6511295b59a9e5c8513fe836d256"
+            },
+            "video_sequence_gaps": 1
+          },
+          "native_transport": "quic",
+          "opus": {
+            "decoded": 203,
+            "identified": 203
+          },
+          "owned_cleanup": true,
+          "passed": true,
+          "production_sdk_media": true,
+          "reliable_data_duplex": true,
+          "scope": "Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.",
+          "teardown_ms": 188.79999995231628,
+          "vp8": {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 120
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.1550269580911845,
+        "log_sha256": "f08e7bc8cc4d0f65ba3642e08ece1c37de7a287a44956191c41aa5ab151ac16f",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "actual_capture_render": false,
+          "algorithm": "ES256",
+          "canonical_public_native_client": true,
+          "created_cid": "conv_2bdaf4fcee704147ac5e16e4ee0f4018",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "measured_ms": 4003.199999809265,
+          "native_received": {
+            "audio": {
+              "decoded": 200,
+              "decoded_sha256": "9f7b7653c9fc39e24325641f8cd1c7666e02c53d8363b3cc050d197a38950dbc",
+              "identified": 200,
+              "input_sha256": "29a9534cbe0fa48098a0f3d0248f65f3862a26a6521d02572465b9831591366f"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4005.4022080000004,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 108,
+              "decoded_sha256": "7cbce12d5a5e3ffcd3a322a8c36f39d29b598202c4488eb6bf42d396da01de3c",
+              "distinct_motion": 93,
+              "identified": 108,
+              "input_sha256": "6b4761cbf20b17b81f81ca9e4eaab7496d391a51201326caa0cae72d594d3999"
+            },
+            "video_sequence_gaps": 7
+          },
+          "native_transport": "quic",
+          "opus": {
+            "decoded": 197,
+            "identified": 197
+          },
+          "owned_cleanup": true,
+          "passed": true,
+          "production_sdk_media": true,
+          "reliable_data_duplex": true,
+          "scope": "Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.",
+          "teardown_ms": 194.20000004768372,
+          "vp8": {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 120
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.266552374931052,
+        "log_sha256": "bb6ad194d6088f28d2002ed6af146032a11cbae82eb2be139bf7f5a958d88a09",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "canonical_public_native_client": true,
+          "created_cid": "conv_3881239b6c5f44b4ad6e508d98040afe",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "measured_ms": 4001.5,
+          "native_received": {
+            "audio": {
+              "decoded": 201,
+              "decoded_sha256": "dbe96dd8c84ae5a327e4f585210e0ba5df2094d8b49647ae0261d995aa8296d2",
+              "identified": 201,
+              "input_sha256": "9ca4675f03d803a3c6f11a8514347c98d7dc92f32f1958f3163d372914bc6237"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4002.799,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 103,
+              "decoded_sha256": "432b864028172524956b0766aa996df047aeab7c27d2639db1485020dabdb836",
+              "distinct_motion": 94,
+              "identified": 103,
+              "input_sha256": "97ef708a25de9d8d1c1fd698c8cacbe19bbfd1492b4b1eee746f4c702cf0b8b6"
+            },
+            "video_sequence_gaps": 2
+          },
+          "native_transport": "quic",
+          "opus": {
+            "decoded": 201,
+            "identified": 201
+          },
+          "owned_cleanup": true,
+          "passed": true,
+          "playback": {
+            "audio": 200,
+            "maxPending": 7,
+            "maxQueuedSeconds": 0.1396506666666668,
+            "peakRms": 0.21601682546128634,
+            "video": 120
+          },
+          "production_sdk_media": true,
+          "reliable_data_duplex": true,
+          "scope": "Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.",
+          "teardown_ms": 197.09999990463257,
+          "vp8": {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 119
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.8899442080874,
+        "log_sha256": "d7c18ed08a5811b0ade2ade2bcb84d9b087445c62765ef048a003452777e7192",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "actual_capture_render": true,
+          "algorithm": "ES256",
+          "canonical_public_native_client": true,
+          "created_cid": "conv_5f616eb86ee9422bb38a597a4dacc0ab",
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "measured_ms": 4008.2000000476837,
+          "native_received": {
+            "audio": {
+              "decoded": 202,
+              "decoded_sha256": "19bb1272274c8d0d10677069f0ccf868c038a3a5d9c38db803f89bbf29566bc9",
+              "identified": 202,
+              "input_sha256": "6764a0530063ec23c78752b059e5412172a0bd92f1c0e9fc821cb79747fb0054"
+            },
+            "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+            "measured_ms": 4009.4600829999995,
+            "passed": true,
+            "reliable_data_messages": 3,
+            "scope": "Independent decoding of actual public native QUIC received packets with original arrival-window mapping and decoder pre-roll; software source fixtures. No live native encoder, realtime native presenter, sync or operating-profile qualification.",
+            "video": {
+              "decoded": 117,
+              "decoded_sha256": "8a1376612468550a10a4ac3c55103f8414c3e27e2edcd6f9eccf01921194bfd2",
+              "distinct_motion": 101,
+              "identified": 117,
+              "input_sha256": "0b7698744dc929226fe3dadc7f97bb75f3b8746a95e1e3a04aa9afe01cb98667"
+            },
+            "video_sequence_gaps": 2
+          },
+          "native_transport": "quic",
+          "opus": {
+            "decoded": 201,
+            "identified": 201
+          },
+          "owned_cleanup": true,
+          "passed": true,
+          "playback": {
+            "audio": 199,
+            "maxPending": 8,
+            "maxQueuedSeconds": 0.15677166666666675,
+            "peakRms": 0.6724492871417825,
+            "video": 115
+          },
+          "production_sdk_media": true,
+          "reliable_data_duplex": true,
+          "scope": "Short browser/public CanonicalClient QUIC Opus/VP8/data functional profile. Native received packets require separate independent decoder evidence. Native live encoding/playout, full60second/sync/impairment/operating qualification remain open.",
+          "teardown_ms": 180.29999995231628,
+          "vp8": {
+            "decoded": 118,
+            "identified": 118,
+            "motion": 114
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "permission-denied",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.707933124853298,
+        "log_sha256": "8a2c41411bacac0d0f4056530437ca9f7ac1e9e41db5d170114ee0006ad1db49",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              258,
+              258
+            ],
+            "video": [
+              150,
+              148
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "capture_boundary": {
+            "graphs_created_on_denial": 0,
+            "mode": "permission-denied",
+            "passed": true,
+            "permission_denied": true
+          },
+          "clean60": false,
+          "created_cid": "conv_e93d62cc2fda4c9498390bce5e9c212b",
+          "decoded_forward": true,
+          "decoded_fps": [
+            26.995950608052425,
+            29.745538169983693
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4000.5999999046326,
+          "opus": [
+            {
+              "decoded": 195,
+              "identified": 195
+            },
+            {
+              "decoded": 194,
+              "identified": 194
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 194,
+              "audio_refusal_observations": {
+                "late": 0,
+                "nonmonotonic": 0,
+                "overlap": 1
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13451800000000036,
+              "meanQueuedAudioSeconds": 0.10180852705060729,
+              "peakRms": 0.27538846775011944,
+              "queueSamples": 191,
+              "queueSecondsTotal": 19.445428666665993,
+              "video": 106
+            },
+            {
+              "audio": 192,
+              "audio_refusal_observations": {
+                "nonmonotonic": 2,
+                "overlap": 0
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.1351090000000006,
+              "meanQueuedAudioSeconds": 0.08848195113437728,
+              "peakRms": 0.24846272307131811,
+              "queueSamples": 191,
+              "queueSecondsTotal": 16.90005266666606,
+              "video": 115
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 319,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 101.10000014305115,
+          "vp8": [
+            {
+              "decoded": 108,
+              "identified": 108,
+              "motion": 88
+            },
+            {
+              "decoded": 119,
+              "identified": 119,
+              "motion": 79
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "unsupported-api-codec",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.429566624807194,
+        "log_sha256": "9d2f02181729b319166284b4b6cf59d79eddc868f38a909f9b735870a5edd7e3",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              257,
+              256
+            ],
+            "video": [
+              149,
+              148
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "capture_boundary": {
+            "control_requests": 0,
+            "device_requests": 0,
+            "injected_missing_api_refused": true,
+            "injected_unsupported_codec_refused": true,
+            "mode": "unsupported-api-codec",
+            "passed": true
+          },
+          "clean60": false,
+          "created_cid": "conv_e0bf0196c0db47bc91f407667d651556",
+          "decoded_forward": true,
+          "decoded_fps": [
+            29.747025298533984,
+            29.497050296025293
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4000.399999856949,
+          "opus": [
+            {
+              "decoded": 194,
+              "identified": 194
+            },
+            {
+              "decoded": 194,
+              "identified": 194
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 193,
+              "audio_refusal_observations": {
+                "late": 1,
+                "nonmonotonic": 0,
+                "overlap": 0
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.12666200000000227,
+              "meanQueuedAudioSeconds": 0.1058035811518297,
+              "peakRms": 0.17705033799804232,
+              "queueSamples": 191,
+              "queueSecondsTotal": 20.208483999999473,
+              "video": 116
+            },
+            {
+              "audio": 192,
+              "audio_refusal_observations": {
+                "late": 2,
+                "nonmonotonic": 0
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.12750000000000128,
+              "meanQueuedAudioSeconds": 0.10156808202442923,
+              "peakRms": 0.1787962354491765,
+              "queueSamples": 191,
+              "queueSecondsTotal": 19.399503666665982,
+              "video": 114
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 298.69999980926514,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 86.40000009536743,
+          "vp8": [
+            {
+              "decoded": 119,
+              "identified": 119,
+              "motion": 103
+            },
+            {
+              "decoded": 118,
+              "identified": 118,
+              "motion": 79
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "background-resume",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 9.116162916878238,
+        "log_sha256": "081b4b3b93e6574c29b8e807d22a41c5b7ec8aeda641a2092a6599c0390d4fee",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              267,
+              266
+            ],
+            "video": [
+              155,
+              151
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "capture_boundary": {
+            "actual_hidden_pause": true,
+            "explicit_visible_resume": true,
+            "fresh_capture_recovery_ms": 144.89999985694885,
+            "hidden_encoded_after": [
+              91,
+              89
+            ],
+            "hidden_encoded_before": [
+              91,
+              89
+            ],
+            "mode": "background-resume",
+            "passed": true
+          },
+          "clean60": false,
+          "created_cid": "conv_161a6d1f16ff4380b4864f9a21a0c079",
+          "decoded_forward": true,
+          "decoded_fps": [
+            28.40767505606778,
+            29.15524545228009
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4013,
+          "opus": [
+            {
+              "decoded": 199,
+              "identified": 199
+            },
+            {
+              "decoded": 200,
+              "identified": 200
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 197,
+              "audio_refusal_observations": {
+                "inactive": 0,
+                "late": 0,
+                "nonmonotonic": 1,
+                "overlap": 1
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.122058,
+              "meanQueuedAudioSeconds": 0.09669289005235095,
+              "peakRms": 0.24933466200968515,
+              "queueSamples": 191,
+              "queueSecondsTotal": 18.46834199999903,
+              "video": 115
+            },
+            {
+              "audio": 200,
+              "audio_refusal_observations": {
+                "inactive": 0,
+                "late": 0,
+                "nonmonotonic": 0,
+                "overlap": 0
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.128950000000001,
+              "meanQueuedAudioSeconds": 0.11291825479929744,
+              "peakRms": 0.18886740933006047,
+              "queueSamples": 191,
+              "queueSecondsTotal": 21.56738666666581,
+              "video": 117
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 294.7999999523163,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 69.20000004768372,
+          "vp8": [
+            {
+              "decoded": 114,
+              "identified": 114,
+              "motion": 101
+            },
+            {
+              "decoded": 118,
+              "identified": 117,
+              "motion": 88
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "media-loss-recovery",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.818153207888827,
+        "log_sha256": "b5ef345e6743bc14e4036fd83a3dffc60bd463b38431bbd97da53c14c4f9e234",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              270,
+              270
+            ],
+            "video": [
+              156,
+              155
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [],
+          "capture_boundary": {
+            "actual_datagram_drop": true,
+            "dropped": [
+              {
+                "audio": 13,
+                "observed_span_ms": 242.40000009536743,
+                "video": 8
+              },
+              {
+                "audio": 12,
+                "observed_span_ms": 225.20000004768372,
+                "video": 9
+              }
+            ],
+            "loss_window_ms": 250,
+            "mode": "media-loss-recovery",
+            "owned_datagram_writers_closed": true,
+            "passed": true,
+            "recovery_ms": 705,
+            "scope": "Bounded application datagram loss after real codec/packetization and before actual authenticated WebTransport. No UDP-network/frozen impairment-profile claim."
+          },
+          "clean60": false,
+          "created_cid": "conv_0ac0c775a8824df9a3a5aee24398c409",
+          "decoded_forward": true,
+          "decoded_fps": [
+            29.132015337535698,
+            28.883023753454196
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 4000,
+          "measured_ms": 4016.2000000476837,
+          "opus": [
+            {
+              "decoded": 201,
+              "identified": 201
+            },
+            {
+              "decoded": 201,
+              "identified": 201
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 199,
+              "audio_refusal_observations": {
+                "late": 0,
+                "nonmonotonic": 2,
+                "overlap": 0
+              },
+              "maxPending": 8,
+              "maxQueuedSeconds": 0.15274233333333354,
+              "meanQueuedAudioSeconds": 0.10583133856893102,
+              "peakRms": 0.28107434770035644,
+              "queueSamples": 191,
+              "queueSecondsTotal": 20.213785666665824,
+              "video": 116
+            },
+            {
+              "audio": 199,
+              "audio_refusal_observations": {
+                "late": 0,
+                "nonmonotonic": 1,
+                "overlap": 1
+              },
+              "maxPending": 8,
+              "maxQueuedSeconds": 0.15276133333333353,
+              "meanQueuedAudioSeconds": 0.1221569546247823,
+              "peakRms": 0.2939161719890799,
+              "queueSamples": 191,
+              "queueSecondsTotal": 23.331978333333417,
+              "video": 117
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 402.5,
+          "reliable_data_duplex": true,
+          "scope": "short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open",
+          "teardown_ms": 80.29999995231628,
+          "vp8": [
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 90
+            },
+            {
+              "decoded": 116,
+              "identified": 116,
+              "motion": 80
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "frozen_clean60": {
+    "passed": 2,
+    "total": 2,
+    "source_and_executable_guards_unchanged": true,
+    "summary_sha256": "6ea62b95f2f31b1473591e8cc7f12ef05fbe4f7fc67a5ba2cf2352a3292751a7",
+    "input_manifest_sha256": "4f5f0dbf495190b90f0f67db41bf19b6b0b7fc65bf4b6c04eb85d85ca563f541",
+    "rows": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 62.64743662509136,
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 50.89,
+              "peak_observed_rss_bytes": 89309184,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.05,
+              "peak_observed_rss_bytes": 2330345472,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91144192,
+              "observed_process_count": 3
+            }
+          },
+          "errors": []
+        },
+        "log_sha256": "e8c1d723f496352a342a599785b47bb66a23ca1b0c7637dd6769567ec3f30251",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              3065,
+              3065
+            ],
+            "video": [
+              1781,
+              1773
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "EdDSA",
+          "alignment": [
+            {
+              "audio_markers": 60,
+              "median_abs_skew_ms": 51.5,
+              "p95_abs_skew_ms": 75.39999985694885,
+              "paired_markers": 60,
+              "pairs": [
+                {
+                  "id": 3,
+                  "skew_ms": 45.5
+                },
+                {
+                  "id": 4,
+                  "skew_ms": 45.40000009536743
+                },
+                {
+                  "id": 5,
+                  "skew_ms": 39.09999990463257
+                },
+                {
+                  "id": 6,
+                  "skew_ms": 54.09999990463257
+                },
+                {
+                  "id": 7,
+                  "skew_ms": 48.39999985694885
+                },
+                {
+                  "id": 8,
+                  "skew_ms": 50.700000047683716
+                },
+                {
+                  "id": 9,
+                  "skew_ms": 53.40000009536743
+                },
+                {
+                  "id": 10,
+                  "skew_ms": 36.60000014305115
+                },
+                {
+                  "id": 11,
+                  "skew_ms": 51.799999952316284
+                },
+                {
+                  "id": 12,
+                  "skew_ms": 53.200000047683716
+                },
+                {
+                  "id": 13,
+                  "skew_ms": 55.5
+                },
+                {
+                  "id": 14,
+                  "skew_ms": 75.60000014305115
+                },
+                {
+                  "id": 15,
+                  "skew_ms": 14
+                },
+                {
+                  "id": 16,
+                  "skew_ms": 35.10000014305115
+                },
+                {
+                  "id": 17,
+                  "skew_ms": 47.200000047683716
+                },
+                {
+                  "id": 18,
+                  "skew_ms": 20.5
+                },
+                {
+                  "id": 19,
+                  "skew_ms": 56.69999980926514
+                },
+                {
+                  "id": 20,
+                  "skew_ms": 72.40000009536743
+                },
+                {
+                  "id": 21,
+                  "skew_ms": 53.700000047683716
+                },
+                {
+                  "id": 22,
+                  "skew_ms": 46.09999990463257
+                },
+                {
+                  "id": 23,
+                  "skew_ms": 61.09999990463257
+                },
+                {
+                  "id": 24,
+                  "skew_ms": 75.39999985694885
+                },
+                {
+                  "id": 25,
+                  "skew_ms": 75.69999980926514
+                },
+                {
+                  "id": 26,
+                  "skew_ms": 48.5
+                },
+                {
+                  "id": 27,
+                  "skew_ms": 53.799999952316284
+                },
+                {
+                  "id": 28,
+                  "skew_ms": 43.5
+                },
+                {
+                  "id": 29,
+                  "skew_ms": 47
+                },
+                {
+                  "id": 30,
+                  "skew_ms": 48.09999990463257
+                },
+                {
+                  "id": 31,
+                  "skew_ms": 52.30000019073486
+                },
+                {
+                  "id": 32,
+                  "skew_ms": 46
+                },
+                {
+                  "id": 33,
+                  "skew_ms": 40.5
+                },
+                {
+                  "id": 34,
+                  "skew_ms": 43.90000009536743
+                },
+                {
+                  "id": 35,
+                  "skew_ms": 45.200000047683716
+                },
+                {
+                  "id": 36,
+                  "skew_ms": 39.200000047683716
+                },
+                {
+                  "id": 37,
+                  "skew_ms": 57.200000047683716
+                },
+                {
+                  "id": 38,
+                  "skew_ms": 47.5
+                },
+                {
+                  "id": 39,
+                  "skew_ms": 53.799999952316284
+                },
+                {
+                  "id": 40,
+                  "skew_ms": 52.90000009536743
+                },
+                {
+                  "id": 41,
+                  "skew_ms": 52.60000014305115
+                },
+                {
+                  "id": 42,
+                  "skew_ms": 45.59999990463257
+                },
+                {
+                  "id": 43,
+                  "skew_ms": 19.09999990463257
+                },
+                {
+                  "id": 44,
+                  "skew_ms": 55.200000047683716
+                },
+                {
+                  "id": 45,
+                  "skew_ms": 43.799999952316284
+                },
+                {
+                  "id": 46,
+                  "skew_ms": 42.40000009536743
+                },
+                {
+                  "id": 47,
+                  "skew_ms": 52
+                },
+                {
+                  "id": 48,
+                  "skew_ms": 52.60000014305115
+                },
+                {
+                  "id": 49,
+                  "skew_ms": -129.39999985694885
+                },
+                {
+                  "id": 50,
+                  "skew_ms": 43.09999990463257
+                },
+                {
+                  "id": 51,
+                  "skew_ms": 51.5
+                },
+                {
+                  "id": 52,
+                  "skew_ms": 52.799999952316284
+                },
+                {
+                  "id": 53,
+                  "skew_ms": 59.200000047683716
+                },
+                {
+                  "id": 54,
+                  "skew_ms": 51.5
+                },
+                {
+                  "id": 55,
+                  "skew_ms": 65.90000009536743
+                },
+                {
+                  "id": 56,
+                  "skew_ms": 67.59999990463257
+                },
+                {
+                  "id": 57,
+                  "skew_ms": 50.90000009536743
+                },
+                {
+                  "id": 58,
+                  "skew_ms": 61.799999952316284
+                },
+                {
+                  "id": 59,
+                  "skew_ms": 56.80000019073486
+                },
+                {
+                  "id": 60,
+                  "skew_ms": 22.200000047683716
+                },
+                {
+                  "id": 61,
+                  "skew_ms": 61.59999990463257
+                },
+                {
+                  "id": 62,
+                  "skew_ms": 51.09999990463257
+                }
+              ],
+              "video_markers": 60
+            },
+            {
+              "audio_markers": 60,
+              "median_abs_skew_ms": 50.5,
+              "p95_abs_skew_ms": 70.29999995231628,
+              "paired_markers": 60,
+              "pairs": [
+                {
+                  "id": 3,
+                  "skew_ms": 81.69999980926514
+                },
+                {
+                  "id": 4,
+                  "skew_ms": 19.899999856948853
+                },
+                {
+                  "id": 5,
+                  "skew_ms": 48.40000009536743
+                },
+                {
+                  "id": 6,
+                  "skew_ms": 22.59999990463257
+                },
+                {
+                  "id": 7,
+                  "skew_ms": 71.29999995231628
+                },
+                {
+                  "id": 8,
+                  "skew_ms": 49.90000009536743
+                },
+                {
+                  "id": 9,
+                  "skew_ms": 23
+                },
+                {
+                  "id": 10,
+                  "skew_ms": 20.899999856948853
+                },
+                {
+                  "id": 11,
+                  "skew_ms": 65.40000009536743
+                },
+                {
+                  "id": 12,
+                  "skew_ms": 53.799999952316284
+                },
+                {
+                  "id": 13,
+                  "skew_ms": 54.40000009536743
+                },
+                {
+                  "id": 14,
+                  "skew_ms": 52.19999980926514
+                },
+                {
+                  "id": 15,
+                  "skew_ms": -160.5
+                },
+                {
+                  "id": 16,
+                  "skew_ms": 48.200000047683716
+                },
+                {
+                  "id": 17,
+                  "skew_ms": 55.10000014305115
+                },
+                {
+                  "id": 18,
+                  "skew_ms": 56.200000047683716
+                },
+                {
+                  "id": 19,
+                  "skew_ms": 21.299999952316284
+                },
+                {
+                  "id": 20,
+                  "skew_ms": 45
+                },
+                {
+                  "id": 21,
+                  "skew_ms": 18.59999990463257
+                },
+                {
+                  "id": 22,
+                  "skew_ms": 57.59999990463257
+                },
+                {
+                  "id": 23,
+                  "skew_ms": 32.60000014305115
+                },
+                {
+                  "id": 24,
+                  "skew_ms": 22.700000047683716
+                },
+                {
+                  "id": 25,
+                  "skew_ms": 56.40000009536743
+                },
+                {
+                  "id": 26,
+                  "skew_ms": 14.900000095367432
+                },
+                {
+                  "id": 27,
+                  "skew_ms": 20.59999990463257
+                },
+                {
+                  "id": 28,
+                  "skew_ms": 38.40000009536743
+                },
+                {
+                  "id": 29,
+                  "skew_ms": 18.100000143051147
+                },
+                {
+                  "id": 30,
+                  "skew_ms": 20.399999856948853
+                },
+                {
+                  "id": 31,
+                  "skew_ms": 59.30000019073486
+                },
+                {
+                  "id": 32,
+                  "skew_ms": 17.700000047683716
+                },
+                {
+                  "id": 33,
+                  "skew_ms": 53.700000047683716
+                },
+                {
+                  "id": 34,
+                  "skew_ms": 57
+                },
+                {
+                  "id": 35,
+                  "skew_ms": 56.90000009536743
+                },
+                {
+                  "id": 36,
+                  "skew_ms": 51.09999990463257
+                },
+                {
+                  "id": 37,
+                  "skew_ms": 14.400000095367432
+                },
+                {
+                  "id": 38,
+                  "skew_ms": 18.800000190734863
+                },
+                {
+                  "id": 39,
+                  "skew_ms": 52
+                },
+                {
+                  "id": 40,
+                  "skew_ms": 51.5
+                },
+                {
+                  "id": 41,
+                  "skew_ms": 51.40000009536743
+                },
+                {
+                  "id": 42,
+                  "skew_ms": 12.900000095367432
+                },
+                {
+                  "id": 43,
+                  "skew_ms": 52.59999990463257
+                },
+                {
+                  "id": 44,
+                  "skew_ms": 53.700000047683716
+                },
+                {
+                  "id": 45,
+                  "skew_ms": 18.40000009536743
+                },
+                {
+                  "id": 46,
+                  "skew_ms": 59.700000047683716
+                },
+                {
+                  "id": 47,
+                  "skew_ms": 17.5
+                },
+                {
+                  "id": 48,
+                  "skew_ms": 61.299999952316284
+                },
+                {
+                  "id": 49,
+                  "skew_ms": 18.09999990463257
+                },
+                {
+                  "id": 50,
+                  "skew_ms": 14.599999904632568
+                },
+                {
+                  "id": 51,
+                  "skew_ms": 17.300000190734863
+                },
+                {
+                  "id": 52,
+                  "skew_ms": 20.299999952316284
+                },
+                {
+                  "id": 53,
+                  "skew_ms": 16.59999990463257
+                },
+                {
+                  "id": 54,
+                  "skew_ms": 47.5
+                },
+                {
+                  "id": 55,
+                  "skew_ms": 53.799999952316284
+                },
+                {
+                  "id": 56,
+                  "skew_ms": 53.40000009536743
+                },
+                {
+                  "id": 57,
+                  "skew_ms": 70.29999995231628
+                },
+                {
+                  "id": 58,
+                  "skew_ms": 54.59999990463257
+                },
+                {
+                  "id": 59,
+                  "skew_ms": 68.89999985694885
+                },
+                {
+                  "id": 60,
+                  "skew_ms": 31.59999990463257
+                },
+                {
+                  "id": 61,
+                  "skew_ms": 60.299999952316284
+                },
+                {
+                  "id": 62,
+                  "skew_ms": 64.79999995231628
+                }
+              ],
+              "video_markers": 60
+            }
+          ],
+          "clean60": true,
+          "created_cid": "conv_cf5e4d1537e748af8476c3d08ffddfbf",
+          "decoded_forward": true,
+          "decoded_fps": [
+            28.598522409720953,
+            28.865175299322082
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 60000,
+          "measured_ms": 60003.09999990463,
+          "opus": [
+            {
+              "decoded": 2992,
+              "identified": 2992
+            },
+            {
+              "decoded": 2993,
+              "identified": 2993
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 2983,
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13028766666666414,
+              "meanQueuedAudioSeconds": 0.08574881499847349,
+              "peakRms": 0.6431645487785557,
+              "queueSamples": 9890,
+              "queueSecondsTotal": 848.0557803349028,
+              "video": 1712
+            },
+            {
+              "audio": 2984,
+              "maxPending": 8,
+              "maxQueuedSeconds": 0.15002766666666734,
+              "meanQueuedAudioSeconds": 0.0977625754972464,
+              "peakRms": 1.0084188695194676,
+              "queueSamples": 9890,
+              "queueSecondsTotal": 966.8718716677669,
+              "video": 1728
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 293.5,
+          "reliable_data_duplex": true,
+          "scope": "60second actual supplied-stream capture/worklet/SDK/WT/Store/Core/decoded/rendered browser-browser Opus/VP8/data and uniquely paired graph/canvas markers; native/impairment/other browser profiles remain open",
+          "teardown_ms": 92.5,
+          "vp8": [
+            {
+              "decoded": 1716,
+              "identified": 1716,
+              "motion": 607
+            },
+            {
+              "decoded": 1732,
+              "identified": 1732,
+              "motion": 597
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 62.81416791700758,
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 50.73,
+              "peak_observed_rss_bytes": 90259456,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.07,
+              "peak_observed_rss_bytes": 2334801920,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91357184,
+              "observed_process_count": 3
+            }
+          },
+          "errors": []
+        },
+        "log_sha256": "17a7322369051e05420eb70eba3d0e144e6353ed56213cb0df00e6eb2c091b59",
+        "browser": {
+          "js_version": "15.5.35.25",
+          "product": "Chrome/155.0.8059.85",
+          "protocol_version": "1.3",
+          "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36"
+        },
+        "result": {
+          "accepted": {
+            "audio": [
+              3058,
+              3058
+            ],
+            "video": [
+              1776,
+              1761
+            ]
+          },
+          "actual_capture_render": true,
+          "algorithm": "ES256",
+          "alignment": [
+            {
+              "audio_markers": 59,
+              "median_abs_skew_ms": 43.700000047683716,
+              "p95_abs_skew_ms": 59.700000047683716,
+              "paired_markers": 59,
+              "pairs": [
+                {
+                  "id": 3,
+                  "skew_ms": 43.700000047683716
+                },
+                {
+                  "id": 4,
+                  "skew_ms": 41.5
+                },
+                {
+                  "id": 5,
+                  "skew_ms": 43.700000047683716
+                },
+                {
+                  "id": 6,
+                  "skew_ms": 36.59999990463257
+                },
+                {
+                  "id": 7,
+                  "skew_ms": 43.90000009536743
+                },
+                {
+                  "id": 8,
+                  "skew_ms": 40
+                },
+                {
+                  "id": 9,
+                  "skew_ms": 43.799999952316284
+                },
+                {
+                  "id": 10,
+                  "skew_ms": 41.60000014305115
+                },
+                {
+                  "id": 11,
+                  "skew_ms": 40.09999990463257
+                },
+                {
+                  "id": 12,
+                  "skew_ms": 49.90000009536743
+                },
+                {
+                  "id": 13,
+                  "skew_ms": 40.89999985694885
+                },
+                {
+                  "id": 14,
+                  "skew_ms": 42
+                },
+                {
+                  "id": 15,
+                  "skew_ms": 43.40000009536743
+                },
+                {
+                  "id": 16,
+                  "skew_ms": 46.5
+                },
+                {
+                  "id": 17,
+                  "skew_ms": 43.700000047683716
+                },
+                {
+                  "id": 18,
+                  "skew_ms": 42.10000014305115
+                },
+                {
+                  "id": 19,
+                  "skew_ms": 45.69999980926514
+                },
+                {
+                  "id": 20,
+                  "skew_ms": 36.09999990463257
+                },
+                {
+                  "id": 21,
+                  "skew_ms": 23.5
+                },
+                {
+                  "id": 22,
+                  "skew_ms": 36.40000009536743
+                },
+                {
+                  "id": 23,
+                  "skew_ms": 44.10000014305115
+                },
+                {
+                  "id": 24,
+                  "skew_ms": 37.5
+                },
+                {
+                  "id": 25,
+                  "skew_ms": 42.90000009536743
+                },
+                {
+                  "id": 26,
+                  "skew_ms": 41.5
+                },
+                {
+                  "id": 27,
+                  "skew_ms": 45.5
+                },
+                {
+                  "id": 28,
+                  "skew_ms": 34.5
+                },
+                {
+                  "id": 29,
+                  "skew_ms": 44.5
+                },
+                {
+                  "id": 30,
+                  "skew_ms": 36.40000009536743
+                },
+                {
+                  "id": 31,
+                  "skew_ms": 60.5
+                },
+                {
+                  "id": 32,
+                  "skew_ms": 43
+                },
+                {
+                  "id": 33,
+                  "skew_ms": 36.700000047683716
+                },
+                {
+                  "id": 34,
+                  "skew_ms": 34.299999952316284
+                },
+                {
+                  "id": 35,
+                  "skew_ms": 34.700000047683716
+                },
+                {
+                  "id": 36,
+                  "skew_ms": 35.19999980926514
+                },
+                {
+                  "id": 37,
+                  "skew_ms": 38.700000047683716
+                },
+                {
+                  "id": 38,
+                  "skew_ms": 9.700000047683716
+                },
+                {
+                  "id": 39,
+                  "skew_ms": 38.80000019073486
+                },
+                {
+                  "id": 40,
+                  "skew_ms": 38.5
+                },
+                {
+                  "id": 41,
+                  "skew_ms": 46.5
+                },
+                {
+                  "id": 42,
+                  "skew_ms": 43.59999990463257
+                },
+                {
+                  "id": 43,
+                  "skew_ms": 5.1000001430511475
+                },
+                {
+                  "id": 44,
+                  "skew_ms": 44.40000009536743
+                },
+                {
+                  "id": 45,
+                  "skew_ms": 46.89999985694885
+                },
+                {
+                  "id": 46,
+                  "skew_ms": 67.29999995231628
+                },
+                {
+                  "id": 47,
+                  "skew_ms": 52.09999990463257
+                },
+                {
+                  "id": 48,
+                  "skew_ms": 49.299999952316284
+                },
+                {
+                  "id": 49,
+                  "skew_ms": 47.200000047683716
+                },
+                {
+                  "id": 50,
+                  "skew_ms": 43.700000047683716
+                },
+                {
+                  "id": 51,
+                  "skew_ms": 45.200000047683716
+                },
+                {
+                  "id": 52,
+                  "skew_ms": 44.90000009536743
+                },
+                {
+                  "id": 53,
+                  "skew_ms": 51.59999990463257
+                },
+                {
+                  "id": 54,
+                  "skew_ms": 43.80000019073486
+                },
+                {
+                  "id": 55,
+                  "skew_ms": 46.39999985694885
+                },
+                {
+                  "id": 56,
+                  "skew_ms": 59.700000047683716
+                },
+                {
+                  "id": 57,
+                  "skew_ms": 48.89999985694885
+                },
+                {
+                  "id": 58,
+                  "skew_ms": 44.299999952316284
+                },
+                {
+                  "id": 59,
+                  "skew_ms": 54.30000019073486
+                },
+                {
+                  "id": 60,
+                  "skew_ms": 20.799999952316284
+                },
+                {
+                  "id": 61,
+                  "skew_ms": 48.200000047683716
+                }
+              ],
+              "video_markers": 59
+            },
+            {
+              "audio_markers": 59,
+              "median_abs_skew_ms": 22.5,
+              "p95_abs_skew_ms": 58.40000009536743,
+              "paired_markers": 59,
+              "pairs": [
+                {
+                  "id": 3,
+                  "skew_ms": 4.800000190734863
+                },
+                {
+                  "id": 4,
+                  "skew_ms": 20.90000009536743
+                },
+                {
+                  "id": 5,
+                  "skew_ms": 29.5
+                },
+                {
+                  "id": 6,
+                  "skew_ms": 22.5
+                },
+                {
+                  "id": 7,
+                  "skew_ms": 30.100000143051147
+                },
+                {
+                  "id": 8,
+                  "skew_ms": 26.299999952316284
+                },
+                {
+                  "id": 9,
+                  "skew_ms": 29.40000009536743
+                },
+                {
+                  "id": 10,
+                  "skew_ms": 32.39999985694885
+                },
+                {
+                  "id": 11,
+                  "skew_ms": 17.5
+                },
+                {
+                  "id": 12,
+                  "skew_ms": 49.700000047683716
+                },
+                {
+                  "id": 13,
+                  "skew_ms": 52.39999985694885
+                },
+                {
+                  "id": 14,
+                  "skew_ms": 13.799999952316284
+                },
+                {
+                  "id": 15,
+                  "skew_ms": 55.69999980926514
+                },
+                {
+                  "id": 16,
+                  "skew_ms": 45.10000014305115
+                },
+                {
+                  "id": 17,
+                  "skew_ms": 17.90000009536743
+                },
+                {
+                  "id": 18,
+                  "skew_ms": 26.799999952316284
+                },
+                {
+                  "id": 19,
+                  "skew_ms": 31.699999809265137
+                },
+                {
+                  "id": 20,
+                  "skew_ms": 21.5
+                },
+                {
+                  "id": 21,
+                  "skew_ms": 15.599999904632568
+                },
+                {
+                  "id": 22,
+                  "skew_ms": 14.899999856948853
+                },
+                {
+                  "id": 23,
+                  "skew_ms": 25
+                },
+                {
+                  "id": 24,
+                  "skew_ms": -16.200000047683716
+                },
+                {
+                  "id": 25,
+                  "skew_ms": 44.59999990463257
+                },
+                {
+                  "id": 26,
+                  "skew_ms": 26.5
+                },
+                {
+                  "id": 27,
+                  "skew_ms": 30.59999990463257
+                },
+                {
+                  "id": 28,
+                  "skew_ms": 38.90000009536743
+                },
+                {
+                  "id": 29,
+                  "skew_ms": 21.90000009536743
+                },
+                {
+                  "id": 30,
+                  "skew_ms": 10
+                },
+                {
+                  "id": 31,
+                  "skew_ms": 23.200000047683716
+                },
+                {
+                  "id": 32,
+                  "skew_ms": 19.299999952316284
+                },
+                {
+                  "id": 33,
+                  "skew_ms": 18
+                },
+                {
+                  "id": 34,
+                  "skew_ms": 12.5
+                },
+                {
+                  "id": 35,
+                  "skew_ms": 15.899999856948853
+                },
+                {
+                  "id": 36,
+                  "skew_ms": 11.5
+                },
+                {
+                  "id": 37,
+                  "skew_ms": 15.699999809265137
+                },
+                {
+                  "id": 38,
+                  "skew_ms": 23.100000143051147
+                },
+                {
+                  "id": 39,
+                  "skew_ms": 20.90000009536743
+                },
+                {
+                  "id": 40,
+                  "skew_ms": 14.299999952316284
+                },
+                {
+                  "id": 41,
+                  "skew_ms": 58.40000009536743
+                },
+                {
+                  "id": 42,
+                  "skew_ms": 58.10000014305115
+                },
+                {
+                  "id": 43,
+                  "skew_ms": 17.399999856948853
+                },
+                {
+                  "id": 44,
+                  "skew_ms": -21.899999856948853
+                },
+                {
+                  "id": 45,
+                  "skew_ms": 21.199999809265137
+                },
+                {
+                  "id": 46,
+                  "skew_ms": 16.700000047683716
+                },
+                {
+                  "id": 47,
+                  "skew_ms": 18.5
+                },
+                {
+                  "id": 48,
+                  "skew_ms": 13.100000143051147
+                },
+                {
+                  "id": 49,
+                  "skew_ms": 19.700000047683716
+                },
+                {
+                  "id": 50,
+                  "skew_ms": 23.299999952316284
+                },
+                {
+                  "id": 51,
+                  "skew_ms": 52.89999985694885
+                },
+                {
+                  "id": 52,
+                  "skew_ms": 30.600000143051147
+                },
+                {
+                  "id": 53,
+                  "skew_ms": 64.59999990463257
+                },
+                {
+                  "id": 54,
+                  "skew_ms": 21.200000047683716
+                },
+                {
+                  "id": 55,
+                  "skew_ms": 21.59999990463257
+                },
+                {
+                  "id": 56,
+                  "skew_ms": 57.10000014305115
+                },
+                {
+                  "id": 57,
+                  "skew_ms": 57.299999952316284
+                },
+                {
+                  "id": 58,
+                  "skew_ms": 23
+                },
+                {
+                  "id": 59,
+                  "skew_ms": 66.89999985694885
+                },
+                {
+                  "id": 60,
+                  "skew_ms": 18.5
+                },
+                {
+                  "id": 61,
+                  "skew_ms": 33.30000019073486
+                }
+              ],
+              "video_markers": 59
+            }
+          ],
+          "clean60": true,
+          "created_cid": "conv_3ceaba65a2e348d79737700307b1f5ff",
+          "decoded_forward": true,
+          "decoded_fps": [
+            28.848990285385867,
+            29.098981535692502
+          ],
+          "decoded_reverse": true,
+          "duration_ms": 60000,
+          "measured_ms": 60002.09999990463,
+          "opus": [
+            {
+              "decoded": 2991,
+              "identified": 2991
+            },
+            {
+              "decoded": 2992,
+              "identified": 2992
+            }
+          ],
+          "owned_cleanup": true,
+          "owned_graph_states": [
+            "closed",
+            "closed",
+            "closed",
+            "closed"
+          ],
+          "owned_track_states": [
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            },
+            {
+              "kind": "audio",
+              "state": "ended"
+            },
+            {
+              "kind": "video",
+              "state": "ended"
+            }
+          ],
+          "passed": true,
+          "playback": [
+            {
+              "audio": 2981,
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.1351686666666687,
+              "meanQueuedAudioSeconds": 0.09754383488793143,
+              "peakRms": 0.2510377766375251,
+              "queueSamples": 9971,
+              "queueSecondsTotal": 972.6095776675643,
+              "video": 1727
+            },
+            {
+              "audio": 2984,
+              "maxPending": 6,
+              "maxQueuedSeconds": 0.1116756666676082,
+              "meanQueuedAudioSeconds": 0.07897857931348172,
+              "peakRms": 0.20317880938434452,
+              "queueSamples": 9971,
+              "queueSecondsTotal": 787.4954143347262,
+              "video": 1742
+            }
+          ],
+          "production_sdk_media": true,
+          "readiness_ms": 352.5,
+          "reliable_data_duplex": true,
+          "scope": "60second actual supplied-stream capture/worklet/SDK/WT/Store/Core/decoded/rendered browser-browser Opus/VP8/data and uniquely paired graph/canvas markers; native/impairment/other browser profiles remain open",
+          "teardown_ms": 160,
+          "vp8": [
+            {
+              "decoded": 1731,
+              "identified": 1731,
+              "motion": 608
+            },
+            {
+              "decoded": 1746,
+              "identified": 1746,
+              "motion": 599
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "historical_failures": {
+    "evidence": [
+      "docs/evidence/gate-6/browser-client-reference-recovery.json",
+      "docs/evidence/gate-6/canonical-fresh-metadata-recovery.json"
+    ],
+    "disposition": "Retained as failures of their recorded source snapshots, not reclassified as passes. The earlier native subscription unknown and generic request timeout were not reproduced in this full matrix, and no causal repair of those command outcomes is claimed by the clock fix. Original logical IDs/status remain authoritative; broader ongoing-operation uncertainty/outage/reconnect coverage remains G6-052 and G6-095.",
+    "diagnostic_presentation": {
+      "fresh_instances_of_one_method": 3,
+      "passed": 3,
+      "summary_sha256": "d4ab3127b20043c74092669fd3073257bbddcb2535fb6c353f26fccce03ad519",
+      "scope": "Explicit control-only trace with fixed numeric timestamp/refusal observations. No normal/profile or causal repair claim."
+    }
+  },
+  "not_qualified": [
+    "G6-051 full canonical fallback transition coverage; G6-052 transport selection/outages/repeated reconnect during consult/handoff.",
+    "G6-058/G6-095 remote Chrome/Firefox/native combinations, Linux host, ICE/TURN and expired certificates.",
+    "Native live encoding/realtime playout and full native operating profile.",
+    "G6-098 frozen impaired networks, twenty handoffs/device moves per topology, concurrent sessions/overload and separate capacity/resource qualification.",
+    "Gate6 acceptance and publication."
+  ],
+  "acceptance_qualified": false
+}
