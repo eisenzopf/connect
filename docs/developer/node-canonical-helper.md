@@ -1,0 +1,84 @@
+# Node canonical helper component
+
+G6-062 is in progress. `CanonicalNativeClient` implements finite current
+canonical control using one owned Rust `connect stdio` process. The typed
+`NodeClient` handles, saved-operation recovery facade, trusted provisioning,
+remote HTTP enrollment and full real-server native/HTTP journey remain open.
+Programmatic media is G6-064.
+
+Install the matching trusted `connect` executable and protect its native client
+TOML, enrolled signing key and trust files. The npm component includes JavaScript
+and declarations; it does not yet bundle that executable. The helper loads its
+configuration once and owns native TLS, UCTP, signature verification and current
+server authority. Node never copies provider keys or reloads the enrollment.
+
+```js
+import { CanonicalNativeClient } from '@rudeless/connect';
+
+const client = new CanonicalNativeClient({
+  config: '/absolute/path/to/native-client.toml',
+  executable: '/absolute/path/to/connect',
+});
+try {
+  const frames = await client.request(
+    'conversation.get', {}, { cid: existingConversationId },
+    { timeoutMs: 1500 },
+  );
+  // Correlated verified observations through the original ACK.
+} finally {
+  await client.close({ timeoutMs: 1500 });
+}
+```
+
+The finite request surface uses the current payload and scope vocabulary:
+`cid`, `sid`, `connid`, caller-owned `operation_id` and `expected_revision`.
+The bridge converts scope to the Rust command shape. Save a mutation's ID and
+exact intention before calling. An ACK acknowledges the request; logical
+completion is read through the original operation's journal state.
+
+Each request captures its intent before queuing and has one absolute deadline
+covering queue, write and response. At most sixteen exchanges are owned, with
+one submitted to the sequential helper at a time. An unsent queued timeout or
+cancellation removes only that intent. A submitted timeout/cancellation, partial
+response, unexpected output or transport failure fences the original instance
+and stops its helper. Errors retain the saved mutation key and distinguish
+not-submitted, refused, uncertain and read-only outcomes; raw helper messages and
+diagnostics are suppressed. No automatic restart, retry or transport fallback
+occurs. Reopen explicitly and query the saved operation before deciding recovery.
+
+The response wrapper is the current `connect-control/1` CLI protocol containing
+verified `connect/2` envelopes. Independent helper exchange IDs, Rust wire request
+IDs and logical mutation IDs stay distinct. The adapter checks bounded UTF-8,
+canonical JSON, duplicate keys, exact wrapper shape, correlation, scope, terminal
+ordering and signature shape. It preserves the Rust-verified original signature;
+it does not claim an independent JavaScript cryptographic verification.
+
+Idle `close()` sends EOF and joins the original helper. Closing an active
+exchange preserves its uncertainty. A missed close deadline stops the owned
+process and reports `cleanup-incomplete`; a successful local close does not
+submit Session or Connection end. Live subscriptions and native media require
+their dedicated SDK interfaces; finite event requests require `live:false`.
+
+Run the source-bound component check from the repository:
+
+```sh
+python3 sdk/tests/check_canonical_helper.py \
+  --output .local/gate-6/node-helper-FRESH
+```
+
+The 26 tests use a synthetic helper and fake HTTP listener. They exercise real
+owned child processes, deadlines, queue cancellation, malformed/unsigned/foreign
+output, redacted refusals and joined cleanup. Fixture signatures are shaped data;
+these tests do not qualify cryptography or current server authorization.
+
+The candidate can be packed locally from `sdk/typescript` with `npm pack` into
+`dist/`, installed with `npm install --offline --ignore-scripts` in a fresh
+external project under `.local/`, and exercised by copying
+`sdk/tests/canonical_helper_consumer.mjs` into that project. Invoke the copied
+script with the absolute path of `sdk/tests/fixtures/canonical_helper.mjs`.
+That consumer verifies package exports, native/HTTP scope IDs, query-after-send,
+original helper EOF exit0 and joined PID. It also uses synthetic backends.
+
+Evidence and remaining work are in
+[`node-canonical-helper.json`](../evidence/gate-6/node-canonical-helper.json).
+No npm publication or full G6-062 qualification has occurred.

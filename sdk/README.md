@@ -1,8 +1,11 @@
 # Connect language SDKs
 
 Gate6 migrates the pre-alpha language interfaces to canonical UCTP. The current
-Rust public SDK and finite Node canonical HTTP consumer have their own developer
-contracts under `docs/developer/`. The older Python/TypeScript generic
+Rust public SDK, finite Node canonical HTTP consumer and managed canonical Node
+helper component have developer contracts under `docs/developer/`. The new
+`CanonicalNativeClient` uses the current command shape; its typed Node facade
+and real-server parity remain G6-062 work. See
+[the canonical Node helper](../docs/developer/node-canonical-helper.md). The older Python/TypeScript generic
 `NativeClient` adapters below are historical Gate2 interfaces pending G6-062 and
 G6-063; they do not consume the current canonical JSON-lines command shape.
 They must not be used as a fallback for a failed canonical operation. Their

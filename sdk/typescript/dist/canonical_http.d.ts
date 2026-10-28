@@ -1,10 +1,7 @@
 import { type JsonObject } from "./uctp_json.js";
-import { type Envelope, type Scope } from "./uctp_wire.js";
-export interface CanonicalRequestOptions {
-    readonly timeoutMs: number;
-    readonly signal?: AbortSignal;
-}
-export type CanonicalCommandScope = Omit<Scope, "in_reply_to">;
+import { type Envelope } from "./uctp_wire.js";
+import { type CanonicalRequestOptions, type CanonicalCommandScope } from "./canonical_validation.js";
+export type { CanonicalRequestOptions, CanonicalCommandScope, } from "./canonical_validation.js";
 /** Explicit finite connect/2 control. No credential refresh, retry, transport
  * fallback, native media ownership or live-event lease is implied by HTTP. */
 export declare class CanonicalHttpClient {
