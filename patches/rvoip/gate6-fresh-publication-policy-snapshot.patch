@@ -1,0 +1,337 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2040,16 +2040,30 @@
+     )> {
+         // Retained packet metadata already fixes the original consumer/scene
+         // generations. Never recapture current gates after a policy callback.
+-        let detached = port.binding.negotiated.requested.medium == Medium::Audio
+-            && data.is_none()
++        let fresh_publication = data.is_none()
+             && held.is_none()
+-            && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
+-            && scene.retains_target();
++            && !sending
++            && source.is_none()
++            && port.binding.negotiated.requested.medium != Medium::Data
++            && matches!(&consumer, audio_consumer::ConsumerCheck::Current)
++            && scene.is_current_publish();
++        let detached = fresh_publication
++            || (port.binding.negotiated.requested.medium == Medium::Audio
++                && data.is_none()
++                && held.is_none()
++                && matches!(&consumer, audio_consumer::ConsumerCheck::Retained(_))
++                && scene.retains_target());
+         let lock_state = || -> ControlResult<_> {
+             if detached {
+                 match self.state.try_lock() {
+                     Ok(state) => Ok(state),
+-                    Err(std::sync::TryLockError::WouldBlock) => Err(StreamControlError::NotReady),
++                    Err(std::sync::TryLockError::WouldBlock) => Err(if fresh_publication {
++                        // Existing ingress owners retry Backpressure using the
++                        // same original packet and its unchanged age/deadline.
++                        StreamControlError::Backpressure
++                    } else {
++                        StreamControlError::NotReady
++                    }),
+                     Err(std::sync::TryLockError::Poisoned(error)) => Ok(error.into_inner()),
+                 }
+             } else {
+@@ -2076,6 +2090,28 @@
+         let state = lock_state()?;
+         validate(&state)?;
+         let revision = state.model.revision();
++        // Freeze current generations before releasing metadata. A callback may
++        // change scene/consumer membership without changing the stream model.
++        let frozen_consumer = if fresh_publication {
++            self.current_consumer_stamp(port)?
++        } else {
++            None
++        };
++        let frozen_scene = if fresh_publication {
++            self.current_scene_stamp()?
++        } else {
++            None
++        };
++        let consumer = if fresh_publication {
++            audio_consumer::ConsumerCheck::Retained(frozen_consumer.as_ref())
++        } else {
++            consumer
++        };
++        let scene = if fresh_publication {
++            scene_consumer::SceneCheck::retained_publish(frozen_scene.as_ref())
++        } else {
++            scene
++        };
+         let mut state = Some(state);
+         let credential = self.credential_snapshot();
+         let scope = self.scope(
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/audio_consumer.rs
+@@ -384,6 +384,25 @@
+     }
+ }
+ impl StreamController {
++    // Generation metadata only. No policy lease or route/consumer reader is
++    // acquired while a fresh publication's external policy callback runs.
++    pub(super) fn current_consumer_stamp(
++        &self,
++        port: &Port,
++    ) -> ControlResult<Option<ConsumerStamp>> {
++        let slot = self
++            .audio_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        let owner = match slot.as_ref() {
++            None => return Ok(None),
++            Some(owner) => owner.upgrade().ok_or(StreamControlError::NotReady)?,
++        };
++        Ok(
++            (owner.logical().as_ref() == Some(&port.binding.negotiated.requested.logical_id))
++                .then(|| owner.stamp()),
++        )
++    }
+     pub(super) fn consumer_admission(
+         &self,
+         port: &Port,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/scene_consumer.rs
+@@ -90,6 +90,10 @@
+     admitted: Option<Instant>,
+ }
+ impl<'a> SceneCheck<'a> {
++    pub(super) fn is_current_publish(&self) -> bool {
++        self.retained.is_none() && self.source.is_none() && self.admitted.is_none()
++    }
++
+     pub(super) fn retains_target(&self) -> bool {
+         self.retained.is_some()
+     }
+@@ -128,6 +132,18 @@
+     }
+ }
+ impl StreamController {
++    pub(super) fn current_scene_stamp(&self) -> ControlResult<Option<SceneStamp>> {
++        let slot = self
++            .scene_consumer
++            .lock()
++            .unwrap_or_else(|p| p.into_inner());
++        match slot.as_ref() {
++            None => Ok(None),
++            Some(owner) => Ok(Some(
++                owner.upgrade().ok_or(StreamControlError::NotReady)?.stamp(),
++            )),
++        }
++    }
+     pub(super) fn scene_admission(
+         &self,
+         check: SceneCheck<'_>,
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2821,3 +2821,5 @@
+ mod gate_slot;
+ 
+ mod video_repair;
++
++mod ingress_policy_snapshot;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/ingress_policy_snapshot.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/ingress_policy_snapshot.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/ingress_policy_snapshot.rs
+@@ -0,0 +1,193 @@
++//! Fresh publication releases model metadata while external policy is read,
++//! retaining only the exact original route/consumer/scene generation stamps.
++use super::*;
++use crate::staged_streams::{audio_consumer::AudioConsumer, scene_consumer::SceneConsumer};
++#[derive(Default)]
++struct Probe {
++    controller: Mutex<Weak<StreamController>>,
++    action: AtomicUsize,
++    unlocked: AtomicBool,
++    changed: AtomicBool,
++    consumer: Mutex<Option<Arc<AudioConsumer>>>,
++    scene: Mutex<Option<Arc<SceneConsumer>>>,
++}
++struct ObservedPolicy {
++    inner: Arc<Policy>,
++    probe: Arc<Probe>,
++}
++impl MediaPolicy for ObservedPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() == "alice" && matches!(scope.purpose, MediaPurpose::Publish) {
++            let action = self.probe.action.swap(0, Ordering::AcqRel);
++            if action != 0 {
++                let controller = self.probe.controller.lock().unwrap().upgrade().unwrap();
++                if let Ok(mut state) = controller.state.try_lock() {
++                    self.probe.unlocked.store(true, Ordering::Release);
++                    match action {
++                        1 => (),
++                        2 => state.closed = true,
++                        3 => {
++                            let owner = AudioConsumer::optional(
++                                Some(desired(Medium::Audio).logical_id),
++                                8000,
++                            );
++                            owner.activate(true);
++                            *controller.audio_consumer.lock().unwrap() =
++                                Some(Arc::downgrade(&owner));
++                            *self.probe.consumer.lock().unwrap() = Some(owner);
++                        }
++                        4 => {
++                            let owner = SceneConsumer::new(8675309);
++                            owner.activate();
++                            *controller.scene_consumer.lock().unwrap() =
++                                Some(Arc::downgrade(&owner));
++                            *self.probe.scene.lock().unwrap() = Some(owner);
++                        }
++                        6 => {
++                            self.inner
++                                .0
++                                .try_write()
++                                .expect("snapshot held a policy reader")
++                                .revoked
++                                .insert("alice".into());
++                        }
++                        _ => unreachable!(),
++                    }
++                    self.probe.changed.store(true, Ordering::Release);
++                };
++            }
++        }
++        self.inner.current(scope)
++    }
++}
++async fn fixture() -> (Fixture, Arc<Probe>) {
++    let probe = Arc::new(Probe::default());
++    let observed = probe.clone();
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(ObservedPolicy {
++                inner,
++                probe: observed,
++            })
++        })),
++    );
++    f.start(&[Medium::Audio, Medium::Video]).await;
++    *probe.controller.lock().unwrap() = Arc::downgrade(&f.a);
++    (f, probe)
++}
++#[tokio::test]
++async fn fresh_audio_and_video_policy_callback_does_not_hold_the_model_mutex() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, probe) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        probe.action.store(1, Ordering::Release);
++        source.try_publish(&frame(&source, 160)).unwrap();
++        assert!(
++            probe.unlocked.load(Ordering::Acquire),
++            "external fresh policy callback held controller metadata"
++        );
++        assert!(probe.changed.load(Ordering::Acquire));
++        assert_eq!(receive(&mut input).await.frame.timestamp_rtp, 160);
++        assert!(input.try_recv().is_err(), "fresh original was repeated");
++    }
++}
++#[tokio::test]
++async fn fresh_publication_rechecks_closed_model_after_unlocked_policy_callback() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, probe) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        probe.action.store(2, Ordering::Release);
++        assert!(source.try_publish(&frame(&source, 160)).is_err());
++        assert!(probe.changed.load(Ordering::Acquire));
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_audio_never_adopts_a_consumer_installed_during_policy_callback() {
++    for existing in [false, true] {
++        let (f, probe) = fixture().await;
++        let source = f.aa.port(Medium::Audio);
++        let mut input =
++            f.a.take_ingress(&desired(Medium::Audio).logical_id)
++                .unwrap();
++        let original = AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++        if existing {
++            original.activate(true);
++            *f.a.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&original));
++        }
++        let revision = f.a.revision();
++        probe.action.store(3, Ordering::Release);
++        assert!(source.try_publish(&frame(&source, 160)).is_err());
++        assert!(probe.changed.load(Ordering::Acquire));
++        assert_eq!(f.a.revision(), revision);
++        assert!(
++            input.try_recv().is_err(),
++            "older publication borrowed a new speaking generation"
++        );
++    }
++}
++#[tokio::test]
++async fn fresh_publication_never_adopts_a_scene_installed_during_policy_callback() {
++    for medium in [Medium::Audio, Medium::Video] {
++        for existing in [false, true] {
++            let (f, probe) = fixture().await;
++            let source = f.aa.port(medium);
++            let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++            let original = SceneConsumer::new(8675309);
++            if existing {
++                original.activate();
++                *f.a.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&original));
++            }
++            let revision = f.a.revision();
++            probe.action.store(4, Ordering::Release);
++            assert!(source.try_publish(&frame(&source, 160)).is_err());
++            assert!(probe.changed.load(Ordering::Acquire));
++            assert_eq!(f.a.revision(), revision);
++            assert!(
++                input.try_recv().is_err(),
++                "older publication borrowed a new scene generation"
++            );
++        }
++    }
++}
++
++#[tokio::test]
++async fn fresh_publication_busy_metadata_is_retryable_without_new_packet_or_grant() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, _) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let original = frame(&source, 160);
++        let busy = f.a.state.lock().unwrap();
++        assert!(matches!(
++            source.try_publish(&original),
++            Err(StreamControlError::Backpressure)
++        ));
++        assert!(input.try_recv().is_err());
++        drop(busy);
++        drop(
++            f.policy
++                .0
++                .try_write()
++                .expect("busy publication retained policy authority"),
++        );
++        source.try_publish(&original).unwrap();
++        assert_eq!(receive(&mut input).await.frame.timestamp_rtp, 160);
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_publication_honors_revocation_during_external_policy_callback() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, probe) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        probe.action.store(6, Ordering::Release);
++        assert!(source.try_publish(&frame(&source, 160)).is_err());
++        assert!(probe.changed.load(Ordering::Acquire));
++        assert!(input.try_recv().is_err());
++    }
++}

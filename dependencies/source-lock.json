@@ -1271,6 +1271,11 @@
       "path": "patches/rvoip/gate6-opus-general-fidelity.patch",
       "source": "G6-050/G6-051 general-media Opus factory uses Audio application at unchanged mono32k/stereo64k bitrate, negotiated rates/channels,20ms frame and complexity/VBR defaults. Real fullband source cascade regression reproduces speech-mode source shifts without network/mixing; no queue, authority, original age or IO deadline changes.",
       "sha256": "9cc7c730e2aa900db8cad59347e48cd2c3e8771a8d70a351fe389292acc99e89"
+    },
+    {
+      "path": "patches/rvoip/gate6-fresh-publication-policy-snapshot.patch",
+      "source": "G6-050/G6-051 release fresh non-data ingress controller model metadata during external policy reads. Freeze original stream revision/credential/consumer/scene generations before callback, revalidate afterward, and report actual metadata mutex contention as retryable Backpressure. No positive grant/reader retained by snapshots; unchanged original packet age, codec, IO and authorization fences. Prior-code negative and candidate287distinct stream/cadence cases verified.",
+      "sha256": "525dfe20b3446c300a8b6a1dbc39b476374d12f443eb93361cf6e5820eb513a5"
     }
   ]
 }

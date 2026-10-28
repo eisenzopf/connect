@@ -177,7 +177,7 @@
     },
     "initial_live_capture": "One diagnostic pass followed by a failed0/2audio run with2PCM/encoded witnesses; owners joined. Initial unsuppressed collector reached65536events and omitted58005, ending before the failures; it is incomplete near the failed event and cannot support absence-of-refusal claims. The tested success suppression addresses this diagnostic volume; no later complete live timeline is claimed yet."
   },
-  "next_action": "Complete current WebTransport browser/native/boundary and native WSS/WT checks; retain and independently decode a bounded post-fix failing encoded/PCM witness to localize remaining audio/cadence defects. G6-050/G6-051 remain in progress; no acceptance qualification.",
+  "next_action": "Full normal-feature build97 of the component-tested fresh-ingress policy snapshot repair, followed by current native and normal browser/WT requalification. Original normal matrix failures remain open.",
   "private_hashes": {
     ".local/gate-6/audio-witness-analysis-85/factory-probe-before-summary.json": "65dc17a091907a1885876532d356404316d214322d9dcfb4c79b8720b3335ca5",
     ".local/gate-6/audio-witness-analysis-85/replay-factory-scores.json": "4fbf2fb88f4c36cec42e2feed29ddf806853a493ed8d4b20925fdc983a1c68e7",
@@ -1494,5 +1494,7 @@
     },
     "setup_failure_retained": "The first private WT wrapper stopped before any case because runpy lacked scripts/lib in sys.path. Corrected wrapper95a uses the same sealed runtime and guarded sources; the first setup log is retained. No runtime retry is represented as an initial pass.",
     "remaining": "Current normal fallback tone/cadence failures, short VP8 loss/expiry and captured-native original-command timeout remain unresolved. These checks do not qualify frozen impaired/remote/native-live/full60 scopes or complete tasks/acceptance."
-  }
+  },
+  "post_fix_failure_witness": "docs/evidence/gate-6/browser-audio-post-fix-gaps.json",
+  "followup_implementation": "docs/evidence/gate-6/canonical-ingress-policy-snapshot.json"
 }

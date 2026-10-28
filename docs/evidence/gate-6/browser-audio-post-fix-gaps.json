@@ -1,0 +1,327 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "post-fix residual failure captured; missing server output quantum localized, candidate metadata-lock repair under component test",
+  "recorded_at": "2026-10-28T01:01:32.117842+00:00",
+  "scope": "First bounded post-fix Chrome EdDSA diagnostic on normal-feature build93. Pass-through encoded-audio/PCM and bounded filtered server TRACE can affect timing; this is not a normal operating-profile pass. No additional retries were needed or executed after first failure.",
+  "runtime": {
+    "exit_code": 101,
+    "witness_events": 1,
+    "witness_errors": [],
+    "guards_unchanged": true,
+    "paired_termination": {
+      "status": "passed",
+      "seconds": 0.002008125000000291,
+      "limit_seconds": 5,
+      "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+    }
+  },
+  "actual_pcm": {
+    "expected_hz": 440,
+    "actual_browser": {
+      "rms": 0.2993848041014242,
+      "frequency_hz": 398.4375
+    },
+    "independent_blackman_fft": {
+      "peak_hz": 398.4375,
+      "rms": 0.29948482583544966
+    },
+    "same_pcm_before_after_browser_spectrum": true,
+    "source_snapshots": [
+      {
+        "relative_event_seconds": -0.2930002212524414,
+        "peak_hz": 445.3125,
+        "rms": 0.03545223115721909
+      },
+      {
+        "relative_event_seconds": -0.19300031661987305,
+        "peak_hz": 445.3125,
+        "rms": 0.03530081187580973
+      },
+      {
+        "relative_event_seconds": -0.09420013427734375,
+        "peak_hz": 445.3125,
+        "rms": 0.4929051161541733
+      },
+      {
+        "relative_event_seconds": -0.0019001960754394531,
+        "peak_hz": 445.3125,
+        "rms": 0.03533687987204112
+      }
+    ]
+  },
+  "retained_packets": {
+    "toc": "All four retained sender/receiver streams are0xf8 (CELT20ms mono) after factory Audio change.",
+    "index": [
+      {
+        "name": "event0-receiver-send-1",
+        "frames": 200,
+        "total": 1418,
+        "last_event_delta_s": 0.03879976272583008,
+        "RTP_steps": [
+          960
+        ],
+        "gaps": 0,
+        "errors": []
+      },
+      {
+        "name": "event0-receiver-receive-2",
+        "frames": 200,
+        "total": 1319,
+        "last_event_delta_s": 0.04959988594055176,
+        "RTP_steps": [
+          960,
+          1920
+        ],
+        "gaps": 11,
+        "errors": []
+      },
+      {
+        "name": "event0-source-send-1",
+        "frames": 200,
+        "total": 1422,
+        "last_event_delta_s": 0.12960004806518555,
+        "RTP_steps": [
+          960
+        ],
+        "gaps": 0,
+        "errors": []
+      },
+      {
+        "name": "event0-source-receive-2",
+        "frames": 200,
+        "total": 1356,
+        "last_event_delta_s": 0.13940000534057617,
+        "RTP_steps": [
+          960,
+          1920
+        ],
+        "gaps": 7,
+        "errors": []
+      }
+    ],
+    "direct_decode": [
+      {
+        "stream": "event0-receiver-receive-2",
+        "expected": 440,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          421.875,
+          445.3125
+        ],
+        "cases": []
+      },
+      {
+        "stream": "event0-receiver-send-1",
+        "expected": 660,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          656.25,
+          656.25
+        ],
+        "cases": []
+      },
+      {
+        "stream": "event0-source-receive-2",
+        "expected": 660,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          656.25,
+          679.6875
+        ],
+        "cases": []
+      },
+      {
+        "stream": "event0-source-send-1",
+        "expected": 440,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          445.3125,
+          445.3125
+        ],
+        "cases": []
+      }
+    ],
+    "finding": "The actual source440Hz and server440Hz payloads decode with no off-tone windows in independent dense analysis. The failing receiver stream contains11RTP timestamp gaps with contiguous packet sequence numbers, including a1920sample interval90.8ms before the PCM event. Both surrounding writes are matched by actual SSRC/sequence/RTPtimestamp in the server timeline. This is a server omission, not an inferred UDP packet loss.",
+    "nearest_actual_gap": {
+      "relative_event_seconds": -0.09080004692077637,
+      "previous": {
+        "synchronizationSource": 284387001,
+        "payloadType": 111,
+        "rtpTimestamp": 1351680,
+        "sequenceNumber": 1311,
+        "receiveTime": 29807.89999985695
+      },
+      "current": {
+        "synchronizationSource": 284387001,
+        "payloadType": 111,
+        "rtpTimestamp": 1353600,
+        "sequenceNumber": 1312,
+        "receiveTime": 29845.799999952316
+      },
+      "timestamp_step": 1920,
+      "sequence_step": 1
+    },
+    "matched_actual_server_writes": [
+      {
+        "relative_event_seconds": -0.12881207466125488,
+        "accepted": true,
+        "age_us": 2377,
+        "count": 2653,
+        "message": "Original RTC audio timing",
+        "samples": 960,
+        "sequence": 1311,
+        "source_timestamp": 1351680,
+        "stage": "driver-write",
+        "target_ssrc": 284387001,
+        "wire_timestamp": 1351680,
+        "write_us": 29
+      },
+      {
+        "relative_event_seconds": -0.09084892272949219,
+        "accepted": true,
+        "age_us": 504,
+        "count": 2657,
+        "message": "Original RTC audio timing",
+        "samples": 960,
+        "sequence": 1312,
+        "source_timestamp": 1353600,
+        "stage": "driver-write",
+        "target_ssrc": 284387001,
+        "wire_timestamp": 1353600,
+        "write_us": 21
+      }
+    ]
+  },
+  "trace": {
+    "captured_event_bytes": 10603539,
+    "maximum_event_bytes": 33554432,
+    "maximum_events": 65536,
+    "omitted_events": 0,
+    "scope": "Bounded numeric synthetic-lane source/mixer/publication/write diagnostics; not a normal-profile qualification",
+    "selection": "Only repeated successful Current native packet authority events are suppressed; refusals and source/mixer/publication/write timing remain selected",
+    "suppressed_known_successes": 79510
+  },
+  "trace_event_count": 43616,
+  "trace_covers_failure": true,
+  "independent_plc_counterfactual": {
+    "scope": "Same retained payloads decoded with independent libopus; insert one empty960sample PLC interval only at each actual1920timestamp step. No claim of bit-identical browser NetEq scheduling/state.",
+    "scores": [
+      {
+        "stream": "event0-receiver-receive-2",
+        "expected": 440,
+        "windows": 1192,
+        "bad_windows": 1,
+        "peak_range": [
+          398.4375,
+          468.75
+        ],
+        "cases": [
+          {
+            "relative_recorded_frame_seconds": -1.184499979019165,
+            "peak_hz": 398.4375,
+            "offset": 140288
+          }
+        ]
+      },
+      {
+        "stream": "event0-receiver-send-1",
+        "expected": 660,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          656.25,
+          656.25
+        ],
+        "cases": []
+      },
+      {
+        "stream": "event0-source-receive-2",
+        "expected": 660,
+        "windows": 1162,
+        "bad_windows": 0,
+        "peak_range": [
+          656.25,
+          679.6875
+        ],
+        "cases": []
+      },
+      {
+        "stream": "event0-source-send-1",
+        "expected": 440,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          445.3125,
+          445.3125
+        ],
+        "cases": []
+      }
+    ],
+    "limit": "One off-tone398.4375Hz window occurs in the440Hz replay1.1845seconds before the actual PCM event. It demonstrates susceptibility to the captured discontinuities, not an exact replay of the browser failure time."
+  },
+  "next_action": "Verify current fresh-ingress external policy callbacks hold the controller model mutex and test detached metadata snapshots with original stream/consumer/scene generation revalidation. Preserve all current authorization and original age/IO bounds; do not loosen audio/cadence classifiers.",
+  "cli_integrity": {
+    "current_cargo_artifact": {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server#0.1.0",
+      "manifest_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/Cargo.toml",
+      "target": {
+        "kind": [
+          "bin"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "connect",
+        "src_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/src/main.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": false,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": false,
+        "overflow_checks": false,
+        "test": false
+      },
+      "features": [
+        "test-support"
+      ],
+      "filenames": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect"
+      ],
+      "executable": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+      "fresh": false
+    },
+    "sha256": "2e43026baa5806efac70b679e096e12559c8ae9665fe323f03404e7505c67763",
+    "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/opus-general-fidelity/connect-cli-93",
+    "bytes": 236030896,
+    "help_exit_code": 0,
+    "help_sha256": "a02159eb2af1eabac458ced34238bf38329ae2f4f12a7da6bf413639b202a0ab"
+  },
+  "private_sha256": {
+    ".local/gate-6/canonical-browser-host/chrome-eddsa-post-fix-witness-96-1/decoded-audio/synthetic-audio-witnesses.json": "3f5257b54939727d21edd9614f1011ef33d9b736832d0d7a482b0a615dfcdfbe",
+    ".local/gate-6/canonical-browser-host/chrome-eddsa-post-fix-witness-96-1-trace/core-audio-timeline.json": "7b69db73cd12fdd00ccd75d12a54000d5cdabb8d2dacc43e7e6a0f912cb4d50b",
+    ".local/gate-6/canonical-browser-host/chrome-eddsa-post-fix-witness-96-1/summary.json": "eb4c2d907fc6d9905de174665c308e34d16fc63f44f420934cd2f371204c03ef",
+    ".local/gate-6/opus-general-fidelity/post-fix-witness-96/decoder-proof.json": "d26f82f14b04f931dc100ba395f1c8c1178a96bde97dbba1f77b0950099e0a70",
+    ".local/gate-6/opus-general-fidelity/post-fix-witness-96/plc-decoder-proof.json": "6d1b772c91f03abbfa1d5ed59236f4fadd34a13cbc88e93abb01316c6f367de9",
+    ".local/gate-6/opus-general-fidelity/post-fix-witness-96/encoded-decoded-scores.json": "fab7931eaafef34b6ed904016964ae5cc6e3714dd7a14733d878b7b607266dba",
+    ".local/gate-6/opus-general-fidelity/post-fix-witness-96/encoded-with-plc-scores.json": "0a2ff6ca93081d2963e41fbf5d647288d28a3fcde64bf658d9bb66e61e7bcb9f"
+  },
+  "progress": {
+    "done": 57,
+    "in_progress": 2,
+    "not_started": 46,
+    "acceptance_qualified": 0
+  },
+  "publication": false
+}
