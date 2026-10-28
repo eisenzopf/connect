@@ -5,6 +5,6 @@ export { HttpClient } from "./http.js";
 export { CanonicalNativeClient } from "./canonical_native.js";
 export { CanonicalHttpClient } from "./canonical_http.js";
 export { CanonicalError } from "./canonical_error.js";
-export { NodeClient, sdkId } from "./node_sdk.js";
+export { NodeClient, sdkId, sdkRevision } from "./node_sdk.js";
 export { NodeSdkError } from "./sdk_helper.js";
 export { TASK_PROFILE } from "./tasks.js";

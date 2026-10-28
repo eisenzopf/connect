@@ -1,10 +1,11 @@
 # Typed Node control component
 
 G6-062 remains in progress. `NodeClient` currently implements typed Conversation
-creation/refresh, participant-targeted text messages, operation recovery and
+creation/refresh, typed participant add/update/remove/refresh, text messages, operation recovery and
 durable cancel/reconcile decisions. Its supported operation kinds are
 `conversation_create`, `message_send`, `operation_cancel` and
-`operation_reconcile`. The full Session/Connection/Stream, invitation, event,
+`operation_reconcile`, plus the three `conversation_participant_*` kinds.
+The full Session/Connection/Stream, invitation, event,
 capability, administration and remote HTTP interfaces remain required.
 Programmatic media is G6-064. There is no fallback to the historical generic API.
 
@@ -82,7 +83,7 @@ stderr never become application diagnostics. The older `ConnectError` belongs
 to the historical generic interface; it is not an alternate error path here.
 
 Run `python3 sdk/tests/check_canonical_helper.py --output .local/gate-6/FRESH`.
-The 38 tests and negative declaration checks cover synthetic owned helper/HTTP
+The 41 tests and negative declaration checks cover synthetic owned helper/HTTP
 behavior. They make no cryptographic or full SDK qualification claim.
 
 For the installed real-server component, pack locally into `dist/`, install
@@ -101,3 +102,27 @@ original-ID recovery across helper restart, current revocation and four original
 helper/two server joins. It starts no model, provider or telephone call. See
 [`node-typed-sdk.json`](../evidence/gate-6/node-typed-sdk.json) for exact evidence,
 retained failures and remaining scope. Local packing is not publication.
+
+Participant handles retain their stable Participant and Conversation IDs.
+`conversation.participants.add()` requires the current `expectedRevision`;
+`participant.update()` and `participant.remove()` take
+`expectedConversationRevision`. These are `SdkRevision<'conversation'>` values
+returned by current Conversation refresh or explicitly validated by
+`sdkRevision<'conversation'>()`. A topology revision is a different type.
+The host checks the current revision; the SDK never rereads and silently retries
+with a different assertion. Removing membership makes current refresh report
+`receipt-unavailable`. Re-adding the identity retains its Participant ID and
+advances its membership epoch. Restoring an older operation reference never
+makes its historical membership receipt a grant into that new epoch.
+
+The isolated Linux workflow now includes separate Node22/Node26 synthetic jobs
+and generated-distribution checks. Their results require their own downloaded
+artifacts; the local macOS passes do not qualify those CI profiles.
+
+Current participant evidence and its limits are in
+[`node-participant-sdk.json`](../evidence/gate-6/node-participant-sdk.json).
+Two uninstrumented runs timed out on the first Conversation-create request at
+its unchanged four-second budget, before membership assertions. A subsequent
+instrumented run passes both signing algorithms and all membership/recovery
+assertions; the initial deadline cause remains unproven. This is an explicit
+open finding, not a completed uninstrumented profile or production fix.

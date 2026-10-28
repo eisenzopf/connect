@@ -10,6 +10,8 @@ on:
       - 'patches/**'
       - 'Cargo.*'
       - 'rust-toolchain.toml'
+      - 'sdk/typescript/**'
+      - 'sdk/tests/**'
       - 'scripts/check-gate6-linux-hosting.py'
       - 'scripts/lib/source_build_cache.py'
       - 'scripts/tests/test_source_build_cache.py'
@@ -20,6 +22,39 @@ concurrency:
   group: gate6-linux-fixtures-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  node-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '26']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install locked SDK build dependencies
+        working-directory: sdk/typescript
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Bounded synthetic helper, HTTP and negative type checks
+        run: python3 sdk/tests/check_canonical_helper.py --output .local/gate6-node-ci/evidence
+      - name: Verify generated SDK distribution
+        run: git diff --exit-code -- sdk/typescript/dist
+      - name: Upload synthetic Node component evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-node-source-evidence-${{ matrix.node }}
+          path: .local/gate6-node-ci/evidence/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
   ubuntu-x86:
     runs-on: ubuntu-24.04
     timeout-minutes: 90

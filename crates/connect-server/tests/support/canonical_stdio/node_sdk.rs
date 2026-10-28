@@ -31,7 +31,12 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
         init::private_write(&native, toml::to_string(&sdk_config).unwrap().as_bytes()).unwrap();
         let wrapper = f.temp.path().join("owned-connect-wrapper");
         init::private_write(&wrapper, br#"#!/usr/bin/env python3
-import os,sys
+import os,sys,time
+path=os.path.join(os.environ['CONNECT_G6_NODE_HELPER_DIR'],'helper-'+os.environ['CONNECT_G6_NODE_ALGORITHM']+'-'+str(os.getpid())+'.stderr')
+fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+os.dup2(fd,2)
+os.close(fd)
+os.write(2,('owned-exec monotonic_ns='+str(time.monotonic_ns())+' pid='+str(os.getpid())+'\n').encode())
 with open(os.environ['CONNECT_G6_NODE_PID_FILE'],'a') as stream: stream.write(str(os.getpid())+'\n')
 os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONNECT'],*sys.argv[1:]])
 "#).unwrap();
@@ -52,6 +57,8 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             .arg(&script)
             .arg(&input)
             .env("CONNECT_G6_NODE_PID_FILE", &pid_file)
+            .env("CONNECT_G6_NODE_HELPER_DIR", project)
+            .env("CONNECT_G6_NODE_ALGORITHM", algorithm)
             .env("CONNECT_G6_NODE_CONNECT", env!("CARGO_BIN_EXE_connect"))
             .current_dir(project)
             .kill_on_drop(true)
@@ -110,6 +117,22 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         assert!(!std::fs::read_to_string(stderr_path)
             .unwrap()
             .contains(&f.client.credential));
+        for entry in std::fs::read_dir(project).unwrap() {
+            let entry = entry.unwrap();
+            if entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(&format!("helper-{algorithm}-"))
+            {
+                assert_eq!(
+                    entry.metadata().unwrap().permissions().mode() & 0o777,
+                    0o600
+                );
+                assert!(!std::fs::read_to_string(entry.path())
+                    .unwrap()
+                    .contains(&f.client.credential));
+            }
+        }
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",

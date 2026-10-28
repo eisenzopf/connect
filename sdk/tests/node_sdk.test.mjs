@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
-import {NodeClient,NodeSdkError} from '../typescript/dist/index.js';
+import {NodeClient,NodeSdkError,sdkRevision} from '../typescript/dist/index.js';
 const root=fileURLToPath(new URL('../../',import.meta.url)),executable=fileURLToPath(new URL('./fixtures/sdk_helper.mjs',import.meta.url));
 const opts={timeoutMs:1500},mutation={...opts,operationId:'original'};
 const saved=()=>({schema:'connect-operation-reference/1',operation_id:'original',command:'message.send',scope:{conversation_id:'room'}});
@@ -127,5 +127,45 @@ test('one owned operation rejects a changed host record identity across separate
   assert.equal((await op.status(opts)).recordId,'record-original');
   await assert.rejects(op.wait(opts),error('protocol','read-only'));
   assert.throws(()=>op.status(opts),error('configuration','read-only'));
+ });
+});
+
+test('typed participants preserve Conversation scope and independent mutation/revision identity',async()=>{
+ await fixture({},async(client,dir)=>{
+  const room=client.conversations.byId('room'),revision=sdkRevision(1);
+  const add=await room.participants.add({identityId:'identity',kind:'human',role:'participant',expectedRevision:revision},mutation);
+  const savedAdd=add.referenceJson(),participant=(await add.wait(opts)).value;
+  assert.equal(participant.id,'participant');assert.equal(participant.conversationId,'room');assert.throws(()=>participant.id='foreign');
+  assert.equal((await participant.refresh(opts)).identityId,'identity');
+  const update=await participant.update({role:'observer',expectedConversationRevision:revision},{...opts,operationId:'role-update'});
+  assert.equal((await update.wait(opts)).value.id,participant.id);
+  const removed=await participant.remove({expectedConversationRevision:revision},{...opts,operationId:'remove'});
+  assert.equal((await removed.wait(opts)).value.id,participant.id);
+  const restored=client.operations.restore(savedAdd,client.operationKinds.conversation_participant_add);
+  assert.equal((await restored.wait(opts)).value.id,participant.id);
+  const requests=await calls(dir);const mutations=requests.filter(r=>r.request.action.type.startsWith('participant_')&&r.request.action.type!=='participant_refresh');
+  assert.deepEqual(mutations.map(r=>r.request.action.mutation.operation_id),['original','role-update','remove']);
+  assert.ok(mutations.every(r=>r.request.action.expected_revision===1&&r.request.action.conversation_id==='room'));
+ });
+});
+test('invalid participant scopes, identity kinds and noninteger revisions never write',async()=>{
+ await fixture({},async(client,dir)=>{
+  const room=client.conversations.byId('room'),participant=room.participants.byId('participant');
+  for(const expected of [-1,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1])assert.throws(()=>participant.remove({expectedConversationRevision:expected},mutation),error('validation','not-submitted'));
+  assert.throws(()=>room.participants.add({identityId:'identity',kind:'robot',role:'participant',expectedRevision:1},mutation),error('validation','not-submitted'));
+  assert.throws(()=>room.participants.byId('bad!'),error('validation','not-submitted'));
+  for(const kind of [client.operationKinds.conversation_participant_add,client.operationKinds.conversation_participant_update,client.operationKinds.conversation_participant_remove])
+   assert.throws(()=>client.operations.restore({...saved(),command:kind.command,scope:{conversation_id:'room',session_id:'session'}},kind),error('validation','not-submitted'));
+  assert.equal((await calls(dir)).length,0);
+ });
+});
+test('participant results and refresh observations cannot cross Conversation scope',async()=>{
+ await fixture({mode:'wrong-participant'},async client=>{
+  const participant=client.conversations.byId('room').participants.byId('participant');
+  await assert.rejects(participant.refresh(opts),error('protocol','read-only'));
+ });
+ await fixture({mode:'wrong-participant'},async client=>{
+  const op=client.operations.restore({...saved(),command:'conversation.participant.add'},client.operationKinds.conversation_participant_add);
+  await assert.rejects(op.wait(opts),error('protocol','read-only'));
  });
 });

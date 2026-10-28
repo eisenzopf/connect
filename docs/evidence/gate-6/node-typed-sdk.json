@@ -245,5 +245,9 @@
     "source_count": 5748,
     "changed_inputs": [],
     "binary_sha256": "4357737d6802a0798577f99d3e69ae36db85c4898179356a9c1684b4ecfa25a0"
+  },
+  "later_participant_component": {
+    "evidence": "docs/evidence/gate-6/node-participant-sdk.json",
+    "scope": "Current typed Participant control/epoch/revision component with41synthetic passes and a both-algorithm instrumented server positive. Two uninstrumented startup deadlines unresolved; prior80afb0b6/304 evidence above remains historical exact source scope."
   }
 }

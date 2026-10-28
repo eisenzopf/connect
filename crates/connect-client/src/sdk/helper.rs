@@ -1,6 +1,6 @@
 //! Typed managed-helper control. All behavior delegates to the public SDK.
 //!
-//! This first control slice covers Conversation and message operations and their
+//! This control slice covers Conversation/Participant and message operations and their
 //! durable decisions. The wire adapter owns framing; this module owns no Store,
 //! alternate journal, credential reload, or automatic mutation replay.
 use super::*;
@@ -50,6 +50,31 @@ pub enum Action {
     ConversationRefresh {
         conversation_id: ConversationId,
     },
+    ParticipantAdd {
+        conversation_id: ConversationId,
+        identity_id: IdentityId,
+        kind: IdentityKind,
+        role: String,
+        expected_revision: ConversationRevision,
+        mutation: Mutation,
+    },
+    ParticipantUpdate {
+        conversation_id: ConversationId,
+        participant_id: ParticipantId,
+        role: String,
+        expected_revision: ConversationRevision,
+        mutation: Mutation,
+    },
+    ParticipantRemove {
+        conversation_id: ConversationId,
+        participant_id: ParticipantId,
+        expected_revision: ConversationRevision,
+        mutation: Mutation,
+    },
+    ParticipantRefresh {
+        conversation_id: ConversationId,
+        participant_id: ParticipantId,
+    },
     Operation {
         reference: Value,
         kind: Kind,
@@ -63,6 +88,9 @@ pub enum Kind {
     MessageSend,
     OperationCancel,
     OperationReconcile,
+    ConversationParticipantAdd,
+    ConversationParticipantUpdate,
+    ConversationParticipantRemove,
 }
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
@@ -125,13 +153,60 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                 .await?;
             Ok(
                 json!({"id":room.id,"revision":room.revision,"closed":room.closed,
-                "participants":room.participants.into_iter().map(|p| json!({
-                    "id":p.id,"conversationId":p.conversation_id,"identityId":p.identity_id,
-                    "kind":p.kind,"role":p.role,"membershipEpoch":p.membership_epoch,
-                    "active":p.active,"removalReason":p.removal_reason
-                })).collect::<Vec<_>>()}),
+                "participants":room.participants.into_iter().map(participant_snapshot_json).collect::<Vec<_>>()}),
             )
         }
+        Action::ParticipantAdd {
+            conversation_id,
+            identity_id,
+            kind,
+            role,
+            expected_revision,
+            mutation,
+        } => Ok(client
+            .conversation_by_id(conversation_id)
+            .add_participant(
+                identity_id,
+                kind,
+                role,
+                expected_revision,
+                mutation.options(options),
+            )
+            .await?
+            .reference_json()),
+        Action::ParticipantUpdate {
+            conversation_id,
+            participant_id,
+            role,
+            expected_revision,
+            mutation,
+        } => Ok(client
+            .conversation_by_id(conversation_id)
+            .participant_by_id(participant_id)
+            .update(role, expected_revision, mutation.options(options))
+            .await?
+            .reference_json()),
+        Action::ParticipantRemove {
+            conversation_id,
+            participant_id,
+            expected_revision,
+            mutation,
+        } => Ok(client
+            .conversation_by_id(conversation_id)
+            .participant_by_id(participant_id)
+            .remove(expected_revision, mutation.options(options))
+            .await?
+            .reference_json()),
+        Action::ParticipantRefresh {
+            conversation_id,
+            participant_id,
+        } => Ok(participant_snapshot_json(
+            client
+                .conversation_by_id(conversation_id)
+                .participant_by_id(participant_id)
+                .refresh(options)
+                .await?,
+        )),
         Action::Operation {
             reference,
             kind,
@@ -145,6 +220,9 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                     |message| json!({"messageId":message.message_id,"operation":key_json(&message.operation),"boundary":message.boundary})).await,
                 Kind::OperationCancel => run(client.restore(reference, kinds.operation_cancel)?, action, options, decision_json).await,
                 Kind::OperationReconcile => run(client.restore(reference, kinds.operation_reconcile)?, action, options, decision_json).await,
+                Kind::ConversationParticipantAdd => run(client.restore(reference, kinds.conversation_participant_add)?, action, options, participant_json).await,
+                Kind::ConversationParticipantUpdate => run(client.restore(reference, kinds.conversation_participant_update)?, action, options, participant_json).await,
+                Kind::ConversationParticipantRemove => run(client.restore(reference, kinds.conversation_participant_remove)?, action, options, participant_json).await,
             }
         }
     }
@@ -223,4 +301,13 @@ pub fn error_json(error: &Error) -> Value {
     json!({"kind":kind,"certainty":certainty,"operation":error.operation.as_ref().map(key_json),
         "problem":error.problem.as_ref().map(|p| json!({"code":p.code,"category":p.category,"reason":p.reason})),
         "observation":error.observation.as_ref().map(snapshot_json)})
+}
+
+fn participant_json(value: Participant) -> Value {
+    json!({"id":value.id(),"conversationId":value.conversation_id()})
+}
+fn participant_snapshot_json(p: ParticipantSnapshot) -> Value {
+    json!({"id":p.id,"conversationId":p.conversation_id,"identityId":p.identity_id,
+        "kind":p.kind,"role":p.role,"membershipEpoch":p.membership_epoch,
+        "active":p.active,"removalReason":p.removal_reason})
 }

@@ -11,6 +11,14 @@ import type { CanonicalRequestOptions } from "./canonical_validation.js";
 
 declare const identity: unique symbol;
 declare const resultType: unique symbol;
+declare const revisionFamily: unique symbol;
+export type SdkRevision<K extends string> = number & {
+    readonly [revisionFamily]: K;
+};
+export function sdkRevision<K extends string>(value: number): SdkRevision<K> {
+    if (!Number.isSafeInteger(value) || value < 0) invalid();
+    return value as SdkRevision<K>;
+}
 export type SdkId<K extends string> = string & { readonly [identity]: K };
 export type ConversationId = SdkId<"conversation">;
 export type IdentityId = SdkId<"identity">;
@@ -74,7 +82,7 @@ export interface SdkDecisionReceipt {
 }
 export interface SdkConversationSnapshot {
     readonly id: ConversationId;
-    readonly revision: number;
+    readonly revision: SdkRevision<"conversation">;
     readonly closed: boolean;
     readonly participants: readonly {
         readonly id: ParticipantId;
@@ -87,11 +95,16 @@ export interface SdkConversationSnapshot {
         readonly removalReason: string | null;
     }[];
 }
+export type SdkParticipantSnapshot =
+    SdkConversationSnapshot["participants"][number];
 type KindName =
     | "conversation_create"
     | "message_send"
     | "operation_cancel"
-    | "operation_reconcile";
+    | "operation_reconcile"
+    | "conversation_participant_add"
+    | "conversation_participant_update"
+    | "conversation_participant_remove";
 type Kind<T> = {
     name: KindName;
     command: string;
@@ -100,6 +113,8 @@ type Kind<T> = {
 const runOperation = Symbol("operation");
 const sendMessage = Symbol("send");
 const refreshConversation = Symbol("refresh");
+const mutateParticipant = Symbol("participant-mutation");
+const readParticipant = Symbol("participant-read");
 const kinds = new WeakMap<object, Kind<unknown>>();
 const references = new WeakMap<
     object,
@@ -275,7 +290,67 @@ function decision(
             : { evidenceId: value.evidenceId as string }),
     });
 }
+function participant(
+    value: Json,
+    client: NodeClient,
+    key: OperationKey,
+): SdkParticipant {
+    if (
+        !object(value, ["id", "conversationId"]) ||
+        !identifier(value.id) ||
+        value.conversationId !== key.scope.conversationId
+    )
+        return protocol();
+    return client.conversations
+        .byId(value.conversationId as ConversationId)
+        .participants.byId(value.id as ParticipantId);
+}
+function participantSnapshot(
+    value: Json,
+    cid: ConversationId,
+    pid: ParticipantId,
+): SdkParticipantSnapshot {
+    if (
+        !object(value, [
+            "id",
+            "conversationId",
+            "identityId",
+            "kind",
+            "role",
+            "membershipEpoch",
+            "active",
+            "removalReason",
+        ]) ||
+        value.id !== pid ||
+        value.conversationId !== cid ||
+        !identifier(value.identityId) ||
+        !["human", "ai", "system", "external"].includes(String(value.kind)) ||
+        typeof value.role !== "string" ||
+        !Number.isSafeInteger(value.membershipEpoch) ||
+        Number(value.membershipEpoch) < 0 ||
+        typeof value.active !== "boolean" ||
+        (value.removalReason !== null &&
+            typeof value.removalReason !== "string")
+    )
+        return protocol();
+    return freeze(value) as unknown as SdkParticipantSnapshot;
+}
 const operationKinds = Object.freeze({
+    conversation_participant_add: kind(
+        "conversation_participant_add",
+        "conversation.participant.add",
+        participant,
+    ),
+    conversation_participant_update: kind(
+        "conversation_participant_update",
+        "conversation.participant.update",
+        participant,
+    ),
+    conversation_participant_remove: kind(
+        "conversation_participant_remove",
+        "conversation.participant.remove",
+        participant,
+    ),
     conversation_create: kind<SdkConversation>(
         "conversation_create",
         "conversation.create",
@@ -422,7 +497,8 @@ export class NodeClient {
         if (
             k.name === "conversation_create"
                 ? Object.keys(s).length !== 0
-                : k.name === "message_send"
+                : k.name === "message_send" ||
+                    k.name.startsWith("conversation_participant_")
                   ? !s.conversation_id || !!s.session_id || !!s.connection_id
                   : !!s.connection_id
         )
@@ -574,15 +650,86 @@ export class NodeClient {
             },
         );
     }
+    [mutateParticipant](
+        cid: ConversationId,
+        action: JsonObject,
+        kind: SdkOperationKind<SdkParticipant>,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkParticipant>> {
+        const key = makeKey(options?.operationId, kind.command, {
+            conversationId: cid,
+        });
+        return this.helper.request(
+            { ...action, conversation_id: cid, mutation: mutation(options) },
+            options,
+            (value) => this.fromReply(value, kind, key),
+            key,
+            true,
+        );
+    }
+    [readParticipant](
+        cid: ConversationId,
+        pid: ParticipantId,
+        options: CanonicalRequestOptions,
+    ): Promise<SdkParticipantSnapshot> {
+        return this.helper.request(
+            {
+                type: "participant_refresh",
+                conversation_id: cid,
+                participant_id: pid,
+            },
+            options,
+            (value) => participantSnapshot(value, cid, pid),
+        );
+    }
     close(options: CanonicalRequestOptions): Promise<void> {
         return this.helper.close(options);
     }
 }
 export class SdkConversation {
+    readonly participants;
     constructor(
         private readonly client: NodeClient,
         readonly id: ConversationId,
     ) {
+        this.participants = Object.freeze({
+            byId: (id: ParticipantId): SdkParticipant => {
+                sdkId(id);
+                return new SdkParticipant(client, this.id, id);
+            },
+            add: (
+                input: {
+                    readonly identityId: IdentityId;
+                    readonly kind: "human" | "ai" | "system" | "external";
+                    readonly role: string;
+                    readonly expectedRevision: SdkRevision<"conversation">;
+                },
+                options: SdkMutationOptions,
+            ): Promise<SdkOperation<SdkParticipant>> => {
+                if (
+                    !input ||
+                    !identifier(input.identityId) ||
+                    !["human", "ai", "system", "external"].includes(
+                        input.kind,
+                    ) ||
+                    typeof input.role !== "string"
+                )
+                    invalid();
+                sdkRevision<"conversation">(input.expectedRevision);
+                return client[mutateParticipant](
+                    this.id,
+                    {
+                        type: "participant_add",
+                        identity_id: input.identityId,
+                        kind: input.kind,
+                        role: input.role,
+                        expected_revision: input.expectedRevision,
+                    },
+                    client.operationKinds.conversation_participant_add,
+                    options,
+                );
+            },
+        });
         Object.freeze(this);
     }
     refresh(
@@ -595,6 +742,62 @@ export class SdkConversation {
         options: SdkMutationOptions,
     ): Promise<SdkOperation<SdkMessageAcceptance>> {
         return this.client[sendMessage](this.id, input, options);
+    }
+}
+export class SdkParticipant {
+    constructor(
+        private readonly client: NodeClient,
+        readonly conversationId: ConversationId,
+        readonly id: ParticipantId,
+    ) {
+        Object.freeze(this);
+    }
+    refresh(options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot> {
+        return this.client[readParticipant](
+            this.conversationId,
+            this.id,
+            options,
+        );
+    }
+    update(
+        input: {
+            readonly role: string;
+            readonly expectedConversationRevision: SdkRevision<"conversation">;
+        },
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkParticipant>> {
+        if (!input || typeof input.role !== "string") invalid();
+        sdkRevision<"conversation">(input.expectedConversationRevision);
+        return this.client[mutateParticipant](
+            this.conversationId,
+            {
+                type: "participant_update",
+                participant_id: this.id,
+                role: input.role,
+                expected_revision: input.expectedConversationRevision,
+            },
+            this.client.operationKinds.conversation_participant_update,
+            options,
+        );
+    }
+    remove(
+        input: {
+            readonly expectedConversationRevision: SdkRevision<"conversation">;
+        },
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkParticipant>> {
+        if (!input) invalid();
+        sdkRevision<"conversation">(input.expectedConversationRevision);
+        return this.client[mutateParticipant](
+            this.conversationId,
+            {
+                type: "participant_remove",
+                participant_id: this.id,
+                expected_revision: input.expectedConversationRevision,
+            },
+            this.client.operationKinds.conversation_participant_remove,
+            options,
+        );
     }
 }
 export class SdkOperation<T> {

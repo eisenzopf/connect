@@ -25,6 +25,23 @@ try {
  assert.equal(created.reference.command,'conversation.create');assert.equal((await client.operations.restore(createSaved,client.operationKinds.conversation_create).wait(opts)).value.id,room.id);
  const refreshed=await room.refresh(opts);assert.equal(refreshed.id,room.id);
  const peer=refreshed.participants.find(p=>p.identityId===spec.peer_identity);assert.ok(peer);
+ const first=room.participants.byId(peer.id);
+ await (await first.remove({expectedConversationRevision:refreshed.revision},{...opts,operationId:'typed-node-member-reset'})).wait(opts);
+ await assert.rejects(first.refresh(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'receipt-unavailable');assert.equal(e.certainty,'read-only');return true;});
+ const reset=await room.refresh(opts),addInput={identityId:spec.peer_identity,kind:peer.kind,role:'participant',expectedRevision:reset.revision};
+ const added=await room.participants.add(addInput,{...opts,operationId:'typed-node-member-add'}),addedSaved=added.referenceJson(),member=(await added.wait(opts)).value;
+ assert.equal(member.id,peer.id);const epoch=(await member.refresh(opts)).membershipEpoch;
+ const beforeRole=await room.refresh(opts);
+ await (await member.update({role:'observer',expectedConversationRevision:beforeRole.revision},{...opts,operationId:'typed-node-member-role'})).wait(opts);
+ assert.equal((await member.refresh(opts)).role,'observer');
+ // Explicit replay returns the original logical operation, without another admission.
+ assert.equal((await (await room.participants.add(addInput,{...opts,operationId:'typed-node-member-add'})).wait(opts)).value.id,peer.id);
+ await assert.rejects(member.update({role:'participant',expectedConversationRevision:reset.revision},{...opts,operationId:'typed-node-member-stale'}),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
+ const beforeRemove=await room.refresh(opts);await (await member.remove({expectedConversationRevision:beforeRemove.revision},{...opts,operationId:'typed-node-member-remove'})).wait(opts);
+ await assert.rejects(member.refresh(opts),e=>{assert.equal(e.kind,'receipt-unavailable');return true;});
+ const beforeReturn=await room.refresh(opts),returned=(await (await room.participants.add({...addInput,expectedRevision:beforeReturn.revision},{...opts,operationId:'typed-node-member-return'})).wait(opts)).value;
+ assert.equal(returned.id,peer.id);assert.ok((await returned.refresh(opts)).membershipEpoch>epoch);
+ await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
  const intent={messageId:'typed-node-original-message',to:{first:peer.id,rest:[]},text:'synthetic typed Node journey'};
  const sent=await room.send(intent,mutation),saved=sent.referenceJson();
  assert.throws(()=>sent.reference.scope.conversationId='foreign');assert.throws(()=>client.operations.restore(saved,client.operationKinds.conversation_create));
@@ -41,7 +58,7 @@ try {
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await client.close(opts);assert.equal(await stopped(),1);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,first_helper_joined:true});
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,first_helper_joined:true});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);

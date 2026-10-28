@@ -3,6 +3,11 @@ import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
 declare const identity: unique symbol;
 declare const resultType: unique symbol;
+declare const revisionFamily: unique symbol;
+export type SdkRevision<K extends string> = number & {
+    readonly [revisionFamily]: K;
+};
+export declare function sdkRevision<K extends string>(value: number): SdkRevision<K>;
 export type SdkId<K extends string> = string & {
     readonly [identity]: K;
 };
@@ -59,7 +64,7 @@ export interface SdkDecisionReceipt {
 }
 export interface SdkConversationSnapshot {
     readonly id: ConversationId;
-    readonly revision: number;
+    readonly revision: SdkRevision<"conversation">;
     readonly closed: boolean;
     readonly participants: readonly {
         readonly id: ParticipantId;
@@ -72,9 +77,12 @@ export interface SdkConversationSnapshot {
         readonly removalReason: string | null;
     }[];
 }
+export type SdkParticipantSnapshot = SdkConversationSnapshot["participants"][number];
 declare const runOperation: unique symbol;
 declare const sendMessage: unique symbol;
 declare const refreshConversation: unique symbol;
+declare const mutateParticipant: unique symbol;
+declare const readParticipant: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
@@ -82,6 +90,9 @@ export declare function sdkId<K extends string>(value: string): SdkId<K>;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        conversation_participant_add: SdkOperationKind<SdkParticipant>;
+        conversation_participant_update: SdkOperationKind<SdkParticipant>;
+        conversation_participant_remove: SdkOperationKind<SdkParticipant>;
         conversation_create: SdkOperationKind<SdkConversation>;
         message_send: SdkOperationKind<SdkMessageAcceptance>;
         operation_cancel: SdkOperationKind<SdkDecisionReceipt>;
@@ -116,14 +127,39 @@ export declare class NodeClient {
         readonly text: string;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkMessageAcceptance>>;
     [refreshConversation](id: ConversationId, options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
+    [mutateParticipant](cid: ConversationId, action: JsonObject, kind: SdkOperationKind<SdkParticipant>, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
+    [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
     close(options: CanonicalRequestOptions): Promise<void>;
 }
 export declare class SdkConversation {
     private readonly client;
     readonly id: ConversationId;
+    readonly participants: Readonly<{
+        byId: (id: ParticipantId) => SdkParticipant;
+        add: (input: {
+            readonly identityId: IdentityId;
+            readonly kind: "human" | "ai" | "system" | "external";
+            readonly role: string;
+            readonly expectedRevision: SdkRevision<"conversation">;
+        }, options: SdkMutationOptions) => Promise<SdkOperation<SdkParticipant>>;
+    }>;
     constructor(client: NodeClient, id: ConversationId);
     refresh(options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
     send(input: Parameters<NodeClient[typeof sendMessage]>[1], options: SdkMutationOptions): Promise<SdkOperation<SdkMessageAcceptance>>;
+}
+export declare class SdkParticipant {
+    private readonly client;
+    readonly conversationId: ConversationId;
+    readonly id: ParticipantId;
+    constructor(client: NodeClient, conversationId: ConversationId, id: ParticipantId);
+    refresh(options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
+    update(input: {
+        readonly role: string;
+        readonly expectedConversationRevision: SdkRevision<"conversation">;
+    }, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
+    remove(input: {
+        readonly expectedConversationRevision: SdkRevision<"conversation">;
+    }, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
 }
 export declare class SdkOperation<T> {
     #private;
