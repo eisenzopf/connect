@@ -1,0 +1,87 @@
+name: Gate 6 isolated Linux fixtures
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'crates/**'
+      - 'contracts/**'
+      - 'dependencies/**'
+      - 'patches/**'
+      - 'Cargo.*'
+      - 'rust-toolchain.toml'
+      - 'scripts/check-gate6-linux-hosting.py'
+      - 'scripts/lib/source_build_cache.py'
+      - 'scripts/tests/test_source_build_cache.py'
+      - '.github/workflows/gate6-linux-fixtures.yml'
+permissions:
+  contents: read
+concurrency:
+  group: gate6-linux-fixtures-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  ubuntu-x86:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/gate6-linux-ci/target
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install native fixture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev
+      - name: Record exact host and native ABI
+        id: native
+        run: python3 scripts/check-gate6-linux-hosting.py --preflight
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-linux-ci/target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-
+      - name: Preserve times only for identical source contents and modes
+        run: python3 scripts/lib/source_build_cache.py restore
+      - name: Prepare pinned sources and locked registry dependencies
+        run: |
+          bash scripts/prepare-dependencies.sh
+          cargo fetch --locked
+      - name: Check source-cache correctness
+        run: python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
+      - name: Run isolated source-bound fixtures
+        id: fixtures
+        run: python3 scripts/check-gate6-linux-hosting.py
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && steps.fixtures.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-linux-ci/target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
+      - name: Upload source-only fixture evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-linux-source-evidence
+          path: .local/gate6-linux-ci/evidence/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
