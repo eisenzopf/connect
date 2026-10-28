@@ -225,6 +225,7 @@ pub(super) async fn handoff_case_with_sdk(
         sdk_algorithm,
         false,
         None,
+        false,
     )
     .await;
 }
@@ -235,7 +236,9 @@ async fn handoff_case_with_control(
     sdk_algorithm: Option<&'static str>,
     mcp: bool,
     host: Option<&crate::canonical_agent_rehearsal::Settings>,
+    transport_recovery: bool,
 ) {
+    assert!(!transport_recovery || (mcp && host.is_none()));
     if std::env::var_os("CONNECT_GATE6_NATIVE_DIAGNOSTICS").as_deref()
         == Some(std::ffi::OsStr::new("1"))
     {
@@ -384,6 +387,36 @@ async fn handoff_case_with_control(
     )
     .await;
     wait_state(&f, &group.key.id, &group.command.operation_id, true).await;
+    if transport_recovery {
+        let mut observer =
+            crate::canonical_mcp::TransitionProbe::observe(&f, &group.command, &group.key.token)
+                .await;
+        with_live_media(
+            &mut peers,
+            None,
+            observer.reconnect_readonly("completed", 3),
+        )
+        .await;
+        observer.close_readonly().await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            PA,
+            &[CA],
+            "reconnect-live-consult-forward",
+        )
+        .await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            CA,
+            &[PA],
+            "reconnect-live-consult-reverse",
+        )
+        .await;
+    }
     let initial_flow_count = if initial_activation {
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         tokio::time::timeout(Duration::from_secs(5), async {
@@ -575,8 +608,54 @@ async fn handoff_case_with_control(
         ))
         .unwrap();
     }
+    let recovery_probe = if transport_recovery {
+        // Keep the actual admitted handoff pending at its existing coordinator
+        // mutex while controller peers close/reopen. No grants, metadata facts
+        // or media routes are invented, and packet readers remain unheld.
+        let roles = f
+            .server
+            .service
+            .hold_canonical_roles_for_test()
+            .await
+            .unwrap();
+        let mut probe =
+            crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await;
+        let admitted = status(&f, &key.id, &command.operation_id).await;
+        with_live_media(&mut peers, None, probe.reconnect_readonly("accepted", 3)).await;
+        let pending = status(&f, &key.id, &command.operation_id).await;
+        assert_eq!(pending.state, OperationState::Accepted);
+        assert!(pending.effects.is_empty());
+        assert_eq!(pending.record_id, admitted.record_id);
+        assert_eq!(pending.expires_at, admitted.expires_at);
+        assert_eq!(pending.expected_revision, admitted.expected_revision);
+        assert_eq!(pending.revision, admitted.revision);
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            PA,
+            &[CA],
+            "reconnect-pending-handoff-forward",
+        )
+        .await;
+        handoff_probe(
+            &f,
+            &case_context,
+            &mut peers,
+            CA,
+            &[PA],
+            "reconnect-pending-handoff-reverse",
+        )
+        .await;
+        drop(roles);
+        Some(probe)
+    } else {
+        None
+    };
     let control = async {
-        let mcp_probe = if let Some(settings) = host {
+        let mcp_probe = if recovery_probe.is_some() {
+            recovery_probe
+        } else if let Some(settings) = host {
             Some(crate::canonical_agent_rehearsal::submit(&f, &command, settings).await)
         } else if mcp {
             Some(crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await)
@@ -832,7 +911,8 @@ async fn production_mcp_handoff_keeps_decoded_native_audio_roles_original_recove
             (OutgoingDisposition::Observe, RoleScope::Conversation),
             (OutgoingDisposition::Leave, RoleScope::Conversation),
         ] {
-            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true, None).await;
+            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true, None, false)
+                .await;
             eprintln!("MCP handoff {algorithm}:outgoing={outgoing:?},scope={scope:?}, independent decoded native audio, original recovery, one effect, all owners joined");
         }
     }
@@ -848,6 +928,7 @@ async fn diagnostic_mcp_leave_conversation_handoff_scene() {
         Some("EdDSA"),
         true,
         None,
+        false,
     )
     .await;
 }
@@ -860,6 +941,25 @@ pub(crate) async fn host_rehearsal(settings: &crate::canonical_agent_rehearsal::
         Some("EdDSA"),
         true,
         Some(settings),
+        false,
     )
     .await;
+}
+
+#[tokio::test]
+#[ignore = "explicit local native audio with repeated MCP control loss/reopen during live consult and admitted pending handoff; no model/provider"]
+async fn production_live_native_consult_handoff_repeated_controller_reconnect() {
+    for algorithm in ["EdDSA", "ES256"] {
+        handoff_case_with_control(
+            OutgoingDisposition::Leave,
+            RoleScope::Session,
+            false,
+            Some(algorithm),
+            true,
+            None,
+            true,
+        )
+        .await;
+        eprintln!("Live controller recovery {algorithm}: three joined consult reopens, three joined accepted-handoff reopens, unchanged private duplex/retained remote, one completed handoff effect and joined owners");
+    }
 }

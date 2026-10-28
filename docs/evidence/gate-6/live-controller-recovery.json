@@ -1,0 +1,562 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Official MCP controller loss/reopen during actual local private consultation and an admitted pending handoff, with separate public native QUIC media owners. Direct BrowserTransportClient composition of this live scene remains open.",
+  "verification": {
+    "test_functions_passed": 1,
+    "scenes": 2,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "outgoing": "leave",
+    "role_scope": "session",
+    "seconds": 56.63080120901577,
+    "joined_controller_reopens_per_scene": {
+      "active_consultation": 3,
+      "accepted_pending_handoff": 3
+    },
+    "joined_controller_reopens_total": 12,
+    "native_wire_media_windows": 18,
+    "minimum_partner_non_silent_pcmu_packets": 70,
+    "outside_audience_non_silent_pcmu_packets": 0,
+    "observer": "Existing real native datagram probe, two seconds of marked PCMU plus 300ms quiet tail. Same >10 partner-packet and strict zero outside-audience predicate. This wire witness is not an independent waveform decoder or media quality distribution.",
+    "media": {
+      "EdDSA": [
+        {
+          "phase": "handoff-private-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            96
+          ],
+          "sent_packets": 98,
+          "received_packets": [
+            0,
+            0,
+            96
+          ],
+          "source_timestamp_steps": [
+            98,
+            333
+          ]
+        },
+        {
+          "phase": "handoff-private-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            92,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            92,
+            0
+          ],
+          "source_timestamp_steps": [
+            109,
+            198
+          ]
+        },
+        {
+          "phase": "reconnect-live-consult-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            24,
+            124
+          ],
+          "source_timestamp_steps": [
+            149,
+            174
+          ]
+        },
+        {
+          "phase": "reconnect-live-consult-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            99,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            99,
+            0
+          ],
+          "source_timestamp_steps": [
+            85,
+            244
+          ]
+        },
+        {
+          "phase": "reconnect-pending-handoff-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            25,
+            124
+          ],
+          "source_timestamp_steps": [
+            101,
+            219
+          ]
+        },
+        {
+          "phase": "reconnect-pending-handoff-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            100,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            100,
+            0
+          ],
+          "source_timestamp_steps": [
+            145,
+            176
+          ]
+        },
+        {
+          "phase": "handoff-retained-remote",
+          "source_index": 0,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            3,
+            0,
+            106
+          ],
+          "source_timestamp_steps": [
+            108,
+            208
+          ]
+        },
+        {
+          "phase": "handoff-incoming-speaker",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            0
+          ],
+          "non_silent_pcmu_packet_counts": [
+            99,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            99,
+            0,
+            0
+          ],
+          "source_timestamp_steps": [
+            116,
+            199
+          ]
+        },
+        {
+          "phase": "handoff-after-reader-expiry",
+          "source_index": 0,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            99
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            99
+          ],
+          "source_timestamp_steps": [
+            114,
+            203
+          ]
+        }
+      ],
+      "ES256": [
+        {
+          "phase": "handoff-private-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            98
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            98
+          ],
+          "source_timestamp_steps": [
+            56,
+            256
+          ]
+        },
+        {
+          "phase": "handoff-private-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            70,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            70,
+            0
+          ],
+          "source_timestamp_steps": [
+            147,
+            174
+          ]
+        },
+        {
+          "phase": "reconnect-live-consult-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            25,
+            124
+          ],
+          "source_timestamp_steps": [
+            144,
+            175
+          ]
+        },
+        {
+          "phase": "reconnect-live-consult-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            100,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            100,
+            0
+          ],
+          "source_timestamp_steps": [
+            139,
+            183
+          ]
+        },
+        {
+          "phase": "reconnect-pending-handoff-forward",
+          "source_index": 1,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            25,
+            125
+          ],
+          "source_timestamp_steps": [
+            147,
+            173
+          ]
+        },
+        {
+          "phase": "reconnect-pending-handoff-reverse",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            1
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            100,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            100,
+            0
+          ],
+          "source_timestamp_steps": [
+            146,
+            173
+          ]
+        },
+        {
+          "phase": "handoff-retained-remote",
+          "source_index": 0,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            3,
+            0,
+            106
+          ],
+          "source_timestamp_steps": [
+            143,
+            175
+          ]
+        },
+        {
+          "phase": "handoff-incoming-speaker",
+          "source_index": 2,
+          "allowed_receiver_indices": [
+            0
+          ],
+          "non_silent_pcmu_packet_counts": [
+            100,
+            0,
+            0
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            100,
+            0,
+            0
+          ],
+          "source_timestamp_steps": [
+            104,
+            211
+          ]
+        },
+        {
+          "phase": "handoff-after-reader-expiry",
+          "source_index": 0,
+          "allowed_receiver_indices": [
+            2
+          ],
+          "non_silent_pcmu_packet_counts": [
+            0,
+            0,
+            100
+          ],
+          "sent_packets": 100,
+          "received_packets": [
+            0,
+            0,
+            100
+          ],
+          "source_timestamp_steps": [
+            141,
+            184
+          ]
+        }
+      ]
+    },
+    "runtime_input_count": 8082,
+    "changed_inputs": [],
+    "summary_sha256": "ec71d1d2e5c8ace315311f89c618389da98403662207a8ec6bb207821870195a",
+    "test_log_sha256": "19bed547ccdbf904f0caee49b4f5486c38132ff19bd20beb75b49560cde09ec4",
+    "inputs_sha256": "cf2e4458bdb20197ec0a862afb06a2a83b47107eda0bf8690cf8ab2a0b429299",
+    "build": {
+      "seconds": 13.93047820799984,
+      "source_count": 5233,
+      "changed_inputs": [],
+      "log_sha256": "12f475debe7f04b01bfd82247e7c7e5c252e61ddcef055d4620b7277b7112ac4"
+    },
+    "artifact": {
+      "sha256": "2a0234adfdc46e907e5de18c7b4ade8749ff1fcf5388f78253ecf793ceb78cf9",
+      "bytes": 265436360
+    },
+    "normal_nonrecovery_branch_regression": {
+      "test_functions_passed": 1,
+      "seconds": 18.26701254094951,
+      "changed_inputs": [],
+      "scope": "Existing single EdDSA/Leave/Conversation diagnostic; not a rerun of the full historical eight-scene MCP cohort.",
+      "summary_sha256": "a2344e8e09691ac70b34588c63392696becaa0f9449d35ccc4f9759e3cfa56df"
+    }
+  },
+  "behavior": [
+    "The active private Consultation is observed under four physical MCP clients (initial plus three closed/joined reopens), with the exact original status unchanged and no mutation replay. Native marked traffic continues under separate public CanonicalClient owners.",
+    "A test-support-only method holds the existing asynchronous role coordinator mutex. The actual service admits the original handoff and queues its normal worker, which waits at that coordinator. This controlled scheduling delay grants no authority, invents no readiness and holds no packet IO fence.",
+    "Three more closed/joined controller reopens read the same accepted handoff. Store observation requires zero effects and unchanged record ID, expiry, expected revision and record revision. Private forward/reverse marked media remains inside its original audience while the coordinator is held.",
+    "Releasing the coordinator lets the same queued handoff complete. Existing opaque Core/native worker assertions require one effect at attempt one, exact retained/admitted Connection IDs, outgoing retirement and correct role projection. Independent remote/incoming marked packet probes and later reader-expiry checks pass.",
+    "Explicit original replay at the end retains one effect/attempt. All controller, native peer, slot and server shutdown joins are asserted before each successful scene summary."
+  ],
+  "source_sha256": {
+    "crates/connect-service/src/lib.rs": "c16dbc18ae56d4691c27f07b4bb94283d8c9f0f5f7fc27627edb69adda5c7b02",
+    "crates/connect-server/tests/support/canonical_mcp.rs": "7f751e91e976bd7b22a4f131b2d769dc9aedae6169ee176393d68b9b2beb7263",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "178fa99edd865aee0ee8da83bef900f682ece11c9f82309ed45df92a7f115d00",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "77f2f7a4b098864a98985c93b95e7932ec340de26fedf28ba3a9fa2362959947"
+  },
+  "build_history": [
+    {
+      "build": 138,
+      "outcome": "successful common dependency/browser-target build",
+      "seconds": 653.701058417093,
+      "native_qualification": false,
+      "reason": "Incorrect integration target did not include the new native function; no native result inferred."
+    },
+    {
+      "build": 139,
+      "outcome": "failed-link-storage-full",
+      "exit_code": 101,
+      "seconds": 14.180719500174746,
+      "source_inputs_changed": [],
+      "outcome_sha256": "1d3913ee8929f94d42eb75ef6e0646f118b091c5658e3179c418a9060b7fa791",
+      "native_qualification": false
+    },
+    {
+      "build": 140,
+      "outcome": "passed",
+      "target": "gate6_canonical_runtime",
+      "seconds": 13.93047820799984,
+      "source_inputs_changed": []
+    }
+  ],
+  "custody_manifests": [
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-06/manifest.json",
+      "sha256": "8ea8e9abfde1e4404adcf7770ebd8a9b24a892584825055bfc1000f5caa725fd",
+      "stopped_original_paths": 3,
+      "shared_archive_bytes": 47064666,
+      "decoded_original_sha256": "ce990e454317f85ff5862efc8554c77a7512c41fbea6e5f169ef9ea66b5435c3",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/06496a0b5b5498a652c43f15ab3a55160e503495b47126d0e0afc00ebd21cbaa.json",
+      "sha256": "1498db4e693b41d41edde853257dc3cf74d456d82401bd6fd243630858189fe3",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47083936,
+      "decoded_original_sha256": "06496a0b5b5498a652c43f15ab3a55160e503495b47126d0e0afc00ebd21cbaa",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/5ab2219c1b5df15f4bd576183a666f6381c817f3b426fd8a9161ce9a4061f816.json",
+      "sha256": "ccf81b000da3a072edef16bc0e2ddb73331f8ce48925b0a2f57d644dae96333a",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47082561,
+      "decoded_original_sha256": "5ab2219c1b5df15f4bd576183a666f6381c817f3b426fd8a9161ce9a4061f816",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/8e6b60386b174b487758071bced60dddf4c94f706e089758fea8c94f5267a961.json",
+      "sha256": "da966e8990bda53ad31dcc8a20736024b6e87f97746f021888d90ff5a140c63b",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47077337,
+      "decoded_original_sha256": "8e6b60386b174b487758071bced60dddf4c94f706e089758fea8c94f5267a961",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/914fe795174eb0d4f0e2807371adc47e3788d2a231e51e65cb7b707341e985d0.json",
+      "sha256": "d50fd7fef5a91c731f05234717ce3c6c62ea5fdf8581ab8670bb26454eda44f1",
+      "stopped_original_paths": 3,
+      "shared_archive_bytes": 47077538,
+      "decoded_original_sha256": "914fe795174eb0d4f0e2807371adc47e3788d2a231e51e65cb7b707341e985d0",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/c2801e9f21a7b74a896952653352fa40847a27b76deca73bb32748ccfc0d49ce.json",
+      "sha256": "2f4aa8263b5aa430cbc02847e4ecf12714d5c56cbc9de85859729049a690f923",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47088024,
+      "decoded_original_sha256": "c2801e9f21a7b74a896952653352fa40847a27b76deca73bb32748ccfc0d49ce",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/cbe61a10ec9f0ae38b58848d24ef24193ba9b11800c8c2460a53344831b1338b.json",
+      "sha256": "77cd8f2b1b3c262a5453f9b81efcc32ba9c3f14ca93817f2470a06996370fc0c",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47078855,
+      "decoded_original_sha256": "cbe61a10ec9f0ae38b58848d24ef24193ba9b11800c8c2460a53344831b1338b",
+      "roundtrip_verified": true
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/proof-archives-transport-live-07/d2d89683d1b22ac59ddbc5b45ea292eda39af24218b1671b0d3480123b6c0f27.json",
+      "sha256": "f60323c3007251a06247ab6343445859e869d64bc528f3e055cc18bb63539673",
+      "stopped_original_paths": 1,
+      "shared_archive_bytes": 47074523,
+      "decoded_original_sha256": "d2d89683d1b22ac59ddbc5b45ea292eda39af24218b1671b0d3480123b6c0f27",
+      "roundtrip_verified": true
+    }
+  ],
+  "remaining": [
+    "Exercise the public BrowserTransportClient against this live native consultation/pending-handoff topology, rather than inferring that composition from separate browser control and native MCP scenes.",
+    "Complete the G6-052 requirement audit after direct browser-owner live recovery.",
+    "Full Linux/remote/browser-owned media loss, frozen operating/quality profiles, independent Gate 6 acceptance and publication remain separately unqualified."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

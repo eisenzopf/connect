@@ -122,6 +122,17 @@ Both private Playwright and Puppeteer dependencies must be prepared, including
 the latter's `ws` module for the fault proxy. These are local synthetic tests;
 they use no model, provider, telephone or remote account.
 
-Repeated reconnect during actual live consultation and a successful handoff,
-including retained remote and decoded media evidence with no duplicate external
-transition effects, remains required before G6-052 closure.
+The [live controller checkpoint](../evidence/gate-6/live-controller-recovery.json)
+passes both signing algorithms using official MCP control and separate public
+native QUIC media owners. Each active private consultation and admitted pending
+handoff survives three closed/joined controller reopenings. A test-only hold on
+the existing role coordinator keeps the handoff pending while private native
+packet IO continues. The original record, expiry and precondition stay fixed;
+release completes the same handoff once, retaining the remote leg and retiring
+the outgoing leg. All 18 marked PCMU wire windows pass the existing audience
+and liveness checks. Waveform fidelity and operating-profile quality remain
+separate qualification work.
+
+G6-052 remains in progress until the actual `BrowserTransportClient` is exercised
+against that live consultation/pending-handoff topology. Its composition must
+be observed directly after the separate browser-control and native-MCP checks.

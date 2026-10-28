@@ -121,6 +121,60 @@ impl TransitionProbe {
         scope["payload"] = json!({"operation_id":self.operation});
         scope
     }
+    /// Physical controller loss/reopen during an actual live native scene.
+    /// Only status reads run here; the original mutation is never replayed.
+    pub(crate) async fn reconnect_readonly(&mut self, expected_state: &str, rounds: usize) {
+        assert!((1..=3).contains(&rounds));
+        let until = tokio::time::Instant::now() + Duration::from_secs(35);
+        let mut original: Option<Value> = None;
+        for round in 0..=rounds {
+            if round > 0 {
+                self.client.close().await.unwrap();
+                self.client = client(self.address, &self.token).await;
+            }
+            let record = loop {
+                assert!(
+                    tokio::time::Instant::now() < until,
+                    "original reconnect read budget"
+                );
+                let reply = call(
+                    &self.client,
+                    "connect_operation_get",
+                    self.status_arguments(),
+                )
+                .await;
+                if reply.is_error == Some(true)
+                    && reply.structured_content.as_ref().unwrap()["status"] == 503
+                {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                    continue;
+                }
+                let value = success(reply);
+                let frames = value["data"]["envelopes"].as_array().unwrap();
+                let records = frames
+                    .iter()
+                    .filter(|e| e["type"] == "operation.updated")
+                    .collect::<Vec<_>>();
+                assert_eq!(records.len(), 1);
+                break records[0]["payload"].clone();
+            };
+            assert_eq!(record["operation_id"], self.operation);
+            assert_eq!(record["state"], expected_state);
+            if let Some(original) = &original {
+                assert_eq!(
+                    record, *original,
+                    "original pending/completed record unchanged across physical controller loss"
+                );
+            } else {
+                original = Some(record.clone());
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        eprintln!("readonly controller recovery: operation={}, state={expected_state}, joined_reopens={rounds}, original_record_unchanged=true, mutations_resubmitted=0", self.operation);
+    }
+    pub(crate) async fn close_readonly(self) {
+        self.client.cancel().await.unwrap();
+    }
     async fn record(&self, client: &McpClient) -> Value {
         let deadline = tokio::time::Instant::now() + Duration::from_secs(35);
         loop {

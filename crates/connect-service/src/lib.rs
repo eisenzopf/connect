@@ -200,6 +200,13 @@ impl Service {
             .ok_or_else(Error::forbidden)?;
         Ok(session)
     }
+    /// Hold only the actual role coordinator for an isolated scheduler-delay
+    /// fixture. This grants no authority and does not hold a packet IO fence.
+    #[cfg(feature = "test-support")]
+    pub async fn hold_canonical_roles_for_test(&self) -> Result<tokio::sync::MutexGuard<'_, ()>> {
+        let runtime = self.canonical_runtime.get().ok_or_else(Error::forbidden)?;
+        Ok(runtime.role_projection.lock().await)
+    }
     /// Actual coordinator metadata only; this exposes no media or control grant.
     #[cfg(feature = "test-support")]
     pub fn with_canonical_media_registry_for_test(&self, hold: impl FnOnce()) -> Result<()> {
