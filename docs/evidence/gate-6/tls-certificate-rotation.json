@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "task": "G6-053",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Shared operator-owned TLS certificate resolver and actual loopback TCP/TLS component tests; canonical runtime wiring compiles. Public HTTPS/proxy routing and the full native/WT/WSS reload cohort remain pending.",
+  "behavior": [
+    "Load and validate the original bounded certificate/key files before canonical installation recovery/binding. Protocol-specific TLS config clones share one resolver.",
+    "Explicit trusted process-owner reload runs file work off executor. It serializes before reading, validates validity/chain/key match and retains every previously served DNS/IP identity before publishing one complete replacement under a short lock.",
+    "Identical certificate chain leaves revision unchanged. Changed valid identity increments revision. Invalid, expired, mismatched, oversized or narrower identity leaves the last valid resolver untouched. Handshakes perform no file IO/reload serialization.",
+    "New full TLS handshakes on an existing cloned listener present the replacement leaf under normal CA/name verification. An established encrypted session continues. After malformed key replacement, a third full handshake still presents the last valid leaf; all three sockets/server task join.",
+    "Envelope signing keys, configured client trust and application authority retain their separate enrollment and lifetimes."
+  ],
+  "verification": {
+    "build_seconds": 56.68707866710611,
+    "source_count": 5236,
+    "changed_build_inputs": [],
+    "artifact_sha256": "d1a167fbf342321118ebfe06cbb69e523ce68527865c8875726f2542d6876190",
+    "artifact_bytes": 112913328,
+    "build_log_sha256": "fd9d95647abd9b40e0b2b78aca27b1b2e031c4f138e600b6f9b0ac7c597a0e88",
+    "tls_component": {
+      "expected": [
+        "tls::rotation::tests::cloned_listener_configs_rotate_actual_tls_handshakes_and_preserve_existing_sessions",
+        "tls::rotation::tests::failed_expired_mismatched_oversized_or_narrower_identity_reload_keeps_last_good_revision",
+        "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts"
+      ],
+      "passed": [
+        "tls::rotation::tests::cloned_listener_configs_rotate_actual_tls_handshakes_and_preserve_existing_sessions",
+        "tls::rotation::tests::failed_expired_mismatched_oversized_or_narrower_identity_reload_keeps_last_good_revision",
+        "tls::tests::generated_local_certificate_verifies_loopback_names_and_refuses_other_hosts"
+      ],
+      "exit_code": 0,
+      "seconds": 0.025880665984004736,
+      "changed_inputs": [],
+      "artifact_unchanged": true,
+      "log_sha256": "b7643dd003d44f0df3a02f74d134b2b5a03279bb2a102d3a073cc46558df568a"
+    },
+    "private_error_regression": {
+      "exit_code": 0,
+      "seconds": 0.012438582954928279,
+      "test": "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
+      "log_sha256": "ecb3f27075509d3617ab603800c5a0c81661e4cf8440741ee9d7ccad66c5845c"
+    },
+    "tests_passed_total": 4,
+    "new_test_functions": 2,
+    "reused_test_functions": 2,
+    "format_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "dependencies": "Prepared existing234patch source-lock tree before build; no upstream edits."
+  },
+  "source_sha256": {
+    "crates/connect-server/src/canonical.rs": "b2ed2d55d58cdff6ef219ecf86c24fcd560f1e9d085f2ca748443ccf09e54e6c",
+    "crates/connect-server/src/tls.rs": "52cd8ddd1a90420bbe61fb654505b0998adb5c369be974366bd3e6b32d3b1f32",
+    "crates/connect-server/src/tls/rotation.rs": "9a81861a53d4ea4fca23f1448c27d6d56136c6f16a61e38abefa93ca3715915f",
+    "crates/connect-server/src/tls/rotation/tests.rs": "9969c0eaa91b8e0ee2e76391a4c17c19a857cb91bdcd51dbd960cd52881645ab"
+  },
+  "remaining": [
+    "Expose distinct public application/admin/callback/health HTTPS routing with narrow exposure and exact origin policy.",
+    "Implement trusted reverse-proxy policy without accepting asserted identity/credentials from forwarding headers.",
+    "Install operator CLI reload control and qualify current native/WT/WSS/HTTPS reload/failure/shutdown behavior through their actual production listeners.",
+    "Complete supported HTTP3/deployment discovery/configuration diagnostics and isolated-host rejection checks. Named remote/Linux/provider/profile acceptance and publication remain unqualified."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

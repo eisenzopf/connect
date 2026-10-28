@@ -174,6 +174,7 @@ pub struct CanonicalConnectors {
 pub struct RunningCanonicalServer {
     installation: crate::installation::InstallationLock,
     endpoint: Arc<quinn::Endpoint>,
+    tls_identity: Arc<crate::tls::ReloadableServerTls>,
     profile: ProfileServer,
     webtransport: Option<ProfileServer>,
     websocket: Option<crate::canonical_websocket_listener::Listener>,
@@ -282,8 +283,11 @@ impl RunningCanonicalServer {
             .map(|profile| profile.host())
             .transpose()?;
         // All key/TLS validation precedes installation recovery and binding.
-        let mut tls =
-            (*crate::tls::server_config(&config.certificate, &config.private_key)?).clone();
+        let tls_identity = Arc::new(crate::tls::ReloadableServerTls::load(
+            &config.certificate,
+            &config.private_key,
+        )?);
+        let mut tls = (*tls_identity.config()).clone();
         let mut websocket_tls = tls.clone();
         websocket_tls.alpn_protocols = vec![b"http/1.1".to_vec()];
         let websocket_tls = Arc::new(websocket_tls);
@@ -631,6 +635,7 @@ impl RunningCanonicalServer {
         let server = Self {
             installation,
             endpoint,
+            tls_identity,
             profile,
             webtransport,
             websocket,
@@ -662,6 +667,14 @@ impl RunningCanonicalServer {
         };
         startup.finish();
         Ok(server)
+    }
+    /// Trusted process-owner action only; never an authenticated peer command.
+    /// Reload TLS from the original configured paths without changing envelope
+    /// signing keys, enrolled trust or any existing peer's application authority.
+    pub async fn reload_tls_certificates(&self) -> Result<crate::tls::TlsReload> {
+        anyhow::ensure!(!self.stop.is_cancelled(), "Canonical server is stopping");
+        let identity = self.tls_identity.clone();
+        tokio::task::spawn_blocking(move || identity.reload()).await?
     }
     /// Protected runtime inspection. No configuration or provider key is exposed.
     pub fn public_assistant_host(

@@ -19,6 +19,24 @@ file. Invalid/expired signing material is refused before installation recovery o
 binding. The signing-key deadline closes the endpoint and owned peers and marks
 the intake failed; changing keys requires an explicitly configured restart.
 
+The trusted Rust process owner can now call
+`RunningCanonicalServer::reload_tls_certificates().await` to load certificate
+material from the original configured paths. TLS config clones used by canonical
+QUIC/WT, WSS and record HTTPS share one certificate resolver. A successful
+replacement preserves all served DNS/IP identities and advances a local
+revision; an unchanged chain keeps the revision. Invalid, expired, mismatched,
+oversized or narrower identity material leaves the last valid resolver active.
+File validation runs off executor, with a short publication lock and no file IO
+inside handshakes. Envelope signing and client trust retain their own configured
+lifetimes and enrollment.
+
+The [certificate rotation component](../evidence/gate-6/tls-certificate-rotation.json)
+passes actual loopback TCP/TLS handshakes with normal CA/name verification:
+new handshakes see the replacement, an existing session continues, and invalid
+replacement retains the last valid identity. Four component/error functions pass.
+The canonical wiring compiles; actual QUIC/WT/WSS reload, operator CLI control,
+public HTTPS routing and trusted proxy policy remain G6-053 work.
+
 `session_reconnect_grace_seconds` sets the policy for future invitations (default
 30, range 0–300 seconds). Each invitation freezes its policy. For a started
 Session, confirmed loss of its last live Connection arms one durable deadline;

@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use rustls::pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer};
 use std::{path::Path, sync::Arc};
+mod rotation;
+pub use rotation::{ReloadableServerTls, TlsReload};
 
 fn bounded(path: &Path, maximum: usize) -> Result<Vec<u8>> {
     use std::io::Read;
@@ -46,6 +48,12 @@ fn certificates(bytes: Vec<u8>) -> Result<Vec<CertificateDer<'static>>> {
     Ok(chain)
 }
 pub fn server_config(cert: &Path, key: &Path) -> Result<Arc<rustls::ServerConfig>> {
+    Ok(Arc::new(load_config(cert, key)?.0))
+}
+fn load_config(
+    cert: &Path,
+    key: &Path,
+) -> Result<(rustls::ServerConfig, Vec<CertificateDer<'static>>)> {
     let _ = rustls::crypto::ring::default_provider().install_default();
     let chain = certificates(bounded(cert, 256 * 1024)?)?;
     let key = bounded(key, 16_384)?;
@@ -57,10 +65,10 @@ pub fn server_config(cert: &Path, key: &Path) -> Result<Arc<rustls::ServerConfig
     };
     let mut config = rustls::ServerConfig::builder()
         .with_no_client_auth()
-        .with_single_cert(chain, key)
+        .with_single_cert(chain.clone(), key)
         .context("Certificate and key must match")?;
     config.alpn_protocols = vec![rvoip_uctp::UCTP_RAW_QUIC_ALPN_BYTES.to_vec()];
-    Ok(Arc::new(config))
+    Ok((config, chain))
 }
 
 /// Local certificate with an explicit one-year lifetime and explicit localhost/loopback identities.
