@@ -5,6 +5,8 @@ use connect_server::hosting::{HttpSurface, HttpsListenerConfig, TelnyxCallbacks}
 use ed25519_dalek::{Signer, SigningKey};
 use reqwest::StatusCode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[path = "canonical_https_hosting/transports.rs"]
+mod transports;
 
 struct Tls {
     issuer: rcgen::CertifiedIssuer<'static, rcgen::KeyPair>,
@@ -86,6 +88,13 @@ impl Hosted {
         .await
     }
     async fn with_proxies(proxies: Vec<std::net::IpAddr>, connections: usize) -> Self {
+        Self::configured(proxies, connections, |_| {}).await
+    }
+    async fn configured(
+        proxies: Vec<std::net::IpAddr>,
+        connections: usize,
+        modify: impl FnOnce(&mut CanonicalServerConfig),
+    ) -> Self {
         let f = Fixture::new("EdDSA", connections).await;
         let tls = Tls::new(&f);
         tls.replace();
@@ -119,6 +128,7 @@ impl Hosted {
             v
         })
         .collect();
+        modify(&mut config);
         let server = RunningCanonicalServer::start(config.clone()).await.unwrap();
         client.endpoint = server.address;
         client.trust_certificate = tls.root.clone();

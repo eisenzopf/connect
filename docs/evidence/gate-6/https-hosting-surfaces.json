@@ -354,7 +354,42 @@
       "outcome": "Successful build; behavior cohort not executed before strengthening proxy tests. No test pass claimed.",
       "build_summary_sha256": "a09acc15a1506f106a959c7f605500a755aaac5ec9e14a01977ad6ab63a1859a"
     },
-    "final_fixture_strengthening": "The final proxy fixture distinguishes an empty list, actual immediate peer and nonempty mismatching peer list (including a spoofed listed X-Forwarded-For). Every bad-field case starts from a complete valid tuple and alters only that field."
+    "final_fixture_strengthening": "The final proxy fixture distinguishes an empty list, actual immediate peer and nonempty mismatching peer list (including a spoofed listed X-Forwarded-For). Every bad-field case starts from a complete valid tuple and alters only that field.",
+    "build150": {
+      "outcome": {
+        "exit_code": 101,
+        "seconds": 14.347860083915293,
+        "arguments": [
+          "cargo",
+          "rustc",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--message-format=json",
+          "--",
+          "-C",
+          "strip=none"
+        ],
+        "source_count": 5241,
+        "changed_inputs": []
+      },
+      "reason": "Final link failed errno28/storage-full. No behavior pass or cleanup inferred. Retry151 uses byte-identical5241source inputs after verified lossless archival.",
+      "compiler_json_sha256": "e1b19e8e89bf09689acae94a35cb100548af48d45abe95a98400e33baf400a79"
+    }
   },
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "90e67a876f8716e86aa71ac7421a6db84a0d0f4e8ea72440d08251ff2fb80242",
@@ -367,18 +402,152 @@
     "crates/connect-server/src/transports/credential_issuance.rs": "fb16b6a66e3324e03057f22be479ee4afd720d675c5e86a7b000504321833a96",
     "crates/connect-server/src/transports/task_access.rs": "ce3d9557ee68c9a3f70aaaf85bb18fb40a54a19b5091d1a9c8a00cd066e3b3f1",
     "crates/connect-server/src/transports/record_https.rs": "bd35ff993c355e61442b30d10021b33acd8c8bad8f1abc50783f1db44808cdd3",
-    "crates/connect-server/tests/support/canonical_https_hosting.rs": "3087de21b4f345e3a008f9f5e521af72bfbe2929a9d1103a17d9d9d864e3cc15",
+    "crates/connect-server/tests/support/canonical_https_hosting.rs": "ac5ddd6ecdedcc5ea3583948f692a8de41bfa63b2375d5079ef30203366e827b",
     "scripts/generate-canonical-http-openapi.py": "8dfb4743991794dde835b2f35e2b26d31a2bf5bdc60068e9bfb3458a8c1d49d2",
     "scripts/generate-protected-http-openapi.py": "a469de5fd09157c02d56a07cf16cc6f1c1ace29f9140d27362841124e1b258e6",
     "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
     "contracts/openapi-protected-http.json": "e40039c59978f3dc7c70f292528f0cb8bc46e6f30c67504399facc3903a25aa5",
-    "contracts/http-endpoints.json": "4d88cc1798b233be56468361df842773945f2a6766243ab6306d1cb73809bf4e"
+    "contracts/http-endpoints.json": "4d88cc1798b233be56468361df842773945f2a6766243ab6306d1cb73809bf4e",
+    "crates/connect-server/tests/support/canonical_https_hosting/transports.rs": "f6d7688dc0badec2c76ec61ef58f631208c509861c7c39347d170445fefe2471"
   },
   "remaining": [
-    "Qualify actual WSS/HTTP3 WebTransport routing/certificate reload on the current hosted composition; source wiring/retained prior transport evidence is not this fresh cohort.",
-    "Complete deployment configuration/examples and isolated hosted-client profile audit, including explicit certificate provisioning and any unrun host/proxy lanes.",
-    "Frozen Linux/distinct-host/provider/profile/conformance/performance qualification and publication retain their separate approved tasks; no Gate 6 acceptance is promoted."
+    "Complete the isolated-host requirement audit and deployment preparation with current evidence. A local Ubuntu24.04/amd64 image/VM is available for an owned synthetic host; no current Linux server execution is claimed yet.",
+    "Full Linux installation/package lifecycle is G6-056; named remote/live prerequisites and browser/media/profile qualification remain G6-093/G6-095/G6-098. No Gate 6 acceptance or publication is promoted."
   ],
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "current_hosted_composition": {
+    "build_seconds": 14.33055766695179,
+    "source_count": 5241,
+    "changed_build_inputs": [],
+    "artifact_sha256": "83f1c806a68e24cd11576039c7f894d2b97200972be39a486cc822bdac7e54f1",
+    "artifact_bytes": 267379880,
+    "build_log_sha256": "6b01162405adf6070fd6493801d2be49e2fe03cd99eff2849d9efb55d9ba791c",
+    "cli_sha256": "544a60032f3264a1867ea2e052d34c8f93e2ba5ffb582040566fed56176fcb31",
+    "runtime_inputs_sha256": "4625460302fb1a24f7f839609a4d3f6343453850cdfa355b6a9f7e77bb3176af",
+    "functions": [
+      {
+        "test": "canonical_https_hosting::production_https_surfaces_enforce_current_auth_origins_and_tls_only_credentials",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.26789824990555644,
+        "changed_inputs": [],
+        "log_sha256": "7e41c1d05690422b8d153d2920a412826db9a803be95ed0f2ba91c45ea80848b",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.22s"
+        ],
+        "observations": [
+          "https-hosting-surfaces {\"current_auth\":true,\"exact_origins\":true,\"https_rotation\":true,\"isolated_surfaces\":4,\"joined\":true,\"plaintext_credentials_refused\":true,\"signature_only_callback\":true}"
+        ]
+      },
+      {
+        "test": "canonical_https_hosting::production_https_trusts_only_the_configured_immediate_proxy_without_identity_delegation",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.5535704998765141,
+        "changed_inputs": [],
+        "log_sha256": "5de3c67383b39fc507caeae14ccd7dd6276fce0efd5689532206f6687ef58513",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.52s"
+        ],
+        "observations": [
+          "https-proxy-policy {\"forwarded_identity_refused\":true,\"forwarding_does_not_authenticate\":true,\"immediate_peer_checked\":true,\"joined\":true,\"one_hop_only\":true}"
+        ]
+      },
+      {
+        "test": "canonical_https_hosting::production_serve_sighup_rotates_https_and_sigterm_joins_after_invalid_reload",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 1.9428249578922987,
+        "changed_inputs": [],
+        "log_sha256": "7ebe1c71951ddae8b80d84c34e13693f3f49f97cd40503903cf002601dd1ad55",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 1.91s"
+        ],
+        "observations": [
+          "https-cli-reload {\"invalid_reload_kept_last_good\":true,\"joined\":true,\"port_released\":true,\"sighup_changed\":true,\"sigterm_exit_success\":true}"
+        ]
+      },
+      {
+        "test": "canonical_https_hosting::public_https_configuration_refuses_implicit_exposure_insecure_or_ambiguous_contacts",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.20419974997639656,
+        "changed_inputs": [],
+        "log_sha256": "99203f1bc00bb31e0f0f0a9a53de471b4d9e1a57b931120b814e520b2ab19563",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.15s"
+        ],
+        "observations": []
+      },
+      {
+        "test": "canonical_https_hosting::transports::production_https_bounds_live_raw_sockets_and_recovers_slots_after_handshake_timeout",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 5.751421415945515,
+        "changed_inputs": [],
+        "log_sha256": "87291e1a2e2870e80d57b9ab142989dadacc0c8ff41c518b670ce551d29a4e80",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 5.69s"
+        ],
+        "observations": [
+          "hosted-tls-capacity {\"joined\":true,\"original_handshake_deadline_seconds\":5,\"overload_refused_before_client_timeout\":true,\"raw_socket_capacity\":2,\"slots_reused_after_timeout\":true}"
+        ]
+      },
+      {
+        "test": "canonical_https_hosting::transports::production_https_wss_and_http3_share_certificate_reload_and_keep_their_origin_routes",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.5550520420074463,
+        "changed_inputs": [],
+        "log_sha256": "1556d6af576183b3cfecc249379cdcf11b4114ddc1a58891da43b25eeb269e7f",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.52s"
+        ],
+        "observations": [
+          "hosted-cross-protocol {\"bad_origins_refused\":2,\"current_discovery\":true,\"h3_negotiated\":true,\"https_wss_http3_full_handshakes\":9,\"joined\":true,\"last_good_after_invalid_key\":true}"
+        ]
+      },
+      {
+        "test": "canonical_https_hosting::transports::production_remote_https_origin_is_explicit_and_not_rewritten_by_host_or_proxy_headers",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 0.20992470788769424,
+        "changed_inputs": [],
+        "log_sha256": "f2a383e09a915f5234cf9e2843647520da4e7c75e7512ac90cfae5a61e687d2f",
+        "panic_lines": [],
+        "result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.18s"
+        ],
+        "observations": [
+          "hosted-remote-origin {\"forged_proxy_cannot_rewrite\":true,\"joined\":true,\"published_authority_required\":true,\"remote_profile_on_isolated_loopback\":true,\"wrong_tls_name_refused\":true}"
+        ]
+      }
+    ],
+    "current_functions_passed": 7,
+    "scope": "Normal private-CA/name HTTPS, TLS WebSocket and HTTP3 WebTransport routing/certificate witnesses; one explicit Remote HTTPS profile on isolated loopback. WT/WSS probes send no authenticated canonical control/media and are not browser/media/full remote conformance.",
+    "observations": [
+      "Nine accepted-route full handshake certificate inspections across HTTPS/WSS/WT before rotation, after valid replacement and after invalid key replacement. Two additional normally validated TLS connections refuse foreign Origin upgrades. h3 is observed from actual negotiated ALPN.",
+      "Authenticated HTTPS discovery retains configured WSS/WT contacts across rotation; public origin is not derived from incoming Host/forwarding fields.",
+      "An actual Remote-policy HTTPS listener accepts the exact configured public authority, refuses another authority/forged forwarding and rejects an uncovered TLS server name. This is not distinct-host/Linux qualification.",
+      "Two live incomplete raw sockets fill the configured TLS listener capacity. Excess connection is refused before its client timeout; original five-second server handshakes expire without client EOF, their slots are reused and all shutdowns join."
+    ],
+    "retained_current_production_regressions": "The prior ten HTTP/issuance/installation functions remain applicable to unchanged production and their own regression sources; the new seven hosted functions are freshly run against build151."
+  },
+  "closed_artifact_custody": {
+    "manifest": ".local/gate-6/rtc-signed-av/closed-compiler-cache-151/manifest.json",
+    "manifest_sha256": "9d852aa032dd49fe6a4b6581703e549a984701096ad3bf95ffc4efa9cf3e34c6",
+    "closed_files": 8,
+    "original_bytes": 2389072152,
+    "compressed_bytes": 451040053,
+    "roundtrip_sha256_and_bytes_verified": true,
+    "archive_files_fsynced": true,
+    "failed_initial_compression": "First large executable compression ran out of space before original unlink. The intact445033944-byte original SHA1ef7f06074fc7b09521bc521bf4f421e64cd4064fef391423f94dc8945986cb9was verified, only its failed partial archive removed, then smaller closed libraries were archived first. Final manifest retains that same executable hash. No source/state/log data was deleted."
+  }
 }

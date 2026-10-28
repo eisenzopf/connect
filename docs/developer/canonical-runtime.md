@@ -249,3 +249,15 @@ moved-config build and resumed-session certificate-inspection failure remain
 failed evidence. Current WSS/HTTP3 reload/deployment composition and the G6-053
 requirement audit remain open; no distinct-host/Linux/provider or full acceptance
 qualification is inferred.
+
+
+The current hosted composition additionally passes all seven hosting functions.
+HTTPS, WSS and HTTP3 WT observe the shared replacement leaf in nine accepted
+full handshakes across initial/rotated/last-good phases; foreign Origins refuse
+both upgraded transports. Discovery keeps its configured contacts. A separate
+Remote HTTPS policy fixture checks the exact published authority and wrong
+TLS names on isolated loopback. Two raw sockets fill capacity, excess admission
+refuses promptly, and five-second handshake expiry releases slots for reuse.
+Every owned shutdown joins and no panic occurs. These WT/WSS probes check
+routing and certificate lifetime, without authenticated control/media. Actual
+Linux/distinct-host/browser-media/profile qualification remains separate.
