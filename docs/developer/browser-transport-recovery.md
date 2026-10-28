@@ -133,6 +133,15 @@ the outgoing leg. All 18 marked PCMU wire windows pass the existing audience
 and liveness checks. Waveform fidelity and operating-profile quality remain
 separate qualification work.
 
-G6-052 remains in progress until the actual `BrowserTransportClient` is exercised
-against that live consultation/pending-handoff topology. Its composition must
-be observed directly after the separate browser-control and native-MCP checks.
+The [direct live-browser checkpoint](../evidence/gate-6/browser-live-recovery.json)
+now composes the actual `BrowserTransportClient` with that topology. Three initial
+lanes pass: Chrome EdDSA/ES256 and Firefox EdDSA. Each uses a distinct control-only
+Device, six joined browser reopens, original scoped status/cursor recovery and
+zero browser mutations; nine existing native marked-wire probes pass per scene.
+The same original handoff completes once after its coordinator resumes.
+
+Firefox ES256 failed its initial native baseline before browser authentication:
+the candidate had already retired, leaving one private-reverse marked packet.
+A consistent private failure snapshot was retained. An unchanged-source trace
+diagnostic later passed; it does not establish a fix. G6-052 remains in progress
+while premature native retirement is investigated and its contract is audited.

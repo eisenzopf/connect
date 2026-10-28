@@ -1,0 +1,562 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Actual BrowserTransportClient WebTransport control with separate live native QUIC media owners during consultation and an admitted pending handoff; local macOS arm64 installed Chrome/Firefox only.",
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 13.993646125076339,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5234,
+    "changed_inputs": [],
+    "artifact": {
+      "sha256": "ff1eee68c87408250c1d21326e80cb25c088fa5fe7c54d54570e939403b465ae",
+      "bytes": 265620280
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "98e5a4f8ecaee2a2c5c8a86b72c5828d53427e2b2739a5528edc447c12c665ea"
+  },
+  "initial_matrix": {
+    "passed": 3,
+    "failed": 1,
+    "complete": false
+  },
+  "lanes": [
+    {
+      "label": "chrome-owner-native-live-141-eddsa",
+      "diagnostic_retry": false,
+      "exit_code": 0,
+      "seconds": 31.36019599996507,
+      "changed_inputs": [],
+      "summary_sha256": "f7e56f4533fd83776587d9ab08993bc316d7460fcdb5eb3b18627741ca031a7f",
+      "test_log_sha256": "398526f3711810ddfc4c6d80ec2ffb05eeb69a665eb5e09505269c56af4a25fb",
+      "runtime_input_count": 8084,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 31.33s"
+      ],
+      "marked_media_windows": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((150, 170))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 99, 0] sent=100 received=[0, 99, 0] source_timestamp_steps=Some((91, 208))",
+        "private-group audio reconnect-live-consult-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 46, 145] source_timestamp_steps=Some((149, 171))",
+        "private-group audio reconnect-live-consult-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((151, 177))",
+        "private-group audio reconnect-pending-handoff-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 50, 149] source_timestamp_steps=Some((146, 170))",
+        "private-group audio reconnect-pending-handoff-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((146, 175))",
+        "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 95] sent=100 received=[14, 0, 110] source_timestamp_steps=Some((149, 172))",
+        "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((92, 217))",
+        "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((146, 177))"
+      ],
+      "browser_observations": {
+        "algorithm": "EdDSA",
+        "browser": "chrome",
+        "browser_joined": true,
+        "control_device": "live-control-device",
+        "media_device_unchanged": "canonical-device",
+        "node_joined": true,
+        "passed": true,
+        "phases": [
+          {
+            "command": "session.consult",
+            "control_device": "live-control-device",
+            "expected_revision": 3,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "private-before-handoff",
+            "passed": true,
+            "record_id": "opr_a38ffaf2-ac80-417e-a2d9-c118bae96e72",
+            "rounds": [
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 2,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 3,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 4,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "completed"
+          },
+          {
+            "command": "session.handoff",
+            "control_device": "live-control-device",
+            "expected_revision": 4,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_8c5ae6c1-6357-4044-ab60-786f2b8ec04f",
+            "rounds": [
+              {
+                "event_count": 1,
+                "has_more": false,
+                "physical_epoch": 6,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 7,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 8,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "accepted"
+          },
+          {
+            "completion_observed": true,
+            "event_count": 10,
+            "joined_reopens": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_8c5ae6c1-6357-4044-ab60-786f2b8ec04f",
+            "selected_transport": "webtransport",
+            "state": "completed"
+          }
+        ]
+      }
+    },
+    {
+      "label": "chrome-owner-native-live-141-es256",
+      "diagnostic_retry": false,
+      "exit_code": 0,
+      "seconds": 30.249180915998295,
+      "changed_inputs": [],
+      "summary_sha256": "5a27415d74bc562de5dc6bbae9f2daf526a5ad0bece6808744da1d74f96d2921",
+      "test_log_sha256": "a27dd8d0e4ea4db8c7cb4e78fc5cba57103856ae57500c59c9880b76d8f3e8b8",
+      "runtime_input_count": 8084,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 30.20s"
+      ],
+      "marked_media_windows": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((118, 205))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 99, 0] sent=100 received=[0, 99, 0] source_timestamp_steps=Some((93, 231))",
+        "private-group audio reconnect-live-consult-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 54, 154] source_timestamp_steps=Some((105, 199))",
+        "private-group audio reconnect-live-consult-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((105, 217))",
+        "private-group audio reconnect-pending-handoff-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 43, 141] source_timestamp_steps=Some((149, 168))",
+        "private-group audio reconnect-pending-handoff-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((143, 177))",
+        "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 81] sent=100 received=[12, 0, 95] source_timestamp_steps=Some((148, 170))",
+        "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((143, 178))",
+        "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((124, 187))"
+      ],
+      "browser_observations": {
+        "algorithm": "ES256",
+        "browser": "chrome",
+        "browser_joined": true,
+        "control_device": "live-control-device",
+        "media_device_unchanged": "canonical-device",
+        "node_joined": true,
+        "passed": true,
+        "phases": [
+          {
+            "command": "session.consult",
+            "control_device": "live-control-device",
+            "expected_revision": 3,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "private-before-handoff",
+            "passed": true,
+            "record_id": "opr_0cf0f1fe-9ad7-48c7-9e24-1f2d5f8a56a0",
+            "rounds": [
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 2,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 3,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 4,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "completed"
+          },
+          {
+            "command": "session.handoff",
+            "control_device": "live-control-device",
+            "expected_revision": 4,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_e2897ea4-019d-4ffe-8da1-f2e29d430dc9",
+            "rounds": [
+              {
+                "event_count": 1,
+                "has_more": false,
+                "physical_epoch": 6,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 7,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 8,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "accepted"
+          },
+          {
+            "completion_observed": true,
+            "event_count": 10,
+            "joined_reopens": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_e2897ea4-019d-4ffe-8da1-f2e29d430dc9",
+            "selected_transport": "webtransport",
+            "state": "completed"
+          }
+        ]
+      }
+    },
+    {
+      "label": "firefox-owner-native-live-141-eddsa",
+      "diagnostic_retry": false,
+      "exit_code": 0,
+      "seconds": 31.454240000108257,
+      "changed_inputs": [],
+      "summary_sha256": "6bfaab50a4b8815c1681f039e93238272830c8eb08e4c47b7a84856ff37ec77e",
+      "test_log_sha256": "d31c3aa762d278341300820cbea513c4cc13e98394bef7c3dcfdc4958075c2f1",
+      "runtime_input_count": 8194,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 31.41s"
+      ],
+      "marked_media_windows": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 95] sent=98 received=[0, 0, 95] source_timestamp_steps=Some((14, 387))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 97, 0] sent=99 received=[0, 97, 0] source_timestamp_steps=Some((47, 324))",
+        "private-group audio reconnect-live-consult-forward: source=1 allowed=[2] frames=[0, 0, 74] sent=100 received=[0, 52, 125] source_timestamp_steps=Some((109, 202))",
+        "private-group audio reconnect-live-consult-reverse: source=2 allowed=[1] frames=[0, 99, 0] sent=100 received=[0, 99, 0] source_timestamp_steps=Some((141, 178))",
+        "private-group audio reconnect-pending-handoff-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 47, 147] source_timestamp_steps=Some((30, 296))",
+        "private-group audio reconnect-pending-handoff-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((97, 222))",
+        "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 95] sent=100 received=[11, 0, 109] source_timestamp_steps=Some((87, 243))",
+        "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[98, 0, 0] sent=100 received=[98, 0, 0] source_timestamp_steps=Some((136, 174))",
+        "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 98] sent=98 received=[0, 0, 98] source_timestamp_steps=Some((128, 328))"
+      ],
+      "browser_observations": {
+        "algorithm": "EdDSA",
+        "browser": "firefox",
+        "browser_joined": true,
+        "control_device": "live-control-device",
+        "media_device_unchanged": "canonical-device",
+        "node_joined": true,
+        "passed": true,
+        "phases": [
+          {
+            "command": "session.consult",
+            "control_device": "live-control-device",
+            "expected_revision": 3,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "private-before-handoff",
+            "passed": true,
+            "record_id": "opr_84bdc5cb-0a37-4c38-bc64-fbf958ef8eef",
+            "rounds": [
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 2,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 3,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 4,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "completed"
+          },
+          {
+            "command": "session.handoff",
+            "control_device": "live-control-device",
+            "expected_revision": 4,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_44eaaaf2-6536-4448-a005-1af1fa29b21a",
+            "rounds": [
+              {
+                "event_count": 1,
+                "has_more": false,
+                "physical_epoch": 6,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 7,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 8,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "accepted"
+          },
+          {
+            "completion_observed": true,
+            "event_count": 10,
+            "joined_reopens": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_44eaaaf2-6536-4448-a005-1af1fa29b21a",
+            "selected_transport": "webtransport",
+            "state": "completed"
+          }
+        ]
+      }
+    },
+    {
+      "label": "firefox-owner-native-live-141-es256",
+      "diagnostic_retry": false,
+      "exit_code": 101,
+      "seconds": 6.814658291870728,
+      "changed_inputs": [],
+      "summary_sha256": "28354d2f45d4104644e842be42b1a7c4a2cc67f923d3e31890aa3c327d2d1dec",
+      "test_log_sha256": "2832c6db971b71b57f9ccf16a69a611043f73e6b9720acb749f95c4abc28c691",
+      "runtime_input_count": 8194,
+      "test_result": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 356 filtered out; finished in 6.79s"
+      ],
+      "marked_media_windows": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 73] sent=100 received=[0, 0, 73] source_timestamp_steps=Some((25, 298))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 1, 0] sent=99 received=[0, 1, 0] source_timestamp_steps=Some((84, 383))"
+      ]
+    },
+    {
+      "label": "firefox-owner-native-live-142-trace",
+      "diagnostic_retry": true,
+      "exit_code": 0,
+      "seconds": 31.513485375093296,
+      "changed_inputs": [],
+      "summary_sha256": "f65f7d1d2a1bf5a68047faed833bde0f068decc6d57c4faf4c7aa5a5e41e1049",
+      "test_log_sha256": "fbdf25896473ce57fd17581b0ea76b982f9576e3568149c3ed195af3f8e35ec2",
+      "runtime_input_count": 8194,
+      "test_result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 356 filtered out; finished in 31.45s"
+      ],
+      "marked_media_windows": [
+        "private-group audio handoff-private-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 0, 99] source_timestamp_steps=Some((71, 248))",
+        "private-group audio handoff-private-reverse: source=2 allowed=[1] frames=[0, 99, 0] sent=100 received=[0, 99, 0] source_timestamp_steps=Some((122, 202))",
+        "private-group audio reconnect-live-consult-forward: source=1 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 49, 148] source_timestamp_steps=Some((151, 175))",
+        "private-group audio reconnect-live-consult-reverse: source=2 allowed=[1] frames=[0, 100, 0] sent=100 received=[0, 100, 0] source_timestamp_steps=Some((145, 175))",
+        "private-group audio reconnect-pending-handoff-forward: source=1 allowed=[2] frames=[0, 0, 99] sent=100 received=[0, 49, 147] source_timestamp_steps=Some((146, 174))",
+        "private-group audio reconnect-pending-handoff-reverse: source=2 allowed=[1] frames=[0, 76, 0] sent=100 received=[0, 76, 0] source_timestamp_steps=Some((145, 170))",
+        "private-group audio handoff-retained-remote: source=0 allowed=[2] frames=[0, 0, 74] sent=100 received=[10, 0, 91] source_timestamp_steps=Some((147, 180))",
+        "private-group audio handoff-incoming-speaker: source=2 allowed=[0] frames=[100, 0, 0] sent=100 received=[100, 0, 0] source_timestamp_steps=Some((149, 175))",
+        "private-group audio handoff-after-reader-expiry: source=0 allowed=[2] frames=[0, 0, 100] sent=100 received=[0, 0, 100] source_timestamp_steps=Some((139, 175))"
+      ],
+      "browser_observations": {
+        "algorithm": "ES256",
+        "browser": "firefox",
+        "browser_joined": true,
+        "control_device": "live-control-device",
+        "media_device_unchanged": "canonical-device",
+        "node_joined": true,
+        "passed": true,
+        "phases": [
+          {
+            "command": "session.consult",
+            "control_device": "live-control-device",
+            "expected_revision": 3,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "private-before-handoff",
+            "passed": true,
+            "record_id": "opr_390fec4f-0b79-44fc-9bd7-a72b4ad88dbf",
+            "rounds": [
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 2,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 3,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 4,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "completed"
+          },
+          {
+            "command": "session.handoff",
+            "control_device": "live-control-device",
+            "expected_revision": 4,
+            "joined_reopens": 3,
+            "mutations_submitted": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_99a74cee-e808-4835-9b98-276746fe8c3c",
+            "rounds": [
+              {
+                "event_count": 1,
+                "has_more": false,
+                "physical_epoch": 6,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 7,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              },
+              {
+                "event_count": 0,
+                "has_more": false,
+                "physical_epoch": 8,
+                "retired_callbacks": 1,
+                "selected_transport": "webtransport"
+              }
+            ],
+            "state": "accepted"
+          },
+          {
+            "completion_observed": true,
+            "event_count": 9,
+            "joined_reopens": 0,
+            "operation_id": "native-public-handoff",
+            "passed": true,
+            "record_id": "opr_99a74cee-e808-4835-9b98-276746fe8c3c",
+            "selected_transport": "webtransport",
+            "state": "completed"
+          }
+        ]
+      }
+    }
+  ],
+  "behavior": [
+    "Each successful scene reopens official MCP control three times and actual BrowserTransportClient control three times during the completed active private consultation, then repeats both while the original handoff remains accepted under the existing role coordinator hold.",
+    "Each browser reconnect retires the previous physical peer once, refreshes scoped enrollment, preserves original operation identity/type/state/revision and performs finite cursor recovery. The browser submits zero mutations. It observes the original handoff completed after the genuine coordinator resumes.",
+    "A distinct control-only Device/signing key belongs to the original Identity. Native media Device/key authority is unchanged. The browser receives scoped enrollment, server public trust and a designated short-lived TLS leaf pin; operator authority and TLS private key remain only in the Rust fixture.",
+    "Successful scenes retain the original native audience/liveness thresholds across nine wire windows, require one actual handoff effect at attempt one, verify explicit original replay and join all browser/Node/native/server ownership. No waveform quality inference."
+  ],
+  "failure": {
+    "stage": "handoff-private-reverse, before any BrowserTransportClient authentication/reconnect",
+    "marked_packets": [
+      0,
+      1,
+      0
+    ],
+    "sent_packets": 99,
+    "snapshot_complete": true,
+    "private_snapshot_sha256": {
+      "snapshot.json": "1b98cec39aa2c78d9adfe92c867fffbf5dddeab3cc73f05c0bbe9f76cd130b9d",
+      "state.sqlite3": "d073cc9ddc4e1e3f37d17dd0653cc124a7f7dd239525106150c5a7fcd2109029",
+      "state.sqlite3-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+      "state.sqlite3-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "case.json": "51b2317a285a8e3b657aa58810bb4c37dbca92cc56b0c38015953c8c15e0b826"
+    },
+    "observed_state": "Consistent pre-panic snapshot records the private consultation completed and its candidate already generation-two retired. The original native lifetime is retired; no handoff was submitted. Candidate/consultation credentials and physical source were not expired.",
+    "cause": "Unresolved. The trace diagnostic separately passes the exact Firefox/ES256 scene on unchanged build141; that pass does not resolve the earlier failure.",
+    "carryforward": [
+      "G6-052",
+      "G6-096",
+      "G6-098"
+    ]
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/handoff.rs": "4f846f479be62e542729265f9e795434175ad11558d40362dcf5b1d22d6fbb76",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/browser_recovery.rs": "0445241a90e9907271a5b1315904dc19de59df8c8a9b3d5e2c6b18b24691c20e",
+    "scripts/video/browser-live-recovery.mjs": "12a750601253085c418967643ea59e4bce3b26efd47b7bfa390df3224636a5b9"
+  },
+  "remaining": [
+    "Identify the premature native retirement and verify recovery without relaxing the original media oracle.",
+    "Complete the G6-052 contract audit; Linux/remote, browser-owned media outage/quality, full Gate 6 acceptance and publication remain separately unqualified."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

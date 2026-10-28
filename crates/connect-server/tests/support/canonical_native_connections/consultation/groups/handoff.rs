@@ -1,6 +1,8 @@
 //! Actual native handoff from a decoded private audience through public clients.
 use super::*;
 use connect_protocol::transitions::{OutgoingDisposition, RoleScope};
+#[path = "browser_recovery.rs"]
+mod browser_recovery;
 
 fn backup_handoff_state(
     source: &rusqlite::Connection,
@@ -226,6 +228,7 @@ pub(super) async fn handoff_case_with_sdk(
         false,
         None,
         false,
+        None,
     )
     .await;
 }
@@ -237,8 +240,10 @@ async fn handoff_case_with_control(
     mcp: bool,
     host: Option<&crate::canonical_agent_rehearsal::Settings>,
     transport_recovery: bool,
+    browser_kind: Option<&'static str>,
 ) {
     assert!(!transport_recovery || (mcp && host.is_none()));
+    assert!(browser_kind.is_none() || transport_recovery);
     if std::env::var_os("CONNECT_GATE6_NATIVE_DIAGNOSTICS").as_deref()
         == Some(std::ffi::OsStr::new("1"))
     {
@@ -250,35 +255,46 @@ async fn handoff_case_with_control(
             )
             .try_init();
     }
+    let (running, browser_setup) = if let Some(algorithm) = sdk_algorithm {
+        let f = if let Some(settings) = host {
+            Fixture::with_native_mcp_in(algorithm, 16, settings.state_parent()).await
+        } else if mcp {
+            Fixture::with_native_mcp(algorithm, 16).await
+        } else {
+            Fixture::with_native_end_scope(algorithm, 16).await
+        };
+        let (f, setup) = if let Some(kind) = browser_kind {
+            let (f, setup) = browser_recovery::configure(f, kind).await;
+            (f, Some(setup))
+        } else {
+            (f, None)
+        };
+        (
+            codecs::setup_started(f, (), "codec-target-offer", "codec-source-offer")
+                .await
+                .0,
+            setup,
+        )
+    } else {
+        (codecs::setup().await, None)
+    };
     let codecs::Running {
         f,
         mut clients,
         cid,
         sh,
         th,
-    } = if let Some(algorithm) = sdk_algorithm {
-        codecs::setup_started(
-            if let Some(settings) = host {
-                Fixture::with_native_mcp_in(algorithm, 16, settings.state_parent()).await
-            } else if mcp {
-                Fixture::with_native_mcp(algorithm, 16).await
-            } else {
-                Fixture::with_native_end_scope(algorithm, 16).await
-            },
-            (),
-            "codec-target-offer",
-            "codec-source-offer",
-        )
-        .await
-        .0
+    } = running;
+    let mut browser_control = if let Some(setup) = browser_setup {
+        Some(browser_recovery::Worker::start(&f, setup).await)
     } else {
-        codecs::setup().await
+        None
     };
     if let Some(settings) = host {
         settings.retain_state(&f);
     }
     let case_context = json!({"algorithm":f.client.signing_algorithm,"outgoing":disposition,
-        "role_scope":role_scope,"initial_activation":initial_activation,"mcp":mcp,"actual_host":host.is_some()});
+        "role_scope":role_scope,"initial_activation":initial_activation,"mcp":mcp,"actual_host":host.is_some(),"browser_control":browser_kind});
     let room = clients[1]
         .list_conversations(Default::default())
         .await
@@ -398,6 +414,15 @@ async fn handoff_case_with_control(
         )
         .await;
         observer.close_readonly().await;
+        if let Some(browser) = &mut browser_control {
+            let observed = with_live_media(
+                &mut peers,
+                None,
+                browser.recover(&f, &group.command, &group.key.token, "completed"),
+            )
+            .await;
+            assert_eq!(observed["record_id"], group.record);
+        }
         handoff_probe(
             &f,
             &case_context,
@@ -622,6 +647,15 @@ async fn handoff_case_with_control(
             crate::canonical_mcp::TransitionProbe::submit(&f, &command, &key.token).await;
         let admitted = status(&f, &key.id, &command.operation_id).await;
         with_live_media(&mut peers, None, probe.reconnect_readonly("accepted", 3)).await;
+        if let Some(browser) = &mut browser_control {
+            let observed = with_live_media(
+                &mut peers,
+                None,
+                browser.recover(&f, &command, &key.token, "accepted"),
+            )
+            .await;
+            assert_eq!(observed["record_id"], admitted.record_id);
+        }
         let pending = status(&f, &key.id, &command.operation_id).await;
         assert_eq!(pending.state, OperationState::Accepted);
         assert!(pending.effects.is_empty());
@@ -701,6 +735,14 @@ async fn handoff_case_with_control(
     assert_eq!(wire["result"], record.result.as_ref().unwrap().clone());
     assert_eq!(record.effects.len(), 1);
     assert_eq!(record.effects[0].attempt, 1);
+    if let Some(browser) = &mut browser_control {
+        with_live_media(
+            &mut peers,
+            (disposition == OutgoingDisposition::Leave).then_some(PA),
+            browser.completed(&command, &record.record_id),
+        )
+        .await;
+    }
     if let Some(probe) = &mcp_probe {
         probe.completed(&record).await;
     }
@@ -898,6 +940,9 @@ async fn handoff_case_with_control(
         p.client.shutdown().await.unwrap();
     }
     wait_slots(&f, 0).await;
+    if let Some(browser) = browser_control {
+        browser.close(&f).await;
+    }
     f.server.shutdown().await.unwrap();
 }
 
@@ -911,8 +956,17 @@ async fn production_mcp_handoff_keeps_decoded_native_audio_roles_original_recove
             (OutgoingDisposition::Observe, RoleScope::Conversation),
             (OutgoingDisposition::Leave, RoleScope::Conversation),
         ] {
-            handoff_case_with_control(outgoing, scope, false, Some(algorithm), true, None, false)
-                .await;
+            handoff_case_with_control(
+                outgoing,
+                scope,
+                false,
+                Some(algorithm),
+                true,
+                None,
+                false,
+                None,
+            )
+            .await;
             eprintln!("MCP handoff {algorithm}:outgoing={outgoing:?},scope={scope:?}, independent decoded native audio, original recovery, one effect, all owners joined");
         }
     }
@@ -929,6 +983,7 @@ async fn diagnostic_mcp_leave_conversation_handoff_scene() {
         true,
         None,
         false,
+        None,
     )
     .await;
 }
@@ -942,6 +997,7 @@ pub(crate) async fn host_rehearsal(settings: &crate::canonical_agent_rehearsal::
         true,
         Some(settings),
         false,
+        None,
     )
     .await;
 }
@@ -958,8 +1014,73 @@ async fn production_live_native_consult_handoff_repeated_controller_reconnect() 
             true,
             None,
             true,
+            None,
         )
         .await;
         eprintln!("Live controller recovery {algorithm}: three joined consult reopens, three joined accepted-handoff reopens, unchanged private duplex/retained remote, one completed handoff effect and joined owners");
     }
+}
+
+#[tokio::test]
+#[ignore = "installed chrome; public BrowserTransportClient reconnect during live native consultation and accepted handoff; synthetic local media only"]
+async fn production_chrome_owner_live_consult_handoff_eddsa() {
+    handoff_case_with_control(
+        OutgoingDisposition::Leave,
+        RoleScope::Session,
+        false,
+        Some("EdDSA"),
+        true,
+        None,
+        true,
+        Some("chrome"),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[ignore = "installed chrome; public BrowserTransportClient reconnect during live native consultation and accepted handoff; synthetic local media only"]
+async fn production_chrome_owner_live_consult_handoff_es256() {
+    handoff_case_with_control(
+        OutgoingDisposition::Leave,
+        RoleScope::Session,
+        false,
+        Some("ES256"),
+        true,
+        None,
+        true,
+        Some("chrome"),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[ignore = "installed firefox; public BrowserTransportClient reconnect during live native consultation and accepted handoff; synthetic local media only"]
+async fn production_firefox_owner_live_consult_handoff_eddsa() {
+    handoff_case_with_control(
+        OutgoingDisposition::Leave,
+        RoleScope::Session,
+        false,
+        Some("EdDSA"),
+        true,
+        None,
+        true,
+        Some("firefox"),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[ignore = "installed firefox; public BrowserTransportClient reconnect during live native consultation and accepted handoff; synthetic local media only"]
+async fn production_firefox_owner_live_consult_handoff_es256() {
+    handoff_case_with_control(
+        OutgoingDisposition::Leave,
+        RoleScope::Session,
+        false,
+        Some("ES256"),
+        true,
+        None,
+        true,
+        Some("firefox"),
+    )
+    .await;
 }
