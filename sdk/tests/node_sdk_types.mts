@@ -67,3 +67,10 @@ connection.move({retain:connection.id,target:{endpoint:'endpoint' as import('../
 const moveOperation=client.operations.restore(saved,client.operationKinds.connection_replace);
 // @ts-expect-error Distinct invariant movement results cannot be relabeled as a handoff.
 const wrongMovementResult:SdkOperation<import('../typescript/dist/index.js').SdkHandoffResult>=moveOperation;
+
+declare const receiptMessageId:import('../typescript/dist/index.js').MessageId;
+const deliveryFacts = await client.conversations.byId(roomId).receipts(receiptMessageId,{timeoutMs:1000});
+// @ts-expect-error Delivery facts retain their independent readonly evidence boundary.
+deliveryFacts.push(deliveryFacts[0]);
+// @ts-expect-error A participant ID cannot name the message being observed.
+client.conversations.byId(roomId).receipts(participant.id,{timeoutMs:1000});

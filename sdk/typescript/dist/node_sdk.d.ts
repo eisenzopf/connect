@@ -1,3 +1,4 @@
+import { type SdkDeliveryObservation } from "./node_receipts.js";
 import { type SdkHandoffInput, type SdkHandoffResult, type SdkMoveInput, type SdkMoveResult } from "./node_movements.js";
 import { type ConnectionContext, type ConnectionId, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
 import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
@@ -115,6 +116,7 @@ export type SdkParticipantSnapshot = SdkConversationSnapshot["participants"][num
 declare const runOperation: unique symbol;
 declare const sendMessage: unique symbol;
 declare const refreshConversation: unique symbol;
+declare const readReceipts: unique symbol;
 declare const mutateParticipant: unique symbol;
 declare const readParticipant: unique symbol;
 declare const mutateSession: unique symbol;
@@ -183,6 +185,7 @@ export declare class NodeClient {
         };
         readonly text: string;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkMessageAcceptance>>;
+    [readReceipts](cid: ConversationId, mid: MessageId, options: CanonicalRequestOptions): Promise<readonly SdkDeliveryObservation[]>;
     [refreshConversation](id: ConversationId, options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
     [mutateParticipant](cid: ConversationId, action: JsonObject, kind: SdkOperationKind<SdkParticipant>, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
     [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
@@ -210,6 +213,7 @@ export declare class SdkConversation {
     }>;
     constructor(client: NodeClient, id: ConversationId);
     refresh(options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
+    receipts(messageId: MessageId, options: CanonicalRequestOptions): Promise<readonly SdkDeliveryObservation[]>;
     send(input: Parameters<NodeClient[typeof sendMessage]>[1], options: SdkMutationOptions): Promise<SdkOperation<SdkMessageAcceptance>>;
 }
 export declare class SdkParticipant {

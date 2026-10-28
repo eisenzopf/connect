@@ -43,10 +43,10 @@ try {
  const beforeRemove=await room.refresh(opts);await (await member.remove({expectedConversationRevision:beforeRemove.revision},{...opts,operationId:'typed-node-member-remove'})).wait(opts);
  await assert.rejects(member.refresh(opts),e=>{assert.equal(e.kind,'receipt-unavailable');return true;});
  const beforeReturn=await room.refresh(opts),returned=(await (await room.participants.add({...addInput,expectedRevision:beforeReturn.revision},{...opts,operationId:'typed-node-member-return'})).wait(opts)).value;
- assert.equal(returned.id,peer.id);assert.ok((await returned.refresh(opts)).membershipEpoch>epoch);
+ assert.equal(returned.id,peer.id);const currentMemberEpoch=(await returned.refresh(opts)).membershipEpoch;assert.ok(currentMemberEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
  progress('capabilities');
- const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features],['original-id-operations']);
+ const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['message-receipts','original-id-operations']);
  await client.capabilities.require('original-id-operations',opts);
  for(const feature of ['native-programmatic-media','durable-events','incoming-invitations'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
  progress('session');
@@ -134,7 +134,7 @@ try {
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await client.close(opts);assert.equal(await stopped(),2);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);
@@ -153,15 +153,25 @@ try {
  assert.equal((await restoredEnd.refresh(opts)).state,'ended');
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
  emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true});
+ await resume('receipts');
+ progress('message-receipts');
+ const facts=await client.conversations.byId(room.id).receipts(intent.messageId,opts);
+ assert.equal(facts.length,1);assert.equal(facts[0].participantId,peer.id);assert.equal(facts[0].membershipEpoch,currentMemberEpoch);
+ assert.equal(facts[0].state,'delivered');assert.equal(facts[0].channel,'native');assert.equal(facts[0].provenance,'client_reported');
+ assert.throws(()=>facts.push({}));assert.throws(()=>facts[0].state='read');
+ emit({phase:'receipts-observed',current_delivery_fact:true});
  await resume('revoked');
  progress('current-revocation');
+ await assert.rejects(client.conversations.byId(room.id).receipts(intent.messageId,opts),e=>{
+  assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'authentication');assert.ok(['read-only','refused'].includes(e.certainty));return true;
+ });
  let nativeFailure,httpFailure;
  await assert.rejects(client.conversations.byId(room.id).send(intent,mutation),e=>{
   assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','transport-uncertain'].includes(e.kind));assert.ok(['refused','uncertain'].includes(e.certainty));assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
  });
  await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{assert.equal(e.kind,'authentication');httpFailure={kind:e.kind,certainty:e.certainty};return true;});
  await client.close(opts);await http.close(opts);assert.equal(await stopped(),3);
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:3,query_recovery_without_replay:true});
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.

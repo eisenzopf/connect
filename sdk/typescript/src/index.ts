@@ -87,3 +87,5 @@ export type {
     SdkMoveInput,
     SdkMoveResult,
 } from "./node_movements.js";
+
+export type { SdkDeliveryObservation } from "./node_receipts.js";

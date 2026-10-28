@@ -73,6 +73,10 @@ pub enum Action {
         text: String,
         mutation: Mutation,
     },
+    MessageReceipts {
+        conversation_id: ConversationId,
+        message_id: MessageId,
+    },
     ConversationRefresh {
         conversation_id: ConversationId,
     },
@@ -233,6 +237,23 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                 )
                 .await?
                 .reference_json())
+        }
+        Action::MessageReceipts {
+            conversation_id,
+            message_id,
+        } => {
+            let observations = client
+                .conversation_by_id(conversation_id.clone())
+                .receipts(message_id.clone(), options)
+                .await?;
+            Ok(
+                json!({"conversationId":conversation_id,"messageId":message_id,
+                "observations": observations.into_iter().map(|v| json!({
+                    "participantId":v.participant_id,"membershipEpoch":v.membership_epoch,
+                    "channel":v.channel,"deliveryId":v.delivery_id,"state":v.state,
+                    "provenance":v.provenance,"observedAt":v.observed_at
+                })).collect::<Vec<_>>() }),
+            )
         }
         Action::ConversationRefresh { conversation_id } => {
             let room = client

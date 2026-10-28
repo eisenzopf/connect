@@ -44,6 +44,20 @@ createInterface({input:process.stdin}).on('line',line=>{
   else if(act.type==='refresh')result={Ok:{id:a.session_id,conversationId:a.conversation_id,state:'accepted',media:['audio'],intent:'synthetic',capabilitiesOffer:{audio:['g.711-mu']},codecPreferences:[],isMain:true,revision:1,topologyRevision:2,createdAt:1,updatedAt:2,endedReason:null}};
   else result={Ok:reference(act.mutation.operation_id,'session.'+act.type,{conversation_id:a.conversation_id,session_id:a.session_id})};
  }
+ else if(a.type==='message_receipts'){
+  const observation={participantId:'participant',membershipEpoch:1,channel:'native',deliveryId:'delivery',state:'delivered',provenance:'client_reported',observedAt:1};
+  result={Ok:{conversationId:a.conversation_id,messageId:a.message_id,observations:config.receipts??[observation]}};
+  if(config.mode==='receipt-cid')result.Ok.conversationId='foreign';
+  if(config.mode==='receipt-mid')result.Ok.messageId='foreign';
+  if(config.mode==='receipt-duplicate')result.Ok.observations.push({...observation});
+  if(config.mode==='receipt-state-array')result.Ok.observations[0].state=['delivered'];
+  if(config.mode==='receipt-provenance')result.Ok.observations[0].provenance='human-read';
+  if(config.mode==='receipt-epoch')result.Ok.observations[0].membershipEpoch=0;
+  if(config.mode==='receipt-time')result.Ok.observations[0].observedAt=-1;
+  if(config.mode==='receipt-channel')result.Ok.observations[0].channel='bad channel';
+  if(config.mode==='receipt-extra')result.Ok.observations[0].extra=true;
+  if(config.mode==='receipt-overflow')result.Ok.observations=Array.from({length:4097},(_,i)=>({...observation,deliveryId:'d'+i}));
+ }
  else if(a.type==='conversation_refresh')result={Ok:{id:a.conversation_id,closed:false,revision:1,participants:[]}};
  else {
    const snap={key:key(a.reference),state:config.state??'completed',revision:1,recordId:'record-original',cancelRequested:null,expiresAt:null,problem:null};
@@ -108,6 +122,8 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='record-change'&&n>1) { const s=result.Ok?.snapshot??result.Ok;if(s?.recordId)s.recordId='record-foreign'; }
  if(config.mode==='error-kind-array'||config.mode==='error-certainty-array')result={Err:{kind:config.mode==='error-kind-array'?['protocol']:'application',certainty:config.mode==='error-certainty-array'?['refused']:'refused',operation:null,problem:null,observation:null}};
  if(config.mode==='binding-state-array'&&result.Ok?.value?.outcome?.streams)result.Ok.value.outcome.streams[0].state=['active'];
+ if(config.mode==='caps-no-receipts'&&a.type==='capabilities_refresh')result.Ok.features=result.Ok.features.filter(f=>f!=='message-receipts');
+ if(config.mode==='caps-no-receipts'&&a.type==='message_receipts')result={Err:{kind:'unsupported',certainty:'read-only',operation:null,problem:null,observation:null}};
  const response={profile:config.mode==='profile'?'foreign':'connect-sdk-helper/1',id:config.mode==='wrong-id'?'foreign':req.id,result};
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);

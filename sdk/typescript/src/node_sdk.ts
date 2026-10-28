@@ -1,4 +1,8 @@
 import {
+    deliveryObservations,
+    type SdkDeliveryObservation,
+} from "./node_receipts.js";
+import {
     handoffInput,
     moveInput,
     movementContext,
@@ -132,10 +136,10 @@ function capabilitySnapshot(value: Json): SdkCapabilitySnapshot {
         new Set(value.features).size !== value.features.length
     )
         return protocol();
-    // Rust supports media/events/invitations; the current Node API does not yet.
+    // Advertise only exposed Node interfaces that this Rust configuration supports.
     const set = new Set<string>(
         value.features.filter(
-            (f) => f === "original-id-operations",
+            (f) => f === "original-id-operations" || f === "message-receipts",
         ) as string[],
     );
     const features: ReadonlySet<string> = Object.freeze({
@@ -247,6 +251,7 @@ type Kind<T> = {
 const runOperation = Symbol("operation");
 const sendMessage = Symbol("send");
 const refreshConversation = Symbol("refresh");
+const readReceipts = Symbol("receipts");
 const mutateParticipant = Symbol("participant-mutation");
 const readParticipant = Symbol("participant-read");
 const mutateSession = Symbol("session-mutation");
@@ -1040,6 +1045,18 @@ export class NodeClient {
             true,
         );
     }
+    [readReceipts](
+        cid: ConversationId,
+        mid: MessageId,
+        options: CanonicalRequestOptions,
+    ): Promise<readonly SdkDeliveryObservation[]> {
+        sdkId(mid);
+        return this.helper.request(
+            { type: "message_receipts", conversation_id: cid, message_id: mid },
+            options,
+            (value) => deliveryObservations(value, cid, mid),
+        );
+    }
     [refreshConversation](
         id: ConversationId,
         options: CanonicalRequestOptions,
@@ -1449,6 +1466,12 @@ export class SdkConversation {
         options: CanonicalRequestOptions,
     ): Promise<SdkConversationSnapshot> {
         return this.client[refreshConversation](this.id, options);
+    }
+    receipts(
+        messageId: MessageId,
+        options: CanonicalRequestOptions,
+    ): Promise<readonly SdkDeliveryObservation[]> {
+        return this.client[readReceipts](this.id, messageId, options);
     }
     send(
         input: Parameters<NodeClient[typeof sendMessage]>[1],

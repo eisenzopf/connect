@@ -86,7 +86,7 @@ def run(node_sdk=False):
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
-              "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/decoded media, browser/performance or installation qualification."}
+              "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT, browser/performance or installation qualification."}
 
     def execute(name, command, timeout):
         log = PRIVATE / (name + ".log")
@@ -120,7 +120,7 @@ def run(node_sdk=False):
                 phase = json.loads(line.split(' ', 1)[1])
                 assert set(phase) == {'algorithm','phase','passed','seconds','deadline_seconds'}
                 assert phase['algorithm'] in {'EdDSA','ES256'} and phase['passed'] is True
-                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','completed'}
+                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','receipts-observed','completed'}
                 assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
                 step['node_completed_phases'].append(phase)
         step["node_failures"] = []
@@ -129,7 +129,7 @@ def run(node_sdk=False):
                 failure = json.loads(line.split(' ', 1)[1])
                 assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'line', 'column'}
                 assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-                    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'current-revocation'}
+                    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
@@ -253,6 +253,7 @@ def run(node_sdk=False):
                 'whole_function_deadline_seconds': 90, 'request_budget_ms': 4000, 'phase_deadline_seconds': 15,
                 'scenarios': ['restored', 'remote-ended'], 'original_helpers_joined': 10, 'servers_joined': 4,
                 'scope': 'Public installed Node controls with actual native private/restored audio and remote EOF; no model/provider/remote lane or full SDK qualification.'}
+            report['scope'] += ' Also installed Node private/restored decoded audio and remote-EOF controls.'
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = execute('installed-node-native-control', [artifacts['hosting'], case, '--exact',
                            '--ignored', '--nocapture', '--test-threads=1'], 90)
@@ -263,7 +264,7 @@ def run(node_sdk=False):
             assert len(witnesses) == 2
             assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
             for witness in witnesses:
-                assert witness['functional_phase_profile'] == 'node-controls/2'
+                assert witness['functional_phase_profile'] == 'node-controls/3'
                 assert witness['controls']['session_participants_accepted']
                 assert witness['native']['native_controls_completed']
                 assert witness['initial']['movement_current_authority_refused']
@@ -271,10 +272,11 @@ def run(node_sdk=False):
                 assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
                 assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
                 assert witness['recovered']['typed_connection_end_recovered']
+                assert witness['receipts']['current_delivery_fact'] and witness['completed']['typed_receipts_current_authority']
                 assert witness['completed']['helpers_joined'] == 3
                 assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
             report['installed_node_native'] = {'passed': True, 'package': node_package,
-                'functional_phase_profile': 'node-controls/2', 'request_budget_ms': 4000,
+                'functional_phase_profile': 'node-controls/3', 'request_budget_ms': 4000,
                 'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
                 'physical_peers_drained': True, 'media_readers_drained': True,

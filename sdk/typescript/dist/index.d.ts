@@ -15,3 +15,4 @@ export { TASK_PROFILE } from "./tasks.js";
 export type { SessionId, SdkMedium, SdkSessionMedium, SdkNonEmpty, SdkSessionInvite, SdkSessionUpdate, SdkSessionDecision, SdkSessionSnapshot, SdkSession, SdkSessions, } from "./node_sessions.js";
 export type { ConnectionId, StreamId, SdkDirection, SdkOfferedStream, SdkConnectionSnapshot, SdkNegotiatedStream, SdkCodecObservation, SdkStreamGateObservation, SdkConnectionUpdateOutcome, SdkConnectionUpdateReceipt, SdkStreamSelectionReceipt, SdkStreamSelector, SdkConnectionUpdate, SdkStreamSnapshot, SdkConnections, SdkConnection, SdkStream, } from "./node_connections.js";
 export type { EndpointId, DeviceId, SdkTopologyChange, SdkHandoffRole, SdkHandoffInput, SdkHandoffResult, SdkMoveTarget, SdkMoveInput, SdkMoveResult, } from "./node_movements.js";
+export type { SdkDeliveryObservation } from "./node_receipts.js";

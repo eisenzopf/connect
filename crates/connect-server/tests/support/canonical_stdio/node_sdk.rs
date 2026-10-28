@@ -35,7 +35,12 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
         let sdk_config = connect_client::sdk::ClientConfig {
             control: f.client.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
-            application: None,
+            application: Some(connect_client::application::ApplicationClientConfig {
+                endpoint: f.server.http_address.unwrap(),
+                credential: f.client.credential.clone(),
+                expires_at: chrono::Utc::now() + chrono::Duration::minutes(5),
+                timeout_ms: 4000,
+            }),
         };
         let peer_control = crate::canonical_native_connections::party_with_scope(
             &f,
@@ -153,6 +158,36 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"restart\n").await.unwrap();
         let recovered = phase(&mut lines, "recovered", algorithm).await;
         assert_eq!(initial["record_id"], recovered["record_id"]);
+        // Report through the independent recipient's public application client.
+        // Message acceptance alone must not synthesize delivery evidence.
+        let mut recipient = connect_client::application::ApplicationClient::open(
+            connect_client::application::ApplicationClientConfig {
+                endpoint: f.server.http_address.unwrap(),
+                credential: peer_control.credential.clone(),
+                expires_at: chrono::Utc::now() + chrono::Duration::minutes(5),
+                timeout_ms: 4000,
+            },
+        )
+        .await
+        .unwrap();
+        recipient
+            .execute(
+                connect_client::application::ApplicationOperation::try_from(
+                    connect_protocol::Operation::MessageReceipt {
+                        request_id: "typed-node-recipient-delivered".into(),
+                        conversation_id: initial["cid"].as_str().unwrap().into(),
+                        message_id: initial["message_id"].as_str().unwrap().into(),
+                        state: connect_protocol::receipts::ClientReceiptState::Delivered,
+                    },
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        drop(recipient);
+        stdin.write_all(b"receipts\n").await.unwrap();
+        let receipts = phase(&mut lines, "receipts-observed", algorithm).await;
+        assert_eq!(receipts["current_delivery_fact"], true);
         let principal = f.server.store.authenticate(&f.client.credential).unwrap();
         let admin = f.server.store.authenticate(&f.admin).unwrap();
         let store = f.server.store.clone();
@@ -216,7 +251,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/2","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/3","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

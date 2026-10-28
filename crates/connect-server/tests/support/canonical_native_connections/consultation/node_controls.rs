@@ -42,7 +42,7 @@ impl Process {
         self.phase(expected).await
     }
 }
-pub(super) struct Probe {
+pub(in crate::canonical_native_connections::consultation) struct Probe {
     pub reference: Value,
     process: tokio::sync::Mutex<Process>,
 }

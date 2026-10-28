@@ -1,3 +1,4 @@
+import { deliveryObservations, } from "./node_receipts.js";
 import { handoffInput, moveInput, movementContext, handoffResult, moveResult, } from "./node_movements.js";
 import { createConnections, connectionHandle, connectionUpdate, streamSelection, } from "./node_connections.js";
 import { createSessions, sessionSnapshot, } from "./node_sessions.js";
@@ -26,8 +27,8 @@ function capabilitySnapshot(value) {
         value.features.some((f) => typeof f !== "string" || !/^[a-z0-9-]{1,128}$/.test(f)) ||
         new Set(value.features).size !== value.features.length)
         return protocol();
-    // Rust supports media/events/invitations; the current Node API does not yet.
-    const set = new Set(value.features.filter((f) => f === "original-id-operations"));
+    // Advertise only exposed Node interfaces that this Rust configuration supports.
+    const set = new Set(value.features.filter((f) => f === "original-id-operations" || f === "message-receipts"));
     const features = Object.freeze({
         get size() {
             return set.size;
@@ -49,6 +50,7 @@ function capabilitySnapshot(value) {
 const runOperation = Symbol("operation");
 const sendMessage = Symbol("send");
 const refreshConversation = Symbol("refresh");
+const readReceipts = Symbol("receipts");
 const mutateParticipant = Symbol("participant-mutation");
 const readParticipant = Symbol("participant-read");
 const mutateSession = Symbol("session-mutation");
@@ -574,6 +576,10 @@ export class NodeClient {
             mutation: mutation(options),
         }, options, (value) => this.fromReply(value, this.operationKinds.message_send, key), key, true);
     }
+    [readReceipts](cid, mid, options) {
+        sdkId(mid);
+        return this.helper.request({ type: "message_receipts", conversation_id: cid, message_id: mid }, options, (value) => deliveryObservations(value, cid, mid));
+    }
     [refreshConversation](id, options) {
         return this.helper.request({ type: "conversation_refresh", conversation_id: id }, options, (value) => {
             if (!object(value, [
@@ -825,6 +831,9 @@ export class SdkConversation {
     }
     refresh(options) {
         return this.client[refreshConversation](this.id, options);
+    }
+    receipts(messageId, options) {
+        return this.client[readReceipts](this.id, messageId, options);
     }
     send(input, options) {
         return this.client[sendMessage](this.id, input, options);
