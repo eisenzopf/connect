@@ -172,7 +172,7 @@ def run(node_sdk=False):
         for line in text.splitlines():
             if line.startswith('sdk-current-read-failure '):
                 failure = json.loads(line.split(' ',1)[1])
-                assert set(failure) == {'stage','kind','certainty'} and failure['stage'] == 'revoked-return-read'
+                assert set(failure) == {'stage','kind','certainty'} and failure['stage'] in {'revoked-return-read','revoked-consultation-status'}
                 assert isinstance(failure['kind'],str) and re.fullmatch(r'[a-z-]{1,64}',failure['kind'])
                 assert isinstance(failure['certainty'],str) and re.fullmatch(r'[a-z-]{1,32}',failure['certainty'])
                 step['sdk_current_read_failures'].append(failure)
@@ -353,7 +353,15 @@ def run(node_sdk=False):
             ("sip-readiness", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities", 1),
         ):
             independent_sdk = name in {'rust-sdk-consultation-audio', 'rust-sdk-consultation-eof'}
-            text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90, defer_failure=independent_sdk)
+            selection = [artifacts[binary], pattern]
+            if name == 'https-hosting':
+                # These two installed consumers are explicitly required below;
+                # they are not part of the seven non-ignored surface tests.
+                selection += ['--skip', 'canonical_https_hosting::node::']
+                report['baseline_https_exclusion'] = {'pattern':'canonical_https_hosting::node::','functions':2,
+                    'reason':'Installed Node consumers require their explicit environment and --ignored selection.',
+                    'explicit_sdk_matrix_requested':node_sdk,'qualified_by_baseline':False}
+            text = execute(name, selection + ["--test-threads=1"], 90, defer_failure=independent_sdk)
             if text is None:
                 sdk_failures.append(name)
                 continue

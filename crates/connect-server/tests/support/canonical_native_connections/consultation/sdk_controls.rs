@@ -326,14 +326,20 @@ impl Probe {
                     .await
                     .err()
                     .expect("revoked consultation authority cannot read");
-                assert!(
-                    error.certainty == sdk::Certainty::Refused
-                        || (error.certainty == sdk::Certainty::ReadOnly
-                            && matches!(
-                                error.kind,
-                                sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
-                            ))
-                );
+                let refused = error.certainty == sdk::Certainty::Refused
+                    || (error.certainty == sdk::Certainty::ReadOnly
+                        && matches!(
+                            error.kind,
+                            sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
+                        ));
+                if !refused {
+                    let encoded = sdk::helper::error_json(&error);
+                    eprintln!(
+                        "sdk-current-read-failure {}",
+                        json!({"stage":"revoked-consultation-status","kind":encoded["kind"],"certainty":encoded["certainty"]})
+                    );
+                }
+                assert!(refused);
             }
             Self::Node(p) => p.revoked().await,
         }

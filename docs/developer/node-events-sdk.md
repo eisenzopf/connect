@@ -59,3 +59,10 @@ one Conversation conflicts; the eight-reader budget uses distinct Conversations.
 The earlier synthetic same-Conversation capacity scene is superseded. All109
 component functions and11 installed event functions pass with this corrected
 fixture. Native source behavior still requires its signed/Linux evidence.
+
+Exact `0b2f1769` Linux evidence now verifies all three ACK units and all ten
+signed SDK/managed-helper event regressions on Node22/26, including deliberately
+held initialization across several polls, exact retained replay/ACK, independent
+control and close. The baseline HTTPS selector then stopped before installed Node
+stages. Its corrected selection preserves both mandatory opt-in HTTPS cases;
+installed event delivery/resume/current-authority qualification remains pending.

@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "baseline-https-selection-corrected-exact-opt-in-matrix-retained-runtime-pending",
+  "implementation_parent_commit": "d96f3f5310ddf448694c9d93c028a460fc7bf100",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "observed_evidence": "docs/evidence/gate-6/node-native-0b.json",
+  "problem": "Both exact0b matrices reach7 passing production HTTPS baseline tests and2 ignored installed Node HTTPS tests. The baseline verifier requires zero ignored, so the runner aborts before its explicit installed-Node stages. These artifacts do not qualify unexecuted stages.",
+  "correction": "Only the baseline https-hosting selection adds --skip canonical_https_hosting::node::. Original7tests must still pass with0ignored. Both exact named installed HTTPS cases remain mandatory with --ignored in the Node matrix. All other group selections,90s bounds and failure deferral remain unchanged. Baseline exclusion is explicitly recorded and cannot qualify these installed consumers.",
+  "revoked_status_diagnostic": "Node22 also failed the old Rust revoked consultation-status predicate at sdk_controls.rs329:17 with no observed kind/certainty. Add only the fixed-stage error-kind/certainty diagnostic for that branch; original accepted outcomes stay unchanged. No cause or pass inferred.",
+  "verification": {
+    "passed": true,
+    "scope": "Original runner selection code executed with a recording process seam, not Rust/native execution",
+    "baseline_has_only_specific_installed_node_exclusion": true,
+    "other_groups_unchanged": true,
+    "two_explicit_https_cases_still_mandatory": true,
+    "90s_function_bound_unchanged": true,
+    "source_sha256": "627fda9adfe390d0a3bbf60e34a9cef876a8f3e2c45ada829d9b0661c381d65f"
+  },
+  "source_sha256": {
+    "scripts/check-gate6-linux-hosting.py": "627fda9adfe390d0a3bbf60e34a9cef876a8f3e2c45ada829d9b0661c381d65f",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs": "60dd61ea2366bdeccf0f7ae2ccf85def007e614aa3e9c8771003ef6e6a68e6b4"
+  }
+}
