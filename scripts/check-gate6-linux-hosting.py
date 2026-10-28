@@ -198,13 +198,15 @@ def run(node_sdk=False):
             if line.startswith('installed-node-administrative-phase '):
                 phase = json.loads(line.split(' ', 1)[1])
                 assert set(phase) == {'algorithm', 'phase', 'seconds', 'deadline_seconds'}
-                assert phase['algorithm'] in {'EdDSA', 'ES256'} and phase['phase'] in {'ready','applied','read','refused','closed'}
+                assert phase['algorithm'] in {'EdDSA', 'ES256'} and phase['phase'] in {'ready','applied','read','read-refused','refused','closed'}
                 assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
                 step['node_administrative_phases'].append(phase)
             elif line.startswith('installed-node-administrative-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
-                assert set(failure) == {'phase','checkpoint','kind','certainty','line','column'} and failure['phase'] == 'failed'
-                assert failure['checkpoint'] in {'ready','apply','read','refuse','close','invalid'}
+                assert set(failure) == {'phase','checkpoint','kind','certainty','observedKind','observedCertainty','line','column'} and failure['phase'] == 'failed'
+                assert failure['checkpoint'] in {'ready','apply','read','read-refused','refuse','close','invalid'}
+                assert failure['observedKind'] is None or re.fullmatch(r'[a-z-]{1,64}',failure['observedKind'])
+                assert failure['observedCertainty'] is None or re.fullmatch(r'[a-z-]{1,32}',failure['observedCertainty'])
                 assert re.fullmatch(r'[a-z-]{1,64}',failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line','column'))
@@ -308,25 +310,35 @@ def run(node_sdk=False):
         if node_sdk:
             administrative_results = []
             for algorithm, label in (('EdDSA','eddsa'),('ES256','es256')):
-                name = 'installed_node_' + label + '_administration_covers_all_commands_and_original_recovery'
-                text = sdk_case('installed-node-administration-' + label, 'sdk_handles::administration::' + name, {'CONNECT_GATE6_NODE_ADMIN':'1'})
-                if text is None:
-                    administrative_results.append({'algorithm':algorithm,'passed':False})
-                    continue
-                assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;',text) == [('1','0','0')]
-                witnesses = [json.loads(line.split('installed-node-administrative-witness ',1)[1]) for line in text.splitlines() if 'installed-node-administrative-witness ' in line]
-                assert len(witnesses) == 1
-                witness = witnesses[0]
-                assert witness['profile'] == 'node-administration/1' and witness['algorithm'] == algorithm and witness['command_families'] == 11
-                assert witness['helpers_joined'] == 2 and witness['validators_joined'] == 26 and witness['servers_joined'] == 2
-                assert all(witness[field] for field in ('original_record_recovered','one_original_receipt','changed_intent_refused','physical_peers_drained','media_readers_drained'))
-                administrative_results.append(dict(witness,passed=True))
-            report['installed_node_administration'] = {'passed': all(v['passed'] for v in administrative_results), 'profile':'node-administration/1',
+                for scenario, suffix in (('commands','covers_all_commands_and_original_recovery'),
+                                         ('authority','enforces_current_authority_and_original_recovery')):
+                    name = 'installed_node_' + label + '_administration_' + suffix
+                    text = sdk_case('installed-node-administration-' + label + '-' + scenario, 'sdk_handles::administration::' + name, {'CONNECT_GATE6_NODE_ADMIN':'1'})
+                    if text is None:
+                        administrative_results.append({'algorithm':algorithm,'scenario':scenario,'passed':False})
+                        continue
+                    assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;',text) == [('1','0','0')]
+                    witnesses = [json.loads(line.split('installed-node-administrative-witness ',1)[1]) for line in text.splitlines() if 'installed-node-administrative-witness ' in line]
+                    assert len(witnesses) == 1
+                    witness = witnesses[0]
+                    assert witness['profile'] == 'node-administration/2' and witness['algorithm'] == algorithm and witness['scenario'] == scenario
+                    if scenario == 'commands':
+                        assert witness['command_families'] == 11
+                        assert witness['helpers_joined'] == 2 and witness['validators_joined'] == 26 and witness['servers_joined'] == 2
+                        assert all(witness[field] for field in ('original_record_recovered','one_original_receipt','changed_intent_refused'))
+                    else:
+                        assert witness['helpers_joined'] == 4 and witness['validators_joined'] == 10 and witness['servers_joined'] == 1
+                        assert all(witness[field] for field in ('ordinary_submit_read_refused','revoked_current_read_refused',
+                            'revoked_startup_replay_and_submit_not_submitted','independent_authorized_original_record_recovered','no_forbidden_or_revoked_receipts'))
+                    assert witness['physical_peers_drained'] and witness['media_readers_drained']
+                    administrative_results.append(dict(witness,passed=True))
+            assert len(administrative_results) == 4
+            report['installed_node_administration'] = {'passed': all(v['passed'] for v in administrative_results), 'profile':'node-administration/2',
                 'results':administrative_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,
                 'verified_helpers_joined':sum(v.get('helpers_joined',0) for v in administrative_results),
                 'verified_validators_joined':sum(v.get('validators_joined',0) for v in administrative_results),
                 'verified_servers_joined':sum(v.get('servers_joined',0) for v in administrative_results),
-                'scope':'All11 actual trusted administrative command families via installed Node SDK; independent Rust signed journal comparisons, exact replay/one original receipt after server restart, changed-intent refusal and original joins/drains. Current revocation/ordinary authority/failure-recovery matrix and full SDK qualification remain separate.'}
+                'scope':'All11 actual trusted administrative commands and ordinary/current-revoked authority via installed Node SDK; independent Rust signed journal comparisons, exact replay after server restart, new revoked startup refusing original/new mutations without submission, independent authorized recovery, no unauthorized receipts and original joins/drains. Uncertain HTTP commit and full SDK qualification remain separate.'}
             movement_results = []
             movement_cases = []
             for algorithm, label in (('EdDSA', 'eddsa'), ('ES256', 'es256')):

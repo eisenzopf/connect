@@ -68,8 +68,9 @@ protocol/process checks, not actual authority or cryptographic qualification.
 The Ubuntu candidate uses all eleven real administrative command families,
 independent Rust signed-journal comparisons, exact replay across a server restart,
 changed-intent refusal, one original receipt and original resource drains. Its
-runtime results remain pending. Ordinary-caller/current-revocation and uncertain
-HTTP commit scenes also remain required. See [the evidence](../evidence/gate-6/node-administration-sdk.json).
+runtime results remain pending. The added `node-administration/2` candidate includes ordinary-caller and current
+revocation scenes; actual runtime verification and uncertain HTTP commit remain
+required. See [the evidence](../evidence/gate-6/node-administration-sdk.json).
 
 The current suite passes 81 component functions, including startup-context checks.
 The managed helper profiles are version 2. Every response identifies
@@ -79,3 +80,19 @@ submitted: the Node error retains its captured operation key and reports
 SDK's actual certainty. Invalid phase, success labeled startup, or startup errors
 claiming a recorded/uncertain result fence the original helper. The matching
 current CLI and SDK are required.
+
+The authority candidate reuses the original Rust fixture with an installed public
+Node controller. An ordinary caller must be refused for submission and original
+status. After revocation, the original owner must return no status data; a fresh
+owner with that revoked credential must refuse both original-ID replay and a new
+mutation before submission. A separately authorized client must recover the
+same original journal record and value. SQLite must contain no forbidden/new
+revoked receipt. No production authorization or native-close guard is relaxed.
+
+The four-function profile requires both signing algorithms, twelve helper joins,
+72 validator joins and six server joins. Four-second request, 15-second phase
+and 90-second function deadlines remain. Seven installed synthetic protocols
+pass, including unexpected deadline/success and foreign-record rejection; all
+seven helpers and thirteen validators join. The runner retains only safe
+observed error kind/certainty and source coordinates. Real Linux compilation and
+behavior remain pending. See [the authority evidence](../evidence/gate-6/node-administration-authority.json).

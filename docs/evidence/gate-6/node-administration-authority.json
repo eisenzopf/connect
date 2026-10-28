@@ -1,0 +1,171 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "node-administrative-authority-candidate-protocol-passed-native-pending",
+  "implementation_parent_commit": "49e6c603fc202bf6b11522f920e2001b92d13bb5",
+  "profile": "node-administration/2",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "native_candidate": [
+    "Reuse original Rust current-authority fixture under explicit per-process Node controller, both EdDSA/ES256. Existing default Rust controller remains unchanged.",
+    "Ordinary live administrator wrapper must refuse mutation authentication/refused and return no original operation status data.",
+    "Current revoked owner must return no original status data; only precise authentication or closed-transport read certainty qualifies.",
+    "Fresh Node administrative owner with original revoked credential must refuse original intent replay and a new mutation authentication/not-submitted; no reconnect/retry of the old owner.",
+    "Independent authorized administrator restores original saved reference; Node original record ID/value must match independent Rust signed journal.",
+    "SQLite has zero forbidden/new revoked operation receipts; every original process joins, physical peers/media readers drain before shutdown. Exactly one original owned operation receipt remains."
+  ],
+  "required_matrix": {
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "functions": 4,
+    "all_commands_functions": 2,
+    "authority_functions": 2,
+    "helpers_joined": 12,
+    "validators_joined": 72,
+    "servers_joined": 6,
+    "per_authority_function": {
+      "helpers_joined": 4,
+      "validators_joined": 10,
+      "servers_joined": 1
+    },
+    "request_ms": 4000,
+    "phase_seconds": 15,
+    "function_seconds": 90
+  },
+  "installed_protocol_only": [
+    {
+      "passed": true,
+      "scope": "Installed public package with synthetic SDK helper protocol/process only; no real service/authorization/cryptography qualification",
+      "consumer_sha256": "ce61204aaa4551ddb2975d3314953e8f7922c8b617f524857ab77c1219b9b787",
+      "scenarios": [
+        {
+          "scenario": "apply-recover-replay-read-conflict-close",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 4,
+          "phases": [
+            "ready",
+            "applied",
+            "read",
+            "refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "foreign-original-record-refused",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 3,
+          "phases": [
+            "ready",
+            "applied",
+            "failed"
+          ]
+        }
+      ]
+    },
+    {
+      "passed": true,
+      "scope": "Installed public administrative consumer with synthetic helper/context/process only; no real authority, cryptographic or native qualification",
+      "consumer_sha256": "ce61204aaa4551ddb2975d3314953e8f7922c8b617f524857ab77c1219b9b787",
+      "scenarios": [
+        {
+          "scenario": "ordinary-authentication-read",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "read-refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "revoked-cancelled-read",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "read-refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "revoked-startup-replay-and-new",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 2,
+          "phases": [
+            "ready",
+            "refused",
+            "refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "unexpected-deadline-rejected",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "failed"
+          ]
+        },
+        {
+          "scenario": "unexpected-success-rejected",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "failed"
+          ]
+        }
+      ]
+    }
+  ],
+  "protocol_helpers_joined": 7,
+  "protocol_validators_joined": 13,
+  "runner_parser": {
+    "passed": true,
+    "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+    "checks": [
+      "valid-retained",
+      "unsafe-certainty-rejected",
+      "invalid-phase-rejected",
+      "unsafe-label-rejected"
+    ]
+  },
+  "package": {
+    "archive_sha256": "5da0762d6aed18759cf342622d2a703b7d18dc5f165368c550c36d1efa4baacb",
+    "installed_dist_matches": true,
+    "consumer_sha256": "ce61204aaa4551ddb2975d3314953e8f7922c8b617f524857ab77c1219b9b787"
+  },
+  "checks": {
+    "rust_format": true,
+    "node_python_syntax": true,
+    "diff": true,
+    "actual_rust_compile_and_native": "Pending Ubuntu original normal-push runs; no local Rust link due retained ENOSPC."
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/sdk_handles/administration.rs": "19940a2b1f8fd89e5d37ea9c2e89f8233f4bb936c95ec613cc4283cfed36e1c9",
+    "crates/connect-server/tests/support/sdk_handles/administration/node.rs": "163c9d882c8d63a9237c7589f54d578363a11d1274ad95f517085e5bef39e7e4",
+    "sdk/tests/node_administrative_server_consumer.mjs": "ce61204aaa4551ddb2975d3314953e8f7922c8b617f524857ab77c1219b9b787",
+    "scripts/check-gate6-linux-hosting.py": "a7284310e68e735f9f7b26d923f390ea7cab3027e3ca9ede8c345266b226b8ea"
+  },
+  "qualification_limit": "Seven installed synthetic consumer scenarios, seven original helper joins,13 validator joins and original runner-parser checks only. Real Node administrative authority/cryptography/native behavior remains pending. Uncertain HTTP commit is not covered here; full SDK incoming/events/explicit remote HTTP and other required scopes remain open."
+}

@@ -142,6 +142,18 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             )
             .await
     }
+    pub(super) async fn read_refused(&self, reference: Value, revoked: bool) {
+        self.process
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .request(
+                json!({"action":"read-refused","reference":reference,"revoked":revoked}),
+                "read-refused",
+            )
+            .await;
+    }
     pub(super) async fn refuse(&self, command: Value, kind: &str, certainty: &str) {
         self.process
             .lock()
@@ -204,6 +216,23 @@ pub(super) fn witness(algorithm: &str) {
     assert_eq!(VALIDATORS.load(Ordering::SeqCst), 26);
     eprintln!(
         "installed-node-administrative-witness {}",
-        json!({"profile":"node-administration/1","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
+        json!({"profile":"node-administration/2","scenario":"commands","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
+    );
+}
+
+pub(super) fn authority_witness(algorithm: &str) {
+    assert_eq!(HELPERS.load(Ordering::SeqCst), 4);
+    assert_eq!(SERVERS.load(Ordering::SeqCst), 1);
+    assert_eq!(VALIDATORS.load(Ordering::SeqCst), 10);
+    eprintln!(
+        "installed-node-administrative-witness {}",
+        json!({
+            "profile":"node-administration/2","scenario":"authority","algorithm":algorithm,
+            "helpers_joined":4,"validators_joined":10,"servers_joined":1,
+            "ordinary_submit_read_refused":true,"revoked_current_read_refused":true,
+            "revoked_startup_replay_and_submit_not_submitted":true,
+            "independent_authorized_original_record_recovered":true,"no_forbidden_or_revoked_receipts":true,
+            "physical_peers_drained":true,"media_readers_drained":true
+        })
     );
 }

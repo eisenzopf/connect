@@ -361,101 +361,156 @@ async fn administration_case(algorithm: &'static str) {
 async fn public_sdk_administration_requires_current_administrator_for_submission_status_and_replay()
 {
     for algorithm in ["EdDSA", "ES256"] {
-        let f = Fixture::with_native_end_scope(algorithm, 16).await;
-        let config = administrator(&f, 240);
-        let manager = connect(&f, config.clone()).await;
-        let (value, reference) = apply(
-            &manager,
-            identity("sdk-admin-owned", "sdk-admin-owned-target"),
+        authority_case(algorithm).await;
+    }
+}
+async fn authority_case(algorithm: &'static str) {
+    let f = Fixture::with_native_end_scope(algorithm, 16).await;
+    let config = administrator(&f, 240);
+    let manager = connect(&f, config.clone()).await;
+    let (value, reference) = apply(
+        &manager,
+        identity("sdk-admin-owned", "sdk-admin-owned-target"),
+    )
+    .await;
+    let ordinary = connect(&f, f.client.clone()).await;
+    let command = ordinary
+        .validate_provisioning(
+            serde_json::to_value(identity(
+                "sdk-admin-forbidden",
+                "sdk-admin-forbidden-target",
+            ))
+            .unwrap(),
         )
-        .await;
-        let ordinary = connect(&f, f.client.clone()).await;
-        let command = ordinary
-            .validate_provisioning(
-                serde_json::to_value(identity(
-                    "sdk-admin-forbidden",
-                    "sdk-admin-forbidden-target",
-                ))
-                .unwrap(),
+        .unwrap();
+    if let Some(node) = &ordinary.node {
+        node.refuse(command.to_json(), "authentication", "refused")
+            .await;
+        node.read_refused(reference.clone(), false).await;
+    }
+    let error = ordinary
+        .provision(command, mutation("sdk-admin-forbidden"))
+        .await
+        .err()
+        .unwrap();
+    assert_eq!(error.kind, sdk::ErrorKind::Authentication);
+    assert_eq!(error.certainty, sdk::Certainty::Refused);
+    assert!(ordinary
+        .restore(reference.clone())
+        .unwrap()
+        .status(options())
+        .await
+        .is_err());
+    let mut wrong_app = app(&f, &config);
+    wrong_app.credential = f.client.credential.clone();
+    assert!(
+        matches!(AdministrativeClient::connect(config.clone(),"tnt_default".parse().unwrap(),wrong_app).await,Err(e) if e.kind==sdk::ErrorKind::Configuration)
+    );
+    let other = administrator(&f, 241);
+    let revoker = connect(&f, other).await;
+    let credential_id = f
+        .server
+        .store
+        .authenticate(&config.credential)
+        .unwrap()
+        .credential_id;
+    apply(
+        &revoker,
+        ProvisioningCommand::RevokeCredential {
+            operation_id: "sdk-admin-disable-manager".into(),
+            credential_id,
+        },
+    )
+    .await;
+    if let Some(node) = &manager.node {
+        node.read_refused(reference.clone(), true).await;
+        // A fresh revoked owner cannot submit a replay or a new mutation. It
+        // exercises real initialization refusal without reconnecting the old owner.
+        let revoked = node::Probe::start(&f, config.clone()).await;
+        revoked
+            .refuse(
+                serde_json::to_value(identity("sdk-admin-owned", "sdk-admin-owned-target"))
+                    .unwrap(),
+                "authentication",
+                "not-submitted",
             )
-            .unwrap();
-        let error = ordinary
-            .provision(command, mutation("sdk-admin-forbidden"))
-            .await
-            .err()
-            .unwrap();
-        assert_eq!(error.kind, sdk::ErrorKind::Authentication);
-        assert_eq!(error.certainty, sdk::Certainty::Refused);
-        assert!(ordinary
-            .restore(reference.clone())
-            .unwrap()
-            .status(options())
-            .await
-            .is_err());
-        let mut wrong_app = app(&f, &config);
-        wrong_app.credential = f.client.credential.clone();
-        assert!(
-            matches!(AdministrativeClient::connect(config.clone(),"tnt_default".parse().unwrap(),wrong_app).await,Err(e) if e.kind==sdk::ErrorKind::Configuration)
-        );
-        let other = administrator(&f, 241);
-        let revoker = connect(&f, other).await;
-        let credential_id = f
-            .server
-            .store
-            .authenticate(&config.credential)
-            .unwrap()
-            .credential_id;
-        apply(
-            &revoker,
-            ProvisioningCommand::RevokeCredential {
-                operation_id: "sdk-admin-disable-manager".into(),
-                credential_id,
-            },
-        )
-        .await;
-        assert!(manager
-            .restore(reference)
-            .unwrap()
-            .status(options())
-            .await
-            .is_err());
-        let command = manager
-            .validate_provisioning(
+            .await;
+        revoked
+            .refuse(
                 serde_json::to_value(identity(
                     "sdk-admin-after-revoke",
                     "sdk-admin-after-revoke-target",
                 ))
                 .unwrap(),
+                "authentication",
+                "not-submitted",
             )
-            .unwrap();
-        assert!(manager
-            .provision(command, mutation("sdk-admin-after-revoke"))
-            .await
-            .is_err());
-        assert_eq!(
-            revoker
-                .restore(saved("sdk-admin-owned"))
-                .unwrap()
-                .wait(options())
-                .await
-                .unwrap()
-                .value["identity_id"],
-            value["identity_id"]
-        );
-        let db = rusqlite::Connection::open_with_flags(
-            &f.config.database,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            .await;
+        revoked.close().await;
+    }
+    assert!(manager
+        .restore(reference)
+        .unwrap()
+        .status(options())
+        .await
+        .is_err());
+    let command = manager
+        .validate_provisioning(
+            serde_json::to_value(identity(
+                "sdk-admin-after-revoke",
+                "sdk-admin-after-revoke-target",
+            ))
+            .unwrap(),
         )
         .unwrap();
-        let count:i64=db.query_row("SELECT COUNT(*) FROM operations WHERE operation_id IN ('sdk-admin-forbidden','sdk-admin-after-revoke')",[],|r|r.get(0)).unwrap();
-        assert_eq!(count, 0);
-        drop(db);
-        ordinary.close(options()).await.unwrap();
-        manager.close(options()).await.unwrap();
-        revoker.close(options()).await.unwrap();
-        f.server.shutdown().await.unwrap();
-        eprintln!("SDK administrative authority {algorithm}: ordinary refusal, exact-credential config boundary, current revocation blocks submit/read/replay without new rows, independent authorized recovery and cleanup");
+    assert!(manager
+        .provision(command, mutation("sdk-admin-after-revoke"))
+        .await
+        .is_err());
+    if let Some(node) = &revoker.node {
+        let recovered = node
+            .read(
+                saved("sdk-admin-owned"),
+                Some(manager.node.as_ref().unwrap().record("sdk-admin-owned")),
+            )
+            .await;
+        assert_eq!(recovered["value"], value);
     }
+    assert_eq!(
+        revoker
+            .restore(saved("sdk-admin-owned"))
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value["identity_id"],
+        value["identity_id"]
+    );
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let count:i64=db.query_row("SELECT COUNT(*) FROM operations WHERE operation_id IN ('sdk-admin-forbidden','sdk-admin-after-revoke')",[],|r|r.get(0)).unwrap();
+    assert_eq!(count, 0);
+    let original_count: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-admin-owned'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(original_count, 1);
+    drop(db);
+    ordinary.close(options()).await.unwrap();
+    manager.close(options()).await.unwrap();
+    revoker.close(options()).await.unwrap();
+    if node::enabled() {
+        node::drained(&f).await;
+    }
+    f.server.shutdown().await.unwrap();
+    node::server_joined();
+    eprintln!("SDK administrative authority {algorithm}: ordinary refusal, exact-credential config boundary, current revocation blocks submit/read/replay without new rows, independent authorized recovery and cleanup");
 }
 #[tokio::test]
 async fn public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect(
@@ -706,4 +761,19 @@ async fn installed_node_es256_administration_covers_all_commands_and_original_re
     assert!(node::enabled());
     administration_case("ES256").await;
     node::witness("ES256");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_eddsa_administration_enforces_current_authority_and_original_recovery() {
+    assert!(node::enabled());
+    authority_case("EdDSA").await;
+    node::authority_witness("EdDSA");
+}
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_es256_administration_enforces_current_authority_and_original_recovery() {
+    assert!(node::enabled());
+    authority_case("ES256").await;
+    node::authority_witness("ES256");
 }

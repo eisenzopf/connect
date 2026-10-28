@@ -187,5 +187,6 @@
     "sdk/typescript/dist/node_administration.d.ts": "18b8feb379d49b91affc3ba9778f44da151d62acb154daa27f33e371eed6194c"
   },
   "implementation_commit": "ba5864945c6634ce294f50404ebc4a44b6036bb3",
-  "startup_context_correction": "docs/evidence/gate-6/node-startup-context.json"
+  "startup_context_correction": "docs/evidence/gate-6/node-startup-context.json",
+  "authority_candidate_evidence": "docs/evidence/gate-6/node-administration-authority.json"
 }
