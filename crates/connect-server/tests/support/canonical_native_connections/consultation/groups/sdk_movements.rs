@@ -678,89 +678,194 @@ fn node_witness(scenario: &str, algorithms: &[&str], cases: usize) {
     assert_eq!(servers, cases);
     eprintln!(
         "installed-node-movement-witness {}",
-        json!({"profile":"node-movements/1","scenario":scenario,
+        json!({"profile":"node-movements/2","scenario":scenario,
         "algorithms":algorithms,"helpers_joined":helpers,"servers_joined":servers,"cases":cases,
         "physical_peers_drained":true,"media_readers_drained":true})
     );
 }
-async fn node_handoff(scope: connect_protocol::transitions::RoleScope) {
-    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
-    for algorithm in ["EdDSA", "ES256"] {
-        for outgoing in [
-            connect_protocol::transitions::OutgoingDisposition::Observe,
-            connect_protocol::transitions::OutgoingDisposition::Leave,
-        ] {
-            super::handoff::handoff_case_with_sdk(outgoing, scope, false, Some(algorithm)).await;
+// Each original media case owns one independently bounded process. The full matrix
+// remains mandatory; batching several audio fixtures exhausted the 90s function cap.
+macro_rules! node_handoff_case {
+    ($name:ident, $algorithm:literal, $scope:ident, $outgoing:ident) => {
+        #[tokio::test]
+        #[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+        async fn $name() {
+            assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+            super::handoff::handoff_case_with_sdk(
+                connect_protocol::transitions::OutgoingDisposition::$outgoing,
+                connect_protocol::transitions::RoleScope::$scope,
+                false, Some($algorithm)).await;
+            node_witness(stringify!($name), &[$algorithm], 1);
         }
-    }
+    };
 }
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_session_handoff_retains_actual_audio_roles_and_recovery() {
-    node_handoff(connect_protocol::transitions::RoleScope::Session).await;
-    node_witness("session-handoff", &["EdDSA", "ES256"], 4);
+macro_rules! node_move_case {
+    ($name:ident, $algorithm:literal, $movement:literal, $deferred:literal, $case:expr) => {
+        #[tokio::test]
+        #[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+        async fn $name() {
+            super::replacement::exercise_node_replacement_case($algorithm, $movement, $deferred, $case).await;
+            node_witness(stringify!($name), &[$algorithm], 1);
+        }
+    };
 }
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_conversation_handoff_retains_actual_audio_roles_and_recovery() {
-    node_handoff(connect_protocol::transitions::RoleScope::Conversation).await;
-    node_witness("conversation-handoff", &["EdDSA", "ES256"], 4);
-}
-async fn node_move(algorithm: &'static str) {
-    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
-    super::replacement::exercise_replacement_with_sdk(
-        true,
-        true,
-        false,
-        true,
-        false,
-        Some(algorithm),
-    )
-    .await;
-}
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_eddsa_device_move_preserves_audio_and_current_authority() {
-    node_move("EdDSA").await;
-    node_witness("device-move-eddsa", &["EdDSA"], 4);
-}
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_es256_device_move_preserves_audio_and_current_authority() {
-    node_move("ES256").await;
-    node_witness("device-move-es256", &["ES256"], 4);
-}
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_device_move_cancellation_remains_recorded_after_recovery() {
-    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
-    for algorithm in ["EdDSA", "ES256"] {
-        super::replacement::exercise_replacement_with_sdk(
-            false,
-            false,
-            false,
-            false,
-            false,
-            Some(algorithm),
-        )
-        .await;
-    }
-    node_witness("device-move-cancelled", &["EdDSA", "ES256"], 6);
-}
-#[tokio::test]
-#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
-async fn installed_node_device_move_recording_failure_recovers_one_known_commit() {
-    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
-    for algorithm in ["EdDSA", "ES256"] {
-        super::replacement::exercise_replacement_with_sdk(
-            true,
-            true,
-            false,
-            true,
-            true,
-            Some(algorithm),
-        )
-        .await;
-    }
-    node_witness("device-move-recording-failure", &["EdDSA", "ES256"], 2);
-}
+node_handoff_case!(
+    installed_node_eddsa_session_handoff_observe,
+    "EdDSA",
+    Session,
+    Observe
+);
+node_handoff_case!(
+    installed_node_eddsa_session_handoff_leave,
+    "EdDSA",
+    Session,
+    Leave
+);
+node_handoff_case!(
+    installed_node_eddsa_conversation_handoff_observe,
+    "EdDSA",
+    Conversation,
+    Observe
+);
+node_handoff_case!(
+    installed_node_eddsa_conversation_handoff_leave,
+    "EdDSA",
+    Conversation,
+    Leave
+);
+node_move_case!(
+    installed_node_eddsa_move_speaker,
+    "EdDSA",
+    true,
+    false,
+    (false, false, false)
+);
+node_move_case!(
+    installed_node_eddsa_move_observer,
+    "EdDSA",
+    true,
+    false,
+    (true, false, false)
+);
+node_move_case!(
+    installed_node_eddsa_move_revoked_endpoint,
+    "EdDSA",
+    true,
+    false,
+    (false, true, false)
+);
+node_move_case!(
+    installed_node_eddsa_move_revoked_target_key,
+    "EdDSA",
+    true,
+    false,
+    (false, false, true)
+);
+node_move_case!(
+    installed_node_eddsa_cancel_speaker,
+    "EdDSA",
+    false,
+    false,
+    (false, false, false)
+);
+node_move_case!(
+    installed_node_eddsa_cancel_observer,
+    "EdDSA",
+    false,
+    false,
+    (true, false, false)
+);
+node_move_case!(
+    installed_node_eddsa_cancel_revoked_endpoint,
+    "EdDSA",
+    false,
+    false,
+    (false, true, false)
+);
+node_move_case!(
+    installed_node_eddsa_move_recording_failure,
+    "EdDSA",
+    true,
+    true,
+    (false, false, false)
+);
+node_handoff_case!(
+    installed_node_es256_session_handoff_observe,
+    "ES256",
+    Session,
+    Observe
+);
+node_handoff_case!(
+    installed_node_es256_session_handoff_leave,
+    "ES256",
+    Session,
+    Leave
+);
+node_handoff_case!(
+    installed_node_es256_conversation_handoff_observe,
+    "ES256",
+    Conversation,
+    Observe
+);
+node_handoff_case!(
+    installed_node_es256_conversation_handoff_leave,
+    "ES256",
+    Conversation,
+    Leave
+);
+node_move_case!(
+    installed_node_es256_move_speaker,
+    "ES256",
+    true,
+    false,
+    (false, false, false)
+);
+node_move_case!(
+    installed_node_es256_move_observer,
+    "ES256",
+    true,
+    false,
+    (true, false, false)
+);
+node_move_case!(
+    installed_node_es256_move_revoked_endpoint,
+    "ES256",
+    true,
+    false,
+    (false, true, false)
+);
+node_move_case!(
+    installed_node_es256_move_revoked_target_key,
+    "ES256",
+    true,
+    false,
+    (false, false, true)
+);
+node_move_case!(
+    installed_node_es256_cancel_speaker,
+    "ES256",
+    false,
+    false,
+    (false, false, false)
+);
+node_move_case!(
+    installed_node_es256_cancel_observer,
+    "ES256",
+    false,
+    false,
+    (true, false, false)
+);
+node_move_case!(
+    installed_node_es256_cancel_revoked_endpoint,
+    "ES256",
+    false,
+    false,
+    (false, true, false)
+);
+node_move_case!(
+    installed_node_es256_move_recording_failure,
+    "ES256",
+    true,
+    true,
+    (false, false, false)
+);

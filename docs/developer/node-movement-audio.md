@@ -7,7 +7,7 @@ client cleanup. Independent native peers keep physical media custody. Rust
 compares Node's captured topology, role and binding metadata with the host
 journal result; a fresh helper must recover the same record and metadata.
 
-Six bounded functions cover session and Conversation role scopes with outgoing
+Twenty-four independently bounded functions cover session and Conversation role scopes with outgoing
 observe/leave; EdDSA and ES256 endpoint device movement; preparation cancellation
 and current-authority recovery; and a known commit whose recording projection
 fails before recovery. Existing decoded audio, no-leakage, source retirement,
@@ -35,11 +35,11 @@ a deliberate missing-role failure with safe source coordinates. All 17 helpers
 and 11 consumer processes joined. The full 64 SDK functions and negative
 declarations pass with 204 guarded inputs unchanged. These are protocol/process
 checks only. Mac Rust compilation remains skipped for retained ENOSPC;
-Ubuntu compilation, media, authorization and failure-recovery results are pending.
+Ubuntu compiled the original functions. The recording-failure function passed both algorithms; five batched functions reached the 90-second limit and remain failures.
 See [the evidence record](../evidence/gate-6/node-movement-audio.json).
 
 The first movement candidate `b36e119b` failed compilation with E0507: its shared
 shutdown helper tried to consume a server behind a borrowed Fixture. No new
 native movement function ran in that cohort. The correction keeps drain checks
 before the fixture's original consuming shutdown and counts the join only after
-success. Compilation and all actual movement checks remain pending.
+success. The corrected source compiled in `a054e258`. Its recording-failure scene passed; other movement functions timed out. The current split gives every one of the same 24 cases its own 90-second process, with all assertions and request/phase bounds retained. Current split runtime results remain pending. See [the exact mixed result](../evidence/gate-6/node-native-a054.json).

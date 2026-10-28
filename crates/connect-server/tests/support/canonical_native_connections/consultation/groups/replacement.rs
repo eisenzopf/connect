@@ -114,8 +114,28 @@ pub(super) async fn exercise_replacement_with_sdk(
         deferred_projection,
         sdk_algorithm,
         false,
+        None,
     )
     .await
+}
+pub(super) async fn exercise_node_replacement_case(
+    algorithm: &'static str,
+    movement: bool,
+    deferred_projection: bool,
+    case: (bool, bool, bool),
+) {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    exercise_replacement_with_control(
+        movement,
+        movement,
+        false,
+        movement,
+        deferred_projection,
+        Some(algorithm),
+        false,
+        Some(case),
+    )
+    .await;
 }
 async fn exercise_replacement_with_control(
     allocate: bool,
@@ -125,6 +145,7 @@ async fn exercise_replacement_with_control(
     deferred_projection: bool,
     sdk_algorithm: Option<&'static str>,
     mcp: bool,
+    selected_case: Option<(bool, bool, bool)>,
 ) {
     let cases = if deferred_projection {
         vec![(false, false, false)]
@@ -151,7 +172,13 @@ async fn exercise_replacement_with_control(
             (false, true, false),
         ]
     };
-    for (observer, revoke_endpoint, revoke_target_key) in cases {
+    if let Some(case) = selected_case {
+        assert!(cases.contains(&case));
+    }
+    for (observer, revoke_endpoint, revoke_target_key) in cases
+        .into_iter()
+        .filter(|case| selected_case.is_none_or(|selected| *case == selected))
+    {
         let codecs::Running {
             f,
             mut clients,
@@ -1340,8 +1367,17 @@ mod telephone;
 async fn production_mcp_device_movement_keeps_decoded_generation_two_audio_original_recovery_and_current_authority(
 ) {
     for algorithm in ["EdDSA", "ES256"] {
-        exercise_replacement_with_control(true, true, false, true, false, Some(algorithm), true)
-            .await;
+        exercise_replacement_with_control(
+            true,
+            true,
+            false,
+            true,
+            false,
+            Some(algorithm),
+            true,
+            None,
+        )
+        .await;
         eprintln!("MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners");
     }
 }

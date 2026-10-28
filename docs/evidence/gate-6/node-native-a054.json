@@ -1,0 +1,188 @@
+{
+  "commit": "a054e258b2d44c548bdf5a70155d40a3a27a9c94",
+  "run_id": 40753901099,
+  "artifact_id": 12846096756,
+  "zip_sha256": "e57a247d5f771b21e8011bf8682cc14316ae055817eea3a7ab726f656ee64441",
+  "passed": false,
+  "functions_passed": 143,
+  "source_bound_tracked_files_verified": 3998,
+  "guarded_inputs": 8090,
+  "source_inputs_unchanged": true,
+  "source_inputs_sha256": "7d94a0a516c12a9b5339ea1483b0b8fa39616c0d61e4e3544de21ee5ea375b85",
+  "compiled_artifacts": {
+    "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+    "library": "a7cb59e7d2c26b37856fb33420d4c0b0bd9a386453936ba675c59effab6e206d",
+    "hosting": "72535ed842d89d927f85f5e8b69c4b84b91d007a53bc78d856e8c5fd0e3a354e",
+    "cli": "791dd31e8b87242fd93bb7b0a8b5275ca5f2b0aae46b4b9a01c333ef1689703e",
+    "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+  },
+  "group_counts": {
+    "snapshot-store": 22,
+    "snapshot-peer-authority": 38,
+    "rust-sdk-consultation-audio": 1,
+    "rust-sdk-consultation-eof": 1,
+    "addressing": 4,
+    "config": 4,
+    "sip-config": 4,
+    "rtcp-udp": 32,
+    "rtcp-allocator": 20,
+    "rtcp-session-route": 1,
+    "owned-dtls": 1,
+    "https-hosting": 7,
+    "sip-unknown-account": 1,
+    "sip-bind-failure": 1,
+    "sip-owner-drop": 1,
+    "sip-readiness": 1,
+    "installed-node-movement-device-move-recording-failure": 1,
+    "installed-node-consultation-restored": 1,
+    "installed-node-consultation-remote-ended": 1,
+    "installed-node-native-control": 1
+  },
+  "node_runtime": "v26.12.1",
+  "installed_dist_matches_git_and_compiled_sources": true,
+  "installed_node_native": {
+    "passed": true,
+    "functional_phase_profile": "node-controls/3",
+    "request_budget_ms": 4000,
+    "scenario_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "original_helpers_joined": 6,
+    "servers_joined": 2,
+    "physical_peers_drained": true,
+    "media_readers_drained": true,
+    "scope": "Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification."
+  },
+  "installed_node_consultation_audio": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "restored",
+        "passed": true,
+        "helpers_joined": 6,
+        "servers_joined": 2
+      },
+      {
+        "scenario": "remote-ended",
+        "passed": true,
+        "helpers_joined": 4,
+        "servers_joined": 2
+      }
+    ],
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "whole_function_deadline_seconds": 90,
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "scenarios": [
+      "restored",
+      "remote-ended"
+    ],
+    "required_original_helpers_joined": 10,
+    "required_servers_joined": 4,
+    "verified_original_helpers_joined": 10,
+    "verified_servers_joined": 4,
+    "scope": "Public installed Node controls with actual native private/restored audio and remote EOF; no model/provider/remote lane or full SDK qualification."
+  },
+  "movement_results": {
+    "passed": false,
+    "profile": "node-movements/1",
+    "results": [
+      {
+        "scenario": "session-handoff",
+        "passed": false
+      },
+      {
+        "scenario": "conversation-handoff",
+        "passed": false
+      },
+      {
+        "scenario": "device-move-eddsa",
+        "passed": false
+      },
+      {
+        "scenario": "device-move-es256",
+        "passed": false
+      },
+      {
+        "scenario": "device-move-cancelled",
+        "passed": false
+      },
+      {
+        "algorithms": [
+          "EdDSA",
+          "ES256"
+        ],
+        "cases": 2,
+        "helpers_joined": 4,
+        "media_readers_drained": true,
+        "physical_peers_drained": true,
+        "profile": "node-movements/1",
+        "scenario": "device-move-recording-failure",
+        "servers_joined": 2,
+        "passed": true
+      }
+    ],
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification."
+  },
+  "failed_functions": [
+    {
+      "name": "installed-node-movement-session-handoff",
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 90.01619502,
+      "log_sha256": "ca0d6c02ef7692ca2d09851cd8249ae8b31ca615fdc1d2180f84076cf6a5bf39",
+      "node_movement_failures": [],
+      "completed_node_phases": 12
+    },
+    {
+      "name": "installed-node-movement-conversation-handoff",
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 90.01622476699998,
+      "log_sha256": "5347d6aa1e97c73c60858a4b9ef801f5bff8d8fcae204b6cefb0fb681f10f255",
+      "node_movement_failures": [],
+      "completed_node_phases": 16
+    },
+    {
+      "name": "installed-node-movement-device-move-eddsa",
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 90.01627667499997,
+      "log_sha256": "55f86a613bd0dc3f6b87529709ffc3df5bf65137f65133fd37c46b09904214dd",
+      "node_movement_failures": [],
+      "completed_node_phases": 12
+    },
+    {
+      "name": "installed-node-movement-device-move-es256",
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 90.0164059010001,
+      "log_sha256": "4055ac7896853bed1042e61627935c5fb06ad4917be845631ec958ed312c18db",
+      "node_movement_failures": [],
+      "completed_node_phases": 12
+    },
+    {
+      "name": "installed-node-movement-device-move-cancelled",
+      "exit_code": -15,
+      "timed_out": true,
+      "forced_kill": false,
+      "seconds": 90.01618645200006,
+      "log_sha256": "017eeb91a46467091fd9458f3f589da67a9c5df1551cec3f9d8838108db38f0e",
+      "node_movement_failures": [],
+      "completed_node_phases": 30
+    }
+  ]
+}

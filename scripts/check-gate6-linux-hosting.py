@@ -267,14 +267,16 @@ def run(node_sdk=False):
             return text
         if node_sdk:
             movement_results = []
-            for scenario, name, algorithms, cases in (
-                ('session-handoff', 'installed_node_session_handoff_retains_actual_audio_roles_and_recovery', ['EdDSA', 'ES256'], 4),
-                ('conversation-handoff', 'installed_node_conversation_handoff_retains_actual_audio_roles_and_recovery', ['EdDSA', 'ES256'], 4),
-                ('device-move-eddsa', 'installed_node_eddsa_device_move_preserves_audio_and_current_authority', ['EdDSA'], 4),
-                ('device-move-es256', 'installed_node_es256_device_move_preserves_audio_and_current_authority', ['ES256'], 4),
-                ('device-move-cancelled', 'installed_node_device_move_cancellation_remains_recorded_after_recovery', ['EdDSA', 'ES256'], 6),
-                ('device-move-recording-failure', 'installed_node_device_move_recording_failure_recovers_one_known_commit', ['EdDSA', 'ES256'], 2),
-            ):
+            movement_cases = []
+            for algorithm, label in (('EdDSA', 'eddsa'), ('ES256', 'es256')):
+                suffixes = [f'{scope}_handoff_{outgoing}' for scope in ('session', 'conversation') for outgoing in ('observe', 'leave')]
+                suffixes += ['move_' + case for case in ('speaker', 'observer', 'revoked_endpoint', 'revoked_target_key')]
+                suffixes += ['cancel_' + case for case in ('speaker', 'observer', 'revoked_endpoint')]
+                suffixes += ['move_recording_failure']
+                movement_cases.extend((f'installed_node_{label}_{suffix}', algorithm) for suffix in suffixes)
+            assert len(movement_cases) == len(set(name for name, _ in movement_cases)) == 24
+            for name, algorithm in movement_cases:
+                scenario, algorithms, cases = name, [algorithm], 1
                 case = 'canonical_native_connections::consultation::groups::sdk_movements::' + name
                 text = sdk_case('installed-node-movement-' + scenario, case, {'CONNECT_GATE6_NODE_MOVEMENTS': '1'})
                 if text is None:
@@ -285,13 +287,13 @@ def run(node_sdk=False):
                              for line in text.splitlines() if 'installed-node-movement-witness ' in line]
                 assert len(witnesses) == 1
                 witness = witnesses[0]
-                assert witness['profile'] == 'node-movements/1' and witness['scenario'] == scenario
+                assert witness['profile'] == 'node-movements/2' and witness['scenario'] == scenario
                 assert witness['algorithms'] == algorithms and witness['cases'] == cases
                 assert witness['helpers_joined'] == cases * 2 and witness['servers_joined'] == cases
                 assert witness['physical_peers_drained'] and witness['media_readers_drained']
                 movement_results.append(dict(witness, passed=True))
             report['installed_node_movements'] = {'passed': all(v['passed'] for v in movement_results),
-                'profile': 'node-movements/1', 'results': movement_results, 'request_budget_ms': 4000,
+                'profile': 'node-movements/2', 'results': movement_results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'scope': 'Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification.'}
             consultation_results = []

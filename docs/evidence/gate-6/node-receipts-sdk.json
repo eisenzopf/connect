@@ -2,9 +2,9 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "pending-native-runtime-verification",
+  "status": "installed-node-native-receipts-component-passed",
   "synthetic_passed": true,
-  "component_passed": false,
+  "component_passed": true,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
@@ -142,7 +142,7 @@
     "sdk/tests/fixtures/sdk_helper.mjs": "d599d699fd277af3e5a4f64e93f215630861d23a6dd551949a4cec757d86a82e",
     "sdk/tests/check_canonical_helper.py": "060cc5ef07f9ffda089f1e190f8b5caf4146bd0e3457e02e862f9a909a80fe96"
   },
-  "qualification_limit": "No actual application read, cryptographic/native control, full Node SDK or Gate6 qualification until exact Ubuntu source-bound results. Earlier native timing failures remain retained.",
+  "qualification_limit": "Both algorithms pass actual native delivered/client_reported receipt observation, immutable captured IDs and current revocation in node-controls/3. Node26 Ubuntu only; no Node22 native, full SDK or Gate acceptance.",
   "implementation_commit": "5d4343451e2371ae7e5b63f34a8a3fff06f05219",
   "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes.",
   "native_compile_796": {
@@ -184,5 +184,16 @@
       "passed": true,
       "scope": "Synthetic helper/HTTP/declaration and generated SDK checks only; no actual native/media/authority qualification"
     }
-  ]
+  ],
+  "latest_source_bound_native": {
+    "evidence": "docs/evidence/gate-6/node-native-a054.json",
+    "commit": "a054e258b2d44c548bdf5a70155d40a3a27a9c94",
+    "run_id": 40753901099,
+    "aggregate_passed": false,
+    "consultation_audio_component_passed": true,
+    "remote_eof_component_passed": true,
+    "native_controls_and_receipts_component_passed": true,
+    "movement_matrix_passed": false,
+    "scope": "Ubuntu x86_64 Node26.12.1 EdDSA/ES256 only. Independent matching source digests; no Node22 native, full SDK, acceptance or publication qualification."
+  }
 }
