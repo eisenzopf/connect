@@ -8,7 +8,7 @@ durable cancel/reconcile decisions. Its supported operation kinds are
 The [Session control component](node-session-sdk.md) also implements invitations,
 accept/reject/cancel, updates, end and original-operation recovery. The full
 Connection/Stream/topology, invitation delivery, event,
-capability, administration and remote HTTP interfaces remain required.
+administration and remote HTTP interfaces remain required. The [raw canonical interface](node-raw-sdk.md) now delegates validation and finite requests to the original Rust SDK; actual qualification remains pending.
 Programmatic media is G6-064. There is no fallback to the historical generic API.
 
 Install the matching trusted `connect` executable. This component invokes

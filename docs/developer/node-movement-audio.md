@@ -43,3 +43,10 @@ shutdown helper tried to consume a server behind a borrowed Fixture. No new
 native movement function ran in that cohort. The correction keeps drain checks
 before the fixture's original consuming shutdown and counts the join only after
 success. The corrected source compiled in `a054e258`. Its recording-failure scene passed; other movement functions timed out. The current split gives every one of the same 24 cases its own 90-second process, with all assertions and request/phase bounds retained. Current split runtime results remain pending. See [the exact mixed result](../evidence/gate-6/node-native-a054.json).
+
+The split compiled in `f925a8ac`, but an earlier original Rust consultation EOF
+function failed before movement execution. Its cause remains unresolved;
+[the source-bound failure](../evidence/gate-6/node-native-f925.json) is retained.
+The runner now finishes independent Rust/Node SDK functions and fails the final
+aggregate for any recorded failure. Compilation, source guards and other required
+checks retain immediate failure behavior.

@@ -3,6 +3,26 @@
 import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {createInterface} from 'node:readline';
+// Local validator simulation only; actual frozen-parser evidence is separate.
+if (process.argv[2] === 'sdk-validate-envelope') {
+ const path=process.env.CONNECT_SDK_FIXTURE_CONFIG, config=JSON.parse(readFileSync(path,'utf8')),dir=dirname(path);
+ const value=JSON.parse(readFileSync(0,'utf8'));
+ appendFileSync(join(dir,'validation.jsonl'),JSON.stringify({argv:process.argv.slice(2),pid:process.pid,value})+'\n',{mode:0o600});
+ if(config.validator==='hang'){setInterval(()=>{},1000);await new Promise(()=>{});}
+ const key=v=>v.operation_id==null?null:{operationId:v.operation_id,command:v.type,scope:{conversationId:v.cid??null,sessionId:v.sid??null,connectionId:v.connid??null}};
+ const error=v=>({kind:'unsupported',certainty:v.operation_id==null?'read-only':'not-submitted',operation:key(v),problem:null,observation:null});
+ const unsupported=value.type==='ack'||value.type==='connection.offer'||value.type==='conversation.subscribe'&&value.payload.live!==false;
+ let result={profile:'connect-sdk-validation/1',valid:true,request:unsupported?{error:error(value)}:{key:key(value)}};
+ if(value.type==='operation.get'&&typeof value.payload.operation_id!=='string')result={...result,valid:false,request:null};
+ if(config.validator==='profile')result.profile='other';
+ if(config.validator==='boolean')result.valid='true';
+ if(config.validator==='foreign-key')result.request={key:{...key(value),operationId:'foreign'}};
+ if(config.validator==='error-array')result.request={error:{...error(value),kind:['unsupported']}};
+ if(config.validator==='duplicate')process.stdout.write('{"profile":"connect-sdk-validation/1","profile":"connect-sdk-validation/1","valid":false,"request":null}');
+ else if(config.validator==='oversize')process.stdout.write('x'.repeat(20000));
+ else process.stdout.write(JSON.stringify(result)+'\n');
+ process.exit(0);
+}
 const path=process.argv[process.argv.indexOf('--config')+1], config=JSON.parse(readFileSync(path,'utf8')),dir=dirname(path);
 writeFileSync(join(dir,'pid'),String(process.pid),{mode:0o600});
 writeFileSync(join(dir,'argv.json'),JSON.stringify(process.argv.slice(2)),{mode:0o600});
@@ -22,6 +42,24 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='oversize')return process.stdout.write('x'.repeat(2097154)+'\n');
  let result;
  if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
+ else if(a.type==='raw_request') {
+  const v=a.envelope,scope=Object.fromEntries(['cid','sid','connid','operation_id'].filter(k=>k in v).map(k=>[k,v[k]]));
+  const error={kind:'unsupported',certainty:v.operation_id==null?'read-only':'not-submitted',operation:v.operation_id==null?null:{operationId:v.operation_id,command:'ack',scope:{conversationId:v.cid??null,sessionId:v.sid??null,connectionId:v.connid??null}},problem:null,observation:null};
+  const frame={v:2,id:'reply',ts:'2026-10-28T00:00:00Z',type:'ack',...scope,in_reply_to:'fresh-wire-request',payload:{details:{original:'preserved',vendor:'x'.repeat(config.rawSize??1)}},signature:{keyid:'server',alg:'EdDSA',sig:Buffer.alloc(64).toString('base64url')}};
+  if(config.rawNodes)frame.payload.details.vendor=Array(config.rawNodes).fill(false);
+  for(let i=0;i<(config.rawDepth??0);i++)frame.payload.details.vendor={nested:frame.payload.details.vendor};
+  result={Ok:{requestId:'fresh-wire-request',envelopes:[{value:frame,request:{error}}]}};
+  if(config.mode==='raw-correlation')frame.in_reply_to='foreign';
+  if(config.mode==='raw-scope')frame.cid='foreign';
+  if(config.mode==='raw-logical')frame.operation_id='foreign';
+  if(config.mode==='raw-alg-array')frame.signature.alg=['EdDSA'];
+  if(config.mode==='raw-bad-signature')frame.signature.sig='xx';
+  if(config.mode==='raw-error-frame')frame.type='error';
+  if(config.mode==='raw-no-ack')frame.type='operation.snapshot';
+  if(config.mode==='raw-duplicate'||config.mode==='raw-after-ack')result.Ok.envelopes.push({value:{...frame,id:config.mode==='raw-duplicate'?frame.id:'next'},request:{error}});
+  if(config.mode==='raw-empty')result.Ok.envelopes=[];
+  if(config.mode==='raw-wrong-descriptor')result.Ok.envelopes[0].request={key:{operationId:'foreign',command:'ack',scope:{conversationId:v.cid??null,sessionId:null,connectionId:null}}};
+ }
  else if(a.type==='session_handoff'||a.type==='connection_move') {
   const i=a.input,handoff=a.type==='session_handoff',scope={conversation_id:a.conversation_id,session_id:a.session_id,connection_id:handoff?i.via:a.connection_id};
   const continuation=handoff?{kind:'handoff',retained_connection_id:i.retain,source_participant:i.from_participant,target_participant:i.to,candidate:i.candidate,role:i.role,outgoing:i.outgoing}:{kind:'replacement',retained_connection_id:i.retain,target:i.target};

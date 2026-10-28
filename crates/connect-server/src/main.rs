@@ -142,6 +142,8 @@ enum Command {
         #[arg(long)]
         connect_number: Option<String>,
     },
+    /// Local frozen-envelope validation; opens no configuration or endpoint.
+    SdkValidateEnvelope,
     /// Typed SDK control through one owned, fixed-authority Rust client.
     SdkStdio {
         #[arg(long)]
@@ -421,6 +423,7 @@ async fn main() -> Result<()> {
             human_number.as_deref(),
             connect_number.as_deref(),
         )?,
+        Command::SdkValidateEnvelope => connect_server::cli::sdk_stdio::validate_envelope().await?,
         Command::SdkStdio { config } => connect_server::cli::sdk_stdio::serve(&config).await?,
         Command::Stdio {
             config,

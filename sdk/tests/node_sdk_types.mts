@@ -74,3 +74,12 @@ const deliveryFacts = await client.conversations.byId(roomId).receipts(receiptMe
 deliveryFacts.push(deliveryFacts[0]);
 // @ts-expect-error A participant ID cannot name the message being observed.
 client.conversations.byId(roomId).receipts(participant.id,{timeoutMs:1000});
+
+const checkedEnvelope = client.raw.validate({v:2,id:'attempt',ts:'2026-10-28T00:00:00Z',type:'operation.get',payload:{operation_id:'original'}});
+const rawReplies = await client.raw.request(checkedEnvelope,{timeoutMs:1000});
+// @ts-expect-error Local validation token cannot be forged from ordinary JSON.
+client.raw.request({value:checkedEnvelope.value},{timeoutMs:1000});
+// @ts-expect-error Validated token value is immutable.
+checkedEnvelope.value = null;
+// @ts-expect-error Returned envelope batch is immutable.
+rawReplies.push(checkedEnvelope);

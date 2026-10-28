@@ -1,0 +1,41 @@
+{
+  "commit": "f925a8acc8fffafd34abd14ef2e8a4b33e6d7035",
+  "run_id": 40757624872,
+  "artifact_id": 12845983951,
+  "zip_sha256": "ce435dda5c325ce770d67d269f9732f7b983d6bacc1bbfa8342cb0376977a570",
+  "passed": false,
+  "guarded_inputs": 8091,
+  "source_bound_tracked_files_verified": 3999,
+  "source_inputs_unchanged": true,
+  "source_inputs_sha256": "01207fc42e49d7abd61a8ce944563dd61096106070d3c12f1f27d2c98d0defad",
+  "compiled_artifacts": {
+    "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+    "library": "a7cb59e7d2c26b37856fb33420d4c0b0bd9a386453936ba675c59effab6e206d",
+    "hosting": "a5e53ace7f50dfbd0177249d1b80352ec3eeeacced5f5e9268e7e7ece08964de",
+    "cli": "791dd31e8b87242fd93bb7b0a8b5275ca5f2b0aae46b4b9a01c333ef1689703e",
+    "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+  },
+  "failure": {
+    "name": "rust-sdk-consultation-eof",
+    "exit_code": 101,
+    "timed_out": false,
+    "forced_kill": false,
+    "seconds": 4.777638163000006,
+    "log_sha256": "e990844573e8000141d3f0b4c1618a2f721e2a9913e8cf0a65f27ef01cec1f13",
+    "test_results": [
+      "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 394 filtered out; finished in 4.72s"
+    ],
+    "panic_locations": [],
+    "node_completed_phases": [],
+    "node_failures": [],
+    "node_consultation_phases": [],
+    "node_consultation_failures": [],
+    "node_movement_phases": [],
+    "node_movement_failures": [],
+    "compiler_diagnostics": []
+  },
+  "split_movement_compiled": true,
+  "split_movement_executed": false,
+  "cause": "Unresolved; previous exact cohorts passed this original EOF test. No diagnostic panic location survived the old parser.",
+  "next_change": "Independent Rust SDK consultation functions defer failure like independent Node SDK scenes; failure stays in aggregate. Default compile/source/non-SDK checks still fail immediately. Panic parser also recognizes Rust thread IDs."
+}

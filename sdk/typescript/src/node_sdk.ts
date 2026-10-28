@@ -1,3 +1,4 @@
+import { createRaw, type SdkRawCanonical } from "./node_raw.js";
 import {
     deliveryObservations,
     type SdkDeliveryObservation,
@@ -139,7 +140,10 @@ function capabilitySnapshot(value: Json): SdkCapabilitySnapshot {
     // Advertise only exposed Node interfaces that this Rust configuration supports.
     const set = new Set<string>(
         value.features.filter(
-            (f) => f === "original-id-operations" || f === "message-receipts",
+            (f) =>
+                f === "original-id-operations" ||
+                f === "message-receipts" ||
+                f === "raw-canonical",
         ) as string[],
     );
     const features: ReadonlySet<string> = Object.freeze({
@@ -786,6 +790,7 @@ export class NodeClient {
     readonly role = "node" as const;
     readonly operationKinds = operationKinds;
     readonly capabilities: SdkCapabilities;
+    readonly raw: SdkRawCanonical;
     readonly conversations;
     readonly operations;
     private readonly helper: SdkHelper;
@@ -793,7 +798,12 @@ export class NodeClient {
         readonly config: string;
         readonly executable?: string;
     }) {
-        this.helper = new SdkHelper(config);
+        const captured = {
+            config: config?.config,
+            executable: config?.executable ?? "connect",
+        };
+        this.helper = new SdkHelper(captured);
+        this.raw = createRaw(this.helper, captured.executable);
         const refresh = (options: CanonicalRequestOptions) =>
             this.helper.request(
                 { type: "capabilities_refresh" },

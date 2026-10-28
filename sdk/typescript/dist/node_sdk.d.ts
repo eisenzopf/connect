@@ -1,3 +1,4 @@
+import { type SdkRawCanonical } from "./node_raw.js";
 import { type SdkDeliveryObservation } from "./node_receipts.js";
 import { type SdkHandoffInput, type SdkHandoffResult, type SdkMoveInput, type SdkMoveResult } from "./node_movements.js";
 import { type ConnectionContext, type ConnectionId, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
@@ -157,6 +158,7 @@ export declare class NodeClient {
         operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
     }>;
     readonly capabilities: SdkCapabilities;
+    readonly raw: SdkRawCanonical;
     readonly conversations: Readonly<{
         byId: (id: ConversationId) => SdkConversation;
         create: (input: {

@@ -114,7 +114,7 @@ def run(node_sdk=False):
                 "seconds": time.monotonic() - started, "log_sha256": digest(log), "test_results": summary}
         step["panic_locations"] = [
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
-            for location in re.findall(r"thread '[^']+' panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
+            for location in re.findall(r"thread '[^']+'(?: \([0-9]+\))? panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
         step["node_completed_phases"] = []
         for line in text.splitlines():
@@ -131,7 +131,7 @@ def run(node_sdk=False):
                 failure = json.loads(line.split(' ', 1)[1])
                 assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'line', 'column'}
                 assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-                    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'current-revocation'}
+                    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
@@ -237,7 +237,9 @@ def run(node_sdk=False):
             'snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks',
         ):
             assert f'peer_authority::tests::{case}: test' in inventory.splitlines()
+        sdk_failures = []
         for name, binary, pattern, expected in (
+            ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
             ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
@@ -255,10 +257,13 @@ def run(node_sdk=False):
             ("sip-owner-drop", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip", 1),
             ("sip-readiness", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities", 1),
         ):
-            text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90)
+            independent_sdk = name in {'rust-sdk-consultation-audio', 'rust-sdk-consultation-eof'}
+            text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90, defer_failure=independent_sdk)
+            if text is None:
+                sdk_failures.append(name)
+                continue
             counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", text)
             assert len(counts) == 1 and int(counts[0][0]) >= expected and counts[0][1:] == ("0", "0"), "Missing/skipped fixture coverage"
-        sdk_failures = []
         def sdk_case(name, case, environment=None):
             text = execute(name, [artifacts['hosting'], case, '--exact', '--ignored', '--nocapture', '--test-threads=1'],
                            90, defer_failure=True, environment=environment)
@@ -327,7 +332,7 @@ def run(node_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/3'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/4'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -336,7 +341,7 @@ def run(node_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/3'
+                    assert witness['functional_phase_profile'] == 'node-controls/4'
                     assert witness['controls']['session_participants_accepted']
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
@@ -345,12 +350,14 @@ def run(node_sdk=False):
                     assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
                     assert witness['recovered']['typed_connection_end_recovered']
                     assert witness['receipts']['current_delivery_fact'] and witness['completed']['typed_receipts_current_authority']
-                    assert witness['completed']['helpers_joined'] == 3
+                    assert all(witness['receipts'][field] for field in ('raw_signed_original_record', 'raw_same_id_one_message', 'raw_local_configuration_independent'))
+                    assert witness['completed']['raw_current_authority']
+                    assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/3', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/4', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
-                    'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
+                    'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,
                     'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
                 report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'

@@ -178,11 +178,11 @@ test('Node capabilities reflect exposed interfaces and immutable feature sets, n
  await fixture({},async(client,dir)=>{
   const snapshot=await client.capabilities.refresh(opts);
   assert.equal(snapshot.profile,'connect/2');assert.equal(snapshot.runtimeRole,'node');assert.equal(snapshot.selectedTransport,'quic');assert.equal(snapshot.fallbackReason,undefined);
-  assert.deepEqual([...snapshot.features],['original-id-operations','message-receipts']);assert.equal(snapshot.features.size,2);
+  assert.deepEqual([...snapshot.features],['original-id-operations','raw-canonical','message-receipts']);assert.equal(snapshot.features.size,3);
   assert.equal(snapshot.features.add,undefined);assert.throws(()=>snapshot.features.size=99);assert.throws(()=>snapshot.runtimeRole='rust');
-  const seen=[];snapshot.features.forEach(function(value,key,owner){assert.equal(this,'context');assert.equal(owner,snapshot.features);seen.push([value,key]);},'context');assert.deepEqual(seen,[['original-id-operations','original-id-operations'],['message-receipts','message-receipts']]);
+  const seen=[];snapshot.features.forEach(function(value,key,owner){assert.equal(this,'context');assert.equal(owner,snapshot.features);seen.push([value,key]);},'context');assert.deepEqual(seen,[['original-id-operations','original-id-operations'],['raw-canonical','raw-canonical'],['message-receipts','message-receipts']]);
   await client.capabilities.require('original-id-operations',opts);
-  for(const feature of ['native-programmatic-media','durable-events','incoming-invitations','raw-canonical','unknown'])await assert.rejects(client.capabilities.require(feature,opts),error('unsupported','read-only'));
+  for(const feature of ['native-programmatic-media','durable-events','incoming-invitations','unknown'])await assert.rejects(client.capabilities.require(feature,opts),error('unsupported','read-only'));
   const before=(await calls(dir)).length;
   for(const feature of ['',null,'UPPER','bad space','x'.repeat(129)])await assert.rejects(client.capabilities.require(feature,opts),error('validation','read-only'));
   assert.throws(()=>client.capabilities.refresh({...opts,signal:AbortSignal.abort()}),error('cancelled','read-only'));

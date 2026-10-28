@@ -1,3 +1,4 @@
+import { createRaw } from "./node_raw.js";
 import { deliveryObservations, } from "./node_receipts.js";
 import { handoffInput, moveInput, movementContext, handoffResult, moveResult, } from "./node_movements.js";
 import { createConnections, connectionHandle, connectionUpdate, streamSelection, } from "./node_connections.js";
@@ -28,7 +29,9 @@ function capabilitySnapshot(value) {
         new Set(value.features).size !== value.features.length)
         return protocol();
     // Advertise only exposed Node interfaces that this Rust configuration supports.
-    const set = new Set(value.features.filter((f) => f === "original-id-operations" || f === "message-receipts"));
+    const set = new Set(value.features.filter((f) => f === "original-id-operations" ||
+        f === "message-receipts" ||
+        f === "raw-canonical"));
     const features = Object.freeze({
         get size() {
             return set.size;
@@ -411,11 +414,17 @@ export class NodeClient {
     role = "node";
     operationKinds = operationKinds;
     capabilities;
+    raw;
     conversations;
     operations;
     helper;
     constructor(config) {
-        this.helper = new SdkHelper(config);
+        const captured = {
+            config: config?.config,
+            executable: config?.executable ?? "connect",
+        };
+        this.helper = new SdkHelper(captured);
+        this.raw = createRaw(this.helper, captured.executable);
         const refresh = (options) => this.helper.request({ type: "capabilities_refresh" }, options, capabilitySnapshot);
         this.capabilities = Object.freeze({
             refresh,

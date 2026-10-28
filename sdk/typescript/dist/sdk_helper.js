@@ -58,10 +58,12 @@ export class SdkHelper {
         let captured;
         try {
             duration(options);
-            const bytes = Buffer.from(canonicalJson(action));
-            if (bytes.length > 63 * 1024)
+            const raw = action.type === "raw_request";
+            const bytes = Buffer.from(canonicalJson(action, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw ? 40 : 32, raw ? 1100000 : 100000));
+            if (bytes.length >
+                (action.type === "raw_request" ? 1024 * 1024 + 1024 : 63 * 1024))
                 throw new Error();
-            captured = parseCanonicalJson(bytes);
+            captured = parseCanonicalJson(bytes, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw ? 40 : 32, raw ? 1100000 : 100000);
         }
         catch {
             throw new NodeSdkError("validation", mutation ? "not-submitted" : "read-only", key);
@@ -140,8 +142,11 @@ export class SdkHelper {
                 profile,
                 id: job.id,
                 request: { timeout_ms: remaining, action: job.action },
-            }) + "\n";
-            if (Buffer.byteLength(line) > 65536)
+            }, job.action.type === "raw_request"
+                ? 2 * 1024 * 1024
+                : 1024 * 1024, job.action.type === "raw_request" ? 40 : 32, job.action.type === "raw_request" ? 1100000 : 100000) + "\n";
+            if (Buffer.byteLength(line) >
+                (job.action.type === "raw_request" ? 2 * 1024 * 1024 : 65536))
                 throw new Error();
             job.sent = true;
             this.child.stdin.write(line, (error) => {
@@ -191,7 +196,7 @@ export class SdkHelper {
         if (newline < 0)
             return;
         try {
-            const v = parseCanonicalJson(Buffer.concat(this.chunks, this.bytes).subarray(0, -1), 2 * 1024 * 1024);
+            const v = parseCanonicalJson(Buffer.concat(this.chunks, this.bytes).subarray(0, -1), 2 * 1024 * 1024, job.action.type === "raw_request" ? 40 : 32, job.action.type === "raw_request" ? 1100000 : 100000);
             this.chunks = [];
             this.bytes = 0;
             if (!object(v, ["profile", "id", "result"]) ||

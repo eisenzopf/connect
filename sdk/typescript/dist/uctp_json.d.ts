@@ -6,7 +6,7 @@ export type JsonObject = {
 };
 export declare const MAX_ENVELOPE_BYTES: number;
 /** RFC 8785: UTF-16 key ordering, finite ECMAScript numbers, scalar Unicode. */
-export declare function canonicalJson(value: Json): string;
+export declare function canonicalJson(value: Json, maximumBytes?: number, maximumDepth?: number, maximumNodes?: number): string;
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
-export declare function parseCanonicalJson(bytes: Uint8Array, maximumBytes?: number): Json;
+export declare function parseCanonicalJson(bytes: Uint8Array, maximumBytes?: number, maximumDepth?: number, maximumNodes?: number): Json;
 export declare function jsonObject(value: Json | undefined): value is JsonObject;

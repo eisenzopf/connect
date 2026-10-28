@@ -18,6 +18,30 @@ pub use connection::{
 pub use session::{Change as SessionChange, InviteMedium, SessionAction};
 
 pub const PROFILE: &str = "connect-sdk-helper/1";
+pub const VALIDATION_PROFILE: &str = "connect-sdk-validation/1";
+/// Local frozen validation/intent description; no payload echo, client or grant.
+pub fn validation_descriptor_bytes(bytes: &[u8]) -> Value {
+    match crate::canonical::Envelope::parse(bytes) {
+        Err(_) => json!({"profile":VALIDATION_PROFILE,"valid":false,"request":null}),
+        Ok(envelope) => validation_descriptor(envelope.original().clone()),
+    }
+}
+pub fn validation_descriptor(value: Value) -> Value {
+    match super::raw::validate(value) {
+        Err(_) => json!({"profile":VALIDATION_PROFILE,"valid":false,"request":null}),
+        Ok(envelope) => {
+            let request = request_descriptor(&envelope);
+            json!({"profile":VALIDATION_PROFILE,"valid":true,"request":request})
+        }
+    }
+}
+
+fn request_descriptor(value: &ValidatedEnvelope) -> Value {
+    match super::raw::request_key(value) {
+        Ok(key) => json!({"key":key.as_ref().map(key_json)}),
+        Err(error) => json!({"error":error_json(&error)}),
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -44,6 +68,9 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    RawRequest {
+        envelope: Value,
+    },
     SessionHandoff {
         conversation_id: ConversationId,
         session_id: SessionId,
@@ -169,6 +196,20 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
+        Action::RawRequest { envelope } => {
+            let raw = client.raw();
+            let checked = raw.validate(envelope)?;
+            let key = super::raw::request_key(&checked)?;
+            let frames = raw.request(checked, options).await?;
+            let request_id = frames
+                .first()
+                .and_then(|v| v.to_json()["in_reply_to"].as_str().map(str::to_owned))
+                .ok_or_else(|| Error::request(ErrorKind::Protocol, key.as_ref(), true))?;
+            Ok(
+                json!({"requestId":request_id,"envelopes":frames.into_iter().map(|v|json!({"value":v.to_json(),"request":request_descriptor(&v)})).collect::<Vec<_>>() }),
+            )
+        }
+
         Action::SessionHandoff {
             conversation_id,
             session_id,

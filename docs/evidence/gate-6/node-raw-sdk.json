@@ -1,0 +1,143 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "implemented-synthetic-passed-native-pending",
+  "synthetic_component_passed": true,
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "implementation_parent_commit": "f925a8acc8fffafd34abd14ef2e8a4b33e6d7035",
+  "source_hash_scope": "Exact candidate source hashes; new Rust compilation and actual installed raw execution pending. Synthetic signatures do not establish cryptographic trust.",
+  "implementation": [
+    "NodeClient.raw.validate/request, branded captured frozen JSON and immutable full signed reply batches",
+    "Local bounded CLI validation uses frozen Rust Envelope::parse and original RawCanonical intent classification, no client/configuration/Store/network",
+    "Original Rust SDK owns full request revalidation, signature/correlation/current authority, fresh wire metadata, original mutation key, queue, absolute request deadline and original cleanup; no retry or parser/transport fallback",
+    "One MiB/32 levels/100000 nodes per envelope; 2MiB/128 envelope reply; wrapper overhead allowed, typed64KiB unchanged",
+    "Strict local descriptor, scope, signature-shape, duplicate/correlation/final-ACK checks fence malformed results without leaking helper bodies"
+  ],
+  "bounds": {
+    "validation_seconds": 2,
+    "validation_output_bytes": 16384,
+    "envelope_bytes": 1048576,
+    "envelope_levels": 32,
+    "envelope_nodes": 100000,
+    "reply_bytes": 2097152,
+    "reply_envelopes": 128,
+    "typed_request_bytes": 65536
+  },
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 8.423721500206739,
+    "source_count": 208,
+    "changed_inputs": [],
+    "source_inputs_sha256": "9c7806c1df95174ad37f9f9ee1406ecabdd5a116db894b31de6c945789f37dff",
+    "log_sha256": "5b5b84eb5cf8c53933a67574602aade61cd9b3695b1cf21930ec5d3d52882574",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T19:58:06.016449+00:00"
+  },
+  "functions_passed": 71,
+  "new_raw_function_names": [
+    "raw local validation captures immutable original intent without a helper request or configuration argument",
+    "raw full-schema invalid and local JSON bounds are refused before wire; finite-lifecycle policy comes from Rust descriptor",
+    "raw preserves envelope payload and signed reply beyond typed 64 KiB bound without enlarging typed writes",
+    "malformed local validator profile, duplicate keys and descriptors fence the original owner before raw I/O",
+    "raw malformed signed batch never escapes and preserves read versus submitted mutation certainty",
+    "raw cancellation before submission writes nothing and active uncertainty retains original operation without retry",
+    "local validation subprocess output and time are bounded and original child is joined",
+    "structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics"
+  ],
+  "package": {
+    "movement_consumer_sha256": "c9eaed4bbd1ec022d057adf7e5a67719bc95c6c6e8c9b02c010e15bad14888f0",
+    "consultation_consumer_sha256": "3d8bd0e84c837cd2fd8beb5d63b60b287e522f22ab80f95851bb9e15dd252a56",
+    "archive": "dist/gate-6/node-raw-package426/rudeless-connect-0.1.0.tgz",
+    "archive_sha256": "e49d426ece9378e235803b70e5328036ddc1e063f7bc04743939b97930e79eb7",
+    "installed_dist_matches": true,
+    "consumer_sha256": "97f5c66866579e46bb7c79a7f8360c5a5a1e37366b7609d9630f36995860acae",
+    "node_version": "v26.7.0",
+    "publication": false
+  },
+  "installed_dist_file_count": 126,
+  "required_native": {
+    "local_tests": 3,
+    "frozen_schema_vectors": 254,
+    "profile": "node-controls/4",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "original_helpers_required": 8,
+    "local_validator_processes_required": 6,
+    "servers_required": 2,
+    "request_ms": 4000,
+    "phase_seconds": 15,
+    "function_seconds": 90,
+    "scenes": [
+      "254 frozen vectors; duplicates/UTF8/oversize rejection; local classification and full operation scope",
+      "CLI local validation succeeds with invalid configuration, schema-invalid payload refused",
+      "Original signed journal record; preserved optional payload; immutable reply; fresh wire IDs",
+      "Same original message intent/ID replay produces one durable message",
+      "Separate original raw owner refuses revoked read; independent HTTP401/403 required; typed original lane retained; every original helper/validator/server joined and physical peers/media readers0"
+    ]
+  },
+  "checks": {
+    "rust_format": true,
+    "typescript_build": true,
+    "negative_declarations": true,
+    "node_syntax": true,
+    "python_syntax": true,
+    "generated_http_references": true,
+    "http_declarations": 25,
+    "http_operations": 26,
+    "uncovered": 0,
+    "diff_check": true,
+    "mac_rust_compile": "skipped: retained internal-disk ENOSPC; no build/link attempted",
+    "linux_rust_compile_and_native": "pending"
+  },
+  "runner_control_flow_only": {
+    "passed": true,
+    "scope": "Synthetic exact runner AST control-flow and panic-format parsing only",
+    "failed_independent_rust_scenes_preserved": [
+      "rust-sdk-consultation-audio",
+      "rust-sdk-consultation-eof"
+    ],
+    "following_required_groups_executed": 15,
+    "non_sdk_checks_still_hard_fail": true,
+    "old_and_current_rust_panic_coordinates_parsed": true,
+    "source_sha256": "d9f5d951fa41cda87d9fe2e9a2e1ab67e6c655932e71cb9d3ab51729553b4d43"
+  },
+  "previous_ubuntu_failure": "docs/evidence/gate-6/node-native-f925.json",
+  "development_failures": [
+    "First new raw suite6/7: typed-message test used invalid recipient shape, corrected fixture; no production change for this failure",
+    "All71 tests initially exited0 but wrapper retained expected64, so overall verification correctly stayed false until count update and fresh complete rerun"
+  ],
+  "qualification_limit": "Node26.7 macOS synthetic component and installed-file equality only. Frozen Rust/actual Node native raw, Node22 native, full SDK, acceptance and publication remain unqualified.",
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "fdceaf758af7eba6c0f5c598d27f2b7d2c1c2e8c5d93996dbde534e25e7cc16c",
+    "crates/connect-client/src/sdk/raw.rs": "dbc8ce9ca876efd837451c6b320f879dc4d40ac94682cbdc463a763bac79ecb2",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "945d515cf81816a3ed7d48f79a6401b4d99b0e8a279ff5e08220ef1afcefde95",
+    "crates/connect-server/src/main.rs": "8a8e8e177da77e040d1b28c73515eea619aa516fc134e77e59664de72822b30a",
+    "crates/connect-server/tests/support/sdk_handles/raw.rs": "7884f50b1e3d5ec39abe6f01b55fff14e1f9f55c245955ccc271cafe85f5a6fb",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "6c29e4d851b20d318dbd900d885df2ab24126d9d489f9fcb9fde0506f0ff9037",
+    "scripts/check-gate6-linux-hosting.py": "d9f5d951fa41cda87d9fe2e9a2e1ab67e6c655932e71cb9d3ab51729553b4d43",
+    "sdk/tests/node_raw.test.mjs": "41118953f116214a5063dd522d2775c00104e08814c002565e3db4c1b71d4a79",
+    "sdk/tests/node_sdk_server_consumer.mjs": "97f5c66866579e46bb7c79a7f8360c5a5a1e37366b7609d9630f36995860acae",
+    "sdk/tests/fixtures/sdk_helper.mjs": "94ed4503e4b64b77202de3152ba138e604bf9f6ca5fd27f69aec7d7e0179a74f",
+    "sdk/tests/check_canonical_helper.py": "42103eec7076ee2043f849e897259f1eb0c2d3ecd06af5cc5cc05f1dc793cdaf",
+    "sdk/tests/node_sdk_types.mts": "910873dd18ac0a3073a98fe4ece4438135d782d37f65e114a4297698a5e82fd1",
+    "sdk/typescript/src/node_raw.ts": "debbac0a1fa326754ee2d508802a81c0000290b44ec19288afff46584c7dfec9",
+    "sdk/typescript/src/node_sdk.ts": "884aa03d8685810ddd959ce8bed5f03d1fb1eb80bd881f92bc66900a252a88c1",
+    "sdk/typescript/src/sdk_helper.ts": "e875a91727080405bf37a0911f985b110185840f304a5330b96804c2052009c0",
+    "sdk/typescript/src/uctp_json.ts": "8129f4aa6cc513e99a696e4ed5403fc4fce7914dd6585fc50f7bf460a10cf731",
+    "sdk/typescript/dist/node_raw.js": "50b8dedda65d27719fb1d8c0c848cf04407d42825d7a535dbee7e0c51e25f90a",
+    "sdk/typescript/dist/node_raw.d.ts": "f77355510a648d8b001b0984c7e6ed359b3386dbc473c23bbedd25d4fce32eff"
+  }
+}

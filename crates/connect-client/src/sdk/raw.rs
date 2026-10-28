@@ -52,9 +52,7 @@ impl Client {
 }
 impl RawCanonical {
     pub fn validate(&self, value: Value) -> Result<ValidatedEnvelope> {
-        Envelope::from_value(value)
-            .map(ValidatedEnvelope)
-            .map_err(|_| Error::local(ErrorKind::Validation))
+        validate(value)
     }
     /// Submit original logical intent with a fresh transport ID, timestamp and
     /// signature. Save full intent and logical ID before I/O. No automatic retry.
@@ -197,4 +195,15 @@ fn intent(envelope: &Envelope) -> Result<(CommandScope, Option<OperationKey>)> {
         expected_revision: envelope.expected_revision(),
     };
     Ok((scope, key))
+}
+
+// Local helper validation uses the identical frozen parser and finite-request
+// classification. It opens no client, credentials, Store or network endpoint.
+pub(super) fn validate(value: Value) -> Result<ValidatedEnvelope> {
+    Envelope::from_value(value)
+        .map(ValidatedEnvelope)
+        .map_err(|_| Error::local(ErrorKind::Validation))
+}
+pub(super) fn request_key(value: &ValidatedEnvelope) -> Result<Option<OperationKey>> {
+    intent(&value.0).map(|(_, key)| key)
 }

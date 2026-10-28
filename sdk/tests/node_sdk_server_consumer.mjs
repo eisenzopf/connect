@@ -18,7 +18,7 @@ const stopped=async()=>{
 };
 const record=frames=>{const p=frames.find(f=>f.type==='operation.updated')?.payload;assert.ok(p);return p;};
 let client=new NodeClient({config:spec.config,executable:spec.executable});
-let peerClient;
+let peerClient, rawRevokedClient;
 let checkpoint="create";
 const progress=stage=>{checkpoint=stage;emit({phase:'progress',checkpoint:stage});};
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
@@ -46,7 +46,7 @@ try {
  assert.equal(returned.id,peer.id);const currentMemberEpoch=(await returned.refresh(opts)).membershipEpoch;assert.ok(currentMemberEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
  progress('capabilities');
- const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['message-receipts','original-id-operations']);
+ const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['message-receipts','original-id-operations','raw-canonical']);
  await client.capabilities.require('original-id-operations',opts);
  for(const feature of ['native-programmatic-media','durable-events','incoming-invitations'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
  progress('session');
@@ -159,9 +159,29 @@ try {
  assert.equal(facts.length,1);assert.equal(facts[0].participantId,peer.id);assert.equal(facts[0].membershipEpoch,currentMemberEpoch);
  assert.equal(facts[0].state,'delivered');assert.equal(facts[0].channel,'native');assert.equal(facts[0].provenance,'client_reported');
  assert.throws(()=>facts.push({}));assert.throws(()=>facts[0].state='read');
- emit({phase:'receipts-observed',current_delivery_fact:true});
+ progress('raw-envelope');
+ const rawValue={v:2,id:'saved-raw-attempt',ts:'2026-01-01T00:00:00Z',type:'operation.get',cid:room.id,payload:{operation_id:mutation.operationId,vendor:{original:'preserved'}}};
+ // The local parser must not reload the owner's configuration or credentials.
+ const fixedConfig=await readFile(spec.config,'utf8');await writeFile(spec.config,'invalid during local validation\n',{mode:0o600});
+ let checked;
+ try {checked=client.raw.validate(rawValue);assert.throws(()=>client.raw.validate({...rawValue,payload:{operation_id:7}}),e=>e instanceof NodeSdkError&&e.kind==='validation');}
+ finally {await writeFile(spec.config,fixedConfig,{mode:0o600});}
+ rawValue.payload.vendor.original='changed';assert.equal(checked.value.payload.vendor.original,'preserved');
+ const rawReplies=await client.raw.request(checked,opts), rawRecord=record(rawReplies.map(v=>v.value));assert.equal(rawRecord.record_id,original.recordId);
+ assert.ok(rawReplies.every(v=>v.value.signature&&v.value.in_reply_to!==checked.value.id));assert.throws(()=>rawReplies.push(checked));
+ assert.throws(()=>client.raw.request(rawReplies.at(-1),opts),e=>e instanceof NodeSdkError&&e.kind==='unsupported');
+ const rawSend=client.raw.validate({v:2,id:'saved-send-attempt',ts:'2026-01-01T00:00:00Z',type:'message.send',cid:room.id,operation_id:mutation.operationId,
+  payload:{msg_id:intent.messageId,to:[peer.id],content_type:'text/plain',body:intent.text,body_encoding:'utf8',label:'connect-messages',attachments:[],in_reply_to_msg:null}});
+ const replay=await client.raw.request(rawSend,opts);assert.equal(replay.at(-1).value.type,'ack');
+ const afterRaw=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(afterRaw.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
+ const rawAgain=await client.raw.request(checked,opts);assert.notEqual(rawAgain.at(-1).value.in_reply_to,rawReplies.at(-1).value.in_reply_to);
+ rawRevokedClient=new NodeClient({config:spec.config,executable:spec.executable});
+ assert.equal(record((await rawRevokedClient.raw.request(checked,opts)).map(v=>v.value)).record_id,original.recordId);
+ emit({phase:'receipts-observed',current_delivery_fact:true,raw_signed_original_record:true,raw_same_id_one_message:true,raw_local_configuration_independent:true});
  await resume('revoked');
  progress('current-revocation');
+ await assert.rejects(rawRevokedClient.raw.request(checked,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.ok(['read-only','refused'].includes(e.certainty));assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind)||e.kind==='application'&&e.certainty==='refused');return true;});
+ await rawRevokedClient.close(opts);
  await assert.rejects(client.conversations.byId(room.id).receipts(intent.messageId,opts),e=>{
   assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'authentication');assert.ok(['read-only','refused'].includes(e.certainty));return true;
  });
@@ -170,8 +190,10 @@ try {
   assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','transport-uncertain'].includes(e.kind));assert.ok(['refused','uncertain'].includes(e.certainty));assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
  });
  await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{assert.equal(e.kind,'authentication');httpFailure={kind:e.kind,certainty:e.certainty};return true;});
- await client.close(opts);await http.close(opts);assert.equal(await stopped(),3);
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true});
+ await client.close(opts);await http.close(opts);assert.equal(await stopped(),4);
+ const validators=(await readFile(spec.pid_file+'.validators','utf8')).trim().split('\n').filter(Boolean).map(Number);assert.equal(validators.length,3);assert.equal(new Set(validators).size,3);
+ for(const pid of validators)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,raw_current_authority:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.
@@ -179,4 +201,4 @@ try {
  const knownStates=new Set(['accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown']);
  emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:knownStates.has(error?.actual)?error.actual:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  throw error;
-} finally {await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}
+} finally {await rawRevokedClient?.close(opts);await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

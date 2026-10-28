@@ -280,3 +280,81 @@ async fn public_sdk_raw_current_membership_is_required_for_mutation_status_and_e
         f.server.shutdown().await.unwrap();
     }
 }
+
+// No Fixture, configuration, client, Store or endpoint exists in these checks.
+#[test]
+fn local_helper_validator_matches_every_frozen_schema_vector() {
+    let vectors: Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../contracts/uctp-vectors/gate6-envelope.json"
+    )))
+    .unwrap();
+    for vector in vectors["vectors"].as_array().unwrap() {
+        let result = sdk::helper::validation_descriptor_bytes(
+            &serde_json::to_vec(&vector["envelope"]).unwrap(),
+        );
+        assert_eq!(result["profile"], sdk::helper::VALIDATION_PROFILE);
+        assert_eq!(result["valid"], vector["valid"], "{}", vector["id"]);
+        assert!(result.get("envelope").is_none() && result.get("value").is_none());
+        assert!(serde_json::to_vec(&result).unwrap().len() < 16_384);
+    }
+}
+#[test]
+fn local_helper_validator_rejects_duplicate_payload_invalid_utf8_and_oversize() {
+    let good = envelope(
+        "operation.get",
+        "room",
+        json!({"operation_id":"original"}),
+        None,
+    );
+    assert_eq!(
+        sdk::helper::validation_descriptor(good.clone())["valid"],
+        true
+    );
+    let text = serde_json::to_string(&good).unwrap().replace(
+        "\"operation_id\":\"original\"",
+        "\"operation_id\":\"foreign\",\"operation_id\":\"original\"",
+    );
+    for bytes in [
+        text.into_bytes(),
+        vec![255],
+        vec![b' '; 1_048_577],
+        b"{} {}".to_vec(),
+    ] {
+        assert_eq!(
+            sdk::helper::validation_descriptor_bytes(&bytes),
+            json!({"profile":sdk::helper::VALIDATION_PROFILE,"valid":false,"request":null})
+        );
+    }
+    let mut bad = good;
+    bad["payload"]["operation_id"] = json!(7);
+    assert_eq!(sdk::helper::validation_descriptor(bad)["valid"], false);
+}
+#[test]
+fn local_helper_validator_preserves_original_mutation_key_and_finite_request_policy() {
+    let mut value = send("room", "recipient");
+    value["sid"] = json!("session");
+    value["connid"] = json!("connection");
+    let result = sdk::helper::validation_descriptor(value);
+    assert_eq!(result["valid"], true);
+    assert_eq!(
+        result["request"]["key"],
+        json!({"operationId":"raw-sdk-send","command":"message.send","scope":{"conversationId":"room","sessionId":"session","connectionId":"connection"}})
+    );
+    let request = envelope(
+        "conversation.subscribe",
+        "room",
+        json!({"after":"cursor","live":true,"limit":100}),
+        None,
+    );
+    let live = sdk::helper::validation_descriptor(request.clone());
+    assert_eq!(live["valid"], true);
+    assert_eq!(live["request"]["error"]["kind"], "unsupported");
+    assert_eq!(live["request"]["error"]["certainty"], "read-only");
+    let mut finite = request;
+    finite["payload"]["live"] = json!(false);
+    assert_eq!(
+        sdk::helper::validation_descriptor(finite)["request"],
+        json!({"key":null})
+    );
+}

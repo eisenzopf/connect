@@ -39,7 +39,7 @@ async fn bridge(client: &sdk::Result<Client>) -> anyhow::Result<()> {
                 Ok(b'\n') => break,
                 Ok(byte) => {
                     line.push(byte);
-                    anyhow::ensure!(line.len() <= 65_536, "SDK request exceeds 64 KiB");
+                    anyhow::ensure!(line.len() <= 2 * 1024 * 1024, "SDK request exceeds 2 MiB");
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof => {
                     anyhow::ensure!(line.is_empty(), "Incomplete SDK request");
@@ -50,6 +50,11 @@ async fn bridge(client: &sdk::Result<Client>) -> anyhow::Result<()> {
         }
         let value: Input =
             serde_json::from_slice(&line).map_err(|_| anyhow::anyhow!("Invalid SDK request"))?;
+        anyhow::ensure!(
+            line.len() <= 65_536
+                || matches!(&value.request.action, helper::Action::RawRequest { .. }),
+            "Typed SDK request exceeds 64 KiB"
+        );
         anyhow::ensure!(
             value.profile == helper::PROFILE,
             "Invalid SDK helper profile"
@@ -71,4 +76,17 @@ async fn bridge(client: &sdk::Result<Client>) -> anyhow::Result<()> {
         output.write_all(b"\n").await?;
         output.flush().await?;
     }
+}
+
+/// One bounded local frozen-schema check; configuration and endpoints are absent.
+pub async fn validate_envelope() -> anyhow::Result<()> {
+    let mut bytes = Vec::new();
+    let mut input = tokio::io::stdin().take(1_048_577);
+    input.read_to_end(&mut bytes).await?;
+    let result = helper::validation_descriptor_bytes(&bytes);
+    let mut output = tokio::io::stdout();
+    output.write_all(&serde_json::to_vec(&result)?).await?;
+    output.write_all(b"\n").await?;
+    output.flush().await?;
+    Ok(())
 }

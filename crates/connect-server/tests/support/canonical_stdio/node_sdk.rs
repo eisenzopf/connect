@@ -71,7 +71,8 @@ fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
 os.dup2(fd,2)
 os.close(fd)
 os.write(2,('owned-exec monotonic_ns='+str(time.monotonic_ns())+' pid='+str(os.getpid())+'\n').encode())
-with open(os.environ['CONNECT_G6_NODE_PID_FILE'],'a') as stream: stream.write(str(os.getpid())+'\n')
+pid_file=os.environ['CONNECT_G6_NODE_PID_FILE']+('.validators' if sys.argv[1:]==['sdk-validate-envelope'] else '')
+with open(pid_file,'a') as stream: stream.write(str(os.getpid())+'\n')
 os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONNECT'],*sys.argv[1:]])
 "#).unwrap();
         std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -188,6 +189,13 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"receipts\n").await.unwrap();
         let receipts = phase(&mut lines, "receipts-observed", algorithm).await;
         assert_eq!(receipts["current_delivery_fact"], true);
+        for field in [
+            "raw_signed_original_record",
+            "raw_same_id_one_message",
+            "raw_local_configuration_independent",
+        ] {
+            assert_eq!(receipts[field], true);
+        }
         let principal = f.server.store.authenticate(&f.client.credential).unwrap();
         let admin = f.server.store.authenticate(&f.admin).unwrap();
         let store = f.server.store.clone();
@@ -197,6 +205,9 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             .unwrap();
         stdin.write_all(b"revoked\n").await.unwrap();
         let completed = phase(&mut lines, "completed", algorithm).await;
+        assert_eq!(completed["raw_current_authority"], true);
+        assert_eq!(completed["local_validators_joined"], 3);
+        assert_eq!(completed["helpers_joined"], 4);
         drop(stdin);
         assert!(
             tokio::time::timeout(Duration::from_secs(5), lines.next_line())
@@ -251,7 +262,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/3","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/4","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

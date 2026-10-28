@@ -19,11 +19,31 @@ function scalar(value: string): string {
     return value;
 }
 
+function limits(bytes: number, depth: number, nodes: number): void {
+    if (
+        !Number.isSafeInteger(bytes) ||
+        bytes < 1 ||
+        bytes > 2 * MAX_ENVELOPE_BYTES ||
+        !Number.isSafeInteger(depth) ||
+        depth < 1 ||
+        depth > 40 ||
+        !Number.isSafeInteger(nodes) ||
+        nodes < 1 ||
+        nodes > 1100000
+    )
+        fail();
+}
 /** RFC 8785: UTF-16 key ordering, finite ECMAScript numbers, scalar Unicode. */
-export function canonicalJson(value: Json): string {
+export function canonicalJson(
+    value: Json,
+    maximumBytes = MAX_ENVELOPE_BYTES,
+    maximumDepth = 32,
+    maximumNodes = 100000,
+): string {
+    limits(maximumBytes, maximumDepth, maximumNodes);
     let nodes = 0;
     const visit = (item: Json, depth: number): string => {
-        if (++nodes > 100000 || depth > 32) return fail();
+        if (++nodes > maximumNodes || depth > maximumDepth) return fail();
         if (item === null || typeof item === "boolean")
             return JSON.stringify(item);
         if (typeof item === "string") return JSON.stringify(scalar(item));
@@ -53,7 +73,7 @@ export function canonicalJson(value: Json): string {
         );
     };
     const result = visit(value, 0);
-    if (new TextEncoder().encode(result).length > MAX_ENVELOPE_BYTES) fail();
+    if (new TextEncoder().encode(result).length > maximumBytes) fail();
     return result;
 }
 
@@ -61,7 +81,10 @@ export function canonicalJson(value: Json): string {
 export function parseCanonicalJson(
     bytes: Uint8Array,
     maximumBytes = MAX_ENVELOPE_BYTES,
+    maximumDepth = 32,
+    maximumNodes = 100000,
 ): Json {
+    limits(maximumBytes, maximumDepth, maximumNodes);
     if (
         !Number.isSafeInteger(maximumBytes) ||
         maximumBytes < 1 ||
@@ -105,7 +128,7 @@ export function parseCanonicalJson(
         return fail();
     };
     const value = (depth: number): Json => {
-        if (++nodes > 100000 || depth > 32) return fail();
+        if (++nodes > maximumNodes || depth > maximumDepth) return fail();
         space();
         const c = text[pos];
         if (c === '"') return string();

@@ -89,3 +89,5 @@ export type {
 } from "./node_movements.js";
 
 export type { SdkDeliveryObservation } from "./node_receipts.js";
+
+export type { SdkValidatedEnvelope, SdkRawCanonical } from "./node_raw.js";

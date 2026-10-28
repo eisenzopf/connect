@@ -16,11 +16,24 @@ function scalar(value) {
     }
     return value;
 }
+function limits(bytes, depth, nodes) {
+    if (!Number.isSafeInteger(bytes) ||
+        bytes < 1 ||
+        bytes > 2 * MAX_ENVELOPE_BYTES ||
+        !Number.isSafeInteger(depth) ||
+        depth < 1 ||
+        depth > 40 ||
+        !Number.isSafeInteger(nodes) ||
+        nodes < 1 ||
+        nodes > 1100000)
+        fail();
+}
 /** RFC 8785: UTF-16 key ordering, finite ECMAScript numbers, scalar Unicode. */
-export function canonicalJson(value) {
+export function canonicalJson(value, maximumBytes = MAX_ENVELOPE_BYTES, maximumDepth = 32, maximumNodes = 100000) {
+    limits(maximumBytes, maximumDepth, maximumNodes);
     let nodes = 0;
     const visit = (item, depth) => {
-        if (++nodes > 100000 || depth > 32)
+        if (++nodes > maximumNodes || depth > maximumDepth)
             return fail();
         if (item === null || typeof item === "boolean")
             return JSON.stringify(item);
@@ -51,12 +64,13 @@ export function canonicalJson(value) {
             "}");
     };
     const result = visit(value, 0);
-    if (new TextEncoder().encode(result).length > MAX_ENVELOPE_BYTES)
+    if (new TextEncoder().encode(result).length > maximumBytes)
         fail();
     return result;
 }
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
-export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES) {
+export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES, maximumDepth = 32, maximumNodes = 100000) {
+    limits(maximumBytes, maximumDepth, maximumNodes);
     if (!Number.isSafeInteger(maximumBytes) ||
         maximumBytes < 1 ||
         maximumBytes > 2 * MAX_ENVELOPE_BYTES ||
@@ -98,7 +112,7 @@ export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES) {
         return fail();
     };
     const value = (depth) => {
-        if (++nodes > 100000 || depth > 32)
+        if (++nodes > maximumNodes || depth > maximumDepth)
             return fail();
         space();
         const c = text[pos];
