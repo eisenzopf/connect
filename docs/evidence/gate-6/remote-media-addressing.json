@@ -108,10 +108,10 @@
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
-    "run_id": 40653461271,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40653461271",
-    "source_revision": "20b77823d8e05e4cab7a45e914d29e8c6140b620",
-    "result": "16 actual functions passed, zero failed/ignored/panics, all7979source inputs unchanged. Exact20b77823revision predates SIP/browser changes; latest563d16bc run40656596259 is separately in progress.",
+    "run_id": 40656596259,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40656596259",
+    "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
+    "result": "23 actual functions passed at exact563d16bc, zero failed/ignored/panics, all7979source inputs unchanged. Includes SIP configuration/startup/drop/mixed-readiness and prior WebRTC/HTTPS groups. New TURN implementation is separate and not covered by this result.",
     "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
