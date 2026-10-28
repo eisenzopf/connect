@@ -1,5 +1,9 @@
 # Canonical browser client (G6-050)
 
+For the explicit physical transport owner and original-operation/cursor
+recovery API, see [browser transport recovery](browser-transport-recovery.md).
+G6-052 qualification remains in progress.
+
 G6-050 implementation is complete for the recorded local functional scope.
 The current source passes all 16 installed-browser scenarios, both frozen
 60-second capture profiles and all 322 SDK checks. See the

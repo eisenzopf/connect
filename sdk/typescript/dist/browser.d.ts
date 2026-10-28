@@ -18,3 +18,5 @@ export { TASK_PROFILE } from "./tasks.js";
 export { BrowserVideoSession } from "./browser_video.js";
 export type { VideoDiagnostics } from "./browser_voice.js";
 export { CanonicalWebRtcSignaling, type WebRtcSignalingOptions, type SavedWebRtcOffer, } from "./browser_webrtc_signaling.js";
+export { BrowserClientOpenError } from "./browser_client.js";
+export { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserTransportState, type BrowserTransportPath, type BrowserFallbackReason, type BrowserEnrollment, type BrowserOperationReference, type BrowserConversationRecoveryPoint, type BrowserConversationRecoveryPage, } from "./browser_transport_client.js";

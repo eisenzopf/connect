@@ -1,3 +1,4 @@
+import { ConnectError } from "./errors.js";
 import { type JsonObject } from "./uctp_json.js";
 import { type ServerTrust, type SigningIdentity } from "./uctp_signing.js";
 import { type Envelope, type Scope } from "./uctp_wire.js";
@@ -22,6 +23,13 @@ export interface BrowserClientOptions {
 export interface RequestOptions {
     timeoutMs?: number;
     signal?: AbortSignal;
+}
+/** No application command is submitted by open. The phase distinguishes a
+ * physical opening failure from an unresolved/refused authentication exchange. */
+export declare class BrowserClientOpenError extends ConnectError {
+    readonly phase: "transport" | "authentication";
+    readonly cause: unknown;
+    constructor(phase: "transport" | "authentication", cause: unknown);
 }
 export declare function browserTransportSupport(): {
     secureContext: boolean;

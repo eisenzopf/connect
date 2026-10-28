@@ -8,52 +8,7 @@ import {envelope,encodeEnvelope,EnvelopeReader} from '../typescript/dist/uctp_wi
 const bytes = text => new TextEncoder().encode(text);
 const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
 
-// Canonical control boundary fixture, not a TLS, network or WebRTC qualification.
-async function fixture(run,{algorithm='EdDSA',lostCreateAck=false,tamper=false,raw=false}={}) {
-  const keyOptions=algorithm==='EdDSA'?{name:'Ed25519'}:{name:'ECDSA',namedCurve:'P-256'};
-  const clientPair=await crypto.subtle.generateKey(keyOptions,false,['sign','verify']);
-  const serverPair=await crypto.subtle.generateKey(keyOptions,false,['sign','verify']);
-  const signing={key:clientPair.privateKey,keyId:'wss-client-key',algorithm};
-  const clientTrust={key:clientPair.publicKey,keyId:signing.keyId,algorithm,notBefore:Date.now()/1000-30,expiresAt:Date.now()/1000+300};
-  const serverSigning={key:serverPair.privateKey,keyId:'wss-server-key',algorithm};
-  const server={key:serverPair.publicKey,keyId:serverSigning.keyId,algorithm,notBefore:Date.now()/1000-30,expiresAt:Date.now()/1000+300};
-  const sent=[],strings=[],tasks=[],receipts=new Map();let socket;
-  const originals=['WebSocket','WebTransport','isSecureContext'].map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]);
-  class Socket extends EventTarget {
-    static CONNECTING=0;static OPEN=1;static CLOSED=3;
-    readyState=0;bufferedAmount=0;closeCount=0;
-    constructor(){super();socket=this;queueMicrotask(()=>{if(this.readyState!==0)return;this.readyState=1;this.dispatchEvent(new Event('open'));});}
-    text(value){this.dispatchEvent(new MessageEvent('message',{data:value}));}
-    async emit(type,payload,in_reply_to){
-      const frame=await signEnvelope(envelope(type,payload,{in_reply_to}),serverSigning);
-      if(tamper&&type==='auth.session')frame.payload.identity_id='forged';
-      this.text(canonicalJson(frame));return frame;
-    }
-    send(text){
-      assert.equal(typeof text,'string');strings.push(text);if(raw)return;
-      const frame=parseCanonicalJson(bytes(text));sent.push(frame);
-      tasks.push((async()=>{
-        if(frame.type!=='auth.hello')await verifyEnvelope(frame,clientTrust);
-        if(frame.type==='auth.hello')await this.emit('auth.challenge',{accepted_methods:['bearer'],server_capabilities:{application_profiles:['connect/2']}},frame.id);
-        else if(frame.type==='auth.response')await this.emit('auth.session',{identity_id:'wss_identity',participant_id:'wss_participant',session_token:'fixture-session',expires_at:new Date(Date.now()+60000).toISOString(),application_profile:'connect/2'},frame.id);
-        else if(frame.type==='conversation.create'){
-          const receipt={operation_id:frame.operation_id,conversation_id:'wss_conversation',state:'completed'};receipts.set(frame.operation_id,receipt);
-          if(!lostCreateAck)await this.emit('ack',{details:{reply_complete:true,conversation:{id:'wss_conversation',receipt}}},frame.id);
-        }else{
-          if(frame.type==='operation.get')await this.emit('operation.updated',receipts.get(frame.payload.operation_id)??{operation_id:frame.payload.operation_id,state:'unknown'},frame.id);
-          await this.emit('ack',{},frame.id);
-        }
-      })());
-    }
-    close(){if(this.readyState===3)return;this.readyState=3;this.closeCount++;this.dispatchEvent(new Event('close'));}
-  }
-  Object.defineProperty(globalThis,'WebSocket',{configurable:true,value:Socket});
-  Object.defineProperty(globalThis,'WebTransport',{configurable:true,value:undefined});
-  Object.defineProperty(globalThis,'isSecureContext',{configurable:true,value:true});
-  const options={transport:'websocket',url:'wss://fixture.invalid/connect',credential:'fixture-only',identityId:'wss_identity',device:{id:'wss_device',kind:'browser',platform:'fixture'},signing,server,timeoutMs:500};
-  try{await run({options,sent,strings,socket:()=>socket,receipts});await Promise.all(tasks);}
-  finally{socket?.close();for(const[key,descriptor]of originals)if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}
-}
+import {fixture} from './fixtures/browser_control_peer.mjs';
 for(const algorithm of ['EdDSA','ES256'])test(`${algorithm} WSS authenticates signed canonical control without a WebTransport API`,()=>fixture(async({options,sent,strings})=>{
   assert.equal(browserTransportSupport().webTransport,false);assert.equal(browserTransportSupport().webSocket,true);
   const client=await BrowserClient.open(options);

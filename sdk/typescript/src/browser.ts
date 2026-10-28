@@ -70,3 +70,16 @@ export {
     type WebRtcSignalingOptions,
     type SavedWebRtcOffer,
 } from "./browser_webrtc_signaling.js";
+
+export { BrowserClientOpenError } from "./browser_client.js";
+export {
+    BrowserTransportClient,
+    type BrowserTransportClientOptions,
+    type BrowserTransportState,
+    type BrowserTransportPath,
+    type BrowserFallbackReason,
+    type BrowserEnrollment,
+    type BrowserOperationReference,
+    type BrowserConversationRecoveryPoint,
+    type BrowserConversationRecoveryPage,
+} from "./browser_transport_client.js";

@@ -3,6 +3,33 @@ import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
 import { signEnvelope, validateSigningIdentity, verifyEnvelope, } from "./uctp_signing.js";
 import { encodeEnvelope, envelope, EnvelopeReader, identifier, } from "./uctp_wire.js";
+/** No application command is submitted by open. The phase distinguishes a
+ * physical opening failure from an unresolved/refused authentication exchange. */
+export class BrowserClientOpenError extends ConnectError {
+    phase;
+    cause;
+    constructor(phase, cause) {
+        const name = cause instanceof Error ? cause.name : "";
+        const code = cause instanceof ConnectError
+            ? cause.code
+            : name === "AbortError"
+                ? "cancelled"
+                : ["SecurityError", "InvalidAccessError"].includes(name)
+                    ? "authentication"
+                    : cause instanceof TypeError || cause instanceof RangeError
+                        ? "invalid-request"
+                        : "transport";
+        super(code, cause instanceof ConnectError
+            ? cause.message
+            : "Canonical browser connection failed during " + phase, cause instanceof ConnectError ? cause.problem : undefined);
+        this.phase = phase;
+        this.name = "BrowserClientOpenError";
+        Object.defineProperty(this, "cause", {
+            value: cause,
+            configurable: true,
+        });
+    }
+}
 export function browserTransportSupport() {
     return {
         secureContext: globalThis.isSecureContext === true,
@@ -109,14 +136,27 @@ export class BrowserClient {
             throw new ConnectError("invalid-request", "Use the selected HTTPS/WSS endpoint, enrolled credentials and transport-specific TLS options");
         validateSigningIdentity(options.signing, "sign");
         validateSigningIdentity(options.server, "verify");
-        const client = new BrowserClient(options);
+        const milliseconds = options.timeoutMs ?? 10000;
+        if (!Number.isFinite(milliseconds) ||
+            milliseconds < 1 ||
+            milliseconds > 60000)
+            throw new ConnectError("invalid-request", "Deadline must be 1–60000 ms");
+        if (options.signal?.aborted)
+            throw new ConnectError("cancelled", "Browser connection cancelled before opening");
+        const until = performance.now() + milliseconds;
+        let phase = "transport";
+        let client;
         try {
-            const until = performance.now() + client.timeout(options.timeoutMs);
+            client = new BrowserClient(options);
             await client.bound(client.transport.ready, until, options.signal);
             const stream = await client.bound(client.transport.stream(), until, options.signal);
             client.reader = stream.readable.getReader();
             client.writer = stream.writable.getWriter();
-            void client.pump().catch((error) => client.close(error));
+            phase = "authentication";
+            const physical = client;
+            void physical
+                .pump()
+                .catch((error) => physical.close(error));
             const hello = await client.exchange(envelope("auth.hello", {
                 device: {
                     ...options.device,
@@ -153,8 +193,8 @@ export class BrowserClient {
             return client;
         }
         catch (error) {
-            client.close(error);
-            throw error;
+            client?.close(error);
+            throw new BrowserClientOpenError(phase, error);
         }
     }
     /** Actual physical control selected at construction; caller option edits cannot change it. */
@@ -368,14 +408,32 @@ export class BrowserClient {
             await this.bound(write, until, options.signal);
             const frames = await result;
             const error = frames.find((f) => f.type === "error");
-            if (error)
+            if (error) {
+                const p = error.payload;
+                const problem = typeof p.code === "number" &&
+                    Number.isSafeInteger(p.code) &&
+                    p.code >= 100 &&
+                    p.code <= 599 &&
+                    typeof p.category === "string" &&
+                    p.category.length > 0 &&
+                    p.category.length <= 128 &&
+                    typeof p.reason === "string" &&
+                    p.reason.length > 0 &&
+                    p.reason.length <= 512
+                    ? Object.freeze({
+                        code: p.code,
+                        category: p.category,
+                        reason: p.reason,
+                    })
+                    : undefined;
                 throw new ConnectError("refused", frame.type +
                     ": " +
                     (typeof error.payload.reason === "string"
                         ? error.payload.reason
                         : typeof error.payload.message === "string"
                             ? error.payload.message
-                            : "Canonical request refused"));
+                            : "Canonical request refused"), problem);
+            }
             return frames;
         }
         catch (error) {

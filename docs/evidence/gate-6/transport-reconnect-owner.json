@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Browser physical transport owner, original-operation status and finite journal/snapshot recovery. Local Node boundary fixtures use real EdDSA/ES256 WebCrypto signatures and simulated WSS/WT streams; no network, TLS, installed-browser outage or live movement qualification.",
+  "behavior": [
+    "Expose preferred path, authenticated selected path, fallback cause and local physical epoch; selected path makes no media readiness claim.",
+    "At most two secure configured contacts, one enrollment capture and original bounded deadline per round. Only unsupported/missing preferred path or physical transport-stage failure permits fallback; authentication, trust, malformed configuration and authentication-stage timeout do not.",
+    "Explicit reconnect closes old physical/media owners, resolves fresh current enrollment and retains actor/Device IDs. No implicit reconnect, mutation buffering, resubmission or device replacement.",
+    "Pre-abort, resolver expiry/cancellation, concurrent reconnect and close prevent late physical adoption. Old recovery reads cannot populate a new epoch.",
+    "Original-ID recovery issues operation.get only and validates one exact scoped operation record, ledger kind, state and revision. Interrupted/unknown remain explicit; current authorization refusal propagates.",
+    "Finite Conversation catch-up excludes advisory hints; explicit resync reads current authorized snapshot. Exact signed 409/state/resync_required on a page restarts its read once within the original deadline; other errors are not retried.",
+    "Foreign journal summaries, foreign/unbounded snapshots and ambiguous multiple operation records retire the peer. Explicit development WT certificate hashes are copied before physical opening."
+  ],
+  "verification": {
+    "sdk_cases_passed": 379,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "new_owner_cases": 52,
+    "includes_existing_327_cases": true,
+    "sdk_log_sha256": "53fe9880c49a353f4c7b264ced1b607da99caf5b75f09e3f4b6f201a088656ff",
+    "initial_fixture_assertion_failures": {
+      "passed": 374,
+      "failed": 2,
+      "reason": "Wire parser intentionally returns null-prototype payloads; assertions now compare wire values. No runtime behavior changed for these two assertion corrections.",
+      "log_sha256": "71451ee849eb0581659fdd7708ce09099b16bc26aee3729d8ff5c184a4a7a36d"
+    },
+    "negative_candidate": {
+      "passed": 377,
+      "failed": 2,
+      "cases": [
+        "Foreign journal summary was accepted despite correctly scoped event",
+        "Two conflicting operation records were accepted by choosing the first"
+      ],
+      "disposition": "Added summary scope and single-record validation; both then pass.",
+      "log_sha256": "17b7e6d59926bdea2ed83dfd89c2dce51a3e1478ed312df7bbca6632465a95f7"
+    },
+    "repository_format_check": "scripts/format.sh --check passed; empty diagnostics",
+    "changed_typescript_prettier": "passed",
+    "dependencies": "scripts/prepare-dependencies.sh prepared source-lock 234-patch tree before building; no upstream source edits"
+  },
+  "source_sha256": {
+    "sdk/typescript/src/browser_transport_client.ts": "5ba280121edd472ef314fa8c2bcd29d941603b43844a247a5d9d505a028ca977",
+    "sdk/typescript/src/browser_client.ts": "3a78bf41680743e60fdf27aa40ca97746f3049ba0aaecff26aa3420bbc0a8647",
+    "sdk/typescript/src/browser.ts": "43c163fc1537516cb970a6f8b8c4fbbbf7b4284e285769497de0451b18871912",
+    "sdk/typescript/src/errors.ts": "cdd53d2e4a79193bb34b55d5301bfd60154db6155033cb27ef6f7e7cafa92599",
+    "sdk/tests/browser_transport_client.test.mjs": "f9857ea2bc346fe6bc3d70356c52f25445008c8b2532859ff0af8ea5cbc75814",
+    "sdk/tests/browser_wss.test.mjs": "426f19e939567615aeba954ac0c3ac3255ee83ae6fad9e277b8563682d42e2d2",
+    "sdk/tests/fixtures/browser_control_peer.mjs": "db3614bd155fef353916d84101bc9ef538d1ff2b45f5e6ce978e156836d84ae5",
+    "sdk/tests/clients.test.mjs": "6a26ea68600043102858c701acbe07c878c1e58b1620f8869692fedd91b5096e",
+    "docs/developer/browser-transport-recovery.md": "ae9ff6cd064720ad588d7d1e53ed4923031ef00eb0b5f6cdbe049291b49d46a1",
+    "sdk/typescript/dist/browser_transport_client.js": "5e97aef03c1e28413c3699d5a4b41319e05de0d7f5327b98659dd1deca898a62",
+    "sdk/typescript/dist/browser_transport_client.d.ts": "abf4f58279e716696072d393a90e2c53b62dd876b50adfc1cda54230d2d05a88",
+    "sdk/typescript/dist/browser_client.js": "3c4f03060259ff096a9965a2ba3b08030990814299da5c97c0fdac3b807488a8",
+    "sdk/typescript/dist/browser_client.d.ts": "0bf875422187209f8d58734149debe8de5d0b36df7e5ea33e21a7061528a7909",
+    "sdk/typescript/dist/browser.js": "24a01ef7215fee580aa125fd2171da2c9545b5a8d8d64ea57798d6d35087c41a",
+    "sdk/typescript/dist/browser.d.ts": "c5cb704a666d08d9e1f28c0da76213e4dd1e7564fd87f5d70383e10c84348b93",
+    "sdk/typescript/dist/errors.js": "f928abefa033441a886b79d9e202d04c16402f6200ceafbf9bd9f06512d6f14e",
+    "sdk/typescript/dist/errors.d.ts": "21a747c456005f1b75f3ed33ca7c9bbc6ad7a534db33db2d76428e97fff30bf1"
+  },
+  "remaining": [
+    "Actual installed-browser WSS/WT outage and dropped-ACK recovery against the service.",
+    "Actual expired service credentials and repeated reconnect during live consult/handoff, including current authorization and durable original-ID/effect evidence.",
+    "Full G6-052 requirement audit before task closure; Linux/remote profiles and independent Gate 6 acceptance remain separately open."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}
