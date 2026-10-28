@@ -1,0 +1,133 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "status": "protocol-component-passed-media-build-running",
+  "scope": "Default/explicit IPv4/IPv6 STUN port resolution and shared STUN/TURN endpoint protocol dispatch. Two causal unit/protocol functions; actual All-policy media still unqualified.",
+  "negative_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 8.6027929589618,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "--config",
+      "profile.release.lto=false",
+      "--config",
+      "profile.release.codegen-units=16",
+      "--config",
+      "profile.release.debug=0",
+      "--config",
+      "profile.release.panic=\"unwind\"",
+      "--config",
+      "profile.release.strip=\"debuginfo\"",
+      "-p",
+      "rvoip-webrtc-stack",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 5248,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/webrtc-e1c6d15152338368",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/stun-negative-unit-test-178",
+      "sha256": "0c5176c34a5f3ba33d2e07528e71abd97d7121828cb459d2d1852a617efd2d24",
+      "bytes": 7839200
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "5dcb291115d8e82fe3f24e14052e95f3d3dd9c139c033bd0d30dfabe688773ed"
+  },
+  "negative": {
+    "binary_sha256": "0c5176c34a5f3ba33d2e07528e71abd97d7121828cb459d2d1852a617efd2d24",
+    "exit_code": 101,
+    "seconds": 0.012878709007054567,
+    "results": [
+      "test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s"
+    ],
+    "panic_locations": [
+      "crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer_tests.rs:82:10:",
+      "crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer_tests.rs:16:14:"
+    ],
+    "log_sha256": "debfb3d45767aa411181084b35a43a18cb42cf425afe56f48252512a5bbdce1e",
+    "changed_inputs": [],
+    "scope": "Two causal protocol/unit regressions; numeric local address resolution and real STUN Binding transaction response routing on a shared TURN tuple. No remote/media/actual TURN allocation qualification."
+  },
+  "positive_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 8.46200141706504,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "--config",
+      "profile.release.lto=false",
+      "--config",
+      "profile.release.codegen-units=16",
+      "--config",
+      "profile.release.debug=0",
+      "--config",
+      "profile.release.panic=\"unwind\"",
+      "--config",
+      "profile.release.strip=\"debuginfo\"",
+      "-p",
+      "rvoip-webrtc-stack",
+      "--lib",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 5248,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/webrtc-e1c6d15152338368",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/stun-routing-unit-test-180",
+      "sha256": "72085489a87e943dbd64583523a908a504a664b2c9670926bdcc9882f70d53f9",
+      "bytes": 7857488
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "b128c9b660ca76477c617e534dd9089086c849b288bfaad7d88dc5fa947f5fb6"
+  },
+  "positive": {
+    "binary_sha256": "72085489a87e943dbd64583523a908a504a664b2c9670926bdcc9882f70d53f9",
+    "exit_code": 0,
+    "seconds": 0.01943133305758238,
+    "results": [
+      "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s"
+    ],
+    "panic_locations": [],
+    "log_sha256": "66be5c576e7cc13c7df67a315543a19bb059cdf336d351ad8b099c029778dcdf",
+    "changed_inputs": [],
+    "scope": "Two causal protocol/unit regressions; numeric local address resolution and real STUN Binding transaction response routing on a shared TURN tuple. No remote/media/actual TURN allocation qualification."
+  },
+  "finding": "Original URL colon check always matched the scheme, omitting default3478. Original tuple-first TURN demultiplexing consumed an unsigned shared-endpoint STUN Binding reply and returned ErrIntegrityMismatch. Both actual regressions fail before the fix and pass after it.",
+  "implementation": "Pinned STUN URI parser supplies default3478 and formats IPv6 endpoint brackets correctly. Binding success/error replies reach the STUN client owning its original transaction; unrelated transaction produces no reflexive candidate or early completion, and TURN stays pending.",
+  "patch_sha256": "fd12b6811958796473b56e458423059545a6a561c33f8b898dd8124e8aa12435",
+  "source_lock_sha256": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017",
+  "acceptance_qualified": false,
+  "publication": false
+}

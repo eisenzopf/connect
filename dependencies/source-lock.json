@@ -1286,6 +1286,11 @@
       "path": "patches/rvoip/gate6-owned-turn-relay.patch",
       "source": "G6-054 actual TURN UDP/TCP control with UDP relay allocations and relay-only candidate policy in the original sans-I/O driver, bounded TCP framing, authenticated deallocation acknowledgement, no detached tasks or queued application media. Unsupported secure ICE transports refuse explicitly; no remote/profile qualification inferred.",
       "sha256": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042"
+    },
+    {
+      "path": "patches/rvoip/gate6-stun-turn-demultiplex.patch",
+      "source": "G6-054 parse default/explicit IPv4/IPv6 STUN ports using the pinned URI parser; route shared-endpoint Binding replies to the original STUN transaction while TURN remains pending. Causal negative/positive protocol cases include unrelated transaction refusal.",
+      "sha256": "fd12b6811958796473b56e458423059545a6a561c33f8b898dd8124e8aa12435"
     }
   ]
 }

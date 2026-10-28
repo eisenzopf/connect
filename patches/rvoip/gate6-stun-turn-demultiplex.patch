@@ -1,0 +1,189 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer.rs
+@@ -205,17 +205,15 @@
+         local_addr: SocketAddr,
+         stun_url: &str,
+     ) -> Result<StunClient, Error> {
+-        // Resolve STUN server address (add default port 3478 if not specified)
+-        let stun_server_addr_str = if stun_url.contains(':') {
+-            stun_url
+-                .strip_prefix("stun:")
+-                .unwrap_or(stun_url)
+-                .to_string()
++        let uri = rtc::stun::uri::Uri::parse_uri(stun_url)?;
++        if uri.scheme != "stun" {
++            return Err(Error::ErrInvalidUrl);
++        }
++        let port = uri.port.unwrap_or(3478);
++        let stun_server_addr_str = if uri.host.contains(':') {
++            format!("[{}]:{port}", uri.host)
+         } else {
+-            format!(
+-                "{}:3478",
+-                stun_url.strip_prefix("stun:").unwrap_or(stun_url)
+-            )
++            format!("{}:{port}", uri.host)
+         };
+ 
+         debug!("Resolving STUN server: {}", stun_server_addr_str);
+@@ -265,6 +263,27 @@
+     type Time = Instant;
+ 
+     fn handle_read(&mut self, msg: TaggedBytesMut) -> Result<(), Self::Error> {
++        // A STUN discovery client and TURN allocation can share the same
++        // local/server tuple. Binding replies belong to the original STUN
++        // transaction; source-address matching alone cannot distinguish them.
++        let mut binding = StunMessage::new();
++        binding.raw = msg.message.to_vec();
++        if binding.decode().is_ok()
++            && binding.typ.method == rtc::stun::message::METHOD_BINDING
++            && matches!(
++                binding.typ.class,
++                rtc::stun::message::CLASS_SUCCESS_RESPONSE
++                    | rtc::stun::message::CLASS_ERROR_RESPONSE
++            )
++        {
++            for client in &mut self.stun_clients {
++                if client.local_addr() == msg.transport.local_addr
++                    && client.peer_addr() == msg.transport.peer_addr
++                {
++                    return client.handle_read(msg);
++                }
++            }
++        }
+         if self.relays.matches(&msg) {
+             return self.relays.read(msg);
+         }
+@@ -397,3 +416,7 @@
+         Ok(())
+     }
+ }
++
++#[cfg(test)]
++#[path = "ice_gatherer_tests.rs"]
++mod tests;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer_tests.rs
+@@ -0,0 +1,122 @@
++//! Actual sans-I/O STUN transactions. No socket binding or remote services.
++use super::*;
++use rtc::shared::TransportContext;
++use rtc::stun::message::{BINDING_SUCCESS, METHOD_BINDING};
++
++#[tokio::test]
++async fn stun_default_ports_resolve_for_both_address_families() {
++    for (local, url, expected) in [
++        ("127.0.0.1:44111", "stun:127.0.0.1", "127.0.0.1:3478"),
++        ("[::1]:44111", "stun:[::1]", "[::1]:3478"),
++        ("127.0.0.1:44111", "stun:127.0.0.1:44777", "127.0.0.1:44777"),
++        ("[::1]:44111", "stun:[::1]:44777", "[::1]:44777"),
++    ] {
++        let mut client = RTCIceGatherer::gather_from_stun_server(local.parse().unwrap(), url)
++            .await
++            .unwrap();
++        assert_eq!(client.peer_addr(), expected.parse::<SocketAddr>().unwrap());
++        let transmit = client.poll_write().expect("real Binding request queued");
++        let mut message = StunMessage::new();
++        message.raw = transmit.message.to_vec();
++        message.decode().unwrap();
++        assert_eq!(message.typ, BINDING_REQUEST);
++    }
++}
++
++#[tokio::test]
++async fn shared_stun_turn_endpoint_delivers_binding_to_stun_and_keeps_turn_pending() {
++    let local: SocketAddr = "127.0.0.1:44111".parse().unwrap();
++    let remote: SocketAddr = "127.0.0.1:44777".parse().unwrap();
++    let mut sockets = std::collections::HashMap::new();
++    let mut gatherer = RTCIceGatherer::new(
++        vec![local],
++        vec![local],
++        RTCIceGatherOptions {
++            ice_gather_policy: RTCIceTransportPolicy::All,
++            ice_servers: vec![RTCIceServer {
++                urls: vec![
++                    format!("stun:{remote}"),
++                    format!("turn:{remote}?transport=udp"),
++                ],
++                username: "synthetic-user".into(),
++                credential: "synthetic-password".into(),
++                ..Default::default()
++            }],
++        },
++        &mut sockets,
++    )
++    .await
++    .unwrap();
++    gatherer.gather().await.unwrap();
++    let mut request = None;
++    while let Some(transmit) = gatherer.poll_write() {
++        let mut message = StunMessage::new();
++        message.raw = transmit.message.to_vec();
++        message.decode().unwrap();
++        if message.typ.method == METHOD_BINDING {
++            request = Some(message.transaction_id);
++        }
++    }
++    let mut response = StunMessage::new();
++    response
++        .build(&[
++            Box::new(request.unwrap()),
++            Box::new(BINDING_SUCCESS),
++            Box::new(XorMappedAddress {
++                ip: "127.0.0.2".parse().unwrap(),
++                port: 44888,
++            }),
++        ])
++        .unwrap();
++    let mut unrelated = response.raw.clone();
++    unrelated[8] ^= 0x80;
++    let _ = gatherer.handle_read(TaggedBytesMut {
++        now: Instant::now(),
++        transport: TransportContext {
++            local_addr: local,
++            peer_addr: remote,
++            transport_protocol: TransportProtocol::UDP,
++            ecn: None,
++        },
++        message: unrelated.as_slice().into(),
++    });
++    while let Some(event) = gatherer.poll_event() {
++        match event {
++            RTCIceGathererEvent::LocalIceCandidate(candidate) => {
++                assert!(!candidate.candidate.contains(" typ srflx "))
++            }
++            RTCIceGathererEvent::IceGatheringComplete => {
++                panic!("unrelated transaction completed gathering")
++            }
++            _ => {}
++        }
++    }
++    assert_eq!(gatherer.state(), RTCIceGatheringState::Gathering);
++    gatherer
++        .handle_read(TaggedBytesMut {
++            now: Instant::now(),
++            transport: TransportContext {
++                local_addr: local,
++                peer_addr: remote,
++                transport_protocol: TransportProtocol::UDP,
++                ecn: None,
++            },
++            message: response.raw.as_slice().into(),
++        })
++        .expect("shared-server Binding response must reach its STUN transaction");
++    let mut kinds = Vec::new();
++    while let Some(event) = gatherer.poll_event() {
++        match event {
++            RTCIceGathererEvent::LocalIceCandidate(candidate) => kinds.push(candidate.candidate),
++            RTCIceGathererEvent::IceGatheringComplete => panic!("TURN allocation is still pending"),
++            _ => {}
++        }
++    }
++    assert!(
++        kinds
++            .iter()
++            .any(|candidate| candidate.contains(" typ srflx "))
++    );
++    assert!(gatherer.relays.pending());
++    assert_eq!(gatherer.state(), RTCIceGatheringState::Gathering);
++}

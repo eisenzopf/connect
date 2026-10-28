@@ -281,5 +281,10 @@
     "evidence": "docs/evidence/gate-6/turn-relay-implementation.json",
     "negative_evidence": "docs/evidence/gate-6/turn-relay-negative.json",
     "scope": "Final sealed172 passes actual loopback UDP/TCP-control relay-only duplex AV, expired credential refusal, four-allocation drain per lane and both direct media regressions. Two real TCP wire functions pass from sealed173. All5246source inputs unchanged; no forced fixture cleanup. Full G6-054 remains open."
+  },
+  "stun_turn_routing": {
+    "status": "protocol-component-passed-media-build-running",
+    "evidence": "docs/evidence/gate-6/stun-turn-routing.json",
+    "scope": "Two previously failing unit/protocol cases now pass. Actual All-policy shared-endpoint decoded media is being built; no broader network/profile pass."
   }
 }
