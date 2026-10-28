@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--diagnostic60', action='store_true', help='Single capture method uses the same60second source/observer with bounded packet summaries; diagnostic only, never frozen clean qualification. Requires --packet-trace summary.')
     parser.add_argument('--capture-boundary', choices=('permission-denied', 'unsupported-api-codec', 'background-resume', 'media-loss-recovery'), help='Explicit short capture refusal, actual hide/resume, or250ms application RTP datagram loss/recovery; requires one capture case and excludes clean60/native/packet tracing.')
     parser.add_argument('--case', choices=CASES + MEDIA + CAPTURE + NATIVE, help='Explicit single-method diagnostic scope; does not qualify the omitted matrix.')
-    parser.add_argument('--packet-trace', nargs='?', const='all', choices=('all', 'policy', 'audio', 'summary'), help='Record scoped all/policy/audio metadata or bounded summary counters under private raw logs; diagnostic overhead is not performance qualification. The default all scope includes SQL custody; summary avoids per-packet log IO.')
+    parser.add_argument('--packet-trace', nargs='?', const='all', choices=('all', 'control', 'policy', 'audio', 'summary'), help='Record control-only stream-engine diagnostics, scoped all/policy/audio metadata or bounded summary counters under private raw logs; diagnostic overhead is not performance qualification. The default all scope includes SQL custody; summary avoids per-packet log IO.')
     args = parser.parse_args()
     if args.diagnostic60 and (args.clean60 or args.native or args.case not in CAPTURE or args.packet_trace != 'summary'):
         parser.error('Select one capture method with --packet-trace summary and no clean60/native qualification flags')

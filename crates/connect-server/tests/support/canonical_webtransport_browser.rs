@@ -288,6 +288,7 @@ async fn browser_profile_mode(
         .then(|| packet_trace::Summary::install(algorithm));
     if media && trace_mode.is_some() && trace_mode.as_deref() != Some("summary") {
         let filter = match std::env::var("CONNECT_GATE6_PACKET_TRACE").as_deref() {
+            Ok("control") => "connect_service::canonical_native_streams=debug",
             Ok("audio") => "rvoip_core::audio_path=trace,connect_service::canonical_native_streams=debug",
             Ok("policy") => "connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug",
             _ => "connect_service::canonical_packet=trace,connect_service::canonical_native_streams=debug,connect_store::sql_custody=trace",

@@ -683,5 +683,90 @@
     "Linux/remote/native live encoding and playout, frozen impaired network profiles, complete fallback transition matrix, acceptance and publication."
   ],
   "operator_build_correction": "Private build107 used an accidentally substituted duplicate cache target and was interrupted. Only its identified generated cache was removed after owner/hash checks; logs retained. Correct108/111 use original20261024target and same qualified Rust executable bytes. Not a product behavior failure.",
-  "acceptance_qualified": false
+  "acceptance_qualified": false,
+  "control_only_diagnostic": {
+    "scope": "Six fresh instances of one captured-native ES256 method, control-only stream-engine debug logging, no per-packet trace. Three passed and three failed rendered-video readiness; not six distinct passing methods. Subscription unknown was not reproduced, no repair claim.",
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 5.358509500045329,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5231,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-116",
+        "sha256": "914fe795174eb0d4f0e2807371adc47e3788d2a231e51e65cb7b707341e985d0",
+        "bytes": 215133344
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "10a3fad78036e6637b1c48c8669a7a31ff7889a44b10264db6ca6c8ad3d2ee69"
+    },
+    "attempts": [
+      {
+        "label": "native-engine-117-1",
+        "passed": true,
+        "seconds": 7.179727582959458,
+        "context": []
+      },
+      {
+        "label": "native-engine-117-2",
+        "passed": false,
+        "seconds": 6.268926082877442,
+        "context": []
+      },
+      {
+        "label": "native-engine-117-3",
+        "passed": false,
+        "seconds": 6.371991959167644,
+        "context": []
+      },
+      {
+        "label": "native-engine-117-4",
+        "passed": false,
+        "seconds": 6.199984000064433,
+        "context": []
+      },
+      {
+        "label": "native-engine-117-5",
+        "passed": true,
+        "seconds": 7.214914167067036,
+        "context": []
+      },
+      {
+        "label": "native-engine-117-6",
+        "passed": true,
+        "seconds": 7.32300675008446,
+        "context": []
+      }
+    ],
+    "source_sha256": {
+      "scripts/rehearse-gate6-browser-sdk.py": "1e55266aec4390a3f30333c6e15215b7bb273d9bc6d3e8e1f6a60f20483586d6",
+      "crates/connect-server/tests/support/canonical_webtransport_browser.rs": "2b7b10cbf18a90dcf19671158433a621909ff002db137d5dab459d54aa91ed01"
+    }
+  }
 }
