@@ -176,3 +176,76 @@ The [native network profile reference](native-network.md) describes explicit
 Local/Remote address policy, configured TLS roots/chains, the complete opening
 deadline and same-peer QUIC UDP rebinding. Qualification scope remains in its
 source-bound evidence report.
+
+
+Hosted HTTPS uses the optional `https` array. Omission preserves the simple
+loopback profile. Each binding selects one surface; at most one of each surface
+is allowed. HTTPS uses the same owned physical writer as protected local HTTP,
+including issuance and record output custody. Live sockets and pending TLS
+handshakes are bounded by configured connection capacity; incomplete handshakes
+expire after five seconds.
+
+| Surface | Routes | Admission |
+|---|---|---|
+| `application` | Canonical commands/discovery, named application APIs, records/files | Current bearer/source access; exact configured browser origins |
+| `administration` | Provisioning, credential issuance, user consent and Task access | Existing per-operation issuer/permission rules; no browser Origin |
+| `callbacks` | `/webhooks/telnyx` | Configured Telnyx verification public key and explicit route ceiling; current callback source authority |
+| `health` | `/healthz` | Only bounded aggregate `{profile, ready}`; no private component/media details |
+
+For an installed host, edit the protected server configuration created by init;
+keep its signing and state settings. This fragment shows explicit exposure:
+
+```toml
+network_profile = "remote"
+bind = "0.0.0.0:4433"
+
+[[https]]
+surface = "application"
+bind = "0.0.0.0:8443"
+public_origin = "https://connect.example.invalid:8443"
+allowed_origins = ["https://app.example.invalid"]
+
+[[https]]
+surface = "administration"
+bind = "127.0.0.1:8444"
+public_origin = "https://admin.example.invalid:8444"
+
+[[https]]
+surface = "health"
+bind = "127.0.0.1:8445"
+public_origin = "https://status.example.invalid:8445"
+```
+
+Replace these example contacts with the deployment's exact contacts. Provision
+its certificate chain/key at the protected configured paths before startup;
+every HTTPS public name must be covered. A public origin alone opens no
+additional interface. The callback surface additionally requires
+`telnyx_callbacks.public_key` and a nonempty `telnyx_callbacks.routes` ceiling;
+its verification key is provider public material. Account API credentials remain
+server-side. Other installed provider adapters keep their explicit ingress.
+
+An optional `trusted_proxies` list names exact immediate socket-peer IPs. A proxy
+must overwrite the complete one-hop `X-Forwarded-Proto: https`,
+`X-Forwarded-Host: <configured authority>` and numeric `X-Forwarded-For` tuple.
+Keep Host equal to the configured public authority. The server strips this
+metadata; current bearer, actor, assurance and resource authority still come
+from the existing Store checks. Incomplete/ambiguous chains, RFC Forwarded,
+port/prefix rewrites and asserted identity/provider-context headers are refused.
+The default empty list refuses forwarding headers. HTTP3 WT remains on the
+canonical QUIC UDP bind with its configured mount/Origins; WSS keeps its own
+TLS listener/mount. The REST surfaces use HTTP/1.1 with guarded response custody.
+
+After `serve` reports ready, SIGHUP explicitly reloads its original TLS paths.
+Successful reload prints a local revision/change observation; failure logs a
+bounded reason and retains last-good material. SIGTERM/SIGINT join shutdown.
+Full handshakes use the current certificate resolver; established/resumed TLS
+sessions retain their original negotiated identity and requests reauthorize.
+
+The [HTTPS surface checkpoint](../evidence/gate-6/https-hosting-surfaces.json)
+passes four new actual-listener/CLI functions plus ten current HTTP, issuance
+and installation regressions. A fresh CLI also produces three schema-checked
+HTTPS health/policy responses with ordinary CA/name validation. The initial
+moved-config build and resumed-session certificate-inspection failure remain
+failed evidence. Current WSS/HTTP3 reload/deployment composition and the G6-053
+requirement audit remain open; no distinct-host/Linux/provider or full acceptance
+qualification is inferred.

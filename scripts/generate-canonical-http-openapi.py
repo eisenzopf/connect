@@ -250,6 +250,79 @@ def render():
         'lifetime': 'The canonical server owns listener startup, readiness and drain/drop. Failed MCP bind unwinds startup and permits installation recovery. Disabled MCP has an explicit unconfigured readiness component.',
         'qualification': 'See docs/evidence/gate-6/canonical-mcp-control.json and canonical-mcp-hosting.json for exact local functional scope. Installed actual-model agent-host, live transition/media and remote/provider profiles are separate qualification work.'
     }
+    document['components']['schemas']['HostedReadiness'] = {'type': 'object',
+     'additionalProperties': False,
+     'required': ['profile', 'ready'],
+     'properties': {'profile': {'const': 'connect/2'}, 'ready': {'type': 'boolean'}}}
+    document['paths']['/healthz'] = {'get': {'operationId': 'hostedHttpsReadiness',
+             'security': [],
+             'description': 'Present only on an explicitly configured health HTTPS listener. Reports '
+                            'aggregate operational readiness as a boolean, without '
+                            'component/media/private state. Enforces configured Host, Origin and '
+                            'immediate-proxy policy before reading state; no credentials or '
+                            'application/admin/callback routes are installed here. HEAD follows '
+                            'framework GET handling. No-store.',
+             'responses': {'200': {'description': 'Configured workers ready.',
+                                   'content': {'application/json': {'schema': {'$ref': '#/components/schemas/HostedReadiness'}}}},
+                           '503': {'description': 'Worker unavailable or shared request capacity '
+                                                  'exhausted.',
+                                   'content': {'application/json': {'schema': {'$ref': '#/components/schemas/HostedReadiness'}}}},
+                           '403': {'description': 'Public hosting policy refused.',
+                                   'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Rejection'}}}}},
+             'x-cache-control': 'no-store'}}
+    document['paths']['/v2/discovery']['get']['description'] = document['paths']['/v2/discovery']['get']['description'].replace('through the loopback application listener', 'through the loopback application listener or an explicitly configured application HTTPS listener')
+    document['paths']['/v2/discovery']['get']['responses']['403'] = {'description': 'Configured HTTPS Host, Origin or immediate-proxy policy refused.',
+     'content': {'application/json': {'schema': {'$ref': '#/components/schemas/Rejection'}}}}
+    document['x-connect-public-https'] = {'configuration': 'CanonicalServerConfig.https: at most four distinct surface bindings; disabled '
+                      'by default. Local permits loopback binds and optional automatically selected '
+                      'HTTPS origin. Remote requires explicit network profile and public HTTPS origin. '
+                      'TLS certificate must cover each public contact before installation recovery or '
+                      'bind.',
+     'surfaces': {'application': ['/v1/operations',
+                                  '/v2/commands',
+                                  '/v2/discovery',
+                                  '/v2/records/*',
+                                  '/v1/conversations/{id}/artifacts/*'],
+                  'administration': ['/v2/identities',
+                                     '/v2/identities/*',
+                                     '/v2/credentials',
+                                     '/v2/credentials/*',
+                                     '/v2/devices/*',
+                                     '/v2/endpoints/*',
+                                     '/v2/incoming-contacts',
+                                     '/v2/conversations/{id}/participants',
+                                     '/v2/user-delegations',
+                                     '/v1/task-access'],
+                  'callbacks': ['/webhooks/telnyx'],
+                  'health': ['/healthz']},
+     'origin_policy': 'Exact Host for the configured public origin, no credential-based origin '
+                      'expansion. Only application permits bounded exact configured browser origins. '
+                      'Native/backend requests may omit Origin; all routes retain current Store '
+                      'credential/source authority. Other surfaces contain no browser origins. Unknown '
+                      'paths remain404.',
+     'proxy_policy': 'Optional bounded exact immediate socket-peer IP list. One-hop '
+                     'X-Forwarded-Proto=https, X-Forwarded-Host equal to configured authority, and a '
+                     'single numeric X-Forwarded-For are accepted together only from that peer and '
+                     'stripped. They supply no actor, credential, assurance or authorization. '
+                     'Invalid/incomplete chains, RFC Forwarded, port/prefix rewrites and known '
+                     'asserted-identity/provider-context headers are refused. Configure proxies to '
+                     'overwrite rather than append these fields.',
+     'policy_refusal': {'status': 403,
+                        'content_type': 'application/json',
+                        'schema': '#/components/schemas/Rejection'},
+     'transports': 'HTTPS REST/protected delivery uses HTTP/1.1 and existing guarded physical-writer '
+                   'custody. WSS and HTTP3 WebTransport keep explicit configured mounts/Origins; WT '
+                   'uses h3 on the canonical QUIC UDP bind, independent of TCP HTTPS. No generic '
+                   'REST-over-HTTP3 route is advertised.',
+     'limits': 'Each listener bounds pending handshakes and live TCP sockets by configured connection '
+               'capacity, and each TLS handshake expires after five seconds. Body, current '
+               'authorization, authority-reader and protected-response IO bounds remain installed.',
+     'reload': 'Trusted Rust owner reload_tls_certificates or serve SIGHUP reads only original '
+               'configured files off executor. Complete valid replacement is atomic across cloned '
+               'listener configs; existing sessions continue. '
+               'Invalid/expired/mismatched/oversized/narrower identity retains last-good material. '
+               'SIGTERM/SIGINT drain owned listeners/peers/workers. Signing keys and client trust '
+               'retain independent enrollment.'}
     return json.dumps(document,indent=2)+'\n'
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args()

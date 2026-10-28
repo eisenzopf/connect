@@ -1,0 +1,384 @@
+{
+  "format": 1,
+  "task": "G6-053",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Actual isolated macOS arm64 canonical HTTPS application/admin/callback/health surfaces, explicit Origin/Host/immediate-proxy policy and owned CLI TLS reload/shutdown. Remote configuration rejection is checked, but no distinct-host/Linux/reverse-proxy deployment or provider/account execution is claimed.",
+  "implementation": [
+    "Optional CanonicalServerConfig.https exposes at most four unique named surface bindings, disabled by default. Public origins are exact HTTPS contacts; Remote requires explicit network profile/origin. Certificate name checks precede installation recovery/binding. Local HTTP remains loopback.",
+    "Application, administration, Telnyx callback and minimal health routes are separate. Existing shared Store/Service authority, original IDs, protected issuance/record response writers and bounded bodies remain installed. Only application allows explicitly configured browser origins; administrative/provider-context requests keep their existing Origin refusals.",
+    "Host must match the configured public authority. Forwarding accepts a complete single-hop X-Forwarded-Proto=https/Host/numeric-For tuple only from an exact configured immediate socket-peer IP, then strips it. It cannot authenticate. Known identity assertions, RFC Forwarded and port/prefix rewriting are refused.",
+    "TLS listeners bound pending five-second handshakes and live TCP sockets by configured connection capacity. Existing protected physical response custody is retained until actual IO closure. Public HTTPS workers participate in readiness and owned shutdown.",
+    "serve installs SIGHUP handling before ready reporting, performs explicit off-executor TLS reload from original configured files, retains last-good identity on invalid replacement, and drains on SIGTERM/SIGINT. Endpoints are reported without credentials."
+  ],
+  "build": {
+    "exit_code": 0,
+    "seconds": 14.64169666590169,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5240,
+    "changed_inputs": [],
+    "diagnostic_warnings": [],
+    "log_sha256": "d378801ed97c80123bbd8476f6ae1500ad583afeb09d43024c149cfd118986bc"
+  },
+  "artifact": {
+    "sha256": "2ffe88f098b66689feb11ce5bb6b0b7f1e09779471cc990aed2150b328fe3c0c",
+    "bytes": 266853256
+  },
+  "cli_sha256": "544a60032f3264a1867ea2e052d34c8f93e2ba5ffb582040566fed56176fcb31",
+  "https_functions": [
+    {
+      "test": "canonical_https_hosting::production_https_surfaces_enforce_current_auth_origins_and_tls_only_credentials",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.2653117498848587,
+      "changed_inputs": [],
+      "log_sha256": "78e7050cf0b933e640d4b0b66b2c29453732240e9e711d36fb1cec2f28250154",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.22s"
+      ],
+      "observations": [
+        "https-hosting-surfaces {\"current_auth\":true,\"exact_origins\":true,\"https_rotation\":true,\"isolated_surfaces\":4,\"joined\":true,\"plaintext_credentials_refused\":true,\"signature_only_callback\":true}"
+      ]
+    },
+    {
+      "test": "canonical_https_hosting::production_https_trusts_only_the_configured_immediate_proxy_without_identity_delegation",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.556053709005937,
+      "changed_inputs": [],
+      "log_sha256": "bf2a0a0f25b92c9aacefe53ecb93500b9742c378c2720f691d32604a7d29bcf5",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.52s"
+      ],
+      "observations": [
+        "https-proxy-policy {\"forwarded_identity_refused\":true,\"forwarding_does_not_authenticate\":true,\"immediate_peer_checked\":true,\"joined\":true,\"one_hop_only\":true}"
+      ]
+    },
+    {
+      "test": "canonical_https_hosting::production_serve_sighup_rotates_https_and_sigterm_joins_after_invalid_reload",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 1.78244891599752,
+      "changed_inputs": [],
+      "log_sha256": "e0f7fa59e94e51f888efe97525880e346bbb730fcb5117884c697aeac5e4be81",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 1.76s"
+      ],
+      "observations": [
+        "https-cli-reload {\"invalid_reload_kept_last_good\":true,\"joined\":true,\"port_released\":true,\"sighup_changed\":true,\"sigterm_exit_success\":true}"
+      ]
+    },
+    {
+      "test": "canonical_https_hosting::public_https_configuration_refuses_implicit_exposure_insecure_or_ambiguous_contacts",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.21074104099534452,
+      "changed_inputs": [],
+      "log_sha256": "6a027c5eb255a64436e2ebdc9a6b183fad726da161d3c3bb80e060d727cd2985",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.14s"
+      ],
+      "observations": []
+    }
+  ],
+  "existing_regressions": [
+    {
+      "test": "canonical_http_cases::canonical_http_bad_json_authentication_order_and_storage_recovery_preserve_original_ids",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.2589600421488285,
+      "changed_inputs": [],
+      "log_sha256": "e4fb7814b1916ec94809917afbac0365cdb252305307636a3d8544d0d9f54b3e",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.22s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "canonical_http_cases::canonical_http_cancelled_wait_replays_the_original_mutation_once",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.3804261249024421,
+      "changed_inputs": [],
+      "log_sha256": "c36e8633bd298be59b4328d19e101aa1053dc0d5adc36a7b6e9fffbf5fcc797b",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.37s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "canonical_http_cases::canonical_http_duplicate_json_keys_are_refused_before_effects_with_authentication_first",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.2610470831859857,
+      "changed_inputs": [],
+      "log_sha256": "934900552ab4735423f460ceeb767858c2d0bc4cd12422b26cb29ad8a8f27dac",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.19s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "canonical_http_cases::canonical_http_refuses_malformed_unsupported_spoofed_and_expired_requests_without_effects",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 1.4663463330361992,
+      "changed_inputs": [],
+      "log_sha256": "c26cf0dd0c3c80b639c027660a3c6642c0462e07e012fe46cff44469407f6df5",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 1.41s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "canonical_http_cases::canonical_http_retired_generic_dispatch_refuses_canonical_commands_and_keeps_explicit_extensions",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.21254541701637208,
+      "changed_inputs": [],
+      "log_sha256": "1a4b701f8f4cc9024341b9a22b481d0cb135d0abffcab594221f41aadc151351",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.19s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "canonical_http_sdk_uses_shared_commands_receipts_membership_and_cursor_facts",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.6224622919689864,
+      "changed_inputs": [],
+      "log_sha256": "0f20a22201018b6c82298de954c1d0b454416510b22eee39035d5dafd17a12e5",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.60s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "credential_installation::actual_cli_issues_independent_native_assets_rechecks_completion_and_exports_scoped_agent",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 1.5702414580155164,
+      "changed_inputs": [],
+      "log_sha256": "abd73e4a628ab4623207934bb59d6f0228b64fadf1f2ae7253ffd0577347c00b",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 1.55s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "credential_installation::actual_cli_resumes_committed_lost_issuance_device_key_and_failed_native_admission",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 10.52379629202187,
+      "changed_inputs": [],
+      "log_sha256": "33bd3697992d6bf3e836c52e0e8d14fe8786ef0cc76839b4575b2be06f93e6d6",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 10.46s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "credential_issuance::protected_issuance_authenticates_before_body_and_refuses_header_shape_and_authority_changes",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.20240470906719565,
+      "changed_inputs": [],
+      "log_sha256": "ab706d12ad1a7f590bcbac23b7fec806d77de070c9bc4e775a88795b87423963",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.16s"
+      ],
+      "observations": []
+    },
+    {
+      "test": "credential_issuance::protected_issuance_recovers_original_after_disconnect_restart_and_native_enrollment",
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.9020905408542603,
+      "changed_inputs": [],
+      "log_sha256": "78b1863be3619aa048ae6e1117c8e34d2de2633958b3a799899b6496bf86210d",
+      "result": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.87s"
+      ],
+      "observations": []
+    }
+  ],
+  "distinct_test_functions_passed": 14,
+  "runtime_guards": {
+    "https_inputs_sha256": "b312391676ecc74d60529d541e398784cf6c1e99b17446772e958d901d9d922c",
+    "regression_inputs_sha256": "670d2c9cfa7f6d3177f8477de263af31261bd70b2e237990cb91d1d420dec86d",
+    "changed_inputs": []
+  },
+  "actual_schema_wire": {
+    "scope": "Actual newly initialized local CLI HTTPS health/policy responses with ordinary CA/name validation; no model/provider/remote execution.",
+    "wire_cases": [
+      {
+        "case": "health",
+        "status": 200,
+        "schema": "HostedReadiness",
+        "body": {
+          "profile": "connect/2",
+          "ready": true
+        },
+        "body_sha256": "99d63c47c3f1b505a78a3137e382617815e3cceba5b0002213c024704afbfeaa",
+        "no_store": true
+      },
+      {
+        "case": "forged-identity",
+        "status": 403,
+        "schema": "Rejection",
+        "body": {
+          "profile": "connect/2",
+          "problem": {
+            "code": 403,
+            "category": "auth",
+            "reason": "forbidden"
+          }
+        },
+        "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8",
+        "no_store": true
+      },
+      {
+        "case": "untrusted-forwarding",
+        "status": 403,
+        "schema": "Rejection",
+        "body": {
+          "profile": "connect/2",
+          "problem": {
+            "code": 403,
+            "category": "auth",
+            "reason": "forbidden"
+          }
+        },
+        "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8",
+        "no_store": true
+      }
+    ],
+    "schema_negative_controls": [
+      "missing-ready",
+      "string-ready",
+      "extra-private-state"
+    ],
+    "exit_code": 0,
+    "forced_cleanup": false,
+    "changed_inputs": [],
+    "cli_sha256": "544a60032f3264a1867ea2e052d34c8f93e2ba5ffb582040566fed56176fcb31",
+    "source_count": 5244
+  },
+  "references": {
+    "generation_checks": [
+      "scripts/generate-canonical-http-openapi.py --check",
+      "scripts/generate-protected-http-openapi.py --check"
+    ],
+    "inventory_declarations": 25,
+    "explicit_http_operations": 26,
+    "uncovered_routes": 0,
+    "scope": "Source/reference inventory; not complete runtime schema conformance. Three actual new health/policy wire responses separately validate against current schemas with jsonschema4.26.0 and default TLS CA/name verification."
+  },
+  "failed_candidates": {
+    "build146": {
+      "outcome": {
+        "exit_code": 101,
+        "seconds": 34.620677459053695,
+        "arguments": [
+          "cargo",
+          "rustc",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--message-format=json",
+          "--",
+          "-C",
+          "strip=none"
+        ],
+        "source_count": 5240,
+        "changed_inputs": []
+      },
+      "reason": "Moved native TLS config was needed for HTTPS clones; fixed by cloning the config while retaining its shared resolver. No behavior execution claimed.",
+      "compiler_json_sha256": "3878c847946c803b3d675be89c9896a1fcdda5eac7989640fa74b77d6d770b58"
+    },
+    "build147_first_scene": {
+      "step": {
+        "test": "canonical_https_hosting::production_https_surfaces_enforce_current_auth_origins_and_tls_only_credentials",
+        "exit_code": 101,
+        "timed_out": false,
+        "seconds": 0.2580425830092281,
+        "changed_inputs": [],
+        "log_sha256": "c9c85af68e0e1ac18740094e164d4ca3622747d87a94dcd2c26ea406036e0e09",
+        "result": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 361 filtered out; finished in 0.24s"
+        ],
+        "observations": []
+      },
+      "reason": "Certificate inspection reused a TLS client session ticket and observed its original authenticated leaf. Fresh clients now require new full handshakes. Production resolver behavior did not change for this correction; the initial function remains failed and no unobserved cleanup pass is inferred."
+    },
+    "build148": {
+      "outcome": "Successful build; behavior cohort not executed before strengthening proxy tests. No test pass claimed.",
+      "build_summary_sha256": "a09acc15a1506f106a959c7f605500a755aaac5ec9e14a01977ad6ab63a1859a"
+    },
+    "final_fixture_strengthening": "The final proxy fixture distinguishes an empty list, actual immediate peer and nonempty mismatching peer list (including a spoofed listed X-Forwarded-For). Every bad-field case starts from a complete valid tuple and alters only that field."
+  },
+  "source_sha256": {
+    "crates/connect-server/src/canonical.rs": "90e67a876f8716e86aa71ac7421a6db84a0d0f4e8ea72440d08251ff2fb80242",
+    "crates/connect-server/src/hosting.rs": "3fa2277d0311287999b43c2e218a8c22edab8d716d5942ffa3aafe94bbf42958",
+    "crates/connect-server/src/tls.rs": "e9ce4f036fae8beb66214f1997849b3833a84d906ac96343b240e517f7043a36",
+    "crates/connect-server/src/cli/serve.rs": "fd68a8f8e4fdfe8614ef96c16fa68c15ec67f58f12d0a44280490708465fee90",
+    "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
+    "crates/connect-server/src/transports/hosting_policy.rs": "088e5a0d3ee233b5d227a7b3cc5d36c7caa550b909883a1aff210068291c2cec",
+    "crates/connect-server/src/transports/http_record_io.rs": "1e03f9398478c0dcdd2e239020da12ccd50a310bd67c00a8a1ff5380356c250a",
+    "crates/connect-server/src/transports/credential_issuance.rs": "fb16b6a66e3324e03057f22be479ee4afd720d675c5e86a7b000504321833a96",
+    "crates/connect-server/src/transports/task_access.rs": "ce3d9557ee68c9a3f70aaaf85bb18fb40a54a19b5091d1a9c8a00cd066e3b3f1",
+    "crates/connect-server/src/transports/record_https.rs": "bd35ff993c355e61442b30d10021b33acd8c8bad8f1abc50783f1db44808cdd3",
+    "crates/connect-server/tests/support/canonical_https_hosting.rs": "3087de21b4f345e3a008f9f5e521af72bfbe2929a9d1103a17d9d9d864e3cc15",
+    "scripts/generate-canonical-http-openapi.py": "8dfb4743991794dde835b2f35e2b26d31a2bf5bdc60068e9bfb3458a8c1d49d2",
+    "scripts/generate-protected-http-openapi.py": "a469de5fd09157c02d56a07cf16cc6f1c1ace29f9140d27362841124e1b258e6",
+    "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
+    "contracts/openapi-protected-http.json": "e40039c59978f3dc7c70f292528f0cb8bc46e6f30c67504399facc3903a25aa5",
+    "contracts/http-endpoints.json": "4d88cc1798b233be56468361df842773945f2a6766243ab6306d1cb73809bf4e"
+  },
+  "remaining": [
+    "Qualify actual WSS/HTTP3 WebTransport routing/certificate reload on the current hosted composition; source wiring/retained prior transport evidence is not this fresh cohort.",
+    "Complete deployment configuration/examples and isolated hosted-client profile audit, including explicit certificate provisioning and any unrun host/proxy lanes.",
+    "Frozen Linux/distinct-host/provider/profile/conformance/performance qualification and publication retain their separate approved tasks; no Gate 6 acceptance is promoted."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

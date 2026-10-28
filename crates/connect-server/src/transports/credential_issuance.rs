@@ -74,13 +74,7 @@ async fn admit(State(state): State<HttpState>, mut request: Request, next: Next)
     };
     let deadline = Instant::now() + Duration::from_secs(5);
     let headers = request.headers();
-    let host = headers.get_all(header::HOST).iter().count() == 1
-        && headers
-            .get(header::HOST)
-            .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| {
-                v == state.address.to_string() || v == format!("localhost:{}", state.address.port())
-            });
+    let host = state.host_allowed(headers);
     if !host
         || headers.contains_key(header::ORIGIN)
         || headers.contains_key("x-call-id")

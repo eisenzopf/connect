@@ -127,6 +127,7 @@ fn populate(
     let expires = chrono::DateTime::from_timestamp(now.timestamp() + 30 * 86400, 0)
         .context("Canonical bootstrap expiry")?;
     let server = CanonicalServerConfig {
+        https: Vec::new(),
         webrtc: None,
         network_profile: Default::default(),
         webtransport: None,

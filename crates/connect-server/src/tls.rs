@@ -47,6 +47,14 @@ fn certificates(bytes: Vec<u8>) -> Result<Vec<CertificateDer<'static>>> {
     }
     Ok(chain)
 }
+/// Check configured public contacts with the TLS library's DNS/IP matcher.
+/// Certificate/key validity and matching are independently checked at load.
+pub(crate) fn validate_name(certificate: &Path, name: &str) -> Result<()> {
+    let chain = certificates(bounded(certificate, 256 * 1024)?)?;
+    let leaf = rustls::server::ParsedCertificate::try_from(&chain[0])?;
+    rustls::client::verify_server_name(&leaf, &rustls::pki_types::ServerName::try_from(name)?)
+        .context("Configured HTTPS name is not covered by its TLS certificate")
+}
 pub fn server_config(cert: &Path, key: &Path) -> Result<Arc<rustls::ServerConfig>> {
     Ok(Arc::new(load_config(cert, key)?.0))
 }

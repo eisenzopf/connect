@@ -1,8 +1,8 @@
 {
   "status": "Source route/reference inventory only; runtime schemas and authorization need separate evidence.",
   "scope": "All current route/route_service/nest/nest_service declarations in Connect server and MCP source, plus explicit configured canonical transport mounts. Framework-generated methods and all /v1/operations body variants are not independently qualified by path coverage.",
-  "declarations": 24,
-  "explicit_http_operations": 25,
+  "declarations": 25,
+  "explicit_http_operations": 26,
   "parameter_matching": "Only placeholder names are normalized. Original source path and every referenced path spelling remain recorded.",
   "routes": [
     {
@@ -75,7 +75,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 137,
+      "line": 315,
       "registration": "route",
       "path": "/v1/task-access",
       "operations": [
@@ -94,7 +94,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 144,
+      "line": 322,
       "registration": "route",
       "path": "/v2/incoming-contacts",
       "operations": [
@@ -113,7 +113,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 148,
+      "line": 326,
       "registration": "route",
       "path": "/v2/identities",
       "operations": [
@@ -132,7 +132,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 149,
+      "line": 327,
       "registration": "route",
       "path": "/v2/credentials/{id}/revoke",
       "operations": [
@@ -151,7 +151,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 153,
+      "line": 331,
       "registration": "route",
       "path": "/v2/identities/{id}/record-read-role",
       "operations": [
@@ -170,7 +170,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 157,
+      "line": 335,
       "registration": "route",
       "path": "/v2/identities/{id}/signing-keys",
       "operations": [
@@ -189,7 +189,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 161,
+      "line": 339,
       "registration": "route",
       "path": "/v2/signing-keys/{id}/revoke",
       "operations": [
@@ -208,7 +208,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 165,
+      "line": 343,
       "registration": "route",
       "path": "/v2/devices/{id}/revoke",
       "operations": [
@@ -227,7 +227,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 166,
+      "line": 344,
       "registration": "route",
       "path": "/v2/identities/{id}/endpoints",
       "operations": [
@@ -246,7 +246,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 170,
+      "line": 348,
       "registration": "route",
       "path": "/v2/identities/{id}/revoke",
       "operations": [
@@ -265,7 +265,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 174,
+      "line": 352,
       "registration": "route",
       "path": "/v2/conversations/{id}/participants",
       "operations": [
@@ -284,7 +284,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 178,
+      "line": 356,
       "registration": "route",
       "path": "/v2/endpoints/{id}/verify",
       "operations": [
@@ -303,7 +303,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 182,
+      "line": 360,
       "registration": "route",
       "path": "/v2/endpoints/{id}/revoke",
       "operations": [
@@ -322,26 +322,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 191,
-      "registration": "route",
-      "path": "/webhooks/telnyx",
-      "operations": [
-        {
-          "method": "post",
-          "references": [
-            {
-              "document": "contracts/openapi-provider-observations.json",
-              "path": "/webhooks/telnyx",
-              "method": "post",
-              "pointer": "/paths/~1webhooks~1telnyx/post"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "source": "crates/connect-server/src/transports/http.rs",
-      "line": 195,
+      "line": 373,
       "registration": "route",
       "path": "/v1/operations",
       "operations": [
@@ -408,7 +389,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 202,
+      "line": 376,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
       "operations": [
@@ -438,7 +419,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 206,
+      "line": 380,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
       "operations": [
@@ -461,6 +442,44 @@
               "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
               "method": "put",
               "pointer": "/paths/~1v1~1conversations~1{conversation_id}~1artifacts~1{artifact_id}~1links~1{token}/put"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 384,
+      "registration": "route",
+      "path": "/webhooks/telnyx",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-provider-observations.json",
+              "path": "/webhooks/telnyx",
+              "method": "post",
+              "pointer": "/paths/~1webhooks~1telnyx/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/http.rs",
+      "line": 389,
+      "registration": "route",
+      "path": "/healthz",
+      "operations": [
+        {
+          "method": "get",
+          "references": [
+            {
+              "document": "contracts/openapi-canonical-http.json",
+              "path": "/healthz",
+              "method": "get",
+              "pointer": "/paths/~1healthz/get"
             }
           ]
         }
@@ -549,7 +568,7 @@
   "inputs": {
     "contracts/openapi-application-http.json": "95f2748a4819c18669a0fbb9d289722578f9a805a07d78b28ac25acc566fb0f0",
     "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
-    "contracts/openapi-canonical-http.json": "b99251e0ee40fe472497db520469434c9c544aa870c9150a1c2005863f50f399",
+    "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
     "contracts/openapi-conversations.json": "91c85900303ff4dca6cc41941dc7366fc06284af8f134057dba4b93fcb032d0c",
     "contracts/openapi-events.json": "7e1c48e8541a86b9bbb2b55117672bf94c08e5928011a5f16bd291ef613ff404",
@@ -557,7 +576,7 @@
     "contracts/openapi-membership.json": "e1666be68b0043bd57b83dda1d7034f2c96d9e78e5eee36f060cf0f54c5d38e8",
     "contracts/openapi-messages.json": "4225442b07fe26eec866cb21381cc3d9bd181c29527e06e4c193108e3c91f5f9",
     "contracts/openapi-operations.json": "cd2c402032ffbc43d1863da18136d12359a4dba5b64b613cd5be46221b08c9e8",
-    "contracts/openapi-protected-http.json": "1bc98ea100168bacf626a69e741a38ab2612710b773e7112422cf4761062e993",
+    "contracts/openapi-protected-http.json": "e40039c59978f3dc7c70f292528f0cb8bc46e6f30c67504399facc3903a25aa5",
     "contracts/openapi-provider-observations.json": "0f8a9ca465126bb7da41c325b385e69ee9709b4a77fbe1b38796a8bbd78a73b1",
     "contracts/openapi-provisioning.json": "7ea2ba5731c65bb70b1b4fff124a2e6b68ce400cb43cd1eeb8b08f7475722a09",
     "contracts/openapi-record-mutations.json": "31e79a18676ac0a0f54cf53b5d8ca293b3def6d1826964f5e5b29e251f0b1809",
@@ -568,9 +587,9 @@
     "crates/connect-server/src/canonical_websocket.rs": "d27445f3986dc4f0f5911f5999001848bd39d9c18a4b2e637464fc436fca8873",
     "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
-    "crates/connect-server/src/transports/credential_issuance.rs": "1eabe094a64a9260414d16ba0f18d824c26126f4c9575a476d3826ba0c2f7ee1",
-    "crates/connect-server/src/transports/http.rs": "ef5e5540ff1cfd7bfc59b773b370820465845d70f42fdd2ea811523c489c1ff1",
-    "crates/connect-server/src/transports/record_https.rs": "99fe394b55ca31712ee293d6f752e25c4840c98c31253e3d341e69c842ca00e5",
+    "crates/connect-server/src/transports/credential_issuance.rs": "fb16b6a66e3324e03057f22be479ee4afd720d675c5e86a7b000504321833a96",
+    "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
+    "crates/connect-server/src/transports/record_https.rs": "bd35ff993c355e61442b30d10021b33acd8c8bad8f1abc50783f1db44808cdd3",
     "crates/connect-server/src/transports/record_mutations.rs": "49a9ccc35833669aa405ea105d2c0126173c5937055f5bb849f25ee416cc1113",
     "crates/connect-server/src/transports/user_delegation.rs": "de833cdafbb9dbed59c21a5d0f8d482b991eeade37b56b55fe516259be957a66"
   }

@@ -45,6 +45,8 @@ pub struct CanonicalServerConfig {
     pub signing_key_not_before: chrono::DateTime<chrono::Utc>,
     pub signing_key_expires_at: chrono::DateTime<chrono::Utc>,
     pub http_bind: Option<SocketAddr>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub https: Vec<crate::hosting::HttpsListenerConfig>,
     /// Protected local MCP control; disabled unless explicitly configured.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mcp: Option<crate::config::McpConfig>,
@@ -92,6 +94,12 @@ impl CanonicalServerConfig {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        anyhow::ensure!(self.https.len() <= 4, "HTTPS surface capacity exceeded");
+        let mut surfaces = std::collections::HashSet::new();
+        for listener in &self.https {
+            listener.validate(self.network_profile)?;
+            anyhow::ensure!(surfaces.insert(listener.surface), "Duplicate HTTPS surface");
+        }
         if let Some(mcp) = &self.mcp {
             mcp.validate()?;
         }
@@ -182,6 +190,7 @@ pub struct RunningCanonicalServer {
     stop: CancellationToken,
     intake: Option<JoinHandle<Result<()>>>,
     http: Option<crate::HttpListener>,
+    https: Vec<crate::HttpListener>,
     mcp: Option<connect_mcp::RunningMcp>,
     record_https: Option<crate::transports::record_https::RecordHttpsListener>,
     idle: Option<crate::conversation_policy::Worker>,
@@ -196,6 +205,7 @@ pub struct RunningCanonicalServer {
     pub telnyx_callback_address: Option<SocketAddr>,
     pub address: SocketAddr,
     pub http_address: Option<SocketAddr>,
+    pub https_endpoints: Vec<crate::hosting::HttpsEndpoint>,
     pub mcp_address: Option<SocketAddr>,
     pub webtransport_url: Option<String>,
     pub websocket_address: Option<SocketAddr>,
@@ -287,6 +297,9 @@ impl RunningCanonicalServer {
             &config.certificate,
             &config.private_key,
         )?);
+        for listener in &config.https {
+            crate::tls::validate_name(&config.certificate, &listener.name())?;
+        }
         let mut tls = (*tls_identity.config()).clone();
         let mut websocket_tls = tls.clone();
         websocket_tls.alpn_protocols = vec![b"http/1.1".to_vec()];
@@ -455,7 +468,7 @@ impl RunningCanonicalServer {
         transport.max_idle_timeout(Some(Duration::from_secs(30).try_into()?));
         let endpoint = Arc::new(rvoip_uctp::substrate::make_server_endpoint(
             config.bind,
-            Arc::new(tls),
+            Arc::new(tls.clone()),
             transport,
         )?);
         let startup = crate::startup::EndpointStartup::new(&endpoint);
@@ -550,11 +563,29 @@ impl RunningCanonicalServer {
         };
         let http = match config.http_bind {
             Some(address) => Some(
-                crate::HttpListener::bind_canonical(address, service.clone(), discovery).await?,
+                crate::HttpListener::bind_canonical(address, service.clone(), discovery.clone())
+                    .await?,
             ),
             None => None,
         };
         let http_address = http.as_ref().map(|h| h.address);
+        let mut https = Vec::new();
+        let mut https_endpoints = Vec::new();
+        for config in &config.https {
+            let listener = crate::HttpListener::bind_https(
+                config,
+                service.clone(),
+                discovery.clone(),
+                tls.clone(),
+            )
+            .await?;
+            https_endpoints.push(crate::hosting::HttpsEndpoint {
+                surface: config.surface,
+                address: listener.address,
+                origin: config.contact(listener.address),
+            });
+            https.push(listener);
+        }
         let mcp = if let Some(config) = &config.mcp {
             let auth: Arc<dyn connect_mcp::McpAuthenticator> = match &config.binding {
                 Some(binding) => Arc::new(connect_mcp::FixedBindingAuth::new(
@@ -646,6 +677,7 @@ impl RunningCanonicalServer {
             stop,
             intake: Some(intake),
             http,
+            https,
             mcp,
             record_https,
             idle,
@@ -660,6 +692,7 @@ impl RunningCanonicalServer {
             telnyx_callback_address,
             address,
             http_address,
+            https_endpoints,
             mcp_address,
             record_https_address,
             store,
@@ -686,6 +719,9 @@ impl RunningCanonicalServer {
         self.stop.cancel();
         if let Some(http) = &self.http {
             http.begin_shutdown()
+        }
+        for listener in &self.https {
+            listener.begin_shutdown();
         }
         if let Some(records) = &self.record_https {
             records.begin_shutdown()
@@ -770,6 +806,11 @@ impl RunningCanonicalServer {
         if let Some(http) = self.http.take() {
             if http.shutdown().await.is_err() {
                 failures.push("HTTP");
+            }
+        }
+        for listener in self.https.drain(..) {
+            if listener.shutdown().await.is_err() {
+                failures.push("public HTTPS");
             }
         }
         if let Some(idle) = self.idle.take() {

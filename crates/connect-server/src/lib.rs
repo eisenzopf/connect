@@ -12,6 +12,7 @@ pub mod canonical_webtransport;
 pub mod cli;
 pub mod config;
 pub mod connector_media;
+pub mod hosting;
 pub mod installation;
 mod media_diagnostics;
 mod media_ingress;

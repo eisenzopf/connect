@@ -66,6 +66,7 @@ impl Fixture {
         private_write(&config, toml::to_string_pretty(&native).unwrap().as_bytes()).unwrap();
         let server = root.join("server.toml");
         let settings = CanonicalServerConfig {
+            https: Vec::new(),
             webrtc: None,
             network_profile: Default::default(),
             webtransport: None,

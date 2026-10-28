@@ -56,6 +56,7 @@ async fn setup() -> Setup {
     let pair = rcgen::KeyPair::generate_for(&rcgen::PKCS_ED25519).unwrap();
     std::fs::write(&signing, pair.serialize_der()).unwrap();
     let mut config = CanonicalServerConfig {
+        https: Vec::new(),
         webrtc: None,
         network_profile: Default::default(),
         webtransport: None,

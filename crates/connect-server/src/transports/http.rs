@@ -22,6 +22,21 @@ pub(super) struct HttpState {
     pub(super) capacity: Arc<tokio::sync::Semaphore>,
     pub(super) cancellation: CancellationToken,
     pub(super) address: SocketAddr,
+    pub(super) public_authority: Option<String>,
+}
+impl HttpState {
+    pub(super) fn host_allowed(&self, headers: &HeaderMap) -> bool {
+        let mut hosts = headers.get_all(header::HOST).iter();
+        let host = hosts.next().and_then(|h| h.to_str().ok());
+        hosts.next().is_none()
+            && host.is_some_and(|host| match &self.public_authority {
+                Some(authority) => host == authority,
+                None => {
+                    host == self.address.to_string()
+                        || host == format!("localhost:{}", self.address.port())
+                }
+            })
+    }
 }
 
 /// A bounded HTTP listener for local SDK calls or Telnyx callbacks.
@@ -29,7 +44,7 @@ pub struct Listener {
     /// Actual bound address, including the selected port when configured with zero.
     pub address: SocketAddr,
     stop: CancellationToken,
-    task: Option<tokio::task::JoinHandle<std::io::Result<()>>>,
+    task: Option<tokio::task::JoinHandle<anyhow::Result<()>>>,
     _retirement: Arc<dyn connect_store::RuntimeRetirementSignal>,
 }
 
@@ -40,6 +55,110 @@ impl connect_store::RuntimeRetirementSignal for Retirement {
     }
 }
 impl Listener {
+    pub(crate) async fn bind_https(
+        config: &crate::hosting::HttpsListenerConfig,
+        service: Arc<Service>,
+        discovery: connect_protocol::canonical_discovery::TransportDiscovery,
+        mut tls: rustls::ServerConfig,
+    ) -> anyhow::Result<Self> {
+        let listener = tokio::net::TcpListener::bind(config.bind).await?;
+        let address = listener.local_addr()?;
+        let origin = config.contact(address);
+        let authority = origin
+            .strip_prefix("https://")
+            .expect("validated HTTPS origin")
+            .to_owned();
+        let maximum = service.store.limits().connections;
+        let readiness = service.readiness.clone();
+        let stop = CancellationToken::new();
+        let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
+            Arc::new(Retirement(stop.clone()));
+        service.store.register_runtime_retirement(&retirement)?;
+        let verifier = config
+            .telnyx_callbacks
+            .as_ref()
+            .map(|c| telnyx::webhooks::Verifier::new(&c.public_key))
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("Invalid callback verifier"))?
+            .map(Arc::new);
+        let state = HttpState {
+            canonical_discovery: Some(Arc::new(discovery)),
+            service,
+            provider_routes: config
+                .telnyx_callbacks
+                .as_ref()
+                .map(|c| Arc::new(c.routes.clone())),
+            verifier,
+            capacity: Arc::new(tokio::sync::Semaphore::new(maximum)),
+            cancellation: stop.clone(),
+            address,
+            public_authority: Some(authority.clone()),
+        };
+        let body_limit = state
+            .service
+            .store
+            .limits()
+            .artifact_chunk_bytes
+            .max(65_536) as usize;
+        let mut app = routes(state.clone(), Some(config.surface), false);
+        if config.surface == crate::hosting::HttpSurface::Application {
+            let allowed = config
+                .allowed_origins
+                .iter()
+                .map(|o| o.parse::<HeaderValue>())
+                .collect::<Result<Vec<_>, _>>()?;
+            app = app.layer(
+                CorsLayer::new()
+                    .allow_origin(allowed)
+                    .allow_methods([Method::GET, Method::POST, Method::PUT])
+                    .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+                    .expose_headers([
+                        HeaderName::from_static("x-connect-offset"),
+                        HeaderName::from_static("x-connect-eof"),
+                    ]),
+            );
+        }
+        let app = app
+            .layer(DefaultBodyLimit::max(body_limit))
+            .layer(axum::middleware::from_fn_with_state(
+                Arc::new(super::hosting_policy::Policy {
+                    config: config.clone(),
+                    authority,
+                }),
+                super::hosting_policy::admit,
+            ))
+            .with_state(state);
+        tls.alpn_protocols = vec![b"http/1.1".to_vec()];
+        let token = stop.clone();
+        let component = match config.surface {
+            crate::hosting::HttpSurface::Application => "https-application",
+            crate::hosting::HttpSurface::Administration => "https-administration",
+            crate::hosting::HttpSurface::Callbacks => "https-callbacks",
+            crate::hosting::HttpSurface::Health => "https-health",
+        };
+        let task = crate::worker::spawn(readiness, component, stop.clone(), async move {
+            let io = super::http_record_io::GuardedListener {
+                listener,
+                cancellation: token.clone(),
+                tls: Some(Arc::new(tls)),
+                handshakes: Arc::new(tokio::sync::Semaphore::new(maximum)),
+                connections: Arc::new(tokio::sync::Semaphore::new(maximum)),
+            };
+            axum::serve(
+                io,
+                app.into_make_service_with_connect_info::<super::http_record_io::Custody>(),
+            )
+            .with_graceful_shutdown(token.cancelled_owned())
+            .await?;
+            Ok(())
+        });
+        Ok(Self {
+            address,
+            stop,
+            task: Some(task),
+            _retirement: retirement,
+        })
+    }
     pub(crate) fn begin_shutdown(&self) {
         self.stop.cancel()
     }
@@ -115,9 +234,8 @@ impl Listener {
             .transpose()
             .map_err(|_| anyhow::anyhow!("Invalid TELNYX_PUBLIC_KEY"))?
             .map(Arc::new);
-        let capacity = Arc::new(tokio::sync::Semaphore::new(
-            service.store.limits().connections,
-        ));
+        let service_limit = service.store.limits().connections;
+        let capacity = Arc::new(tokio::sync::Semaphore::new(service_limit));
         let stop = CancellationToken::new();
         let retirement: Arc<dyn connect_store::RuntimeRetirementSignal> =
             Arc::new(Retirement(stop.clone()));
@@ -132,84 +250,9 @@ impl Listener {
             capacity,
             cancellation: stop.clone(),
             address,
+            public_authority: None,
         };
-        let access = Router::new()
-            .route("/v1/task-access", post(super::task_access::exchange))
-            .route_layer(axum::middleware::from_fn_with_state(
-                state.clone(),
-                super::task_access::admit,
-            ))
-            .layer(DefaultBodyLimit::max(65_536));
-        let administration = Router::new()
-            .route(
-                "/v2/incoming-contacts",
-                post(super::incoming_contacts::command),
-            )
-            .route("/v2/identities", post(super::provisioning::identity))
-            .route(
-                "/v2/credentials/{id}/revoke",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/identities/{id}/record-read-role",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/identities/{id}/signing-keys",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/signing-keys/{id}/revoke",
-                post(super::provisioning::scoped),
-            )
-            .route("/v2/devices/{id}/revoke", post(super::provisioning::scoped))
-            .route(
-                "/v2/identities/{id}/endpoints",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/identities/{id}/revoke",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/conversations/{id}/participants",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/endpoints/{id}/verify",
-                post(super::provisioning::scoped),
-            )
-            .route(
-                "/v2/endpoints/{id}/revoke",
-                post(super::provisioning::scoped),
-            )
-            .route_layer(axum::middleware::from_fn_with_state(
-                state.clone(),
-                super::provisioning::admit,
-            ))
-            .layer(DefaultBodyLimit::max(65_536));
-        let app = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
-        let app = if webhooks_only {
-            app
-        } else {
-            app.route("/v1/operations", post(operation))
-                .merge(super::canonical_http::router(state.clone()))
-                .merge(super::record_mutations::router(state.clone()))
-                .merge(super::user_delegation::router(state.clone()))
-                .merge(super::credential_issuance::router(state.clone()))
-                .merge(access)
-                .merge(administration)
-                .route(
-                    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
-                    put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),
-                )
-                .route(
-                    "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
-                    put(super::artifact_http::put_link_chunk)
-                        .get(super::artifact_http::get_link_chunk),
-                )
-                .layer(browser_cors())
-        };
+        let app = routes(state.clone(), None, webhooks_only);
         let body_limit = state
             .service
             .store
@@ -220,19 +263,22 @@ impl Listener {
             .layer(DefaultBodyLimit::max(body_limit))
             .with_state(state);
         let token = stop.clone();
+        let capacity_for_connections = Arc::new(tokio::sync::Semaphore::new(service_limit));
         let task = tokio::spawn(async move {
             let guarded = super::http_record_io::GuardedListener {
                 listener,
                 cancellation: token.clone(),
                 tls: None,
                 handshakes: Arc::new(tokio::sync::Semaphore::new(1)),
+                connections: capacity_for_connections,
             };
             axum::serve(
                 guarded,
                 app.into_make_service_with_connect_info::<super::http_record_io::Custody>(),
             )
             .with_graceful_shutdown(token.cancelled_owned())
-            .await
+            .await?;
+            Ok(())
         });
         Ok(Self {
             address,
@@ -257,6 +303,116 @@ impl Listener {
         }
         Ok(())
     }
+}
+
+fn routes(
+    state: HttpState,
+    surface: Option<crate::hosting::HttpSurface>,
+    webhooks_only: bool,
+) -> Router<HttpState> {
+    use crate::hosting::HttpSurface;
+    let access = Router::new()
+        .route("/v1/task-access", post(super::task_access::exchange))
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            super::task_access::admit,
+        ))
+        .layer(DefaultBodyLimit::max(65_536));
+    let administration = Router::new()
+        .route(
+            "/v2/incoming-contacts",
+            post(super::incoming_contacts::command),
+        )
+        .route("/v2/identities", post(super::provisioning::identity))
+        .route(
+            "/v2/credentials/{id}/revoke",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/identities/{id}/record-read-role",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/identities/{id}/signing-keys",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/signing-keys/{id}/revoke",
+            post(super::provisioning::scoped),
+        )
+        .route("/v2/devices/{id}/revoke", post(super::provisioning::scoped))
+        .route(
+            "/v2/identities/{id}/endpoints",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/identities/{id}/revoke",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/conversations/{id}/participants",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/endpoints/{id}/verify",
+            post(super::provisioning::scoped),
+        )
+        .route(
+            "/v2/endpoints/{id}/revoke",
+            post(super::provisioning::scoped),
+        )
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            super::provisioning::admit,
+        ))
+        .layer(DefaultBodyLimit::max(65_536))
+        .merge(super::credential_issuance::router(state.clone()))
+        .merge(super::user_delegation::router(state.clone()))
+        .merge(access);
+    let application = Router::new()
+        .route("/v1/operations", post(operation))
+        .merge(super::canonical_http::router(state.clone()))
+        .merge(super::record_mutations::router(state.clone()))
+        .route(
+            "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
+            put(super::artifact_http::put_chunk).get(super::artifact_http::get_chunk),
+        )
+        .route(
+            "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
+            put(super::artifact_http::put_link_chunk).get(super::artifact_http::get_link_chunk),
+        );
+    let callbacks = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
+    match surface {
+        Some(HttpSurface::Application) => application,
+        Some(HttpSurface::Administration) => administration,
+        Some(HttpSurface::Callbacks) => callbacks,
+        Some(HttpSurface::Health) => Router::new().route("/healthz", axum::routing::get(health)),
+        None if webhooks_only => callbacks,
+        None => application
+            .merge(administration)
+            .merge(callbacks)
+            .layer(browser_cors()),
+    }
+}
+async fn health(State(state): State<HttpState>) -> Response {
+    let Ok(_permit) = state.capacity.try_acquire() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({"profile":"connect/2","ready":false})),
+        )
+            .into_response();
+    };
+    let ready = !state.cancellation.is_cancelled()
+        && state.service.readiness.snapshot().state == connect_protocol::ReadinessState::Ready;
+    (
+        if ready {
+            StatusCode::OK
+        } else {
+            StatusCode::SERVICE_UNAVAILABLE
+        },
+        Json(serde_json::json!({"profile":"connect/2","ready":ready})),
+    )
+        .into_response()
 }
 
 /// Browser SDK access is intentionally limited to ordinary HTTP origins on

@@ -26,14 +26,7 @@ pub(super) async fn admit(
         )));
     };
     let headers = request.headers();
-    let mut hosts = headers.get_all(header::HOST).iter();
-    let host = hosts.next().and_then(|value| value.to_str().ok());
-    if hosts.next().is_some()
-        || !host.is_some_and(|value| {
-            value == state.address.to_string()
-                || value == format!("localhost:{}", state.address.port())
-        })
-    {
+    if !state.host_allowed(headers) {
         return response(Err(Error::forbidden()));
     }
     if headers.contains_key(header::ORIGIN)

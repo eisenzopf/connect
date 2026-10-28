@@ -138,6 +138,7 @@ impl RecordHttpsListener {
                 cancellation: token.clone(),
                 tls: Some(Arc::new(tls)),
                 handshakes: Arc::new(tokio::sync::Semaphore::new(handshakes)),
+                connections: Arc::new(tokio::sync::Semaphore::new(handshakes)),
             };
             axum::serve(io, app.into_make_service_with_connect_info::<Custody>())
                 .with_graceful_shutdown(token.cancelled_owned())

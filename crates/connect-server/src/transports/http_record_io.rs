@@ -57,6 +57,7 @@ struct State {
 pub(super) struct Custody {
     state: Arc<Mutex<State>>,
     cancellation: CancellationToken,
+    peer_address: SocketAddr,
 }
 impl std::fmt::Debug for Custody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -64,11 +65,15 @@ impl std::fmt::Debug for Custody {
     }
 }
 impl Custody {
-    fn new(cancellation: CancellationToken) -> Self {
+    fn new(cancellation: CancellationToken, peer_address: SocketAddr) -> Self {
         Self {
             state: Arc::new(Mutex::new(State::default())),
             cancellation,
+            peer_address,
         }
+    }
+    pub(super) fn peer_address(&self) -> SocketAddr {
+        self.peer_address
     }
     pub(super) fn cancellation(&self) -> CancellationToken {
         self.cancellation.child_token()
@@ -114,6 +119,7 @@ pub(super) struct GuardedListener {
     pub(super) cancellation: CancellationToken,
     pub(super) tls: Option<Arc<rustls::ServerConfig>>,
     pub(super) handshakes: Arc<tokio::sync::Semaphore>,
+    pub(super) connections: Arc<tokio::sync::Semaphore>,
 }
 type TlsStream = tokio_rustls::server::TlsStream<TcpStream>;
 enum Io {
@@ -126,6 +132,7 @@ pub(super) struct GuardedStream {
     custody: Custody,
     cancelled: Pin<Box<dyn Future<Output = ()> + Send>>,
     timer: Option<(Instant, Pin<Box<Sleep>>)>,
+    _connection: OwnedSemaphorePermit,
 }
 impl GuardedStream {
     fn ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
@@ -262,6 +269,9 @@ impl Listener for GuardedListener {
                     continue;
                 }
             };
+            let Ok(connection) = self.connections.clone().try_acquire_owned() else {
+                continue;
+            };
             // Bound kernel output buffering per HTTP connection as well as the
             // application batch budget; stalled readers must exert backpressure.
             if socket2::SockRef::from(&stream)
@@ -287,13 +297,14 @@ impl Listener for GuardedListener {
                 Io::Plain(stream)
             };
             let cancellation = self.cancellation.child_token();
-            let custody = Custody::new(cancellation.clone());
+            let custody = Custody::new(cancellation.clone(), address);
             return (
                 GuardedStream {
                     stream,
                     custody,
                     cancelled: Box::pin(cancellation.cancelled_owned()),
                     timer: None,
+                    _connection: connection,
                 },
                 address,
             );

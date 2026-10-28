@@ -33,6 +33,8 @@ mod canonical_agent_rehearsal;
 #[path = "support/canonical_mcp.rs"]
 mod canonical_mcp;
 
+#[path = "support/canonical_https_hosting.rs"]
+mod canonical_https_hosting;
 #[path = "support/canonical_stdio.rs"]
 mod canonical_stdio;
 #[path = "support/credential_installation.rs"]
