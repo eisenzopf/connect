@@ -8,6 +8,8 @@ use std::{
 use tokio::net::UdpSocket;
 use tokio_util::sync::CancellationToken;
 const NAME: &str = "native.fixture.invalid";
+#[path = "remote/rotation.rs"]
+mod rotation;
 
 async fn configured(algorithm: &str, complete_chain: bool) -> Fixture {
     configured_at(algorithm, complete_chain, "127.0.0.1:0".parse().unwrap()).await
@@ -17,6 +19,15 @@ async fn configured_at(
     complete_chain: bool,
     bind: std::net::SocketAddr,
 ) -> Fixture {
+    configured_at_with_issuer(algorithm, complete_chain, bind)
+        .await
+        .0
+}
+async fn configured_at_with_issuer(
+    algorithm: &str,
+    complete_chain: bool,
+    bind: std::net::SocketAddr,
+) -> (Fixture, rcgen::CertifiedIssuer<'static, rcgen::KeyPair>) {
     let f = Fixture::with_native_dtmf_scope(algorithm, 12).await;
     let mut root_params = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
     root_params
@@ -83,15 +94,18 @@ async fn configured_at(
     client.network_profile = connect_client::NativeNetworkProfile::Remote;
     client.server_name = NAME.into();
     client.trust_certificate = trust;
-    Fixture {
-        temp,
-        config,
-        server,
-        client,
-        peer,
-        admin,
-        key_revision,
-    }
+    (
+        Fixture {
+            temp,
+            config,
+            server,
+            client,
+            peer,
+            admin,
+            key_revision,
+        },
+        intermediate,
+    )
 }
 
 struct Nat {

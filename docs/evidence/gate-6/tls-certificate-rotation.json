@@ -3,13 +3,15 @@
   "task": "G6-053",
   "implementation_status": "in-progress",
   "date": "2026-10-27",
-  "scope": "Shared operator-owned TLS certificate resolver and actual loopback TCP/TLS component tests; canonical runtime wiring compiles. Public HTTPS/proxy routing and the full native/WT/WSS reload cohort remain pending.",
+  "scope": "Shared operator-owned TLS certificate resolver, actual loopback TCP/TLS and production canonical QUIC/public native SDK reload with independent FFmpeg-decoded duplex audio. Isolated macOS arm64 Remote-address-policy fixture; not distinct-host/Linux/remote-account qualification.",
   "behavior": [
     "Load and validate the original bounded certificate/key files before canonical installation recovery/binding. Protocol-specific TLS config clones share one resolver.",
     "Explicit trusted process-owner reload runs file work off executor. It serializes before reading, validates validity/chain/key match and retains every previously served DNS/IP identity before publishing one complete replacement under a short lock.",
     "Identical certificate chain leaves revision unchanged. Changed valid identity increments revision. Invalid, expired, mismatched, oversized or narrower identity leaves the last valid resolver untouched. Handshakes perform no file IO/reload serialization.",
     "New full TLS handshakes on an existing cloned listener present the replacement leaf under normal CA/name verification. An established encrypted session continues. After malformed key replacement, a third full handshake still presents the last valid leaf; all three sockets/server task join.",
-    "Envelope signing keys, configured client trust and application authority retain their separate enrollment and lifetimes."
+    "Envelope signing keys, configured client trust and application authority retain their separate enrollment and lifetimes.",
+    "Actual production canonical QUIC reload passes both EdDSA/ES256 envelope-signing scenes with an independent same-CA TLS certificate/key replacement. New full handshakes observe the new leaf and malformed file replacement retains it; original signed/native media owners keep their exact observed runtime/generation/readiness bindings.",
+    "Fresh public signed clients authenticate after valid reload and after invalid key replacement. Both original media offers remain the only rows and maximum effect attempt stays one. All native client, raw certificate witness endpoints and server shutdowns join. Wrong name, unrelated roots and missing intermediate chain still fail actual public native opening."
   ],
   "verification": {
     "build_seconds": 56.68707866710611,
@@ -41,24 +43,100 @@
       "test": "canonical::tests::configuration_errors_do_not_echo_private_file_contents",
       "log_sha256": "ecb3f27075509d3617ab603800c5a0c81661e4cf8440741ee9d7ccad66c5845c"
     },
-    "tests_passed_total": 4,
-    "new_test_functions": 2,
-    "reused_test_functions": 2,
+    "tests_passed_total": 7,
+    "new_test_functions": 3,
+    "reused_test_functions": 4,
     "format_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "dependencies": "Prepared existing234patch source-lock tree before build; no upstream edits."
+    "dependencies": "Prepared existing234patch source-lock tree before build; no upstream edits.",
+    "retained_component_production_sources_unchanged": 4,
+    "production_native": {
+      "build_seconds": 90.41242704098113,
+      "source_count": 5237,
+      "changed_build_inputs": [],
+      "artifact_sha256": "1dd5e40b356d8f7ddd3fa25ba4c44c1b2f530b2c40fc8242089b814636df088c",
+      "artifact_bytes": 265823752,
+      "build_log_sha256": "42f4e9e79d209feb405303267e0999c542fb7c8e52885f2b1e0a51402dc4a57f",
+      "test": {
+        "test": "canonical_native_connections::remote::rotation::production_native_certificate_reload_preserves_signed_media_and_last_good_identity",
+        "exit_code": 0,
+        "timed_out": false,
+        "seconds": 12.18428804189898,
+        "changed_inputs": [],
+        "witness": [
+          {
+            "algorithm": "EdDSA",
+            "decoded_directions_before_and_after": 4,
+            "full_handshakes": 3,
+            "joined": true,
+            "last_good_after_invalid_key": true,
+            "maximum_effect_attempt": 1,
+            "original_media_bindings_preserved": true,
+            "original_offer_rows": 2
+          },
+          {
+            "algorithm": "ES256",
+            "decoded_directions_before_and_after": 4,
+            "full_handshakes": 3,
+            "joined": true,
+            "last_good_after_invalid_key": true,
+            "maximum_effect_attempt": 1,
+            "original_media_bindings_preserved": true,
+            "original_offer_rows": 2
+          }
+        ],
+        "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+        "ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "log_sha256": "de42f492c1af1ae2d7bfc45e1c1cfeae77cbabc6e6a8e67e5cc13be6a1c9b519",
+        "inputs_sha256": "c54056b0b25b3b91c13017092cac04dca3014bae2476203210917ca43c6dd0cc",
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 357 filtered out; finished in 12.17s"
+        ]
+      },
+      "current_trust_refusal_regressions": [
+        {
+          "test": "canonical_native_connections::remote::production_remote_profile_refuses_wrong_host_and_unconfigured_roots_before_commands",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.3163550409954041,
+          "log_sha256": "c15a9a23398180f9956d741d6153a8fc60a13a24f4a859098fdad08cdb80ef08",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 357 filtered out; finished in 0.25s"
+          ]
+        },
+        {
+          "test": "canonical_native_connections::remote::production_remote_profile_requires_its_complete_intermediate_chain",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.3255970829632133,
+          "log_sha256": "3951ecdb8578ffe82efb761dc4862109559c681af8b242a584a0e20d11c200e1",
+          "result": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 357 filtered out; finished in 0.26s"
+          ]
+        }
+      ],
+      "runtime_input_count": 5241,
+      "component_scope": "One exact function, two signing-algorithm scenes, six full certificate-inspection handshakes, eight before/after independently decoded G.711 directions. Existing public native clients retain original media bindings; fresh signed clients authenticate against the retained rotated chain. This is functional audio proof, not a frozen quality/performance distribution."
+    }
   },
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "b2ed2d55d58cdff6ef219ecf86c24fcd560f1e9d085f2ca748443ccf09e54e6c",
     "crates/connect-server/src/tls.rs": "52cd8ddd1a90420bbe61fb654505b0998adb5c369be974366bd3e6b32d3b1f32",
     "crates/connect-server/src/tls/rotation.rs": "9a81861a53d4ea4fca23f1448c27d6d56136c6f16a61e38abefa93ca3715915f",
-    "crates/connect-server/src/tls/rotation/tests.rs": "9969c0eaa91b8e0ee2e76391a4c17c19a857cb91bdcd51dbd960cd52881645ab"
+    "crates/connect-server/src/tls/rotation/tests.rs": "9969c0eaa91b8e0ee2e76391a4c17c19a857cb91bdcd51dbd960cd52881645ab",
+    "crates/connect-server/tests/support/canonical_native_connections/remote.rs": "d4380b3b63d6bf2055ff7ea927ae2d1aef74e7ddf8ae74a45007e17d89d4cee6",
+    "crates/connect-server/tests/support/canonical_native_connections/remote/rotation.rs": "2353c48e9aea14cefe4007ccfad4e1a4bfd9507d6bbfbdbd6fa05151b9dbf79d"
   },
   "remaining": [
     "Expose distinct public application/admin/callback/health HTTPS routing with narrow exposure and exact origin policy.",
     "Implement trusted reverse-proxy policy without accepting asserted identity/credentials from forwarding headers.",
-    "Install operator CLI reload control and qualify current native/WT/WSS/HTTPS reload/failure/shutdown behavior through their actual production listeners.",
+    "Install operator CLI reload control and qualify actual WT/WSS/public HTTPS reload/failure/shutdown behavior through those production listeners. Native QUIC is now verified in the declared isolated local scope.",
     "Complete supported HTTP3/deployment discovery/configuration diagnostics and isolated-host rejection checks. Named remote/Linux/provider/profile acceptance and publication remain unqualified."
   ],
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "lossless_closed_cache_custody": {
+    "manifest": ".local/gate-6/rtc-signed-av/closed-compiler-cache-144/manifest.json",
+    "sha256": "cef85f7f88bf1206ef9f0a7ba2207391f46e7d596304265f164be6964ef105fc",
+    "roundtrip_verified": true
+  }
 }

@@ -34,7 +34,13 @@ The [certificate rotation component](../evidence/gate-6/tls-certificate-rotation
 passes actual loopback TCP/TLS handshakes with normal CA/name verification:
 new handshakes see the replacement, an existing session continues, and invalid
 replacement retains the last valid identity. Four component/error functions pass.
-The canonical wiring compiles; actual QUIC/WT/WSS reload, operator CLI control,
+Production QUIC reload also passes both envelope-signing algorithms, with six
+full certificate-inspection handshakes and eight independent FFmpeg-decoded
+before/after audio directions. Original runtime/generation/readiness bindings
+stay fixed, fresh signed clients still authenticate, and both original media
+offers remain the only rows at effect attempt one. Wrong names, unrelated roots
+and missing intermediate chains still fail actual public native opening. All
+owned shutdowns join. Actual WT/WSS/public HTTPS reload, operator CLI control,
 public HTTPS routing and trusted proxy policy remain G6-053 work.
 
 `session_reconnect_grace_seconds` sets the policy for future invitations (default
