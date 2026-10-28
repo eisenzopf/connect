@@ -3,7 +3,7 @@ import {BrowserClient} from '/sdk/browser_client.js';
 import {BrowserMediaPeer} from '/sdk/browser_media.js';
 import {BrowserMediaCapture} from '/sdk/browser_media_capture.js';
 import {BrowserMediaRenderer} from '/sdk/browser_media_renderer.js';
-import {options,tone} from '/sdk-media.mjs';
+import {options,tone,annotateCanonicalRequests} from '/sdk-media.mjs';
 const check=(ok,message)=>{if(!ok)throw Error(message);};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 export async function run(config){
@@ -19,7 +19,7 @@ export async function run(config){
   source.width=output.width=640;source.height=output.height=360;
   const paint=n=>{const c=source.getContext('2d');c.fillStyle='rgb(220,20,20)';c.fillRect(0,0,640,360);c.fillStyle='rgb(10,230,10)';c.fillRect((n*7)%608,80,32,200);};
   try{
-    client=await BrowserClient.open(await options(config.actors[0]));
+    client=annotateCanonicalRequests(await BrowserClient.open(await options(config.actors[0])),'browser-native');
     const created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
     peer=new BrowserMediaPeer(client,{
       audio:(binding,frame)=>{audio.decoded++;if(tone(frame,250))audio.identified++;renderer?.audio(binding,frame);},

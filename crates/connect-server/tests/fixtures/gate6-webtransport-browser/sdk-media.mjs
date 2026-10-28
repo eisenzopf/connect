@@ -19,6 +19,60 @@ export function tone(frame,hz){
   const power=f=>{let re=0,im=0;for(let n=0;n<pcm.length;n++){const angle=2*Math.PI*f*n/48000;re+=pcm[n]*Math.cos(angle);im+=pcm[n]*Math.sin(angle);}return re*re+im*im;};
   return frame.sampleRate===48000&&frame.numberOfChannels===1&&power(hz)>power(hz===500?250:500)*4&&pcm.some(v=>Math.abs(v)>0.04);
 }
+// Keep the original error type/code and mutation ID on a fixture timeout.
+// Only bounded protocol metadata is added; never credentials or payloads.
+export function annotateCanonicalRequests(client,peer){
+  const request=client.request.bind(client),bounded=value=>typeof value==='string'&&value.length<=128&&/^[A-Za-z0-9._~-]+$/.test(value)?value:undefined;
+  client.request=async(kind,payload,scope,options)=>{
+    try{return await request(kind,payload,scope,options);}catch(error){
+      const context='\nCanonical fixture request '+JSON.stringify({peer,type:bounded(kind),operation_id:bounded(scope?.operation_id??(kind==='operation.get'?payload?.operation_id:undefined)),cid:bounded(scope?.cid),sid:bounded(scope?.sid),connid:bounded(scope?.connid),expected_revision:Number.isSafeInteger(scope?.expected_revision)?scope.expected_revision:undefined});
+      try{if(error&&typeof error==='object'){
+        if(typeof error.message==='string')Reflect.set(error,'message',error.message+context);
+        if(typeof error.stack==='string')Reflect.set(error,'stack',error.stack+context);
+      }}catch{/* Preserve even a non-extensible original refusal. */}
+      throw error;
+    }
+  };
+  return client;
+}
+
+// Explicit local fixture fault injection after production packetization. Keep
+// the actual authenticated WebTransport and forward every other byte unchanged.
+function boundedLossGate(client){
+  const raw=client.datagrams,writer=raw.writable.getWriter();
+  let finish;const gate={until:0,dropped:{audio:0,video:0},first:null,last:null,closed:false,finished:new Promise(resolve=>{finish=resolve;})};
+  const release=()=>{try{writer.releaseLock();}finally{gate.closed=true;finish();}};
+  const writable=new WritableStream({
+    write(bytes){
+      const now=performance.now(),payload=bytes.length>=20&&bytes[0]===1&&bytes[8]>>>6===2?bytes[9]&127:undefined;
+      const kind=payload===111?'audio':payload===96?'video':undefined;
+      if(kind&&now<gate.until){
+        check(gate.dropped.audio+gate.dropped.video<4096,'bounded loss fixture packet limit');
+        gate.dropped[kind]++;gate.first??=now;gate.last=now;return;
+      }
+      return writer.write(bytes);
+    },
+    async abort(reason){try{await writer.abort(reason);}finally{release();}},
+    async close(){try{await writer.close();}finally{release();}},
+  });
+  const datagrams={readable:raw.readable,writable};
+  for(const name of ['maxDatagramSize','incomingMaxAge','outgoingMaxAge','incomingHighWaterMark','outgoingHighWaterMark'])
+    Object.defineProperty(datagrams,name,{get:()=>raw[name],...(name==='maxDatagramSize'?{}:{set:value=>{raw[name]=value;}})});
+  Object.defineProperty(client,'datagrams',{value:datagrams,configurable:true});
+  return gate;
+}
+async function captureLossRecovery(result,gates,audio,video){
+  check(gates.length===2,'explicit duplex loss owners');
+  check(gates.every(g=>g.dropped.audio>0&&g.dropped.video>0&&g.last-g.first<=250),'actual bounded Opus/VP8 datagram loss in both directions');
+  const counts=audio.map((a,i)=>({audio:a.identified,video:video[i].identified})),ended=Math.max(...gates.map(g=>g.until));
+  while(audio.some((a,i)=>a.identified<counts[i].audio+10)||video.some((v,i)=>v.identified<counts[i].video+3)){
+    check(performance.now()-ended<=2000,'fresh identified duplex audio/video loss recovery deadline');await wait(20);
+  }
+  result.actual_datagram_drop=true;result.loss_window_ms=250;result.recovery_ms=performance.now()-ended;
+  result.dropped=gates.map(g=>({...g.dropped,observed_span_ms:g.last-g.first}));
+  result.scope='Bounded application datagram loss after real codec/packetization and before actual authenticated WebTransport. No UDP-network/frozen impairment-profile claim.';
+}
+
 // Explicit connected failure profiles. Normal media/clean60 sources and limits
 // remain below; every boundary also completes that original short journey.
 async function capturePreflightBoundary(config,clients,peers,connections,contexts){
@@ -48,7 +102,7 @@ async function capturePreflightBoundary(config,clients,peers,connections,context
     }finally{AudioEncoder.isConfigSupported=originalSupport;clients[0].request=request;}
     check(codecRefusal==='unsupported-media-profile'&&controlRequests===0&&!clients[0].closed,'connected unsupported Opus refuses before control mutation');
     result.injected_missing_api_refused=true;result.injected_unsupported_codec_refused=true;result.device_requests=requests;result.control_requests=controlRequests;
-  }else check(mode==='background-resume','known connected capture boundary');
+  }else check(['background-resume','media-loss-recovery'].includes(mode),'known connected capture boundary');
   return result;
 }
 async function captureVisibilityBoundary(result,captures,renderers,streams,peers){
@@ -80,6 +134,7 @@ export async function run(config){
     if(!r.audio(binding,frame))audioRefusals[i][reason]=(audioRefusals[i][reason]??0)+1;
   };
   const clients=[],peers=[],connections=[],errors=[],audio=[{decoded:0,identified:0},{decoded:0,identified:0}],video=[{decoded:0,identified:0,motion:new Set()},{decoded:0,identified:0,motion:new Set()}],data=[[],[]];
+  const lossGates=[];
   const source=[document.createElement('canvas'),document.createElement('canvas')],render=[document.createElement('canvas'),document.createElement('canvas')];
   for(const c of [...source,...render]){c.width=640;c.height=360;}
   let markerStart,minimumMarker=1,measuring=false;const markerHz=id=>1200+id*80;
@@ -101,8 +156,9 @@ export async function run(config){
   let created;
   try{
     for(let i=0;i<2;i++){
-      const client=await BrowserClient.open(await options(config.actors[i]));clients.push(client);
+      const client=annotateCanonicalRequests(await BrowserClient.open(await options(config.actors[i])),'browser-'+i);clients.push(client);
       if(i===0)created=await client.createConversation('browser-create',{participants:[config.actors[1].identity_id]});
+      if(config.captureBoundary==='media-loss-recovery')lossGates.push(boundedLossGate(client));
       const peer=new BrowserMediaPeer(client,{
         audio:(binding,frame)=>{audio[i].decoded++;if(tone(frame,i===0?250:500))audio[i].identified++;presentAudio(i,binding,frame);},
         video:(binding,frame)=>{
@@ -148,11 +204,13 @@ export async function run(config){
         check(performance.now()<readyUntil,'decoded readiness deadline '+JSON.stringify({audio,video:video.map(v=>({...v,motion:v.motion.size})),metrics:peers.map(p=>({aggregate:p.diagnostics,routes:p.routeDiagnostics})),accepted}));await wait(20);
       }
       readiness_ms=performance.now()-start;
+    if(lossGates.length){const until=performance.now()+250;for(const gate of lossGates)gate.until=until;}
     for(let i=0;i<2;i++){
       const bodies=[{type:'text',value:'identified sender '+i+' 😀'},{type:'json',value:{source:i,marker:'ordered-json'}},{type:'binary',value:new Uint8Array([0,255,17,i])}];
       for(const body of bodies)await connections[i].sendData('browser-data-'+i+'-'+body.type,'browser-message-'+i+'-'+body.type,'browser-'+body.type+'-'+i,body);
     }
 
+      if(lossGates.length){await wait(Math.max(0,lossGates[0].until-performance.now()));await captureLossRecovery(captureBoundary,lossGates,audio,video);}
       if(captureBoundary?.mode==='background-resume')await captureVisibilityBoundary(captureBoundary,captures,renderers,streams,peers);
       for(const a of audio){a.decoded=0;a.identified=0;}for(const v of video){v.decoded=0;v.identified=0;v.motion.clear();}
       const before=renderers.map(r=>r.diagnostics);
@@ -200,6 +258,8 @@ export async function run(config){
     }
     for(const peer of peers)peer.close();
     check(clients.every(c=>c.closed)&&peers.every(p=>p.diagnostics.activeBindings===0&&p.diagnostics.queuedBytes===0),'owned media cleanup');
+    while(lossGates.some(g=>!g.closed)){check(performance.now()-retiring<=5000,'loss fixture releases owned datagram writers');await wait(10);}
+    if(lossGates.length)captureBoundary.owned_datagram_writers_closed=lossGates.every(g=>g.closed);
     if(config.capture)check(performance.now()-retiring<=5000,'frozen terminal intent through confirmed ends/local owned teardown exceeds5seconds');
     if(captureBoundary)captureBoundary.passed=true;
     return{passed:true,production_sdk_media:true,capture_boundary:captureBoundary,actual_capture_render:config.capture===true,clean60,alignment:clean60?alignment:[],algorithm:config.actors[0].algorithm,created_cid:created.id,decoded_forward:true,decoded_reverse:true,reliable_data_duplex:true,owned_cleanup:true,opus:observedAudio,vp8:observedVideo,decoded_fps:observedVideo.map(v=>v.identified*1000/measurement.elapsed_ms),metrics,accepted,playback,owned_graph_states:contexts.filter(c=>!sourceContexts.has(c)).map(c=>c.state),owned_track_states:streams.flatMap(s=>s.getTracks().map(t=>({kind:t.kind,state:t.readyState}))),teardown_ms:performance.now()-retiring,readiness_ms,duration_ms:duration,measured_ms:measurement.elapsed_ms,scope:clean60?'60second actual supplied-stream capture/worklet/SDK/WT/Store/Core/decoded/rendered browser-browser Opus/VP8/data and uniquely paired graph/canvas markers; native/impairment/other browser profiles remain open':config.capture?'short actual supplied-stream capture/worklet/SDK/WebTransport/Store/Core/decoded-rendered Opus/VP8/data; native/full60s/sync/impairment remain open':'short synthetic source over actual SDK/control/WebTransport/Store/Core media and data; capture/playback/native/full60s/impairment remain open'};

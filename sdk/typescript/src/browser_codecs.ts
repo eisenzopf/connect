@@ -388,8 +388,10 @@ export class BrowserVp8Codec {
                 return false;
             this.lastFrame = frame.timestamp;
             this.frameTimes.push(frame.timestamp);
+            // Refresh references within 500 ms after loss; the profile permits
+            // at most one second between keyframes. Bitrate bounds still apply.
             const keyFrame =
-                this.forceKey || frame.timestamp - this.lastKey >= 1000000;
+                this.forceKey || frame.timestamp - this.lastKey >= 500000;
             if (keyFrame) this.lastKey = frame.timestamp;
             this.forceKey = false;
             this.encoder.encode(frame, { keyFrame });

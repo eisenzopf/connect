@@ -1,0 +1,687 @@
+{
+  "format": 1,
+  "tasks": [
+    "G6-050"
+  ],
+  "status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Local macOS arm64, installed frozen Chrome155.0.8059.85, signed EdDSA/ES256 production SDK WebTransport and public CanonicalClient QUIC. Synthetic supplied streams only; no personal devices or account/provider execution.",
+  "change": {
+    "vp8_reference_interval_us": 500000,
+    "previous_interval_us": 1000000,
+    "contract": "contracts/connect-media-v2.md permits keyframes at most one second apart. Existing500kbit target/1Mbit sliding cap,30fps cap, observers and all quality thresholds remain unchanged.",
+    "fixture": "Explicit250ms application RTP datagram loss after production packetization before authenticated WebTransport. Original reliable data send/IDs, short quality checks and terminal lifecycle remain mandatory. Separate from frozen UDP-network impairment qualification.",
+    "request_errors": "Bounded protocol metadata appended to original error object/type/code; no mutation resubmission."
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 0.22770075011067092,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5231,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-111",
+      "sha256": "ce990e454317f85ff5862efc8554c77a7512c41fbea6e5f169ef9ea66b5435c3",
+      "bytes": 215133344
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "09f2b93c4bce5bfb43dca18ca8d9c1dca2831c7d2ffb73b00b96f8f73a607f86"
+  },
+  "sdk": {
+    "passed": 320,
+    "failed": 0,
+    "log_sha256": "bd6fdfe480ffd8bcef98006d4f03b6d5fa4dde84af575f29895a504978cd3513"
+  },
+  "short_matrix": {
+    "passed": 15,
+    "total": 16,
+    "source_guards_unchanged": true,
+    "summary_sha256": "e65648ad4bd2786e583c3efc4fdfb9f6da58bba27f35851d5da12d3e65b48980",
+    "rows": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 1.0111530420836061,
+        "log_sha256": "6a7b71a3037c1435ae07989f79995b8eecbc0694d1e4b91026b90649aaf4cffc",
+        "result": {
+          "algorithm": "EdDSA"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.828990374924615,
+        "log_sha256": "abb3c56aaeecf701948afe26282d9c8fa0bdfd097ff7616ebff41b2a815da7f9",
+        "result": {
+          "algorithm": "ES256"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.413128416985273,
+        "log_sha256": "faef12124ba050dec5204dd380c8c5d2c665ecc0fd084cc448f3d70ac596e313",
+        "result": {
+          "algorithm": "EdDSA"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.4308713329955935,
+        "log_sha256": "6175e740440b296a48023f6086595332c83c03de6368f6d3825f50fd38305fdc",
+        "result": {
+          "algorithm": "ES256"
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.216352708172053,
+        "log_sha256": "fcb1b5d778da55b71902b90224370f5a23c7d5064f8f99d3bf994e3c37c9b234",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 191,
+              "identified": 191
+            },
+            {
+              "decoded": 191,
+              "identified": 191
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 121
+            },
+            {
+              "decoded": 111,
+              "identified": 111,
+              "motion": 111
+            }
+          ],
+          "teardown_ms": 61,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.274371457984671,
+        "log_sha256": "8e4d81da9a581b0cb610defbb261720601ceb96fd8ae6977f478617e965f59af",
+        "result": {
+          "algorithm": "ES256",
+          "opus": [
+            {
+              "decoded": 196,
+              "identified": 196
+            },
+            {
+              "decoded": 196,
+              "identified": 196
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 122,
+              "identified": 122,
+              "motion": 122
+            },
+            {
+              "decoded": 122,
+              "identified": 122,
+              "motion": 120
+            }
+          ],
+          "teardown_ms": 86.79999995231628,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.451175833120942,
+        "log_sha256": "d178220895709492b8484a8b9facffa1628d2ac9baf60816e3738241e8762abf",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 191,
+              "identified": 191
+            },
+            {
+              "decoded": 191,
+              "identified": 191
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 110,
+              "identified": 110,
+              "motion": 82
+            },
+            {
+              "decoded": 108,
+              "identified": 108,
+              "motion": 79
+            }
+          ],
+          "teardown_ms": 60.09999990463257,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.607107499847189,
+        "log_sha256": "6306a56104fdcfd278d7008a8474c24baf249bb7ec016c1043d10faab18de48e",
+        "result": {
+          "algorithm": "ES256",
+          "opus": [
+            {
+              "decoded": 194,
+              "identified": 194
+            },
+            {
+              "decoded": 195,
+              "identified": 195
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 120,
+              "identified": 120,
+              "motion": 104
+            },
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 82
+            }
+          ],
+          "teardown_ms": 90.69999980926514,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.187908209161833,
+        "log_sha256": "e7371079c3daa74ac9208dedaa36168ccba37cbd179352c5d68a70ede0f2f4af",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": {
+            "decoded": 199,
+            "identified": 199
+          },
+          "vp8": {
+            "decoded": 96,
+            "identified": 96,
+            "motion": 96
+          },
+          "teardown_ms": 192.79999995231628,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.206457167165354,
+        "log_sha256": "48ef718194033969d6d97372d67d5d5bbe36e00c2c5ef7ed9cda8730f009bfcf",
+        "result": {
+          "algorithm": "ES256",
+          "opus": {
+            "decoded": 200,
+            "identified": 200
+          },
+          "vp8": {
+            "decoded": 120,
+            "identified": 120,
+            "motion": 120
+          },
+          "teardown_ms": 220.29999995231628,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 8.231751292012632,
+        "log_sha256": "b7fd9041fe2f2ca2fbf9d91e0207c9480da0a529b40e2bae809871d3e4d2ffed",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": {
+            "decoded": 196,
+            "identified": 196
+          },
+          "vp8": {
+            "decoded": 125,
+            "identified": 125,
+            "motion": 118
+          },
+          "teardown_ms": 256,
+          "owned_cleanup": true
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": false,
+        "exit_code": 101,
+        "seconds": 16.021980167133734,
+        "log_sha256": "3a45d4b427064b812ba8c53fd2a9686ad4b97d861b0d154e2e0e06df10393ed2"
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "permission-denied",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.2183402080554515,
+        "log_sha256": "b6b90a9039777476310899eb27f0ffbba77887f9ae1dc1d46716a2031a98e4ef",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 194,
+              "identified": 194
+            },
+            {
+              "decoded": 194,
+              "identified": 194
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 105,
+              "identified": 105,
+              "motion": 93
+            },
+            {
+              "decoded": 108,
+              "identified": 108,
+              "motion": 89
+            }
+          ],
+          "teardown_ms": 72.5,
+          "owned_cleanup": true,
+          "capture_boundary": {
+            "graphs_created_on_denial": 0,
+            "mode": "permission-denied",
+            "passed": true,
+            "permission_denied": true
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "unsupported-api-codec",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.006153709022328,
+        "log_sha256": "a2ed2f7ccc63a7978befdb6d7521d59f4fb9997db3651da3aed61a5b235dcb48",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 193,
+              "identified": 193
+            },
+            {
+              "decoded": 193,
+              "identified": 193
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 112,
+              "identified": 112,
+              "motion": 104
+            },
+            {
+              "decoded": 115,
+              "identified": 115,
+              "motion": 75
+            }
+          ],
+          "teardown_ms": 61.69999980926514,
+          "owned_cleanup": true,
+          "capture_boundary": {
+            "control_requests": 0,
+            "device_requests": 0,
+            "injected_missing_api_refused": true,
+            "injected_unsupported_codec_refused": true,
+            "mode": "unsupported-api-codec",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "background-resume",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 9.770483958069235,
+        "log_sha256": "0beea2c110426c54c2380fb41a2ee862ce0a042938c061e87d70648a208e6659",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 200,
+              "identified": 200
+            },
+            {
+              "decoded": 200,
+              "identified": 200
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 111
+            },
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 84
+            }
+          ],
+          "teardown_ms": 95.5,
+          "owned_cleanup": true,
+          "capture_boundary": {
+            "actual_hidden_pause": true,
+            "explicit_visible_resume": true,
+            "fresh_capture_recovery_ms": 164.70000004768372,
+            "hidden_encoded_after": [
+              109,
+              107
+            ],
+            "hidden_encoded_before": [
+              109,
+              107
+            ],
+            "mode": "background-resume",
+            "passed": true
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "media-loss-recovery",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.701602709013969,
+        "log_sha256": "8b2b50952d11eb3b70b914c0f2cd4334cab31d98cd359803de450f20746233da",
+        "result": {
+          "algorithm": "EdDSA",
+          "opus": [
+            {
+              "decoded": 201,
+              "identified": 201
+            },
+            {
+              "decoded": 201,
+              "identified": 201
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 108
+            },
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 84
+            }
+          ],
+          "teardown_ms": 87.70000004768372,
+          "owned_cleanup": true,
+          "capture_boundary": {
+            "actual_datagram_drop": true,
+            "dropped": [
+              {
+                "audio": 12,
+                "observed_span_ms": 235.59999990463257,
+                "video": 8
+              },
+              {
+                "audio": 13,
+                "observed_span_ms": 239.90000009536743,
+                "video": 7
+              }
+            ],
+            "loss_window_ms": 250,
+            "mode": "media-loss-recovery",
+            "owned_datagram_writers_closed": true,
+            "passed": true,
+            "recovery_ms": 745.8999998569489,
+            "scope": "Bounded application datagram loss after real codec/packetization and before actual authenticated WebTransport. No UDP-network/frozen impairment-profile claim."
+          }
+        }
+      }
+    ]
+  },
+  "frozen_clean60": {
+    "passed": 2,
+    "total": 2,
+    "source_guards_unchanged": true,
+    "summary_sha256": "5658cfa962e5d57b76c6201b9b40913f596033fe73f43311f158c94c19c1374a",
+    "rows": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "passed": true,
+        "log_sha256": "549fcc728a51383b99d41eac4a97fb386c2bc41489bfbec4c23f66b0722905a0",
+        "seconds": 62.599920250009745,
+        "measured_ms": 60003.40000009537,
+        "decoded_fps": [
+          28.64837659194759,
+          29.148348260218924
+        ],
+        "alignment": [
+          {
+            "paired_markers": 60,
+            "median_abs_skew_ms": 44.39999997615814,
+            "p95_abs_skew_ms": 66.29999995231628
+          },
+          {
+            "paired_markers": 60,
+            "median_abs_skew_ms": 51.60000002384186,
+            "p95_abs_skew_ms": 63.10000014305115
+          }
+        ],
+        "teardown_ms": 108,
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 43.53,
+              "peak_observed_rss_bytes": 89751552,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.490000000000002,
+              "peak_observed_rss_bytes": 2352742400,
+              "observed_process_count": 14
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91357184,
+              "observed_process_count": 3
+            }
+          },
+          "errors": []
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "passed": true,
+        "log_sha256": "91ae0523dbe82978ea55230fb38939ff6049a41dd303ac96d6d8e57fb8a4f1d4",
+        "seconds": 62.700809040805325,
+        "measured_ms": 60000.59999990463,
+        "decoded_fps": [
+          28.983043502944373,
+          29.03304300294945
+        ],
+        "alignment": [
+          {
+            "paired_markers": 59,
+            "median_abs_skew_ms": 44.80000019073486,
+            "p95_abs_skew_ms": 53.40000009536743
+          },
+          {
+            "paired_markers": 59,
+            "median_abs_skew_ms": 49.700000047683716,
+            "p95_abs_skew_ms": 57.200000047683716
+          }
+        ],
+        "teardown_ms": 86.90000009536743,
+        "resources": {
+          "valid": true,
+          "sample_count": 61,
+          "groups": {
+            "server_test_host": {
+              "observed_cumulative_cpu_seconds": 38.13,
+              "peak_observed_rss_bytes": 89407488,
+              "observed_process_count": 1
+            },
+            "browser": {
+              "observed_cumulative_cpu_seconds": 19.580000000000002,
+              "peak_observed_rss_bytes": 2309144576,
+              "observed_process_count": 13
+            },
+            "control_driver_or_other_owned_child": {
+              "observed_cumulative_cpu_seconds": 0.08,
+              "peak_observed_rss_bytes": 91389952,
+              "observed_process_count": 3
+            }
+          },
+          "errors": []
+        }
+      }
+    ]
+  },
+  "source_style_equivalence": {
+    "scope": "Relocate exactly two whole comment lines before the keyframe declaration to avoid generated trailing whitespace. Remove only those exact comment lines, then parse and format measured/current source and module using Prettier; outputs must be identical.",
+    "rows": [
+      {
+        "path": "sdk/typescript/src/browser_codecs.ts",
+        "measured_sha256": "643f34425a033e6e117da083ff80dba8b5bb7f73e10503931ffb2a55297a93d5",
+        "current_sha256": "fdb3c441db1dfa3d7007a6c463d079b71b1b785c8e7fb7fe89368426e084be6f",
+        "parsed_formatted_identical": true,
+        "normalized_sha256": "8ed96a7372f1bac20aa3b38b85e191e68b46507ae64dee5c7125047b0a957684"
+      },
+      {
+        "path": "sdk/typescript/dist/browser_codecs.js",
+        "measured_sha256": "d1fabe39abee23a48ef5a4f8f6bd4667224c7d07df364cf23488f91853f78830",
+        "current_sha256": "80ddfb3864a5278fcb1105979b899641605eb3fd8e92408c6a1cf68641103206",
+        "parsed_formatted_identical": true,
+        "normalized_sha256": "f1d2b8a65610c4ec34146df323fde0fcc3c61426eae25b1eddb7de651941555c"
+      }
+    ]
+  },
+  "current_source_sha256": {
+    "sdk/typescript/src/browser_codecs.ts": "fdb3c441db1dfa3d7007a6c463d079b71b1b785c8e7fb7fe89368426e084be6f",
+    "sdk/typescript/dist/browser_codecs.js": "80ddfb3864a5278fcb1105979b899641605eb3fd8e92408c6a1cf68641103206",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-media.mjs": "f36ac97d632588c72e475a3dc5162259fe37ef41bfd8825e6e422a96dd396ede",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/sdk-native.mjs": "ee345741cf8dc40f216ebd071b0bc58ffab03b3c4118ae800e9e1f5cbe75ce06",
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": "0f524c9535cb21c24f7a92581496e29e9dcc07ca8fb8b5e74e1dc7a02c3097e9",
+    "scripts/rehearse-gate6-browser-sdk.py": "76814f5d1420ec30afe68914b64ebe4fca83b21bc7a4211f67e716faec58ba33"
+  },
+  "known_unresolved": [
+    {
+      "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+      "observation": "Original browser-subscribe-1 became unknown/revision2 before capture/media ingress. Native actor timed out; internal stream.reconcile failed authority-busy. No timeout repair or full matrix pass.",
+      "private_snapshot_sha256": "ea8af60d95a6c5fcabfa64f2535369f7d036306cf8ab7c554c354d596df66aec"
+    },
+    {
+      "observation": "Build102 generic captured-browser request timeout was not reproduced by diagnostic109; second fresh fixture stopped at87rendered video versus original90minimum. No causal timeout-repair claim.",
+      "summary_sha256": "2c90ab27a06770f3e03cf32a3d5fd2deb02117967dad6aa01df1f721a49ad82b"
+    },
+    {
+      "observation": "Policy-trace native diagnostics: playback87video failure, rendered-video readiness failure, then pass. None reproduced pre-media subscription uncertainty. Trace timing cannot qualify normal media/performance.",
+      "diagnostic": {
+        "scope": "Three total fresh isolated policy-trace diagnostics, stop on a stream engine/operation deadline. Traced media failures are retained but cannot identify or qualify a pre-media subscription failure. No normal/performance repair claim or repeat of an accepted mutation within one installation.",
+        "attempts": [
+          {
+            "label": "native-unknown-113-1",
+            "passed": false,
+            "seconds": 7.518503707833588,
+            "context": []
+          },
+          {
+            "label": "native-unknown-113-2",
+            "passed": false,
+            "seconds": 6.2883473329711705,
+            "context": []
+          },
+          {
+            "label": "native-unknown-113-3",
+            "passed": true,
+            "seconds": 7.187153832986951,
+            "context": []
+          }
+        ]
+      }
+    }
+  ],
+  "not_qualified": [
+    "Complete G6-050: subscription uncertainty remains open.",
+    "Linux/remote/native live encoding and playout, frozen impaired network profiles, complete fallback transition matrix, acceptance and publication."
+  ],
+  "operator_build_correction": "Private build107 used an accidentally substituted duplicate cache target and was interrupted. Only its identified generated cache was removed after owner/hash checks; logs retained. Correct108/111 use original20261024target and same qualified Rust executable bytes. Not a product behavior failure.",
+  "acceptance_qualified": false
+}

@@ -74,7 +74,7 @@ negotiated Connection, a subscription, observed media readiness or playback.
 configurations. `BrowserOpusCodec` consumes 960 mono float PCM samples per 20 ms
 frame at 48 kHz and targets 32 kbit/s. `BrowserVp8Codec` consumes and closes
 `VideoFrame` inputs, targets 640x360/30 fps and 500 kbit/s, caps emitted video
-at 1 Mbit per sliding second and requests a keyframe at least every second of
+at 1 Mbit per sliding second and requests a keyframe at least every half second of
 submitted media. A rolling window permits at most 30 input frames per second
 while accepting ordinary capture timestamp jitter. Queues drop excess work; a receiver waits for a fresh keyframe
 after declared loss. `requestKeyFrame()` lets the owning media path request
@@ -444,3 +444,23 @@ authority remain.103focused Core methods pass; prior production fails the same
 new regression. Added latency can be one20ms quantum, so unchanged AVsync/audio
 qualification remains required. The full native/browser candidate is pending.
 See [component evidence](../evidence/gate-6/canonical-audio-lookahead.json).
+
+
+## October27 reference recovery checkpoint
+
+VP8 requests a reference refresh every half second, within the frozen one-second
+maximum and unchanged bitrate/frame/queue limits. Both frozen60second captured
+browser profiles pass:28.65–29.15decoded fps,59–60paired markers per receiver,
+median44.4–51.6ms and p9553.4–66.3ms; terminal cleanup takes87–108ms.
+All320SDKchecks pass.
+
+The installed-browser short matrix passes15/16, including permission, feature
+refusal, actual background/resume and a new250ms application RTP loss case.
+That case drops Opus/VP8 in both directions, preserves original reliable
+messages, recovers identified media within746ms and releases its writers.
+The separate UDP-network impairment profile remains unqualified.
+
+A captured browser/native ES256 fixture exposes an original subscription that
+becomes `unknown` before media starts. Its journal and the earlier request-timeout
+failure remain recorded. G6-050 and acceptance stay open; see
+[`browser-client-reference-recovery.json`](../evidence/gate-6/browser-client-reference-recovery.json).
