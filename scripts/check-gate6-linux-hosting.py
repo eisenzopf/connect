@@ -111,7 +111,7 @@ def run(node_sdk=False):
                 "seconds": time.monotonic() - started, "log_sha256": digest(log), "test_results": summary}
         step["panic_locations"] = [
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
-            for location in re.findall(r"^thread '[^']+' panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
+            for location in re.findall(r"thread '[^']+' panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
         step["node_failures"] = []
         for line in text.splitlines():

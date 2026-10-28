@@ -152,6 +152,25 @@ function capabilitySnapshot(value: Json): SdkCapabilitySnapshot {
         features,
     });
 }
+export interface SdkConsultationResult {
+    readonly session: SdkSession;
+    readonly retained: readonly SdkConnection[];
+    readonly admitted: readonly SdkConnection[];
+    readonly retired: readonly ConnectionId[];
+    readonly topologyRevision: SdkRevision<"topology">;
+    readonly conversationRevision?: SdkRevision<"conversation">;
+}
+export type SdkConsultationOperation = SdkOperation<SdkConsultationResult>;
+export interface SdkConsultInput {
+    readonly via: ConnectionId;
+    readonly retain: ConnectionId;
+    readonly with: {
+        readonly first: ParticipantId;
+        readonly rest: readonly ParticipantId[];
+    };
+    readonly hold: "silence" | "configured-media";
+    readonly expectedTopologyRevision: SdkRevision<"topology">;
+}
 export interface SdkMessageAcceptance {
     readonly messageId: MessageId;
     readonly operation: OperationKey;
@@ -195,6 +214,8 @@ type KindName =
     | "session_end"
     | "session_reject"
     | "session_cancel"
+    | "session_consult"
+    | "session_consult_return"
     | "connection_offer"
     | "connection_update"
     | "connection_end"
@@ -203,7 +224,12 @@ type KindName =
 type Kind<T> = {
     name: KindName;
     command: string;
-    decode: (value: Json, client: NodeClient, key: OperationKey) => T;
+    decode: (
+        value: Json,
+        client: NodeClient,
+        key: OperationKey,
+        saved: Json,
+    ) => T;
 };
 const runOperation = Symbol("operation");
 const sendMessage = Symbol("send");
@@ -213,6 +239,7 @@ const readParticipant = Symbol("participant-read");
 const mutateSession = Symbol("session-mutation");
 const readSession = Symbol("session-read");
 const connectionContext = Symbol("connection-context");
+const returnConsultation = Symbol("consultation-return");
 const kinds = new WeakMap<object, Kind<unknown>>();
 const references = new WeakMap<
     object,
@@ -448,6 +475,107 @@ function session(
         .byId(value.conversationId as ConversationId)
         .sessions.byId(value.id as SessionId);
 }
+function consultation(
+    value: Json,
+    client: NodeClient,
+    key: OperationKey,
+    saved: Json,
+): SdkConsultationResult {
+    if (
+        !object(value, [
+            "session",
+            "retained",
+            "admitted",
+            "retired",
+            "topologyRevision",
+            "conversationRevision",
+        ]) ||
+        !Array.isArray(value.retained) ||
+        !value.retained.length ||
+        !Array.isArray(value.admitted) ||
+        !value.admitted.length ||
+        !Array.isArray(value.retired) ||
+        value.retired.length !== 0 ||
+        value.conversationRevision !== null ||
+        !Number.isSafeInteger(value.topologyRevision) ||
+        Number(value.topologyRevision) < 1
+    )
+        return protocol();
+    const owner = session(value.session, client, key),
+        seen = new Set<string>();
+    const decode = (v: Json): SdkConnection => {
+        if (
+            !object(v, [
+                "id",
+                "conversationId",
+                "sessionId",
+                "receiptStreamRevision",
+            ]) ||
+            !identifier(v.id) ||
+            v.conversationId !== owner.conversationId ||
+            v.sessionId !== owner.id ||
+            v.receiptStreamRevision !== null ||
+            seen.has(v.id)
+        )
+            return protocol();
+        seen.add(v.id);
+        return owner.connections.byId(v.id as ConnectionId);
+    };
+    if (value.retained.length + value.admitted.length > 100) return protocol();
+    const retained = value.retained.map(decode),
+        admitted = value.admitted.map(decode);
+    if (
+        !object(saved, [
+            "schema",
+            "operation_id",
+            "command",
+            "scope",
+            "continuation",
+        ]) ||
+        !object(saved.continuation, [
+            "kind",
+            "retained_connection_id",
+            "record_id",
+        ]) ||
+        !retained.some(
+            (c) =>
+                c.id ===
+                (saved.continuation as JsonObject).retained_connection_id,
+        )
+    )
+        return protocol();
+    return Object.freeze({
+        session: owner,
+        retained: Object.freeze(retained),
+        admitted: Object.freeze(admitted),
+        retired: Object.freeze([]),
+        topologyRevision: sdkRevision<"topology">(
+            value.topologyRevision as number,
+        ),
+    });
+}
+function validConsultationContext(
+    value: Json,
+    command: string,
+    via: Json,
+): boolean {
+    const returning = command === "session.consult.return";
+    if (
+        !object(
+            value,
+            returning
+                ? ["kind", "retained_connection_id", "consultation_record_id"]
+                : ["kind", "retained_connection_id", "record_id"],
+        ) ||
+        value.kind !== (returning ? "consultation-return" : "consultation") ||
+        !identifier(value.retained_connection_id) ||
+        value.retained_connection_id === via
+    )
+        return false;
+    return returning
+        ? identifier(value.consultation_record_id)
+        : value.record_id == null || identifier(value.record_id);
+}
 function sessionDecision(
     value: Json,
     client: NodeClient,
@@ -510,6 +638,16 @@ function selectionReceipt(
     );
 }
 const operationKinds = Object.freeze({
+    session_consult: kind<SdkConsultationResult>(
+        "session_consult",
+        "session.consult",
+        consultation,
+    ),
+    session_consult_return: kind(
+        "session_consult_return",
+        "session.consult.return",
+        session,
+    ),
     connection_offer: kind("connection_offer", "connection.offer", connection),
     connection_update: kind(
         "connection_update",
@@ -695,7 +833,13 @@ export class NodeClient {
             return invalid();
         }
         if (
-            !object(copy, ["schema", "operation_id", "command", "scope"]) ||
+            !object(copy, [
+                "schema",
+                "operation_id",
+                "command",
+                "scope",
+                "continuation",
+            ]) ||
             copy.schema !== "connect-operation-reference/1" ||
             !identifier(copy.operation_id) ||
             copy.command !== k.command ||
@@ -704,6 +848,18 @@ export class NodeClient {
                 "session_id",
                 "connection_id",
             ])
+        )
+            invalid();
+        const transition =
+            k.name === "session_consult" || k.name === "session_consult_return";
+        if (
+            transition
+                ? !validConsultationContext(
+                      copy.continuation,
+                      k.command,
+                      copy.scope.connection_id,
+                  )
+                : "continuation" in copy
         )
             invalid();
         const s = copy.scope;
@@ -716,7 +872,8 @@ export class NodeClient {
         if (
             k.name === "conversation_create"
                 ? Object.keys(s).length !== 0
-                : k.name.startsWith("connection_") ||
+                : transition ||
+                    k.name.startsWith("connection_") ||
                     k.name.startsWith("stream_")
                   ? !s.conversation_id || !s.session_id || !s.connection_id
                   : k.name.startsWith("session_")
@@ -914,8 +1071,10 @@ export class NodeClient {
         action: JsonObject,
         kind: SdkOperationKind<T>,
         options: SdkMutationOptions,
+        via?: ConnectionId,
     ): Promise<SdkOperation<T>> {
         const key = makeKey(options?.operationId, kind.command, {
+            ...(via ? { connectionId: via } : {}),
             conversationId: cid,
             sessionId: sid,
         });
@@ -927,7 +1086,67 @@ export class NodeClient {
                 action: { ...action, mutation: mutation(options) },
             },
             options,
-            (value) => this.fromReply(value, kind, key),
+            (value) => {
+                const op = this.fromReply(value, kind, key);
+                if (
+                    via &&
+                    (!object(value, [
+                        "schema",
+                        "operation_id",
+                        "command",
+                        "scope",
+                        "continuation",
+                    ]) ||
+                        !object(value.continuation, [
+                            "kind",
+                            "retained_connection_id",
+                            "record_id",
+                        ]) ||
+                        value.continuation.retained_connection_id !==
+                            action.retain)
+                )
+                    return protocol();
+                return op;
+            },
+            key,
+            true,
+        );
+    }
+    [returnConsultation](
+        saved: Json,
+        original: OperationKey,
+        expected: SdkRevision<"topology">,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkSession>> {
+        if (
+            original.command !== "session.consult" ||
+            options?.operationId === original.operationId
+        )
+            invalid();
+        sdkRevision(expected);
+        const kind = this.operationKinds.session_consult_return;
+        const key = makeKey(options?.operationId, kind.command, original.scope);
+        return this.helper.request(
+            {
+                type: "consultation_return",
+                reference: saved,
+                expected_revision: expected,
+                mutation: mutation(options),
+            },
+            options,
+            (value) => {
+                const operation = this.fromReply(value, kind, key);
+                const before = (saved as JsonObject).continuation as JsonObject,
+                    after = (value as JsonObject).continuation as JsonObject;
+                if (
+                    after.retained_connection_id !==
+                        before.retained_connection_id ||
+                    (before.record_id != null &&
+                        after.consultation_record_id !== before.record_id)
+                )
+                    return protocol();
+                return operation;
+            },
             key,
             true,
         );
@@ -1006,8 +1225,8 @@ export class SdkConversation {
             kinds: client.operationKinds,
             connections: (sid) =>
                 createConnections(client[connectionContext](this.id, sid)),
-            mutate: (sid, action, kind, options) =>
-                client[mutateSession](this.id, sid, action, kind, options),
+            mutate: (sid, action, kind, options, via) =>
+                client[mutateSession](this.id, sid, action, kind, options, via),
             refresh: (sid, options) =>
                 client[readSession](this.id, sid, options),
         });
@@ -1139,7 +1358,28 @@ export class SdkOperation<T> {
         private readonly kind: SdkOperationKind<T>,
         private readonly saved: Json,
     ) {
+        const context = (saved as JsonObject).continuation;
+        if (
+            context &&
+            typeof context === "object" &&
+            !Array.isArray(context) &&
+            typeof context.record_id === "string"
+        )
+            this.#observedRecord = context.record_id;
         Object.freeze(this);
+    }
+    returnToRetained(
+        this: SdkOperation<SdkConsultationResult>,
+        input: { readonly expectedTopologyRevision: SdkRevision<"topology"> },
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkSession>> {
+        if (!input) invalid();
+        return this.client[returnConsultation](
+            this.saved,
+            this.reference,
+            input.expectedTopologyRevision,
+            options,
+        );
     }
     referenceJson(): Json {
         return copied(this.saved);
@@ -1188,6 +1428,7 @@ export class SdkOperation<T> {
                         value.value,
                         this.client,
                         this.reference,
+                        this.saved,
                     ) as T,
                 });
             },

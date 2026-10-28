@@ -57,3 +57,39 @@ test('Session results, current snapshots and decision metadata cannot cross thei
   await assert.rejects(op.wait(opts),error('protocol','read-only'));
  });
 });
+
+const consultInput=()=>({via:'controller',retain:'retained',with:{first:'private-participant',rest:[]},hold:'silence',expectedTopologyRevision:revision});
+const consultReference=()=>({...reference('session.consult',{conversation_id:'room',session_id:'session',connection_id:'controller'}),continuation:{kind:'consultation',retained_connection_id:'retained',record_id:'record-original'}});
+test('consultation retains original host record, full scope and captured intent through typed return recovery',async()=>{
+ await fixture({},async(client,dir)=>{
+  const input=consultInput(),pending=client.conversations.byId('room').sessions.byId('session').consult(input,mutation);input.retain='changed';input.with.first='changed';
+  const operation=await pending,saved=operation.referenceJson();assert.deepEqual(JSON.parse(JSON.stringify(saved)),consultReference());
+  const completed=await operation.wait(opts);assert.equal(completed.value.session.id,'session');assert.equal(completed.value.retained[0].id,'retained');assert.equal(completed.value.admitted[0].id,'private');assert.equal(completed.value.topologyRevision,3);assert.throws(()=>completed.value.retained.push('foreign'));
+  const restored=client.operations.restore(saved,client.operationKinds.session_consult);await restored.status(opts);
+  const returning=await restored.returnToRetained({expectedTopologyRevision:3},{...opts,operationId:'return-original'}),result=await returning.wait(opts);assert.equal(result.value.id,'session');assert.equal(returning.reference.scope.connectionId,'controller');assert.equal(returning.referenceJson().continuation.consultation_record_id,'record-original');
+  const recovered=client.operations.recover(returning.reference);assert.equal((await recovered.wait(opts)).value.id,'session');
+  const requests=await calls(dir);assert.equal(requests[0].request.action.action.retain,'retained');assert.equal(requests[0].request.action.action.with_participants[0],'private-participant');
+  const returnRequest=requests.find(r=>r.request.action.type==='consultation_return').request.action;assert.equal(returnRequest.reference.continuation.record_id,'record-original');assert.equal(returnRequest.mutation.operation_id,'return-original');
+ });
+});
+test('consultation restoration and invalid return inputs are local and cannot change scope or continuation kind',async()=>{
+ await fixture({},async(client,dir)=>{
+  const session=client.conversations.byId('room').sessions.byId('session');
+  for(const input of [null,{...consultInput(),via:'bad!'},{...consultInput(),retain:'controller'},{...consultInput(),hold:'invented'},{...consultInput(),with:{first:'bad!',rest:[]}},{...consultInput(),expectedTopologyRevision:-1}])assert.throws(()=>session.consult(input,mutation),error('validation','not-submitted'));
+  for(const saved of [{...consultReference(),continuation:null},{...consultReference(),continuation:{kind:'consultation',retained_connection_id:'controller'}},{...consultReference(),continuation:{kind:'consultation-return',retained_connection_id:'retained',consultation_record_id:'record'}},{...consultReference(),continuation:{...consultReference().continuation,extra:true}},{...consultReference(),scope:{conversation_id:'room',session_id:'session'}}])assert.throws(()=>client.operations.restore(saved,client.operationKinds.session_consult),error('validation','not-submitted'));
+  const original=client.operations.restore(consultReference(),client.operationKinds.session_consult);
+  assert.throws(()=>original.returnToRetained({expectedTopologyRevision:3},mutation),error('validation','not-submitted'));
+  const ordinary=client.operations.restore(reference(),client.operationKinds.session_invite);assert.throws(()=>ordinary.returnToRetained({expectedTopologyRevision:3},{...mutation,operationId:'different'}),error('validation','not-submitted'));
+  assert.equal((await calls(dir)).length,0);
+ });
+});
+test('consultation rejects changed host records, foreign retained results, duplicate topology and altered return metadata',async()=>{
+ for(const mode of ['consult-foreign-context','consult-foreign-retained','consult-duplicate','consult-foreign-record','record-change'])await fixture({mode},async(client)=>{
+  const session=client.conversations.byId('room').sessions.byId('session');
+  if(mode==='consult-foreign-context'){await assert.rejects(session.consult(consultInput(),mutation),error('protocol','uncertain'));return;}
+  const operation=await session.consult(consultInput(),mutation);
+  if(mode==='consult-foreign-record')await assert.rejects(operation.returnToRetained({expectedTopologyRevision:3},{...opts,operationId:'return'}),error('protocol','uncertain'));
+  else if(mode==='record-change')await assert.rejects(operation.status(opts),error('protocol','read-only'));
+  else await assert.rejects(operation.wait(opts),error('protocol','read-only'));
+ });
+});

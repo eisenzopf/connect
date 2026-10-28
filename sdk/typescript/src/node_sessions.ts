@@ -8,6 +8,9 @@ import type {
     SdkMutationOptions,
     SdkOperation,
     SdkOperationKind,
+    SdkConsultInput,
+    SdkConsultationOperation,
+    SdkConsultationResult,
 } from "./node_sdk.js";
 import { NodeSdkError, object } from "./sdk_helper.js";
 import { identifier } from "./uctp_wire.js";
@@ -75,6 +78,7 @@ export interface SdkSessions {
     ): Promise<SdkOperation<SdkSession>>;
 }
 interface Kinds {
+    readonly session_consult: SdkOperationKind<SdkConsultationResult>;
     readonly session_invite: SdkOperationKind<SdkSession>;
     readonly session_accept: SdkOperationKind<SdkSession>;
     readonly session_update: SdkOperationKind<SdkSession>;
@@ -91,6 +95,7 @@ interface Context {
         action: JsonObject,
         kind: SdkOperationKind<T>,
         options: SdkMutationOptions,
+        via?: import("./node_connections.js").ConnectionId,
     ): Promise<SdkOperation<T>>;
     refresh(
         sid: SessionId,
@@ -193,6 +198,35 @@ export class SdkSession {
             action,
             this.context.kinds.session_invite,
             options,
+        );
+    }
+    consult(
+        input: SdkConsultInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkConsultationOperation> {
+        if (
+            !input ||
+            !identifier(input.via) ||
+            !identifier(input.retain) ||
+            input.via === input.retain ||
+            !["silence", "configured-media"].includes(input.hold)
+        )
+            invalid();
+        return this.context.mutate(
+            this.id,
+            {
+                type: "consult",
+                via: input.via,
+                retain: input.retain,
+                with_participants: nonempty(input.with, identifier),
+                configured_media: input.hold === "configured-media",
+                expected_revision: sdkRevision<"topology">(
+                    input.expectedTopologyRevision,
+                ),
+            },
+            this.context.kinds.session_consult,
+            options,
+            input.via,
         );
     }
     accept(

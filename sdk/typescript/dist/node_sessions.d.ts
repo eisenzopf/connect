@@ -1,5 +1,5 @@
 import type { SdkConnections } from "./node_connections.js";
-import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
+import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind, SdkConsultInput, SdkConsultationOperation, SdkConsultationResult } from "./node_sdk.js";
 import type { Json, JsonObject } from "./uctp_json.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
 export type SessionId = SdkId<"session">;
@@ -55,6 +55,7 @@ export interface SdkSessions {
     invite(input: SdkSessionInvite, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
 }
 interface Kinds {
+    readonly session_consult: SdkOperationKind<SdkConsultationResult>;
     readonly session_invite: SdkOperationKind<SdkSession>;
     readonly session_accept: SdkOperationKind<SdkSession>;
     readonly session_update: SdkOperationKind<SdkSession>;
@@ -66,7 +67,7 @@ interface Context {
     connections(id: SessionId): SdkConnections;
     readonly cid: ConversationId;
     readonly kinds: Kinds;
-    mutate<T>(sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions): Promise<SdkOperation<T>>;
+    mutate<T>(sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions, via?: import("./node_connections.js").ConnectionId): Promise<SdkOperation<T>>;
     refresh(sid: SessionId, options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;
 }
 export declare function createSessions(context: Context): SdkSessions;
@@ -85,6 +86,7 @@ export declare class SdkSession {
         readonly capabilities: Json;
         readonly expectedTopologyRevision: SdkRevision<"topology">;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
+    consult(input: SdkConsultInput, options: SdkMutationOptions): Promise<SdkConsultationOperation>;
     accept(input: {
         readonly capabilities: Json;
         readonly expectedTopologyRevision: SdkRevision<"topology">;

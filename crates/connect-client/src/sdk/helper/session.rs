@@ -76,6 +76,14 @@ impl TryFrom<Change> for SessionUpdate {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SessionAction {
+    Consult {
+        via: ConnectionId,
+        retain: ConnectionId,
+        with_participants: Vec<ParticipantId>,
+        configured_media: bool,
+        expected_revision: TopologyRevision,
+        mutation: Mutation,
+    },
     Invite {
         to: Vec<ParticipantId>,
         medium: InviteMedium,
@@ -125,6 +133,30 @@ pub(super) async fn execute(
     let room = client.conversation_by_id(cid);
     let session = room.session_by_id(sid.clone());
     Ok(match action {
+        SessionAction::Consult {
+            via,
+            retain,
+            with_participants,
+            configured_media,
+            expected_revision,
+            mutation,
+        } => session
+            .consult(
+                ConsultInput {
+                    via,
+                    retain,
+                    with_participants: nonempty(with_participants)?,
+                    hold: if configured_media {
+                        Hold::ConfiguredMedia
+                    } else {
+                        Hold::Silence
+                    },
+                    expected_topology_revision: expected_revision,
+                },
+                mutation.options(options),
+            )
+            .await?
+            .reference_json(),
         SessionAction::Invite {
             to,
             medium,
@@ -232,4 +264,13 @@ fn snapshot_json(value: SessionSnapshot) -> Value {
         "intent":value.intent,"capabilitiesOffer":value.capabilities_offer,"codecPreferences":value.codec_preferences,
         "isMain":value.is_main,"revision":value.revision,"topologyRevision":value.topology_revision,
         "createdAt":value.created_at,"updatedAt":value.updated_at,"endedReason":value.ended_reason})
+}
+
+pub(super) fn consultation_json(value: ConsultationResult) -> Value {
+    let topology = value.topology;
+    json!({"session":handle_json(value.session),
+        "retained":topology.retained.into_iter().map(super::connection::handle_json).collect::<Vec<_>>(),
+        "admitted":topology.admitted.into_iter().map(super::connection::handle_json).collect::<Vec<_>>(),
+        "retired":topology.retired,"topologyRevision":topology.topology_revision,
+        "conversationRevision":topology.conversation_revision})
 }

@@ -234,10 +234,36 @@
     "private_outcome_sha256": "969efe5ea7d2bebe15ef46f8fc6a7876e5da80b44ec0575624cfcd17e02fc10d"
   },
   "ubuntu_native_lane": {
-    "status": "pending",
-    "command": "python3 scripts/check-gate6-linux-hosting.py --node-sdk",
-    "scope": "Isolated Ubuntu24.04x86 current installed package, separate ordinary callers/peers, EdDSA/ES256, native controls/HTTP identity, restart/current revocation and original process/native drain; no account/provider/remote calls.",
-    "private_logs": "Raw credentials/state/stderr retained only under ignored .local/gate6-linux-ci/private-logs and private-tmp; upload only safe evidence metadata."
+    "commit": "28dd131a4e1f55697691565957939c1dd7d29935",
+    "run_id": 40728989705,
+    "artifact_id": 12835130922,
+    "artifact_zip_sha256": "109169ee0b97d3f710c4db933f15c4697f114ccc80eedf3e77a84c057e0b97aa",
+    "source_bound_tracked_files_verified": 3972,
+    "tracked_files_different": [],
+    "prior_native_functions_passed": 77,
+    "native_node_function_passed": false,
+    "failure_step": {
+      "name": "installed-node-native-control",
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 15.500119843999983,
+      "log_sha256": "b5a729090878a5fe5c687f02e1be180e636aa480b5bf409ad421e3af15ec6fd0",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 368 filtered out; finished in 15.45s"
+      ],
+      "panic_locations": [],
+      "compiler_diagnostics": []
+    },
+    "compiled_artifacts": {
+      "library": "86d6ae9cf53c19a87b4b92d49ffb5943fb1880db4ccc9b35d459312674b628c0",
+      "hosting": "be327657bc3c616cc9978aac1131325bfdb5e74e959890d38a468a57d672caa2",
+      "cli": "ad092fe5cae7a5813376f6a69b716b4cc24bafb996058c6982b7e95063534b10",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "guarded_inputs": 8064,
+    "guarded_inputs_unchanged": true,
+    "scope": "Existing isolated native functions pass; installed Node/native control failed. Original15sphase failure detail unavailable in this redacted cohort. No native Node/full SDK qualification."
   },
   "previous_ci": {
     "commit": "57d005fcb36537371ff9b565f4ba88fabc8d9172",

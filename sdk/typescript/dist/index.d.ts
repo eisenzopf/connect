@@ -6,7 +6,7 @@ export { CanonicalNativeClient } from "./canonical_native.js";
 export { CanonicalHttpClient } from "./canonical_http.js";
 export { CanonicalError } from "./canonical_error.js";
 export { NodeClient, sdkId, sdkRevision } from "./node_sdk.js";
-export type { SdkId, SdkRevision, SdkParticipant, SdkParticipantSnapshot, ConversationId, IdentityId, ParticipantId, MessageId, OperationId, SdkMutationOptions, SdkOperationSnapshot, SdkOperationKey, SdkCompletion, SdkCapabilities, SdkCapabilitySnapshot, SdkOperationKind, SdkOperationReference, SdkMessageAcceptance, SdkDecisionReceipt, SdkConversationSnapshot, SdkConversation, SdkOperation, } from "./node_sdk.js";
+export type { SdkId, SdkRevision, SdkParticipant, SdkParticipantSnapshot, ConversationId, IdentityId, ParticipantId, MessageId, OperationId, SdkMutationOptions, SdkOperationSnapshot, SdkOperationKey, SdkCompletion, SdkConsultInput, SdkConsultationResult, SdkConsultationOperation, SdkCapabilities, SdkCapabilitySnapshot, SdkOperationKind, SdkOperationReference, SdkMessageAcceptance, SdkDecisionReceipt, SdkConversationSnapshot, SdkConversation, SdkOperation, } from "./node_sdk.js";
 export { NodeSdkError } from "./sdk_helper.js";
 export type { CanonicalRequestOptions, CanonicalCommandScope, } from "./canonical_http.js";
 export type * from "./types.js";

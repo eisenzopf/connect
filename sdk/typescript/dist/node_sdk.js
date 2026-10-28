@@ -53,6 +53,7 @@ const readParticipant = Symbol("participant-read");
 const mutateSession = Symbol("session-mutation");
 const readSession = Symbol("session-read");
 const connectionContext = Symbol("connection-context");
+const returnConsultation = Symbol("consultation-return");
 const kinds = new WeakMap();
 const references = new WeakMap();
 const states = new Set([
@@ -246,6 +247,81 @@ function session(value, client, key) {
         .byId(value.conversationId)
         .sessions.byId(value.id);
 }
+function consultation(value, client, key, saved) {
+    if (!object(value, [
+        "session",
+        "retained",
+        "admitted",
+        "retired",
+        "topologyRevision",
+        "conversationRevision",
+    ]) ||
+        !Array.isArray(value.retained) ||
+        !value.retained.length ||
+        !Array.isArray(value.admitted) ||
+        !value.admitted.length ||
+        !Array.isArray(value.retired) ||
+        value.retired.length !== 0 ||
+        value.conversationRevision !== null ||
+        !Number.isSafeInteger(value.topologyRevision) ||
+        Number(value.topologyRevision) < 1)
+        return protocol();
+    const owner = session(value.session, client, key), seen = new Set();
+    const decode = (v) => {
+        if (!object(v, [
+            "id",
+            "conversationId",
+            "sessionId",
+            "receiptStreamRevision",
+        ]) ||
+            !identifier(v.id) ||
+            v.conversationId !== owner.conversationId ||
+            v.sessionId !== owner.id ||
+            v.receiptStreamRevision !== null ||
+            seen.has(v.id))
+            return protocol();
+        seen.add(v.id);
+        return owner.connections.byId(v.id);
+    };
+    if (value.retained.length + value.admitted.length > 100)
+        return protocol();
+    const retained = value.retained.map(decode), admitted = value.admitted.map(decode);
+    if (!object(saved, [
+        "schema",
+        "operation_id",
+        "command",
+        "scope",
+        "continuation",
+    ]) ||
+        !object(saved.continuation, [
+            "kind",
+            "retained_connection_id",
+            "record_id",
+        ]) ||
+        !retained.some((c) => c.id ===
+            saved.continuation.retained_connection_id))
+        return protocol();
+    return Object.freeze({
+        session: owner,
+        retained: Object.freeze(retained),
+        admitted: Object.freeze(admitted),
+        retired: Object.freeze([]),
+        topologyRevision: sdkRevision(value.topologyRevision),
+    });
+}
+function validConsultationContext(value, command, via) {
+    const returning = command === "session.consult.return";
+    if (!object(value, returning
+        ? ["kind", "retained_connection_id", "consultation_record_id"]
+        : ["kind", "retained_connection_id", "record_id"]) ||
+        value.kind !== (returning ? "consultation-return" : "consultation") ||
+        !identifier(value.retained_connection_id) ||
+        value.retained_connection_id === via)
+        return false;
+    return returning
+        ? identifier(value.consultation_record_id)
+        : value.record_id == null || identifier(value.record_id);
+}
 function sessionDecision(value, client, key) {
     if (!object(value, ["session", "state", "topologyRevision"]) ||
         value.state !==
@@ -269,6 +345,8 @@ function selectionReceipt(value, client, key) {
     return streamSelection(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
 }
 const operationKinds = Object.freeze({
+    session_consult: kind("session_consult", "session.consult", consultation),
+    session_consult_return: kind("session_consult_return", "session.consult.return", session),
     connection_offer: kind("connection_offer", "connection.offer", connection),
     connection_update: kind("connection_update", "connection.update", connectionReceipt),
     connection_end: kind("connection_end", "connection.end", connection),
@@ -371,7 +449,13 @@ export class NodeClient {
         catch {
             return invalid();
         }
-        if (!object(copy, ["schema", "operation_id", "command", "scope"]) ||
+        if (!object(copy, [
+            "schema",
+            "operation_id",
+            "command",
+            "scope",
+            "continuation",
+        ]) ||
             copy.schema !== "connect-operation-reference/1" ||
             !identifier(copy.operation_id) ||
             copy.command !== k.command ||
@@ -380,6 +464,11 @@ export class NodeClient {
                 "session_id",
                 "connection_id",
             ]))
+            invalid();
+        const transition = k.name === "session_consult" || k.name === "session_consult_return";
+        if (transition
+            ? !validConsultationContext(copy.continuation, k.command, copy.scope.connection_id)
+            : "continuation" in copy)
             invalid();
         const s = copy.scope;
         for (const id of Object.values(s))
@@ -390,7 +479,8 @@ export class NodeClient {
             invalid();
         if (k.name === "conversation_create"
             ? Object.keys(s).length !== 0
-            : k.name.startsWith("connection_") ||
+            : transition ||
+                k.name.startsWith("connection_") ||
                 k.name.startsWith("stream_")
                 ? !s.conversation_id || !s.session_id || !s.connection_id
                 : k.name.startsWith("session_")
@@ -514,8 +604,9 @@ export class NodeClient {
             participant_id: pid,
         }, options, (value) => participantSnapshot(value, cid, pid));
     }
-    [mutateSession](cid, sid, action, kind, options) {
+    [mutateSession](cid, sid, action, kind, options, via) {
         const key = makeKey(options?.operationId, kind.command, {
+            ...(via ? { connectionId: via } : {}),
             conversationId: cid,
             sessionId: sid,
         });
@@ -524,7 +615,49 @@ export class NodeClient {
             conversation_id: cid,
             session_id: sid,
             action: { ...action, mutation: mutation(options) },
-        }, options, (value) => this.fromReply(value, kind, key), key, true);
+        }, options, (value) => {
+            const op = this.fromReply(value, kind, key);
+            if (via &&
+                (!object(value, [
+                    "schema",
+                    "operation_id",
+                    "command",
+                    "scope",
+                    "continuation",
+                ]) ||
+                    !object(value.continuation, [
+                        "kind",
+                        "retained_connection_id",
+                        "record_id",
+                    ]) ||
+                    value.continuation.retained_connection_id !==
+                        action.retain))
+                return protocol();
+            return op;
+        }, key, true);
+    }
+    [returnConsultation](saved, original, expected, options) {
+        if (original.command !== "session.consult" ||
+            options?.operationId === original.operationId)
+            invalid();
+        sdkRevision(expected);
+        const kind = this.operationKinds.session_consult_return;
+        const key = makeKey(options?.operationId, kind.command, original.scope);
+        return this.helper.request({
+            type: "consultation_return",
+            reference: saved,
+            expected_revision: expected,
+            mutation: mutation(options),
+        }, options, (value) => {
+            const operation = this.fromReply(value, kind, key);
+            const before = saved.continuation, after = value.continuation;
+            if (after.retained_connection_id !==
+                before.retained_connection_id ||
+                (before.record_id != null &&
+                    after.consultation_record_id !== before.record_id))
+                return protocol();
+            return operation;
+        }, key, true);
     }
     [readSession](cid, sid, options) {
         return this.helper.request({
@@ -578,7 +711,7 @@ export class SdkConversation {
             cid: this.id,
             kinds: client.operationKinds,
             connections: (sid) => createConnections(client[connectionContext](this.id, sid)),
-            mutate: (sid, action, kind, options) => client[mutateSession](this.id, sid, action, kind, options),
+            mutate: (sid, action, kind, options, via) => client[mutateSession](this.id, sid, action, kind, options, via),
             refresh: (sid, options) => client[readSession](this.id, sid, options),
         });
         this.participants = Object.freeze({
@@ -667,7 +800,18 @@ export class SdkOperation {
         this.reference = reference;
         this.kind = kind;
         this.saved = saved;
+        const context = saved.continuation;
+        if (context &&
+            typeof context === "object" &&
+            !Array.isArray(context) &&
+            typeof context.record_id === "string")
+            this.#observedRecord = context.record_id;
         Object.freeze(this);
+    }
+    returnToRetained(input, options) {
+        if (!input)
+            invalid();
+        return this.client[returnConsultation](this.saved, this.reference, input.expectedTopologyRevision, options);
     }
     referenceJson() {
         return copied(this.saved);
@@ -693,7 +837,7 @@ export class SdkOperation {
             const k = kinds.get(this.kind);
             return Object.freeze({
                 snapshot: s,
-                value: k.decode(value.value, this.client, this.reference),
+                value: k.decode(value.value, this.client, this.reference, this.saved),
             });
         }, this.reference);
     }

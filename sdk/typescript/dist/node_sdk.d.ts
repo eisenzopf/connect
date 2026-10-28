@@ -1,4 +1,4 @@
-import { type ConnectionContext, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
+import { type ConnectionContext, type ConnectionId, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
 import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
@@ -64,6 +64,25 @@ export interface SdkCapabilities {
     refresh(options: CanonicalRequestOptions): Promise<SdkCapabilitySnapshot>;
     require(feature: string, options: CanonicalRequestOptions): Promise<void>;
 }
+export interface SdkConsultationResult {
+    readonly session: SdkSession;
+    readonly retained: readonly SdkConnection[];
+    readonly admitted: readonly SdkConnection[];
+    readonly retired: readonly ConnectionId[];
+    readonly topologyRevision: SdkRevision<"topology">;
+    readonly conversationRevision?: SdkRevision<"conversation">;
+}
+export type SdkConsultationOperation = SdkOperation<SdkConsultationResult>;
+export interface SdkConsultInput {
+    readonly via: ConnectionId;
+    readonly retain: ConnectionId;
+    readonly with: {
+        readonly first: ParticipantId;
+        readonly rest: readonly ParticipantId[];
+    };
+    readonly hold: "silence" | "configured-media";
+    readonly expectedTopologyRevision: SdkRevision<"topology">;
+}
 export interface SdkMessageAcceptance {
     readonly messageId: MessageId;
     readonly operation: OperationKey;
@@ -100,6 +119,7 @@ declare const readParticipant: unique symbol;
 declare const mutateSession: unique symbol;
 declare const readSession: unique symbol;
 declare const connectionContext: unique symbol;
+declare const returnConsultation: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
@@ -107,6 +127,8 @@ export declare function sdkId<K extends string>(value: string): SdkId<K>;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        session_consult: SdkOperationKind<SdkConsultationResult>;
+        session_consult_return: SdkOperationKind<SdkSession>;
         connection_offer: SdkOperationKind<SdkConnection>;
         connection_update: SdkOperationKind<SdkConnectionUpdateReceipt>;
         connection_end: SdkOperationKind<SdkConnection>;
@@ -158,7 +180,8 @@ export declare class NodeClient {
     [refreshConversation](id: ConversationId, options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
     [mutateParticipant](cid: ConversationId, action: JsonObject, kind: SdkOperationKind<SdkParticipant>, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
     [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
-    [mutateSession]<T>(cid: ConversationId, sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions): Promise<SdkOperation<T>>;
+    [mutateSession]<T>(cid: ConversationId, sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions, via?: ConnectionId): Promise<SdkOperation<T>>;
+    [returnConsultation](saved: Json, original: OperationKey, expected: SdkRevision<"topology">, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
     [readSession](cid: ConversationId, sid: SessionId, options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;
     [connectionContext](cid: ConversationId, sid: SessionId): ConnectionContext;
     close(options: CanonicalRequestOptions): Promise<void>;
@@ -202,6 +225,9 @@ export declare class SdkOperation<T> {
     private readonly saved;
     private observe;
     constructor(client: NodeClient, reference: SdkOperationReference<T>, kind: SdkOperationKind<T>, saved: Json);
+    returnToRetained(this: SdkOperation<SdkConsultationResult>, input: {
+        readonly expectedTopologyRevision: SdkRevision<"topology">;
+    }, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
     referenceJson(): Json;
     status(options: CanonicalRequestOptions): Promise<SdkOperationSnapshot>;
     waitUntilReady(options: CanonicalRequestOptions): Promise<SdkOperationSnapshot>;

@@ -99,18 +99,31 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
         let mut stdin = child.stdin.take().unwrap();
         async fn phase(lines: &mut Lines<BufReader<ChildStdout>>, expected: &str) -> Value {
-            let line = tokio::time::timeout(Duration::from_secs(15), lines.next_line())
-                .await
-                .unwrap()
-                .unwrap()
-                .expect("Node phase result");
-            assert!(line.len() < 4096);
-            let value: Value = serde_json::from_str(&line).unwrap();
-            if value["phase"] == "failed" {
-                eprintln!("installed-typed-node-sdk-failure {}", value);
+            let until = tokio::time::Instant::now() + Duration::from_secs(15);
+            let mut checkpoint = "create".to_owned();
+            loop {
+                let line = match tokio::time::timeout_at(until, lines.next_line()).await {
+                    Ok(line) => line.unwrap().expect("Node phase result"),
+                    Err(_) => {
+                        eprintln!(
+                            "installed-typed-node-sdk-failure {}",
+                            json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"line":null,"column":null})
+                        );
+                        panic!("Original Node phase deadline elapsed");
+                    }
+                };
+                assert!(line.len() < 4096);
+                let value: Value = serde_json::from_str(&line).unwrap();
+                if value["phase"] == "progress" {
+                    checkpoint = value["checkpoint"].as_str().unwrap().to_owned();
+                    continue;
+                }
+                if value["phase"] == "failed" {
+                    eprintln!("installed-typed-node-sdk-failure {}", value);
+                }
+                assert_eq!(value["phase"], expected);
+                return value;
             }
-            assert_eq!(value["phase"], expected);
-            value
         }
         let initial = phase(&mut lines, "initial").await;
         assert_eq!(

@@ -74,6 +74,22 @@ export class SdkSession {
         action.expected_revision = sdkRevision(input.expectedTopologyRevision);
         return this.context.mutate(this.id, action, this.context.kinds.session_invite, options);
     }
+    consult(input, options) {
+        if (!input ||
+            !identifier(input.via) ||
+            !identifier(input.retain) ||
+            input.via === input.retain ||
+            !["silence", "configured-media"].includes(input.hold))
+            invalid();
+        return this.context.mutate(this.id, {
+            type: "consult",
+            via: input.via,
+            retain: input.retain,
+            with_participants: nonempty(input.with, identifier),
+            configured_media: input.hold === "configured-media",
+            expected_revision: sdkRevision(input.expectedTopologyRevision),
+        }, this.context.kinds.session_consult, options, input.via);
+    }
     accept(input, options) {
         if (!input || input.capabilities === undefined)
             invalid();

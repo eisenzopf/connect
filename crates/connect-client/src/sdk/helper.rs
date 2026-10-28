@@ -43,6 +43,11 @@ impl Mutation {
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
     CapabilitiesRefresh,
+    ConsultationReturn {
+        reference: Value,
+        expected_revision: TopologyRevision,
+        mutation: Mutation,
+    },
     ConversationCreate {
         participants: Vec<IdentityId>,
         policy: ConversationPolicy,
@@ -116,6 +121,8 @@ pub enum Kind {
     SessionEnd,
     SessionReject,
     SessionCancel,
+    SessionConsult,
+    SessionConsultReturn,
     ConnectionOffer,
     ConnectionUpdate,
     ConnectionEnd,
@@ -143,6 +150,17 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
+        Action::ConsultationReturn {
+            reference,
+            expected_revision,
+            mutation,
+        } => {
+            let operation = client.restore(reference, client.operation_kinds().session_consult)?;
+            Ok(operation
+                .return_to_retained(expected_revision, mutation.options(options))
+                .await?
+                .reference_json())
+        }
         Action::CapabilitiesRefresh => {
             serde_json::to_value(client.capabilities().refresh(options).await?)
                 .map_err(|_| Error::local(ErrorKind::Protocol))
@@ -283,6 +301,8 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                 Kind::SessionUpdate => run(client.restore(reference,kinds.session_update)?,action,options,session::handle_json).await,
                 Kind::SessionEnd => run(client.restore(reference,kinds.session_end)?,action,options,session::handle_json).await,
                 Kind::SessionReject => run(client.restore(reference,kinds.session_reject)?,action,options,session::decision_json).await,
+                Kind::SessionConsult => run(client.restore(reference,kinds.session_consult)?,action,options,session::consultation_json).await,
+                Kind::SessionConsultReturn => run(client.restore(reference,kinds.session_consult_return)?,action,options,session::handle_json).await,
                 Kind::SessionCancel => run(client.restore(reference,kinds.session_cancel)?,action,options,session::decision_json).await,
                 Kind::ConnectionOffer => run(client.restore(reference,kinds.connection_offer)?,action,options,connection::handle_json).await,
                 Kind::ConnectionUpdate => run(client.restore(reference,kinds.connection_update)?,action,options,connection::update_json).await,

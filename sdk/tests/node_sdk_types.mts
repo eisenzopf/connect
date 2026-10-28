@@ -47,3 +47,8 @@ const capabilities = await client.capabilities.refresh({timeoutMs:1000});
 capabilities.features.add('native-programmatic-media');
 // @ts-expect-error Node facade cannot report the Rust runtime role
 const helperRole: 'rust' = capabilities.runtimeRole;
+
+const consulting = await session.consult({via:connection.id,retain:'retained' as import('../typescript/dist/index.js').ConnectionId,with:{first:participant.id,rest:[]},hold:'silence',expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+await consulting.returnToRetained({expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+// @ts-expect-error A message operation cannot be a consultation continuation.
+message.returnToRetained({expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
