@@ -1,0 +1,385 @@
+diff --git a/crates/foundation/rvoip-core/src/staged_streams.rs b/crates/foundation/rvoip-core/src/staged_streams.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams.rs
+@@ -2087,7 +2087,34 @@
+             }
+             Ok(())
+         };
+-        let state = lock_state()?;
++        // Fresh ingress historically waited for model metadata. Recover only
++        // without a policy reader; UDP owners may intentionally drop capacity
++        // refusals. Never wait while keeping the external admission lease.
++        let recover_fresh = fresh_publication && packet_context.is_none();
++        let recovery_until = Instant::now() + Duration::from_millis(20);
++        let wait_without_authority = |until: Instant| -> ControlResult<_> {
++            loop {
++                match lock_state() {
++                    Err(StreamControlError::Backpressure) if recover_fresh => {
++                        let now = Instant::now();
++                        if now >= until {
++                            return Err(StreamControlError::Backpressure);
++                        }
++                        std::thread::sleep(
++                            until
++                                .saturating_duration_since(now)
++                                .min(Duration::from_micros(50)),
++                        );
++                    }
++                    result => return result,
++                }
++            }
++        };
++        let state = if recover_fresh {
++            wait_without_authority(recovery_until)?
++        } else {
++            lock_state()?
++        };
+         validate(&state)?;
+         let revision = state.model.revision();
+         // Freeze current generations before releasing metadata. A callback may
+@@ -2131,15 +2158,70 @@
+         if detached {
+             drop(state.take());
+         }
+-        let lease = match (data, packet_context) {
+-            (Some(data), None) => self.policy.current_data(&scope, data, held)?,
+-            (None, Some(context)) => self.policy.current_packet(&scope, context)?,
+-            (None, None) => self.policy.current(&scope)?,
+-            _ => return Err(StreamControlError::Authority),
+-        };
+-        let state = match state {
+-            Some(state) => state,
+-            None => lock_state()?,
++        let mut original_policy_deadline = None;
++        let (lease, state) = loop {
++            if original_policy_deadline
++                .is_some_and(|deadline| tokio::time::Instant::now() >= deadline)
++            {
++                return Err(StreamControlError::Deadline);
++            }
++            let lease = match (data, packet_context) {
++                (Some(data), None) => self.policy.current_data(&scope, data, held)?,
++                (None, Some(context)) => self.policy.current_packet(&scope, context)?,
++                (None, None) => self.policy.current(&scope)?,
++                _ => return Err(StreamControlError::Authority),
++            };
++            if recover_fresh {
++                // Preserve the public authority refusal for an already expired
++                // principal/task; IO expiry only bounds an otherwise valid grant.
++                Self::check(&scope, lease.authority())?;
++                let bound = Self::media_deadline(
++                    &credential.principal,
++                    lease.as_ref(),
++                    tokio::time::Instant::now() + Duration::from_millis(200),
++                )?;
++                original_policy_deadline = Some(
++                    original_policy_deadline
++                        .map_or(bound, |old: tokio::time::Instant| old.min(bound)),
++                );
++                if tokio::time::Instant::now() >= original_policy_deadline.unwrap() {
++                    return Err(StreamControlError::Deadline);
++                }
++            }
++            let observed = match state.take() {
++                Some(state) => Ok(state),
++                None => lock_state(),
++            };
++            match observed {
++                Ok(state) => break (lease, state),
++                Err(StreamControlError::Backpressure) if recover_fresh => {
++                    drop(lease);
++                    let deadline = original_policy_deadline.unwrap();
++                    if tokio::time::Instant::now() >= deadline {
++                        return Err(StreamControlError::Deadline);
++                    }
++                    if Instant::now() >= recovery_until {
++                        return Err(StreamControlError::Backpressure);
++                    }
++                    let observed = wait_without_authority(recovery_until.min(deadline.into_std()))
++                        .map_err(|error| {
++                            if tokio::time::Instant::now() >= deadline {
++                                StreamControlError::Deadline
++                            } else {
++                                error
++                            }
++                        })?;
++                    if observed.model.revision() != revision {
++                        return Err(MediaTransitionError::Conflict.into());
++                    }
++                    self.check_credential_snapshot(&credential)?;
++                    validate(&observed)?;
++                    drop(observed);
++                    // Repeat the external policy read with the original frozen
++                    // generations and the earliest IO expiry, never a cached grant.
++                }
++                Err(error) => return Err(error),
++            }
+         };
+         if detached {
+             // Even a pause/resume returning to the same permission must refuse
+@@ -2197,7 +2279,8 @@
+         let deadline = Self::media_deadline(
+             &credential.principal,
+             lease.as_ref(),
+-            tokio::time::Instant::now() + Duration::from_millis(200),
++            original_policy_deadline
++                .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_millis(200)),
+         )?;
+         Ok((lease, admission, deadline))
+     }
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests.rs b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+--- a/crates/foundation/rvoip-core/src/staged_streams/tests.rs
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests.rs
+@@ -2823,3 +2823,5 @@
+ mod video_repair;
+ 
+ mod ingress_policy_snapshot;
++
++mod fresh_metadata_recovery;
+diff --git a/crates/foundation/rvoip-core/src/staged_streams/tests/fresh_metadata_recovery.rs b/crates/foundation/rvoip-core/src/staged_streams/tests/fresh_metadata_recovery.rs
+new file mode 100644
+--- /dev/null
++++ b/crates/foundation/rvoip-core/src/staged_streams/tests/fresh_metadata_recovery.rs
+@@ -0,0 +1,242 @@
++//! The native datagram owner may drop capacity refusals. Transient model
++//! contention recovers the same original, without any reader across the wait.
++use super::*;
++use crate::staged_streams::{audio_consumer::AudioConsumer, scene_consumer::SceneConsumer};
++#[derive(Default)]
++struct Probe {
++    controller: Mutex<Weak<StreamController>>,
++    action: AtomicUsize,
++    calls: AtomicUsize,
++    dropped: AtomicBool,
++    reader_free: AtomicBool,
++    worker: Mutex<Option<std::thread::JoinHandle<()>>>,
++    consumer: Mutex<Option<Arc<AudioConsumer>>>,
++    scene: Mutex<Option<Arc<SceneConsumer>>>,
++}
++struct ObservedPolicy {
++    inner: Arc<Policy>,
++    probe: Arc<Probe>,
++}
++struct Lease {
++    inner: Box<dyn MediaAuthorityLease>,
++    probe: Arc<Probe>,
++    expiry: Option<chrono::DateTime<chrono::Utc>>,
++}
++impl MediaAuthorityLease for Lease {
++    fn authority(&self) -> &MediaOwner {
++        self.inner.authority()
++    }
++    fn expires_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
++        self.expiry.or_else(|| self.inner.expires_at())
++    }
++    fn packet_context(&self) -> Option<&(dyn std::any::Any + Send + Sync)> {
++        self.inner.packet_context()
++    }
++}
++impl Drop for Lease {
++    fn drop(&mut self) {
++        self.probe.dropped.store(true, Ordering::Release);
++    }
++}
++impl MediaPolicy for ObservedPolicy {
++    fn current(&self, scope: &MediaScope<'_>) -> ControlResult<Box<dyn MediaAuthorityLease>> {
++        if scope.connection.as_str() != "alice" || !matches!(scope.purpose, MediaPurpose::Publish) {
++            return self.inner.current(scope);
++        }
++        self.probe.calls.fetch_add(1, Ordering::AcqRel);
++        let action = self.probe.action.swap(0, Ordering::AcqRel);
++        if action == 0 {
++            return self.inner.current(scope);
++        }
++        let probe = self.probe.clone();
++        let inner = self.inner.clone();
++        let controller = probe.controller.lock().unwrap().upgrade().unwrap();
++        let ready = Arc::new(std::sync::Barrier::new(2));
++        let signal = ready.clone();
++        let worker = std::thread::spawn(move || {
++            let mut state = controller.state.lock().unwrap();
++            signal.wait();
++            let until = Instant::now() + Duration::from_secs(1);
++            while !probe.dropped.load(Ordering::Acquire) {
++                assert!(Instant::now() < until, "refused lease was never released");
++                std::thread::yield_now();
++            }
++            // Drop notification precedes the inner lease destructor. Observe
++            // actual policy exclusion rather than trusting that notification.
++            let mut writable = loop {
++                match inner.0.try_write() {
++                    Ok(w) => break w,
++                    Err(_) => {
++                        assert!(
++                            Instant::now() < until,
++                            "policy reader retained during model wait"
++                        );
++                        std::thread::yield_now();
++                    }
++                }
++            };
++            probe.reader_free.store(true, Ordering::Release);
++            match action {
++                1 => (),
++                2 => std::thread::sleep(Duration::from_millis(5)),
++                3 => state.closed = true,
++                4 => {
++                    let owner =
++                        AudioConsumer::optional(Some(desired(Medium::Audio).logical_id), 8000);
++                    owner.activate(true);
++                    *controller.audio_consumer.lock().unwrap() = Some(Arc::downgrade(&owner));
++                    *probe.consumer.lock().unwrap() = Some(owner);
++                }
++                5 => {
++                    writable.revoked.insert("alice".into());
++                }
++                6 => {
++                    let owner = SceneConsumer::new(42);
++                    owner.activate();
++                    *controller.scene_consumer.lock().unwrap() = Some(Arc::downgrade(&owner));
++                    *probe.scene.lock().unwrap() = Some(owner);
++                }
++                _ => unreachable!(),
++            }
++            drop(writable);
++            drop(state);
++        });
++        *self.probe.worker.lock().unwrap() = Some(worker);
++        ready.wait();
++        Ok(Box::new(Lease {
++            inner: self.inner.current(scope)?,
++            probe: self.probe.clone(),
++            expiry: (action == 2).then(|| chrono::Utc::now() + chrono::Duration::milliseconds(1)),
++        }))
++    }
++}
++async fn fixture() -> (Fixture, Arc<Probe>) {
++    let probe = Arc::new(Probe::default());
++    let observed = probe.clone();
++    let f = Fixture::with_policy(
++        8,
++        Some(Box::new(move |inner| {
++            Arc::new(ObservedPolicy {
++                inner,
++                probe: observed,
++            })
++        })),
++    );
++    f.start(&[Medium::Audio, Medium::Video]).await;
++    *probe.controller.lock().unwrap() = Arc::downgrade(&f.a);
++    (f, probe)
++}
++fn join(probe: &Probe) {
++    if let Some(worker) = probe.worker.lock().unwrap().take() {
++        worker.join().unwrap();
++    }
++    assert!(probe.reader_free.load(Ordering::Acquire));
++}
++#[tokio::test]
++async fn fresh_initial_metadata_collision_preserves_original_instead_of_capacity_drop() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, _) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        let controller = f.a.clone();
++        let ready = Arc::new(std::sync::Barrier::new(2));
++        let signal = ready.clone();
++        let worker = std::thread::spawn(move || {
++            let _held = controller.state.lock().unwrap();
++            signal.wait();
++            std::thread::sleep(Duration::from_millis(2));
++        });
++        let original = frame(&source, 160);
++        ready.wait();
++        let result = source.try_publish(&original);
++        worker.join().unwrap();
++        result.expect("native UDP would drop an avoidable metadata capacity refusal");
++        assert_eq!(receive(&mut input).await.frame.timestamp_rtp, 160);
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_post_policy_collision_releases_reader_and_rechecks_policy_once() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, p) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        p.action.store(1, Ordering::Release);
++        let result = source.try_publish(&frame(&source, 160));
++        join(&p);
++        result.unwrap();
++        assert_eq!(p.calls.load(Ordering::Acquire), 2);
++        assert_eq!(receive(&mut input).await.frame.timestamp_rtp, 160);
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_retry_preserves_the_first_io_expiry_instead_of_renewing_it() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, p) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        p.action.store(2, Ordering::Release);
++        let result = source.try_publish(&frame(&source, 160));
++        join(&p);
++        assert!(matches!(result, Err(StreamControlError::Deadline)));
++        assert_eq!(p.calls.load(Ordering::Acquire), 1);
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_retry_rejects_a_model_closed_during_the_reader_free_wait() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, p) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        p.action.store(3, Ordering::Release);
++        let result = source.try_publish(&frame(&source, 160));
++        join(&p);
++        assert!(matches!(result, Err(StreamControlError::NotReady)));
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_retry_never_recaptures_a_consumer_installed_during_model_wait() {
++    let (f, p) = fixture().await;
++    let source = f.aa.port(Medium::Audio);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Audio).logical_id)
++            .unwrap();
++    let revision = f.a.revision();
++    p.action.store(4, Ordering::Release);
++    let result = source.try_publish(&frame(&source, 160));
++    join(&p);
++    assert_eq!(f.a.revision(), revision);
++    assert!(matches!(result, Err(StreamControlError::NotReady)));
++    assert!(input.try_recv().is_err());
++}
++#[tokio::test]
++async fn fresh_retry_rechecks_revocation_after_releasing_the_original_policy_reader() {
++    for medium in [Medium::Audio, Medium::Video] {
++        let (f, p) = fixture().await;
++        let source = f.aa.port(medium);
++        let mut input = f.a.take_ingress(&desired(medium).logical_id).unwrap();
++        p.action.store(5, Ordering::Release);
++        let result = source.try_publish(&frame(&source, 160));
++        join(&p);
++        assert!(matches!(result, Err(StreamControlError::Authority)));
++        assert!(input.try_recv().is_err());
++    }
++}
++#[tokio::test]
++async fn fresh_retry_never_recaptures_a_scene_installed_during_model_wait() {
++    let (f, p) = fixture().await;
++    let source = f.aa.port(Medium::Video);
++    let mut input =
++        f.a.take_ingress(&desired(Medium::Video).logical_id)
++            .unwrap();
++    let revision = f.a.revision();
++    p.action.store(6, Ordering::Release);
++    let result = source.try_publish(&frame(&source, 160));
++    join(&p);
++    assert_eq!(f.a.revision(), revision);
++    assert!(matches!(result, Err(StreamControlError::NotReady)));
++    assert!(input.try_recv().is_err());
++}

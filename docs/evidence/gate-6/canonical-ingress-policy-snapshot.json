@@ -3,8 +3,8 @@
     "G6-050",
     "G6-051"
   ],
-  "status": "full normal-feature build passed; native requalification running before normal browser matrix",
-  "recorded_at": "2026-10-28T01:04:47.844633+00:00",
+  "status": "current normal browser3/4 with all8tone checks passing; WT media regression4/15 identified, recovery correction under component test",
+  "recorded_at": "2026-10-28T01:35:24.139004+00:00",
   "motivation": {
     "runtime_witness": "docs/evidence/gate-6/browser-audio-post-fix-gaps.json",
     "observed": "Post-fix source and server Opus payloads decode cleanly, but output RTP has missing20ms intervals. Complete43616event server timeline has no omissions. Fresh ingress uses the controller model mutex across external policy reads; retained mixer acquisition intentionally refuses temporary model contention.",
@@ -515,5 +515,684 @@
     "not_started": 46,
     "acceptance_qualified": 0
   },
-  "publication": false
+  "publication": false,
+  "current_runtime": {
+    "native_methods_passed": 33,
+    "native_steps": [
+      {
+        "name": "ingress-snapshot-100-av",
+        "helper_exit_code": 0,
+        "seconds": 10.130813207942992,
+        "results": [
+          {
+            "generated_rgb": [
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/alice-blue-during-video-mute.rgb",
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/alice-receives-blue.rgb",
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/alice-restores-blue.rgb",
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/bob-continues-red.rgb",
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/bob-receives-red.rgb",
+              "signed-ES256-ad060a7d-01a4-436c-bdfb-a92821ff800a/bob-red-after-unmute.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/alice-receives-blue.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/alice-restores-blue.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/bob-continues-red.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/bob-receives-red.rgb",
+              "signed-EdDSA-e599a4c2-31a4-454f-a623-00923f80ee1f/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 9.454891624860466,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "31917c49174ca0a154c9f8f8a87a86c3217c4e78711810e6c9433d9e80c54706",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 8.04s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "ingress-snapshot-100-configured",
+        "helper_exit_code": 0,
+        "seconds": 8.583132582949474,
+        "results": [
+          {
+            "generated_rgb": [
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/alice-blue-during-video-mute.rgb",
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/alice-receives-blue.rgb",
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/alice-restores-blue.rgb",
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/bob-continues-red.rgb",
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/bob-receives-red.rgb",
+              "signed-ES256-e7c79a45-9895-45c2-8193-569ae915bd1d/bob-red-after-unmute.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/alice-receives-blue.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/alice-restores-blue.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/bob-continues-red.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/bob-receives-red.rgb",
+              "signed-EdDSA-d44a1a4a-d0e6-4a0a-9cc7-3a1741faf57e/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 7.901095333043486,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "5b0e75f91e260a341670433066de8d56e799213ed88639ca90a7a26c5939f6ee",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 7.88s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "ingress-snapshot-100-refusal",
+        "helper_exit_code": 0,
+        "seconds": 2.006493416149169,
+        "results": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 1.340904749929905,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_websocket_control::webrtc::subscriptions::av::",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "f2bd53cfa1ba0bf34d40088a3f4206ba7ce67d99ac9f7f9e5d06a1d9ce879378",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 70 filtered out; finished in 1.30s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "ingress-snapshot-100-regression",
+        "helper_exit_code": 0,
+        "seconds": 97.33316608285531,
+        "results": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 52.13601520913653,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_websocket_control::webrtc::subscriptions::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::av::"
+            ],
+            "log_sha256": "0688c6b21ff56748d78004d2a16353b2b8637df0c3c78ff6a89f1eca2979efbd",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 52.09s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 39.5993089589756,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_websocket_control::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::"
+            ],
+            "log_sha256": "1e47444ca6024d14f17c83a3fe3a18fb5adfef711e66636a4fa7d6517779940d",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 39.57s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 4.3092352082021534,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+              "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "6a65ddd6d6d7bab9e313300c34bf4f8b7678a9c8b4f8304ade88aad4f7aaca85",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 75 filtered out; finished in 4.29s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ],
+    "normal_profiles": [
+      {
+        "label": "chrome-ingress-snapshot-es256-98",
+        "status": "failed",
+        "exit_code": 101,
+        "browser": "155.0.8059.85",
+        "directional_observations": [
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "failed",
+            "av_paired": 0,
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null,
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "decoded_fps": 28.762735678629355,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          },
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "failed",
+            "av_paired": 0,
+            "median_abs_skew_ms": null,
+            "p95_abs_skew_ms": null,
+            "audio_calibration": {
+              "status": "missing-proof",
+              "reason": "Decoded edges do not fit the coded cadence"
+            },
+            "decoded_fps": 29.445926614430633,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.06404395800000202,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.10020229099999414,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "sha256": {
+          "summary.json": "f07314ab560600c8cbe101844c140d48d1560aa898b4a8b55e427b8d515a0cc2",
+          "inputs.json": "b3539fa1d6ad9859b72af7c71a1c9994ff4745b5495b60a494fc5eb68049e27e",
+          "test.log": "36b7b15ac87b6312fd4cc147c7a032329b1890f485c0f85aa5b755cb7245199a",
+          "browser-result.jsonl": "41001d25af5fe047812bd29f90c751de49db6528a424e10e610365d056535734",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      },
+      {
+        "label": "firefox-ingress-snapshot-eddsa-98",
+        "status": "passed",
+        "exit_code": 0,
+        "browser": "firefox/158.0.1",
+        "directional_observations": [
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 82,
+            "median_abs_skew_ms": 55.49999999999855,
+            "p95_abs_skew_ms": 80.00000000000185,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 28.697608477890498,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          },
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 83,
+            "median_abs_skew_ms": 57.000000000000384,
+            "p95_abs_skew_ms": 75.99999999999696,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 29.06376027031357,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.06396825000000536,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.11590612500000134,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "sha256": {
+          "summary.json": "0f35a583e6694932a58303e9cc2d8f89fac6e6092e6009b34a1b58b2ac715f62",
+          "inputs.json": "b99da296682e7cd7f8992fbf7f7d7d3829df2a4c439100c55d55f4b23fd4a066",
+          "test.log": "36f732a87800e6fb7b4a455c0d1d08cd4b1491623c8ca9d579928c162f5cadab",
+          "browser-result.jsonl": "e8c169da61a865d61d69835913c2d5dc06eaa9882e71dce581d0504c06b8b350",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "label": "firefox-ingress-snapshot-es256-98",
+        "status": "passed",
+        "exit_code": 0,
+        "browser": "firefox/158.0.1",
+        "directional_observations": [
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 80,
+            "median_abs_skew_ms": 50.49999999999599,
+            "p95_abs_skew_ms": 60.99999999999994,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 28.280976531347374,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          },
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 80,
+            "median_abs_skew_ms": 54.00000000000027,
+            "p95_abs_skew_ms": 67.00000000000017,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 28.330972477500335,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.07290504100000544,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.12468699999999808,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            28,
+            28
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "firefox",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "sha256": {
+          "summary.json": "c695c6d6d9dc02e72c126d44e4d54cddc91adf7ded7e94f3a378958f711944f3",
+          "inputs.json": "1f9845531b8ffbbc6baa1b8e74dc8da3c97caa8fcaf5fd0237b7996be8e0fa25",
+          "test.log": "00afd2f66a461a0605fceadc19cdab1917f7473ea5ccab6944487aaa7b5a3e46",
+          "browser-result.jsonl": "2f161eafae069de9779e4bd0a12e0a00c148a0cece318277748943bfda8f12a0",
+          "ownership.json": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+          "transport-switch.json": "01f5f3e19cc3fbf234ae4a49d15b0d205913e8c9313f43fd8fa118280fee45f8"
+        }
+      },
+      {
+        "label": "chrome-ingress-snapshot-eddsa-98",
+        "status": "passed",
+        "exit_code": 0,
+        "browser": "155.0.8059.85",
+        "directional_observations": [
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 84,
+            "median_abs_skew_ms": 20.95000004768366,
+            "p95_abs_skew_ms": 86.99999999999974,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 29.979685854826357,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          },
+          {
+            "bad_audio_samples": 0,
+            "audio_status": "passed",
+            "av_status": "passed",
+            "av_paired": 83,
+            "median_abs_skew_ms": 31.09999990463308,
+            "p95_abs_skew_ms": 76.5000000000029,
+            "audio_calibration": {
+              "status": "calibrated",
+              "reason": null
+            },
+            "decoded_fps": 29.663107092495416,
+            "source_identity": "passed",
+            "motion": "passed",
+            "worker": "passed"
+          }
+        ],
+        "paired_termination": {
+          "status": "passed",
+          "seconds": 0.07333708399999887,
+          "limit_seconds": 5,
+          "method": "first participant submits the original signed Session end and confirms its journal status; second must receive terminal before its own local close"
+        },
+        "teardown_seconds": 0.10745570800000133,
+        "transport_switch": {
+          "actual_loopback_quic_initial_datagrams": [
+            6,
+            6
+          ],
+          "forced_fallback": true,
+          "original_message_counts": [
+            1,
+            2,
+            1
+          ],
+          "original_message_counts_preserved": true
+        },
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        },
+        "sha256": {
+          "summary.json": "df7880734c2432c3cc1556075d8162d27b1e0c4ebbd7c8cae7ab3ff02dcd7dda",
+          "inputs.json": "fe5dc482ab71f12fb9f56c156ae1fe1b0f7942c07ec2f8dfafe4a66a42215035",
+          "test.log": "25359bc11d58651854938712c64950e3ffd4270cee257ea350366022bdef75e7",
+          "browser-result.jsonl": "8f626de36b45909fa6be263574765ba22228130057cf3914f2c0366c2988acf5",
+          "ownership.json": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+          "transport-switch.json": "2459e9e8aa443ee9e99a32093da0e1d5da760260b8f1620ece885a994cad62f1"
+        }
+      }
+    ],
+    "normal_passed": 3,
+    "normal_total": 4,
+    "no_wrong_tone_samples_in_all_eight_directions": true,
+    "normal_failure": "ChromeES256 audio cadence cannot calibrate in both directions; unchanged original observers/classifiers/windows retain failure. Other3profiles pass.",
+    "webtransport": {
+      "passed": 4,
+      "total": 15,
+      "cases": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+          "boundary": null,
+          "passed": true,
+          "exit_code": 0,
+          "seconds": 0.8977787499316037,
+          "log_sha256": "f03b91c04f5ba270989a4073c37b998ad9fa58a0384853688dc912c2585e55a8"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+          "boundary": null,
+          "passed": true,
+          "exit_code": 0,
+          "seconds": 0.8605865419376642,
+          "log_sha256": "76ae288b0bebac3912f44834a99307d618d9716e37760a2b11353ae378c16e63"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+          "boundary": null,
+          "passed": true,
+          "exit_code": 0,
+          "seconds": 4.400866083102301,
+          "log_sha256": "b85f78aff8180cfb0201dd3c373df4df4083a19623f1e0e92444ca9925fd8df4"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+          "boundary": null,
+          "passed": true,
+          "exit_code": 0,
+          "seconds": 4.4510176670737565,
+          "log_sha256": "3bc593d43dca4bf517dee9f3cc55e5294e4b98225740d718631109ae431a1c90"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 6.877011416014284,
+          "log_sha256": "6f883f888be9b8423af56dada1e349d286be1fd66843111468127f0c49ef2fb8"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 13.116628000047058,
+          "log_sha256": "c83cd767b6ac9a6ac78b5ed183d46898a8bf243bbfed149c5f5bc77035f46d0b"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 7.317001958843321,
+          "log_sha256": "b9dc8663f73d0b0bc44ccac02694e15bc93705ef5074a5e3e2f288ebbd0c6753"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 8.316309874877334,
+          "log_sha256": "e5549a58c2d9347bb05ff57fa38db42023bbc3659e2e979a4f9fa8aa59632749"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 6.756762665929273,
+          "log_sha256": "52b341fa0d61dba293a156e3743a9a3c71709067234d042941176de540ac0a19"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 6.927124958951026,
+          "log_sha256": "17ccc9654b4f3687472080fe3bd5517cd7a05bed3ac430a2fa3d14188f09aced"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 7.678209749981761,
+          "log_sha256": "4d34a7154473384fa761d699a8a230be2a61c9d8bf3709d3ec6d48b6cd6edf95"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 6.608036624966189,
+          "log_sha256": "d2230f992855c53a240e098a1aac53d6da17313562dee5fdecb5654d711795da"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "permission-denied",
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 7.5092236248310655,
+          "log_sha256": "df33ccfa344e5544d701cb4dd4596c9f41be04718a8f8697f906684458c78cf1"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "unsupported-api-codec",
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 8.214764666976407,
+          "log_sha256": "e7d6dae77ab5cb819b0c13c41a94339667ebf21e5e4b43ca6ec2e6223eac0a3b"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "background-resume",
+          "passed": false,
+          "exit_code": 101,
+          "seconds": 9.047759750159457,
+          "log_sha256": "ee749f8955740b913d12e665ccf967a386edc5ef54bb16d44cd1b2f8680b2f2e"
+        }
+      ],
+      "failures": [
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":84,\"identified\":84,\"motion\":84},{\"decoded\":91,\"identified\":91,\"motion\":91}],\"metrics\":[{\"aggregate\":{\"sent\":470,\"received\":383,\"rejected\":0,\"decodedAudio\":228,\"decodedVideo\":87,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":",
+          "log_sha256": "6f883f888be9b8423af56dada1e349d286be1fd66843111468127f0c49ef2fb8"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "error_excerpt": "Browser request deadline; retain its logical operation ID\n    at http://127.0.0.1:55586/sdk/browser_client.js:168:27\n    at file:///Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs:46:67\n\nNode.js v26.7.0\n\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nFAILED\n\nfailures",
+          "log_sha256": "c83cd767b6ac9a6ac78b5ed183d46898a8bf243bbfed149c5f5bc77035f46d0b"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":22,\"identified\":22,\"motion\":12},{\"decoded\":36,\"identified\":36,\"motion\":22}],\"metrics\":[{\"aggregate\":{\"sent\":483,\"received\":380,\"rejected\":0,\"decodedAudio\":238,\"decodedVideo\":28,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":",
+          "log_sha256": "b9dc8663f73d0b0bc44ccac02694e15bc93705ef5074a5e3e2f288ebbd0c6753"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":36,\"identified\":36,\"motion\":27},{\"decoded\":86,\"identified\":86,\"motion\":55}],\"metrics\":[{\"aggregate\":{\"sent\":562,\"received\":475,\"rejected\":0,\"decodedAudio\":307,\"decodedVideo\":45,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":",
+          "log_sha256": "e5549a58c2d9347bb05ff57fa38db42023bbc3659e2e979a4f9fa8aa59632749"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "error_excerpt": "Independent native received media failed: Traceback (most recent call last):\n  File \"/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/tests/fixtures/gate6-webtransport-browser/native/observe.py\", line 124, in <module>\n    assert passed,json.dumps(result)\n           ^^^^^^\nAssertionError: {\"passed\": false, \"audio\": {\"decoded\": 197, \"identified\": 197, \"inp",
+          "log_sha256": "52b341fa0d61dba293a156e3743a9a3c71709067234d042941176de540ac0a19"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "error_excerpt": "Independent native received media failed: Traceback (most recent call last):\n  File \"/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/tests/fixtures/gate6-webtransport-browser/native/observe.py\", line 124, in <module>\n    assert passed,json.dumps(result)\n           ^^^^^^\nAssertionError: {\"passed\": false, \"audio\": {\"decoded\": 199, \"identified\": 199, \"inp",
+          "log_sha256": "17ccc9654b4f3687472080fe3bd5517cd7a05bed3ac430a2fa3d14188f09aced"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+          "boundary": null,
+          "error_excerpt": "Independent native received media failed: Traceback (most recent call last):\n  File \"/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/tests/fixtures/gate6-webtransport-browser/native/observe.py\", line 124, in <module>\n    assert passed,json.dumps(result)\n           ^^^^^^\nAssertionError: {\"passed\": false, \"audio\": {\"decoded\": 199, \"identified\": 199, \"inp",
+          "log_sha256": "4d34a7154473384fa761d699a8a230be2a61c9d8bf3709d3ec6d48b6cd6edf95"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+          "boundary": null,
+          "error_excerpt": "Inspect retained private case log",
+          "log_sha256": "d2230f992855c53a240e098a1aac53d6da17313562dee5fdecb5654d711795da"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "permission-denied",
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":14,\"identified\":14,\"motion\":8},{\"decoded\":87,\"identified\":87,\"motion\":55}],\"metrics\":[{\"aggregate\":{\"sent\":483,\"received\":395,\"rejected\":0,\"decodedAudio\":248,\"decodedVideo\":21,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":{",
+          "log_sha256": "df33ccfa344e5544d701cb4dd4596c9f41be04718a8f8697f906684458c78cf1"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "unsupported-api-codec",
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":14,\"identified\":14,\"motion\":9},{\"decoded\":66,\"identified\":66,\"motion\":43}],\"metrics\":[{\"aggregate\":{\"sent\":557,\"received\":474,\"rejected\":0,\"decodedAudio\":307,\"decodedVideo\":18,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counters\":{",
+          "log_sha256": "e7d6dae77ab5cb819b0c13c41a94339667ebf21e5e4b43ca6ec2e6223eac0a3b"
+        },
+        {
+          "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+          "boundary": "background-resume",
+          "error_excerpt": "actual rendered VP8 motion insufficient {\"video\":[{\"decoded\":115,\"identified\":115,\"motion\":102},{\"decoded\":77,\"identified\":77,\"motion\":57}],\"metrics\":[{\"aggregate\":{\"sent\":412,\"received\":346,\"rejected\":0,\"decodedAudio\":210,\"decodedVideo\":127,\"queuedPackets\":0,\"queuedBytes\":0,\"droppedPackets\":0,\"activeBindings\":3},\"routes\":[{\"streamId\":\"browser-audio-0\",\"direction\":\"sendrecv\",\"kind\":\"audio\",\"counte",
+          "log_sha256": "ee749f8955740b913d12e665ccf967a386edc5ef54bb16d44cd1b2f8680b2f2e"
+        }
+      ],
+      "guards_unchanged": true,
+      "finding": "All4control cases pass; all8media/native cases and3capture-boundary media journeys fail, mainly from VP8 loss/insufficient independently decoded frames. One original browser request timeout is retained. Native received video has actual sequence gaps.",
+      "regression_investigation": "Fresh model contention now returns Backpressure. The existing native datagram owner intentionally drops capacity refusals and does not retry this original, unlike RTC. All7new controlled metadata-collision/recovery/expiry/revocation/generation regressions fail against this implementation. A reader-free bounded recovery candidate is being tested; complete runtime causation/repair is not yet claimed."
+    },
+    "private_sha256": {
+      ".local/gate-6/ingress-policy-snapshot/normal-matrix-98.json": "e68ba994e4f1866f033a9c2e90f38a50efb62f42eb657a7e3695f437c146dfdb",
+      ".local/gate-6/ingress-policy-snapshot/wt-99/summary.json": "21381da2ef5af823c2323be545ebcbabd11ba81baa1c55c984f28ed7d2c6d7cf",
+      ".local/gate-6/ingress-policy-snapshot/verification-100.json": "1afc82f5648a2d7985ee98a58cbe7babe8f7c037e8df1a6d52859882ac593ef3"
+    },
+    "next_action": "Verify bounded fresh metadata recovery with no reader across waits, preserve the earliest IO expiry and original generation snapshots, then prepare/source-lock/rebuild and requalify native/browser/WT scopes. Keep normal cadence failure and missing explicit loss scope open."
+  },
+  "followup_recovery": "docs/evidence/gate-6/canonical-fresh-metadata-recovery.json"
 }
