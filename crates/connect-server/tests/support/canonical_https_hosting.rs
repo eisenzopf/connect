@@ -5,6 +5,8 @@ use connect_server::hosting::{HttpSurface, HttpsListenerConfig, TelnyxCallbacks}
 use ed25519_dalek::{Signer, SigningKey};
 use reqwest::StatusCode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[path = "canonical_https_hosting/node.rs"]
+mod node;
 #[path = "canonical_https_hosting/transports.rs"]
 mod transports;
 
@@ -95,7 +97,15 @@ impl Hosted {
         connections: usize,
         modify: impl FnOnce(&mut CanonicalServerConfig),
     ) -> Self {
-        let f = Fixture::new("EdDSA", connections).await;
+        Self::configured_algorithm("EdDSA", proxies, connections, modify).await
+    }
+    async fn configured_algorithm(
+        algorithm: &str,
+        proxies: Vec<std::net::IpAddr>,
+        connections: usize,
+        modify: impl FnOnce(&mut CanonicalServerConfig),
+    ) -> Self {
+        let f = Fixture::new(algorithm, connections).await;
         let tls = Tls::new(&f);
         tls.replace();
         let key = SigningKey::from_bytes(&[93; 32]);

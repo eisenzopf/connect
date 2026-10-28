@@ -1,0 +1,83 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "explicit-https-component-and-installed-passed-production-candidate-pending",
+  "implementation_parent_commit": "e952f79d74c4cb6dee6a511b2a3f775794eb612e",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "transport_modes": [
+    "loopback-http",
+    "remote-https"
+  ],
+  "tls": "Platform certificate/hostname validation; fixture root explicitly installed before isolated child startup. No verification bypass. All destinations this turn local synthetic endpoints.",
+  "component": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 14.020272792084143,
+    "source_count": 230,
+    "changed_inputs": [],
+    "source_inputs_sha256": "41c3c232bd9ef89594d80bfb04bc2a9cc95b88f0b3d33a3ce4300648c3ffc4d3",
+    "log_sha256": "77c7bc1f5282d8e7c788f83b4f150fbe15cfe7d32e40c7845d2cf4f9ad1c4b10",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T23:03:15.986188+00:00"
+  },
+  "component_scope_clarification": "Helper/fake HTTP route component suite now additionally includes real TLS against synthetic local HTTPS handlers. No original production-server runtime qualification from these109 functions.",
+  "functions_passed": 109,
+  "prior105_retained": true,
+  "new_https_functions": [
+    "explicit HTTPS uses verified TLS and the existing canonical/application routes with original intent and authority status",
+    "explicit HTTPS rejects untrusted certificates and hostname mismatch before any HTTP credential or mutation reaches the server",
+    "explicit HTTPS refuses redirects and current authentication without resubmitting the logical mutation",
+    "explicit HTTPS whole-body deadlines and cancellation retain uncertainty and join requests without retry"
+  ],
+  "installed": {
+    "archive_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "installed_dist_matches": true,
+    "dist_files": 136,
+    "functions_passed": 4,
+    "log_sha256": "e7204c204c65cad9c7bb444452346319e47809b18d945d1739353f3c0f942ff4",
+    "https_consumer_sha256": "fe2f91c7cf9ac6fed84ee0a4567c95ae3ed6fbf5b2e8e0bf5b0ca53e9635971f"
+  },
+  "production_candidate": {
+    "profile": "node-https/1",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "expected_functions": 2,
+    "helper_processes": 0,
+    "servers_joined_per_function": 2,
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "drain_deadline_seconds": 5,
+    "assertions": [
+      "Installed public Node canonical/application HTTPS facade uses isolated original production application surface and platform TLS trust",
+      "Explicit original-ID replay and finite journal fact carry original record; independent signed native SDK wait must agree",
+      "Current revoked HTTPS read, original replay, new mutation and named receipts all refused with actual401/403",
+      "SQL has exactly1 original message/operation and0 forbidden effects; original child/native/server joins and physical/media drain"
+    ],
+    "execution": "pending Linux; local Rust link deliberately not attempted under retained disk exhaustion"
+  },
+  "source_sha256": {
+    "sdk/typescript/src/control_endpoint.ts": "92e50490f5c74b93e2011d5478f3e224907955f534d1960af9411f80b4bc1b8b",
+    "sdk/typescript/src/canonical_http.ts": "9d3626ea09de0d21c1c4ce94c4d19cda02722e19297ff0270afea76ecfe469dc",
+    "sdk/typescript/src/http.ts": "fca8efbca67d8cd5b410db33188d110153427e0f0bec3adf27970d6bd34cdd24",
+    "sdk/tests/node_https.test.mjs": "825e1cf28753842a36f0c06fb941e35cb3f98f8de3e40ad4dbdc3b9e0a897873",
+    "sdk/tests/fixtures/node_https_consumer.mjs": "2504ef5cd22adb97e2b38061830e0d8f31437a0515889b2607154b8106bd6203",
+    "sdk/tests/node_https_server_consumer.mjs": "fe2f91c7cf9ac6fed84ee0a4567c95ae3ed6fbf5b2e8e0bf5b0ca53e9635971f",
+    "crates/connect-server/tests/support/canonical_https_hosting.rs": "c146e436264b75b902e5ce5e45fd290403c1c34b7b77fb391b48d62049d1fb4a",
+    "crates/connect-server/tests/support/canonical_https_hosting/node.rs": "79ca09907594b63eed6193550e030c833481c3e73a31469512e919a19de1ed33",
+    "scripts/check-gate6-linux-hosting.py": "cdc6bbe8e47ee42b96ef233727a8f3470e2482171b28004d80a619b613ed1d99",
+    "sdk/tests/prepare_native_consumer.py": "ebb157affc63705db3cc0316a4ca374a98e1166d8320d8b2993ca70c0e310879"
+  }
+}

@@ -59,6 +59,12 @@ test('canonical HTTP uses current path/bearer and captures intent before yieldin
 test('canonical HTTP configuration rejects implicit remote/credential URL destinations', () => {
   for (const endpoint of ['https://example.test', 'http://example.test', 'http://127.0.0.1/path', 'http://a:b@localhost', 'http://localhost?x=1', 'http://localhost#x'])
     assert.throws(() => new CanonicalHttpClient({endpoint, credential: 'x'}), rejects('configuration', 'not-submitted'));
+  for (const endpoint of ['http://example.test','https://a:b@example.test','https://example.test/path','https://example.test?x=1','https://example.test#x'])
+    assert.throws(()=>new CanonicalHttpClient({endpoint,credential:'x',transport:'remote-https'}),rejects('configuration','not-submitted'));
+  assert.throws(()=>new CanonicalHttpClient({endpoint:'https://example.test',credential:'x',transport:'auto'}),rejects('configuration','not-submitted'));
+  assert.throws(()=>new HttpClient('https://example.test','x'),/explicit HTTP/);
+  assert.throws(()=>new HttpClient('malformed-private-url','x'),e=>{assert.ok(!e.message.includes('malformed-private-url'));return true;});
+  assert.throws(()=>new HttpClient('http://example.test','x',1500,'remote-https'),/explicit HTTP/);
   for (const credential of ['', 'bad\nheader', ' '.repeat(20000)])
     assert.throws(() => new CanonicalHttpClient({endpoint: 'http://localhost', credential}), rejects('configuration', 'not-submitted'));
 });

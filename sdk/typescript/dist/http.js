@@ -1,25 +1,18 @@
+import { controlEndpoint, } from "./control_endpoint.js";
 import { exchangeTimeout } from "./task_operations.js";
 import { ConnectError } from "./errors.js";
 import { Operations } from "./operations.js";
 import { decodeResponse, expectedKind, MAX_REQUEST, MAX_RESPONSE, parseJson, timeoutValue, } from "./protocol.js";
-/** Explicit loopback HTTP facade. No redirects or automatic mutation retries. */
+/** Explicit loopback HTTP or selected remote HTTPS. No redirects or automatic mutation retries. */
 export class HttpClient extends Operations {
     credential;
     url;
     baseUrl;
     timeoutMs;
-    constructor(url, credential, timeoutMs = 12000) {
+    constructor(url, credential, timeoutMs = 12000, transport = "loopback-http") {
         super();
         this.credential = credential;
-        const parsed = new URL(url);
-        if (parsed.protocol !== "http:" ||
-            !["127.0.0.1", "[::1]", "localhost"].includes(parsed.hostname) ||
-            parsed.username ||
-            parsed.password ||
-            parsed.search ||
-            parsed.hash)
-            throw new Error("Use a loopback HTTP URL");
-        this.baseUrl = url.replace(/\/$/, "");
+        this.baseUrl = controlEndpoint(url, credential, transport);
         this.url = this.baseUrl + "/v1/operations";
         this.timeoutMs = timeoutValue(timeoutMs);
     }

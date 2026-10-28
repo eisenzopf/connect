@@ -107,3 +107,5 @@ export type {
     SdkEventData,
     SdkEventStream,
 } from "./node_events.js";
+
+export type { HttpControlTransport } from "./control_endpoint.js";

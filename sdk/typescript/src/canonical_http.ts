@@ -1,4 +1,8 @@
 import {
+    controlEndpoint,
+    type HttpControlTransport,
+} from "./control_endpoint.js";
+import {
     canonicalJson,
     jsonObject,
     parseCanonicalJson,
@@ -37,7 +41,8 @@ export type {
 } from "./canonical_validation.js";
 
 /** Explicit finite connect/2 control. No credential refresh, retry, transport
- * fallback, native media ownership or live-event lease is implied by HTTP. */
+ * fallback, native media ownership or live-event lease is implied by HTTP.
+ * Remote HTTPS must be selected explicitly and uses the platform TLS trust store. */
 export class CanonicalHttpClient {
     private readonly endpoint: string;
     private readonly credential: string;
@@ -46,23 +51,15 @@ export class CanonicalHttpClient {
     constructor(config: {
         readonly endpoint: string;
         readonly credential: string;
+        readonly transport?: HttpControlTransport;
     }) {
         try {
-            const url = new URL(config.endpoint);
-            if (
-                url.protocol !== "http:" ||
-                !["127.0.0.1", "[::1]", "localhost"].includes(url.hostname) ||
-                url.username ||
-                url.password ||
-                url.search ||
-                url.hash ||
-                (url.pathname !== "/" && url.pathname !== "") ||
-                !config.credential ||
-                config.credential.length > 16_384 ||
-                /[\x00-\x20\x7f]/.test(config.credential)
-            )
-                throw new Error();
-            this.endpoint = url.origin + "/v2/commands";
+            this.endpoint =
+                controlEndpoint(
+                    config.endpoint,
+                    config.credential,
+                    config.transport,
+                ) + "/v2/commands";
             this.credential = config.credential;
         } catch {
             throw new CanonicalError("configuration", "not-submitted");

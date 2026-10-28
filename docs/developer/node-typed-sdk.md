@@ -1,15 +1,20 @@
 # Typed Node control component
 
-G6-062 remains in progress. `NodeClient` currently implements typed Conversation
-creation/refresh, typed participant add/update/remove/refresh, text messages, operation recovery and
-durable cancel/reconcile decisions. Its supported operation kinds are
-`conversation_create`, `message_send`, `operation_cancel` and
-`operation_reconcile`, plus the three `conversation_participant_*` kinds.
-The [Session control component](node-session-sdk.md) also implements invitations,
-accept/reject/cancel, updates, end and original-operation recovery. The full
-Connection/Stream/topology, full incoming invitation qualification, event,
-remote HTTP interfaces remain required. The separate [trusted administrative backend](node-administration-sdk.md) is implemented with synthetic checks; its actual qualification remains pending. The [raw canonical interface](node-raw-sdk.md) now delegates validation and finite requests to the original Rust SDK; actual qualification remains pending.
-Programmatic media is G6-064. There is no fallback to the historical generic API.
+G6-062 remains in progress. `NodeClient` implements typed Conversation,
+Participant, Session, Connection and Stream controls, text messages, original-ID
+operation recovery, durable decisions and topology movement. Dedicated components
+cover [native controls](node-connection-sdk.md), [movement](node-movement-sdk.md),
+[incoming invitations](node-incoming-sdk.md), [durable events](node-events-sdk.md),
+[trusted administration](node-administration-sdk.md), [raw canonical control](node-raw-sdk.md)
+and [explicit HTTP/HTTPS control](node-http-sdk.md).
+
+Exact Linux source evidence in `docs/evidence/gate-6/node-native-972.json` qualifies
+the recorded native control/invitation/raw/receipt and administration scenes on
+Node22/26 with both signing algorithms. Node22's full recorded lane passes;
+Node26 retains a minimum-audio failure, and earlier audio/EOF causes remain
+unresolved. Event resume and production HTTPS candidates still await Linux
+execution. Full SDK, native media custody, acceptance and publication remain open.
+Programmatic media is G6-064. Transport selection is explicit.
 
 Install the matching trusted `connect` executable. This component invokes
 `connect sdk-stdio --config /absolute/path/to/sdk-client.toml`, with one fixed
