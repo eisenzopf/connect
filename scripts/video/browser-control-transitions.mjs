@@ -95,12 +95,14 @@ for(const tones of [spec.sourceToneHz,spec.expectedToneHz])if(tones!==undefined&
     throw new Error("Generated/expected audio requires an identifiable 100–3000 Hz tone per participant");
 let browser;
 let database;
+let faultProxy, faultModule, transportFaults;
 const contexts = [];
 const observedPages = [];
 let cleanupPromise;
 const cleanup=()=>cleanupPromise??=(async()=>{
     await Promise.allSettled(contexts.map(context=>context.close()));
     await browser?.close();
+    await faultProxy?.close();
     database?.close();database=undefined;
     if(assets)await new Promise(resolve=>assets.close(resolve));
 })();
@@ -109,6 +111,11 @@ try {
     const databasePath=await fs.realpath(spec.controlDatabase),privateRoot=await fs.realpath(path.join(spec.root,".local"));
     if(!databasePath.startsWith(privateRoot+path.sep))throw Error("Control oracle requires an isolated private fixture database");
     database=new DatabaseSync(databasePath,{readOnly:true});database.exec("PRAGMA busy_timeout=1000");
+    if(spec.transportFaults){
+        faultModule=await import('./browser-transport-faults.mjs');
+        faultProxy=await faultModule.startTransportFaults(spec);
+        spec.participants[0].url=faultProxy.wssUrl;
+    }
     browser=spec.browser==="firefox"?
         await connectFirefoxBidi(process.env.CONNECT_PUPPETEER_MODULE,spec.debugPort):
         await chromium.connectOverCDP(`http://127.0.0.1:${spec.debugPort}`);
@@ -232,6 +239,7 @@ try {
         if(control.owner.status.selectedTransport!=="wss-webrtc")throw Error("fresh authenticated control not recovered");
         return {refusal,recovered:true,physical_epoch:control.owner.status.physicalEpoch,enrollment_resolutions:control.resolutions()};
     });
+    if(faultProxy)transportFaults=await faultModule.exerciseTransportFaults({spec,page:pages[0],proxy:faultProxy,database});
     await pages[0].evaluate(async terminal=>{
         const {client,options}=window.transitionControl;
         await client.request("session.end",{by_participant:options.participantId,reason_code:200,reason:"control-fixture-complete"},{cid:options.conversationId,sid:options.sessionId,operation_id:terminal.operationId,expected_revision:terminal.expectedRevision},{terminalType:"operation.updated",timeoutMs:5000});
@@ -240,5 +248,6 @@ try {
     const closed=await Promise.all(pages.map(page=>page.evaluate(()=>{const control=window.transitionControl,c=control.client;if(control.owner)control.owner.close();else c.close();return c.closed;})));
     if(!closed.every(Boolean))throw Error("owned control cleanup");
     await cleanup();
-    process.stdout.write(JSON.stringify({status:"passed",scope:"Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",transition_scope:"signed control admission/refusal/cancellation/replay; no live movement media claim",browser:spec.browser,fallback:results.map(r=>r.fallback),unsupported_migration:results.map(r=>r.unsupported_migration),transitions:results[0].transitions,...(spec.transportRecovery?{transport_recovery:{passed:true,scope:"Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",steps:recoverySteps,rejected_current_credential:true,credential_recovery:credentialRecovery}}:{}),owned_control_cleanup:true})+"\n");
-}catch(error){await cleanup().catch(()=>{});throw error;}
+    if(transportFaults)transportFaults.owned_proxy_joined=true;
+    process.stdout.write(JSON.stringify({status:"passed",scope:"Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",transition_scope:"signed control admission/refusal/cancellation/replay; no live movement media claim",browser:spec.browser,fallback:results.map(r=>r.fallback),unsupported_migration:results.map(r=>r.unsupported_migration),transitions:results[0].transitions,...(spec.transportRecovery?{transport_recovery:{passed:true,scope:"Explicit reconnect during admitted/unready control transitions; no live movement claim. Additional injected faults, if run, have separate transport_faults evidence.",steps:recoverySteps,rejected_current_credential:true,credential_recovery:credentialRecovery}}:{}),...(transportFaults?{transport_faults:transportFaults}:{}),owned_control_cleanup:true})+"\n");
+}catch(error){if(faultProxy)process.stderr.write(JSON.stringify({transport_fault_counters:faultProxy.counts})+"\n");await cleanup().catch(()=>{});throw error;}

@@ -1,6 +1,8 @@
 //! Explicit installed-browser lane: synthetic sources, normal private CA trust.
 #[path = "canonical_webrtc_browser/audio_trace.rs"]
 mod audio_trace;
+#[path = "canonical_webrtc_browser/recovery.rs"]
+mod recovery;
 #[path = "canonical_webrtc_browser/transitions.rs"]
 mod transitions;
 use super::*;
@@ -273,6 +275,7 @@ async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
         forced_fallback,
         false,
         false,
+        false,
     ))
     .await;
 }
@@ -282,7 +285,9 @@ async fn run_profile(
     forced_fallback: bool,
     transition_control: bool,
     transport_recovery: bool,
+    transport_faults: bool,
 ) {
+    assert!(!transport_faults || transport_recovery);
     assert!(!transport_recovery || transition_control);
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -597,6 +602,9 @@ async fn run_profile(
         spec["controlDatabase"] = json!(f.server.store.path());
         spec["controlTransitions"] = json!(transition_probes);
     }
+    if transport_faults {
+        spec["transportFaults"] = recovery::fault_spec(&mut f, &ca);
+    }
     let input = f.temp.path().join("private-browser-input.json");
     std::fs::write(&input, serde_json::to_vec(&spec).unwrap()).unwrap();
     drop(asset);
@@ -675,6 +683,14 @@ async fn run_profile(
                 report["transport_recovery"]["rejected_current_credential"],
                 true
             );
+        }
+        if transport_faults {
+            let audit = recovery::audit(&f, &other, &report);
+            std::fs::write(
+                output.join("transport-fault-oracle.json"),
+                serde_json::to_vec(&audit).unwrap(),
+            )
+            .unwrap();
         }
         let audit = transitions::audit(&f, &transition_probes, &report).await;
         std::fs::write(
@@ -759,44 +775,68 @@ async fn canonical_firefox_actual_udp_failure_original_wss_intents_es256() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed Chrome; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
 async fn canonical_chrome_actual_udp_failure_transition_control_eddsa() {
-    Box::pin(run_profile("EdDSA", "chrome", true, true, false)).await;
+    Box::pin(run_profile("EdDSA", "chrome", true, true, false, false)).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed Chrome; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
 async fn canonical_chrome_actual_udp_failure_transition_control_es256() {
-    Box::pin(run_profile("ES256", "chrome", true, true, false)).await;
+    Box::pin(run_profile("ES256", "chrome", true, true, false, false)).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed Firefox; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
 async fn canonical_firefox_actual_udp_failure_transition_control_eddsa() {
-    Box::pin(run_profile("EdDSA", "firefox", true, true, false)).await;
+    Box::pin(run_profile("EdDSA", "firefox", true, true, false, false)).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed Firefox; actual UDP failure, normal private CA trust and signed transition control; no live movement/provider"]
 async fn canonical_firefox_actual_udp_failure_transition_control_es256() {
-    Box::pin(run_profile("ES256", "firefox", true, true, false)).await;
+    Box::pin(run_profile("ES256", "firefox", true, true, false, false)).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed chrome; explicit transport owner reconnect and current authorization on normal private TLS; control only"]
 async fn canonical_chrome_transport_owner_reconnect_eddsa() {
-    Box::pin(run_profile("EdDSA", "chrome", true, true, true)).await;
+    Box::pin(run_profile("EdDSA", "chrome", true, true, true, false)).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed chrome; explicit transport owner reconnect and current authorization on normal private TLS; control only"]
 async fn canonical_chrome_transport_owner_reconnect_es256() {
-    Box::pin(run_profile("ES256", "chrome", true, true, true)).await;
+    Box::pin(run_profile("ES256", "chrome", true, true, true, false)).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed firefox; explicit transport owner reconnect and current authorization on normal private TLS; control only"]
 async fn canonical_firefox_transport_owner_reconnect_eddsa() {
-    Box::pin(run_profile("EdDSA", "firefox", true, true, true)).await;
+    Box::pin(run_profile("EdDSA", "firefox", true, true, true, false)).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "installed firefox; explicit transport owner reconnect and current authorization on normal private TLS; control only"]
 async fn canonical_firefox_transport_owner_reconnect_es256() {
-    Box::pin(run_profile("ES256", "firefox", true, true, true)).await;
+    Box::pin(run_profile("ES256", "firefox", true, true, true, false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed chrome; bounded loopback TLS/QUIC faults and real scoped credential expiry/revocation; control only"]
+async fn canonical_chrome_transport_owner_faults_eddsa() {
+    Box::pin(run_profile("EdDSA", "chrome", true, true, true, true)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed chrome; bounded loopback TLS/QUIC faults and real scoped credential expiry/revocation; control only"]
+async fn canonical_chrome_transport_owner_faults_es256() {
+    Box::pin(run_profile("ES256", "chrome", true, true, true, true)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed firefox; bounded loopback TLS/QUIC faults and real scoped credential expiry/revocation; control only"]
+async fn canonical_firefox_transport_owner_faults_eddsa() {
+    Box::pin(run_profile("EdDSA", "firefox", true, true, true, true)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "installed firefox; bounded loopback TLS/QUIC faults and real scoped credential expiry/revocation; control only"]
+async fn canonical_firefox_transport_owner_faults_es256() {
+    Box::pin(run_profile("ES256", "firefox", true, true, true, true)).await;
 }

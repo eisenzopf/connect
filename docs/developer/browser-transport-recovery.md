@@ -96,6 +96,32 @@ original operation records and cursor events over explicit reconnects, reject
 an invalid bearer and recover with valid enrollment. The transition fixture
 uses an accepted, unprepared consult and exact unready handoff/replacement
 refusals; see [browser control evidence](../evidence/gate-6/transport-reconnect-browser-control.json).
-Injected dropped acknowledgments, established WSS/WT outages, actual service
-credential expiry/revocation and repeated reconnect during live consult/handoff
-remain required before G6-052 closure.
+The separate [service fault cohort](../evidence/gate-6/transport-reconnect-faults.json)
+also passes all four browser/signature combinations. A bounded loopback WSS
+proxy forwards canonical signed bytes unchanged and withholds one accepted
+Message reply. After timeout, the owner recovers its original completed record
+by status reads, with exactly one Message/Operation and one journal fact per
+original recipient. The fixture force-cuts established WSS, refuses upgrades,
+and blackholes packets on an established WT path. Explicit recovery selects
+WSS, then explicitly restores WT. WSS uses normal private-CA trust; this WT
+lane uses the designated short-lived leaf SHA256 pin plus independent enrolled
+server-signature verification. Public/remote PKI qualification remains separate.
+
+Separately issued and bound scoped credentials positively authenticate/read
+before real 45-second expiry and production HTTP revocation. Subsequent reads
+and reconnect fail; valid current enrollment restores access. Operator authority
+and TLS private files remain in the Node fixture host. Browser, Node, proxy,
+service and physical routes/slots are joined in every passing lane. Failed
+initial candidates and the storage-full attempt remain recorded as failures.
+
+The ignored `canonical_{chrome,firefox}_transport_owner_faults_{eddsa,es256}`
+tests live in `gate6_canonical_webtransport`. They require the explicit installed
+browser/Node/module paths used by the browser fixture, isolated private output
+and a `TMPDIR` inside this checkout's ignored `.local/`; run one lane at a time.
+Both private Playwright and Puppeteer dependencies must be prepared, including
+the latter's `ws` module for the fault proxy. These are local synthetic tests;
+they use no model, provider, telephone or remote account.
+
+Repeated reconnect during actual live consultation and a successful handoff,
+including retained remote and decoded media evidence with no duplicate external
+transition effects, remains required before G6-052 closure.

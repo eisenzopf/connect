@@ -1,0 +1,456 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Actual signed service control recovery through installed Chrome/Firefox, two signing algorithms, transparent loopback TLS WSS reply/connection faults, established QUIC packet blackholes and real scoped credential expiry/revocation. No live consultation/handoff media recovery qualification.",
+  "transport_trust": {
+    "wss": "Normal platform CA validation at browser->loopback proxy and explicit trusted CA validation at proxy->service. Exact allowed Origin forwarded. Canonical signed text is forwarded byte-for-byte; no re-signing or payload edits.",
+    "wt": "Actual WebTransport through a bounded loopback UDP relay with an explicit SHA256 pin of the designated short-lived fixture leaf, plus independent enrolled server-signature trust. Public/remote PKI qualification remains separate.",
+    "browser_apis": "Actual WebSocket/WebTransport APIs, no transport API shim.",
+    "private_host_only": "TLS private files and operator credential stay in Node fixture process. Browser receives only its scoped enrollment and public certificate hash.",
+    "communications": "Local synthetic control only; no model/account/provider/PSTN/SMS/remote execution."
+  },
+  "requirements_proven": [
+    "One actual accepted Message reply is withheld. The uncertain browser peer times out, closes and explicitly reconnects; recovery reads the original completed Operation without another mutation. Proxy counts one new Message command, one exact original ID; SQL requires one Message, one original send Operation/record and exactly one journal fact for each of two original enrolled recipients.",
+    "An established WSS socket is forcibly terminated. While upgrades are refused and preferred WT is blackholed, bounded reconnect fails; no implicit reconnect runs. Restoring WSS permits explicit original-status recovery.",
+    "An established authenticated WT path first observes the original completed Operation. UDP relay then drops actual packets: a bounded read expires and retires the old lifetime once. Explicit reconnect selects WSS with preferred-transport-timeout, observes the same Operation, then restores WT explicitly after UDP resumes.",
+    "A separately issued, same-actor/Device scoped credential successfully authenticates and reads the original status before its real 45-second expiry. After the clock boundary reads fail and reconnect is refused during authentication; valid current enrollment restores access.",
+    "A second independently issued/bound scoped credential reads successfully, is revoked through the protected production HTTP provisioning endpoint, then fails current reads and authentication. Restoring valid authority recovers the same original status.",
+    "Browser, Node, proxy, service and physical routes/slots join or retire on every passing lane. Existing unready transition parity oracle remains separate and passes."
+  ],
+  "verification": {
+    "installed_browsers": {
+      "chrome": "155.0.8059.85",
+      "firefox": "158.0.1"
+    },
+    "passed": 4,
+    "failed_in_final_cohort": 0,
+    "rows": [
+      {
+        "browser": "chrome",
+        "algorithm": "EdDSA",
+        "label": "chrome-faults-135-eddsa",
+        "seconds": 45.41947837499902,
+        "changed_inputs": [],
+        "runtime_input_count": 8082,
+        "summary_sha256": "f7418f6d1a824cbca2448e06d2c39861422bafa15530a80e0be57a99d30261fc",
+        "result_sha256": "8b1671d43720c2253a5727784bfb520d687b70dcaad9a97ca0de02d7f59bedcf",
+        "oracle_sha256": "00225904993c1791f114888098492d07e4bebe2de58333ff1111785faaae4171",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "inputs_sha256": "a1c5ed86f8e2a339d200b9846512ed76b78914ce4dab7a4fe28f86f391b95128",
+        "faults": {
+          "passed": true,
+          "scope": "Actual control-only faults; WSS platform CA trust and explicit short-lived WT certificate pin; no live movement/media recovery claim",
+          "new_message_commands": 1,
+          "dropped_ack": {
+            "uncertain_code": "timeout",
+            "state": "completed",
+            "record_id": "opr_2c4c92f4-4aae-483c-bd1d-30ca649e6b0f"
+          },
+          "wss_outage": {
+            "code": "timeout",
+            "physical_epoch": 8,
+            "no_automatic_reconnect": true
+          },
+          "wt_initial": {
+            "initial_path": "webtransport"
+          },
+          "wt_outage": {
+            "code": "timeout",
+            "old_lifetime_callbacks": 1,
+            "recovered_path": "wss-webrtc",
+            "fallback_reason": "preferred-transport-timeout"
+          },
+          "wt_restored": true,
+          "expiry": {
+            "positive_before_expiry": true,
+            "post_expiry_read_code": "transport",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "revocation": {
+            "positive_before_revocation": true,
+            "post_revocation_read_code": "refused",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "proxy": {
+            "message_commands": 2,
+            "original_commands": 1,
+            "dropped_replies": 1,
+            "dropped_acks": 1,
+            "cut_websockets": 1,
+            "outage_upgrades": 1,
+            "forwarded_udp_client": 35,
+            "forwarded_udp_server": 48,
+            "dropped_udp": 22
+          },
+          "owned_proxy_joined": true
+        },
+        "oracle": {
+          "journal_rows": 2,
+          "message_rows": 1,
+          "operation_rows": 1,
+          "passed": true,
+          "scope": "One actual Message acceptance with withheld signed reply; original status-only recovery, TLS WSS cut, QUIC packet blackhole, real credential expiry/revocation. Control only; live transition media remains separate."
+        }
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "ES256",
+        "label": "chrome-faults-135-es256",
+        "seconds": 45.250009584007785,
+        "changed_inputs": [],
+        "runtime_input_count": 8082,
+        "summary_sha256": "9d40b97bc5aae9e12a228eb2a751708ff429e44b142714c52ba8d4c208be82c5",
+        "result_sha256": "08b0b938fb24bec80a8eb7183c1528d5a4d1543be32db72c4cec44d506523f23",
+        "oracle_sha256": "00225904993c1791f114888098492d07e4bebe2de58333ff1111785faaae4171",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "inputs_sha256": "db3ea900607af71909f35691983ecf578b33160dee71a5c8f0a9709a5c9bbfff",
+        "faults": {
+          "passed": true,
+          "scope": "Actual control-only faults; WSS platform CA trust and explicit short-lived WT certificate pin; no live movement/media recovery claim",
+          "new_message_commands": 1,
+          "dropped_ack": {
+            "uncertain_code": "timeout",
+            "state": "completed",
+            "record_id": "opr_f332ce44-26f4-4d9b-a076-db00aa9b1c24"
+          },
+          "wss_outage": {
+            "code": "timeout",
+            "physical_epoch": 8,
+            "no_automatic_reconnect": true
+          },
+          "wt_initial": {
+            "initial_path": "webtransport"
+          },
+          "wt_outage": {
+            "code": "timeout",
+            "old_lifetime_callbacks": 1,
+            "recovered_path": "wss-webrtc",
+            "fallback_reason": "preferred-transport-timeout"
+          },
+          "wt_restored": true,
+          "expiry": {
+            "positive_before_expiry": true,
+            "post_expiry_read_code": "transport",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "revocation": {
+            "positive_before_revocation": true,
+            "post_revocation_read_code": "refused",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "proxy": {
+            "message_commands": 2,
+            "original_commands": 1,
+            "dropped_replies": 1,
+            "dropped_acks": 1,
+            "cut_websockets": 1,
+            "outage_upgrades": 1,
+            "forwarded_udp_client": 37,
+            "forwarded_udp_server": 39,
+            "dropped_udp": 11
+          },
+          "owned_proxy_joined": true
+        },
+        "oracle": {
+          "journal_rows": 2,
+          "message_rows": 1,
+          "operation_rows": 1,
+          "passed": true,
+          "scope": "One actual Message acceptance with withheld signed reply; original status-only recovery, TLS WSS cut, QUIC packet blackhole, real credential expiry/revocation. Control only; live transition media remains separate."
+        }
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "EdDSA",
+        "label": "firefox-faults-136-eddsa",
+        "seconds": 46.268503667088225,
+        "changed_inputs": [],
+        "runtime_input_count": 8192,
+        "summary_sha256": "15514ecce1c3fcba716d134cdaa85d712ecb0bd02795f92d75e7d0b7d35e7b33",
+        "result_sha256": "43c901293c3a34f6516b2d5af12e581de884ca80b0a8afaeaa2db23b730ee6fb",
+        "oracle_sha256": "00225904993c1791f114888098492d07e4bebe2de58333ff1111785faaae4171",
+        "ownership_sha256": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "inputs_sha256": "2b5cf8c29f93ec4c47cc681a5ab5294732757c0df54ca47ea917f2597a84bd5a",
+        "faults": {
+          "passed": true,
+          "scope": "Actual control-only faults; WSS platform CA trust and explicit short-lived WT certificate pin; no live movement/media recovery claim",
+          "new_message_commands": 1,
+          "dropped_ack": {
+            "uncertain_code": "timeout",
+            "state": "completed",
+            "record_id": "opr_8f26e604-8df0-448e-a935-d940115e18a4"
+          },
+          "wss_outage": {
+            "code": "timeout",
+            "physical_epoch": 8,
+            "no_automatic_reconnect": true
+          },
+          "wt_initial": {
+            "initial_path": "webtransport"
+          },
+          "wt_outage": {
+            "code": "timeout",
+            "old_lifetime_callbacks": 1,
+            "recovered_path": "wss-webrtc",
+            "fallback_reason": "preferred-transport-timeout"
+          },
+          "wt_restored": true,
+          "expiry": {
+            "positive_before_expiry": true,
+            "post_expiry_read_code": "transport",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "revocation": {
+            "positive_before_revocation": true,
+            "post_revocation_read_code": "refused",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "proxy": {
+            "message_commands": 2,
+            "original_commands": 1,
+            "dropped_replies": 1,
+            "dropped_acks": 1,
+            "cut_websockets": 1,
+            "outage_upgrades": 1,
+            "forwarded_udp_client": 75,
+            "forwarded_udp_server": 70,
+            "dropped_udp": 32
+          },
+          "owned_proxy_joined": true
+        },
+        "oracle": {
+          "journal_rows": 2,
+          "message_rows": 1,
+          "operation_rows": 1,
+          "passed": true,
+          "scope": "One actual Message acceptance with withheld signed reply; original status-only recovery, TLS WSS cut, QUIC packet blackhole, real credential expiry/revocation. Control only; live transition media remains separate."
+        }
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "ES256",
+        "label": "firefox-faults-136-es256",
+        "seconds": 46.33167558396235,
+        "changed_inputs": [],
+        "runtime_input_count": 8192,
+        "summary_sha256": "af2443a292098c2933803e1fc323efcae364b39330819f2dc9c1d0671edb6ab9",
+        "result_sha256": "008806c75915f4248f5607a7cbfd48239501e92df99d95702b52712db2733088",
+        "oracle_sha256": "00225904993c1791f114888098492d07e4bebe2de58333ff1111785faaae4171",
+        "ownership_sha256": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "inputs_sha256": "c9764e52996b4422689a23f35c88ef1cb7f753ecdd1e7e56c34783e92ae7f365",
+        "faults": {
+          "passed": true,
+          "scope": "Actual control-only faults; WSS platform CA trust and explicit short-lived WT certificate pin; no live movement/media recovery claim",
+          "new_message_commands": 1,
+          "dropped_ack": {
+            "uncertain_code": "timeout",
+            "state": "completed",
+            "record_id": "opr_56df37c8-1832-47d9-9cfe-ef3d6740aa8d"
+          },
+          "wss_outage": {
+            "code": "timeout",
+            "physical_epoch": 8,
+            "no_automatic_reconnect": true
+          },
+          "wt_initial": {
+            "initial_path": "webtransport"
+          },
+          "wt_outage": {
+            "code": "timeout",
+            "old_lifetime_callbacks": 1,
+            "recovered_path": "wss-webrtc",
+            "fallback_reason": "preferred-transport-timeout"
+          },
+          "wt_restored": true,
+          "expiry": {
+            "positive_before_expiry": true,
+            "post_expiry_read_code": "transport",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "revocation": {
+            "positive_before_revocation": true,
+            "post_revocation_read_code": "refused",
+            "reconnect_refused": true,
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            }
+          },
+          "proxy": {
+            "message_commands": 2,
+            "original_commands": 1,
+            "dropped_replies": 1,
+            "dropped_acks": 1,
+            "cut_websockets": 1,
+            "outage_upgrades": 1,
+            "forwarded_udp_client": 71,
+            "forwarded_udp_server": 69,
+            "dropped_udp": 21
+          },
+          "owned_proxy_joined": true
+        },
+        "oracle": {
+          "journal_rows": 2,
+          "message_rows": 1,
+          "operation_rows": 1,
+          "passed": true,
+          "scope": "One actual Message acceptance with withheld signed reply; original status-only recovery, TLS WSS cut, QUIC packet blackhole, real credential expiry/revocation. Control only; live transition media remains separate."
+        }
+      }
+    ],
+    "build": {
+      "seconds": 4.295965583063662,
+      "source_count": 5233,
+      "changed_inputs": [],
+      "artifact_sha256": "ae74c34e1920771f3c8cc0bd3981c4ad5c7f96b56ad412a8f323bb0422a26a5a",
+      "artifact_bytes": 215295808,
+      "log_sha256": "f82cf0628223ca14765f363ce432c8dd7f81f62a6d6bf02c2aabb458dc42efda"
+    },
+    "matrix_sha256": "b438b6e03eb3d47e08b1971fa849cbb97d9ff462090e627d384c08f342e2b6c0",
+    "default_control_lane_regression": {
+      "passed": 1,
+      "seconds": 2.547832083888352,
+      "changed_inputs": [],
+      "summary_sha256": "53a5e049bba150db3090ffa54216fd8e6a8cf7c8b9a2dbb4d3d977c595c5c6e5"
+    },
+    "existing_sdk_component_scope": {
+      "passed": 379,
+      "new_owner_cases": 52,
+      "source_and_artifact_files_rechecked_unchanged": 16,
+      "evidence": "docs/evidence/gate-6/transport-reconnect-owner.json",
+      "scope": "Retained unchanged component cohort; not a newly rerun SDK suite."
+    },
+    "format": "scripts/format.sh --check and both Node syntax checks passed"
+  },
+  "failed_candidates": [
+    {
+      "label": "chrome-faults-133-eddsa",
+      "outcome": "failed",
+      "reason": "Initial candidate did not select WT without the explicit designated development leaf pin; later phases were not reached.",
+      "exit_code": 101,
+      "changed_inputs_at_runtime": [],
+      "summary_sha256": "91c8a428fc903ed59d53fac2933cfbc754a04d67f4a9e23fda0df648ea198f78",
+      "runner_log_sha256": "190bfe5c208cf4ba84d3f93134d56f73e048ec8ea0f777c81a2aad07e832eb7a",
+      "test_log_sha256": "5e61a19035165f69422ad6100db4921e7f4d6abb53c2c696a41d7cf0bb107187"
+    },
+    {
+      "label": "chrome-faults-134-eddsa",
+      "outcome": "failed",
+      "reason": "Browser fault sequence completed, but overall Rust test FAILED on an incorrect one-journal-row fixture assumption. Read-only inspection found one Message and Operation and one journal fact per each of the two enrolled recipients. The corrected oracle checks both exact recipient IDs and one fact each.",
+      "exit_code": 101,
+      "changed_inputs_at_runtime": [],
+      "summary_sha256": "5f2bfaa41a6b622dff5d222e740a630ad323b62c06c48827ea6105a2317ba5b4",
+      "runner_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_log_sha256": "7dfa51743efd6f9dd35f41db635233eec2ee2e4b2e6f935dee05989fdea8cf2f"
+    },
+    {
+      "label": "firefox-faults-135-eddsa",
+      "outcome": "failed-storage-full",
+      "runtime_exit_code": null,
+      "reason": "Wrapper did not retain a complete outcome; no numeric runtime exit code inferred. Rust terminal log records StorageFull and FAILED.",
+      "cleanup_qualified": false,
+      "changed_inputs_after_recovery": [],
+      "recovered_summary_sha256": "f0029b74bf1fa55b8d7b22ee8455467d919c93d8e4050194435364f5afd76d5d",
+      "test_log_sha256": "fefefcb5b722a708e41f44e10d9da072449261ab375880087d4f1121d70836b5",
+      "retry": "firefox-faults-136-eddsa"
+    }
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "78c56b812718040be38ae20f3d30f0e6cd72952428afd72eb40e111419b1d1fb",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/recovery.rs": "2f4eca2885026083c2ec0a574b598323e717f19624cec04f00a466b27b341d43",
+    "scripts/video/browser-control-transitions.mjs": "4d110ae3927f13a59fda07c0395b2c85421355bdf33585ad2ac14b2bdd9ed34a",
+    "scripts/video/browser-transport-faults.mjs": "cef6fc673d59cebd21d6e9df0cbbff469744c523d391adae484f1e1ba0868f52",
+    "sdk/typescript/src/browser_transport_client.ts": "5ba280121edd472ef314fa8c2bcd29d941603b43844a247a5d9d505a028ca977",
+    "sdk/typescript/dist/browser_transport_client.js": "5e97aef03c1e28413c3699d5a4b41319e05de0d7f5327b98659dd1deca898a62",
+    "sdk/typescript/src/browser_client.ts": "3a78bf41680743e60fdf27aa40ca97746f3049ba0aaecff26aa3420bbc0a8647",
+    "sdk/typescript/dist/browser_client.js": "3c4f03060259ff096a9965a2ba3b08030990814299da5c97c0fdac3b807488a8"
+  },
+  "artifact_custody": [
+    {
+      "manifest_sha256": "9e8526bf34e4a54bae6f442d30a53830252d8a05b214bb3ffc0c40737f85ecc4",
+      "artifacts": 1,
+      "original_bytes": 214881696,
+      "archive_bytes": 47018543,
+      "roundtrip_verified": true,
+      "manifest": ".local/gate-6/rtc-signed-av/proof-archives-transport-faults-01/manifest.json",
+      "location": "Active worktree"
+    },
+    {
+      "manifest_sha256": "52d8ac7a599b3c941b10feec3bdccd3922236b35431846419fc8b9719eac271b",
+      "artifacts": 2,
+      "original_bytes": 429994592,
+      "archive_bytes": 94078246,
+      "roundtrip_verified": true,
+      "manifest": ".local/gate-6/rtc-signed-av/proof-archives-transport-faults-04/manifest.json",
+      "location": "Active worktree"
+    },
+    {
+      "manifest_sha256": "c139f8b0f189fdf3cb8dc619f04ea57730b81279674042a0585191f5951d07f5",
+      "artifacts": 3,
+      "original_bytes": 645400656,
+      "archive_bytes": 141187907,
+      "roundtrip_verified": true,
+      "manifest": ".local/gate-6/rtc-signed-av/proof-archives-transport-faults-05/manifest.json",
+      "location": "Active worktree"
+    },
+    {
+      "kind": "closed historical raw log",
+      "manifest_sha256": "bc0b88a32b25cf87da1131dbb49e95a9237546775750a37308e8f19fbeeb46dc",
+      "original_sha256": "af5c9c1ba20650406b6c0b3366cba4daef5100c93ab921c643be506708651af4",
+      "original_bytes": 27276390,
+      "archive_bytes": 1587179,
+      "roundtrip_verified": true,
+      "location": "Ignored .local/gate-6 under primary checkout; original bytes/mode/mtime retained in restoration manifest.",
+      "run": "firefox-audio-policy-timing-65",
+      "manifest": ".local/gate-6/closed-firefox-audio-policy-timing-65-test.log.json"
+    },
+    {
+      "kind": "closed historical raw log",
+      "manifest_sha256": "f6eb211a60666052431deb3156c098440d08d39962c397498d026e9a2640619b",
+      "original_sha256": "f7647de713bcb4778083eb4d8f697d37b0937dfe2eb419532d4e2c1287eab34d",
+      "original_bytes": 26837592,
+      "archive_bytes": 1579281,
+      "roundtrip_verified": true,
+      "location": "Ignored .local/gate-6 under primary checkout; original bytes/mode/mtime retained in restoration manifest.",
+      "run": "chrome-audio-witness-es256-77",
+      "manifest": ".local/gate-6/closed-chrome-audio-witness-es256-77-test.log.json"
+    }
+  ],
+  "remaining": [
+    "Repeated controller reconnect during actual live consultation and a successful admitted handoff, with retained remote and decoded native/browser media evidence.",
+    "Prove accepted live transition progress or explicit interrupted/unknown status without duplicate external effects; do not substitute unready adapter refusals.",
+    "Full G6-052 requirement audit before closure; separately assigned Linux/remote/installed-package, operating profiles and independent acceptance remain open."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}
