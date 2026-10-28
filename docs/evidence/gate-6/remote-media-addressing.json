@@ -329,5 +329,10 @@
     "evidence": "docs/evidence/gate-6/negotiated-sender-feedback.json",
     "status": "Three causal functions and five actual direct/relay regressions pass. Both normal distinct-network browser algorithms now decode about30fps/opposite tones and pass source identity/audio coverage/AV sync/paired end, but fail unchanged24changing-fps threshold at about11fps. Whole browser profile remains failed; see component evidence.",
     "commit": "71b47ae2e5332534f46eff3498c470bc4b583183"
+  },
+  "distinct_network_telephone": {
+    "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
+    "status": "failed",
+    "result": "Actual Linux SIP INVITE/200/ACK, journal-before-effect and bidirectional PCMU packets observed through owned UDP NAT. Whole run fails valid RTCP on RTP without negotiated mux; no complete decoder/end/drain pass. Both-algorithm qualification remains pending."
   }
 }

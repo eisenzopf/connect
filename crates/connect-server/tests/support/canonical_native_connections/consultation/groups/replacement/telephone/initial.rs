@@ -10,6 +10,9 @@ mod gateways;
 mod private_candidate;
 #[path = "initial/received.rs"]
 mod received;
+#[cfg(unix)]
+#[path = "initial/remote.rs"]
+mod remote;
 #[cfg(feature = "test-support")]
 #[path = "initial/subscriptions.rs"]
 mod subscriptions;

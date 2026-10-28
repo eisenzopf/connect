@@ -1,0 +1,340 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "implementation_status": "in-progress",
+  "component_passed": false,
+  "scope": "Owned actual Linux arm64 SIP/RTP peer across the local Lima network to explicit Mac Remote canonical telephone addresses and a public native SDK audio peer. Controlled fixed peer-side UDP NAT, synthetic media; no provider/PSTN/SMS/model calls, WAN/direct reachability, Linux x86 performance or full G6-054 qualification.",
+  "procedure": "docs/developer/remote-telephone-rehearsal.md",
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 14.84349241713062,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5254,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-241",
+      "sha256": "fe89d188d810415ac8271d20292ed269d1214259cfda2346d4ecaf7eb92c0882",
+      "bytes": 268319960
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "a0600d79f15f7406e8c6b77556c8d75a2d69b46985b63cdff99001dab477525a"
+  },
+  "failed_trials": {
+    "nat237": {
+      "passed": false,
+      "failure": {
+        "type": "AssertionError",
+        "message": ""
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "2113ebef62c9f9ed7fe0006cc658752bc88a75576afd1e217ced65f12efebe6b",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 0,
+              "server_to_guest": 6
+            },
+            "rtp": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "c1dbce2f52a1664f6adf7e33f69e8d524b4b215f7b760a532abb177f0e578d2a",
+            "guest.log": "d51c1baa48d6e58d5455448c82969b4276a41b505d909f11728f23970bf00d52"
+          }
+        }
+      ]
+    },
+    "nat238": {
+      "passed": false,
+      "failure": {
+        "type": "TimeoutExpired",
+        "message": "Command '['docker', 'run', '--rm', '--cidfile', '/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/telephone-remote/nat238/EdDSA/container-id', '--read-only', '--cpus', '2', '--memory', '1g', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:rw,size=64m', '--mount', 'type=bind,source=/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect,target=/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect,readonly', '--mount', 'type=bind,source=/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/telephone-remote/nat238/EdDSA,target=/fixture', 'sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0', 'python3', '/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/scripts/telephone/linux_remote_phone.py', '/fixture']' timed out after 15 seconds"
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "514b5c05eb9b8596fe276686af569fd56d5e18faa67440979b7b10421fd3c063",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": true,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 1,
+              "server_to_guest": 2
+            },
+            "rtp": {
+              "guest_to_server": 0,
+              "server_to_guest": 14
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "561e89070f95328cf454f3f7d0238981cdc83266a810859f4c21f494b7acfe08",
+            "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        }
+      ]
+    },
+    "nat240": {
+      "passed": false,
+      "failure": {
+        "type": "AssertionError",
+        "message": ""
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "ae609d16266f637caa6f9e1850b38f7f8dd4a97830ee72a2b25e6869f9dffea0",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 1,
+              "server_to_guest": 2
+            },
+            "rtp": {
+              "guest_to_server": 0,
+              "server_to_guest": 14
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "c486facc38e78c7c003bcd87a295f19ad1e06be8d1855493d5b5fe01a46c66f6",
+            "guest.log": "e013719ea74f7bf3c3750a32e58d8ff5212ddecaad4a67511022f833d1caf9d4"
+          }
+        }
+      ]
+    },
+    "nat242": {
+      "passed": false,
+      "failure": {
+        "type": "AssertionError",
+        "message": ""
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "0c19cdc18bc27f3430d36c2b405c9e0cfbcf7d9b25d1b0aa088d8bdd80b1cced",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 1,
+              "server_to_guest": 2
+            },
+            "rtp": {
+              "guest_to_server": 44,
+              "server_to_guest": 198
+            },
+            "rtcp": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "2af67b0c45efc40b5f2b54c2fb375ee31c94e487594b3d05a782c9e6de1fc58e",
+            "guest.log": "7de1bb732f8f684a977e00535d097e2b653aaa77b068945e7eb5160d2f22409f"
+          }
+        }
+      ]
+    },
+    "nat243": {
+      "passed": false,
+      "failure": {
+        "type": "AssertionError",
+        "message": ""
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "e9a37e13daa3b7f590fe8b3deb49fdb8379c494189da4030d36e39f6aef1413e",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 1,
+              "server_to_guest": 2
+            },
+            "rtp": {
+              "guest_to_server": 44,
+              "server_to_guest": 200
+            },
+            "rtcp": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "3b2c934f495c7e933d5af0fddd83d5acb5e57dc1e3bf161da8e96e35552683f5",
+            "guest.log": "cf2486146ebf12acefb14ed67b5436605159520a31b9b4259c9dddbbf4f63680"
+          }
+        }
+      ]
+    },
+    "nat244": {
+      "passed": false,
+      "failure": {
+        "type": "AssertionError",
+        "message": ""
+      },
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "summary_sha256": "9f8a3d6710e1caeff783c34b213e6954aead7caae842e1e14e72f1aa99d8be0c",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "server_exit_code": 101,
+          "guest_exit_code": 1,
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 1,
+              "server_to_guest": 2
+            },
+            "rtp": {
+              "guest_to_server": 43,
+              "server_to_guest": 198
+            },
+            "rtcp": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "worker_joined": true,
+            "unique_calls": 1
+          },
+          "logs_sha256": {
+            "server.log": "76048a6dbe9774b6a2f76b9f00daad3564f611cec05e289b0dded01202bf8c5c",
+            "guest.log": "0fbf2fddeb74d4313766ab8ca2aeb9950f8cc4c9dca37304009bd2a1d5a7ca83"
+          }
+        }
+      ]
+    }
+  },
+  "latest_guest": {
+    "passed": false,
+    "os": "linux",
+    "architecture": "aarch64",
+    "sip_invites": 1,
+    "sip_acks": 1,
+    "sip_byes": 0,
+    "sent_rtp": 43,
+    "received_rtp": 37,
+    "foreign_datagrams": 0,
+    "rtcp_mux_offered": false,
+    "server_advertised_media_ip_matched": true,
+    "last_rtp_header": {
+      "bytes": 172,
+      "first": 128,
+      "second": 0
+    },
+    "rtcp_on_rtp_socket": 1,
+    "last_compound_rtcp": {
+      "packet_types": [
+        200,
+        202,
+        207
+      ],
+      "bytes": 144
+    },
+    "owned_sockets_closed": true,
+    "received_bytes": 5920,
+    "received_sha256": "715d3a3444d8b6976f2eb6397d3726f95d3592af1a7519405d68ec2031f88c05"
+  },
+  "verified_partial_observations": [
+    "Nonce-bound original Linux SIP/RTP socket mappings; zero foreign datagrams.",
+    "One exact journaled submitting initial-call effect precedes forwarding the first INVITE.",
+    "Actual percent-encoded synthetic SIP INVITE, 200 answer and ACK cross the VM network.",
+    "Advertised media IP and bounded port range agree with explicit Remote configuration.",
+    "Actual PCMU RTP packets cross the VM network in both directions before the protocol failure.",
+    "Original NAT worker and owned sockets join/close; whole runs remain failed."
+  ],
+  "root_cause_evidence": {
+    "observed": "Structurally valid compound RTCP arrives on the peer RTP socket although the offer lacks a=rtcp-mux. The peer refuses it and media subsequently stops; complete decoded-duplex/end/drain criteria have not passed.",
+    "source": ".deps/rvoip/crates/media/rtp-core/src/session/mod.rs new_with_receive_queue builds local_rtcp_addr=None and rtcp_mux=true unconditionally; start sets remote RTCP to the RTP address.",
+    "sip_source": ".deps/rvoip/crates/sip/rvoip-sip/src/adapters/media_adapter.rs tracks required/negotiated SDP mux separately, while actual RTP construction is hard-coded mux. A fix must connect negotiated transport policy through SIP/media/RTP ownership.",
+    "not_a_fix": "Do not accept unnegotiated RTCP in the fixture, disable it to manufacture a media pass, or silently drop separate-port SIP support."
+  },
+  "remaining": [
+    "Implement and causally verify negotiated separate/multiplexed RTCP routing, including explicit RTCP address and original socket ownership/drain.",
+    "Then run both EdDSA and ES256 complete opposite-tone decode/replay/signed-end/drain profiles. ES256 has not run in this failed sequence.",
+    "Distinct-network telephone loss/unreachable behavior, browser rendered-rate qualification, ICE restart and remaining G6-054 profiles remain open."
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial.rs": "1aa6d666aba224a8757eb32bacd5ac454e6b9ffa58016c26cf3998f330ca69ea",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement/telephone/initial/remote.rs": "866ff0623e85d94e6a372725cf5c5c8d56ba77606a3dbafdf239c021bbc94e89",
+    "scripts/rehearse-gate6-remote-telephone.py": "d9a86c1d8e8b51af9f25ccd2100d68b185d4af3e5438dece24739cf0a2e3b1b1",
+    "scripts/telephone/linux_remote_phone.py": "3473c67dd2d1952ca32ac3f15c3bda9ff433d03898b296407462bce1db93a726",
+    "dependencies/source-lock.json": "a19558e53520b4cd1e48f59bcbc1477c58c3b8b838f52ac7d1a886d67aa3d5bc"
+  }
+}
