@@ -701,7 +701,7 @@ async fn exercise_replacement_with_control(
                     let _ = peer.client.shutdown().await;
                 }
                 wait_slots(&f, 0).await;
-                f.server.shutdown().await.unwrap();
+                super::sdk_movements::shutdown(&f).await;
                 eprintln!("actual captured movement projection failure recovered: known commit, revoked target before adoption, exact retirement, retained peer, no second attempt");
                 continue;
             }
@@ -934,7 +934,7 @@ async fn exercise_replacement_with_control(
                 let _ = peer.client.shutdown().await;
             }
             wait_slots(&f, 0).await;
-            f.server.shutdown().await.unwrap();
+            super::sdk_movements::shutdown(&f).await;
             eprintln!("actual managed movement passed: observer={observer}; generation2, original-only retirement, current independent audio, latecancel and original authority revocation");
             continue;
         }
@@ -1130,7 +1130,7 @@ async fn exercise_replacement_with_control(
             let _ = peer.client.shutdown().await;
         }
         wait_slots(&f, 0).await;
-        f.server.shutdown().await.unwrap();
+        super::sdk_movements::shutdown(&f).await;
         eprintln!("actual Core replacement phase passed: observer={observer}, endpoint_revoked={revoke_endpoint}, target_key_revoked={revoke_target_key}, allocated={allocate}, resources_started={start_media}, rejected_answer={reject_answer}; one attempt per phase, provisional target media closed, original audio/role retained, actual cancellation/retirement and capacity reuse");
     }
 }

@@ -64,10 +64,13 @@ installed SDK accepted all four malformed synthetic outputs, while the current
 SDK fences the original helper as a protocol failure.
 
 Actual positive native Node handoff/move/consultation journeys remain pending.
-The Ubuntu installed control fixture now additionally asserts current-authority
-refusal for handoff and movement on ordinary configurations lacking those
-grants, preserving original IDs, scope and helper usability. Its execution and
-new Rust helper compilation are pending. Local Rust linking is skipped because
-of the retained ENOSPC failure; no runtime pass is inferred. Existing recorded
-native Connection control evidence remains a separate earlier source cohort.
-See [the evidence record](../evidence/gate-6/node-movement-sdk.json).
+The installed Ubuntu control fixture passed both current-authority no-grant
+handoff/movement refusals for EdDSA and ES256 at `8e7a8d21`, preserving original
+IDs, scope and helper usability before its existing native recovery/drains.
+Local Rust linking remains skipped because of the retained Mac ENOSPC.
+
+The [native movement fixture](node-movement-audio.md) now exercises public Node
+controllers against independent actual media peers, including role scopes,
+outgoing dispositions, endpoint movement, cancellation, revocation and recording
+failure. Its compilation/runtime checks are pending; synthetic protocol results
+are kept separate. See [the evidence record](../evidence/gate-6/node-movement-sdk.json).

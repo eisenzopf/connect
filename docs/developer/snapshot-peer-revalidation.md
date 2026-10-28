@@ -27,11 +27,23 @@ projection coverage and a signing key revoked after admission. Existing snapshot
 pagination, scope binding, membership/visibility and peer-authority tests remain
 required. Capture instrumentation exists only in the Store unit-test build.
 
-The Ubuntu verifier now builds the Store test binary, verifies the exact three
-new test names, and runs the snapshot and peer-authority groups before its
-existing native fixtures and installed Node journey. All original SDK request,
-phase and whole-function deadlines remain unchanged. Local Rust execution is
-explicitly skipped because the retained Mac linker ENOSPC prevents a reliable
-native build. Compilation, security regressions and actual deadline behavior
-are pending Ubuntu verification; this document does not claim a pass or a
-resolved timing cause.
+The Ubuntu verifier built the Store test binary, checked all three new names,
+and passed 22 snapshot and 38 peer-authority functions, including the capture,
+projection-coverage and current-key regressions. The same source-bound run
+passed all 77 existing native functions and the installed Node control/recovery
+journey for EdDSA and ES256 in 64.72 seconds. Its ten phases completed within
+the unchanged four-second SDK, 15-second phase and 90-second function budgets;
+all six original helpers and both servers joined, with zero physical peers and
+media readers. Both no-grant movement refusals also passed in both algorithms.
+
+Artifact 12842951491 from commit `8e7a8d21` verifies 8,077 unchanged inputs;
+3,985 tracked sources were independently compared with that Git revision.
+Compiled Store/server/CLI hashes and the full results are in the
+[evidence record](../evidence/gate-6/snapshot-peer-revalidation.json).
+The long CI phase was a 1,385.93-second server-library rebuild; Store compilation
+took 55.53 seconds. Local Mac Rust execution remains explicitly skipped because
+of the retained linker ENOSPC.
+
+This proves the duplicate-work reduction and these functional/security scopes.
+It does not establish the cause of every earlier timing failure or qualify a
+performance profile, newer SDK receipt/audio scenes, full Node SDK or Gate 6.

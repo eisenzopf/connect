@@ -2,8 +2,8 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "pending-runtime-verification",
-  "component_passed": false,
+  "status": "verified-native-component",
+  "component_passed": true,
   "acceptance_qualified": false,
   "publication": false,
   "observed_failure": {
@@ -99,7 +99,7 @@
     "diff_check": "passed",
     "rust_build": "skipped: retained Mac linker ENOSPC; Ubuntu compile/testing pending"
   },
-  "qualification_limit": "Repeated work is identified in source; faster current-authorized behavior and a timing fix are not claimed before actual tests. Earlier cold-start and recovery failures remain retained.",
+  "qualification_limit": "Exact8e security/snapshot groups and installed Node recovery now pass within unchanged4sSDK/15sphase/90sfunction bounds. Capture reduction3single/7multi and current projection/key checks are proved by executed regressions. This is one functional cohort, not a performance qualification or proof of the cause of every earlier cold-start/recovery deadline. All earlier failures remain retained; newer receipts/audio/movement fixtures require their own source-bound runs.",
   "source_sha256": {
     "crates/connect-store/src/peer_authority.rs": "5146409217a9b5bca6c3bdcc072fc127d071cf606ea378dd99b01f997e7bdeeb",
     "crates/connect-store/src/peer_authority/tests.rs": "44b2512da660998f0b39dbeac5814a44b9dcf2c9f92b3f76745736145d739862",
@@ -134,5 +134,140 @@
       "exact_prior_local_map": true,
       "scope": "Synthetic helper/HTTP/declaration checks only; no native runtime qualification"
     }
-  ]
+  ],
+  "ubuntu_verification": {
+    "commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+    "run_id": 40743632054,
+    "artifact_id": 12842951491,
+    "zip_sha256": "422d73be92305c93738c8cebec3a3dafded2ca3902885f0f11cd3ace7d29150e",
+    "passed": true,
+    "functions": 138,
+    "source_bound_tracked_files_verified": 3985,
+    "guarded_inputs": 8077,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "37b734e5e53642c137905aed76310bc956592c1f137b01a3488479521d82ac1c",
+    "compiled_artifacts": {
+      "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+      "library": "a6fed84433bd193c5d1b004f8b4cce9e49e041fcd75abf86e61d7b1bf97d1d94",
+      "hosting": "3bcc19da60d6bf7c923c3295f7524e4702f345943bd329d3090c16d96349f572",
+      "cli": "12fce640e7738de6daa9801ccaf102186334de2bf69c2bb80c7938c08a1b4487",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "group_counts": {
+      "snapshot-store": 22,
+      "snapshot-peer-authority": 38,
+      "addressing": 4,
+      "config": 4,
+      "sip-config": 4,
+      "rtcp-udp": 32,
+      "rtcp-allocator": 20,
+      "rtcp-session-route": 1,
+      "owned-dtls": 1,
+      "https-hosting": 7,
+      "sip-unknown-account": 1,
+      "sip-bind-failure": 1,
+      "sip-owner-drop": 1,
+      "sip-readiness": 1,
+      "installed-node-native-control": 1
+    },
+    "native_function": {
+      "name": "installed-node-native-control",
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 64.72013434399992,
+      "log_sha256": "52841393f9e8e83b5104339761b4ef8c715c135966736eb9a87a616c31232f3e",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 64.66s"
+      ],
+      "panic_locations": [],
+      "node_completed_phases": [
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "controls-ready",
+          "seconds": 8.18542221
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "native-complete",
+          "seconds": 8.618315719
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "initial",
+          "seconds": 11.09510412
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "recovered",
+          "seconds": 3.856519954
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "completed",
+          "seconds": 0.10377889
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "controls-ready",
+          "seconds": 8.077455168
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "native-complete",
+          "seconds": 8.539689107
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "initial",
+          "seconds": 10.994849567
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "recovered",
+          "seconds": 3.841219104
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "completed",
+          "seconds": 0.107901402
+        }
+      ],
+      "node_failures": []
+    },
+    "node_runtime": "v26.12.1",
+    "installed_dist_matches_git_and_compiled_sources": true,
+    "functional_phase_profile": "node-controls/2",
+    "original_helpers_joined": 6,
+    "servers_joined": 2,
+    "physical_peers_drained": true,
+    "media_readers_drained": true,
+    "compilation_seconds": {
+      "compile-store": 55.52886457199999,
+      "compile-library": 1385.934437585,
+      "compile-hosting": 183.3562959159999,
+      "compile-rtp": 0.3653237609998996
+    },
+    "scope": "Exact8e Store snapshot/security, existing77nativefunctions and installedNode control/recovery/both no-grant movement refusals. No currentNode receipts/consultation audio/movement success, no model/provider/remote/browser/fullSDK or Gate6 qualification."
+  }
 }

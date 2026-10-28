@@ -622,6 +622,161 @@
   "recorded_native_function_passed": true,
   "qualification_limit": "Latest recorded isolated UbuntuNode26 functional cohort passes both algorithms. Whole runtime/full SDK qualification remains open; prior4srecovery deadline has no established cause and no production fix is inferred.",
   "latest_ubuntu_native_positive": {
+    "commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+    "run_id": 40743632054,
+    "artifact_id": 12842951491,
+    "zip_sha256": "422d73be92305c93738c8cebec3a3dafded2ca3902885f0f11cd3ace7d29150e",
+    "passed": true,
+    "functions": 138,
+    "source_bound_tracked_files_verified": 3985,
+    "guarded_inputs": 8077,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "37b734e5e53642c137905aed76310bc956592c1f137b01a3488479521d82ac1c",
+    "compiled_artifacts": {
+      "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+      "library": "a6fed84433bd193c5d1b004f8b4cce9e49e041fcd75abf86e61d7b1bf97d1d94",
+      "hosting": "3bcc19da60d6bf7c923c3295f7524e4702f345943bd329d3090c16d96349f572",
+      "cli": "12fce640e7738de6daa9801ccaf102186334de2bf69c2bb80c7938c08a1b4487",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "group_counts": {
+      "snapshot-store": 22,
+      "snapshot-peer-authority": 38,
+      "addressing": 4,
+      "config": 4,
+      "sip-config": 4,
+      "rtcp-udp": 32,
+      "rtcp-allocator": 20,
+      "rtcp-session-route": 1,
+      "owned-dtls": 1,
+      "https-hosting": 7,
+      "sip-unknown-account": 1,
+      "sip-bind-failure": 1,
+      "sip-owner-drop": 1,
+      "sip-readiness": 1,
+      "installed-node-native-control": 1
+    },
+    "native_function": {
+      "name": "installed-node-native-control",
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 64.72013434399992,
+      "log_sha256": "52841393f9e8e83b5104339761b4ef8c715c135966736eb9a87a616c31232f3e",
+      "test_results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 64.66s"
+      ],
+      "panic_locations": [],
+      "node_completed_phases": [
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "controls-ready",
+          "seconds": 8.18542221
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "native-complete",
+          "seconds": 8.618315719
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "initial",
+          "seconds": 11.09510412
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "recovered",
+          "seconds": 3.856519954
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "completed",
+          "seconds": 0.10377889
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "controls-ready",
+          "seconds": 8.077455168
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "native-complete",
+          "seconds": 8.539689107
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "initial",
+          "seconds": 10.994849567
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "recovered",
+          "seconds": 3.841219104
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "completed",
+          "seconds": 0.107901402
+        }
+      ],
+      "node_failures": []
+    },
+    "node_runtime": "v26.12.1",
+    "installed_dist_matches_git_and_compiled_sources": true,
+    "functional_phase_profile": "node-controls/2",
+    "original_helpers_joined": 6,
+    "servers_joined": 2,
+    "physical_peers_drained": true,
+    "media_readers_drained": true,
+    "compilation_seconds": {
+      "compile-store": 55.52886457199999,
+      "compile-library": 1385.934437585,
+      "compile-hosting": 183.3562959159999,
+      "compile-rtp": 0.3653237609998996
+    },
+    "scope": "Exact8e Store snapshot/security, existing77nativefunctions and installedNode control/recovery/both no-grant movement refusals. No currentNode receipts/consultation audio/movement success, no model/provider/remote/browser/fullSDK or Gate6 qualification."
+  },
+  "latest_ubuntu_node_synthetic": {
+    "commit": "1ac57f40f0077914e9bdb357ef70c6b4b56de51b",
+    "run_id": 40734325121,
+    "passed": true,
+    "functions_each": 53,
+    "source_count": 194,
+    "source_maps_match_local365": true,
+    "artifacts": [
+      {
+        "id": 12835992250,
+        "node": "v22.23.4",
+        "zip_sha256": "9239d8fb848537ca3c0a04aa5152e463a22c5559c4f1cce1871a78d9d23b0794"
+      },
+      {
+        "id": 12835603833,
+        "node": "v26.12.1",
+        "zip_sha256": "0774aab6f0896f89df6eb43e8c4177bd150b3b34ec5e4fc427f6696f6a1bf88a"
+      }
+    ]
+  },
+  "previous_ubuntu_native_positive": {
     "commit": "1ac57f40f0077914e9bdb357ef70c6b4b56de51b",
     "run_id": 40734325121,
     "artifact_id": 12837291223,
@@ -873,25 +1028,5 @@
     "local366_installed_dist_and_consumer_match": true,
     "production_cli_byte_identical_to_failed_cb_cohort": true,
     "scope": "Recorded Ubuntu24.04x86 Node26 installed native control functional profile2 plus existing native77functions only. No decoded media/full SDK/install packaging/performance/named remote/provider/model qualification. Prior4srecovery deadline remains unresolved; no production fix inferred."
-  },
-  "latest_ubuntu_node_synthetic": {
-    "commit": "1ac57f40f0077914e9bdb357ef70c6b4b56de51b",
-    "run_id": 40734325121,
-    "passed": true,
-    "functions_each": 53,
-    "source_count": 194,
-    "source_maps_match_local365": true,
-    "artifacts": [
-      {
-        "id": 12835992250,
-        "node": "v22.23.4",
-        "zip_sha256": "9239d8fb848537ca3c0a04aa5152e463a22c5559c4f1cce1871a78d9d23b0794"
-      },
-      {
-        "id": 12835603833,
-        "node": "v26.12.1",
-        "zip_sha256": "0774aab6f0896f89df6eb43e8c4177bd150b3b34ec5e4fc427f6696f6a1bf88a"
-      }
-    ]
   }
 }

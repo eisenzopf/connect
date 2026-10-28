@@ -244,5 +244,15 @@
         "zip_sha256": "c0397a01d23362f0d2b0156b8c4db13ff9ffa144870a10ad5782180aa994bdd4"
       }
     ]
+  },
+  "native_current_authority_refusal_8e": {
+    "commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+    "run_id": 40743632054,
+    "artifact_id": 12842951491,
+    "zip_sha256": "422d73be92305c93738c8cebec3a3dafded2ca3902885f0f11cd3ace7d29150e",
+    "both_algorithms_passed": true,
+    "original_mutation_keys_and_scope_preserved": true,
+    "helper_remained_usable": true,
+    "scope": "Actual installed Node handoff and move refuse403 for the ordinary no-grant caller in both algorithms; existing native/recovery/drains complete. Positive transitions remain pending separate native scenes."
   }
 }

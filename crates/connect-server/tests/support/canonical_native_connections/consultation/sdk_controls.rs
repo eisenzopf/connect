@@ -293,6 +293,7 @@ async fn production_public_rust_sdk_consultation_return_after_remote_eof_reports
 
 #[path = "node_controls.rs"]
 mod node_controls;
+pub(super) use node_controls::MovementProbe as NodeMovementProbe;
 
 #[derive(Clone)]
 pub(super) struct Saved {

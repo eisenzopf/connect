@@ -23,11 +23,21 @@ impl Process {
         assert!(line.len() <= 8192);
         let value: Value = serde_json::from_str(&line).unwrap();
         if value["phase"] == "failed" {
-            eprintln!("installed-node-consultation-failure {value}");
+            let prefix = if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
+                "installed-node-movement-failure"
+            } else {
+                "installed-node-consultation-failure"
+            };
+            eprintln!("{prefix} {value}");
         }
         assert_eq!(value["phase"], expected);
+        let prefix = if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
+            "installed-node-movement-phase"
+        } else {
+            "installed-node-consultation-phase"
+        };
         eprintln!(
-            "installed-node-consultation-phase {}",
+            "{prefix} {}",
             json!({
                 "algorithm": self.algorithm, "phase": expected,
                 "seconds": started.elapsed().as_secs_f64(), "deadline_seconds": 15
@@ -47,7 +57,31 @@ pub(in crate::canonical_native_connections::consultation) struct Probe {
     process: tokio::sync::Mutex<Process>,
 }
 async fn start(f: &Fixture, token: &str, mode: &str, detail: Value) -> (Process, Value) {
-    let script = PathBuf::from(std::env::var_os("CONNECT_GATE6_NODE_CONSULT_CONSUMER").unwrap())
+    let config = controller_config(f, token, if mode == "consult" { 901 } else { 902 });
+    start_configured(
+        f,
+        config,
+        mode,
+        detail,
+        "CONNECT_GATE6_NODE_CONSULT_CONSUMER",
+        if mode == "consult" {
+            "submitted"
+        } else {
+            "returned"
+        },
+    )
+    .await
+}
+async fn start_configured(
+    f: &Fixture,
+    config: CanonicalClientConfig,
+    mode: &str,
+    detail: Value,
+    consumer_env: &str,
+    initial: &str,
+) -> (Process, Value) {
+    let token = config.credential.clone();
+    let script = PathBuf::from(std::env::var_os(consumer_env).unwrap())
         .canonicalize()
         .unwrap();
     assert!(script.starts_with(
@@ -58,7 +92,6 @@ async fn start(f: &Fixture, token: &str, mode: &str, detail: Value) -> (Process,
             .unwrap()
     ));
     let project = script.parent().unwrap();
-    let config = controller_config(f, token, if mode == "consult" { 901 } else { 902 });
     let sdk_config = sdk::ClientConfig {
         control: config,
         tenant_id: "tnt_default".parse().unwrap(),
@@ -108,14 +141,8 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         mode: mode.into(),
         helpers: 1,
     };
-    let value = process
-        .phase(if mode == "consult" {
-            "submitted"
-        } else {
-            "returned"
-        })
-        .await;
-    assert!(!std::fs::read_to_string(stderr).unwrap().contains(token));
+    let value = process.phase(initial).await;
+    assert!(!std::fs::read_to_string(stderr).unwrap().contains(&token));
     (process, value)
 }
 pub(super) async fn submit(f: &Fixture, command: &TransitionCommand, token: &str) -> Probe {
@@ -211,6 +238,135 @@ pub(super) async fn restore(f: &Fixture, token: &str, reference: Value, revision
     Probe {
         reference: value["reference"].clone(),
         process: tokio::sync::Mutex::new(process),
+    }
+}
+
+static MOVEMENT_HELPERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static MOVEMENT_SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+pub(in crate::canonical_native_connections::consultation) struct MovementProbe {
+    process: Process,
+    pub reference: Value,
+}
+impl MovementProbe {
+    pub(in crate::canonical_native_connections::consultation) fn joined() -> (usize, usize) {
+        use std::sync::atomic::Ordering;
+        (
+            MOVEMENT_HELPERS.load(Ordering::SeqCst),
+            MOVEMENT_SERVERS.load(Ordering::SeqCst),
+        )
+    }
+    pub(in crate::canonical_native_connections::consultation) fn server_joined() {
+        MOVEMENT_SERVERS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub(in crate::canonical_native_connections::consultation) fn enabled() -> bool {
+        std::env::var_os("CONNECT_GATE6_NODE_MOVEMENTS").as_deref()
+            == Some(std::ffi::OsStr::new("1"))
+    }
+    pub(in crate::canonical_native_connections::consultation) async fn register(
+        f: &Fixture,
+        config: CanonicalClientConfig,
+        command: &TransitionCommand,
+        consultation: Value,
+    ) -> Self {
+        assert!(Self::enabled());
+        let mode = if matches!(&command.intent, TransitionIntent::Handoff { .. }) {
+            "handoff"
+        } else {
+            "move"
+        };
+        let (process, _) = start_configured(
+            f,
+            config,
+            mode,
+            json!({"command":command,"consultation":consultation}),
+            "CONNECT_GATE6_NODE_MOVEMENT_CONSUMER",
+            "registered",
+        )
+        .await;
+        Self {
+            process,
+            reference: Value::Null,
+        }
+    }
+    pub(in crate::canonical_native_connections::consultation) async fn begin(&mut self) {
+        let value = self
+            .process
+            .request(json!({"action":"begin"}), "accepted")
+            .await;
+        self.reference = value["reference"].clone();
+    }
+    pub(in crate::canonical_native_connections::consultation) async fn completed(
+        mut self,
+    ) -> Value {
+        let value = self
+            .process
+            .request(json!({"action":"completed"}), "completed")
+            .await;
+        self.process.helpers = 2;
+        self.close().await;
+        value["summary"].clone()
+    }
+    pub(in crate::canonical_native_connections::consultation) async fn stopped(
+        mut self,
+        state: connect_protocol::transitions::OperationState,
+        original_revoked: bool,
+    ) -> Value {
+        let value = self
+            .process
+            .request(
+                json!({"action":"stopped","state":state,"original_revoked":original_revoked}),
+                "stopped",
+            )
+            .await;
+        self.close().await;
+        value
+    }
+    pub(in crate::canonical_native_connections::consultation) async fn recover_stopped(
+        f: &Fixture,
+        config: CanonicalClientConfig,
+        reference: Value,
+        state: connect_protocol::transitions::OperationState,
+    ) {
+        let (process, value) = start_configured(
+            f,
+            config,
+            "move-recovery",
+            json!({"reference":reference,"state":state}),
+            "CONNECT_GATE6_NODE_MOVEMENT_CONSUMER",
+            "stopped",
+        )
+        .await;
+        assert_eq!(value["state"], serde_json::to_value(state).unwrap());
+        assert_eq!(value["certainty"], "recorded");
+        Self {
+            process,
+            reference: Value::Null,
+        }
+        .close()
+        .await;
+    }
+    async fn close(mut self) {
+        let value = self
+            .process
+            .request(json!({"action":"close"}), "closed")
+            .await;
+        assert_eq!(value["helpers_joined"], self.process.helpers);
+        drop(self.process.input);
+        assert!(
+            tokio::time::timeout(Duration::from_secs(5), self.process.output.next_line())
+                .await
+                .unwrap()
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_secs(5), self.process.child.wait())
+                .await
+                .unwrap()
+                .unwrap()
+                .success()
+        );
+        MOVEMENT_HELPERS.fetch_add(self.process.helpers, std::sync::atomic::Ordering::SeqCst);
     }
 }
 

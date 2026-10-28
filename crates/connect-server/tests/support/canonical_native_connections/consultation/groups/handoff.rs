@@ -943,7 +943,7 @@ async fn handoff_case_with_control(
     if let Some(browser) = browser_control {
         browser.close(&f).await;
     }
-    f.server.shutdown().await.unwrap();
+    super::sdk_movements::shutdown(&f).await;
 }
 
 #[tokio::test]

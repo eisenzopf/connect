@@ -81,6 +81,7 @@ def run(node_sdk=False):
         node_package = prepare(PRIVATE / 'node-native', ROOT / 'dist/gate-6/node-linux-runtime')
         os.environ['CONNECT_GATE6_NODE_CONSUMER'] = str(ROOT / node_package['consumer'])
         os.environ['CONNECT_GATE6_NODE_CONSULT_CONSUMER'] = str(ROOT / node_package['consultation_consumer'])
+        os.environ['CONNECT_GATE6_NODE_MOVEMENT_CONSUMER'] = str(ROOT / node_package['movement_consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -88,11 +89,12 @@ def run(node_sdk=False):
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
               "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT, browser/performance or installation qualification."}
 
-    def execute(name, command, timeout):
+    def execute(name, command, timeout, *, defer_failure=False, environment=None):
         log = PRIVATE / (name + ".log")
         started = time.monotonic()
         with log.open("wb") as stream:
-            child = subprocess.Popen(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
+            child = subprocess.Popen(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, start_new_session=True,
+                                     env=None if environment is None else dict(os.environ, **environment))
             timed = False
             forced = False
             try:
@@ -153,6 +155,24 @@ def run(node_sdk=False):
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 step['node_consultation_failures'].append(failure)
+        step['node_movement_phases'] = []
+        step['node_movement_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('installed-node-movement-phase '):
+                phase = json.loads(line.split(' ', 1)[1])
+                assert set(phase) == {'algorithm', 'phase', 'seconds', 'deadline_seconds'}
+                assert phase['algorithm'] in {'EdDSA', 'ES256'}
+                assert phase['phase'] in {'registered', 'accepted', 'completed', 'stopped', 'closed'}
+                assert type(phase['seconds']) in (int, float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
+                step['node_movement_phases'].append(phase)
+            if line.startswith('installed-node-movement-failure '):
+                failure = json.loads(line.split(' ', 1)[1])
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'line', 'column'} and failure['phase'] == 'failed'
+                assert failure['checkpoint'] in {'register', 'recover', 'begin', 'completed', 'stopped', 'close', 'invalid'}
+                assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
+                assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
+                assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
+                step['node_movement_failures'].append(failure)
         if child.returncode != 0:
             diagnostics = []
             for line in text.splitlines():
@@ -169,6 +189,8 @@ def run(node_sdk=False):
             step["compiler_diagnostics"] = diagnostics
         report["steps"].append(step)
         print(json.dumps(step), flush=True)
+        if defer_failure and (child.returncode != 0 or timed or forced):
+            return None
         assert child.returncode == 0 and not timed and not forced, f"Phase failed: {name}; raw output retained privately"
         return text
 
@@ -233,14 +255,52 @@ def run(node_sdk=False):
             text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90)
             counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", text)
             assert len(counts) == 1 and int(counts[0][0]) >= expected and counts[0][1:] == ("0", "0"), "Missing/skipped fixture coverage"
+        sdk_failures = []
+        def sdk_case(name, case, environment=None):
+            text = execute(name, [artifacts['hosting'], case, '--exact', '--ignored', '--nocapture', '--test-threads=1'],
+                           90, defer_failure=True, environment=environment)
+            if text is None:
+                sdk_failures.append(name)
+            return text
         if node_sdk:
+            movement_results = []
+            for scenario, name, algorithms, cases in (
+                ('session-handoff', 'installed_node_session_handoff_retains_actual_audio_roles_and_recovery', ['EdDSA', 'ES256'], 4),
+                ('conversation-handoff', 'installed_node_conversation_handoff_retains_actual_audio_roles_and_recovery', ['EdDSA', 'ES256'], 4),
+                ('device-move-eddsa', 'installed_node_eddsa_device_move_preserves_audio_and_current_authority', ['EdDSA'], 4),
+                ('device-move-es256', 'installed_node_es256_device_move_preserves_audio_and_current_authority', ['ES256'], 4),
+                ('device-move-cancelled', 'installed_node_device_move_cancellation_remains_recorded_after_recovery', ['EdDSA', 'ES256'], 6),
+                ('device-move-recording-failure', 'installed_node_device_move_recording_failure_recovers_one_known_commit', ['EdDSA', 'ES256'], 2),
+            ):
+                case = 'canonical_native_connections::consultation::groups::sdk_movements::' + name
+                text = sdk_case('installed-node-movement-' + scenario, case, {'CONNECT_GATE6_NODE_MOVEMENTS': '1'})
+                if text is None:
+                    movement_results.append({'scenario': scenario, 'passed': False})
+                    continue
+                assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text) == [('1', '0', '0')]
+                witnesses = [json.loads(line.split('installed-node-movement-witness ', 1)[1])
+                             for line in text.splitlines() if 'installed-node-movement-witness ' in line]
+                assert len(witnesses) == 1
+                witness = witnesses[0]
+                assert witness['profile'] == 'node-movements/1' and witness['scenario'] == scenario
+                assert witness['algorithms'] == algorithms and witness['cases'] == cases
+                assert witness['helpers_joined'] == cases * 2 and witness['servers_joined'] == cases
+                assert witness['physical_peers_drained'] and witness['media_readers_drained']
+                movement_results.append(dict(witness, passed=True))
+            report['installed_node_movements'] = {'passed': all(v['passed'] for v in movement_results),
+                'profile': 'node-movements/1', 'results': movement_results, 'request_budget_ms': 4000,
+                'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
+                'scope': 'Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification.'}
+            consultation_results = []
             for scenario, name, helpers in (
                 ('restored', 'installed_node_consultation_and_return_preserve_actual_private_and_restored_audio', 3),
                 ('remote-ended', 'installed_node_consultation_return_after_remote_eof_cannot_claim_a_continuing_call', 2),
             ):
                 case = 'canonical_native_connections::consultation::sdk_controls::node_controls::' + name
-                text = execute('installed-node-consultation-' + scenario, [artifacts['hosting'], case, '--exact',
-                               '--ignored', '--nocapture', '--test-threads=1'], 90)
+                text = sdk_case('installed-node-consultation-' + scenario, case)
+                if text is None:
+                    consultation_results.append({'scenario': scenario, 'passed': False})
+                    continue
                 assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text) == [('1', '0', '0')]
                 witnesses = [json.loads(line.split('installed-node-consultation-witness ', 1)[1])
                              for line in text.splitlines() if 'installed-node-consultation-witness ' in line]
@@ -249,39 +309,48 @@ def run(node_sdk=False):
                     assert witness['audio_case'] == scenario and witness['current_return_authority']
                     assert witness['original_record_recovered'] and witness['helpers_joined'] == helpers and witness['server_joined']
                     assert witness['physical_peers_drained'] and witness['media_readers_drained']
-            report['installed_node_consultation_audio'] = {'passed': True, 'algorithms': ['EdDSA', 'ES256'],
+                consultation_results.append({'scenario': scenario, 'passed': True,
+                    'helpers_joined': sum(w['helpers_joined'] for w in witnesses), 'servers_joined': len(witnesses)})
+            report['installed_node_consultation_audio'] = {'passed': all(v['passed'] for v in consultation_results),
+                'results': consultation_results, 'algorithms': ['EdDSA', 'ES256'],
                 'whole_function_deadline_seconds': 90, 'request_budget_ms': 4000, 'phase_deadline_seconds': 15,
-                'scenarios': ['restored', 'remote-ended'], 'original_helpers_joined': 10, 'servers_joined': 4,
+                'scenarios': ['restored', 'remote-ended'], 'required_original_helpers_joined': 10, 'required_servers_joined': 4,
+                'verified_original_helpers_joined': sum(v.get('helpers_joined', 0) for v in consultation_results),
+                'verified_servers_joined': sum(v.get('servers_joined', 0) for v in consultation_results),
                 'scope': 'Public installed Node controls with actual native private/restored audio and remote EOF; no model/provider/remote lane or full SDK qualification.'}
             report['scope'] += ' Also installed Node private/restored decoded audio and remote-EOF controls.'
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
-            text = execute('installed-node-native-control', [artifacts['hosting'], case, '--exact',
-                           '--ignored', '--nocapture', '--test-threads=1'], 90)
-            counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
-            assert counts == [('1', '0', '0')]
-            witnesses = [json.loads(line.split('installed-typed-node-sdk-witness ', 1)[1])
-                         for line in text.splitlines() if 'installed-typed-node-sdk-witness ' in line]
-            assert len(witnesses) == 2
-            assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
-            for witness in witnesses:
-                assert witness['functional_phase_profile'] == 'node-controls/3'
-                assert witness['controls']['session_participants_accepted']
-                assert witness['native']['native_controls_completed']
-                assert witness['initial']['movement_current_authority_refused']
-                assert witness['initial']['node_capability_support_only']
-                assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
-                assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
-                assert witness['recovered']['typed_connection_end_recovered']
-                assert witness['receipts']['current_delivery_fact'] and witness['completed']['typed_receipts_current_authority']
-                assert witness['completed']['helpers_joined'] == 3
-                assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
-            report['installed_node_native'] = {'passed': True, 'package': node_package,
-                'functional_phase_profile': 'node-controls/3', 'request_budget_ms': 4000,
-                'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
-                'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
-                'physical_peers_drained': True, 'media_readers_drained': True,
-                'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
-            report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'
+            text = sdk_case('installed-node-native-control', case)
+            if text is None:
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/3'}
+            else:
+                counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
+                assert counts == [('1', '0', '0')]
+                witnesses = [json.loads(line.split('installed-typed-node-sdk-witness ', 1)[1])
+                             for line in text.splitlines() if 'installed-typed-node-sdk-witness ' in line]
+                assert len(witnesses) == 2
+                assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
+                for witness in witnesses:
+                    assert witness['functional_phase_profile'] == 'node-controls/3'
+                    assert witness['controls']['session_participants_accepted']
+                    assert witness['native']['native_controls_completed']
+                    assert witness['initial']['movement_current_authority_refused']
+                    assert witness['initial']['node_capability_support_only']
+                    assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
+                    assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
+                    assert witness['recovered']['typed_connection_end_recovered']
+                    assert witness['receipts']['current_delivery_fact'] and witness['completed']['typed_receipts_current_authority']
+                    assert witness['completed']['helpers_joined'] == 3
+                    assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
+                report['installed_node_native'] = {'passed': True, 'package': node_package,
+                    'functional_phase_profile': 'node-controls/3', 'request_budget_ms': 4000,
+                    'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
+                    'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
+                    'physical_peers_drained': True, 'media_readers_drained': True,
+                    'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
+                report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'
+        report['sdk_failures'] = sdk_failures
+        assert not sdk_failures, 'Required installed SDK behavior failed; all independent scenes retained'
         report["behavior_passed"] = True
     finally:
         report["source_inputs_unchanged"] = sources() == before

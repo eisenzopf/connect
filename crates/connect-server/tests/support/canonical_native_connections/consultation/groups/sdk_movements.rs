@@ -26,6 +26,7 @@ enum Owner<T> {
         config: CanonicalClientConfig,
     },
     External(crate::external_sdk_consumer::Consumer),
+    Node(super::super::sdk_controls::NodeMovementProbe),
 }
 pub(super) struct HandoffProbe(Owner<sdk::HandoffResult>);
 pub(super) struct ReplacementProbe {
@@ -39,6 +40,14 @@ pub(super) async fn handoff(
     group: &Group,
 ) -> HandoffProbe {
     let config = super::super::sdk_controls::controller_config(f, token, 911);
+    if super::super::sdk_controls::NodeMovementProbe::enabled() {
+        let parent = json!({"schema":"connect-operation-reference/1","operation_id":group.command.operation_id,"command":"session.consult","scope":{"conversation_id":group.command.conversation_id,"session_id":group.command.session_id,"connection_id":group.command.connection_id},"continuation":{"kind":"consultation","retained_connection_id":group.command.intent.retained(),"record_id":group.record}});
+        let mut probe =
+            super::super::sdk_controls::NodeMovementProbe::register(f, config, command, parent)
+                .await;
+        probe.begin().await;
+        return HandoffProbe(Owner::Node(probe));
+    }
     if crate::external_sdk_consumer::enabled() {
         let parent = json!({"schema":"connect-operation-reference/1","operation_id":group.command.operation_id,"command":"session.consult","scope":{"conversation_id":group.command.conversation_id,"session_id":group.command.session_id,"connection_id":group.command.connection_id},"continuation":{"kind":"consultation","retained_connection_id":group.command.intent.retained(),"record_id":group.record}});
         let mut consumer=crate::external_sdk_consumer::Consumer::start(f,json!({"mode":"transition","config":crate::external_sdk_consumer::configured(config),"command":command,"consultation":parent})).await;
@@ -116,6 +125,12 @@ pub(super) async fn handoff_completed(
             operation,
             config,
         } => (client, operation, config),
+        Owner::Node(probe) => {
+            let summary = probe.completed().await;
+            compare_topology(&summary, recorded);
+            assert_eq!(summary["role_change"], recorded["native_handoff"]);
+            return;
+        }
         Owner::External(consumer) => {
             let result = consumer.finish().await;
             assert_eq!(result["phase"], "completed");
@@ -212,6 +227,21 @@ pub(super) async fn replacement(
 ) -> ReplacementProbe {
     let config = super::super::sdk_controls::controller_config(f, token, 921);
     let original = f.server.service.canonical_runtime_snapshot().unwrap();
+    if super::super::sdk_controls::NodeMovementProbe::enabled() {
+        let mut probe = super::super::sdk_controls::NodeMovementProbe::register(
+            f,
+            config,
+            command,
+            Value::Null,
+        )
+        .await;
+        let before = registered_controller(f, &original).await;
+        probe.begin().await;
+        return ReplacementProbe {
+            owner: Owner::Node(probe),
+            baseline: before,
+        };
+    }
     if crate::external_sdk_consumer::enabled() {
         let mut consumer=crate::external_sdk_consumer::Consumer::start(f,json!({"mode":"transition","config":crate::external_sdk_consumer::configured(config),"command":command,"consultation":null})).await;
         consumer.registered().await;
@@ -323,6 +353,25 @@ pub(super) async fn replacement_completed(
             operation,
             config,
         } => (client, operation, config),
+        Owner::Node(probe) => {
+            let summary = probe.completed().await;
+            compare_topology(&summary, recorded);
+            assert_eq!(summary["connection_id"], recorded["connection_id"]);
+            assert_eq!(summary["native_owned"], false);
+            for field in [
+                "generation",
+                "participant_id",
+                "membership_epoch",
+                "endpoint_id",
+                "device_id",
+            ] {
+                assert_eq!(
+                    summary["binding"][field], recorded[field],
+                    "captured move binding: {field}"
+                );
+            }
+            return;
+        }
         Owner::External(consumer) => {
             let result = consumer.finish().await;
             assert_eq!(result["phase"], "completed");
@@ -393,6 +442,17 @@ pub(super) async fn replacement_stopped(
         Owner::Internal {
             client, operation, ..
         } => (client, operation),
+        Owner::Node(probe) => {
+            let reference = probe.reference.clone();
+            let result = probe.stopped(state, original_revoked).await;
+            assert_eq!(result["state"], serde_json::to_value(state).unwrap());
+            let config = super::super::sdk_controls::controller_config(f, token, 922);
+            super::super::sdk_controls::NodeMovementProbe::recover_stopped(
+                f, config, reference, state,
+            )
+            .await;
+            return;
+        }
         Owner::External(consumer) => {
             let reference = consumer.reference.clone().unwrap();
             let command = consumer.command.clone();
@@ -554,4 +614,151 @@ async fn external_public_crate_device_move_retains_actual_generation_two_audio_a
         )
         .await;
     }
+}
+
+fn compare_topology(summary: &Value, recorded: &Value) {
+    assert_eq!(
+        summary["topology"]["topology_revision"],
+        recorded["session_revision"]
+    );
+    assert_eq!(
+        summary["topology"]["conversation_revision"],
+        recorded["conversation_revision"]
+    );
+    for (field, host) in [
+        ("retained", "retained_connection_ids"),
+        ("admitted", "admitted_connection_ids"),
+        ("retired", "retired_connection_ids"),
+    ] {
+        assert_eq!(
+            summary["topology"][field], recorded[host],
+            "captured move topology: {field}"
+        );
+    }
+}
+
+async fn registered_controller(
+    f: &Fixture,
+    original: &connect_service::CanonicalRuntimeSnapshot,
+) -> (usize, usize, usize) {
+    let until = tokio::time::Instant::now() + Duration::from_secs(3);
+    loop {
+        let current = f.server.service.canonical_runtime_snapshot().unwrap();
+        if current.physical_peers == original.physical_peers + 1 {
+            assert_eq!(current.connections, original.connections);
+            assert_eq!(current.live_sessions, original.live_sessions);
+            return (
+                current.connections,
+                current.physical_peers,
+                current.live_sessions,
+            );
+        }
+        assert!(
+            tokio::time::Instant::now() < until,
+            "Node controller registration did not settle"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+}
+pub(super) async fn shutdown(f: &Fixture) {
+    let node = super::super::sdk_controls::NodeMovementProbe::enabled();
+    if node {
+        super::super::sdk_controls::node_drained(f).await;
+    }
+    f.server.shutdown().await.unwrap();
+    if node {
+        super::super::sdk_controls::NodeMovementProbe::server_joined();
+    }
+}
+fn node_witness(scenario: &str, algorithms: &[&str], cases: usize) {
+    let (helpers, servers) = super::super::sdk_controls::NodeMovementProbe::joined();
+    assert_eq!(helpers, cases * 2);
+    assert_eq!(servers, cases);
+    eprintln!(
+        "installed-node-movement-witness {}",
+        json!({"profile":"node-movements/1","scenario":scenario,
+        "algorithms":algorithms,"helpers_joined":helpers,"servers_joined":servers,"cases":cases,
+        "physical_peers_drained":true,"media_readers_drained":true})
+    );
+}
+async fn node_handoff(scope: connect_protocol::transitions::RoleScope) {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    for algorithm in ["EdDSA", "ES256"] {
+        for outgoing in [
+            connect_protocol::transitions::OutgoingDisposition::Observe,
+            connect_protocol::transitions::OutgoingDisposition::Leave,
+        ] {
+            super::handoff::handoff_case_with_sdk(outgoing, scope, false, Some(algorithm)).await;
+        }
+    }
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_session_handoff_retains_actual_audio_roles_and_recovery() {
+    node_handoff(connect_protocol::transitions::RoleScope::Session).await;
+    node_witness("session-handoff", &["EdDSA", "ES256"], 4);
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_conversation_handoff_retains_actual_audio_roles_and_recovery() {
+    node_handoff(connect_protocol::transitions::RoleScope::Conversation).await;
+    node_witness("conversation-handoff", &["EdDSA", "ES256"], 4);
+}
+async fn node_move(algorithm: &'static str) {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    super::replacement::exercise_replacement_with_sdk(
+        true,
+        true,
+        false,
+        true,
+        false,
+        Some(algorithm),
+    )
+    .await;
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_eddsa_device_move_preserves_audio_and_current_authority() {
+    node_move("EdDSA").await;
+    node_witness("device-move-eddsa", &["EdDSA"], 4);
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_es256_device_move_preserves_audio_and_current_authority() {
+    node_move("ES256").await;
+    node_witness("device-move-es256", &["ES256"], 4);
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_device_move_cancellation_remains_recorded_after_recovery() {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    for algorithm in ["EdDSA", "ES256"] {
+        super::replacement::exercise_replacement_with_sdk(
+            false,
+            false,
+            false,
+            false,
+            false,
+            Some(algorithm),
+        )
+        .await;
+    }
+    node_witness("device-move-cancelled", &["EdDSA", "ES256"], 6);
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_device_move_recording_failure_recovers_one_known_commit() {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    for algorithm in ["EdDSA", "ES256"] {
+        super::replacement::exercise_replacement_with_sdk(
+            true,
+            true,
+            false,
+            true,
+            true,
+            Some(algorithm),
+        )
+        .await;
+    }
+    node_witness("device-move-recording-failure", &["EdDSA", "ES256"], 2);
 }
