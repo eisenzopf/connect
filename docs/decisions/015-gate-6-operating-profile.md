@@ -85,6 +85,14 @@ allocation drain. Freeze these bounds before the positive runs. This does not
 qualify distinct-network/browser/telephone, secure TURN, WAN/performance or any
 whole acceptance criterion. See [procedure](../developer/turn-relay-rehearsal.md).
 
+October28 shared STUN/TURN All-policy fixture observation update: retain the90second
+test deadline and10second zero-allocation drain limit, then allow a separate
+10second join of the original coturn4.18 process after its explicit zero report.
+The initial All-policy run passed AV and deallocation but failed the former
+combined10second process-exit observation; retain it as a failure. Upstream's
+five-second listener dispatch also runs after drain completion. Freeze this
+version2 observation before rerunning; no media/profile threshold changes.
+
 ## Default bounds
 
 | Resource | Default / hard check |

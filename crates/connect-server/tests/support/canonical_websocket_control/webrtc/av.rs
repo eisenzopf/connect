@@ -216,6 +216,7 @@ struct RelayFixture {
     url: String,
     port_start: u16,
     port_end: u16,
+    all_policy: bool,
 }
 impl RelayFixture {
     fn load(transport: &str) -> Self {
@@ -232,6 +233,33 @@ impl RelayFixture {
             url: format!("turn:127.0.0.1:{port}?transport={transport}"),
             port_start,
             port_end,
+            all_policy: value["all_policy"].as_bool().unwrap_or(false),
+        }
+    }
+    fn stun_url(&self) -> String {
+        self.url
+            .replacen("turn:", "stun:", 1)
+            .split('?')
+            .next()
+            .unwrap()
+            .to_owned()
+    }
+    fn assert_candidates(&self, sdp: &str) {
+        if !self.all_policy {
+            only_relay_candidates(sdp);
+            return;
+        }
+        for kind in ["host", "relay"] {
+            assert!(
+                sdp.lines()
+                    .filter(|line| line.starts_with("a=candidate:"))
+                    .any(|line| line
+                        .split_whitespace()
+                        .collect::<Vec<_>>()
+                        .windows(2)
+                        .any(|pair| pair == ["typ", kind])),
+                "All policy must retain actual host and relay candidates"
+            );
         }
     }
     fn config(&self, expired: bool) -> WebRtcConfig {
@@ -253,21 +281,38 @@ impl RelayFixture {
             })
             .unwrap(),
         )];
+        if self.all_policy && !expired {
+            c.ice_transport_policy = rvoip_webrtc::config::IceTransportPolicy::All;
+            c.ice_servers
+                .push(rvoip_webrtc::IceServerConfig::stun(self.stun_url()));
+        }
         c
     }
     fn addressing(&self) -> connect_server::canonical_webrtc::CanonicalWebRtcAddressing {
         use connect_server::canonical_webrtc::*;
+        let mut ice_services = vec![CanonicalIceService {
+            urls: vec![self.url.clone()],
+            username_ref: Some("CONNECT_GATE6_TURN_USER".into()),
+            credential_ref: Some("CONNECT_GATE6_TURN_PASSWORD".into()),
+        }];
+        if self.all_policy {
+            ice_services.push(CanonicalIceService {
+                urls: vec![self.stun_url()],
+                username_ref: None,
+                credential_ref: None,
+            });
+        }
         CanonicalWebRtcAddressing {
             bind_ip: "127.0.0.1".parse().unwrap(),
             port_start: self.port_start,
             port_end: self.port_end,
             public_ip: None,
-            ice_policy: CanonicalIcePolicy::Relay,
-            ice_services: vec![CanonicalIceService {
-                urls: vec![self.url.clone()],
-                username_ref: Some("CONNECT_GATE6_TURN_USER".into()),
-                credential_ref: Some("CONNECT_GATE6_TURN_PASSWORD".into()),
-            }],
+            ice_policy: if self.all_policy {
+                CanonicalIcePolicy::All
+            } else {
+                CanonicalIcePolicy::Relay
+            },
+            ice_services,
         }
     }
 }
@@ -365,8 +410,8 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
         peer.add_local_audio_track().await.unwrap();
         peer.add_local_video_track().await.unwrap();
         let sdp = peer.create_offer_and_gather().await.unwrap();
-        if relay.is_some() {
-            only_relay_candidates(&sdp);
+        if let Some(relay) = relay {
+            relay.assert_candidates(&sdp);
         }
         let original = request(&cid, i, &sdp);
         let id = ws.send(original.clone(), true).await;
@@ -402,8 +447,8 @@ async fn run_with_relay(algorithm: &str, configured: bool, relay: Option<&RelayF
                 json!({"payload_type":pt,"sample_rate":rate,"channels":channels})
             );
         }
-        if relay.is_some() {
-            only_relay_candidates(payload["substrate_setup"]["sdp"].as_str().unwrap());
+        if let Some(relay) = relay {
+            relay.assert_candidates(payload["substrate_setup"]["sdp"].as_str().unwrap());
         }
         peer.set_remote_answer(payload["substrate_setup"]["sdp"].as_str().unwrap())
             .await
@@ -684,4 +729,10 @@ async fn configured_relay_udp_expiry_and_decoded_duplex() {
 #[ignore = "owned loopback coturn TCP, expiring synthetic credentials and independent AV decoder"]
 async fn configured_relay_tcp_expiry_and_decoded_duplex() {
     Box::pin(relay_profile("tcp")).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "owned loopback coturn combined STUN/TURN All-policy and independent AV decoder"]
+async fn configured_all_shared_stun_turn_decoded_duplex() {
+    Box::pin(relay_profile("udp")).await;
 }

@@ -114,13 +114,15 @@ def run(args):
     base = args.output.resolve()
     assert base.is_relative_to(ROOT / ".local"), "Private output must be under repository .local"
     base.mkdir(parents=True, mode=0o700, exist_ok=False)
-    test = PREFIX + f"configured_relay_{args.transport}_expiry_and_decoded_duplex"
+    assert args.ice_policy != "all" or args.transport == "udp", "Shared STUN/TURN lane requires UDP control"
+    test = PREFIX + ("configured_all_shared_stun_turn_decoded_duplex" if args.ice_policy == "all"
+                     else f"configured_relay_{args.transport}_expiry_and_decoded_duplex")
     listing = subprocess.check_output([str(binary), "--list"], text=True)
     assert f"{test}: test" in listing, "Wrong integration test partition or stale executable"
     version = subprocess.check_output([str(turnserver), "--version"], text=True).strip()
     assert version == "4.18.0", "Requalify allocation-drain oracle for another coturn version"
-    report = {"format": 1, "passed": False, "test": test, "transport": args.transport,
-              "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+    report = {"format": 1, "passed": False, "test": test, "transport": args.transport, "ice_policy": args.ice_policy,
+              "scope": "Owned loopback TURN REST expiry and signed WSS/Store/Core Opus/VP8 duplex under the explicit All/shared-STUN-TURN or relay-only policy; no distinct-network/browser/SIP/remote qualification.",
               "source_manifest_sha256": digest(manifest_path), "source_count": len(source_inputs),
               "coturn_version": version, "binary_sha256": digest(binary),
               "turnserver_sha256": digest(turnserver), "decoder_sha256": digest(decoder),
@@ -153,7 +155,8 @@ def run(args):
         "log-file=stdout", "simple-log", "new-log-timestamp=false", ""]))
     manifest = base / "fixture.json"
     private_write(manifest, json.dumps({"listener_port": port,
-        "media_port_start": media_start, "media_port_end": media_start + 7}) + "\n")
+        "media_port_start": media_start, "media_port_end": media_start + 7,
+        "all_policy": args.ice_policy == "all"}) + "\n")
     env = os.environ.copy()
     refs = base / "secret-references.toml"
     private_write(refs, 'version = 1\n' + ''.join(
@@ -192,8 +195,27 @@ def run(args):
             assert len(step["results"]) == 1 and "1 passed; 0 failed; 0 ignored;" in step["results"][0]
             # Coturn exits drain mode only when its active allocation count is zero.
             # Do this while the daemon still owns its sockets, before killing it.
+            report["drain_observation_version"] = 2
+            report["allocation_drain_limit_seconds"] = 10
+            report["post_drain_join_limit_seconds"] = 10
+            started_drain = time.monotonic()
             owned.send_signal(signal.SIGUSR1)
+            # Coturn's listener runs five-second event-loop ticks, including
+            # another dispatch after reporting drain completion. Allocation
+            # release and joining that original process are distinct facts.
+            while True:
+                observed = (base / "coturn.log").read_text(errors="replace")
+                zero = "Drain complete (0 allocations remaining, threshold 0)" in observed
+                if zero:
+                    report["allocation_drain_seconds"] = time.monotonic() - started_drain
+                    break
+                assert owned.poll() is None, "Coturn exited without its zero-allocation drain observation"
+                assert time.monotonic() - started_drain < 10, "Coturn allocation drain deadline"
+                time.sleep(0.05)
+            assert report["allocation_drain_seconds"] <= 10, "Coturn allocation drain deadline"
+            started_join = time.monotonic()
             owned.wait(timeout=10)
+            report["post_drain_join_seconds"] = time.monotonic() - started_join
             report["drain_exit_code"] = owned.returncode
             assert owned.returncode == 0, "Coturn allocation drain did not finish cleanly"
         coturn = (base / "coturn.log").read_text(errors="replace")
@@ -229,6 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--transport", choices=("udp", "tcp"), required=True)
+    parser.add_argument("--ice-policy", choices=("all", "relay"), default="relay")
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--turnserver", default="turnserver")
     run(parser.parse_args())

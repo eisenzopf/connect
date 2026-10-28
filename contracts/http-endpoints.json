@@ -566,7 +566,7 @@
     }
   ],
   "inputs": {
-    "contracts/openapi-application-http.json": "95f2748a4819c18669a0fbb9d289722578f9a805a07d78b28ac25acc566fb0f0",
+    "contracts/openapi-application-http.json": "f80ea209d1d3c62f6d769d17fdcacad738443e6c8d07c6e5dc6ab0b862918d37",
     "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
     "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",

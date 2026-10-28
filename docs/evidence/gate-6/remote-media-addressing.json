@@ -108,10 +108,10 @@
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
-    "run_id": 40656596259,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40656596259",
-    "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
-    "result": "23 actual functions passed at exact563d16bc, zero failed/ignored/panics, all7979source inputs unchanged. Includes SIP configuration/startup/drop/mixed-readiness and prior WebRTC/HTTPS groups. New TURN implementation is separate and not covered by this result.",
+    "run_id": 40663600214,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40663600214",
+    "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
+    "result": "23actual native Ubuntu functions pass at67fc00aa; all7988inputs unchanged. This predates the new STUN patch/All fixture and does not qualify actual Linux TURN/media.",
     "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
@@ -129,7 +129,7 @@
   "remaining": [
     "Actual distinct-network SIP/NAT paths and deployment qualification. Configuration examples now document public WebRTC, SIP contacts and RTP mapping; Local startup/readiness proofs do not establish remote reachability.",
     "Distinct-network browser/native/telephone direct and relay profiles, ICE restart, packet loss, unreachable media ports and their duplex/cleanup behavior. Current loopback native UDP/TCP lanes cover expiry and deallocation; no browser or60second quality profile is inferred.",
-    "Secure STUN/TURN transports and runtime TURN credential issuance/refresh remain unimplemented or unqualified. The fixture generates documented SHA1 REST credentials externally; the unused upstream SHA256 credential helper is not qualified by it. Reproduce/repair the inspected default-port STUN resolution concern before claiming that path.",
+    "Secure STUN/TURN transports and runtime TURN credential issuance/refresh remain unimplemented or unqualified. The fixture generates documented SHA1 REST credentials externally; the unused upstream SHA256 credential helper is not qualified by it. Default STUN port resolution and the common shared STUN/TURN endpoint now have explicit protocol/local-media evidence; actual remote profiles remain separate.",
     "Native Linux configuration/security/SIP lane passed23functions at563d16bc; no Linux TURN runtime pass is inherited. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
   ],
   "source_sha256": {
@@ -143,8 +143,9 @@
     "sdk/typescript/src/browser_voice.ts": "86be93d14226fdf6c3f5ae00c098fa55803985bee63df7738f7a282fa6d50f3a",
     "sdk/tests/browser_voice.test.mjs": "b112371137ba4f2abe01b30959749d03895485b9ec6052310f6449bd5901b31f",
     "patches/rvoip/gate6-owned-turn-relay.patch": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042",
-    "dependencies/source-lock.json": "855d5095ba155d1ea2b6c7039900f1e48b02c0cb9c9bf9d0b19e605106a9c6a5",
-    "scripts/rehearse-gate6-turn-relay.py": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245"
+    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017",
+    "scripts/rehearse-gate6-turn-relay.py": "94cfbd7275b17f7331dfe7138d183ff009c816045ee4533fba232160af90c24f",
+    "patches/rvoip/gate6-stun-turn-demultiplex.patch": "fd12b6811958796473b56e458423059545a6a561c33f8b898dd8124e8aa12435"
   },
   "acceptance_qualified": false,
   "publication": false,
@@ -283,8 +284,8 @@
     "scope": "Final sealed172 passes actual loopback UDP/TCP-control relay-only duplex AV, expired credential refusal, four-allocation drain per lane and both direct media regressions. Two real TCP wire functions pass from sealed173. All5246source inputs unchanged; no forced fixture cleanup. Full G6-054 remains open."
   },
   "stun_turn_routing": {
-    "status": "protocol-component-passed-media-build-running",
+    "status": "component-passed",
     "evidence": "docs/evidence/gate-6/stun-turn-routing.json",
-    "scope": "Two previously failing unit/protocol cases now pass. Actual All-policy shared-endpoint decoded media is being built; no broader network/profile pass."
+    "scope": "Two causal STUN protocol functions and five actual configured AV functions pass: shared-endpoint All, relay UDP/TCP and direct EdDSA/ES256. All three coturn lanes report zero allocations within10seconds and join the original process within a separate10second bound, without forced cleanup. Initial combined-drain timeout remains failed. Current-source188/189 executables are byte-identical to the tested182/180 artifacts."
   }
 }
