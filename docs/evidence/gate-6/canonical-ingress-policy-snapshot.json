@@ -3,7 +3,7 @@
     "G6-050",
     "G6-051"
   ],
-  "status": "implemented and287distinct component cases pass; full normal-feature runtime rebuild and browser requalification pending",
+  "status": "full normal-feature build passed; native requalification running before normal browser matrix",
   "recorded_at": "2026-10-28T01:04:47.844633+00:00",
   "motivation": {
     "runtime_witness": "docs/evidence/gate-6/browser-audio-post-fix-gaps.json",
@@ -416,9 +416,89 @@
   },
   "runtime_build": {
     "label": "97",
-    "status": "running",
-    "features": "Normal complete connect-server test-support graph, same packageopt0 overrides and test target as build93; no reduced feature or removed application paths.",
-    "source_guard_count": 5229
+    "status": "passed",
+    "summary": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 958.5472691250034,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5229,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-97",
+        "sha256": "f6c7c3781266444b8b59acffce1fa2c60d4f3f64a36b79577bf7bcd30e0c4d29",
+        "bytes": 215133200
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "5d78bae06b0820e4d3504c380124133dfd79f3859718a53d09c657d5a2009d8e"
+    },
+    "cli_integrity": {
+      "current_cargo_artifact": {
+        "reason": "compiler-artifact",
+        "package_id": "path+file:///Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server#0.1.0",
+        "manifest_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/Cargo.toml",
+        "target": {
+          "kind": [
+            "bin"
+          ],
+          "crate_types": [
+            "bin"
+          ],
+          "name": "connect",
+          "src_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/crates/connect-server/src/main.rs",
+          "edition": "2021",
+          "doc": true,
+          "doctest": false,
+          "test": true
+        },
+        "profile": {
+          "opt_level": "0",
+          "debuginfo": 0,
+          "debug_assertions": false,
+          "overflow_checks": false,
+          "test": false
+        },
+        "features": [
+          "test-support"
+        ],
+        "filenames": [
+          "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect"
+        ],
+        "executable": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+        "fresh": false
+      },
+      "sha256": "c076d97c1b629104787534db93cbd5ad9af2ca2f33fbb6bd9f286f124a8ea970",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/ingress-policy-snapshot/connect-cli-97",
+      "bytes": 236030576,
+      "help_exit_code": 0,
+      "help_sha256": "5ca7e49f451507e7e649384005db87dbfc5808192e957deb50eb1fbde34ed851"
+    },
+    "scope": "Normal complete connect-server test-support graph, same packageopt0 overrides and test target as build93.5229source inputs unchanged; no strip warnings or reduced feature paths."
   },
   "private_hashes": {
     ".local/gate-6/ingress-policy-snapshot/units-exact-negative/summary.json": "7994093f8eea151d71b831138f5f604582e80f35036a34e521f05b18888dc60b",
