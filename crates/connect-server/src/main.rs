@@ -144,6 +144,16 @@ enum Command {
     },
     /// Local frozen-envelope validation; opens no configuration or endpoint.
     SdkValidateEnvelope,
+    /// Local trusted provisioning validation; opens no client or configuration.
+    SdkValidateProvisioning {
+        #[arg(long)]
+        reference: bool,
+    },
+    /// Explicit trusted backend SDK; participant helper has no provisioning path.
+    SdkAdminStdio {
+        #[arg(long)]
+        config: PathBuf,
+    },
     /// Typed SDK control through one owned, fixed-authority Rust client.
     SdkStdio {
         #[arg(long)]
@@ -423,6 +433,12 @@ async fn main() -> Result<()> {
             human_number.as_deref(),
             connect_number.as_deref(),
         )?,
+        Command::SdkValidateProvisioning { reference } => {
+            connect_server::cli::sdk_stdio::validate_provisioning(reference).await?
+        }
+        Command::SdkAdminStdio { config } => {
+            connect_server::cli::sdk_stdio::serve_administrative(&config).await?
+        }
         Command::SdkValidateEnvelope => connect_server::cli::sdk_stdio::validate_envelope().await?,
         Command::SdkStdio { config } => connect_server::cli::sdk_stdio::serve(&config).await?,
         Command::Stdio {

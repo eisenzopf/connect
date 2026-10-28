@@ -469,7 +469,7 @@ export class NodeClient {
     }
     restore(saved, expected) {
         const k = kinds.get(expected);
-        if (!k)
+        if (!k || k.name === "administrative")
             invalid();
         let copy;
         try {
@@ -543,7 +543,7 @@ export class NodeClient {
             saved: freeze(copy),
             kind: expected,
         });
-        return new SdkOperation(this, reference, expected, copy);
+        return new SdkOperation(this, reference, expected, copy, (value) => k.decode(value, this, reference, copy));
     }
     fromReply(value, kind, key) {
         let operation;
@@ -888,6 +888,7 @@ export class SdkOperation {
     reference;
     kind;
     saved;
+    decode;
     #observedRecord;
     observe(value) {
         const observed = snapshot(value, this.reference);
@@ -899,11 +900,12 @@ export class SdkOperation {
         }
         return observed;
     }
-    constructor(client, reference, kind, saved) {
+    constructor(client, reference, kind, saved, decode) {
         this.client = client;
         this.reference = reference;
         this.kind = kind;
         this.saved = saved;
+        this.decode = decode;
         const context = saved.continuation;
         if (context &&
             typeof context === "object" &&
@@ -938,10 +940,9 @@ export class SdkOperation {
             const s = this.observe(value.snapshot);
             if (s.state !== "completed")
                 return protocol();
-            const k = kinds.get(this.kind);
             return Object.freeze({
                 snapshot: s,
-                value: k.decode(value.value, this.client, this.reference, this.saved),
+                value: this.decode(value.value),
             });
         }, this.reference);
     }
@@ -976,4 +977,89 @@ export class SdkOperation {
             return operation;
         }, key, true);
     }
+}
+/** Internal trusted-backend operation owner; no provisioning on ParticipantClient. */
+export function createAdministrativeOperations(helper, validateReference) {
+    const administrativeKinds = new Map();
+    const select = (command, name) => {
+        if (name === "operation_cancel" && command === "operation.cancel")
+            return operationKinds.operation_cancel;
+        if (name === "operation_reconcile" && command === "operation.reconcile")
+            return operationKinds.operation_reconcile;
+        if (name !== "administrative")
+            return invalid();
+        let token = administrativeKinds.get(command);
+        if (!token) {
+            token = kind("administrative", command, (value) => freeze(copied(value)));
+            administrativeKinds.set(command, token);
+        }
+        return token;
+    };
+    function captured(value, expected) {
+        const saved = copied(value);
+        if (Buffer.byteLength(canonicalJson(saved)) > 4096 ||
+            !object(saved, ["schema", "operation_id", "command", "scope"]) ||
+            saved.schema !== "connect-operation-reference/1" ||
+            !identifier(saved.operation_id) ||
+            saved.command !== expected.command ||
+            !object(saved.scope, []) ||
+            Object.keys(saved.scope).length)
+            invalid();
+        const key = makeKey(saved.operation_id, saved.command, {});
+        const reference = freeze({ ...key });
+        references.set(reference, {
+            saved: freeze(saved),
+            kind: expected,
+        });
+        const k = kinds.get(expected);
+        const decode = (value) => (k.name === "administrative"
+            ? freeze(copied(value))
+            : decision(value, undefined, key));
+        return new SdkOperation(owner, reference, expected, saved, decode);
+    }
+    function restore(saved, expected) {
+        const checked = validateReference(saved);
+        const selected = select(checked.reference.command, checked.kind);
+        if (expected && selected !== expected)
+            invalid();
+        return captured(checked.reference, (expected ?? selected));
+    }
+    const owner = {
+        operationKinds,
+        operations: { restore },
+        [returnConsultation]() {
+            throw new NodeSdkError("unsupported", "not-submitted");
+        },
+        [runOperation](saved, _kind, action, options, decode, key, mutating = false) {
+            return helper.request({ type: "administrative_operation", reference: saved, action }, options, decode, key, mutating);
+        },
+    };
+    return {
+        restore: (saved) => restore(saved),
+        recover(reference) {
+            const saved = references.get(reference), k = saved && kinds.get(saved.kind);
+            if (!saved ||
+                !k ||
+                ![
+                    "administrative",
+                    "operation_cancel",
+                    "operation_reconcile",
+                ].includes(k.name))
+                invalid();
+            return captured(saved.saved, saved.kind);
+        },
+        fromReply(value, key) {
+            const expected = select(key.command, "administrative");
+            let operation;
+            try {
+                operation = captured(value, expected);
+            }
+            catch {
+                return protocol();
+            }
+            if (!equalKey(operation.reference, key))
+                return protocol();
+            return operation;
+        },
+    };
 }

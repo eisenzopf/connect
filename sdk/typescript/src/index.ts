@@ -91,3 +91,6 @@ export type {
 export type { SdkDeliveryObservation } from "./node_receipts.js";
 
 export type { SdkValidatedEnvelope, SdkRawCanonical } from "./node_raw.js";
+
+export { NodeAdministrativeClient } from "./node_administration.js";
+export type { SdkTrustedProvisioningCommand } from "./node_administration.js";

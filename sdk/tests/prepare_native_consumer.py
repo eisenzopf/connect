@@ -50,7 +50,9 @@ def prepare(output, package_output):
     shutil.copyfile(ROOT / 'sdk/tests/node_consultation_server_consumer.mjs', consultation)
     movement = project / 'movement-consume.mjs'
     shutil.copyfile(ROOT / 'sdk/tests/node_movement_server_consumer.mjs', movement)
-    result = {'movement_consumer': str(movement.relative_to(ROOT)),
+    administrative = project / 'admin-consume.mjs'
+    shutil.copyfile(ROOT / 'sdk/tests/node_administrative_server_consumer.mjs', administrative)
+    result = {'administrative_consumer': str(administrative.relative_to(ROOT)), 'administrative_consumer_sha256': digest(administrative), 'movement_consumer': str(movement.relative_to(ROOT)),
               'movement_consumer_sha256': digest(movement), 'consultation_consumer': str(consultation.relative_to(ROOT)),
               'consultation_consumer_sha256': digest(consultation), 'archive': str(archive.relative_to(ROOT)), 'archive_sha256': digest(archive),
               'installed_dist_matches': True, 'installed_dist_sha256': observed,

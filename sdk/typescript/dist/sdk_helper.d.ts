@@ -9,6 +9,8 @@ export declare class NodeSdkError extends CanonicalError {
 /** Internal framing only. The Rust SDK owns trust, journals and typed behavior. */
 export declare class SdkHelper {
     private readonly child;
+    private readonly wireProfile;
+    private readonly administrative;
     private readonly exited;
     private joined;
     private closed;
@@ -19,7 +21,7 @@ export declare class SdkHelper {
     constructor(config: {
         readonly config: string;
         readonly executable?: string;
-    });
+    }, backend?: "participant" | "administrative");
     request<T>(action: JsonObject, options: CanonicalRequestOptions, decode: (value: Json) => T, key?: OperationKey, mutation?: boolean): Promise<T>;
     private error;
     private release;

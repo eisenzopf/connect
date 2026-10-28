@@ -1,6 +1,26 @@
 //! Actual trusted HTTP mutations and signed original-ID status/recovery.
 use super::*;
 use connect_client::{application::ApplicationClientConfig, sdk::AdministrativeClient};
+#[path = "administration/node.rs"]
+mod node;
+struct Administrator {
+    rust: AdministrativeClient,
+    node: Option<node::Probe>,
+}
+impl std::ops::Deref for Administrator {
+    type Target = AdministrativeClient;
+    fn deref(&self) -> &Self::Target {
+        &self.rust
+    }
+}
+impl Administrator {
+    async fn close(&self, options: RequestOptions) -> sdk::Result<()> {
+        if let Some(node) = &self.node {
+            node.close().await;
+        }
+        self.rust.close(options).await
+    }
+}
 fn app(f: &Fixture, config: &CanonicalClientConfig) -> ApplicationClientConfig {
     ApplicationClientConfig {
         endpoint: f.server.http_address.unwrap(),
@@ -18,21 +38,40 @@ fn administrator(f: &Fixture, index: usize) -> CanonicalClientConfig {
         Scope::operator(),
     )
 }
-async fn connect(f: &Fixture, config: CanonicalClientConfig) -> AdministrativeClient {
-    AdministrativeClient::connect(
+async fn connect(f: &Fixture, config: CanonicalClientConfig) -> Administrator {
+    let rust = AdministrativeClient::connect(
         config.clone(),
         "tnt_default".parse().unwrap(),
         app(f, &config),
     )
     .await
-    .unwrap()
+    .unwrap();
+    let node = if node::enabled() {
+        Some(node::Probe::start(f, config).await)
+    } else {
+        None
+    };
+    Administrator { rust, node }
 }
-async fn apply(admin: &AdministrativeClient, command: ProvisioningCommand) -> (Value, Value) {
+async fn apply(admin: &Administrator, command: ProvisioningCommand) -> (Value, Value) {
     let id = command.operation_id().to_owned();
     let intent = admin
         .validate_provisioning(serde_json::to_value(command).unwrap())
         .unwrap();
     let saved = intent.reference_json();
+    if let Some(node) = &admin.node {
+        let result = node.apply(intent.to_json()).await;
+        assert_eq!(result["reference"], saved);
+        let independent = admin
+            .restore(saved.clone())
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap();
+        assert_eq!(result["record_id"], json!(independent.snapshot.record_id));
+        assert_eq!(result["value"], independent.value);
+        return (result["value"].clone(), saved);
+    }
     let operation = admin.provision(intent, mutation(&id)).await.unwrap();
     assert_eq!(saved, operation.reference_json());
     let value = operation.wait(options()).await.unwrap().value;
@@ -56,245 +95,267 @@ fn identity(operation: &str, alias: &str) -> ProvisioningCommand {
 async fn public_sdk_trusted_administration_covers_every_command_and_recovers_original_receipts_after_restart(
 ) {
     for algorithm in ["EdDSA", "ES256"] {
-        let mut f = Fixture::with_native_end_scope(algorithm, 16).await;
-        let mut config = administrator(&f, 239);
-        let admin = connect(&f, config.clone()).await;
-        let original = identity("sdk-admin-identity", "sdk-admin-target");
-        let intent = admin
-            .validate_provisioning(serde_json::to_value(&original).unwrap())
-            .unwrap();
-        assert!(!format!("{intent:?}").contains("private backend label"));
-        let (created, original_ref) = apply(&admin, original.clone()).await;
-        let target = id(&created, "identity_id");
-        let caller = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
-            .await
-            .unwrap();
-        let room = caller
-            .create_conversation(
-                vec![],
-                ConversationPolicy::Persistent,
-                mutation("sdk-admin-room"),
-            )
-            .await
+        administration_case(algorithm).await;
+    }
+}
+async fn administration_case(algorithm: &'static str) {
+    let mut f = Fixture::with_native_end_scope(algorithm, 16).await;
+    let mut config = administrator(&f, 239);
+    let admin = connect(&f, config.clone()).await;
+    let original = identity("sdk-admin-identity", "sdk-admin-target");
+    let intent = admin
+        .validate_provisioning(serde_json::to_value(&original).unwrap())
+        .unwrap();
+    assert!(!format!("{intent:?}").contains("private backend label"));
+    let (created, original_ref) = apply(&admin, original.clone()).await;
+    let target = id(&created, "identity_id");
+    let caller = Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
+        .await
+        .unwrap();
+    let room = caller
+        .create_conversation(
+            vec![],
+            ConversationPolicy::Persistent,
+            mutation("sdk-admin-room"),
+        )
+        .await
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap()
+        .value;
+    let (participant, _) = apply(
+        &admin,
+        ProvisioningCommand::Participant {
+            operation_id: "sdk-admin-participant".into(),
+            conversation_id: room.id().as_str().into(),
+            identity_id: target.clone(),
+            role: "member".into(),
+        },
+    )
+    .await;
+    assert_eq!(participant["conversation_id"], room.id().as_str());
+    assert!(room
+        .refresh(options())
+        .await
+        .unwrap()
+        .participants
+        .iter()
+        .any(|p| p.id.as_str() == participant["participant_id"].as_str().unwrap()));
+    let (role, _) = apply(
+        &admin,
+        ProvisioningCommand::RecordReadRole {
+            operation_id: "sdk-admin-record-role".into(),
+            identity_id: target.clone(),
+            role: "operator".into(),
+            private_sources: false,
+            active: true,
+            expected_revision: None,
+        },
+    )
+    .await;
+    assert_eq!(role["active"], true);
+    let (endpoint, endpoint_ref) = apply(
+        &admin,
+        ProvisioningCommand::Endpoint {
+            operation_id: "sdk-admin-endpoint".into(),
+            identity_id: target.clone(),
+            device: DeviceSpec {
+                id: "sdk-admin-target-device".into(),
+                kind: "desktop".into(),
+                platform: "isolated-administrative-test".into(),
+            },
+            transport: EndpointTransport::Quic,
+            address: format!(
+                "quic://localhost:{}/sdk-admin-target",
+                f.server.address.port()
+            ),
+            capabilities: vec!["data".into()],
+            secret_ref: None,
+        },
+    )
+    .await;
+    let endpoint_id = id(&endpoint, "endpoint_id");
+    assert!(endpoint.get("address").is_none());
+    let (verified, _) = apply(
+        &admin,
+        ProvisioningCommand::VerifyEndpoint {
+            operation_id: "sdk-admin-verify".into(),
+            endpoint_id: endpoint_id.clone(),
+            expected_revision: endpoint["revision"].as_u64().unwrap(),
+            evidence_ref: "isolated-verified-admin-endpoint".into(),
+        },
+    )
+    .await;
+    assert_eq!(verified["verification_state"], "verified");
+    assert_eq!(
+        admin
+            .restore(endpoint_ref)
             .unwrap()
             .wait(options())
             .await
             .unwrap()
-            .value;
-        let (participant, _) = apply(
-            &admin,
-            ProvisioningCommand::Participant {
-                operation_id: "sdk-admin-participant".into(),
-                conversation_id: room.id().as_str().into(),
-                identity_id: target.clone(),
-                role: "member".into(),
-            },
-        )
-        .await;
-        assert_eq!(participant["conversation_id"], room.id().as_str());
-        assert!(room
-            .refresh(options())
-            .await
-            .unwrap()
-            .participants
-            .iter()
-            .any(|p| p.id.as_str() == participant["participant_id"].as_str().unwrap()));
-        let (role, _) = apply(
-            &admin,
-            ProvisioningCommand::RecordReadRole {
-                operation_id: "sdk-admin-record-role".into(),
-                identity_id: target.clone(),
-                role: "operator".into(),
-                private_sources: false,
-                active: true,
-                expected_revision: None,
-            },
-        )
-        .await;
-        assert_eq!(role["active"], true);
-        let (endpoint, endpoint_ref) = apply(
-            &admin,
-            ProvisioningCommand::Endpoint {
-                operation_id: "sdk-admin-endpoint".into(),
-                identity_id: target.clone(),
-                device: DeviceSpec {
-                    id: "sdk-admin-target-device".into(),
-                    kind: "desktop".into(),
-                    platform: "isolated-administrative-test".into(),
-                },
-                transport: EndpointTransport::Quic,
-                address: format!(
-                    "quic://localhost:{}/sdk-admin-target",
-                    f.server.address.port()
-                ),
-                capabilities: vec!["data".into()],
-                secret_ref: None,
-            },
-        )
-        .await;
-        let endpoint_id = id(&endpoint, "endpoint_id");
-        assert!(endpoint.get("address").is_none());
-        let (verified, _) = apply(
-            &admin,
-            ProvisioningCommand::VerifyEndpoint {
-                operation_id: "sdk-admin-verify".into(),
-                endpoint_id: endpoint_id.clone(),
-                expected_revision: endpoint["revision"].as_u64().unwrap(),
-                evidence_ref: "isolated-verified-admin-endpoint".into(),
-            },
-        )
-        .await;
-        assert_eq!(verified["verification_state"], "verified");
-        assert_eq!(
-            admin
-                .restore(endpoint_ref)
-                .unwrap()
-                .wait(options())
-                .await
-                .unwrap()
-                .value["verification_state"],
-            "verified"
-        );
-        // Fixture credential issuance supplies an independent enrollment target; the
-        // application obtains resource IDs and performs all administrative mutations
-        // exclusively through the public AdministrativeClient.
-        let credential = f
-            .server
-            .store
-            .issue(
-                &target,
-                Scope::messaging(vec![]),
-                chrono::Utc::now().timestamp() + 600,
-            )
-            .unwrap();
-        let public = signing(&f.temp.path().join("admin-target-key.der"), algorithm);
-        let (key, _) = apply(
-            &admin,
-            ProvisioningCommand::SigningKey {
-                operation_id: "sdk-admin-signing".into(),
-                identity_id: target.clone(),
-                credential_id: credential.id.clone(),
-                device_id: "sdk-admin-target-device".into(),
-                key_id: "sdk-admin-target-key".into(),
-                algorithm: if algorithm == "EdDSA" {
-                    SigningAlgorithm::EdDSA
-                } else {
-                    SigningAlgorithm::ES256
-                },
-                public_key: URL_SAFE_NO_PAD.encode(public),
-                not_before: chrono::Utc::now().timestamp() - 1,
-                expires_at: chrono::Utc::now().timestamp() + 600,
-                expected_revision: None,
-            },
-        )
-        .await;
-        let (revoked, _) = apply(
-            &admin,
-            ProvisioningCommand::RevokeSigningKey {
-                operation_id: "sdk-admin-revoke-signing".into(),
-                key_id: id(&key, "key_id"),
-                expected_revision: key["revision"].as_u64().unwrap(),
-            },
-        )
-        .await;
-        assert_eq!(revoked["revoked"], true);
-        let (revoked, _) = apply(
-            &admin,
-            ProvisioningCommand::RevokeCredential {
-                operation_id: "sdk-admin-revoke-credential".into(),
-                credential_id: credential.id,
-            },
-        )
-        .await;
-        assert_eq!(revoked["revoked"], true);
-        apply(
-            &admin,
-            ProvisioningCommand::RevokeEndpoint {
-                operation_id: "sdk-admin-revoke-endpoint".into(),
-                endpoint_id,
-                expected_revision: verified["revision"].as_u64().unwrap(),
-            },
-        )
-        .await;
-        let (device, _) = apply(
-            &admin,
-            ProvisioningCommand::RevokeDevice {
-                operation_id: "sdk-admin-revoke-device".into(),
-                device_id: "sdk-admin-target-device".into(),
-                expected_revision: 0,
-            },
-        )
-        .await;
-        assert_eq!(device["revoked"], true);
-        let (revoked, _) = apply(
-            &admin,
-            ProvisioningCommand::RevokeIdentity {
-                operation_id: "sdk-admin-revoke-identity".into(),
-                identity_id: target.clone(),
-                expected_revision: created["revision"].as_u64().unwrap(),
-            },
-        )
-        .await;
-        assert_eq!(revoked["revoked"], true);
-        assert_eq!(
-            admin
-                .restore(original_ref.clone())
-                .unwrap()
-                .wait(options())
-                .await
-                .unwrap()
-                .value["revoked"],
-            true
-        );
-        caller.close(options()).await.unwrap();
-        admin.close(options()).await.unwrap();
-        f.server.shutdown().await.unwrap();
-        f.server = RunningCanonicalServer::start(f.config.clone())
-            .await
-            .unwrap();
-        config.endpoint = f.server.address;
-        let reopened = connect(&f, config).await;
-        let recovered = reopened
-            .restore(original_ref)
-            .unwrap()
-            .wait(options())
-            .await
-            .unwrap();
-        assert_eq!(recovered.value["identity_id"], target);
-        assert_eq!(recovered.value["revoked"], true);
-        let (replayed, _) = apply(&reopened, original).await;
-        assert_eq!(replayed["identity_id"], target);
-        let changed = reopened
-            .validate_provisioning(
-                serde_json::to_value(identity("sdk-admin-identity", "changed-admin-alias"))
-                    .unwrap(),
-            )
-            .unwrap();
-        let refused = reopened
-            .provision(changed, mutation("sdk-admin-identity"))
-            .await
-            .err()
-            .unwrap();
-        assert_eq!(refused.kind, sdk::ErrorKind::Conflict);
-        assert_eq!(refused.certainty, sdk::Certainty::Refused);
-        let db = rusqlite::Connection::open_with_flags(
-            &f.config.database,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+            .value["verification_state"],
+        "verified"
+    );
+    // Fixture credential issuance supplies an independent enrollment target; the
+    // application obtains resource IDs and performs all administrative mutations
+    // exclusively through the public AdministrativeClient.
+    let credential = f
+        .server
+        .store
+        .issue(
+            &target,
+            Scope::messaging(vec![]),
+            chrono::Utc::now().timestamp() + 600,
         )
         .unwrap();
-        let count: i64 = db
-            .query_row(
-                "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-admin-identity'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(count, 1);
-        drop(db);
-        reopened.close(options()).await.unwrap();
-        f.server.shutdown().await.unwrap();
-        eprintln!("SDK administration {algorithm}: all11 provisioning command families, current metadata/status, no secret address output, stable original IDs, one receipt across restart/exact replay, changed-intent refusal and joined close");
+    let public = signing(&f.temp.path().join("admin-target-key.der"), algorithm);
+    let (key, _) = apply(
+        &admin,
+        ProvisioningCommand::SigningKey {
+            operation_id: "sdk-admin-signing".into(),
+            identity_id: target.clone(),
+            credential_id: credential.id.clone(),
+            device_id: "sdk-admin-target-device".into(),
+            key_id: "sdk-admin-target-key".into(),
+            algorithm: if algorithm == "EdDSA" {
+                SigningAlgorithm::EdDSA
+            } else {
+                SigningAlgorithm::ES256
+            },
+            public_key: URL_SAFE_NO_PAD.encode(public),
+            not_before: chrono::Utc::now().timestamp() - 1,
+            expires_at: chrono::Utc::now().timestamp() + 600,
+            expected_revision: None,
+        },
+    )
+    .await;
+    let (revoked, _) = apply(
+        &admin,
+        ProvisioningCommand::RevokeSigningKey {
+            operation_id: "sdk-admin-revoke-signing".into(),
+            key_id: id(&key, "key_id"),
+            expected_revision: key["revision"].as_u64().unwrap(),
+        },
+    )
+    .await;
+    assert_eq!(revoked["revoked"], true);
+    let (revoked, _) = apply(
+        &admin,
+        ProvisioningCommand::RevokeCredential {
+            operation_id: "sdk-admin-revoke-credential".into(),
+            credential_id: credential.id,
+        },
+    )
+    .await;
+    assert_eq!(revoked["revoked"], true);
+    apply(
+        &admin,
+        ProvisioningCommand::RevokeEndpoint {
+            operation_id: "sdk-admin-revoke-endpoint".into(),
+            endpoint_id,
+            expected_revision: verified["revision"].as_u64().unwrap(),
+        },
+    )
+    .await;
+    let (device, _) = apply(
+        &admin,
+        ProvisioningCommand::RevokeDevice {
+            operation_id: "sdk-admin-revoke-device".into(),
+            device_id: "sdk-admin-target-device".into(),
+            expected_revision: 0,
+        },
+    )
+    .await;
+    assert_eq!(device["revoked"], true);
+    let (revoked, _) = apply(
+        &admin,
+        ProvisioningCommand::RevokeIdentity {
+            operation_id: "sdk-admin-revoke-identity".into(),
+            identity_id: target.clone(),
+            expected_revision: created["revision"].as_u64().unwrap(),
+        },
+    )
+    .await;
+    assert_eq!(revoked["revoked"], true);
+    assert_eq!(
+        admin
+            .restore(original_ref.clone())
+            .unwrap()
+            .wait(options())
+            .await
+            .unwrap()
+            .value["revoked"],
+        true
+    );
+    caller.close(options()).await.unwrap();
+    admin.close(options()).await.unwrap();
+    if node::enabled() {
+        node::drained(&f).await;
     }
+    f.server.shutdown().await.unwrap();
+    node::server_joined();
+    f.server = RunningCanonicalServer::start(f.config.clone())
+        .await
+        .unwrap();
+    let original_record = admin
+        .node
+        .as_ref()
+        .map(|node| node.record("sdk-admin-identity"));
+    config.endpoint = f.server.address;
+    let reopened = connect(&f, config).await;
+    if let Some(node) = &reopened.node {
+        let result = node.read(original_ref.clone(), original_record).await;
+        assert_eq!(result["value"]["identity_id"], target);
+        assert_eq!(result["value"]["revoked"], true);
+    }
+    let recovered = reopened
+        .restore(original_ref)
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+    assert_eq!(recovered.value["identity_id"], target);
+    assert_eq!(recovered.value["revoked"], true);
+    let (replayed, _) = apply(&reopened, original).await;
+    assert_eq!(replayed["identity_id"], target);
+    let changed = reopened
+        .validate_provisioning(
+            serde_json::to_value(identity("sdk-admin-identity", "changed-admin-alias")).unwrap(),
+        )
+        .unwrap();
+    if let Some(node) = &reopened.node {
+        node.refuse(changed.to_json(), "conflict", "refused").await;
+    }
+    let refused = reopened
+        .provision(changed, mutation("sdk-admin-identity"))
+        .await
+        .err()
+        .unwrap();
+    assert_eq!(refused.kind, sdk::ErrorKind::Conflict);
+    assert_eq!(refused.certainty, sdk::Certainty::Refused);
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let count: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-admin-identity'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1);
+    drop(db);
+    reopened.close(options()).await.unwrap();
+    if node::enabled() {
+        node::drained(&f).await;
+    }
+    f.server.shutdown().await.unwrap();
+    node::server_joined();
+    eprintln!("SDK administration {algorithm}: all11 provisioning command families, current metadata/status, no secret address output, stable original IDs, one receipt across restart/exact replay, changed-intent refusal and joined close");
 }
 #[tokio::test]
 async fn public_sdk_administration_requires_current_administrator_for_submission_status_and_replay()
@@ -549,4 +610,100 @@ async fn public_sdk_cancelled_administrative_http_wait_keeps_real_committed_oper
         f.server.shutdown().await.unwrap();
         eprintln!("SDK administrative uncertainty {algorithm}: actual backend commit with held HTTP response, cancelled local waits retain original key, live independent signed recovery, one receipt and zero queued effect/no hidden resubmission, joined cleanup");
     }
+}
+
+#[test]
+fn local_administrative_validator_captures_original_command_and_uses_shared_reference_parser() {
+    let value = serde_json::to_value(identity("local-original", "local-validator")).unwrap();
+    let checked =
+        sdk::helper::administrative::validate_bytes(&serde_json::to_vec(&value).unwrap(), false);
+    assert_eq!(
+        checked["profile"],
+        sdk::helper::administrative::VALIDATION_PROFILE
+    );
+    assert_eq!(checked["valid"], true);
+    assert_eq!(checked["value"], value);
+    let reference = checked["reference"].clone();
+    assert_eq!(
+        reference,
+        json!({"schema":"connect-operation-reference/1","operation_id":"local-original","command":"identity.provision","scope":{}})
+    );
+    let restored =
+        sdk::helper::administrative::validate_bytes(&serde_json::to_vec(&reference).unwrap(), true);
+    assert_eq!(restored["valid"], true);
+    assert_eq!(restored["kind"], "administrative");
+    assert_eq!(restored["reference"], reference);
+    for (command, kind) in [
+        ("operation.cancel", "operation_cancel"),
+        ("operation.reconcile", "operation_reconcile"),
+    ] {
+        let value = json!({"schema":"connect-operation-reference/1","operation_id":"decision","command":command,"scope":{}});
+        let restored =
+            sdk::helper::administrative::validate_bytes(&serde_json::to_vec(&value).unwrap(), true);
+        assert_eq!(restored["valid"], true);
+        assert_eq!(restored["kind"], kind);
+    }
+}
+#[test]
+fn local_administrative_validator_refuses_bad_commands_ids_scopes_and_resource_overflow() {
+    for bytes in [
+        vec![255],
+        vec![b' '; 65_537],
+        b"null".to_vec(),
+        b"{}".to_vec(),
+        serde_json::to_vec(
+            &json!({"type":"identity","operation_id":"bad/id","alias":"local","kind":"human"}),
+        )
+        .unwrap(),
+    ] {
+        assert_eq!(
+            sdk::helper::administrative::validate_bytes(&bytes, false),
+            json!({"profile":sdk::helper::administrative::VALIDATION_PROFILE,"valid":false})
+        );
+    }
+    let original = json!({"schema":"connect-operation-reference/1","operation_id":"local-original","command":"identity.provision","scope":{}});
+    for value in [
+        json!({"schema":"other","operation_id":"local-original","command":"identity.provision","scope":{}}),
+        json!({"schema":"connect-operation-reference/1","operation_id":"local-original","command":"message.send","scope":{}}),
+        json!({"schema":"connect-operation-reference/1","operation_id":"local-original","command":"identity.provision","scope":{"conversation_id":"room"}}),
+        json!({"schema":"connect-operation-reference/1","operation_id":"local-original","command":"identity.provision","scope":{},"extra":true}),
+    ] {
+        assert_eq!(
+            sdk::helper::administrative::validate_bytes(&serde_json::to_vec(&value).unwrap(), true)
+                ["valid"],
+            false
+        );
+    }
+    let mut large = original;
+    large["extra"] = json!("x".repeat(4096));
+    assert_eq!(
+        sdk::helper::administrative::validate_bytes(&serde_json::to_vec(&large).unwrap(), true)
+            ["valid"],
+        false
+    );
+}
+#[test]
+fn local_administrative_validator_keeps_participant_and_trusted_helper_actions_separate() {
+    let request = json!({"timeout_ms":100,"action":{"type":"administrative_provision","command":serde_json::to_value(identity("local-original","local-validator")).unwrap(),"mutation":{"operation_id":"local-original"}}});
+    assert!(serde_json::from_value::<sdk::helper::Request>(request.clone()).is_err());
+    assert!(serde_json::from_value::<sdk::helper::administrative::Request>(request).is_ok());
+    let participant =
+        json!({"timeout_ms":100,"action":{"type":"conversation_refresh","conversation_id":"room"}});
+    assert!(serde_json::from_value::<sdk::helper::Request>(participant.clone()).is_ok());
+    assert!(serde_json::from_value::<sdk::helper::administrative::Request>(participant).is_err());
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_eddsa_administration_covers_all_commands_and_original_recovery() {
+    assert!(node::enabled());
+    administration_case("EdDSA").await;
+    node::witness("EdDSA");
+}
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_es256_administration_covers_all_commands_and_original_recovery() {
+    assert!(node::enabled());
+    administration_case("ES256").await;
+    node::witness("ES256");
 }

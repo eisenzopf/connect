@@ -1,0 +1,189 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "trusted-administration-implemented-synthetic-passed-native-pending",
+  "synthetic_component_passed": true,
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "implementation_parent_commit": "5d984b5723d4182e60201d6905a66b80a2171a48",
+  "source_hash_scope": "Exact administrative candidate hashes below; actual Rust compile/native pending. Historical raw/schema/native proofs retain their exact committed scope.",
+  "implementation": [
+    "Separate NodeAdministrativeClient and fixed SDK-administration helper profile; no provisioning on participant facade",
+    "Local Rust normalized trusted-command and shared original operation-reference validation without client/configuration/network",
+    "Original public Rust AdministrativeClient owns HTTP mutation, current authority, native journal, typed outcomes and joined workers; exact matching configured credentials required",
+    "Shared Node operation owner retains stable record, invariant result brand, wait/readiness, typed cancel/reconcile, original keys/uncertainty, no retry",
+    "64KiB command/4KiB reference/2s local validator/128KiB wrapper/16exchanges/2MiB reply; ordinary typed participant64KiB unchanged",
+    "Default inspection/JSON serialization of trusted client and command redacts private command bodies; explicit command.value/referenceJson remain available for private durable persistence."
+  ],
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 11.104326208122075,
+    "source_count": 213,
+    "changed_inputs": [],
+    "source_inputs_sha256": "b2012865abf2ad753cb6d387713af336a234eeb0fa4d904c9b268a6d93a441e5",
+    "log_sha256": "a8ca2078bb3c0baa9330bce2ca93371caaeba4365f264bd8b6f9b241044b00a5",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T20:40:34.086154+00:00"
+  },
+  "functions_passed": 79,
+  "new_administrative_functions": [
+    "administrative operations preserve original record, metadata-only recovery and separate cancel/reconcile decision types",
+    "forged administrative command, mismatched original ID and extensions refuse locally without submission",
+    "malformed trusted local validator profile, scope, kind or identity fences the original administrative owner",
+    "administrative response corruption preserves submitted uncertainty and stable record fences",
+    "administrative sent timeout fences original owner, keeps mutation identity and never retries",
+    "trusted local validator input and runtime stay bounded and wrapper accommodates a captured64KiB command"
+  ],
+  "installed_protocol_only": {
+    "passed": true,
+    "scope": "Installed public package with synthetic SDK helper protocol/process only; no real service/authorization/cryptography qualification",
+    "consumer_sha256": "fc512bbc8082690ded6b1ac7c8d912a46349dfc380f85d0c8e17dd090d472000",
+    "scenarios": [
+      {
+        "scenario": "apply-recover-replay-read-conflict-close",
+        "passed": true,
+        "consumer_exit": 0,
+        "helpers_joined": 1,
+        "validators_joined": 4,
+        "phases": [
+          "ready",
+          "applied",
+          "read",
+          "refused",
+          "closed"
+        ]
+      },
+      {
+        "scenario": "foreign-original-record-refused",
+        "passed": true,
+        "consumer_exit": 1,
+        "helpers_joined": 1,
+        "validators_joined": 3,
+        "phases": [
+          "ready",
+          "applied",
+          "failed"
+        ]
+      }
+    ]
+  },
+  "package": {
+    "administrative_consumer_sha256": "fc512bbc8082690ded6b1ac7c8d912a46349dfc380f85d0c8e17dd090d472000",
+    "movement_consumer_sha256": "c9eaed4bbd1ec022d057adf7e5a67719bc95c6c6e8c9b02c010e15bad14888f0",
+    "consultation_consumer_sha256": "3d8bd0e84c837cd2fd8beb5d63b60b287e522f22ab80f95851bb9e15dd252a56",
+    "archive": "dist/gate-6/node-admin-package452/rudeless-connect-0.1.0.tgz",
+    "archive_sha256": "fd94d04617d43c1d56104da760526e6f4a8b4b17755d3aebbbd872425c9427fd",
+    "installed_dist_matches": true,
+    "consumer_sha256": "97f5c66866579e46bb7c79a7f8360c5a5a1e37366b7609d9630f36995860acae",
+    "node_version": "v26.7.0",
+    "publication": false
+  },
+  "installed_dist_file_count": 128,
+  "native_candidate": {
+    "profile": "node-administration/1",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "node_matrix": [
+      "22",
+      "26"
+    ],
+    "command_families": 11,
+    "functions": 2,
+    "original_node_helpers_required": 4,
+    "local_validators_required": 52,
+    "servers_required": 4,
+    "request_ms": 4000,
+    "phase_seconds": 15,
+    "whole_function_seconds": 90,
+    "scope": "Node submits actual all11 command families, Rust compares independent signed journal outcomes, Node local restore/recover/replay, original host record across server restart, changed-intent refusal, one DB receipt, original helpers/validators/servers joined and physical peers/media readers0.",
+    "qualification": "pending"
+  },
+  "checks": {
+    "typescript_build": true,
+    "negative_declarations": true,
+    "rust_format": true,
+    "node_syntax": true,
+    "python_syntax": true,
+    "generated_http_references": true,
+    "http_declarations": 25,
+    "http_operations": 26,
+    "uncovered": 0,
+    "diff": true,
+    "mac_rust_compile": "skipped: retained ENOSPC; no local Rust build/link",
+    "linux_rust_and_native": "pending"
+  },
+  "runner_control_flow_only": {
+    "passed": true,
+    "scope": "Exact runner AST identity/environment and witness-parser source checks only; actual Rust/native execution pending",
+    "cases": [
+      [
+        "installed-node-administration-eddsa",
+        "sdk_handles::administration::installed_node_eddsa_administration_covers_all_commands_and_original_recovery",
+        {
+          "CONNECT_GATE6_NODE_ADMIN": "1"
+        }
+      ],
+      [
+        "installed-node-administration-es256",
+        "sdk_handles::administration::installed_node_es256_administration_covers_all_commands_and_original_recovery",
+        {
+          "CONNECT_GATE6_NODE_ADMIN": "1"
+        }
+      ]
+    ],
+    "expected_helpers": 4,
+    "expected_validators": 52,
+    "expected_servers": 4,
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "function_deadline_seconds": 90,
+    "runner_sha256": "a3b8de33d07c1babd1ff779e1bba28db8e0ee7ed58e8296203907af979fc4dd0"
+  },
+  "development_failures": [
+    "First TypeScript build correctly rejected erased invariant operation-kind comparisons; compare token object identity before internal type erasure. Public invariant brands retained.",
+    "Initial79-function suite77passed2failed: test expected Object.prototype instead of safe null-prototype JSON; fake validator crashed on null instead of returning validation. Corrected fixture/assertion; fresh complete79 suite passes.",
+    "Added redacted inspection/JSON hooks required an explicit internal phantom-brand cast; unsuccessful449 build/package450 are not qualifying evidence. Fresh451build/type79checks and452package+453installedprotocol pass."
+  ],
+  "remaining": [
+    "Actual ordinary-participant and current revoked-administrator refusals and original record recovery",
+    "Actual cancelled/uncertain administrative HTTP commit and queued-before-submit cancellation scenes",
+    "Actual Node22/26 administrative matrix and Rust local validators",
+    "G6-062 incoming invitations/events and explicit remote HTTP facade coverage",
+    "Full SDK/acceptance/publication qualification"
+  ],
+  "source_sha256": {
+    "crates/connect-client/src/sdk/administration.rs": "479ceed41d6e70ccd8131102ebb523672f202d88510c44e4f7f76593f9039ddd",
+    "crates/connect-client/src/sdk/configuration.rs": "f153630b6deaef22f6fbe0f3d47b32ad0d84dfc7b67864e58e55358026bbbb9b",
+    "crates/connect-client/src/sdk/operation.rs": "0822006329a668093d3f7736c3bd863b6a8f9071f39576f532b5a10015f40b97",
+    "crates/connect-client/src/sdk/helper/administrative.rs": "1848b993466ea2d94ccf9f6128e93e7b633ad705b3736e5cda84d89543a0f268",
+    "crates/connect-client/src/sdk/helper.rs": "787e564e316de8e3262dfae9d0f01cd00b4aa3064d0a68fa8e2b2292b3b77d0f",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "87135121193ac8553b1821775b4994fb9c28c4c7bd05fecf5001731b7e401183",
+    "crates/connect-server/src/main.rs": "3e785ddeabbba8ca4955f38291d2e2b36c0e44ec18a37cb90da16a72fe32a0b5",
+    "crates/connect-server/tests/support/sdk_handles/administration.rs": "73279ffa3facf8ff649ae4b28149e76fab61dbfd9750c58a4d9123c22984f1f2",
+    "crates/connect-server/tests/support/sdk_handles/administration/node.rs": "b0460ca5abe512c7e09395a289c8abb824b0d7f32cbd4f8a780a9d1d98760d5e",
+    "scripts/check-gate6-linux-hosting.py": "a3b8de33d07c1babd1ff779e1bba28db8e0ee7ed58e8296203907af979fc4dd0",
+    "sdk/tests/prepare_native_consumer.py": "19f3b0e1c8e902e2d76773da86cb5300e4b153f58c9e72822d80aa651b99114d",
+    "sdk/tests/node_administration.test.mjs": "6c7ee950e13bfccac708d5becb61a2b7b3021431101e451f01c1b6c670d42cf2",
+    "sdk/tests/node_administrative_server_consumer.mjs": "fc512bbc8082690ded6b1ac7c8d912a46349dfc380f85d0c8e17dd090d472000",
+    "sdk/tests/node_sdk_types.mts": "9011d508bb1252932945c7a93c019585a045089d4c282a4a633f12d43a65af86",
+    "sdk/tests/check_canonical_helper.py": "223901fe1cabb822cf024545488206cb951b7cc6a8e40c8392d82dc370173fa1",
+    "sdk/tests/fixtures/sdk_helper.mjs": "59d0eebd20c23940b02184cbe476f799fd75a761897bc9bdd327e40e39891d42",
+    "sdk/typescript/src/node_administration.ts": "e08763ac5d22b226b28cc9c2d8b23ebcd787e779218036def963247862278ead",
+    "sdk/typescript/src/node_sdk.ts": "b153d29265af30b0f601ca27fdf07eab52140106153f91d17af29cac3940bef4",
+    "sdk/typescript/src/sdk_helper.ts": "3c2d748ef37d29e8a0767be5e059d095c8a18af031c673c4939f529416dc941f",
+    "sdk/typescript/dist/node_administration.js": "4590a43dba6d3b34910ef2240c5a9cee8c38fcafcd4d12b142b0962407d32d33",
+    "sdk/typescript/dist/node_administration.d.ts": "18b8feb379d49b91affc3ba9778f44da151d62acb154daa27f33e371eed6194c"
+  }
+}

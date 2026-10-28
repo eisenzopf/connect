@@ -7,6 +7,7 @@ use super::*;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::BTreeMap;
+pub mod administrative;
 mod connection;
 mod movement;
 pub use movement::{HandoffRequest, MoveRequest};

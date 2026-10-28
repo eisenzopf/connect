@@ -56,7 +56,7 @@ impl TrustedProvisioningCommand {
     pub fn to_json(&self) -> Value {
         serde_json::to_value(&self.command).expect("validated provisioning command")
     }
-    fn parse(value: Value) -> Result<Self> {
+    pub(super) fn parse(value: Value) -> Result<Self> {
         if serde_json::to_vec(&value)
             .map_err(|_| Error::local(ErrorKind::Validation))?
             .len()
@@ -104,7 +104,7 @@ pub(super) fn is_command(command: &str) -> bool {
 fn unscoped(scope: &OperationScope) -> bool {
     scope.conversation_id.is_none() && scope.session_id.is_none() && scope.connection_id.is_none()
 }
-fn kind(command: &str) -> Result<OperationKind<Value>> {
+pub(super) fn kind(command: &str) -> Result<OperationKind<Value>> {
     let command = match command {
         "record-read-role.configure" => "record-read-role.configure",
         "identity.provision" => "identity.provision",
@@ -357,6 +357,16 @@ impl std::fmt::Debug for AdministrativeClient {
     }
 }
 impl AdministrativeClient {
+    pub async fn connect_configured(config: ClientConfig) -> Result<Self> {
+        config.validate()?;
+        let application = config
+            .application
+            .ok_or_else(|| Error::local(ErrorKind::Configuration))?;
+        Self::connect(config.control, config.tenant_id, application).await
+    }
+    pub(super) fn control(&self) -> &Client {
+        &self.control
+    }
     /// Explicit local application HTTP provisioning and signed native status must
     /// use the same supplied credential. No endpoint or credential fallback exists.
     pub async fn connect(

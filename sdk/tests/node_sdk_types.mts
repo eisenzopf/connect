@@ -83,3 +83,18 @@ client.raw.request({value:checkedEnvelope.value},{timeoutMs:1000});
 checkedEnvelope.value = null;
 // @ts-expect-error Returned envelope batch is immutable.
 rawReplies.push(checkedEnvelope);
+
+import type {NodeAdministrativeClient,SdkTrustedProvisioningCommand} from '../typescript/dist/index.js';
+declare const administrator:NodeAdministrativeClient;
+const trustedCommand=administrator.validateProvisioning({type:'identity',operation_id:operationId,alias:'local',kind:'human',display_name:null});
+await administrator.provision(trustedCommand,{timeoutMs:1000,operationId});
+// @ts-expect-error Ordinary participant clients have no provisioning method.
+client.provision(trustedCommand,{timeoutMs:1000,operationId});
+// @ts-expect-error A raw canonical envelope is not a trusted administrative command.
+administrator.provision(checkedEnvelope,{timeoutMs:1000,operationId});
+// @ts-expect-error Structural JSON cannot forge a trusted administrative command.
+const forgedTrusted:SdkTrustedProvisioningCommand={value:trustedCommand.value,operationId,referenceJson:()=>null};
+// @ts-expect-error Administrative commands retain their immutable captured intent.
+trustedCommand.value=null;
+// @ts-expect-error Trusted backend exposes no participant Conversation API.
+administrator.conversations.byId(roomId);

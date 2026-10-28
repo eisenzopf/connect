@@ -220,6 +220,7 @@ export interface SdkConversationSnapshot {
 export type SdkParticipantSnapshot =
     SdkConversationSnapshot["participants"][number];
 type KindName =
+    | "administrative"
     | "conversation_create"
     | "message_send"
     | "operation_cancel"
@@ -407,7 +408,7 @@ function kind<T>(
 }
 function decision(
     value: Json,
-    _client: NodeClient,
+    _client: NodeClient | undefined,
     key: OperationKey,
 ): SdkDecisionReceipt {
     if (
@@ -891,7 +892,7 @@ export class NodeClient {
         expected: SdkOperationKind<T>,
     ): SdkOperation<T> {
         const k = kinds.get(expected);
-        if (!k) invalid();
+        if (!k || k.name === "administrative") invalid();
         let copy: Json;
         try {
             const text = canonicalJson(saved);
@@ -978,7 +979,13 @@ export class NodeClient {
             saved: freeze(copy),
             kind: expected as SdkOperationKind<unknown>,
         });
-        return new SdkOperation(this, reference, expected, copy);
+        return new SdkOperation(
+            this,
+            reference,
+            expected,
+            copy,
+            (value) => k.decode(value, this, reference, copy) as T,
+        );
     }
     private fromReply<T>(
         value: Json,
@@ -1546,6 +1553,17 @@ export class SdkParticipant {
         );
     }
 }
+type OperationOwner = {
+    readonly operationKinds: Pick<
+        typeof operationKinds,
+        "operation_cancel" | "operation_reconcile"
+    >;
+    readonly operations: {
+        restore<T>(saved: Json, kind: SdkOperationKind<T>): SdkOperation<T>;
+    };
+    [runOperation]: NodeClient[typeof runOperation];
+    [returnConsultation]: NodeClient[typeof returnConsultation];
+};
 export class SdkOperation<T> {
     #observedRecord?: string;
     private observe(value: Json): SdkOperationSnapshot {
@@ -1561,10 +1579,11 @@ export class SdkOperation<T> {
         return observed;
     }
     constructor(
-        private readonly client: NodeClient,
+        private readonly client: OperationOwner,
         readonly reference: SdkOperationReference<T>,
         private readonly kind: SdkOperationKind<T>,
         private readonly saved: Json,
+        private readonly decode: (value: Json) => T,
     ) {
         const context = (saved as JsonObject).continuation;
         if (
@@ -1629,15 +1648,9 @@ export class SdkOperation<T> {
                 if (!object(value, ["snapshot", "value"])) return protocol();
                 const s = this.observe(value.snapshot);
                 if (s.state !== "completed") return protocol();
-                const k = kinds.get(this.kind)!;
                 return Object.freeze({
                     snapshot: s,
-                    value: k.decode(
-                        value.value,
-                        this.client,
-                        this.reference,
-                        this.saved,
-                    ) as T,
+                    value: this.decode(value.value),
                 });
             },
             this.reference,
@@ -1703,4 +1716,130 @@ export class SdkOperation<T> {
             true,
         );
     }
+}
+
+/** Internal trusted-backend operation owner; no provisioning on ParticipantClient. */
+export function createAdministrativeOperations(
+    helper: SdkHelper,
+    validateReference: (value: Json) => { reference: JsonObject; kind: string },
+) {
+    const administrativeKinds = new Map<string, SdkOperationKind<Json>>();
+    const select = (
+        command: string,
+        name: string,
+    ): SdkOperationKind<Json> | SdkOperationKind<SdkDecisionReceipt> => {
+        if (name === "operation_cancel" && command === "operation.cancel")
+            return operationKinds.operation_cancel;
+        if (name === "operation_reconcile" && command === "operation.reconcile")
+            return operationKinds.operation_reconcile;
+        if (name !== "administrative") return invalid();
+        let token = administrativeKinds.get(command);
+        if (!token) {
+            token = kind("administrative", command, (value) =>
+                freeze(copied(value)),
+            );
+            administrativeKinds.set(command, token);
+        }
+        return token;
+    };
+    function captured<T>(
+        value: Json,
+        expected: SdkOperationKind<T>,
+    ): SdkOperation<T> {
+        const saved = copied(value);
+        if (
+            Buffer.byteLength(canonicalJson(saved)) > 4096 ||
+            !object(saved, ["schema", "operation_id", "command", "scope"]) ||
+            saved.schema !== "connect-operation-reference/1" ||
+            !identifier(saved.operation_id) ||
+            saved.command !== expected.command ||
+            !object(saved.scope, []) ||
+            Object.keys(saved.scope).length
+        )
+            invalid();
+        const key = makeKey(saved.operation_id, saved.command, {});
+        const reference = freeze({ ...key }) as SdkOperationReference<T>;
+        references.set(reference, {
+            saved: freeze(saved),
+            kind: expected as SdkOperationKind<unknown>,
+        });
+        const k = kinds.get(expected)!;
+        const decode = (value: Json): T =>
+            (k.name === "administrative"
+                ? freeze(copied(value))
+                : decision(value, undefined, key)) as T;
+        return new SdkOperation(owner, reference, expected, saved, decode);
+    }
+    function restore<T = Json>(
+        saved: Json,
+        expected?: SdkOperationKind<T>,
+    ): SdkOperation<T> {
+        const checked = validateReference(saved);
+        const selected = select(
+            checked.reference.command as string,
+            checked.kind,
+        );
+        if (expected && (selected as object) !== (expected as object))
+            invalid();
+        return captured(
+            checked.reference,
+            (expected ?? selected) as unknown as SdkOperationKind<T>,
+        );
+    }
+    const owner: OperationOwner = {
+        operationKinds,
+        operations: { restore },
+        [returnConsultation]() {
+            throw new NodeSdkError("unsupported", "not-submitted");
+        },
+        [runOperation](
+            saved,
+            _kind,
+            action,
+            options,
+            decode,
+            key,
+            mutating = false,
+        ) {
+            return helper.request(
+                { type: "administrative_operation", reference: saved, action },
+                options,
+                decode,
+                key,
+                mutating,
+            );
+        },
+    };
+    return {
+        restore: (saved: Json): SdkOperation<Json> => restore(saved),
+        recover<T>(reference: SdkOperationReference<T>): SdkOperation<T> {
+            const saved = references.get(reference),
+                k = saved && kinds.get(saved.kind);
+            if (
+                !saved ||
+                !k ||
+                ![
+                    "administrative",
+                    "operation_cancel",
+                    "operation_reconcile",
+                ].includes(k.name)
+            )
+                invalid();
+            return captured(saved.saved, saved.kind as SdkOperationKind<T>);
+        },
+        fromReply(value: Json, key: OperationKey): SdkOperation<Json> {
+            const expected = select(
+                key.command,
+                "administrative",
+            ) as SdkOperationKind<Json>;
+            let operation: SdkOperation<Json>;
+            try {
+                operation = captured(value, expected);
+            } catch {
+                return protocol();
+            }
+            if (!equalKey(operation.reference, key)) return protocol();
+            return operation;
+        },
+    };
 }

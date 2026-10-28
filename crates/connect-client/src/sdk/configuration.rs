@@ -23,7 +23,9 @@ use std::path::Path;
 pub struct ClientConfig {
     pub control: CanonicalClientConfig,
     pub tenant_id: TenantId,
-    /// Named application reads only. Never a canonical transport fallback.
+    /// Participant Client uses named application reads only. Explicit
+    /// AdministrativeClient also requires this table for trusted provisioning.
+    /// Never a canonical transport fallback.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub application: Option<ApplicationClientConfig>,
 }

@@ -4,6 +4,7 @@ import { type SdkHandoffInput, type SdkHandoffResult, type SdkMoveInput, type Sd
 import { type ConnectionContext, type ConnectionId, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
 import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
+import { SdkHelper } from "./sdk_helper.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
 declare const identity: unique symbol;
@@ -128,6 +129,30 @@ declare const handoffSession: unique symbol;
 declare const moveConnection: unique symbol;
 declare const submitMovement: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
+declare const operationKinds: Readonly<{
+    session_handoff: SdkOperationKind<SdkHandoffResult>;
+    connection_replace: SdkOperationKind<SdkMoveResult>;
+    session_consult: SdkOperationKind<SdkConsultationResult>;
+    session_consult_return: SdkOperationKind<SdkSession>;
+    connection_offer: SdkOperationKind<SdkConnection>;
+    connection_update: SdkOperationKind<SdkConnectionUpdateReceipt>;
+    connection_end: SdkOperationKind<SdkConnection>;
+    stream_subscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
+    stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
+    session_invite: SdkOperationKind<SdkSession>;
+    session_accept: SdkOperationKind<SdkSession>;
+    session_update: SdkOperationKind<SdkSession>;
+    session_end: SdkOperationKind<SdkSession>;
+    session_reject: SdkOperationKind<SdkSessionDecision>;
+    session_cancel: SdkOperationKind<SdkSessionDecision>;
+    conversation_participant_add: SdkOperationKind<SdkParticipant>;
+    conversation_participant_update: SdkOperationKind<SdkParticipant>;
+    conversation_participant_remove: SdkOperationKind<SdkParticipant>;
+    conversation_create: SdkOperationKind<SdkConversation>;
+    message_send: SdkOperationKind<SdkMessageAcceptance>;
+    operation_cancel: SdkOperationKind<SdkDecisionReceipt>;
+    operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
+}>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
@@ -232,14 +257,23 @@ export declare class SdkParticipant {
         readonly expectedConversationRevision: SdkRevision<"conversation">;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
 }
+type OperationOwner = {
+    readonly operationKinds: Pick<typeof operationKinds, "operation_cancel" | "operation_reconcile">;
+    readonly operations: {
+        restore<T>(saved: Json, kind: SdkOperationKind<T>): SdkOperation<T>;
+    };
+    [runOperation]: NodeClient[typeof runOperation];
+    [returnConsultation]: NodeClient[typeof returnConsultation];
+};
 export declare class SdkOperation<T> {
     #private;
     private readonly client;
     readonly reference: SdkOperationReference<T>;
     private readonly kind;
     private readonly saved;
+    private readonly decode;
     private observe;
-    constructor(client: NodeClient, reference: SdkOperationReference<T>, kind: SdkOperationKind<T>, saved: Json);
+    constructor(client: OperationOwner, reference: SdkOperationReference<T>, kind: SdkOperationKind<T>, saved: Json, decode: (value: Json) => T);
     returnToRetained(this: SdkOperation<SdkConsultationResult>, input: {
         readonly expectedTopologyRevision: SdkRevision<"topology">;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
@@ -254,4 +288,13 @@ export declare class SdkOperation<T> {
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkDecisionReceipt>>;
     private decide;
 }
+/** Internal trusted-backend operation owner; no provisioning on ParticipantClient. */
+export declare function createAdministrativeOperations(helper: SdkHelper, validateReference: (value: Json) => {
+    reference: JsonObject;
+    kind: string;
+}): {
+    restore: (saved: Json) => SdkOperation<Json>;
+    recover<T>(reference: SdkOperationReference<T>): SdkOperation<T>;
+    fromReply(value: Json, key: OperationKey): SdkOperation<Json>;
+};
 export {};

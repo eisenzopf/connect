@@ -3,6 +3,25 @@
 import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {createInterface} from 'node:readline';
+// Trusted command/reference parser simulation only; Rust qualification is separate.
+if (process.argv[2] === 'sdk-validate-provisioning') {
+ const path=process.env.CONNECT_SDK_FIXTURE_CONFIG,config=JSON.parse(readFileSync(path,'utf8')),dir=dirname(path),value=JSON.parse(readFileSync(0,'utf8')),ref=process.argv.includes('--reference');
+ appendFileSync(join(dir,'admin-validation.jsonl'),JSON.stringify({argv:process.argv.slice(2),pid:process.pid,value})+'\n',{mode:0o600});
+ const names={identity:'identity.provision',participant:'participant.provision',endpoint:'endpoint.provision',endpoint_verify:'endpoint.verify',endpoint_revoke:'endpoint.revoke',identity_revoke:'identity.revoke',record_read_role:'record-read-role.configure',signing_key:'signing-key.enroll',signing_key_revoke:'signing-key.revoke',device_revoke:'device.revoke',credential_revoke:'credential.revoke'};
+ const allowed=[...Object.values(names),'operation.cancel','operation.reconcile'];
+ let valid=typeof value?.operation_id==='string'&&/^[A-Za-z0-9._~-]{1,128}$/.test(value.operation_id);
+ if(ref)valid&&=value.schema==='connect-operation-reference/1'&&allowed.includes(value.command)&&value.scope&&Object.keys(value.scope).length===0&&Object.keys(value).every(k=>['schema','command','scope','operation_id'].includes(k));
+ else valid&&=Object.keys(names).includes(value.type);
+ const normalized={...value};if(!ref&&typeof normalized.alias==='string')normalized.alias=normalized.alias.trim();
+ const saved=ref?value:{schema:'connect-operation-reference/1',operation_id:value?.operation_id,command:names[value?.type],scope:{}};
+ let result=valid?{profile:'connect-sdk-provisioning-validation/1',valid:true,value:normalized,reference:saved,kind:saved.command==='operation.cancel'?'operation_cancel':saved.command==='operation.reconcile'?'operation_reconcile':'administrative'}:{profile:'connect-sdk-provisioning-validation/1',valid:false};
+ if(config.adminValidator==='profile')result.profile='other';
+ if(config.adminValidator==='scope')result.reference.scope={conversation_id:'foreign'};
+ if(config.adminValidator==='kind-array')result.kind=['administrative'];
+ if(config.adminValidator==='foreign-id')result.reference.operation_id='foreign';
+ if(config.adminValidator==='hang'){setInterval(()=>{},1000);await new Promise(()=>{});}
+ process.stdout.write(JSON.stringify(result)+'\n');process.exit(0);
+}
 // Local validator simulation only; actual frozen-parser evidence is separate.
 if (process.argv[2] === 'sdk-validate-envelope') {
  const path=process.env.CONNECT_SDK_FIXTURE_CONFIG, config=JSON.parse(readFileSync(path,'utf8')),dir=dirname(path);
@@ -34,14 +53,19 @@ let count=0;const intents=new Map();
 const conn=(a,rev=null)=>({id:a.connection_id??a.reference.scope.connection_id,conversationId:a.conversation_id??a.reference.scope.conversation_id,sessionId:a.session_id??a.reference.scope.session_id,receiptStreamRevision:rev});
 const binding=()=>({parameters:{id:'audio',medium:'audio',direction:'sendrecv',codec:{name:'pcmu'},streamLocalId:1},streamGeneration:1,connectionGeneration:1});
 createInterface({input:process.stdin}).on('line',line=>{
- const req=JSON.parse(line),r=req.request,a=r.action,n=++count;
+ const req=JSON.parse(line),r=req.request,n=++count;let a=r.action;
+ if(a.type==='administrative_operation')a={...a,kind:a.reference.command==='operation.cancel'?'operation_cancel':a.reference.command==='operation.reconcile'?'operation_reconcile':'administrative'};
  appendFileSync(join(dir,'requests.jsonl'),line+'\n',{mode:0o600});
  if(config.mode==='exit')return process.exit(0);
  if(config.mode==='partial')return process.stdout.write('{');
  if(config.mode==='utf8')return process.stdout.write(Buffer.from([255,10]));
  if(config.mode==='oversize')return process.stdout.write('x'.repeat(2097154)+'\n');
  let result;
- if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
+ if(a.type==='administrative_provision'){
+  const names={identity:'identity.provision',participant:'participant.provision',endpoint:'endpoint.provision',endpoint_verify:'endpoint.verify',endpoint_revoke:'endpoint.revoke',identity_revoke:'identity.revoke',record_read_role:'record-read-role.configure',signing_key:'signing-key.enroll',signing_key_revoke:'signing-key.revoke',device_revoke:'device.revoke',credential_revoke:'credential.revoke'};
+  result={Ok:reference(a.mutation.operation_id,names[a.command.type])};
+ }
+ else if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
  else if(a.type==='raw_request') {
   const v=a.envelope,scope=Object.fromEntries(['cid','sid','connid','operation_id'].filter(k=>k in v).map(k=>[k,v[k]]));
   const error={kind:'unsupported',certainty:v.operation_id==null?'read-only':'not-submitted',operation:v.operation_id==null?null:{operationId:v.operation_id,command:'ack',scope:{conversationId:v.cid??null,sessionId:v.sid??null,connectionId:v.connid??null}},problem:null,observation:null};
@@ -100,7 +124,7 @@ createInterface({input:process.stdin}).on('line',line=>{
  else {
    const snap={key:key(a.reference),state:config.state??'completed',revision:1,recordId:'record-original',cancelRequested:null,expiresAt:null,problem:null};
    if(a.action.type==='wait') {
-     const value=a.kind==='message_send'?{messageId:'message',operation:key(a.reference),boundary:'local-mutation'}:
+     const value=a.kind==='administrative'?{kind:'identity',identity_id:'created',created:true}:a.kind==='message_send'?{messageId:'message',operation:key(a.reference),boundary:'local-mutation'}:
        a.kind==='conversation_create'?{id:'room'}:a.kind.startsWith('conversation_participant_')?{id:'participant',conversationId:a.reference.scope.conversation_id}:
        a.kind==='session_consult'?{session:{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id},retained:[{...conn(a),id:a.reference.continuation.retained_connection_id}],admitted:[{...conn(a),id:'private'}],retired:[],topologyRevision:3,conversationRevision:null}:a.kind==='session_reject'||a.kind==='session_cancel'?{session:{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id},state:a.kind==='session_reject'?'rejected':'cancelled',topologyRevision:2}:
        a.kind.startsWith('session_')?{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id}:{decision:key(a.reference),target:'original',observedState:'completed',disposition:'already-terminal',evidenceId:a.kind==='operation_reconcile'?'evidence':null};
@@ -123,6 +147,7 @@ createInterface({input:process.stdin}).on('line',line=>{
    } else if(['cancel','reconcile'].includes(a.action.type))result={Ok:reference(a.action.mutation.operation_id,'operation.'+a.action.type,a.reference.scope)};
    else result={Ok:snap};
  }
+ if(config.mode==='admin-conflict'&&a.type==='administrative_provision'&&a.command.alias==='changed')result={Err:{kind:'conflict',certainty:'refused',operation:null,problem:null,observation:null}};
  if(config.mode==='refuse'&&n===1)result={Err:{kind:config.kind??'receipt-unavailable',certainty:config.certainty??'recorded',operation:null,problem:{code:410,category:'receipt-unavailable',reason:'receipt-expired'},observation:config.observation??null}};
  if(config.mode==='state-array') {const snap=result.Ok?.snapshot??result.Ok;if(snap?.state)snap.state=[snap.state];}
  if(config.mode==='decision-state-array'&&result.Ok?.value?.observedState)result.Ok.value.observedState=[result.Ok.value.observedState];
@@ -162,7 +187,7 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='binding-state-array'&&result.Ok?.value?.outcome?.streams)result.Ok.value.outcome.streams[0].state=['active'];
  if(config.mode==='caps-no-receipts'&&a.type==='capabilities_refresh')result.Ok.features=result.Ok.features.filter(f=>f!=='message-receipts');
  if(config.mode==='caps-no-receipts'&&a.type==='message_receipts')result={Err:{kind:'unsupported',certainty:'read-only',operation:null,problem:null,observation:null}};
- const response={profile:config.mode==='profile'?'foreign':'connect-sdk-helper/1',id:config.mode==='wrong-id'?'foreign':req.id,result};
+ const response={profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/1',id:config.mode==='wrong-id'?'foreign':req.id,result};
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);
  if(config.mode==='extra')raw+='\n'+raw;

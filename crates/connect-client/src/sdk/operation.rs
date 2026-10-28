@@ -220,6 +220,38 @@ impl<T> Clone for OperationReference<T> {
     }
 }
 impl<T> OperationReference<T> {
+    pub(super) fn parse(value: Value, kind: OperationKind<T>) -> Result<Self> {
+        if serde_json::to_vec(&value)
+            .map_err(|_| Error::local(ErrorKind::Validation))?
+            .len()
+            > 4096
+        {
+            return Err(Error::local(ErrorKind::Validation));
+        }
+        let saved: SavedReference =
+            serde_json::from_value(value).map_err(|_| Error::local(ErrorKind::Validation))?;
+        if saved.schema != "connect-operation-reference/1"
+            || saved.command != kind.command
+            || !saved.scope.valid()
+            || !(kind.valid_scope)(&saved.scope)
+            || !consultations::valid_continuation(
+                kind.command,
+                &saved.scope,
+                saved.continuation.as_ref(),
+            )
+        {
+            return Err(Error::local(ErrorKind::Validation));
+        }
+        Ok(Self {
+            key: OperationKey {
+                operation_id: saved.operation_id,
+                command: saved.command,
+                scope: saved.scope,
+            },
+            kind,
+            continuation: saved.continuation,
+        })
+    }
     pub fn key(&self) -> &OperationKey {
         &self.key
     }
@@ -290,39 +322,7 @@ impl<T> Operation<T> {
         }
     }
     pub(super) fn restore(client: Client, value: Value, kind: OperationKind<T>) -> Result<Self> {
-        if serde_json::to_vec(&value)
-            .map_err(|_| Error::local(ErrorKind::Validation))?
-            .len()
-            > 4096
-        {
-            return Err(Error::local(ErrorKind::Validation));
-        }
-        let saved: SavedReference =
-            serde_json::from_value(value).map_err(|_| Error::local(ErrorKind::Validation))?;
-        if saved.schema != "connect-operation-reference/1"
-            || saved.command != kind.command
-            || !saved.scope.valid()
-            || !(kind.valid_scope)(&saved.scope)
-            || !consultations::valid_continuation(
-                kind.command,
-                &saved.scope,
-                saved.continuation.as_ref(),
-            )
-        {
-            return Err(Error::local(ErrorKind::Validation));
-        }
-        Ok(Self::new(
-            client,
-            OperationReference {
-                key: OperationKey {
-                    operation_id: saved.operation_id,
-                    command: saved.command,
-                    scope: saved.scope,
-                },
-                kind,
-                continuation: saved.continuation,
-            },
-        ))
+        Ok(Self::new(client, OperationReference::parse(value, kind)?))
     }
     pub fn reference(&self) -> OperationReference<T> {
         let mut reference = self.reference.clone();

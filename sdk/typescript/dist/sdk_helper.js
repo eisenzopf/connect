@@ -19,6 +19,8 @@ export class NodeSdkError extends CanonicalError {
 /** Internal framing only. The Rust SDK owns trust, journals and typed behavior. */
 export class SdkHelper {
     child;
+    wireProfile;
+    administrative;
     exited;
     joined = false;
     closed = false;
@@ -26,7 +28,13 @@ export class SdkHelper {
     active;
     chunks = [];
     bytes = 0;
-    constructor(config) {
+    constructor(config, backend = "participant") {
+        if (backend !== "participant" && backend !== "administrative")
+            throw new NodeSdkError("configuration", "not-submitted");
+        this.administrative = backend === "administrative";
+        this.wireProfile = this.administrative
+            ? "connect-sdk-administration/1"
+            : profile;
         const executable = config?.executable ?? "connect";
         if (!config ||
             [config.config, executable].some((v) => typeof v !== "string" ||
@@ -34,7 +42,11 @@ export class SdkHelper {
                 v.length > 4096 ||
                 v.includes("\0")))
             throw new NodeSdkError("configuration", "not-submitted");
-        this.child = spawn(executable, ["sdk-stdio", "--config", config.config], { stdio: ["pipe", "pipe", "pipe"] });
+        this.child = spawn(executable, [
+            this.administrative ? "sdk-admin-stdio" : "sdk-stdio",
+            "--config",
+            config.config,
+        ], { stdio: ["pipe", "pipe", "pipe"] });
         this.child.stderr.resume();
         this.exited = new Promise((resolve) => this.child.once("close", () => {
             this.joined = true;
@@ -59,11 +71,15 @@ export class SdkHelper {
         try {
             duration(options);
             const raw = action.type === "raw_request";
-            const bytes = Buffer.from(canonicalJson(action, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw ? 40 : 32, raw ? 1100000 : 100000));
+            const bytes = Buffer.from(canonicalJson(action, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw || this.administrative ? 40 : 32, raw ? 1100000 : 100000));
             if (bytes.length >
-                (action.type === "raw_request" ? 1024 * 1024 + 1024 : 63 * 1024))
+                (action.type === "raw_request"
+                    ? 1024 * 1024 + 1024
+                    : this.administrative
+                        ? 65536 + 1024
+                        : 63 * 1024))
                 throw new Error();
-            captured = parseCanonicalJson(bytes, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw ? 40 : 32, raw ? 1100000 : 100000);
+            captured = parseCanonicalJson(bytes, raw ? 2 * 1024 * 1024 : 1024 * 1024, raw || this.administrative ? 40 : 32, raw ? 1100000 : 100000);
         }
         catch {
             throw new NodeSdkError("validation", mutation ? "not-submitted" : "read-only", key);
@@ -139,14 +155,20 @@ export class SdkHelper {
         this.active = job;
         try {
             const line = canonicalJson({
-                profile,
+                profile: this.wireProfile,
                 id: job.id,
                 request: { timeout_ms: remaining, action: job.action },
             }, job.action.type === "raw_request"
                 ? 2 * 1024 * 1024
-                : 1024 * 1024, job.action.type === "raw_request" ? 40 : 32, job.action.type === "raw_request" ? 1100000 : 100000) + "\n";
+                : 1024 * 1024, job.action.type === "raw_request" || this.administrative
+                ? 40
+                : 32, job.action.type === "raw_request" ? 1100000 : 100000) + "\n";
             if (Buffer.byteLength(line) >
-                (job.action.type === "raw_request" ? 2 * 1024 * 1024 : 65536))
+                (job.action.type === "raw_request"
+                    ? 2 * 1024 * 1024
+                    : this.administrative
+                        ? 128 * 1024
+                        : 65536))
                 throw new Error();
             job.sent = true;
             this.child.stdin.write(line, (error) => {
@@ -196,11 +218,13 @@ export class SdkHelper {
         if (newline < 0)
             return;
         try {
-            const v = parseCanonicalJson(Buffer.concat(this.chunks, this.bytes).subarray(0, -1), 2 * 1024 * 1024, job.action.type === "raw_request" ? 40 : 32, job.action.type === "raw_request" ? 1100000 : 100000);
+            const v = parseCanonicalJson(Buffer.concat(this.chunks, this.bytes).subarray(0, -1), 2 * 1024 * 1024, job.action.type === "raw_request" || this.administrative
+                ? 40
+                : 32, job.action.type === "raw_request" ? 1100000 : 100000);
             this.chunks = [];
             this.bytes = 0;
             if (!object(v, ["profile", "id", "result"]) ||
-                v.profile !== profile ||
+                v.profile !== this.wireProfile ||
                 v.id !== job.id ||
                 !object(v.result, ["Ok", "Err"]) ||
                 Object.keys(v.result).length !== 1)
