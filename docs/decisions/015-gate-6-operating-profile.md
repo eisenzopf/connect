@@ -56,6 +56,16 @@ backend; provider keys stay server-side. Configure public SIP/RTP addresses,
 ICE/TURN and callback ingress independently. A reachable HTTPS route is not proof
 of duplex telephone media.
 
+October 27 isolated Linux HTTPS fixture target: use the existing local image
+`sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5`
+(Ubuntu 24.04.5 LTS amd64; Rust 1.97.1, LLVM 22.1.6, Clang 18.1.3). The local
+Docker daemon runs in an arm64 Lima VM, so this amd64 userland is emulated.
+The G6-053 functional fixture uses fresh synthetic state, a private CA, four
+separate HTTPS roles, an internal container network and only host-loopback
+published ports. Freeze this target before executing the host/client checks.
+It cannot establish native x86 performance, named remote browser/media coverage,
+the G6-056 installation lifecycle or any whole-gate acceptance criterion.
+
 ## Default bounds
 
 | Resource | Default / hard check |

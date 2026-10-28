@@ -246,10 +246,8 @@ passes four new actual-listener/CLI functions plus ten current HTTP, issuance
 and installation regressions. A fresh CLI also produces three schema-checked
 HTTPS health/policy responses with ordinary CA/name validation. The initial
 moved-config build and resumed-session certificate-inspection failure remain
-failed evidence. Current WSS/HTTP3 reload/deployment composition and the G6-053
-requirement audit remain open; no distinct-host/Linux/provider or full acceptance
-qualification is inferred.
-
+failed evidence. The following composition and host checks have separate
+observations; no provider or whole Gate 6 acceptance qualification is inferred.
 
 The current hosted composition additionally passes all seven hosting functions.
 HTTPS, WSS and HTTP3 WT observe the shared replacement leaf in nine accepted
@@ -259,5 +257,32 @@ Remote HTTPS policy fixture checks the exact published authority and wrong
 TLS names on isolated loopback. Two raw sockets fill capacity, excess admission
 refuses promptly, and five-second handshake expiry releases slots for reuse.
 Every owned shutdown joins and no panic occurs. These WT/WSS probes check
-routing and certificate lifetime, without authenticated control/media. Actual
-Linux/distinct-host/browser-media/profile qualification remains separate.
+routing and certificate lifetime, without authenticated control/media.
+
+The isolated Linux HTTPS host runner takes an already built, source-bound
+amd64 `connect` executable and an existing image by its immutable image ID:
+
+```sh
+python3 scripts/rehearse-gate6-https-host.py \
+  --binary /absolute/path/to/connect-linux-amd64 \
+  --binary-sha256 <sha256-from-the-build-summary> \
+  --image sha256:<existing-Ubuntu-image-id> \
+  --output .local/gate-6/https-listeners/fresh-linux-host
+```
+
+It pulls no image and calls no provider or model. It initializes a new synthetic
+installation, provisions a private fixture CA, and starts a bounded non-root
+server with a read-only root filesystem and one writable state mount. Four
+separate TLS listeners publish only on host loopback, through an internal Docker
+network. The exact allocated contacts are installed before the server starts.
+The host client uses ordinary CA and hostname verification, checks authentication
+and origin/proxy refusals, repeats an administrative operation with its original
+ID, rotates TLS through SIGHUP, checks last-good behavior, and revokes a client
+through the administrative API. SQL inspection is read-only. The runner stops
+the server, records its exit and join marker, removes its own container/network,
+and retains synthetic private state and raw logs under the requested output.
+
+An amd64 guest running under local arm64 emulation can prove Linux hosting
+behavior; it cannot qualify native x86 performance, named remote browser/media
+profiles, the supported installation lifecycle, or whole Gate 6 acceptance.
+Those remain separate tasks in the approved dependency graph.
