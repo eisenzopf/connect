@@ -106,6 +106,8 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='wrong-scope') { const k=result.Ok?.snapshot?.key??result.Ok?.key; if(k)k.scope.conversationId='foreign'; }
  if(config.mode==='wrong-result'&&result.Ok?.value)result.Ok.value={id:'room'};
  if(config.mode==='record-change'&&n>1) { const s=result.Ok?.snapshot??result.Ok;if(s?.recordId)s.recordId='record-foreign'; }
+ if(config.mode==='error-kind-array'||config.mode==='error-certainty-array')result={Err:{kind:config.mode==='error-kind-array'?['protocol']:'application',certainty:config.mode==='error-certainty-array'?['refused']:'refused',operation:null,problem:null,observation:null}};
+ if(config.mode==='binding-state-array'&&result.Ok?.value?.outcome?.streams)result.Ok.value.outcome.streams[0].state=['active'];
  const response={profile:config.mode==='profile'?'foreign':'connect-sdk-helper/1',id:config.mode==='wrong-id'?'foreign':req.id,result};
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);

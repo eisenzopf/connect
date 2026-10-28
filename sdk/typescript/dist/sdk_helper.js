@@ -210,6 +210,7 @@ export class SdkHelper {
                     "problem",
                     "observation",
                 ]) ||
+                    typeof e.kind !== "string" ||
                     ![
                         "validation",
                         "configuration",
@@ -225,14 +226,15 @@ export class SdkHelper {
                         "receipt-unavailable",
                         "resync-required",
                         "cleanup-incomplete",
-                    ].includes(String(e.kind)) ||
+                    ].includes(e.kind) ||
+                    typeof e.certainty !== "string" ||
                     ![
                         "not-submitted",
                         "refused",
                         "uncertain",
                         "recorded",
                         "read-only",
-                    ].includes(String(e.certainty)))
+                    ].includes(e.certainty))
                     throw new Error();
                 // The trusted SDK's operation must agree with our captured intent.
                 // Null is allowed for failures before Rust constructed its key.

@@ -128,5 +128,7 @@
     "sdk/tests/prepare_native_consumer.py": "545cf94b1e173acfc544bcac182a06077fa3c6e9d3c5aaa07e150819bd77ed88",
     "sdk/tests/check_canonical_helper.py": "e3501e1aaab8efcd5d648e73339c1dbabbe3e02b0f87edc31d7c94a683ea41a9",
     "scripts/check-gate6-linux-hosting.py": "5c543efc50e154e1245746a28273919d23b75288fae9cfc46d559648b7311afd"
-  }
+  },
+  "implementation_commit": "4baf9c88680d6b64fe39696bed5f9a7e1b6508a6",
+  "source_hash_scope": "Recorded fixture/checker candidate at implementation_commit, before subsequent enum-fencing regression additions. The original59-check synthetic cohort remains historical."
 }

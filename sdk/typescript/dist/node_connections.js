@@ -384,7 +384,8 @@ function codec(v, generation, gates = false) {
     };
     if (!gates)
         return frozen(base);
-    if (!["active", "paused"].includes(String(v.state)) ||
+    if (typeof v.state !== "string" ||
+        !["active", "paused"].includes(v.state) ||
         typeof v.sourceMuted !== "boolean" ||
         (v.heldDirection !== null && !direction(v.heldDirection)))
         return protocol();

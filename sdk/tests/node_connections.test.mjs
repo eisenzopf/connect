@@ -62,3 +62,13 @@ test('foreign native identities, malformed binding captures, generations and clo
  await fixture({mode:'wrong-connection'},async client=>{await assert.rejects(session(client).connections.byId('connection').refresh(opts),error('protocol','read-only'));});
  await fixture({mode:'bad-clock',clock:true},async client=>{await assert.rejects(session(client).connections.byId('connection').streams.byId('audio').refresh(opts),error('protocol','read-only'));});
 });
+
+test('coercible stream gate state cannot become a typed native binding receipt',async()=>{
+ await fixture({mode:'binding-state-array'},async(client,dir)=>{
+  const c=session(client).connections.byId('connection');
+  const operation=await c.update({action:'mute',streams:{first:'audio',rest:[]}},1,mutation);
+  await assert.rejects(operation.wait(opts),error('protocol','read-only'));
+  assert.throws(()=>c.refresh(opts),error('configuration','read-only'));
+  assert.equal((await calls(dir)).length,2);
+ });
+});

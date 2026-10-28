@@ -662,7 +662,8 @@ function codec(
     };
     if (!gates) return frozen(base);
     if (
-        !["active", "paused"].includes(String(v.state)) ||
+        typeof v.state !== "string" ||
+        !["active", "paused"].includes(v.state) ||
         typeof v.sourceMuted !== "boolean" ||
         (v.heldDirection !== null && !direction(v.heldDirection))
     )

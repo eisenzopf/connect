@@ -204,3 +204,13 @@ test('typed status, decision and participant observations reject coercible nonst
   assert.throws(()=>room.refresh(opts),error('configuration','read-only'));
  });
 });
+
+test('malformed SDK error kind and certainty fence the original helper and preserve submission certainty',async()=>{
+ for(const mode of ['error-kind-array','error-certainty-array'])for(const write of [false,true])await fixture({mode},async(client,dir)=>{
+  const room=client.conversations.byId('room');
+  const request=write?room.send(input(),mutation):client.operations.restore(saved(),client.operationKinds.message_send).status(opts);
+  await assert.rejects(request,e=>{error('protocol',write?'uncertain':'read-only')(e);assert.equal(e.operation.operationId,'original');return true;});
+  assert.throws(()=>room.refresh(opts),error('configuration','read-only'));
+  assert.equal((await calls(dir)).length,1);
+ });
+});
