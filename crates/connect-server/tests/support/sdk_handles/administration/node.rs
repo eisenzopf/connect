@@ -222,7 +222,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
     }
 }
 pub(super) async fn drained(f: &Fixture) {
-    tokio::time::timeout(Duration::from_secs(5), async {
+    let drained = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let view = f.server.service.canonical_runtime_snapshot().unwrap();
             if view.physical_peers == 0 && view.media_readers == 0 {
@@ -231,8 +231,18 @@ pub(super) async fn drained(f: &Fixture) {
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
     })
-    .await
-    .unwrap();
+    .await;
+    if drained.is_err() {
+        let view = f.server.service.canonical_runtime_snapshot().unwrap();
+        eprintln!(
+            "installed-node-administrative-drain-failure {}",
+            json!({
+                "physical_peers":view.physical_peers,"media_readers":view.media_readers,
+                "helpers_joined":HELPERS.load(Ordering::SeqCst),"validators_joined":VALIDATORS.load(Ordering::SeqCst)
+            })
+        );
+    }
+    drained.unwrap();
 }
 pub(super) fn server_joined() {
     if enabled() {

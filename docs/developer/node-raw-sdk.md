@@ -61,3 +61,11 @@ vector/schema copy accepted19 negative Connect vectors. A recorded240th upstream
 patch synchronizes the exact254-vector contract in a fresh prepared tree. The
 existing test remains required; current Rust/native execution is pending. See
 [the schema comparison and retained failures](../evidence/gate-6/node-embedded-schema.json).
+
+The exact `e732fcef` native control component passes on Ubuntu Node22.23.4 and
+26.12.1 under EdDSA/ES256. It proves configuration-independent local validation,
+original signed record reads, immutable optional payload capture, fresh physical
+exchange IDs, exact same-ID one-message raw replay, and current-authority
+refusal with original joins. These component passes do not qualify the failed
+aggregate or newer helper/incoming/shutdown source. See
+[the retained runtime evidence](../evidence/gate-6/node-native-e732.json).

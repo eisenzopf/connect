@@ -84,21 +84,41 @@ impl Backend {
     }
 }
 pub async fn serve(path: &Path) -> anyhow::Result<()> {
-    let client = match ClientConfig::load(path) {
-        Ok(config) => Client::connect_configured(config).await,
-        Err(error) => Err(error),
+    let mut shutdown = super::serve::Shutdown::install()?;
+    let client = tokio::select! { biased;
+        signal = shutdown.signal() => { signal?; return Ok(()); },
+        client = async { match ClientConfig::load(path) {
+            Ok(config) => Client::connect_configured(config).await,
+            Err(error) => Err(error),
+        }} => client,
     };
-    serve_backend(Backend::Participant(client.map(helper::ManagedClient::new))).await
+    serve_backend(
+        Backend::Participant(client.map(helper::ManagedClient::new)),
+        shutdown,
+    )
+    .await
 }
 pub async fn serve_administrative(path: &Path) -> anyhow::Result<()> {
-    let client = match ClientConfig::load(path) {
-        Ok(config) => AdministrativeClient::connect_configured(config).await,
-        Err(error) => Err(error),
+    let mut shutdown = super::serve::Shutdown::install()?;
+    let client = tokio::select! { biased;
+        signal = shutdown.signal() => { signal?; return Ok(()); },
+        client = async { match ClientConfig::load(path) {
+            Ok(config) => AdministrativeClient::connect_configured(config).await,
+            Err(error) => Err(error),
+        }} => client,
     };
-    serve_backend(Backend::Administrative(client)).await
+    serve_backend(Backend::Administrative(client), shutdown).await
 }
-async fn serve_backend(backend: Backend) -> anyhow::Result<()> {
-    let result = bridge(&backend).await;
+async fn serve_backend(
+    backend: Backend,
+    mut shutdown: super::serve::Shutdown,
+) -> anyhow::Result<()> {
+    // Dropping an active bridge abandons only its caller wait. The same owned
+    // SDK must still cancel and join its HTTP/native work before this PID exits.
+    let result = tokio::select! { biased;
+        signal = shutdown.signal() => signal,
+        result = bridge(&backend) => result,
+    };
     let closed = backend.close().await;
     result?;
     closed?;

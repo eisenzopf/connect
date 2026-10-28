@@ -13,6 +13,8 @@ export declare class SdkHelper {
     private readonly administrative;
     private readonly exited;
     private joined;
+    private terminating;
+    private terminationTimer?;
     private closed;
     private readonly queue;
     private active?;
@@ -28,6 +30,7 @@ export declare class SdkHelper {
     private cancel;
     private next;
     fence(kind: CanonicalErrorKind): void;
+    private terminate;
     private receive;
     close(options: CanonicalRequestOptions): Promise<void>;
 }

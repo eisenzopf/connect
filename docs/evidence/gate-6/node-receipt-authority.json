@@ -58,5 +58,16 @@
     "sdk/tests/node_sdk_server_consumer.mjs": "cf9c29644e3d7e1d4760b4e66bdb46ab8a9fb057825fa7692595667725861078",
     "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "16d80735c04a27aa9b02f1af4b5659177a09fae8a818ad0c024f7ad348f3b2ca",
     "scripts/check-gate6-linux-hosting.py": "bffd10018cb4b1aec116495605a41bdd7f046dc6eac84633b21ce8527dd085d9"
+  },
+  "source_bound_native": {
+    "passed": true,
+    "evidence": "docs/evidence/gate-6/node-native-e732.json",
+    "commit": "e732fcefd32c1c3f806a302a0f8c230c9b42c2a3",
+    "run_id": 40771339232,
+    "runtimes": [
+      "v22.23.4",
+      "v26.12.1"
+    ],
+    "scope": "Bothalg current typed no-data read and named actualHTTP401/403 refusal, original signed raw record and one-message replay, current canonical refusal and required joins. Historical e732 only; newer helper/incoming/shutdown changes remain pending."
   }
 }

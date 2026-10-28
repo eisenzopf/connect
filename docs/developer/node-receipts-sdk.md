@@ -44,3 +44,11 @@ one original message and operation. Original deadlines and joins remain required
 Current native compilation/execution is pending. Local Rust linking is skipped
 for retained ENOSPC. See [the correction](../evidence/gate-6/node-receipt-authority.json)
 and [the original source-bound results](../evidence/gate-6/node-native-5d.json).
+
+The exact `e732fcef` Node22.23.4/26.12.1 Ubuntu artifacts now pass the complete
+`node-controls/5` function under both algorithms. Named HTTP sees the same native
+delivery fact, then actual 401/403; the owned read returns no data after current
+revocation, canonical HTTP refuses, and one original message/operation remains.
+All required8helpers/6validators/2servers join per matrix. The newer helper3,
+incoming and graceful-stop changes remain pending. See
+[the source-bound results](../evidence/gate-6/node-native-e732.json).

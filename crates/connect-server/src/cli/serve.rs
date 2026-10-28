@@ -43,6 +43,16 @@ impl Shutdown {
             terminate: tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?,
         })
     }
+    pub(crate) async fn signal(&mut self) -> Result<()> {
+        #[cfg(unix)]
+        tokio::select! {
+            _ = self.interrupt.recv() => {},
+            _ = self.terminate.recv() => {},
+        }
+        #[cfg(not(unix))]
+        tokio::signal::ctrl_c().await?;
+        Ok(())
+    }
     pub(crate) async fn wait(&mut self, server: &RunningServer) -> Result<()> {
         #[cfg(unix)]
         {

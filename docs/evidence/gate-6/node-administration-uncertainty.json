@@ -204,5 +204,11 @@
     "diff": true,
     "actual_rust_compile_and_native": "Pending original normal-push Ubuntu run; no local Rust link due retained ENOSPC."
   },
-  "qualification_limit": "Nine installed synthetic protocols pass with9helpers/17validators joined. Pending helper cancellation writes only one request; already completed work cannot qualify as uncertainty. These do not qualify actual held HTTP commit/native/cryptography. Full SDK incoming/events/explicit remote HTTP and other required scopes remain open."
+  "qualification_limit": "Nine installed synthetic protocols pass with9helpers/17validators joined. Pending helper cancellation writes only one request; already completed work cannot qualify as uncertainty. These do not qualify actual held HTTP commit/native/cryptography. Full SDK incoming/events/explicit remote HTTP and other required scopes remain open.",
+  "runtime_finding": {
+    "passed": false,
+    "evidence": "docs/evidence/gate-6/node-native-e732.json",
+    "failure": "All4 real scenes fail original5s physical/media drain after recovery and both helper closes; never qualify from completed phases alone.",
+    "correction": "docs/evidence/gate-6/node-helper-graceful-stop.json"
+  }
 }

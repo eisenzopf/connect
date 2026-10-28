@@ -168,5 +168,16 @@
     "scripts/check-gate6-linux-hosting.py": "a7284310e68e735f9f7b26d923f390ea7cab3027e3ca9ede8c345266b226b8ea"
   },
   "qualification_limit": "Seven installed synthetic consumer scenarios, seven original helper joins,13 validator joins and original runner-parser checks only. Real Node administrative authority/cryptography/native behavior remains pending. Uncertain HTTP commit is not covered here; full SDK incoming/events/explicit remote HTTP and other required scopes remain open.",
-  "subsequent_uncertainty_candidate": "docs/evidence/gate-6/node-administration-uncertainty.json"
+  "subsequent_uncertainty_candidate": "docs/evidence/gate-6/node-administration-uncertainty.json",
+  "source_bound_native": {
+    "passed": true,
+    "evidence": "docs/evidence/gate-6/node-native-e732.json",
+    "commit": "e732fcefd32c1c3f806a302a0f8c230c9b42c2a3",
+    "run_id": 40771339232,
+    "runtimes": [
+      "v22.23.4",
+      "v26.12.1"
+    ],
+    "scope": "Commands and current ordinary/revoked authority only; held uncertainty failed drain. Historical e732 only; newer helper/incoming/shutdown changes remain pending."
+  }
 }

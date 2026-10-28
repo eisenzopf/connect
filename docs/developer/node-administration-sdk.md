@@ -118,3 +118,16 @@ joined per matrix. Both signing algorithms pass. Current authority/uncertainty
 candidate behavior remains pending. The aggregate retained the separate
 revocation assertion and Node22 movement-audio failures. See
 [the source-bound b2 results](../evidence/gate-6/node-native-b2.json).
+
+The subsequent exact `e732fcef` artifacts pass current ordinary/revoked authority
+on both Node versions and both algorithms. Held commits retain correct local
+uncertainty, queued non-submission and fresh signed recovery, then fail the
+original five-second runtime-drain check after both helpers report closed.
+Those scenes remain failures. The original fence used SIGKILL and bypassed SDK
+cleanup; the candidate now ends input, sends SIGTERM, and lets the CLI close its
+original HTTP/native owner. The original close deadline still forces termination
+and reports incomplete cleanup; a five-second fallback also bounds abandoned
+cleanup. No drain deadline or assertion was relaxed. Three installed synthetic
+lifecycle functions pass; real native drain after this correction is pending.
+See [the retained runtime](../evidence/gate-6/node-native-e732.json) and
+[the shutdown correction](../evidence/gate-6/node-helper-graceful-stop.json).

@@ -60,6 +60,8 @@ export class SdkHelper {
     private readonly administrative: boolean;
     private readonly exited: Promise<void>;
     private joined = false;
+    private terminating = false;
+    private terminationTimer?: ReturnType<typeof setTimeout>;
     private closed = false;
     private readonly queue: Job[] = [];
     private active?: Job;
@@ -103,6 +105,7 @@ export class SdkHelper {
         this.exited = new Promise((resolve) =>
             this.child.once("close", () => {
                 this.joined = true;
+                clearTimeout(this.terminationTimer);
                 this.fence("transport-uncertain");
                 resolve();
             }),
@@ -287,12 +290,30 @@ export class SdkHelper {
             this.release(job);
             job.reject(this.error(job, kind));
         }
+        this.terminate(false);
+    }
+    private terminate(force: boolean): void {
         if (
             !this.joined &&
             this.child.exitCode === null &&
             this.child.signalCode === null
-        )
-            this.child.kill("SIGKILL");
+        ) {
+            if (force) {
+                clearTimeout(this.terminationTimer);
+                this.child.kill("SIGKILL");
+            } else if (!this.terminating) {
+                this.terminating = true;
+                // EOF also releases Tokio's blocking stdin reader during an
+                // idle shutdown; no further logical request may be admitted.
+                this.child.stdin.end();
+                this.child.kill("SIGTERM");
+                this.terminationTimer = setTimeout(
+                    () => this.terminate(true),
+                    5000,
+                );
+                this.terminationTimer.unref();
+            }
+        }
     }
     private receive(chunk: Buffer): void {
         if (this.closed) return;
@@ -454,6 +475,7 @@ export class SdkHelper {
             };
             const abort = () => {
                 this.fence("cancelled");
+                this.terminate(true);
                 cleanup();
                 reject(new NodeSdkError("cleanup-incomplete", "read-only"));
             };

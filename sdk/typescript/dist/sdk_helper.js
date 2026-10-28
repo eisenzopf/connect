@@ -23,6 +23,8 @@ export class SdkHelper {
     administrative;
     exited;
     joined = false;
+    terminating = false;
+    terminationTimer;
     closed = false;
     queue = [];
     active;
@@ -50,6 +52,7 @@ export class SdkHelper {
         this.child.stderr.resume();
         this.exited = new Promise((resolve) => this.child.once("close", () => {
             this.joined = true;
+            clearTimeout(this.terminationTimer);
             this.fence("transport-uncertain");
             resolve();
         }));
@@ -191,10 +194,26 @@ export class SdkHelper {
             this.release(job);
             job.reject(this.error(job, kind));
         }
+        this.terminate(false);
+    }
+    terminate(force) {
         if (!this.joined &&
             this.child.exitCode === null &&
-            this.child.signalCode === null)
-            this.child.kill("SIGKILL");
+            this.child.signalCode === null) {
+            if (force) {
+                clearTimeout(this.terminationTimer);
+                this.child.kill("SIGKILL");
+            }
+            else if (!this.terminating) {
+                this.terminating = true;
+                // EOF also releases Tokio's blocking stdin reader during an
+                // idle shutdown; no further logical request may be admitted.
+                this.child.stdin.end();
+                this.child.kill("SIGTERM");
+                this.terminationTimer = setTimeout(() => this.terminate(true), 5000);
+                this.terminationTimer.unref();
+            }
+        }
     }
     receive(chunk) {
         if (this.closed)
@@ -343,6 +362,7 @@ export class SdkHelper {
             };
             const abort = () => {
                 this.fence("cancelled");
+                this.terminate(true);
                 cleanup();
                 reject(new NodeSdkError("cleanup-incomplete", "read-only"));
             };

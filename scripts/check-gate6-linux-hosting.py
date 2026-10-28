@@ -203,7 +203,13 @@ def run(node_sdk=False):
                 step['node_movement_failures'].append(failure)
         step['node_administrative_phases'] = []
         step['node_administrative_failures'] = []
+        step['node_administrative_drain_failures'] = []
         for line in text.splitlines():
+            if line.startswith('installed-node-administrative-drain-failure '):
+                drain = json.loads(line.split(' ',1)[1])
+                assert set(drain) == {'physical_peers','media_readers','helpers_joined','validators_joined'}
+                assert all(type(v) is int and 0 <= v <= 100000 for v in drain.values())
+                step['node_administrative_drain_failures'].append(drain)
             if line.startswith('installed-node-administrative-phase '):
                 phase = json.loads(line.split(' ', 1)[1])
                 assert set(phase) == {'algorithm', 'phase', 'seconds', 'deadline_seconds'}

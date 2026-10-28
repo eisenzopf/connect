@@ -46,6 +46,10 @@ const path=process.argv[process.argv.indexOf('--config')+1], config=JSON.parse(r
 writeFileSync(join(dir,'pid'),String(process.pid),{mode:0o600});
 writeFileSync(join(dir,'argv.json'),JSON.stringify(process.argv.slice(2)),{mode:0o600});
 process.on('exit',code=>writeFileSync(join(dir,'exit.json'),JSON.stringify({code}),{mode:0o600}));
+if(config.signalDrainMs!==undefined||config.ignoreTermination){setInterval(()=>{},1000);process.on('SIGTERM',()=>{
+ appendFileSync(join(dir,'signals.jsonl'),JSON.stringify('SIGTERM')+'\n',{mode:0o600});
+ if(!config.ignoreTermination)setTimeout(()=>{writeFileSync(join(dir,'drained.json'),JSON.stringify({drained:true}),{mode:0o600});process.exit(0);},config.signalDrainMs);
+});}
 if(config.mode==='hang-close')setInterval(()=>{},1000);
 const key=reference=>({operationId:reference.operation_id,command:reference.command,scope:{conversationId:reference.scope.conversation_id??null,sessionId:reference.scope.session_id??null,connectionId:reference.scope.connection_id??null}});
 const reference=(id,command,scope={},continuation)=>({schema:'connect-operation-reference/1',operation_id:id,command,scope,...(continuation?{continuation}:{})});

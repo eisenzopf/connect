@@ -106,3 +106,11 @@ test('helper startup failures preserve original intent and distinguish unsent mu
   assert.throws(()=>client.provision(command,mutation),error('configuration','not-submitted','original'));assert.equal((await lines(dir,'requests.jsonl')).length,1);
  });
 });
+
+test('trusted sent cancellation gracefully joins its original backend helper without mutation replay',async()=>{
+ await fixture({mode:'partial',signalDrainMs:60},async(client,dir)=>{
+  const command=client.validateProvisioning(draft()),abort=new AbortController(),pending=client.provision(command,{...mutation,signal:abort.signal});
+  while(!(await lines(dir,'requests.jsonl')).length)await new Promise(resolve=>setTimeout(resolve,5));
+  abort.abort();await assert.rejects(pending,error('cancelled','uncertain','original'));await client.close(opts);assert.deepEqual(JSON.parse(await readFile(join(dir,'drained.json'),'utf8')),{drained:true});assert.deepEqual(JSON.parse(await readFile(join(dir,'exit.json'),'utf8')),{code:0});assert.deepEqual(await lines(dir,'signals.jsonl'),['SIGTERM']);assert.equal((await lines(dir,'requests.jsonl')).length,1);
+ });
+});

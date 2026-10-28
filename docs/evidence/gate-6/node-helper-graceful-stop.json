@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "graceful-helper-stop-implemented-component-passed-native-pending",
+  "implementation_parent_commit": "d85c4398226e107247f77204ed86b05d4147f8cf",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "observed_failure": {
+    "evidence": "docs/evidence/gate-6/node-native-e732.json",
+    "functions": 4,
+    "scope": "Node22/26,EdDSA/ES256 held-commit scenes reach original uncertain/queued-not-submitted, fresh signed recovery/read refusal and both original helper closed phases, then fail5s runtime physical/media drain at administration/node.rs235:6. Exact nonzero counter was not retained by that source.",
+    "source_finding": "Original SdkHelper.fence unconditionally used SIGKILL. SDK stdio had no graceful signal branch while executing a request. A joined PID therefore did not prove Rust SDK/native owner cleanup. This identifies a concrete missing cleanup path; successful physical drain after correction remains unproven."
+  },
+  "correction": [
+    "Fence settles original errors/keys/uncertainty and discards queued work exactly as before, then ends input and requests SIGTERM once. EOF releases a possibly blocked Tokio stdin reader. No replacement helper or request replay.",
+    "The SDK CLI installs existing Unix shutdown handlers before initialization, selects signals during initialization/bridge work, drops an active caller wait and closes the same original SDK backend before exit. Administrative HTTP and native workers retain their existing owned-close implementation.",
+    "A five-second automatic forced-kill fallback stays bounded. The callers original close deadline/cancellation still force-kills and reports cleanup-incomplete rather than claiming a confirmed join. Child-close clears the fallback timer.",
+    "The real held-commit fixture keeps its original4s request/15s phase/90s function and5s runtime-drain requirements. Only safe drain counters are added on failure; no drain, media or mutation assertion is relaxed."
+  ],
+  "component_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 14.053407749859616,
+    "source_count": 217,
+    "changed_inputs": [],
+    "source_inputs_sha256": "a5c10adf31fdd8e4c7e9566f34501b8a9dddc8338cdcde4ad80bd363f6a951d1",
+    "log_sha256": "a201fb0778ab064cd856b30fe94cf972d74971f40d2afb1c8ca425b1694e9998",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T21:58:22.419776+00:00"
+  },
+  "functions_passed": 93,
+  "all_previous90_retained": true,
+  "new_functions": [
+    "trusted sent cancellation gracefully joins its original backend helper without mutation replay",
+    "sent cancellation requests graceful original helper cleanup and joins before close returns",
+    "a helper ignoring graceful termination is force-killed at the original close deadline with incomplete cleanup"
+  ],
+  "installed_package": {
+    "archive_sha256": "a40784a0c181b8b3789012a3bcdc38f7667eb6f70a5f55985a5c49d58cb51333",
+    "installed_dist_matches": true,
+    "dist_files": 130,
+    "installed_lifecycle_functions_passed": 3,
+    "installed_log_sha256": "e2dbee6d4170f2f96f9adf624ccebbc5aa280b0fa30bfd2714018ff93700dd46"
+  },
+  "drain_diagnostic_parser": {
+    "passed": true,
+    "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+    "checks": [
+      "valid-retained",
+      "invalid-count-rejected",
+      "invalid-counter-rejected",
+      "extra-field-rejected"
+    ]
+  },
+  "source_sha256": {
+    "sdk/typescript/src/sdk_helper.ts": "2bab88180d47aba76dd5edc775d974d34996c488e7790edd680385e9ef276532",
+    "sdk/typescript/dist/sdk_helper.js": "6bde3472ca070e9806a33c38cd72d3f38d9ce7894bedd6dd969e62b038e44c81",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "74e798a530eb6369ad6f4066b78a5ae6e88a60ad7af797eda5f78629e4ca7f5e",
+    "crates/connect-server/src/cli/serve.rs": "ec98616bb15808ebbdec4d73848c9815c59f485da76c1a05a026ce8b962bfc9a",
+    "crates/connect-server/tests/support/sdk_handles/administration/node.rs": "820bf7bed07024d132c01f76410f6abfe01063253d8a0694611af372e79b184a",
+    "scripts/check-gate6-linux-hosting.py": "1b0cba25e0e39c3e752304dff3d64a901595f3f16c2a884b0175b4d0858ea4e4",
+    "sdk/tests/fixtures/sdk_helper.mjs": "eaa6722ebfe45ca77117e9a01ab84d3626be9d425a4886897bc45a443fe0899c",
+    "sdk/tests/node_sdk.test.mjs": "2bfc08e6922b5123142d5e234e50d92cb0eb3dfc321e6da09e6e5f926d70ec60",
+    "sdk/tests/node_administration.test.mjs": "718f7ed561ef76c2c6490b8669786e1e64dd930a3dbcac1782c4ef8b87013b81"
+  },
+  "checks": {
+    "rust_format": true,
+    "typescript_format": true,
+    "negative_types": true,
+    "node_python_syntax": true,
+    "generated_http_inventory": "25declarations/26operations/0uncovered",
+    "diff": true,
+    "actual_rust_compile_and_native": "Pending new original normal-push Ubuntu run. No local Rust link due retained ENOSPC."
+  },
+  "qualification_limit": "93 component/type/HTTP functions with217 unchanged guarded inputs and3 installed public synthetic lifecycle functions only. Synthetic signal-drain markers do not prove real peer cleanup. Current CLI signal branch/native drain, incoming native, audio-boundary cause and remaining SDK/Gate6 scopes remain unqualified."
+}

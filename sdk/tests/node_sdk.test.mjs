@@ -229,3 +229,21 @@ test('participant helper startup context proves no logical mutation was submitte
   assert.throws(()=>client.conversations.byId('room').refresh(opts),error('configuration','read-only'));assert.equal((await calls(dir)).length,1);
  });
 });
+
+test('sent cancellation requests graceful original helper cleanup and joins before close returns',async()=>{
+ await fixture({mode:'partial',signalDrainMs:60},async(client,dir)=>{
+  const abort=new AbortController(),pending=client.conversations.byId('room').send(input(),{...mutation,signal:abort.signal});
+  while(!(await calls(dir)).length)await new Promise(resolve=>setTimeout(resolve,5));
+  abort.abort();await assert.rejects(pending,e=>{error('cancelled','uncertain')(e);assert.equal(e.operation.operationId,'original');return true;});
+  await client.close(opts);assert.deepEqual(JSON.parse(await readFile(join(dir,'drained.json'),'utf8')),{drained:true});assert.deepEqual(JSON.parse(await readFile(join(dir,'exit.json'),'utf8')),{code:0});assert.deepEqual((await readFile(join(dir,'signals.jsonl'),'utf8')).trim().split('\n').map(JSON.parse),['SIGTERM']);assert.equal((await calls(dir)).length,1);
+ });
+});
+test('a helper ignoring graceful termination is force-killed at the original close deadline with incomplete cleanup',async()=>{
+ await fixture({mode:'partial',ignoreTermination:true},async(client,dir)=>{
+  const abort=new AbortController(),pending=client.conversations.byId('room').send(input(),{...mutation,signal:abort.signal});
+  while(!(await calls(dir)).length)await new Promise(resolve=>setTimeout(resolve,5));
+  abort.abort();await assert.rejects(pending,error('cancelled','uncertain'));
+  while(!(await readFile(join(dir,'signals.jsonl'),'utf8').catch(()=>'')))await new Promise(resolve=>setTimeout(resolve,5));
+  await assert.rejects(client.close({timeoutMs:30}),error('cleanup-incomplete','read-only'));await client.close(opts);assert.equal((await calls(dir)).length,1);assert.equal(await readFile(join(dir,'drained.json'),'utf8').catch(()=>null),null);
+ });
+});

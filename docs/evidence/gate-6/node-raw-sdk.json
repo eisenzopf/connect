@@ -172,5 +172,16 @@
       }
     ]
   },
-  "embedded_schema_failure_and_correction": "docs/evidence/gate-6/node-embedded-schema.json"
+  "embedded_schema_failure_and_correction": "docs/evidence/gate-6/node-embedded-schema.json",
+  "source_bound_native": {
+    "passed": true,
+    "evidence": "docs/evidence/gate-6/node-native-e732.json",
+    "commit": "e732fcefd32c1c3f806a302a0f8c230c9b42c2a3",
+    "run_id": 40771339232,
+    "runtimes": [
+      "v22.23.4",
+      "v26.12.1"
+    ],
+    "scope": "Bothalg full local frozen parser/no-configuration validation, original signed operation.get, optional payload capture, same-ID one-message raw replay/fresh exchange IDs and current authority; full SDK not qualified. Historical e732 only; newer helper/incoming/shutdown changes remain pending."
+  }
 }
