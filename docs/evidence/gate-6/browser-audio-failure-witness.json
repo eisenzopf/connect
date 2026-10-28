@@ -4,7 +4,7 @@
     "G6-051"
   ],
   "status": "in-progress; first current failing decoded-PCM witness captured, no repair claim",
-  "recorded_at": "2026-10-27T23:42:31.947615+00:00",
+  "recorded_at": "2026-10-28T00:03:14.443261+00:00",
   "base_revision": "04de780676963d68e12652b70a42ce91f2ccaa46",
   "scope": "One current local macOS arm64 Chrome ES256 sixty-second synthetic native AV plus actual UDP-to-WSS control fallback diagnostic. Original tone, 100ms observation cadence, 35Hz limit, audio window and independent audience/AV/cleanup assertions remain. Server TRACE disabled. Added bounded source analyser/PCM ring and native RTP stats may affect scheduling; this is a diagnostic, not a normal-profile qualification. No model/provider/remote execution.",
   "build": {
@@ -191,7 +191,7 @@
       "interpretation": "A mathematical clean source gain step alone did not produce a wrong-tone peak in this grid. This control is not the actual encoded/network signal path."
     }
   },
-  "next_action": "Exercise the actual current Opus codec in an isolated pulse roundtrip to separate codec transients from Core pacing/mixing and browser concealment. Exact RTP-to-PCM chunk lineage is not yet captured; do not assign root cause from aggregate counters or change the quality threshold.",
+  "next_action": "Capture a bounded in-memory Core/source/publication/write timeline at a failed event to locate the change between intact sender payloads and distorted server output. Check trimming, ingress/authority refusals and codec restarts against actual evidence. Preserve current authorization, original age/IO budgets and all quality thresholds.",
   "private_hashes": {
     ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/summary.json": "836f96167f6e905dcfe2c0c84f1f5be2ed5834f0e3b679a398a025bb247b6cfa",
     ".local/gate-6/canonical-browser-host/chrome-es256-pcm85-01/inputs.json": "83bd9ca6d56c0c80cd91b7c2d832ef64ee8cd57012a86fade8b6381f304aa467",
@@ -201,12 +201,205 @@
     ".local/gate-6/audio-witness-analysis-85/envelope-result.json": "b5a0ab7e897c386a8210482e31cae7fa5da6d3d720664f4f53bcfcc8f47ee75b",
     ".local/gate-6/audio-witness-analysis-85/fft.mjs": "efd8e65f361a0efeadbdc48b267855c656f9dbe3cf96779034b93dabf5dc4b44",
     ".local/gate-6/audio-witness-analysis-85/analyze.mjs": "5d3af57c49a669434cf60ee70cbbcac28aa11225c15ade1562531748826ab9d7",
-    ".local/gate-6/audio-witness-analysis-85/envelope.mjs": "c1bb3fa30e9974c26731bc76cdc93383120868d47e5079d66e61968b8ff7be2e"
+    ".local/gate-6/audio-witness-analysis-85/envelope.mjs": "c1bb3fa30e9974c26731bc76cdc93383120868d47e5079d66e61968b8ff7be2e",
+    ".local/gate-6/canonical-browser-host/chrome-es256-encoded87-03/summary.json": "87f80aa431556b70f4b6c35fde6cf862f13205573840e5b5a0a76f17df59fe7d",
+    ".local/gate-6/canonical-browser-host/chrome-es256-encoded87-03/inputs.json": "de9ee0c7aee8b93c7f78dac517de1960cb4a4d8186aff3d248c949a87c97bafd",
+    ".local/gate-6/canonical-browser-host/chrome-es256-encoded87-03/decoded-audio/synthetic-audio-witnesses.json": "ba154da0266949eb8a6fa7659135e2836d7469bd73f657c8a5daa1d9d3f0157a",
+    ".local/gate-6/audio-witness-analysis-85/encoded-decoded-scores-87.json": "fc3b063cb16fca199d9d24986112caab1f9c1a0989aaa19b38df64fd00f87922",
+    ".local/gate-6/audio-witness-analysis-85/codec-scores.json": "6c1886df6093ff433e26de485d862a62e6a7f733beacf2dca6576d840fa7d142",
+    ".local/gate-6/audio-witness-analysis-85/reset-scores.json": "a69f4a25b7c07a9be8f31156f411ff3cf0970c91729d14152d42d0893da7542a",
+    ".local/gate-6/audio-witness-analysis-85/encoded-probe-transceivers.json": "f67810033e4ee30ea942a439121d323e75015e1fdb119102b7c2d928b1426113",
+    ".local/gate-6/audio-witness-analysis-85/decode.rs": "e745f9660d311cf43b8a2f6c2b763f29ba7a85f78f7e555f197b93313b263208",
+    ".local/gate-6/audio-witness-analysis-85/reset-proof.json": "bee3b5ad611562a20bfc9721d2ae43b627534e792b93c6473dbd278b6d71b577"
   },
   "progress": {
     "tasks_complete": 57,
     "in_progress": 2,
     "acceptance_qualified": 0
   },
-  "publication": false
+  "publication": false,
+  "encoded_followup": {
+    "scope": "Explicit private pass-through audio RTCRtpScriptTransform diagnostic; server TRACE remains off. Added worker capture can affect scheduling; no normal-profile repair claim.",
+    "probe": "Actual owned Chrome loopback checks97received frames byte-for-byte equal to sent packets; after an initial late-receiver-hook gap, early transceiver/addTrack attachment captures both directions.",
+    "runs": [
+      {
+        "label": "chrome-es256-encoded87-01",
+        "exit_code": 0,
+        "verdict": "passed",
+        "seconds": 66.62880287505686,
+        "changed_inputs": [],
+        "bad_audio_samples": [
+          0,
+          0
+        ],
+        "witness_events": 0,
+        "in_window_witness_events": 0,
+        "witness_errors": [],
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        }
+      },
+      {
+        "label": "chrome-es256-encoded87-02",
+        "exit_code": 0,
+        "verdict": "passed",
+        "seconds": 66.64241233305074,
+        "changed_inputs": [],
+        "bad_audio_samples": [
+          0,
+          0
+        ],
+        "witness_events": 0,
+        "in_window_witness_events": 0,
+        "witness_errors": [],
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        }
+      },
+      {
+        "label": "chrome-es256-encoded87-03",
+        "exit_code": 101,
+        "verdict": "failed",
+        "seconds": 66.53797949990258,
+        "changed_inputs": [],
+        "bad_audio_samples": [
+          1,
+          0
+        ],
+        "witness_events": 1,
+        "in_window_witness_events": 1,
+        "witness_errors": [],
+        "ownership": {
+          "browser_kind": "chrome",
+          "original_listener_addresses_reclaimed": 3,
+          "owned_browser_joined": true,
+          "owned_node_joined": true,
+          "physical_routes_and_slots_retired": true,
+          "runner_timed_out": false,
+          "server_shutdown_joined": true
+        }
+      }
+    ],
+    "failed_event": {
+      "receiver": 0,
+      "sample_rate": 48000,
+      "expected_tone_hz": 660,
+      "tone": {
+        "rms": 0.20996224942132652,
+        "frequency_hz": 703.125
+      },
+      "encoded_frames_per_stream": 200,
+      "receiver_rtp_steps": [
+        960
+      ],
+      "receiver_sequence_steps": [
+        1
+      ],
+      "receiver_pcm_decode": {
+        "stream": "event0-receiver-receive-2",
+        "expected": 660,
+        "windows": 1110,
+        "bad_windows": 2,
+        "peak_range": [
+          656.25,
+          703.125
+        ],
+        "cases": [
+          {
+            "relative_recorded_frame_seconds": -0.0961000919342041,
+            "peak_hz": 703.125,
+            "offset": 182784
+          },
+          {
+            "relative_recorded_frame_seconds": -0.0961000919342041,
+            "peak_hz": 703.125,
+            "offset": 182912
+          }
+        ]
+      },
+      "counterpart_sender_pcm_decode": {
+        "stream": "event0-source-send-1",
+        "expected": 660,
+        "windows": 1110,
+        "bad_windows": 0,
+        "peak_range": [
+          656.25,
+          656.25
+        ],
+        "cases": []
+      },
+      "decoder_library_sha256": "9aec7440967cbcfee8373ea90772fe17b52f0cd0bd77ea9fafcab2aa4452cb41",
+      "method": "Decode actual captured Opus payloads in order with the current real media-core/libopus adapter. Exclude the first second of cold midstream decoder state, then score2048-sample Blackman spectra every128samples. This is dense diagnostic analysis, not the original100ms acceptance cadence.",
+      "conclusion": "The server-emitted Opus payloads independently reproduce703.125Hz before browser playout; the corresponding captured sender payloads remain on-tone. The failing receiver payload stream has contiguous RTP timestamps and sequences in the retained four-second slice. This captured transient was already present before browser playout; no receiver-buffer or classifier change is justified by it. Exact Core/input-ingress cause remains unproven."
+    },
+    "earlier_encoded_attempt": {
+      "run": "chrome-es256-encoded86-01",
+      "bad_audio_samples": [
+        2,
+        2
+      ],
+      "events": 4,
+      "receiver_encoded_frames": 0,
+      "sender_streams_independently_decoded": 8,
+      "sender_bad_diagnostic_windows": 0,
+      "limitation": "Late receiver transform attachment yielded no receiver frames. Those empty rings are not receive evidence. The corrected earlier attachment produced the later complete failed-event capture."
+    }
+  },
+  "codec_controls": {
+    "cases": 32,
+    "pcm_streams": 96,
+    "dense_windows": 160512,
+    "wrong_tone_windows": 0,
+    "scope": "Isolated actual current libopus adapter:32cases,96PCMstreams; all48kmono64kbps20ms frames, complexity5,VBR;8gain/frame offsets,440/660Hz,VoIP/Audio,raw/one/two roundtrips. No network,Core mixing,packet loss or browser decoder. Every128sample window after0.5s; same2048Blackman spectral peak and35Hz bound.",
+    "interpretation": "The isolated current codec adapter does not reproduce the fault for this uninterrupted pulse grid. This does not exonerate browser native encoding or transport/assembly gaps in every configuration."
+  },
+  "gap_reset_control": {
+    "cases": 48,
+    "scope": "Separate actual libopus decoder, one missing20ms quantum, persistent encoder versus reset encoder,440/660Hz and8pulse/frame offsets; no live Core or network.",
+    "groups": [
+      {
+        "tone_hz": 440,
+        "mode": "control",
+        "bad_dense_windows": 0
+      },
+      {
+        "tone_hz": 440,
+        "mode": "retain",
+        "bad_dense_windows": 12
+      },
+      {
+        "tone_hz": 440,
+        "mode": "reset",
+        "bad_dense_windows": 0
+      },
+      {
+        "tone_hz": 660,
+        "mode": "control",
+        "bad_dense_windows": 0
+      },
+      {
+        "tone_hz": 660,
+        "mode": "retain",
+        "bad_dense_windows": 12
+      },
+      {
+        "tone_hz": 660,
+        "mode": "reset",
+        "bad_dense_windows": 5
+      }
+    ],
+    "interpretation": "Both gap/retain and gap/reset can produce wrong-tone transients. Retaining encoder state is not established as a fix and can be worse. Do not change codec memory/privacy behavior based on that hypothesis."
+  }
 }
