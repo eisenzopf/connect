@@ -64,3 +64,9 @@ wait used the wrong nested journal path. Those fixture failures remain retained.
 After correction, the actual network run exposes RTCP on the RTP socket without
 SDP multiplexing negotiation. The whole rehearsal remains failed. Neither the
 telephone component nor G6-054 is qualified by these partial observations.
+
+The recorded routing fix is in
+[`negotiated-rtcp-routing.json`](../evidence/gate-6/negotiated-rtcp-routing.json).
+It retains adjacent original sockets and carries actual SDP mux/split RTCP
+negotiation into the media owner. All 52 UDP/allocator and seven SIP unit
+functions pass. Both complete distinct-network profiles remain pending.

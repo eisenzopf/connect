@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native Ubuntu x86 isolated configuration/HTTPS checks; no account/live lanes.
+"""Native Ubuntu x86 configuration/HTTPS/RTCP checks; no account/live lanes.
 
 Raw compiler/test output and synthetic state stay private. Only source hashes,
 tool versions, exit/result counts and artifact hashes enter uploadable evidence.
@@ -79,7 +79,7 @@ def run():
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
-              "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification."}
+              "scope": "Bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/decoded media, browser/performance or installation qualification."}
 
     def execute(name, command, timeout):
         log = PRIVATE / (name + ".log")
@@ -128,12 +128,17 @@ def run():
 
     artifacts = {}
     try:
-        for name, target in (("library", ["--lib"]), ("hosting", ["--test", "gate6_canonical_runtime"])):
-            text = execute("compile-" + name, ["cargo", "test", "--locked", "--offline", "--jobs", "2", "-p", "connect-server",
-                           "--features", "test-support", *target, "--no-run", "--message-format=json"], 3600)
+        for name, wanted, arguments in (
+            ("library", "connect_server", ["--offline", "-p", "connect-server", "--features", "test-support", "--lib"]),
+            ("hosting", "gate6_canonical_runtime", ["--offline", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_runtime"]),
+            # Targeted locked upstream compilation may fetch its registry-only
+            # test dependencies; it does not execute providers or remote lanes.
+            ("rtp", "rvoip_rtp_core", ["--manifest-path", ".deps/rvoip/Cargo.toml", "-p", "rvoip-rtp-core", "--lib"]),
+        ):
+            text = execute("compile-" + name, ["cargo", "test", "--locked", "--jobs", "2",
+                           *arguments, "--no-run", "--message-format=json"], 3600)
             rows = [json.loads(line) for line in text.splitlines() if line.startswith("{")]
             assert any(row.get("reason") == "build-finished" and row.get("success") for row in rows)
-            wanted = "connect_server" if name == "library" else "gate6_canonical_runtime"
             executable = [row["executable"] for row in rows if row.get("reason") == "compiler-artifact"
                           and row["target"]["name"] == wanted and row["profile"]["test"] and row.get("executable")]
             assert len(executable) == 1
@@ -145,7 +150,9 @@ def run():
         for name, binary, pattern, expected in (
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
             ("config", "library", "canonical_webrtc::config::tests::", 4),
-            ("sip-config", "library", "canonical_telephone::tests::", 3),
+            ("sip-config", "library", "canonical_telephone::tests::", 4),
+            ("rtcp-udp", "rtp", "transport::udp::tests::", 32),
+            ("rtcp-allocator", "rtp", "transport::allocator::tests::", 20),
             ("owned-dtls", "library", "canonical_webrtc::tests::store_bound_peer_completes_actual_dtls_and_original_close_releases_capacity", 1),
             ("https-hosting", "hosting", "canonical_https_hosting::", 7),
             ("sip-unknown-account", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_unknown_account_refuses_before_binding_and_releases_installation", 1),

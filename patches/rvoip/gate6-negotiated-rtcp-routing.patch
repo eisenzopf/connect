@@ -1,0 +1,1284 @@
+--- a/crates/media/media-core/src/relay/controller/mod.rs
++++ b/crates/media/media-core/src/relay/controller/mod.rs
+@@ -41,7 +41,8 @@
+ 
+ use rvoip_rtp_core as rtp_core;
+ use rvoip_rtp_core::transport::{
+-    AllocationStrategy, GlobalPortAllocator, PortAllocator, PortAllocatorConfig, SymmetricRtpPolicy,
++    AllocationStrategy, GlobalPortAllocator, PairingStrategy, PortAllocator, PortAllocatorConfig,
++    SymmetricRtpPolicy,
+ };
+ use rvoip_rtp_core::{
+     RtpPacket, RtpSession, RtpSessionBufferConfig, RtpSessionConfig, RtpTransportBufferConfig,
+@@ -1088,7 +1089,15 @@
+             conference_event_tx,
+             conference_event_rx: RwLock::new(Some(conference_event_rx)),
+             quality_monitor: None,
+-            port_allocator: None, // Use GlobalPortAllocator by default
++            port_allocator: Some(Arc::new(PortAllocator::with_config({
++                let mut ports = PortAllocatorConfig::default();
++                ports.pairing_strategy = PairingStrategy::Adjacent;
++                ports.allocation_strategy = AllocationStrategy::Incremental;
++                ports.prefer_port_reuse = false;
++                ports.validate_ports = false;
++                ports.capacity_hint = capacity_hint;
++                ports
++            }))),
+             // Performance fields
+             performance_metrics,
+             frame_pool,
+@@ -1305,6 +1314,7 @@
+         config.port_range_end = max_port;
+         config.validate_ports = false;
+         config.capacity_hint = capacity_hint;
++        config.pairing_strategy = PairingStrategy::Adjacent;
+         // Media controllers perform the authoritative bind in RtpSession. Use
+         // the indexed unvalidated pool for every custom range so controllers
+         // with the same bind domain share reservations before that bind.
+@@ -1396,6 +1406,7 @@
+         port_config.port_range_start = base_port;
+         port_config.port_range_end = max_port;
+         port_config.validate_ports = false;
++        port_config.pairing_strategy = PairingStrategy::Adjacent;
+         port_config.allocation_strategy = AllocationStrategy::Incremental;
+         port_config.prefer_port_reuse = false;
+         port_config.allocation_retries = configured_port_range_len(base_port, max_port) as u32;
+@@ -1496,7 +1507,7 @@
+                 .allocate_port_pair(&dialog_session_id, Some(config.local_addr.ip()))
+                 .await;
+             diagnostics::record_rtp_port_allocate(allocate_started.elapsed());
+-            let (local_rtp_addr, _) = match allocation {
++            let (local_rtp_addr, local_rtcp_addr) = match allocation {
+                 Ok(allocation) => allocation,
+                 Err(e) => {
+                     let failure_kind = if last_bind_error.is_some() {
+@@ -1512,6 +1523,9 @@
+             };
+             let mut reservation_guard =
+                 MediaPortReservationGuard::new(allocator.clone(), dialog_session_id.clone());
++            let local_rtcp_addr = local_rtcp_addr.ok_or_else(|| {
++                Error::config("Media controller requires an original RTP/RTCP pair")
++            })?;
+ 
+             // Create RTP session configuration
+             let rtp_config = RtpSessionConfig {
+@@ -1528,13 +1542,21 @@
+             };
+ 
+             let session_started = Instant::now();
+-            match RtpSession::new_event_driven_with_symmetric_rtp_policy(
++            match RtpSession::new_event_driven_with_rtcp_pair(
+                 rtp_config,
+                 self.symmetric_rtp_policy,
++                local_rtcp_addr,
+             )
+             .await
+             {
+-                Ok(rtp_session) => {
++                Ok(mut rtp_session) => {
++                    if let Some(remote) = config.remote_addr {
++                        let (rtcp, mux) = config.rtcp_peer(remote)?;
++                        rtp_session
++                            .set_remote_media_peers(remote, rtcp, mux)
++                            .await
++                            .map_err(|_| Error::config("invalid RTCP media transport"))?;
++                    }
+                     rtp_session
+                         .set_telephone_event_codecs(&received_events)
+                         .map_err(|_| Error::config("invalid telephone-event mapping"))?;
+@@ -2068,7 +2090,16 @@
+                 "telephone event conflicts with primary audio",
+             ));
+         }
+-        let remote_changed = config.remote_addr != old_config.remote_addr;
++        let rtcp_peer = config
++            .remote_addr
++            .map(|remote| config.rtcp_peer(remote))
++            .transpose()?;
++        let old_rtcp_peer = old_config
++            .remote_addr
++            .map(|remote| old_config.rtcp_peer(remote))
++            .transpose()?;
++        let remote_changed =
++            config.remote_addr != old_config.remote_addr || rtcp_peer != old_rtcp_peer;
+         let (dtmf_domain, dtmf_generation, dtmf_changed_at) = self
+             .rtp_sessions
+             .get(&dialog_id)
+@@ -2123,7 +2154,11 @@
+         {
+             let mut rtp_session = rtp_session_arc.lock().await;
+             if let Some(remote_addr) = config.remote_addr.filter(|_| remote_changed) {
+-                rtp_session.set_remote_addr(remote_addr).await;
++                let (rtcp, mux) = rtcp_peer.expect("validated remote RTCP peer");
++                rtp_session
++                    .set_remote_media_peers(remote_addr, rtcp, mux)
++                    .await
++                    .map_err(|_| Error::config("invalid RTCP media transport"))?;
+             }
+             if codec_changed {
+                 rtp_session.set_payload_type(new_format.payload_type);
+--- a/crates/media/media-core/src/relay/controller/rtp_management.rs
++++ b/crates/media/media-core/src/relay/controller/rtp_management.rs
+@@ -424,8 +424,16 @@
+             .await
+             .ok_or_else(|| Error::session_not_found(dialog_id.as_str()))?;
+ 
++        let info = self
++            .get_session_info(dialog_id)
++            .await
++            .ok_or_else(|| Error::session_not_found(dialog_id.as_str()))?;
++        let (rtcp, mux) = info.config.rtcp_peer(remote_addr)?;
+         let mut session = rtp_session.lock().await;
+-        session.set_remote_addr(remote_addr).await;
++        session
++            .set_remote_media_peers(remote_addr, rtcp, mux)
++            .await
++            .map_err(|_| Error::config("invalid RTCP media transport"))?;
+ 
+         // Update wrapper info (DashMap shard guard is synchronous,
+         // no .await held).
+--- a/crates/media/media-core/src/relay/controller/types.rs
++++ b/crates/media/media-core/src/relay/controller/types.rs
+@@ -64,6 +64,42 @@
+ }
+ 
+ impl MediaConfig {
++    pub fn with_negotiated_rtcp_peer(mut self, peer: SocketAddr, mux: bool) -> Self {
++        self.parameters.insert(
++            "negotiated_rtcp_peer".into(),
++            format!("{}|{}", if mux { "mux" } else { "split" }, peer),
++        );
++        self
++    }
++    /// Unconfigured generic RTP uses its explicit multiplexed profile. SIP
++    /// installs the complete validated offer/answer result before media flow.
++    pub fn rtcp_peer(&self, rtp: SocketAddr) -> crate::error::Result<(SocketAddr, bool)> {
++        let Some(value) = self.parameters.get("negotiated_rtcp_peer") else {
++            return Ok((rtp, true));
++        };
++        let invalid = || crate::error::Error::config("invalid negotiated RTCP peer");
++        if value.len() > 128 {
++            return Err(invalid());
++        }
++        let (mode, address) = value.split_once('|').ok_or_else(invalid)?;
++        let mux = match mode {
++            "mux" => true,
++            "split" => false,
++            _ => return Err(invalid()),
++        };
++        let peer: SocketAddr = address.parse().map_err(|_| invalid())?;
++        if peer.port() == 0
++            || peer.is_ipv4() != rtp.is_ipv4()
++            || peer.ip().is_unspecified()
++            || peer.ip().is_multicast()
++            || (mux && peer != rtp)
++            || (!mux && peer == rtp)
++        {
++            return Err(invalid());
++        }
++        Ok((peer, mux))
++    }
++
+     /// Set an explicit symmetric profile; directional SDP callers override
+     /// the receive set with their own advertised capabilities below.
+     pub fn with_telephone_event_codecs(
+--- a/crates/media/rtp-core/src/session/mod.rs
++++ b/crates/media/rtp-core/src/session/mod.rs
+@@ -684,6 +684,7 @@
+             true,
+             SymmetricRtpPolicy::default(),
+             RtcpXrQualityConfig::default(),
++            None,
+         )
+         .await
+     }
+@@ -693,7 +694,8 @@
+         config: RtpSessionConfig,
+         policy: SymmetricRtpPolicy,
+     ) -> Result<Self> {
+-        Self::new_with_receive_queue(config, true, policy, RtcpXrQualityConfig::default()).await
++        Self::new_with_receive_queue(config, true, policy, RtcpXrQualityConfig::default(), None)
++            .await
+     }
+ 
+     /// Create a new RTP session for event-driven consumers.
+@@ -707,6 +709,7 @@
+             false,
+             SymmetricRtpPolicy::default(),
+             RtcpXrQualityConfig::default(),
++            None,
+         )
+         .await
+     }
+@@ -717,7 +720,8 @@
+         config: RtpSessionConfig,
+         policy: SymmetricRtpPolicy,
+     ) -> Result<Self> {
+-        Self::new_with_receive_queue(config, false, policy, RtcpXrQualityConfig::default()).await
++        Self::new_with_receive_queue(config, false, policy, RtcpXrQualityConfig::default(), None)
++            .await
+     }
+ 
+     /// Create an event-driven session with explicit symmetric-RTP and RTCP XR
+@@ -727,7 +731,23 @@
+         policy: SymmetricRtpPolicy,
+         xr_quality: RtcpXrQualityConfig,
+     ) -> Result<Self> {
+-        Self::new_with_receive_queue(config, false, policy, xr_quality).await
++        Self::new_with_receive_queue(config, false, policy, xr_quality, None).await
++    }
++
++    /// Retain the controller's already reserved RTCP socket for later SDP commit.
++    pub async fn new_event_driven_with_rtcp_pair(
++        config: RtpSessionConfig,
++        policy: SymmetricRtpPolicy,
++        local_rtcp: SocketAddr,
++    ) -> Result<Self> {
++        Self::new_with_receive_queue(
++            config,
++            false,
++            policy,
++            RtcpXrQualityConfig::default(),
++            Some(local_rtcp),
++        )
++        .await
+     }
+ 
+     async fn new_with_receive_queue(
+@@ -735,6 +755,7 @@
+         receive_queue_enabled: bool,
+         symmetric_rtp_policy: SymmetricRtpPolicy,
+         xr_quality: RtcpXrQualityConfig,
++        local_rtcp_addr: Option<SocketAddr>,
+     ) -> Result<Self> {
+         let session_buffer_config = config.session_buffer_config;
+         let transport_buffer_config = config.transport_buffer_config;
+@@ -748,7 +769,7 @@
+         // Create transport config - respect provided ports!
+         let transport_config = RtpTransportConfig {
+             local_rtp_addr: config.local_addr,
+-            local_rtcp_addr: None, // RTCP on same port for now
++            local_rtcp_addr,
+             symmetric_rtp: true,
+             rtcp_mux: true, // Enable RTCP multiplexing by default
+             session_id: Some(format!("rtp-session-{}", ssrc)),
+@@ -885,7 +906,9 @@
+             // Set the remote RTP address on the UDP transport
+             if let Some(t) = transport.as_any().downcast_ref::<UdpRtpTransport>() {
+                 t.set_remote_rtp_addr(addr).await;
+-                t.set_remote_rtcp_addr(addr).await;
++                if t.remote_rtcp_addr().await.is_none() {
++                    t.set_remote_rtcp_addr(addr).await;
++                }
+             }
+         }
+ 
+@@ -1493,6 +1516,27 @@
+             t.set_remote_rtp_addr(addr).await;
+             t.set_remote_rtcp_addr(addr).await;
+         }
++    }
++
++    /// Commit RTP and RTCP destinations without replacing the original session.
++    pub async fn set_remote_media_peers(
++        &mut self,
++        rtp: SocketAddr,
++        rtcp: SocketAddr,
++        mux: bool,
++    ) -> Result<()> {
++        let transport = self
++            .transport
++            .as_any()
++            .downcast_ref::<UdpRtpTransport>()
++            .ok_or_else(|| {
++                Error::InvalidState("negotiated RTCP requires the owned UDP transport".into())
++            })?;
++        transport.set_remote_media_peers(rtp, rtcp, mux).await?;
++        self.config.remote_addr = Some(rtp);
++        self.stats.lock().remote_addr = Some(rtp);
++        self.packet_sender.set_remote_addr(rtp);
++        Ok(())
+     }
+ 
+     /// Get the local address
+--- a/crates/media/rtp-core/src/transport/allocator.rs
++++ b/crates/media/rtp-core/src/transport/allocator.rs
+@@ -291,7 +291,7 @@
+             AllocationStrategy::Sequential | AllocationStrategy::Incremental
+         ) && matches!(
+             config.pairing_strategy,
+-            PairingStrategy::Muxed | PairingStrategy::Separate
++            PairingStrategy::Muxed | PairingStrategy::Separate | PairingStrategy::Adjacent
+         ) && !config.prefer_port_reuse
+             && !config.validate_ports
+     }
+@@ -542,9 +542,66 @@
+                     Some(SocketAddr::new(ip, rtcp_port)),
+                 ))
+             }
+-            PairingStrategy::Adjacent => Err(Error::Transport(
+-                "Indexed port pool does not support adjacent port pairs".to_string(),
+-            )),
++            PairingStrategy::Adjacent => {
++                self.release_expired_indexed_quarantine(&mut pool);
++                let mut cursor = pool.last_port;
++                let bound = pool.available_ports.len();
++                for _ in 0..bound {
++                    let Some(rtp) = pool
++                        .available_ports
++                        .range(cursor..)
++                        .next()
++                        .copied()
++                        .or_else(|| pool.available_ports.iter().next().copied())
++                    else {
++                        break;
++                    };
++                    cursor = if rtp >= self.config.port_range_end {
++                        self.config.port_range_start
++                    } else {
++                        rtp + 1
++                    };
++                    let Some(rtcp) = rtp
++                        .checked_add(1)
++                        .filter(|p| *p <= self.config.port_range_end)
++                    else {
++                        continue;
++                    };
++                    if rtp % 2 != 0
++                        || !pool.available_ports.contains(&rtcp)
++                        || pool.allocated_ports.contains_key(&rtp)
++                        || pool.allocated_ports.contains_key(&rtcp)
++                        || !self.try_claim_authoritative_port(ip, rtp)?
++                    {
++                        continue;
++                    }
++                    match self.try_claim_authoritative_port(ip, rtcp) {
++                        Ok(true) => {}
++                        Ok(false) => {
++                            self.release_authoritative_port(ip, rtp)?;
++                            continue;
++                        }
++                        Err(error) => {
++                            let _ = self.release_authoritative_port(ip, rtp);
++                            return Err(error);
++                        }
++                    }
++                    for port in [rtp, rtcp] {
++                        pool.available_ports.remove(&port);
++                        pool.allocated_ports.insert(port, self.allocator_id);
++                        self.track_indexed_allocation(&mut local_state, session_id, ip, port);
++                    }
++                    pool.last_port = if rtcp >= self.config.port_range_end {
++                        self.config.port_range_start
++                    } else {
++                        rtcp + 1
++                    };
++                    return Ok((SocketAddr::new(ip, rtp), Some(SocketAddr::new(ip, rtcp))));
++                }
++                Err(Error::Transport(
++                    "Adjacent RTP/RTCP port pool exhausted".into(),
++                ))
++            }
+         }
+     }
+ 
+@@ -2238,4 +2295,82 @@
+             assert!(count1 > 0);
+         });
+     }
++    #[tokio::test]
++    async fn negotiated_rtcp_adjacent_pool_exhaustion_and_release() {
++        let ip = "127.0.0.1".parse().unwrap();
++        let allocator = PortAllocator::with_config(indexed_test_config(
++            61000,
++            61005,
++            PairingStrategy::Adjacent,
++            ip,
++        ));
++        let mut pairs = Vec::new();
++        for id in ["first", "second", "third"] {
++            let (rtp, rtcp) = allocator.allocate_port_pair(id, Some(ip)).await.unwrap();
++            let rtcp = rtcp.unwrap();
++            assert_eq!(rtp.port() % 2, 0);
++            assert_eq!(rtcp.port(), rtp.port() + 1);
++            pairs.push((rtp, rtcp));
++        }
++        assert!(allocator
++            .allocate_port_pair("exhausted", Some(ip))
++            .await
++            .is_err());
++        allocator.release_session("second").await.unwrap();
++        assert_eq!(
++            allocator
++                .allocate_port_pair("replacement", Some(ip))
++                .await
++                .unwrap(),
++            (pairs[1].0, Some(pairs[1].1))
++        );
++        for id in ["first", "third", "replacement"] {
++            allocator.release_session(id).await.unwrap();
++        }
++        let stats = allocator.diagnostics().await.unwrap();
++        assert_eq!(stats.allocated_ports, 0);
++        assert_eq!(stats.active_sessions, 0);
++    }
++    #[tokio::test]
++    async fn negotiated_rtcp_adjacent_conflict_releases_partial_claim() {
++        let ip = "127.0.0.1".parse().unwrap();
++        let mux = PortAllocator::with_config(indexed_test_config(
++            61020,
++            61025,
++            PairingStrategy::Muxed,
++            ip,
++        ));
++        let (rtp, _) = mux.allocate_port_pair("first", Some(ip)).await.unwrap();
++        assert_eq!(rtp.port(), 61020);
++        let (rtcp, _) = mux.allocate_port_pair("busy-rtcp", Some(ip)).await.unwrap();
++        assert_eq!(rtcp.port(), 61021);
++        mux.release_session("first").await.unwrap();
++        let split = PortAllocator::with_config(indexed_test_config(
++            61020,
++            61025,
++            PairingStrategy::Adjacent,
++            ip,
++        ));
++        let (a, b) = split.allocate_port_pair("pair", Some(ip)).await.unwrap();
++        assert_eq!(a.port(), 61022);
++        assert_eq!(b.unwrap().port(), 61023);
++        let probe = PortAllocator::with_config(indexed_test_config(
++            61020,
++            61020,
++            PairingStrategy::Muxed,
++            ip,
++        ));
++        assert_eq!(
++            probe
++                .allocate_port_pair("no-half-leak", Some(ip))
++                .await
++                .unwrap()
++                .0
++                .port(),
++            61020
++        );
++        probe.release_session("no-half-leak").await.unwrap();
++        mux.release_session("busy-rtcp").await.unwrap();
++        split.release_session("pair").await.unwrap();
++    }
+ }
+--- a/crates/media/rtp-core/src/transport/mod.rs
++++ b/crates/media/rtp-core/src/transport/mod.rs
+@@ -97,7 +97,9 @@
+     /// Local address for RTP
+     pub local_rtp_addr: SocketAddr,
+ 
+-    /// Local address for RTCP
++    /// Local RTCP socket to retain. With `rtcp_mux=true`, supplying this
++    /// address reserves both original sockets for negotiated mode selection;
++    /// RTCP remains unavailable until `set_remote_media_peers` commits a peer.
+     pub local_rtcp_addr: Option<SocketAddr>,
+ 
+     /// Enable symmetric RTP
+@@ -106,7 +108,7 @@
+     /// Enable RTCP multiplexing (RFC 5761)
+     ///
+     /// When enabled, RTCP packets will be sent and received on the same port as RTP packets.
+-    /// This is recommended for WebRTC and modern VoIP applications.
++    /// A retained pair can subsequently commit either negotiated mode without replacing sockets.
+     pub rtcp_mux: bool,
+ 
+     /// Session ID for port allocation tracking (optional)
+--- a/crates/media/rtp-core/src/transport/udp.rs
++++ b/crates/media/rtp-core/src/transport/udp.rs
+@@ -307,6 +307,13 @@
+     installed_generation: u64,
+ }
+ 
++#[derive(Clone)]
++struct NegotiatedRtcpRoute {
++    peer: SocketAddr,
++    mux: bool,
++    generation: u64,
++}
++
+ pub struct UdpRtpTransport {
+     /// RTP socket
+     rtp_socket: Arc<UdpSocket>,
+@@ -342,6 +349,7 @@
+     /// Remote RTCP address — same lock-free swap discipline as
+     /// [`Self::remote_rtp_addr`].
+     remote_rtcp_addr: Arc<ArcSwapOption<SocketAddr>>,
++    negotiated_rtcp: Arc<ArcSwapOption<NegotiatedRtcpRoute>>,
+ 
+     /// Event broadcaster
+     event_tx: broadcast::Sender<RtpEvent>,
+@@ -502,41 +510,42 @@
+             debug!("Bound RTP socket to {}", local_rtp_addr);
+ 
+             // Create RTCP socket if not using RTCP-MUX
+-            let (socket_rtcp, local_rtcp_addr) = if !config.rtcp_mux {
+-                // Use the next port for RTCP (per convention)
+-                let local_rtcp_addr = match config.local_rtcp_addr {
+-                    Some(addr) => addr,
+-                    None => {
+-                        let rtcp_port = local_rtp_addr.port() + 1;
+-                        SocketAddr::new(local_rtp_addr.ip(), rtcp_port)
+-                    }
++            let (socket_rtcp, local_rtcp_addr) =
++                if !config.rtcp_mux || config.local_rtcp_addr.is_some() {
++                    // Use the next port for RTCP (per convention)
++                    let local_rtcp_addr = match config.local_rtcp_addr {
++                        Some(addr) => addr,
++                        None => {
++                            let rtcp_port = local_rtp_addr.port() + 1;
++                            SocketAddr::new(local_rtp_addr.ip(), rtcp_port)
++                        }
++                    };
++
++                    // Create RTCP socket
++                    let socket_rtcp = UdpSocket::bind(local_rtcp_addr).await.map_err(|e| {
++                        Error::Transport(format!("Failed to bind RTCP socket: {}", e))
++                    })?;
++
++                    // Apply platform-specific settings to the socket
++                    socket_strategy
++                        .apply_to_socket(&socket_rtcp)
++                        .await
++                        .map_err(|e| {
++                            Error::Transport(format!("Failed to configure RTCP socket: {}", e))
++                        })?;
++
++                    // Get bound address
++                    let local_rtcp_addr = socket_rtcp.local_addr().map_err(|e| {
++                        Error::Transport(format!("Failed to get local RTCP address: {}", e))
++                    })?;
++
++                    debug!("Bound RTCP socket to {}", local_rtcp_addr);
++
++                    (Some(socket_rtcp), Some(local_rtcp_addr))
++                } else {
++                    debug!("Using RTCP-MUX - no separate RTCP socket");
++                    (None, None)
+                 };
+-
+-                // Create RTCP socket
+-                let socket_rtcp = UdpSocket::bind(local_rtcp_addr)
+-                    .await
+-                    .map_err(|e| Error::Transport(format!("Failed to bind RTCP socket: {}", e)))?;
+-
+-                // Apply platform-specific settings to the socket
+-                socket_strategy
+-                    .apply_to_socket(&socket_rtcp)
+-                    .await
+-                    .map_err(|e| {
+-                        Error::Transport(format!("Failed to configure RTCP socket: {}", e))
+-                    })?;
+-
+-                // Get bound address
+-                let local_rtcp_addr = socket_rtcp.local_addr().map_err(|e| {
+-                    Error::Transport(format!("Failed to get local RTCP address: {}", e))
+-                })?;
+-
+-                debug!("Bound RTCP socket to {}", local_rtcp_addr);
+-
+-                (Some(socket_rtcp), Some(local_rtcp_addr))
+-            } else {
+-                debug!("Using RTCP-MUX - no separate RTCP socket");
+-                (None, None)
+-            };
+ 
+             (socket_rtp, socket_rtcp, local_rtp_addr, local_rtcp_addr)
+         };
+@@ -554,6 +563,7 @@
+             symmetric_rtp_generation: Arc::new(AtomicU64::new(0)),
+             remote_rtp_addr: Arc::new(ArcSwapOption::from(None)),
+             remote_rtcp_addr: Arc::new(ArcSwapOption::from(None)),
++            negotiated_rtcp: Arc::new(ArcSwapOption::from(None)),
+             event_tx,
+             receiver_tasks: Arc::new(Mutex::new(Vec::with_capacity(2))),
+             active: Arc::new(AtomicBool::new(false)),
+@@ -608,7 +618,9 @@
+         let symmetric_rtp_generation = self.symmetric_rtp_generation.clone();
+         let remote_rtp_addr = self.remote_rtp_addr.clone();
+         let remote_rtcp_addr = self.remote_rtcp_addr.clone();
+-        let rtcp_mux = self.config.rtcp_mux;
++        let default_rtcp_mux = self.config.rtcp_mux;
++        let pending_pair = self.config.rtcp_mux && self.rtcp_socket.is_some();
++        let negotiated_rtcp = self.negotiated_rtcp.clone();
+         #[cfg(feature = "dtls-webrtc")]
+         let dtls_tx = self.dtls_tx.clone();
+         let srtp_diagnostics = srtp_diagnostics_enabled();
+@@ -702,6 +714,19 @@
+ 
+                             // Check if it's RTCP according to RFC 5761
+                             if packet_class == RtpMuxPacketClass::Rtcp {
++                                let route = negotiated_rtcp.load_full();
++                                if (pending_pair && route.is_none())
++                                    || route.as_ref().is_some_and(|r| r.peer != addr)
++                                {
++                                    continue;
++                                }
++                                let rtcp_mux = negotiated_rtcp
++                                    .load()
++                                    .as_ref()
++                                    .map_or(default_rtcp_mux, |r| r.mux);
++                                if !rtcp_mux {
++                                    continue;
++                                }
+                                 // Once an RTP tuple is latched, multiplexed
+                                 // RTCP must arrive on that tuple too. A new
+                                 // tuple earns trust through RTP probation,
+@@ -826,8 +851,26 @@
+                                                 symmetric_rtp_latched
+                                                     .store(true, Ordering::Release);
+                                                 remote_rtp_addr.store(Some(Arc::new(addr)));
+-                                                if rtcp_mux {
++                                                if negotiated_rtcp
++                                                    .load()
++                                                    .as_ref()
++                                                    .map_or(default_rtcp_mux, |r| r.mux)
++                                                {
+                                                     remote_rtcp_addr.store(Some(Arc::new(addr)));
++                                                    negotiated_rtcp.rcu(|current| {
++                                                        current.as_ref().map(|route| {
++                                                            if route.mux
++                                                                && route.generation == generation
++                                                            {
++                                                                Arc::new(NegotiatedRtcpRoute {
++                                                                    peer: addr,
++                                                                    ..(**route).clone()
++                                                                })
++                                                            } else {
++                                                                route.clone()
++                                                            }
++                                                        })
++                                                    });
+                                                 }
+                                                 symmetric_rtp_counters
+                                                     .destination_learned
+@@ -835,8 +878,26 @@
+                                             }
+                                             SymmetricRtpDecision::Rebind => {
+                                                 remote_rtp_addr.store(Some(Arc::new(addr)));
+-                                                if rtcp_mux {
++                                                if negotiated_rtcp
++                                                    .load()
++                                                    .as_ref()
++                                                    .map_or(default_rtcp_mux, |r| r.mux)
++                                                {
+                                                     remote_rtcp_addr.store(Some(Arc::new(addr)));
++                                                    negotiated_rtcp.rcu(|current| {
++                                                        current.as_ref().map(|route| {
++                                                            if route.mux
++                                                                && route.generation == generation
++                                                            {
++                                                                Arc::new(NegotiatedRtcpRoute {
++                                                                    peer: addr,
++                                                                    ..(**route).clone()
++                                                                })
++                                                            } else {
++                                                                route.clone()
++                                                            }
++                                                        })
++                                                    });
+                                                 }
+                                                 symmetric_rtp_counters
+                                                     .accepted_rebindings
+@@ -936,6 +997,8 @@
+             let srtp_recv = self.srtp_recv.clone();
+             let secure_media_required = self.secure_media_required.clone();
+             let rtcp_recv_buffer_size = self.config.buffer_config.rtcp_recv_buffer_size;
++            let negotiated_rtcp = self.negotiated_rtcp.clone();
++            let default_rtcp_mux = self.config.rtcp_mux;
+ 
+             let rtcp_receiver = spawn_memory_tracked(
+                 "rtp_core.udp_transport.rtcp_receiver_task",
+@@ -951,6 +1014,12 @@
+                         // Receive packet
+                         match rtcp_socket.recv_from(&mut buffer).await {
+                             Ok((size, addr)) => {
++                                let route = negotiated_rtcp.load_full();
++                                if route.as_ref().map_or(default_rtcp_mux, |r| r.mux)
++                                    || route.as_ref().is_some_and(|r| r.peer != addr)
++                                {
++                                    continue;
++                                }
+                                 let rtcp_data = if secure_media_required.load(Ordering::Acquire) {
+                                     let mut guard = srtp_recv.lock();
+                                     let Some(context) = guard.as_mut() else {
+@@ -1036,6 +1105,36 @@
+     /// Set the remote RTCP address
+     pub async fn set_remote_rtcp_addr(&self, addr: SocketAddr) {
+         self.remote_rtcp_addr.store(Some(Arc::new(addr)));
++    }
++
++    /// Apply an explicit negotiated peer to the original allocated sockets.
++    pub async fn set_remote_media_peers(
++        &self,
++        rtp: SocketAddr,
++        rtcp: SocketAddr,
++        mux: bool,
++    ) -> Result<()> {
++        if !self.active.load(Ordering::Acquire)
++            || rtp.port() == 0
++            || rtcp.port() == 0
++            || rtp.is_ipv4() != rtcp.is_ipv4()
++            || rtcp.ip().is_unspecified()
++            || rtcp.ip().is_multicast()
++            || (mux && rtp != rtcp)
++            || (!mux && (rtp == rtcp || self.rtcp_socket.is_none()))
++        {
++            return Err(Error::InvalidState(
++                "invalid negotiated RTCP peer or missing original socket".into(),
++            ));
++        }
++        self.set_remote_rtp_addr(rtp).await;
++        self.negotiated_rtcp
++            .store(Some(Arc::new(NegotiatedRtcpRoute {
++                peer: rtcp,
++                mux,
++                generation: self.symmetric_rtp_generation.load(Ordering::Acquire),
++            })));
++        Ok(())
+     }
+ 
+     /// Get the remote RTP address
+@@ -1081,7 +1180,11 @@
+ 
+     /// Get the remote RTCP address
+     pub async fn remote_rtcp_addr(&self) -> Option<SocketAddr> {
+-        self.remote_rtcp_addr.load().as_deref().copied()
++        self.negotiated_rtcp
++            .load()
++            .as_ref()
++            .map(|r| r.peer)
++            .or_else(|| self.remote_rtcp_addr.load().as_deref().copied())
+     }
+ 
+     /// Aggregate-only symmetric-RTP diagnostics. Peer addresses and SSRCs are
+@@ -1105,7 +1208,7 @@
+         self.rtp_socket.clone()
+     }
+ 
+-    /// Get the separate raw RTCP socket, when RTCP mux is disabled.
++    /// Get the retained separate raw RTCP socket, including a negotiated pair.
+     pub(crate) fn get_rtcp_socket(&self) -> Option<Arc<UdpSocket>> {
+         self.rtcp_socket.clone()
+     }
+@@ -1325,15 +1428,34 @@
+     }
+ 
+     async fn send_rtcp_wire_bytes_unchecked(&self, bytes: &[u8], dest: SocketAddr) -> Result<()> {
+-        if self.config.symmetric_rtp && !self.symmetric_rtp_latched.load(Ordering::Acquire) {
++        if !self.active.load(Ordering::Acquire) {
++            return Err(Error::InvalidState(
++                "original RTCP transport is closed".into(),
++            ));
++        }
++        let route = self.negotiated_rtcp.load_full();
++        if route.is_none() && self.config.rtcp_mux && self.rtcp_socket.is_some() {
++            return Err(Error::InvalidState(
++                "RTCP pair awaits negotiated peer".into(),
++            ));
++        }
++        if route.as_ref().is_some_and(|r| r.peer != dest) {
++            return Err(Error::InvalidState(
++                "stale negotiated RTCP destination".into(),
++            ));
++        }
++        if route.is_none()
++            && self.config.symmetric_rtp
++            && !self.symmetric_rtp_latched.load(Ordering::Acquire)
++        {
+             self.remote_rtcp_addr.store(Some(Arc::new(dest)));
+         }
+-        let socket = if self.config.rtcp_mux {
++        let socket = if route.as_ref().map_or(self.config.rtcp_mux, |r| r.mux) {
+             &self.rtp_socket
+-        } else if let Some(rtcp_socket) = &self.rtcp_socket {
+-            rtcp_socket
+         } else {
+-            &self.rtp_socket
++            self.rtcp_socket
++                .as_ref()
++                .ok_or_else(|| Error::InvalidState("missing original RTCP socket".into()))?
+         };
+         socket
+             .send_to(bytes, dest)
+@@ -1390,7 +1512,24 @@
+ 
+     /// Get the local RTCP address
+     fn local_rtcp_addr(&self) -> Result<Option<SocketAddr>> {
+-        Ok(self.config.local_rtcp_addr)
++        if !self.active.load(Ordering::Acquire) {
++            return Ok(None);
++        }
++        let route = self.negotiated_rtcp.load_full();
++        if route.is_none() && self.config.rtcp_mux && self.rtcp_socket.is_some() {
++            return Ok(None);
++        }
++        let socket = if route.as_ref().map_or(self.config.rtcp_mux, |r| r.mux) {
++            &self.rtp_socket
++        } else {
++            self.rtcp_socket
++                .as_ref()
++                .ok_or_else(|| Error::InvalidState("missing original RTCP socket".into()))?
++        };
++        socket
++            .local_addr()
++            .map(Some)
++            .map_err(|e| Error::Transport(format!("Failed to get local RTCP address: {e}")))
+     }
+ 
+     async fn send_rtp(&self, packet: &RtpPacket, dest: SocketAddr) -> Result<()> {
+@@ -1713,7 +1852,7 @@
+     async fn test_udp_transport_with_rtcp_mux() {
+         let config = RtpTransportConfig {
+             local_rtp_addr: "127.0.0.1:0".parse().unwrap(),
+-            local_rtcp_addr: Some("127.0.0.1:0".parse().unwrap()), // This should be ignored
++            local_rtcp_addr: None, // A fixed mux profile owns only its RTP socket.
+             symmetric_rtp: true,
+             rtcp_mux: true, // Enable RTCP-MUX
+             session_id: Some("test_rtcp_mux".to_string()),
+@@ -1735,12 +1874,10 @@
+             "RTCP socket should be None with rtcp_mux enabled"
+         );
+ 
+-        // The config should retain the original RTCP address - it doesn't matter
+-        // what this is with RTCP-MUX as it's not used
+-        let rtcp_addr_option = transport.local_rtcp_addr().unwrap();
+-        assert!(
+-            rtcp_addr_option.is_some(),
+-            "RTCP address should be available in the config"
++        assert_eq!(
++            transport.local_rtcp_addr().unwrap(),
++            Some(rtp_addr),
++            "mux reports the actual shared socket, never an unbound configuration hint"
+         );
+     }
+ 
+@@ -3018,4 +3155,154 @@
+             other => panic!("expected plaintext MediaReceived, got {:?}", other),
+         }
+     }
++    fn negotiated_pair_config() -> RtpTransportConfig {
++        RtpTransportConfig {
++            local_rtp_addr: "127.0.0.1:0".parse().unwrap(),
++            local_rtcp_addr: Some("127.0.0.1:0".parse().unwrap()),
++            symmetric_rtp: false,
++            rtcp_mux: true,
++            session_id: None,
++            use_port_allocator: false,
++            buffer_config: Default::default(),
++        }
++    }
++
++    #[tokio::test]
++    async fn negotiated_rtcp_split_and_mux_use_original_pair_and_drain() {
++        let transport = UdpRtpTransport::new(negotiated_pair_config())
++            .await
++            .unwrap();
++        let rtp_local = transport.local_rtp_addr().unwrap();
++        let rtcp_local = transport
++            .rtcp_socket
++            .as_ref()
++            .unwrap()
++            .local_addr()
++            .unwrap();
++        let rtp_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let rtcp_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let a = rtp_peer.local_addr().unwrap();
++        let b = rtcp_peer.local_addr().unwrap();
++        let report = [0x80, 201, 0, 1, 0, 0, 0, 7];
++        assert_eq!(
++            transport.local_rtcp_addr().unwrap(),
++            None,
++            "pending pair is not negotiated readiness"
++        );
++        assert!(
++            transport.send_rtcp_bytes(&report, a).await.is_err(),
++            "no RTCP before negotiated commit"
++        );
++        transport.set_remote_media_peers(a, b, false).await.unwrap();
++        assert_eq!(transport.local_rtcp_addr().unwrap(), Some(rtcp_local));
++        transport.send_rtcp_bytes(&report, b).await.unwrap();
++        let mut bytes = [0; 64];
++        let (n, source) =
++            tokio::time::timeout(Duration::from_secs(1), rtcp_peer.recv_from(&mut bytes))
++                .await
++                .unwrap()
++                .unwrap();
++        assert_eq!(&bytes[..n], &report);
++        assert_eq!(source, rtcp_local);
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), rtp_peer.recv_from(&mut bytes))
++                .await
++                .is_err()
++        );
++        transport.set_remote_media_peers(a, a, true).await.unwrap();
++        assert_eq!(transport.local_rtcp_addr().unwrap(), Some(rtp_local));
++        assert!(
++            transport.send_rtcp_bytes(&report, b).await.is_err(),
++            "stale RTCP target must not send"
++        );
++        transport.send_rtcp_bytes(&report, a).await.unwrap();
++        let (n, source) =
++            tokio::time::timeout(Duration::from_secs(1), rtp_peer.recv_from(&mut bytes))
++                .await
++                .unwrap()
++                .unwrap();
++        assert_eq!(&bytes[..n], &report);
++        assert_eq!(source, rtp_local);
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), rtcp_peer.recv_from(&mut bytes))
++                .await
++                .is_err()
++        );
++        assert_eq!(transport.receiver_tasks.lock().await.len(), 2);
++        transport.close().await.unwrap();
++        assert!(transport.receiver_tasks.lock().await.is_empty());
++        drop(transport);
++        let _rtp = UdpSocket::bind(rtp_local).await.unwrap();
++        let _rtcp = UdpSocket::bind(rtcp_local).await.unwrap();
++    }
++
++    #[tokio::test]
++    async fn negotiated_rtcp_missing_pair_refuses_without_changing_peer() {
++        let mut config = negotiated_pair_config();
++        config.local_rtcp_addr = None;
++        let transport = UdpRtpTransport::new(config).await.unwrap();
++        let rtp_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let split_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let a = rtp_peer.local_addr().unwrap();
++        let b = split_peer.local_addr().unwrap();
++        transport.set_remote_media_peers(a, a, true).await.unwrap();
++        assert!(transport.set_remote_media_peers(b, a, false).await.is_err());
++        assert_eq!(transport.remote_rtp_addr().await, Some(a));
++        assert_eq!(transport.remote_rtcp_addr().await, Some(a));
++        transport.close().await.unwrap();
++        assert!(transport.set_remote_media_peers(a, a, true).await.is_err());
++        assert!(transport
++            .send_rtcp_bytes(&[0x80, 201, 0, 1, 0, 0, 0, 7], a)
++            .await
++            .is_err());
++    }
++
++    #[tokio::test]
++    async fn negotiated_rtcp_receive_obeys_committed_socket_and_peer() {
++        let transport = UdpRtpTransport::new(negotiated_pair_config())
++            .await
++            .unwrap();
++        let rtp_local = transport.local_rtp_addr().unwrap();
++        let rtcp_local = transport
++            .rtcp_socket
++            .as_ref()
++            .unwrap()
++            .local_addr()
++            .unwrap();
++        let rtp_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let rtcp_peer = UdpSocket::bind("127.0.0.1:0").await.unwrap();
++        let a = rtp_peer.local_addr().unwrap();
++        let b = rtcp_peer.local_addr().unwrap();
++        let report = [0x80, 201, 0, 1, 0, 0, 0, 7];
++        let mut events = transport.subscribe();
++        rtp_peer.send_to(&report, rtp_local).await.unwrap();
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), events.recv())
++                .await
++                .is_err()
++        );
++        transport.set_remote_media_peers(a, b, false).await.unwrap();
++        rtp_peer.send_to(&report, rtp_local).await.unwrap();
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), events.recv())
++                .await
++                .is_err()
++        );
++        rtcp_peer.send_to(&report, rtcp_local).await.unwrap();
++        assert!(
++            matches!(tokio::time::timeout(Duration::from_secs(1), events.recv()).await.unwrap().unwrap(), RtpEvent::RtcpReceived {source, ..} if source==b)
++        );
++        transport.set_remote_media_peers(a, a, true).await.unwrap();
++        rtcp_peer.send_to(&report, rtcp_local).await.unwrap();
++        assert!(
++            tokio::time::timeout(Duration::from_millis(30), events.recv())
++                .await
++                .is_err()
++        );
++        rtp_peer.send_to(&report, rtp_local).await.unwrap();
++        assert!(
++            matches!(tokio::time::timeout(Duration::from_secs(1), events.recv()).await.unwrap().unwrap(), RtpEvent::RtcpReceived {source, ..} if source==a)
++        );
++        transport.close().await.unwrap();
++    }
+ }
+--- a/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
++++ b/crates/sip/rvoip-sip/src/adapters/media_adapter.rs
+@@ -161,6 +161,74 @@
+         })
+ }
+ 
++fn negotiated_audio_rtcp_peer(
++    session: &SdpSession,
++    mux: bool,
++    rtp: SocketAddr,
++) -> SrtpDetailedResult<Option<SocketAddr>> {
++    if rtp.port() == 0 {
++        return Ok(None);
++    }
++    if mux {
++        return Ok(Some(rtp));
++    }
++    let media = session
++        .media_descriptions
++        .iter()
++        .find(|m| m.media.eq_ignore_ascii_case("audio"))
++        .ok_or_else(|| bounded_sdp_failure("rtcp", "missing-audio"))?;
++    let attrs: Vec<_> = media
++        .generic_attributes
++        .iter()
++        .filter_map(|a| {
++            if let ParsedAttribute::Rtcp(a) = a {
++                Some(a)
++            } else {
++                None
++            }
++        })
++        .collect();
++    if attrs.len() > 1 {
++        return Err(bounded_sdp_failure("rtcp", "duplicate").into());
++    }
++    let mut peer = SocketAddr::new(
++        rtp.ip(),
++        if let Some(a) = attrs.first() {
++            a.port
++        } else {
++            rtp.port()
++                .checked_add(1)
++                .ok_or_else(|| bounded_sdp_failure("rtcp", "port-overflow"))?
++        },
++    );
++    if let Some(a) = attrs.first() {
++        peer.set_port(a.port);
++        match (&a.net_type, &a.addr_type, &a.connection_address) {
++            (None, None, None) => {}
++            (Some(net), Some(kind), Some(address)) if net == "IN" => {
++                let ip: IpAddr = address
++                    .parse()
++                    .map_err(|_| bounded_sdp_failure("rtcp", "address"))?;
++                if (kind == "IP4" && ip.is_ipv4()) || (kind == "IP6" && ip.is_ipv6()) {
++                    peer.set_ip(ip);
++                } else {
++                    return Err(bounded_sdp_failure("rtcp", "family").into());
++                }
++            }
++            _ => return Err(bounded_sdp_failure("rtcp", "address-shape").into()),
++        }
++    }
++    if peer.port() == 0
++        || peer == rtp
++        || peer.is_ipv4() != rtp.is_ipv4()
++        || peer.ip().is_unspecified()
++        || peer.ip().is_multicast()
++    {
++        return Err(bounded_sdp_failure("rtcp", "peer").into());
++    }
++    Ok(Some(peer))
++}
++
+ fn validate_rtcp_mux(session: &SdpSession, required: bool) -> SrtpDetailedResult<()> {
+     if required && !audio_rtcp_mux(session) {
+         return Err(bounded_sdp_failure("rtcp-mux", "required").into());
+@@ -1096,6 +1164,8 @@
+ pub struct NegotiatedConfig {
+     pub local_addr: SocketAddr,
+     pub remote_addr: SocketAddr,
++    pub rtcp_mux: bool,
++    pub remote_rtcp_addr: Option<SocketAddr>,
+     pub codec: String,
+     #[serde(default)]
+     pub payload_type: u8,
+@@ -2008,6 +2078,23 @@
+             })?
+             .config;
+         config.remote_addr = Some(negotiated.remote_addr);
++        if let Some(rtcp) = negotiated.remote_rtcp_addr {
++            config = config.with_negotiated_rtcp_peer(rtcp, negotiated.rtcp_mux);
++        } else if negotiated.local_addr.port() != 0 {
++            let rtcp = if negotiated.rtcp_mux {
++                negotiated.remote_addr
++            } else {
++                SocketAddr::new(
++                    negotiated.remote_addr.ip(),
++                    negotiated
++                        .remote_addr
++                        .port()
++                        .checked_add(1)
++                        .ok_or_else(|| SessionError::MediaError("RTCP port overflow".into()))?,
++                )
++            };
++            config = config.with_negotiated_rtcp_peer(rtcp, negotiated.rtcp_mux);
++        }
+         config = config
+             .with_negotiated_audio_codec(
+                 negotiated.codec.clone(),
+@@ -2453,6 +2540,9 @@
+                     .map_err(|_| bounded_sdp_failure("remote-answer", "invalid-local-offer"))
+             })?;
+         validate_rtcp_mux(&parsed_offer, self.rtcp_mux_required)?;
++        if audio_rtcp_mux(&parsed_answer) && !audio_rtcp_mux(&parsed_offer) {
++            return Err(bounded_sdp_failure("rtcp-mux", "unoffered").into());
++        }
+         let (payload_type, negotiated_codec, clock_rate, channels) =
+             validate_uac_audio_answer(&parsed_offer, &parsed_answer, self.g729_annex_b)?;
+         let answer_direction = audio_direction(&parsed_answer);
+@@ -2624,6 +2714,12 @@
+         let config = NegotiatedConfig {
+             local_addr: SocketAddr::new(self.local_ip, local_port),
+             remote_addr: SocketAddr::new(remote_ip, remote_port),
++            rtcp_mux: audio_rtcp_mux(&parsed_answer),
++            remote_rtcp_addr: negotiated_audio_rtcp_peer(
++                &parsed_answer,
++                audio_rtcp_mux(&parsed_answer),
++                SocketAddr::new(remote_ip, remote_port),
++            )?,
+             codec: negotiated_codec,
+             payload_type,
+             clock_rate,
+@@ -2949,6 +3045,8 @@
+             let config = NegotiatedConfig {
+                 local_addr: SocketAddr::new(advertised_ip, 0),
+                 remote_addr: SocketAddr::new(remote_ip, remote_port),
++                rtcp_mux: false,
++                remote_rtcp_addr: None,
+                 codec: "PCMU".to_string(),
+                 payload_type: 0,
+                 clock_rate: 8_000,
+@@ -3177,6 +3275,12 @@
+         let config = NegotiatedConfig {
+             local_addr: SocketAddr::new(self.local_ip, local_port),
+             remote_addr: SocketAddr::new(remote_ip, remote_port),
++            rtcp_mux: audio_rtcp_mux(&parsed_offer),
++            remote_rtcp_addr: negotiated_audio_rtcp_peer(
++                &parsed_offer,
++                audio_rtcp_mux(&parsed_offer),
++                SocketAddr::new(remote_ip, remote_port),
++            )?,
+             codec: negotiated_codec,
+             payload_type: negotiated_payload_type,
+             clock_rate,
+@@ -9184,6 +9288,8 @@
+         );
+         let staged = StagedMediaNegotiation {
+             config: NegotiatedConfig {
++                rtcp_mux: true,
++                remote_rtcp_addr: None,
+                 local_addr: "127.0.0.1:16400".parse().unwrap(),
+                 remote_addr: "127.0.0.1:16402".parse().unwrap(),
+                 codec: "PCMU".to_string(),
+@@ -9258,6 +9364,8 @@
+         adapter.set_media_mode(MediaMode::SignalingOnly { sdp_rtp_port: 9 });
+         let staged = StagedMediaNegotiation {
+             config: NegotiatedConfig {
++                rtcp_mux: true,
++                remote_rtcp_addr: None,
+                 local_addr: "127.0.0.1:16400".parse().unwrap(),
+                 remote_addr: "127.0.0.1:16402".parse().unwrap(),
+                 codec: "PCMU".to_string(),
+@@ -9364,6 +9472,8 @@
+             key,
+             StagedMediaNegotiation {
+                 config: NegotiatedConfig {
++                    rtcp_mux: true,
++                    remote_rtcp_addr: None,
+                     local_addr: before.config.local_addr,
+                     remote_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 35_000),
+                     codec: "PCMA".to_string(),
+@@ -9565,6 +9675,8 @@
+             key,
+             StagedMediaNegotiation {
+                 config: NegotiatedConfig {
++                    rtcp_mux: true,
++                    remote_rtcp_addr: None,
+                     local_addr: before.config.local_addr,
+                     remote_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 35_200),
+                     codec: "PCMA".to_string(),
+@@ -9919,3 +10031,69 @@
+         store.remove_session_exact(&exact.handle).await.unwrap();
+     }
+ }
++
++#[cfg(test)]
++mod gate6_negotiated_rtcp_tests {
++    use super::*;
++    fn sdp(attributes: &str, port: u16) -> SdpSession {
++        format!("v=0\r\no=fixture 1 1 IN IP4 127.0.0.1\r\ns=fixture\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio {port} RTP/AVP 0\r\na=rtpmap:0 PCMU/8000\r\n{attributes}").parse().unwrap()
++    }
++    #[test]
++    fn negotiated_rtcp_default_explicit_and_mux_peers() {
++        let rtp: SocketAddr = "127.0.0.1:22000".parse().unwrap();
++        assert_eq!(
++            negotiated_audio_rtcp_peer(
++                &sdp("a=rtcp:23000\r\n", 65535),
++                false,
++                "127.0.0.1:65535".parse().unwrap()
++            )
++            .unwrap(),
++            Some("127.0.0.1:23000".parse().unwrap())
++        );
++
++        assert_eq!(
++            negotiated_audio_rtcp_peer(&sdp("", 22000), false, rtp).unwrap(),
++            Some("127.0.0.1:22001".parse().unwrap())
++        );
++        assert_eq!(
++            negotiated_audio_rtcp_peer(
++                &sdp("a=rtcp:23000 IN IP4 127.0.0.2\r\n", 22000),
++                false,
++                rtp
++            )
++            .unwrap(),
++            Some("127.0.0.2:23000".parse().unwrap())
++        );
++        assert_eq!(
++            negotiated_audio_rtcp_peer(&sdp("a=rtcp-mux\r\n", 22000), true, rtp).unwrap(),
++            Some(rtp)
++        );
++    }
++    #[test]
++    fn negotiated_rtcp_invalid_or_ambiguous_split_peer_refuses() {
++        let rtp: SocketAddr = "127.0.0.1:22000".parse().unwrap();
++        for attributes in [
++            "a=rtcp:0\r\n",
++            "a=rtcp:22000\r\n",
++            "a=rtcp:23000 IN IP4 224.0.0.1\r\n",
++            "a=rtcp:23000 IN IP4 0.0.0.0\r\n",
++            "a=rtcp:23000 IN IP6 ::1\r\n",
++            "a=rtcp:23000\r\na=rtcp:24000\r\n",
++        ] {
++            assert!(
++                negotiated_audio_rtcp_peer(&sdp(attributes, 22000), false, rtp).is_err(),
++                "{attributes}"
++            );
++        }
++        assert!(negotiated_audio_rtcp_peer(
++            &sdp("", 65535),
++            false,
++            "127.0.0.1:65535".parse().unwrap()
++        )
++        .is_err());
++        assert_eq!(
++            negotiated_audio_rtcp_peer(&sdp("", 0), false, "127.0.0.1:0".parse().unwrap()).unwrap(),
++            None
++        );
++    }
++}
+--- a/crates/sip/rvoip-sip/src/originate.rs
++++ b/crates/sip/rvoip-sip/src/originate.rs
+@@ -545,6 +545,7 @@
+     ) -> Self {
+         Self {
+             profile_revision: None,
++            request_write_authority: None,
+             from_uri,
+             outbound_proxy_uri: None,
+             auth,

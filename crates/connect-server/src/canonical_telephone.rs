@@ -84,6 +84,12 @@ impl CanonicalTelephoneConfig {
                 && u32::from(self.media_port_end) - u32::from(self.media_port_start) < 4096,
             "Invalid canonical telephone media port range"
         );
+        let first_even_rtp =
+            u32::from(self.media_port_start) + u32::from(self.media_port_start % 2);
+        anyhow::ensure!(
+            first_even_rtp + 1 <= u32::from(self.media_port_end),
+            "SIP media requires an adjacent RTP/RTCP port pair"
+        );
         anyhow::ensure!(
             !self.routes.is_empty() || !self.initial.is_empty(),
             "Invalid canonical telephone route capacity"
@@ -354,6 +360,24 @@ mod tests {
         assert_eq!(listener.local_uri, "sip:connect@127.0.0.1:5060");
         assert!(listener.sip_advertised_addr.is_none());
         assert!(listener.media_public_addr.is_none());
+    }
+    #[test]
+    fn media_range_requires_a_complete_adjacent_rtp_rtcp_pair() {
+        for (start, end, valid) in [
+            (20000, 20000, false),
+            (20001, 20002, false),
+            (20001, 20003, true),
+            (65534, 65535, true),
+        ] {
+            let mut config = config();
+            config.media_port_start = start;
+            config.media_port_end = end;
+            assert_eq!(
+                config.validate(NativeNetworkProfile::Remote, 4).is_ok(),
+                valid,
+                "{start}..={end}"
+            );
+        }
     }
     #[test]
     fn ambiguous_wildcard_contacts_families_and_ranges_refuse() {

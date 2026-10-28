@@ -1301,6 +1301,11 @@
       "path": "patches/rvoip/gate6-negotiated-sender-feedback.patch",
       "source": "G6-054 intersect remote transceiver sender/receiver feedback with the negotiated media-engine subset instead of restoring unsupported RRTR. Real causal audio/video offer-answer regressions preserve remote payload types, preference order, VP8 RTX association and supported repair/congestion feedback; no owned RTP guard relaxation.",
       "sha256": "e0ca6ca7edfbace88bac2517b6e3b296b8c09d67cc374072c6f2138c102502e5"
+    },
+    {
+      "path": "patches/rvoip/gate6-negotiated-rtcp-routing.patch",
+      "source": "G6-054 retain an indexed adjacent RTP/RTCP allocation through the original media owner; connect validated SIP separate/default/explicit and multiplexed RTCP negotiation to a coherent socket/destination route. Refuse unconfigured, stale, missing-socket and closed routes; preserve SRTP and original task drains. Negative actual distinct-network telephone case retained; full positive qualification pending.",
+      "sha256": "59b9d46c643e916169b4e3387eb88caea01472f5566ec374a9fae4cee8583b92"
     }
   ]
 }

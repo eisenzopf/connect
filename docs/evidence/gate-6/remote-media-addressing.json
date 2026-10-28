@@ -334,5 +334,10 @@
     "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
     "status": "failed",
     "result": "Actual Linux SIP INVITE/200/ACK, journal-before-effect and bidirectional PCMU packets observed through owned UDP NAT. Whole run fails valid RTCP on RTP without negotiated mux; no complete decoder/end/drain pass. Both-algorithm qualification remains pending."
+  },
+  "negotiated_rtcp_routing": {
+    "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
+    "status": "protocol-tests-passed-remote-pending",
+    "result": "Patch239 retains adjacent original sockets and commits actual SIP mux/split RTCP routing. All52UDP/allocator and7SIPfunctions pass on5255unchanged inputs. Full server253 and both-algorithm distinct-network telephone execution remain pending; no G6-054 qualification."
   }
 }
