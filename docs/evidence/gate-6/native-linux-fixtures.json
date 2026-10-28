@@ -126,6 +126,190 @@
   "acceptance_qualified": false,
   "publication": false,
   "latest": {
+    "run_id": 40686679630,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40686679630",
+    "source_revision": "40393b03feb599f175f4f9c931b9a5f73c502a86",
+    "preflight": {
+      "os": {
+        "NAME": "Ubuntu",
+        "ID": "ubuntu",
+        "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+        "VERSION_ID": "24.04",
+        "VERSION": "24.04.5 LTS (Noble Numbat)",
+        "VERSION_CODENAME": "noble",
+        "ID_LIKE": "debian",
+        "HOME_URL": "https://www.ubuntu.com/",
+        "SUPPORT_URL": "https://help.ubuntu.com/",
+        "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+        "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+        "UBUNTU_CODENAME": "noble",
+        "LOGO": "ubuntu-logo"
+      },
+      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+      "source_revision": "40393b03feb599f175f4f9c931b9a5f73c502a86",
+      "runner_image_version": "20261023.334.3",
+      "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
+      "toolchain": {
+        "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+        "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+        "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
+      },
+      "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
+    },
+    "result": {
+      "passed": true,
+      "started_at": "2026-10-28T12:24:16.381133+00:00",
+      "steps": [
+        {
+          "name": "compile-library",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.4154523600000175,
+          "log_sha256": "682246f41a5afaeaec47541abb0e48892d2666f09ce4a46023af86eff558ed17",
+          "test_results": [],
+          "panic_locations": []
+        },
+        {
+          "name": "compile-hosting",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 30.204662009000003,
+          "log_sha256": "9b3162f29f071988436f1f98cf3e006bc1ef1bab6961f69ba73738a6ef05079f",
+          "test_results": [],
+          "panic_locations": []
+        },
+        {
+          "name": "addressing",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.016000966999996535,
+          "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
+          "test_results": [
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "config",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.015814564000010023,
+          "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
+          "test_results": [
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "sip-config",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.01581493800000544,
+          "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
+          "test_results": [
+            "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "owned-dtls",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.9661603809999804,
+          "log_sha256": "84209e9b3d51fbe7666c2dde509d1f7ca6a53a9cff953a62beac59e68bd8ba3f",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.93s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "https-hosting",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 12.692661670000007,
+          "log_sha256": "d20b9913246feba28fdcee41ad07f7ffa9f2aa1af15797bef20f9503f592a26e",
+          "test_results": [
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 360 filtered out; finished in 12.65s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "sip-unknown-account",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.8158379019999984,
+          "log_sha256": "d94f1938d76ce02bdd964898a4925a36c578901035814ec6c7d4158ab84ca461",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.78s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "sip-bind-failure",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.8157173520000072,
+          "log_sha256": "bffc7ba05c95772469e57b0b943d4f138aeaceaa3c0596d5b03b96885c4e0a29",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.76s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "sip-owner-drop",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.8159328479999886,
+          "log_sha256": "68809055ee5a167bffe7010ac9f4be9c67b19c4de761ad4745fb42177d50cbb4",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.76s"
+          ],
+          "panic_locations": []
+        },
+        {
+          "name": "sip-readiness",
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 10.499453211000002,
+          "log_sha256": "216dc3a254ba49433b261f19d1441799e32abd4ad5e2d3674cba6771307c368a",
+          "test_results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 10.47s"
+          ],
+          "panic_locations": []
+        }
+      ],
+      "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
+      "source_count": 8015,
+      "source_inputs_sha256": "dfe2e7a849c58e507ff25a8743438f1ca9b11dc39910532efc340180c1ce661b",
+      "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
+      "compiled_artifacts": {
+        "library": "28ecc1c13481ffa2ac56c91399178a20d49c50fa134b183c9590d385cfc592be",
+        "hosting": "c1a5834e39b482e94ede29706b002bce7c978f0238d6de69833fd2d996866771"
+      },
+      "behavior_passed": true,
+      "source_inputs_unchanged": true,
+      "finished_at": "2026-10-28T12:25:16.312996+00:00"
+    },
+    "functions_passed": 23,
+    "artifact_sha256": {
+      "preflight.json": "dde91199581cbd7d8d36400c38b9800472e7e4f63427811f7ab9ae474adcb34b",
+      "source-inputs.json": "dfe2e7a849c58e507ff25a8743438f1ca9b11dc39910532efc340180c1ce661b",
+      "summary.json": "aeb22c93fa4ba866d4fd9fc9ae6be39041d90311f058889a57bfbc199bbc0dd7"
+    },
+    "scope_note": "Native Ubuntu x86_64 configuration/security/local synthetic SIP readiness/startup/drain/HTTPS/ICE-DTLS close only. Includes sender-feedback patch238 and compiled ignored telephone fixture; predates negotiated RTCP patch239. No actual Linux distinct-network telephone, decoded browser, TURN, performance, installation or full G6-054 qualification."
+  },
+  "previous_latest": {
     "run_id": 40676112325,
     "run_url": "https://github.com/eisenzopf/connect/actions/runs/40676112325",
     "source_revision": "56787b914ae3a6119628f69c03caa02383b40580",
@@ -308,190 +492,6 @@
       "summary.json": "dfa952d0ca702ebb7af7b7f05c626a6a5b8eb7cbb64196c4234adda5b2dd1bd9"
     },
     "scope_note": "Actual native Ubuntu x86_64 configuration/security/local SIP startup and readiness/HTTPS/ICE-DTLS owned-close fixtures. Predates sender-feedback fix; no distinct-network Linux decoded media/browser/TURN/restart/performance qualification."
-  },
-  "previous_latest": {
-    "run_id": 40672184507,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40672184507",
-    "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
-    "preflight": {
-      "os": {
-        "NAME": "Ubuntu",
-        "ID": "ubuntu",
-        "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
-        "VERSION_ID": "24.04",
-        "VERSION": "24.04.5 LTS (Noble Numbat)",
-        "VERSION_CODENAME": "noble",
-        "ID_LIKE": "debian",
-        "HOME_URL": "https://www.ubuntu.com/",
-        "SUPPORT_URL": "https://help.ubuntu.com/",
-        "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
-        "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
-        "UBUNTU_CODENAME": "noble",
-        "LOGO": "ubuntu-logo"
-      },
-      "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
-      "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
-      "runner_image_version": "20261023.334.3",
-      "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
-      "toolchain": {
-        "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
-        "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
-        "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
-      },
-      "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
-    },
-    "result": {
-      "passed": true,
-      "started_at": "2026-10-28T10:29:58.938407+00:00",
-      "steps": [
-        {
-          "name": "compile-library",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.4658772150000061,
-          "log_sha256": "84d96e3006fd53e6dd5b648cb316aed11e633360c6b77d6710c9531ac382fb20",
-          "test_results": [],
-          "panic_locations": []
-        },
-        {
-          "name": "compile-hosting",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 33.57576613500001,
-          "log_sha256": "5fcca6840498ea5b0bb0bd4df41e7461b955e47c58cff4211a12b5e22a9a98a9",
-          "test_results": [],
-          "panic_locations": []
-        },
-        {
-          "name": "addressing",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.01609756599999912,
-          "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
-          "test_results": [
-            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "config",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.016035150000007548,
-          "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
-          "test_results": [
-            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "sip-config",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.0160967239999934,
-          "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
-          "test_results": [
-            "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "owned-dtls",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.9670797299999947,
-          "log_sha256": "0858e5d94d86f2dd483fc32986b0edc3cb9f5b9d1a694d12c8afcbc9ffc328a9",
-          "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.95s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "https-hosting",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 12.999508319,
-          "log_sha256": "70898bf21f9c2991fcef0d6c3b50cfe093a819713f322604067d8b72f44f943c",
-          "test_results": [
-            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 359 filtered out; finished in 12.98s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "sip-unknown-account",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.8164046289999902,
-          "log_sha256": "8dada62664e3a0a821afffe272eaf5089799b0a86392c499f127711fb6d6d0fa",
-          "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.78s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "sip-bind-failure",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.8170228370000245,
-          "log_sha256": "7c48863cd4a79ba9af512d98545955feaf1bc5e891f67d5e1e298061aea4e60a",
-          "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "sip-owner-drop",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 0.8168566190000206,
-          "log_sha256": "89b9db3709dd508ab33ff76f4c02f26764d41fb7beb061627d0602c640aa8672",
-          "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
-          ],
-          "panic_locations": []
-        },
-        {
-          "name": "sip-readiness",
-          "exit_code": 0,
-          "timed_out": false,
-          "forced_kill": false,
-          "seconds": 10.552853591999991,
-          "log_sha256": "982bed946a3d2cfce40f089caf840a3b0555f34cc2d1a5ce8a9609b269096cda",
-          "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 10.51s"
-          ],
-          "panic_locations": []
-        }
-      ],
-      "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
-      "source_count": 7998,
-      "source_inputs_sha256": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
-      "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
-      "compiled_artifacts": {
-        "library": "262932153f7e2065e4c11cc8e917181760fe085f5fb4f314ec8b74f5bbc3ca1a",
-        "hosting": "f4f8b1c664760058f19137af8ff19b3c1f289b5eaefc74e162a6658ca38a8932"
-      },
-      "behavior_passed": true,
-      "source_inputs_unchanged": true,
-      "finished_at": "2026-10-28T10:31:02.718807+00:00"
-    },
-    "functions_passed": 23,
-    "artifact_sha256": {
-      "preflight.json": "45f4220077916011048fd85ccd365034e445648fdc551578112cca06a79c6048",
-      "source-inputs.json": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
-      "summary.json": "e889a2468b47e92853585e068da070d5e2285e6499b198d0a100b69ada888941"
-    },
-    "scope_note": "Native Ubuntu24.04x86_64 source-bound23function group with all source inputs unchanged. Native guest fixture support compiles, but these selected tests do not execute Linux-to-Mac native media or distinct-network browser media. No actual TURN allocation, installation, native performance or whole acceptance qualification."
   },
   "history": [
     {
@@ -1044,6 +1044,190 @@
           "functions_passed": 23
         }
       }
+    },
+    {
+      "run_id": 40672184507,
+      "run_url": "https://github.com/eisenzopf/connect/actions/runs/40672184507",
+      "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
+      "preflight": {
+        "os": {
+          "NAME": "Ubuntu",
+          "ID": "ubuntu",
+          "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+          "VERSION_ID": "24.04",
+          "VERSION": "24.04.5 LTS (Noble Numbat)",
+          "VERSION_CODENAME": "noble",
+          "ID_LIKE": "debian",
+          "HOME_URL": "https://www.ubuntu.com/",
+          "SUPPORT_URL": "https://help.ubuntu.com/",
+          "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+          "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+          "UBUNTU_CODENAME": "noble",
+          "LOGO": "ubuntu-logo"
+        },
+        "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+        "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
+        "runner_image_version": "20261023.334.3",
+        "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
+        "toolchain": {
+          "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+          "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+          "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
+        },
+        "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
+      },
+      "result": {
+        "passed": true,
+        "started_at": "2026-10-28T10:29:58.938407+00:00",
+        "steps": [
+          {
+            "name": "compile-library",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.4658772150000061,
+            "log_sha256": "84d96e3006fd53e6dd5b648cb316aed11e633360c6b77d6710c9531ac382fb20",
+            "test_results": [],
+            "panic_locations": []
+          },
+          {
+            "name": "compile-hosting",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 33.57576613500001,
+            "log_sha256": "5fcca6840498ea5b0bb0bd4df41e7461b955e47c58cff4211a12b5e22a9a98a9",
+            "test_results": [],
+            "panic_locations": []
+          },
+          {
+            "name": "addressing",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.01609756599999912,
+            "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
+            "test_results": [
+              "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "config",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.016035150000007548,
+            "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
+            "test_results": [
+              "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-config",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.0160967239999934,
+            "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
+            "test_results": [
+              "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "owned-dtls",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.9670797299999947,
+            "log_sha256": "0858e5d94d86f2dd483fc32986b0edc3cb9f5b9d1a694d12c8afcbc9ffc328a9",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.95s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "https-hosting",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 12.999508319,
+            "log_sha256": "70898bf21f9c2991fcef0d6c3b50cfe093a819713f322604067d8b72f44f943c",
+            "test_results": [
+              "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 359 filtered out; finished in 12.98s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-unknown-account",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.8164046289999902,
+            "log_sha256": "8dada62664e3a0a821afffe272eaf5089799b0a86392c499f127711fb6d6d0fa",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.78s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-bind-failure",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.8170228370000245,
+            "log_sha256": "7c48863cd4a79ba9af512d98545955feaf1bc5e891f67d5e1e298061aea4e60a",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-owner-drop",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.8168566190000206,
+            "log_sha256": "89b9db3709dd508ab33ff76f4c02f26764d41fb7beb061627d0602c640aa8672",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-readiness",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 10.552853591999991,
+            "log_sha256": "982bed946a3d2cfce40f089caf840a3b0555f34cc2d1a5ce8a9609b269096cda",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 10.51s"
+            ],
+            "panic_locations": []
+          }
+        ],
+        "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
+        "source_count": 7998,
+        "source_inputs_sha256": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
+        "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
+        "compiled_artifacts": {
+          "library": "262932153f7e2065e4c11cc8e917181760fe085f5fb4f314ec8b74f5bbc3ca1a",
+          "hosting": "f4f8b1c664760058f19137af8ff19b3c1f289b5eaefc74e162a6658ca38a8932"
+        },
+        "behavior_passed": true,
+        "source_inputs_unchanged": true,
+        "finished_at": "2026-10-28T10:31:02.718807+00:00"
+      },
+      "functions_passed": 23,
+      "artifact_sha256": {
+        "preflight.json": "45f4220077916011048fd85ccd365034e445648fdc551578112cca06a79c6048",
+        "source-inputs.json": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
+        "summary.json": "e889a2468b47e92853585e068da070d5e2285e6499b198d0a100b69ada888941"
+      },
+      "scope_note": "Native Ubuntu24.04x86_64 source-bound23function group with all source inputs unchanged. Native guest fixture support compiles, but these selected tests do not execute Linux-to-Mac native media or distinct-network browser media. No actual TURN allocation, installation, native performance or whole acceptance qualification."
     }
   ]
 }

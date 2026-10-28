@@ -108,10 +108,10 @@
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
-    "run_id": 40676112325,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40676112325",
-    "source_revision": "56787b914ae3a6119628f69c03caa02383b40580",
-    "result": "23 native Ubuntu functions pass with all8005inputs unchanged at56787b91. Source-only artifact downloaded and independently inspected. Predates negotiated sender-feedback fix; no decoded Linux/browser/TURN/restart qualification.",
+    "run_id": 40686679630,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40686679630",
+    "source_revision": "40393b03feb599f175f4f9c931b9a5f73c502a86",
+    "result": "23 native Ubuntu functions pass with all8015inputs unchanged at40393b03; downloaded source-only artifact independently inspected. Predates negotiated RTCP routing patch239; no distinct-network decoded media/TURN/browser/RTCP-profile qualification.",
     "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
