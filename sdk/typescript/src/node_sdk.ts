@@ -799,9 +799,13 @@ export class NodeClient {
     readonly raw: SdkRawCanonical;
     readonly conversations;
     readonly operations;
-    incomingInvitations(): SdkIncomingInvitations {
-        return createIncoming(this.helper, (cid, sid) =>
-            this.conversations.byId(cid).sessions.byId(sid),
+    incomingInvitations(
+        options: CanonicalRequestOptions,
+    ): SdkIncomingInvitations {
+        return createIncoming(
+            this.helper,
+            (cid, sid) => this.conversations.byId(cid).sessions.byId(sid),
+            options,
         );
     }
     private readonly helper: SdkHelper;

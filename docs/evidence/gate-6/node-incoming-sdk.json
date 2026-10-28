@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "owned-incoming-implemented-component-passed-native-pending",
+  "status": "historical-draft-interface-superseded-by-approved-iterator-contract",
   "implementation_parent_commit": "e732fcefd32c1c3f806a302a0f8c230c9b42c2a3",
   "synthetic_component_passed": true,
   "native_component_passed": false,
@@ -102,5 +102,6 @@
     "diff": true,
     "actual_rust_compile_and_native": "Pending current Linux runs. Local Rust linking skipped for retained ENOSPC."
   },
-  "qualification_limit": "Current90 component/type functions and8 installed public synthetic incoming functions only,217 guarded inputs unchanged. No real helper3 Rust compile/crypto/native incoming result yet. Native incoming remaining media/decisions/revocation/reconnect, durable events, explicit remote HTTP and full SDK/G6-062 remain open."
+  "qualification_limit": "Current90 component/type functions and8 installed public synthetic incoming functions only,217 guarded inputs unchanged. No real helper3 Rust compile/crypto/native incoming result yet. Native incoming remaining media/decisions/revocation/reconnect, durable events, explicit remote HTTP and full SDK/G6-062 remain open. The initial interface was subsequently found to diverge from the approved AsyncIterable/captured-options shape; its passed checks do not qualify contract conformance. See node-incoming-contract.json.",
+  "contract_correction": "docs/evidence/gate-6/node-incoming-contract.json"
 }

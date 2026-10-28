@@ -13,8 +13,8 @@ import type {
 /** Signed metadata hint. Refresh the Session before any separate decision. */
 export interface SdkIncomingInvitation {
     readonly session: SdkSession;
-    readonly fromParticipant: ParticipantId;
-    readonly toParticipant: ParticipantId;
+    readonly from: ParticipantId;
+    readonly to: ParticipantId;
     readonly operationId: OperationId;
     readonly source: Readonly<{
         kind: "session.invite";
@@ -24,12 +24,11 @@ export interface SdkIncomingInvitation {
     readonly intent: string;
     readonly capabilities: Json;
 }
-export interface SdkIncomingInvitations {
-    next(
-        options: CanonicalRequestOptions,
-    ): Promise<SdkIncomingInvitation | undefined>;
-    close(options: CanonicalRequestOptions): Promise<void>;
+export interface SdkIncomingInvitations extends AsyncIterableIterator<SdkIncomingInvitation> {
+    next(): Promise<IteratorResult<SdkIncomingInvitation, undefined>>;
+    close(): Promise<void>;
 }
+
 function valid(options: CanonicalRequestOptions): void {
     if (
         !options ||
@@ -96,7 +95,14 @@ type Delivery = { id: string; hint: SdkIncomingInvitation } | null;
 export function createIncoming(
     helper: SdkHelper,
     session: (cid: ConversationId, sid: SessionId) => SdkSession,
+    options: CanonicalRequestOptions,
 ): SdkIncomingInvitations {
+    valid(options);
+    const captured = Object.freeze({
+        timeoutMs: options.timeoutMs,
+        signal: options.signal,
+    });
+
     const reader = "reader-" + randomUUID(),
         stopped = new AbortController();
     let acknowledged: string | null = null,
@@ -164,8 +170,8 @@ export function createIncoming(
                     hint.conversation_id as ConversationId,
                     hint.session_id as SessionId,
                 ),
-                fromParticipant: hint.from_participant as ParticipantId,
-                toParticipant: hint.to_participant as ParticipantId,
+                from: hint.from_participant as ParticipantId,
+                to: hint.to_participant as ParticipantId,
                 operationId: hint.operation_id as OperationId,
                 source: Object.freeze({
                     kind: "session.invite",
@@ -177,13 +183,13 @@ export function createIncoming(
             }),
         };
     };
-    return Object.freeze({
+    const owner = Object.freeze({
         async next(options: CanonicalRequestOptions) {
             valid(options);
             const signal = options.signal;
+            if (closed) return undefined;
             if (signal?.aborted)
                 throw new NodeSdkError("cancelled", "read-only");
-            if (closed) return undefined;
             if (busy) throw new NodeSdkError("conflict", "read-only");
             busy = true;
             const expires = performance.now() + options.timeoutMs;
@@ -278,4 +284,23 @@ export function createIncoming(
             await wait(closing, expires, signal, new AbortController().signal);
         },
     });
+    const stream: SdkIncomingInvitations = {
+        async next() {
+            const hint = await owner.next(captured);
+            return hint === undefined
+                ? { done: true, value: undefined }
+                : { done: false, value: hint };
+        },
+        async close() {
+            await owner.close({ timeoutMs: 5000 });
+        },
+        async return() {
+            await owner.close({ timeoutMs: 5000 });
+            return { done: true, value: undefined };
+        },
+        [Symbol.asyncIterator]() {
+            return stream;
+        },
+    };
+    return Object.freeze(stream);
 }

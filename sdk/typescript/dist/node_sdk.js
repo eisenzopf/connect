@@ -419,8 +419,8 @@ export class NodeClient {
     raw;
     conversations;
     operations;
-    incomingInvitations() {
-        return createIncoming(this.helper, (cid, sid) => this.conversations.byId(cid).sessions.byId(sid));
+    incomingInvitations(options) {
+        return createIncoming(this.helper, (cid, sid) => this.conversations.byId(cid).sessions.byId(sid), options);
     }
     helper;
     constructor(config) {

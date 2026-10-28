@@ -55,7 +55,12 @@ function freeze(value) {
     }
     return value;
 }
-export function createIncoming(helper, session) {
+export function createIncoming(helper, session, options) {
+    valid(options);
+    const captured = Object.freeze({
+        timeoutMs: options.timeoutMs,
+        signal: options.signal,
+    });
     const reader = "reader-" + randomUUID(), stopped = new AbortController();
     let acknowledged = null, flight;
     let busy = false, closed = false, started = false, detached = false;
@@ -111,8 +116,8 @@ export function createIncoming(helper, session) {
             id: value.delivery_id,
             hint: Object.freeze({
                 session: session(hint.conversation_id, hint.session_id),
-                fromParticipant: hint.from_participant,
-                toParticipant: hint.to_participant,
+                from: hint.from_participant,
+                to: hint.to_participant,
                 operationId: hint.operation_id,
                 source: Object.freeze({
                     kind: "session.invite",
@@ -124,14 +129,14 @@ export function createIncoming(helper, session) {
             }),
         };
     };
-    return Object.freeze({
+    const owner = Object.freeze({
         async next(options) {
             valid(options);
             const signal = options.signal;
-            if (signal?.aborted)
-                throw new NodeSdkError("cancelled", "read-only");
             if (closed)
                 return undefined;
+            if (signal?.aborted)
+                throw new NodeSdkError("cancelled", "read-only");
             if (busy)
                 throw new NodeSdkError("conflict", "read-only");
             busy = true;
@@ -211,4 +216,23 @@ export function createIncoming(helper, session) {
             await wait(closing, expires, signal, new AbortController().signal);
         },
     });
+    const stream = {
+        async next() {
+            const hint = await owner.next(captured);
+            return hint === undefined
+                ? { done: true, value: undefined }
+                : { done: false, value: hint };
+        },
+        async close() {
+            await owner.close({ timeoutMs: 5000 });
+        },
+        async return() {
+            await owner.close({ timeoutMs: 5000 });
+            return { done: true, value: undefined };
+        },
+        [Symbol.asyncIterator]() {
+            return stream;
+        },
+    };
+    return Object.freeze(stream);
 }

@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "approved-incoming-iterator-contract-aligned-component-passed-native-pending",
+  "implementation_parent_commit": "3c06bdcc",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "approved_sources": [
+    "contracts/sdk-api/typescript/contract.ts",
+    "contracts/sdk-api/typescript/outline.ts"
+  ],
+  "finding": "The earlier draft exposed incomingInvitations() with per-wait next(options), close(options), and fromParticipant; it did not implement the approved captured-options AsyncIterable contract. Its local passes did not prove contract conformance.",
+  "correction": [
+    "Require incomingInvitations(options), validate and capture finite timeout/signal before I/O. Each next() uses that fixed configuration; cancelled reader can close with its independent bounded cleanup and a fresh reader reclaims unread metadata.",
+    "Expose AsyncIterableIterator with standard IteratorResult, required original inviter field from, optional additional recipient/medium/intent/capability metadata, and close() without arguments. No legacy per-wait API alias or automatic retry/restart.",
+    "for-await break/throw calls iterator return(), detaches the same owned reader once and leaves client control live; explicit finally-close stays idempotent.",
+    "Retain exact original IDs/ACK/current-health re-poll and all original cancellation, timeout, foreign-reader and malformed-data checks.",
+    "Update external native peer candidate to consume the contract iterator result and original hinted Session. No shared contract/outline was changed to accommodate the implementation."
+  ],
+  "component_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.663768083089963,
+    "source_count": 217,
+    "changed_inputs": [],
+    "source_inputs_sha256": "65753983f609905b8cea3e413c7ffad21bb3c55e0f2b48496b58d24208460207",
+    "log_sha256": "8d0d4717fb44e374f31359957b14be9df5747c484c395ddb4548b87522cb78cc",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T22:07:51.470594+00:00"
+  },
+  "functions_passed": 94,
+  "all_previous93_retained": true,
+  "new_iterator_cleanup_function": [
+    "approved for-await iteration releases the reader on break and application failure without stopping control"
+  ],
+  "negative_declaration_checks": [
+    "Factory options required",
+    "next has no per-wait option parameter",
+    "for-await consumes typed original invitation metadata",
+    "from is a branded ParticipantId, distinct from Session ID",
+    "Hint source readonly; Session metadata grants no native packet custody"
+  ],
+  "installed_package": {
+    "archive_sha256": "5e22ea3a2a296a190b12a89605c13d09138c4299205edec5629b924dcfaa0406",
+    "installed_dist_matches": true,
+    "dist_files": 130,
+    "installed_public_incoming_functions_passed": 9,
+    "log_sha256": "b7cb0aac9d4dc15f5d4a6bcdfc865a393a63d948f613f91c62a84e5c1475038e"
+  },
+  "source_sha256": {
+    "contracts/sdk-api/typescript/contract.ts": "97f65235ac4dd9c24aa081584e23533f8ab26c7007a50217e05a9f8de8f6f297",
+    "contracts/sdk-api/typescript/outline.ts": "5f52a653133a591ee6d19aa3a3ec18528b7be1ebecc47c5141e8db0b926ac29a",
+    "sdk/typescript/src/node_incoming.ts": "7871d79e0f8507df545639ca699de413b7d4d73b515763ff536d4340f2131ee9",
+    "sdk/typescript/src/node_sdk.ts": "8b873836ee80adf8d02b371dd932031907a722518deeb886a5269f6d7afa5346",
+    "sdk/typescript/dist/node_incoming.js": "e036aa62324b9bb242c179d9c87bc072bc70594f9b3ac9c4f14ea787f186b800",
+    "sdk/typescript/dist/node_incoming.d.ts": "fde35d376cf35d3ddb01e087be33a54c59650a114d115b5f90d55de36794597e",
+    "sdk/tests/node_incoming.test.mjs": "80de186fdbc7e769979fc8d0ed09548d69d274c34030a6296db169f406922bb6",
+    "sdk/tests/node_sdk_types.mts": "a7a8d2aeb52f6379cdda8ade2fa9c356da18a4a58d7dd70cfcddbaaf15d1a2d9",
+    "sdk/tests/node_sdk_server_consumer.mjs": "20f213e8289316c1ab9b5be1f32479bcf66135a1dd484bc89ac0bea12793ea04",
+    "sdk/tests/fixtures/sdk_helper.mjs": "a75211065e448fbff4fccecc5ecb51518b6792a167f7dcdfb7378bbca123604c",
+    "sdk/tests/check_canonical_helper.py": "dcfa4de55fb3c03376cd3ff01f296cb8bf81275615cc7923e174bf1b722b0c52"
+  },
+  "qualification_limit": "Current94 component/type/HTTP functions,217 unchanged guarded inputs and9 installed synthetic incoming functions only. Historical per-wait draft is superseded, not qualified. Current iterator/native incoming matrix/graceful native drain/durable events/remoteHTTP and whole G6-062 remain pending. This verifies the incoming slice, not full ParticipantClient structural conformance."
+}

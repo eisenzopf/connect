@@ -99,11 +99,13 @@ trustedCommand.value=null;
 // @ts-expect-error Trusted backend exposes no participant Conversation API.
 administrator.conversations.byId(roomId);
 
-const incomingReader=client.incomingInvitations();
-const incomingHint=await incomingReader.next({timeoutMs:1000});
-if(incomingHint){
+const incomingReader=client.incomingInvitations({timeoutMs:1000});
+const incomingResult=await incomingReader.next();
+if(!incomingResult.done){
+ const incomingHint=incomingResult.value;
  const sourceOperation:OperationId=incomingHint.operationId;
  const targetConversation:ConversationId=incomingHint.session.conversationId;
+ const inviter:import('../typescript/dist/index.js').ParticipantId=incomingHint.from;
  // @ts-expect-error An invitation source does not grant native packet custody.
  incomingHint.session.native;
  // @ts-expect-error Incoming metadata is immutable.
@@ -111,3 +113,9 @@ if(incomingHint){
  // @ts-expect-error Session and participant identities remain distinct.
  const foreignParticipant:import('../typescript/dist/index.js').ParticipantId=incomingHint.session.id;
 }
+for await(const hint of incomingReader){const original:OperationId=hint.operationId;break;}
+await incomingReader.close();
+// @ts-expect-error Approved iterator options are captured at construction.
+client.incomingInvitations();
+// @ts-expect-error next uses captured stream options, not a separate per-wait API.
+incomingReader.next({timeoutMs:1000});

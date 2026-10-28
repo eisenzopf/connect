@@ -196,7 +196,7 @@ export declare class NodeClient {
         restore: <T>(saved: Json, expected: SdkOperationKind<T>) => SdkOperation<T>;
         recover: <T>(reference: SdkOperationReference<T>) => SdkOperation<T>;
     }>;
-    incomingInvitations(): SdkIncomingInvitations;
+    incomingInvitations(options: CanonicalRequestOptions): SdkIncomingInvitations;
     private readonly helper;
     constructor(config: {
         readonly config: string;

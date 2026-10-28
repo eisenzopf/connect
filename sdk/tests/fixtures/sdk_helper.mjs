@@ -225,6 +225,6 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);
  if(config.mode==='extra')raw+='\n'+raw;
  const send=()=>process.stdout.write(raw+'\n');
- const delay=a.type==='incoming_poll'?(config.incomingDelayMs??config.delayMs):config.delayMs;
+ const delay=a.type==='incoming_poll'?(incomingPolls===1?(config.incomingDelayMs??config.delayMs):(config.incomingLaterDelayMs??config.incomingDelayMs??config.delayMs)):config.delayMs;
  if(delay)setTimeout(send,delay);else send();
 });

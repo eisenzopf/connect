@@ -1,53 +1,53 @@
 # Owned Node incoming invitations
 
-`client.incomingInvitations()` creates a lazy local reader. `next(options)` returns
-signed invitation metadata from the original Rust SDK: a scoped `Session`, the
-original invitation operation/source IDs, sender/recipient, medium, intent and
-immutable capabilities. It returns `undefined` after close. Metadata grants no
-native transport, media custody or decision authority.
+`client.incomingInvitations(options)` captures the approved finite timeout and
+signal and returns an async iterator. Each `next()` uses those captured options;
+`for await` consumes original invitation metadata. The required `from` field
+identifies the inviter. Additional metadata includes the scoped `Session`, target
+participant (`to`), original invitation operation/source IDs, medium, intent and
+immutable capabilities. Metadata grants no native/media or decision authority.
 
 ```ts
-const incoming = client.incomingInvitations();
 const options = { timeoutMs: 4000 };
+const incoming = client.incomingInvitations(options);
 try {
-  const hint = await incoming.next(options);
-  if (hint) {
+  for await (const hint of incoming) {
     const current = await hint.session.refresh(options);
-    // Use a separately persisted decision ID and the current topology revision.
     await (await hint.session.reject({
       reasonCode: 486, reason: 'Unavailable',
       expectedTopologyRevision: current.topologyRevision,
     }, { ...options, operationId: savedDecisionId })).wait(options);
+    break;
   }
 } finally {
-  await incoming.close(options);
+  await incoming.close();
 }
 ```
 
-One original helper owns the Rust `InvitationStream`. Only one reader can claim
-the inbox. A pending hint stays bounded to 63 KiB until its exact owner
-acknowledges the delivery. Detaching retains unread metadata for the next local
-reader. Hint/source IDs remain distinct from a separately saved decision ID.
-Delayed hints can describe a cancelled Session; always refresh before deciding.
+Loop break or application failure detaches the reader through its iterator
+`return()`; explicit `close()` is idempotent. Close uses bounded cleanup even if
+the captured reader signal has been cancelled. Control stays usable. A closed
+iterator returns `{done:true,value:undefined}`. A deadline consumes no delivery;
+a cancelled reader can close and a fresh reader can reclaim unread metadata.
 
-The helper polls the original SDK future for at most 25 ms. Dropping a wait
-consumes no hint. Node cancellation/deadline detaches only that local wait,
-leaving control usable and the original poll bounded. The next explicit wait
-revalidates the retained hint through Rust, including current closure/expiry and
-inbox failure, rather than returning an abandoned Node cache. One captured
-caller deadline includes all polls/queue time; no replacement helper or mutation
-retry occurs. Closing the reader leaves the client and its other controls live.
+One original helper owns the Rust `InvitationStream`. One reader claims the
+inbox, and one pending hint stays bounded to 63 KiB until its exact owner
+acknowledges the delivery. Hint/source IDs remain distinct from a separately
+saved decision ID. Hints can be stale after Session cancellation or membership
+removal; refresh before deciding under current authority.
 
-The participant adapter requires `connect-sdk-helper/3` and the matching CLI.
-Administrative helper2 and local validators1 retain their separate profiles.
-Incoming support is an interface capability, never a current grant/readiness.
+Rust polls the original SDK future for at most 25 ms without consuming a dropped
+wait. An abandoned Node reply is re-polled through Rust's current closure/expiry
+and inbox-failure checks before return. No replacement helper or mutation replay
+occurs. Participant helper 3 and the matching CLI are required; administrative
+helper 2 and local validators 1 remain separate.
 
-All 90 component/helper/HTTP/type functions pass with 217 guarded inputs unchanged;
-all previous 82 remain. Eight incoming functions also pass through the installed
-public package with exact distribution equality. The native `node-controls/6`
-candidate receives actual unsolicited voice+video metadata on the independent
-peer and accepts using its hinted Session. Three Rust reader/ACK/inbox-health
-units are required by Linux CI. Current compilation and actual native behavior
-remain pending. Remaining media/decisions/revocation/reconnect, durable events,
-explicit remote HTTP and full G6-062 qualification remain open. See
-[the evidence](../evidence/gate-6/node-incoming-sdk.json).
+All 94 component/helper/HTTP/type functions pass with 217 guarded inputs unchanged;
+all prior 93 checks remain. Nine incoming functions also pass through the installed
+public package with exact distribution equality. Negative declarations require
+factory options, reject the earlier per-wait API and preserve source/identity
+and metadata ownership types. The earlier draft interface is superseded; the
+approved contract and outline were left unchanged. Current real iterator/native
+incoming media/decision/revocation/reconnect and graceful drain verification,
+durable events, remote HTTP and full G6-062 remain open. See
+[the contract evidence](../evidence/gate-6/node-incoming-contract.json).

@@ -150,3 +150,9 @@ installed incoming checks pass; current Rust/native qualification is pending.
 The historical [b2 native evidence](../evidence/gate-6/node-native-b2.json)
 qualifies all11 administrative command families only in its recorded scopes,
 while retaining the later revocation assertion and Node22 audio-boundary failures.
+
+Incoming now follows the approved captured-options async iterator:
+`client.incomingInvitations(options)`, `for await`, original inviter `from`,
+and `close()`. The earlier per-wait draft is superseded. All 94 component/type
+functions and 9 installed incoming functions pass; current real native iterator
+qualification remains pending. See [the contract alignment](../evidence/gate-6/node-incoming-contract.json).

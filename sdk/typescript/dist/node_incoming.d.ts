@@ -6,8 +6,8 @@ import type { SessionId, SdkSession, SdkSessionMedium } from "./node_sessions.js
 /** Signed metadata hint. Refresh the Session before any separate decision. */
 export interface SdkIncomingInvitation {
     readonly session: SdkSession;
-    readonly fromParticipant: ParticipantId;
-    readonly toParticipant: ParticipantId;
+    readonly from: ParticipantId;
+    readonly to: ParticipantId;
     readonly operationId: OperationId;
     readonly source: Readonly<{
         kind: "session.invite";
@@ -17,8 +17,8 @@ export interface SdkIncomingInvitation {
     readonly intent: string;
     readonly capabilities: Json;
 }
-export interface SdkIncomingInvitations {
-    next(options: CanonicalRequestOptions): Promise<SdkIncomingInvitation | undefined>;
-    close(options: CanonicalRequestOptions): Promise<void>;
+export interface SdkIncomingInvitations extends AsyncIterableIterator<SdkIncomingInvitation> {
+    next(): Promise<IteratorResult<SdkIncomingInvitation, undefined>>;
+    close(): Promise<void>;
 }
-export declare function createIncoming(helper: SdkHelper, session: (cid: ConversationId, sid: SessionId) => SdkSession): SdkIncomingInvitations;
+export declare function createIncoming(helper: SdkHelper, session: (cid: ConversationId, sid: SessionId) => SdkSession, options: CanonicalRequestOptions): SdkIncomingInvitations;

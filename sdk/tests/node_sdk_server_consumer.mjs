@@ -71,11 +71,11 @@ try {
  current=await solo.refresh(opts);assert.deepEqual(current.codecPreferences,['g.711-mu','vp8']);
  peerClient=new NodeClient({config:spec.peer_config,executable:spec.executable});
  await peerClient.capabilities.require('incoming-invitations',opts);
- const incoming=peerClient.incomingInvitations(),hintWait=incoming.next(opts);void hintWait.catch(()=>{});
+ const incoming=peerClient.incomingInvitations(opts),hintWait=incoming.next();void hintWait.catch(()=>{});
  await (await solo.inviteParticipants({to:{first:peer.id,rest:[]},medium:'voice+video',intent:'typed-control',capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend'})).wait(opts);
- const hint=await hintWait;assert.ok(hint);assert.equal(hint.operationId,'typed-session-extend');assert.equal(hint.source.correlationId,hint.operationId);assert.equal(hint.fromParticipant,own.id);assert.equal(hint.toParticipant,peer.id);assert.equal(hint.medium,'voice+video');assert.deepEqual(JSON.parse(JSON.stringify(hint.capabilities)),capabilities);
+ const received=await hintWait;assert.equal(received.done,false);const hint=received.value;assert.ok(hint);assert.equal(hint.operationId,'typed-session-extend');assert.equal(hint.source.correlationId,hint.operationId);assert.equal(hint.from,own.id);assert.equal(hint.to,peer.id);assert.equal(hint.medium,'voice+video');assert.deepEqual(JSON.parse(JSON.stringify(hint.capabilities)),capabilities);
  const peerRoom=peerClient.conversations.byId(room.id),peerSolo=hint.session;assert.equal(peerSolo.id,solo.id);assert.equal(peerSolo.conversationId,room.id);
- await incoming.close(opts);await peerClient.capabilities.require('incoming-invitations',opts);
+ await incoming.close();await peerClient.capabilities.require('incoming-invitations',opts);
  current=await peerSolo.refresh(opts);
  await (await peerSolo.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend-accept'})).wait(opts);
  emit({phase:'controls-ready',session_participants_accepted:true,incoming_original_hint:true,incoming_session_decision:true,incoming_close_control_live:true});
