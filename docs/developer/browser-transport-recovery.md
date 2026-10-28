@@ -88,7 +88,14 @@ new media. Replacing a Device/Connection uses its distinct authorized operation.
 Neither control reconnect nor selected path promises uninterrupted media after
 a server crash. High-level SDK resource composition remains G6-062 work.
 
-Current verification is the signed WebCrypto component fixture recorded in
-[transport owner evidence](../evidence/gate-6/transport-reconnect-owner.json).
-Actual installed-browser outages, expired service credentials and repeated
-reconnect during live consult/handoff remain required before G6-052 closure.
+The signed WebCrypto component fixture passes all 379 SDK checks, including
+52 new owner cases; see [transport owner evidence](../evidence/gate-6/transport-reconnect-owner.json).
+Four installed Chrome/Firefox × EdDSA/ES256 control functions also pass with
+normal private-CA TLS. They select WSS after actual UDP blackholes, recover
+original operation records and cursor events over explicit reconnects, reject
+an invalid bearer and recover with valid enrollment. The transition fixture
+uses an accepted, unprepared consult and exact unready handoff/replacement
+refusals; see [browser control evidence](../evidence/gate-6/transport-reconnect-browser-control.json).
+Injected dropped acknowledgments, established WSS/WT outages, actual service
+credential expiry/revocation and repeated reconnect during live consult/handoff
+remain required before G6-052 closure.

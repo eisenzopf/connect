@@ -118,7 +118,7 @@ try {
         const page=await context.newPage();pages[index]=page;
         await page.goto(spec.baseURL+"/examples/conversation-client/");
         return page.evaluate(async({configuration,index,probes})=>{
-            const {BrowserClient,BrowserMediaPeer}=await import("/sdk/typescript/dist/browser.js");
+            const {BrowserClient,BrowserMediaPeer,BrowserTransportClient}=await import("/sdk/typescript/dist/browser.js");
             const {canonicalMediaClient}=await import("/examples/conversation-client/canonical-media.js");
             const check=(ok,message)=>{if(!ok)throw Error(message);};
             const probe=configuration.fallbackProbe,url=new URL(probe.url);
@@ -126,11 +126,21 @@ try {
             const algorithm=name=>name==="EdDSA"?{name:"Ed25519"}:name==="ES256"?{name:"ECDSA",namedCurve:"P-256"}:null;
             const key=await crypto.subtle.importKey("jwk",configuration.signing.jwk,algorithm(configuration.signing.algorithm),false,["sign"]);
             const trust=await crypto.subtle.importKey("jwk",configuration.server.jwk,algorithm(configuration.server.algorithm),false,["verify"]);
-            const start=performance.now();let opened,errorCode;
-            try{opened=await BrowserClient.open({transport:"webtransport",url:probe.url,timeoutMs:probe.timeoutMs,credential:configuration.credential,identityId:configuration.identityId,device:configuration.device,signing:{algorithm:configuration.signing.algorithm,keyId:configuration.signing.keyId,key},server:{algorithm:configuration.server.algorithm,keyId:configuration.server.keyId,key:trust,notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt}});}catch(error){errorCode=error?.code??"unclassified";}finally{opened?.close();}
-            check(!opened&&["timeout","transport"].includes(errorCode),"owned UDP blackhole refusal");
+            const start=performance.now();let opened,errorCode,control;
+            const enrollment={credential:configuration.credential,identityId:configuration.identityId,device:configuration.device,signing:{algorithm:configuration.signing.algorithm,keyId:configuration.signing.keyId,key},server:{algorithm:configuration.server.algorithm,keyId:configuration.server.keyId,key:trust,notBefore:configuration.server.notBefore,expiresAt:configuration.server.expiresAt}};
+            if(configuration.transportRecovery){
+                let resolutions=0;
+                const owner=await BrowserTransportClient.connect({identityId:configuration.identityId,deviceId:configuration.device.id,endpoints:{webtransport:probe.url,"wss-webrtc":configuration.url},preferredTransport:"webtransport",timeoutMs:5000,attemptTimeoutMs:probe.timeoutMs,resolveEnrollment:async()=>{resolutions++;return enrollment;}});
+                check(owner.status.selectedTransport==="wss-webrtc"&&["preferred-transport-timeout","preferred-transport-failed"].includes(owner.status.fallbackReason),"owner selected actual secure fallback");
+                errorCode=owner.status.fallbackReason==="preferred-transport-timeout"?"timeout":"transport";
+                control={client:owner.client,owner,enrollment,options:configuration.connection,cursors:new Map(),resolutions:()=>resolutions};
+            }else{
+                try{opened=await BrowserClient.open({transport:"webtransport",url:probe.url,timeoutMs:probe.timeoutMs,...enrollment});}catch(error){errorCode=error?.code??"unclassified";}finally{opened?.close();}
+                check(!opened&&["timeout","transport"].includes(errorCode),"owned UDP blackhole refusal");
+                control=await canonicalMediaClient(configuration);
+            }
             const fallback={status:"refused",error_code:errorCode,seconds:(performance.now()-start)/1000,application_mutations_attempted:0,replayed_originals:[]};
-            const control=await canonicalMediaClient(configuration);window.transitionControl=control;
+            window.transitionControl=control;
             check(control.client.controlTransport==="websocket","actual selected canonical WSS control");
             for(const original of configuration.fallbackOriginals){
                 const terminalType={"message.send":"ack","session.invite":"operation.updated","session.accept":"operation.updated"}[original.type];
@@ -148,7 +158,7 @@ try {
             try{const unexpected=new BrowserMediaPeer(control.client,{});unexpected.close();}catch(error){migrationRefusal=error?.code;}
             check(migrationRefusal==="unsupported-transport"&&!control.client.closed&&control.client.controlTransport==="websocket","WSS cannot silently become a WT datagram connection");
             return {fallback,unsupported_migration:migrationRefusal,transitions:[]};
-        },{configuration,index,probes:spec.controlTransitions});
+        },{configuration:{...configuration,transportRecovery:spec.transportRecovery===true},index,probes:spec.controlTransitions});
     }));
     // The wire status deliberately omits effects/expiry. Observe those only in
     // this read-only private journal oracle, never invent browser visibility.
@@ -160,10 +170,16 @@ try {
         if(effects!==0)throw Error("Unready fixture transition acquired an external effect");
         return {...rows[0],effects};
     };
+    const recoverySteps=[];
     for(let n=0;n<spec.controlTransitions.length;n++){
         const original=spec.controlTransitions[n],scope=original.scope;
         const first=await pages[0].evaluate(async original=>{
-            const c=window.transitionControl.client;
+            const control=window.transitionControl,c=control.client;
+            if(control.owner){
+                const page=await control.owner.recoverConversation({conversationId:original.scope.cid,limit:32});
+                if(page.kind!=="snapshot")throw Error("initial authorized snapshot required");
+                control.cursors.set(original.scope.cid,page.cursor);
+            }
             await c.request(original.type,original.payload,original.scope,{timeoutMs:5000,terminalType:"operation.updated"});
             const state=await c.operationStatus(original.scope.cid,original.scope.operation_id,{timeoutMs:5000});
             if(typeof state.record_id!=="string"||state.command_type!==original.type||state.expected_revision!==0)throw Error("Original admitted transition scope/record required");
@@ -171,6 +187,18 @@ try {
             return {record_id:state.record_id,expected_revision:state.expected_revision};
         },original);
         const before=snapshot(scope.operation_id);
+        if(spec.transportRecovery){
+            recoverySteps.push(await pages[0].evaluate(async({original,first})=>{
+                const control=window.transitionControl,old=control.client,before=control.owner.status.physicalEpoch;let retired=0;
+                old.onClose(()=>{retired++;});await control.owner.reconnect();control.client=control.owner.client;
+                const reference={operationId:original.scope.operation_id,command:original.type,scope:{conversationId:original.scope.cid,sessionId:original.scope.sid,connectionId:original.scope.connid}};
+                const recovered=await control.owner.recoverOperation(reference);
+                const page=await control.owner.recoverConversation({conversationId:original.scope.cid,cursor:control.cursors.get(original.scope.cid),limit:32});
+                if(!old.closed||retired!==1||control.owner.status.physicalEpoch!==before+1||recovered.record_id!==first.record_id||page.kind!=="events"||page.frames.some(f=>f.type!=="conversation.event"))throw Error("original status/cursor and physical retirement invariant");
+                control.cursors.set(original.scope.cid,page.cursor);
+                return {type:original.type,operation_id:original.scope.operation_id,state:recovered.state,record_id:recovered.record_id,physical_epoch:control.owner.status.physicalEpoch,old_physical_closed:old.closed,old_lifetime_callbacks:retired,authoritative_events:page.frames.length,has_more:page.hasMore,selected_path:control.owner.status.selectedTransport,fallback_reason:control.owner.status.fallbackReason,enrollment_resolutions:control.resolutions()};
+            },{original,first}));
+        }
         const result=await pages[0].evaluate(async({original,first,foreignCid})=>{
             const c=window.transitionControl.client,scope=original.scope,check=(ok,message)=>{if(!ok)throw Error(message);};
             if(original.terminal==="cancelled")await c.request("operation.cancel",{operation_id:scope.operation_id,reason:"bounded control-only fixture"},{...scope,operation_id:scope.operation_id+"-cancel",expected_revision:undefined},{timeoutMs:5000,terminalType:"operation.updated"});
@@ -195,13 +223,22 @@ try {
         if(before.record_id!==after.record_id||before.expires_at!==after.expires_at)throw Error("Original expiry/record changed across replay/refusal");
         results[0].transitions.push({...result,original_expires_at:before.expires_at,oracle_effects:after.effects,expiry_unchanged:true});
     }
+    let credentialRecovery;
+    if(spec.transportRecovery)credentialRecovery=await pages[0].evaluate(async()=>{
+        const control=window.transitionControl,credential=control.enrollment.credential;control.enrollment.credential="invalid-isolated-fixture-bearer";
+        let refusal;try{await control.owner.reconnect({preferredTransport:"wss-webrtc"});}catch(error){refusal={code:error?.code,phase:error?.phase};}
+        if(refusal?.code!=="refused"||refusal.phase!=="authentication"||control.owner.status.state!=="disconnected")throw Error("current invalid credential was not refused during authentication");
+        control.enrollment.credential=credential;await control.owner.reconnect();control.client=control.owner.client;
+        if(control.owner.status.selectedTransport!=="wss-webrtc")throw Error("fresh authenticated control not recovered");
+        return {refusal,recovered:true,physical_epoch:control.owner.status.physicalEpoch,enrollment_resolutions:control.resolutions()};
+    });
     await pages[0].evaluate(async terminal=>{
         const {client,options}=window.transitionControl;
         await client.request("session.end",{by_participant:options.participantId,reason_code:200,reason:"control-fixture-complete"},{cid:options.conversationId,sid:options.sessionId,operation_id:terminal.operationId,expected_revision:terminal.expectedRevision},{terminalType:"operation.updated",timeoutMs:5000});
         const status=await client.operationStatus(options.conversationId,terminal.operationId,{timeoutMs:5000});if(status.state!=="completed")throw Error("original Session end not completed");
     },spec.terminal);
-    const closed=await Promise.all(pages.map(page=>page.evaluate(()=>{const c=window.transitionControl.client;c.close();return c.closed;})));
+    const closed=await Promise.all(pages.map(page=>page.evaluate(()=>{const control=window.transitionControl,c=control.client;if(control.owner)control.owner.close();else c.close();return c.closed;})));
     if(!closed.every(Boolean))throw Error("owned control cleanup");
     await cleanup();
-    process.stdout.write(JSON.stringify({status:"passed",scope:"Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",transition_scope:"signed control admission/refusal/cancellation/replay; no live movement media claim",browser:spec.browser,fallback:results.map(r=>r.fallback),unsupported_migration:results.map(r=>r.unsupported_migration),transitions:results[0].transitions,owned_control_cleanup:true})+"\n");
+    process.stdout.write(JSON.stringify({status:"passed",scope:"Actual signed browser fallback control only; no capture, decoded media or live movement quality claim.",transition_scope:"signed control admission/refusal/cancellation/replay; no live movement media claim",browser:spec.browser,fallback:results.map(r=>r.fallback),unsupported_migration:results.map(r=>r.unsupported_migration),transitions:results[0].transitions,...(spec.transportRecovery?{transport_recovery:{passed:true,scope:"Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",steps:recoverySteps,rejected_current_credential:true,credential_recovery:credentialRecovery}}:{}),owned_control_cleanup:true})+"\n");
 }catch(error){await cleanup().catch(()=>{});throw error;}

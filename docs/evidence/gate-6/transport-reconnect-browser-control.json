@@ -1,0 +1,507 @@
+{
+  "format": 1,
+  "task": "G6-052",
+  "implementation_status": "in-progress",
+  "date": "2026-10-27",
+  "scope": "Installed Chrome/Firefox transport-owner control with normal private-CA TLS and actual signed service responses. Explicit reconnect during admitted/unready control transitions; no decoded media or live movement qualification.",
+  "runtime": {
+    "chrome": "155.0.8059.85",
+    "firefox": "158.0.1",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "tls": "Normal platform certificate validation; isolated private CA profile; no certificate-error bypass.",
+    "local_only": true
+  },
+  "verification": {
+    "passed": 4,
+    "failed": 0,
+    "build_seconds": 4.031084042042494,
+    "build_source_count": 5232,
+    "build_changed_inputs": [],
+    "artifact_sha256": "5ab2219c1b5df15f4bd576183a666f6381c817f3b426fd8a9161ce9a4061f816",
+    "artifact_bytes": 215253152,
+    "build_log_sha256": "d4b4da7c280a4b2edab2bab704057653b1c6ab90ca1db0cf15f04df2827a2803",
+    "matrix_sha256": "67712bd96ac12aed249b21c4f7449a5245f32240b4041e75cc48fb8e89799057",
+    "rows": [
+      {
+        "browser": "chrome",
+        "algorithm": "eddsa",
+        "seconds": 10.162527167005464,
+        "changed_inputs": [],
+        "runtime_guard_count": 8080,
+        "summary_sha256": "f6db98540f8d51fa0f4ba2ddd9fc6a317e05f3673880858f183e12a9a8cf04fb",
+        "result_sha256": "d8585e5a4754a75adf8efe0bcf68d0b8515f502d75c40a46e80a22323ab0b610",
+        "oracle_sha256": "d0204e8ad06a17e5a8e709941575b8029ebce38288efdd0507607d83d80e7515",
+        "inputs_sha256": "488677c34c8dcb0b8764a5cc0fd3ee6dd7023fccb3f0794bdc64d7ebf8809430",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "actual_quic_initial_datagrams": [
+          20,
+          6
+        ],
+        "recovery": {
+          "passed": true,
+          "scope": "Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",
+          "steps": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "state": "accepted",
+              "record_id": "opr_2478d495-6c83-427a-aff4-e3b664ad513b",
+              "physical_epoch": 2,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 1,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 2
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "state": "failed",
+              "record_id": "opr_13dab763-22c8-48ce-a2f1-0f6485258a49",
+              "physical_epoch": 3,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 3
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "state": "failed",
+              "record_id": "opr_0df2a19f-017e-4820-9c12-25f7b16ac6d4",
+              "physical_epoch": 4,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 4
+            }
+          ],
+          "rejected_current_credential": true,
+          "credential_recovery": {
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            },
+            "recovered": true,
+            "physical_epoch": 6,
+            "enrollment_resolutions": 6
+          }
+        },
+        "journal_oracle": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793244997,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793244999,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245000,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ]
+      },
+      {
+        "browser": "chrome",
+        "algorithm": "es256",
+        "seconds": 5.839229042176157,
+        "changed_inputs": [],
+        "runtime_guard_count": 8080,
+        "summary_sha256": "596e0e7852fdfff4e9557831248dab7502ba8ee45f7816c29361f6c877ab296c",
+        "result_sha256": "8e57799e3c84093c8ac6a3c3a80e10191a341a0e1ae441520d225725e931e876",
+        "oracle_sha256": "73c0521b35082363e7b740fb82083f9b8a34d08d5c66c5e628aa7b2968d8f46e",
+        "inputs_sha256": "e49bbf7b39d074d9fb33dc871aaa8a9ef981bb4d61015fd7729eafbfbec16466",
+        "ownership_sha256": "6d0176d235b2f53b78b12706531cc36f510bfeda40db4b04f84d7b9de951ebdd",
+        "actual_quic_initial_datagrams": [
+          20,
+          6
+        ],
+        "recovery": {
+          "passed": true,
+          "scope": "Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",
+          "steps": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "state": "accepted",
+              "record_id": "opr_14058d08-dc6f-408b-8279-040b7dd861e1",
+              "physical_epoch": 2,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 1,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 2
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "state": "failed",
+              "record_id": "opr_e105323d-2fad-453b-ae9a-ab8bdf5c6ad0",
+              "physical_epoch": 3,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 3
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "state": "failed",
+              "record_id": "opr_965f79bf-59ea-4911-9d32-c1fb467ea992",
+              "physical_epoch": 4,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 4
+            }
+          ],
+          "rejected_current_credential": true,
+          "credential_recovery": {
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            },
+            "recovered": true,
+            "physical_epoch": 6,
+            "enrollment_resolutions": 6
+          }
+        },
+        "journal_oracle": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245015,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245016,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245017,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ]
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "eddsa",
+        "seconds": 9.828943667002022,
+        "changed_inputs": [],
+        "runtime_guard_count": 8190,
+        "summary_sha256": "627ff28fa12e28779be18c8f76df06c7a3408cd3e2fecb00f37740e343555827",
+        "result_sha256": "586f22b9412522976933af922ab7798a35e0515d3bbac1031020f25389d9bb2f",
+        "oracle_sha256": "d2a4e56b02eb7be4ba2e8d07c22d3c14f8239966a794f883a7c2c3b884497f05",
+        "inputs_sha256": "a2e0568c90304ad81a5ec626e17ff719f232b8e84ff0dddaf7efee80aac5d938",
+        "ownership_sha256": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "actual_quic_initial_datagrams": [
+          64,
+          20
+        ],
+        "recovery": {
+          "passed": true,
+          "scope": "Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",
+          "steps": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "state": "accepted",
+              "record_id": "opr_475790fb-fa9f-4c8b-a4e7-d63d037adbdc",
+              "physical_epoch": 2,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 1,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 2
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "state": "failed",
+              "record_id": "opr_48cc13be-9f38-436d-9729-8ca487ea3159",
+              "physical_epoch": 3,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 3
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "state": "failed",
+              "record_id": "opr_3a8589b9-2529-4caf-a56f-c8b9fdebdcad",
+              "physical_epoch": 4,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 4
+            }
+          ],
+          "rejected_current_credential": true,
+          "credential_recovery": {
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            },
+            "recovered": true,
+            "physical_epoch": 6,
+            "enrollment_resolutions": 6
+          }
+        },
+        "journal_oracle": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245028,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245029,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245030,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ]
+      },
+      {
+        "browser": "firefox",
+        "algorithm": "es256",
+        "seconds": 7.396209875121713,
+        "changed_inputs": [],
+        "runtime_guard_count": 8190,
+        "summary_sha256": "fb922f966503d6228fa098997868ee09e7e98431de109244810b8b96fa40ff22",
+        "result_sha256": "e62e93280a8dc58278cd6447462409c72ba7e322e9e9a79c7f79b0408d9a9266",
+        "oracle_sha256": "1438b6a093aaa5a88512e1881993a9596378f41f69013c4b4a2dbf6f0d608de8",
+        "inputs_sha256": "24c5dd524533b891ffa22a17e343b437305bfcef96abb51b1a0b1b0761e16087",
+        "ownership_sha256": "8a4732453cc18ae8b8303f4894b35a37fb9c6c2b05203c4369fb6628172df4e3",
+        "actual_quic_initial_datagrams": [
+          64,
+          20
+        ],
+        "recovery": {
+          "passed": true,
+          "scope": "Explicit reconnect during admitted/unready control transitions; no injected WSS outage, dropped ACK, expired credential or live movement claim",
+          "steps": [
+            {
+              "type": "session.consult",
+              "operation_id": "browser-transition-0-original",
+              "state": "accepted",
+              "record_id": "opr_94f3f834-61ae-4f22-b11b-11ca15b631d6",
+              "physical_epoch": 2,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 1,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 2
+            },
+            {
+              "type": "session.handoff",
+              "operation_id": "browser-transition-1-original",
+              "state": "failed",
+              "record_id": "opr_7a2a93b9-a514-4782-835f-02efa7ec9a62",
+              "physical_epoch": 3,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 3
+            },
+            {
+              "type": "connection.replace",
+              "operation_id": "browser-transition-2-original",
+              "state": "failed",
+              "record_id": "opr_112e2480-3bea-49df-b0cf-9f3840c637d0",
+              "physical_epoch": 4,
+              "old_physical_closed": true,
+              "old_lifetime_callbacks": 1,
+              "authoritative_events": 2,
+              "has_more": false,
+              "selected_path": "wss-webrtc",
+              "fallback_reason": "preferred-transport-timeout",
+              "enrollment_resolutions": 4
+            }
+          ],
+          "rejected_current_credential": true,
+          "credential_recovery": {
+            "refusal": {
+              "code": "refused",
+              "phase": "authentication"
+            },
+            "recovered": true,
+            "physical_epoch": 6,
+            "enrollment_resolutions": 6
+          }
+        },
+        "journal_oracle": [
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-0-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245037,
+            "source_connection_state": "active",
+            "state": "cancelled",
+            "topology_revision": 0,
+            "type": "session.consult"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-1-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245038,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "session.handoff"
+          },
+          {
+            "external_effects": 0,
+            "native_http_browser_common_status_match": true,
+            "operation_id": "browser-transition-2-original",
+            "operation_rows": 1,
+            "original_expires_at": 1793245039,
+            "source_connection_state": "active",
+            "state": "failed",
+            "topology_revision": 0,
+            "type": "connection.replace"
+          }
+        ]
+      }
+    ],
+    "existing_control_lane_regression": {
+      "passed": 1,
+      "seconds": 6.394012209028006,
+      "changed_inputs": [],
+      "summary_sha256": "d8ae9b01983ced6ebf85dd196bb019dffd0838b6964e14e1c559aaa825f4c9ef",
+      "scope": "Default explicit transportRecovery=false branch, Chrome EdDSA transition control. This single regression does not rerun the historical G6-051 complete media matrix."
+    }
+  },
+  "behavior": [
+    "Each owner selects authenticated WSS after actual QUIC Initial datagrams hit owned loopback UDP blackholes. Preferred/selected/fallback state is observed through the public owner API.",
+    "For each of consult/handoff/replacement, capture a current authorized snapshot, submit the original control intent, explicitly reconnect and recover the exact scoped record plus finite authoritative journal catch-up. The owner never resubmits a mutation. The separate fixture retains explicit original replay/refusal checks from G6-051.",
+    "Each old physical closes and invokes its lifetime callback once. Three explicit reconnects produce epochs 2,3,4 with one fresh enrollment resolution per epoch.",
+    "An invalid current bearer is refused during authentication at epoch 5. Restoring valid current enrollment and explicitly reconnecting at epoch 6 restores selected WSS control. This is invalid-credential proof, not credential-expiry proof.",
+    "Private read-only SQL oracle requires one original operation row, unchanged record/expiry/precondition, zero external effects and retained active source routes. Canonical native/HTTP/browser common status projections agree.",
+    "Consult stays accepted without media preparation and is then cancelled. Handoff and replacement fail their exact unready preflight checks. No successful live media transition is inferred.",
+    "Original accepted Message/Session invite/accept IDs remain preserved. Session end is confirmed; owned browser/Node/server and physical routes/slots are joined/retired."
+  ],
+  "source_sha256": {
+    "sdk/typescript/src/browser_transport_client.ts": "5ba280121edd472ef314fa8c2bcd29d941603b43844a247a5d9d505a028ca977",
+    "sdk/typescript/dist/browser_transport_client.js": "5e97aef03c1e28413c3699d5a4b41319e05de0d7f5327b98659dd1deca898a62",
+    "sdk/typescript/src/browser_client.ts": "3a78bf41680743e60fdf27aa40ca97746f3049ba0aaecff26aa3420bbc0a8647",
+    "sdk/typescript/dist/browser_client.js": "3c4f03060259ff096a9965a2ba3b08030990814299da5c97c0fdac3b807488a8",
+    "scripts/video/browser-control-transitions.mjs": "68ffba223bb6105cdcadfdca28551ff4d93dd9cf23d31f715272448b4c4a46e7",
+    "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "b3233575e54489b8d0712f7c9bc22f092df7483846c1ffe9dcd4438735ca7f75",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/transitions.rs": "a1aabf5bca942f9c4e7ba8b54c9dfc7ff7aeb7ee2225a42baba3be3ece53632c"
+  },
+  "local_artifact_custody": {
+    "closed_profiles_archived": 31,
+    "original_bytes": 2704380191,
+    "archive_bytes": 1702257276,
+    "roundtrip_verified": true,
+    "manifest_sha256": "4e1e3843400f8357aa481ac1c5745de4e848c6250d5187e10805de95d6b4ee78",
+    "scope": "Only profiles with browser/Node/server joined ownership evidence. Streamed file/link roundtrip and metadata manifest retained before removing originals; raw server state, logs and keys outside profiles unchanged."
+  },
+  "remaining": [
+    "Injected dropped acknowledgment and actual WSS/established-WT outages against the service.",
+    "Actual service credential expiry and current revocation during recovery.",
+    "Repeated reconnect during live consultation/handoff, including durable interrupted/unknown and no duplicate external effects.",
+    "G6-052 full requirement audit and separately assigned remote/Linux, package and independent acceptance lanes."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}
