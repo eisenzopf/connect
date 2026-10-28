@@ -9,6 +9,7 @@ async fn distinct_network_browser_server_child() {
         .join("../..")
         .canonicalize()
         .unwrap();
+    let _audio_trace = audio_trace::install(&root);
     let output = PathBuf::from(std::env::var_os("CONNECT_G6_REMOTE_BROWSER_DIR").unwrap())
         .canonicalize()
         .unwrap();

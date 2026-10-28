@@ -450,8 +450,8 @@
   ],
   "source_sha256": {
     "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "5d8d98b84e816c032e12d963ed04db6b9f3832ea458f4c36d3fd97421232e0c6",
-    "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs": "ad8afb0afd3b16b9dcc05f3fc20ed8eba60f0070232a9ade5a04ace3f3d21ffc",
-    "scripts/rehearse-gate6-remote-browser.py": "f16ca16b8acd9faef161c99ea49db47456a5c1cbc951e7bd245b74393531a077",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs": "9208c203b5a76c95fbc408b206e870d81adf0e8b38da911ce82dc604a8a9382f",
+    "scripts/rehearse-gate6-remote-browser.py": "c1e29cd2618126461ed124b1d47b15abf0f7e64dec32ba94c330e73d7a685bfd",
     "scripts/video/browser-qualify.mjs": "600438df6247fdf46e39938193fe75c82be4d2f1c863ad4179573be9dd47e80a",
     "scripts/video/browser_failure.mjs": "f9064fc7af46d2c16890e6069c39a1c9e9acbb401ddfa68be5fdde0275e39221",
     "scripts/video/linux_remote_browser.mjs": "73cba1f12f2e6fe5b12a5be8c5ea921ced85a4d1ddc7c77e410a5757c114ee94",
@@ -461,5 +461,79 @@
     "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
   },
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "guarded_write_diagnostic": {
+    "whole_rehearsal_passed": false,
+    "normal_profile_qualification": false,
+    "private_summary": ".local/gate-6/browser-remote/trace218/summary.json",
+    "private_summary_sha256": "d6bf2066ead0ae7ca6dc784566e19118b964c67fa696a6474d0713de45981ea4",
+    "private_timeline": ".local/gate-6/browser-remote/trace218/core-audio-timeline.json",
+    "private_timeline_sha256": "92a4ad40898258205b8c390523762349ad1b5289409eb39cda16ae99c7250499",
+    "capture_header": {
+      "captured_event_bytes": 2642721,
+      "maximum_event_bytes": 33554432,
+      "maximum_events": 65536,
+      "omitted_events": 0,
+      "scope": "Bounded numeric synthetic-lane source/mixer/publication/write diagnostics; not a normal-profile qualification",
+      "selection": "Only repeated successful Current native packet authority events are suppressed; refusals and source/mixer/publication/write timing remain selected",
+      "suppressed_known_successes": 19324
+    },
+    "captured_events": 10860,
+    "audio_stages": {
+      "source-read": {
+        "events": 1536,
+        "accepted_true": 0,
+        "accepted_false": 0
+      },
+      "core-publish": {
+        "events": 1534,
+        "accepted_true": 1530,
+        "accepted_false": 4
+      },
+      "driver-write": {
+        "events": 1483,
+        "accepted_true": 0,
+        "accepted_false": 1483
+      }
+    },
+    "packet_path_refusals": [
+      {
+        "medium": "Audio",
+        "stage": "core-publish",
+        "reason": "NotReady",
+        "events": 2
+      },
+      {
+        "medium": "Video",
+        "stage": "core-publish",
+        "reason": "NotReady",
+        "events": 3
+      },
+      {
+        "medium": "Video",
+        "stage": "port-input",
+        "reason": "\"full\"",
+        "events": 1
+      },
+      {
+        "medium": "Video",
+        "stage": "original-driver-write",
+        "reason": "Refused",
+        "events": 20
+      },
+      {
+        "medium": "Audio",
+        "stage": "original-driver-write",
+        "reason": "Refused",
+        "events": 20
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "server_executable_sha256": "b72394f91824018c94a75614b6a8021dde9f3b66fe42a2cd2cedab346a565000",
+    "private_build_summary": ".local/gate-6/rtc-signed-av/build-217-summary.json",
+    "private_build_summary_sha256": "a4f374f8b7adb83b94a5844a2180f6464f0c8ac91a6122a616cf991e31e3cf41",
+    "interpretation": "Authenticated input reaches Core, while the guarded original RTC write returns failure before any successful physical-write observation. Inspect exact writer/clock/ownership/pipeline failure stages next; this does not prove an ICE route or UDP return-path cause."
+  }
 }

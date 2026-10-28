@@ -55,6 +55,7 @@ def main():
     parser.add_argument("--server-inputs", type=Path, required=True)
     parser.add_argument("--algorithm", choices=("EdDSA", "ES256"), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--trace-audio", action="store_true", help="Bounded private source/mixer/publication/write diagnostics; not normal-profile qualification")
     args = parser.parse_args()
     base = ROOT / ".local/gate-6/browser-remote"
     base.mkdir(mode=0o700, exist_ok=True)
@@ -87,9 +88,13 @@ def main():
     report = {"passed": False, "scope": "Owned Linux arm64 Chromium151 on local Lima VM to macOS Remote WSS/Opus/VP8 host. Actual normal CA refusal/import, signed public browser SDK, independent decoded duplex and original drains. Not approved installed Chrome155/Firefox158 matrix, native Linux x86 performance, WAN, SIP, TURN, ICE restart or full Gate6 qualification.",
               "algorithm": args.algorithm, "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_inputs_sha256": before, "server_executable_sha256": digest(binary), "image_id": IMAGE,
-              "runner_sha256": digest(__file__), "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "guests": []}
+              "runner_sha256": digest(__file__), "diagnostic_audio_trace": args.trace_audio,
+              "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "guests": []}
     env = dict(os.environ, CONNECT_G6_REMOTE_BROWSER_DIR=str(out), CONNECT_G6_REMOTE_BROWSER_ALGORITHM=args.algorithm,
                CONNECT_G6_REMOTE_BROWSER_MEDIA_PORT=str(ports()), TMPDIR=str(out))
+    env.pop("CONNECT_GATE6_CANONICAL_AUDIO_TRACE", None)
+    if args.trace_audio:
+        env["CONNECT_GATE6_CANONICAL_AUDIO_TRACE"] = str(out)
     process = None
     try:
         with (out / "server.log").open("w") as log:
