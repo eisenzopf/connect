@@ -1,3 +1,4 @@
+import type { SdkMoveInput, SdkMoveResult } from "./node_movements.js";
 import { sdkRevision } from "./node_sdk.js";
 import type {
     ConversationId,
@@ -139,6 +140,11 @@ interface Kinds {
     readonly stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
 }
 export interface ConnectionContext {
+    move(
+        id: ConnectionId,
+        input: SdkMoveInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkMoveResult>>;
     readonly cid: ConversationId;
     readonly sid: SessionId;
     readonly kinds: Kinds;
@@ -346,6 +352,12 @@ export class SdkConnection {
                       }),
             });
         });
+    }
+    move(
+        input: SdkMoveInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkMoveResult>> {
+        return this.ctx.move(this.id, input, options);
     }
     update(
         input: SdkConnectionUpdate,

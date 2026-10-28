@@ -8,6 +8,8 @@ use serde::Deserialize;
 use serde_json::json;
 use std::collections::BTreeMap;
 mod connection;
+mod movement;
+pub use movement::{HandoffRequest, MoveRequest};
 mod session;
 pub use connection::{
     ConnectionAction, Offer as ConnectionOffer, Selector as ReceiveSelector,
@@ -42,6 +44,17 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    SessionHandoff {
+        conversation_id: ConversationId,
+        session_id: SessionId,
+        input: HandoffRequest,
+    },
+    ConnectionMove {
+        conversation_id: ConversationId,
+        session_id: SessionId,
+        connection_id: ConnectionId,
+        input: MoveRequest,
+    },
     CapabilitiesRefresh,
     ConsultationReturn {
         reference: Value,
@@ -123,6 +136,8 @@ pub enum Kind {
     SessionCancel,
     SessionConsult,
     SessionConsultReturn,
+    SessionHandoff,
+    ConnectionReplace,
     ConnectionOffer,
     ConnectionUpdate,
     ConnectionEnd,
@@ -150,6 +165,27 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
+        Action::SessionHandoff {
+            conversation_id,
+            session_id,
+            input,
+        } => movement::handoff(client, conversation_id, session_id, input, options).await,
+        Action::ConnectionMove {
+            conversation_id,
+            session_id,
+            connection_id,
+            input,
+        } => {
+            movement::replace(
+                client,
+                conversation_id,
+                session_id,
+                connection_id,
+                input,
+                options,
+            )
+            .await
+        }
         Action::ConsultationReturn {
             reference,
             expected_revision,
@@ -301,6 +337,8 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                 Kind::SessionUpdate => run(client.restore(reference,kinds.session_update)?,action,options,session::handle_json).await,
                 Kind::SessionEnd => run(client.restore(reference,kinds.session_end)?,action,options,session::handle_json).await,
                 Kind::SessionReject => run(client.restore(reference,kinds.session_reject)?,action,options,session::decision_json).await,
+                Kind::SessionHandoff => run(client.restore(reference,kinds.session_handoff)?,action,options,movement::handoff_json).await,
+                Kind::ConnectionReplace => run(client.restore(reference,kinds.connection_replace)?,action,options,movement::move_json).await,
                 Kind::SessionConsult => run(client.restore(reference,kinds.session_consult)?,action,options,session::consultation_json).await,
                 Kind::SessionConsultReturn => run(client.restore(reference,kinds.session_consult_return)?,action,options,session::handle_json).await,
                 Kind::SessionCancel => run(client.restore(reference,kinds.session_cancel)?,action,options,session::decision_json).await,

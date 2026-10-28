@@ -1,4 +1,15 @@
 import {
+    handoffInput,
+    moveInput,
+    movementContext,
+    handoffResult,
+    moveResult,
+    type SdkHandoffInput,
+    type SdkHandoffResult,
+    type SdkMoveInput,
+    type SdkMoveResult,
+} from "./node_movements.js";
+import {
     createConnections,
     connectionHandle,
     connectionUpdate,
@@ -216,6 +227,8 @@ type KindName =
     | "session_cancel"
     | "session_consult"
     | "session_consult_return"
+    | "session_handoff"
+    | "connection_replace"
     | "connection_offer"
     | "connection_update"
     | "connection_end"
@@ -240,6 +253,9 @@ const mutateSession = Symbol("session-mutation");
 const readSession = Symbol("session-read");
 const connectionContext = Symbol("connection-context");
 const returnConsultation = Symbol("consultation-return");
+const handoffSession = Symbol("session-handoff");
+const moveConnection = Symbol("connection-move");
+const submitMovement = Symbol("movement-submit");
 const kinds = new WeakMap<object, Kind<unknown>>();
 const references = new WeakMap<
     object,
@@ -340,7 +356,8 @@ function snapshot(value: Json, key: OperationKey): SdkOperationSnapshot {
             "problem",
         ]) ||
         !equalKey(readKey(value.key), key) ||
-        !states.has(String(value.state)) ||
+        typeof value.state !== "string" ||
+        !states.has(value.state) ||
         !Number.isSafeInteger(value.revision) ||
         Number(value.revision) < 0 ||
         (value.recordId !== null &&
@@ -395,7 +412,8 @@ function decision(
         !equalKey(readKey(value.decision), key) ||
         !identifier(value.target) ||
         value.target === key.operationId ||
-        !states.has(String(value.observedState)) ||
+        typeof value.observedState !== "string" ||
+        !states.has(value.observedState) ||
         typeof value.disposition !== "string" ||
         !value.disposition ||
         value.disposition.length > 256 ||
@@ -449,7 +467,8 @@ function participantSnapshot(
         value.id !== pid ||
         value.conversationId !== cid ||
         !identifier(value.identityId) ||
-        !["human", "ai", "system", "external"].includes(String(value.kind)) ||
+        typeof value.kind !== "string" ||
+        !["human", "ai", "system", "external"].includes(value.kind) ||
         typeof value.role !== "string" ||
         !Number.isSafeInteger(value.membershipEpoch) ||
         Number(value.membershipEpoch) < 0 ||
@@ -638,6 +657,40 @@ function selectionReceipt(
     );
 }
 const operationKinds = Object.freeze({
+    session_handoff: kind<SdkHandoffResult>(
+        "session_handoff",
+        "session.handoff",
+        (value, client, key, saved) =>
+            handoffResult(
+                value,
+                {
+                    key,
+                    connection: (id) =>
+                        client.conversations
+                            .byId(key.scope.conversationId!)
+                            .sessions.byId(key.scope.sessionId!)
+                            .connections.byId(id),
+                },
+                saved,
+            ),
+    ),
+    connection_replace: kind<SdkMoveResult>(
+        "connection_replace",
+        "connection.replace",
+        (value, client, key, saved) =>
+            moveResult(
+                value,
+                {
+                    key,
+                    connection: (id) =>
+                        client.conversations
+                            .byId(key.scope.conversationId!)
+                            .sessions.byId(key.scope.sessionId!)
+                            .connections.byId(id),
+                },
+                saved,
+            ),
+    ),
     session_consult: kind<SdkConsultationResult>(
         "session_consult",
         "session.consult",
@@ -850,16 +903,26 @@ export class NodeClient {
             ])
         )
             invalid();
+        const movement =
+            k.name === "session_handoff" || k.name === "connection_replace";
         const transition =
-            k.name === "session_consult" || k.name === "session_consult_return";
+            movement ||
+            k.name === "session_consult" ||
+            k.name === "session_consult_return";
         if (
-            transition
-                ? !validConsultationContext(
+            movement
+                ? !movementContext(
                       copy.continuation,
                       k.command,
                       copy.scope.connection_id,
                   )
-                : "continuation" in copy
+                : transition
+                  ? !validConsultationContext(
+                        copy.continuation,
+                        k.command,
+                        copy.scope.connection_id,
+                    )
+                  : "continuation" in copy
         )
             invalid();
         const s = copy.scope;
@@ -1016,8 +1079,9 @@ export class NodeClient {
                         seen.has(p.id) ||
                         p.conversationId !== id ||
                         !identifier(p.identityId) ||
+                        typeof p.kind !== "string" ||
                         !["human", "ai", "system", "external"].includes(
-                            String(p.kind),
+                            p.kind,
                         ) ||
                         typeof p.role !== "string" ||
                         !Number.isSafeInteger(p.membershipEpoch) ||
@@ -1151,6 +1215,113 @@ export class NodeClient {
             true,
         );
     }
+    [submitMovement]<T>(
+        type: "session_handoff" | "connection_move",
+        cid: ConversationId,
+        sid: SessionId,
+        via: ConnectionId,
+        input: JsonObject,
+        kind: SdkOperationKind<T>,
+        context: JsonObject,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<T>> {
+        const key = makeKey(options?.operationId, kind.command, {
+            conversationId: cid,
+            sessionId: sid,
+            connectionId: via,
+        });
+        return this.helper.request(
+            {
+                type,
+                conversation_id: cid,
+                session_id: sid,
+                ...(type === "connection_move" ? { connection_id: via } : {}),
+                input: { ...input, mutation: mutation(options) },
+            },
+            options,
+            (value) => {
+                const op = this.fromReply(value, kind, key);
+                if (
+                    canonicalJson((value as JsonObject).continuation) !==
+                    canonicalJson(context)
+                )
+                    return protocol();
+                return op;
+            },
+            key,
+            true,
+        );
+    }
+    [handoffSession](
+        cid: ConversationId,
+        sid: SessionId,
+        input: SdkHandoffInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkHandoffResult>> {
+        const captured = handoffInput(input);
+        if (input.consultation !== undefined) {
+            const ref = input.consultation?.reference,
+                metadata = references.get(ref);
+            if (
+                !metadata ||
+                kinds.get(metadata.kind)?.name !== "session_consult" ||
+                ref.scope.conversationId !== cid ||
+                ref.scope.sessionId !== sid ||
+                ref.operationId === options?.operationId ||
+                (metadata.saved as JsonObject).continuation === undefined ||
+                ((metadata.saved as JsonObject).continuation as JsonObject)
+                    .retained_connection_id !== captured.retain ||
+                (options?.extensions &&
+                    typeof options.extensions === "object" &&
+                    Object.hasOwn(options.extensions, "consultation_record_id"))
+            )
+                invalid();
+            captured.consultation = metadata.saved;
+        }
+        const context: JsonObject = {
+            kind: "handoff",
+            retained_connection_id: captured.retain,
+            source_participant: captured.from_participant,
+            target_participant: captured.to,
+            candidate: captured.candidate,
+            role: captured.role,
+            outgoing: captured.outgoing,
+        };
+        return this[submitMovement](
+            "session_handoff",
+            cid,
+            sid,
+            captured.via as ConnectionId,
+            captured,
+            this.operationKinds.session_handoff,
+            context,
+            options,
+        );
+    }
+    [moveConnection](
+        cid: ConversationId,
+        sid: SessionId,
+        via: ConnectionId,
+        input: SdkMoveInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkMoveResult>> {
+        const captured = moveInput(input, via),
+            context: JsonObject = {
+                kind: "replacement",
+                retained_connection_id: captured.retain,
+                target: captured.target,
+            };
+        return this[submitMovement](
+            "connection_move",
+            cid,
+            sid,
+            via,
+            captured,
+            this.operationKinds.connection_replace,
+            context,
+            options,
+        );
+    }
     [readSession](
         cid: ConversationId,
         sid: SessionId,
@@ -1175,6 +1346,8 @@ export class NodeClient {
             cid,
             sid,
             kinds: this.operationKinds,
+            move: (id, input, options) =>
+                this[moveConnection](cid, sid, id, input, options),
             mutate: (id, action, kind, options) => {
                 const key = makeKey(options?.operationId, kind.command, {
                     conversationId: cid,
@@ -1223,6 +1396,8 @@ export class SdkConversation {
         this.sessions = createSessions({
             cid: this.id,
             kinds: client.operationKinds,
+            handoff: (sid, input, options) =>
+                client[handoffSession](this.id, sid, input, options),
             connections: (sid) =>
                 createConnections(client[connectionContext](this.id, sid)),
             mutate: (sid, action, kind, options, via) =>

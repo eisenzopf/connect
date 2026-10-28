@@ -195,3 +195,12 @@ test('capability profile, original runtime, transport and duplicate feature viol
   assert.throws(()=>client.capabilities.refresh(opts),error('configuration','read-only'));
  });
 });
+
+test('typed status, decision and participant observations reject coercible nonstring enum values',async()=>{
+ for(const mode of ['state-array','decision-state-array','participant-kind-array','conversation-kind-array'])await fixture({mode},async(client)=>{
+  const room=client.conversations.byId('room');
+  const read=()=>mode==='state-array'?client.operations.restore(saved(),client.operationKinds.message_send).status(opts):mode==='decision-state-array'?client.operations.restore({...saved(),operation_id:'cancel',command:'operation.cancel'},client.operationKinds.operation_cancel).wait(opts):mode==='participant-kind-array'?room.participants.byId('participant').refresh(opts):room.refresh(opts);
+  await assert.rejects(read(),error('protocol','read-only'));
+  assert.throws(()=>room.refresh(opts),error('configuration','read-only'));
+ });
+});

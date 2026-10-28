@@ -143,6 +143,9 @@ export class SdkConnection {
             });
         });
     }
+    move(input, options) {
+        return this.ctx.move(this.id, input, options);
+    }
     update(input, expectedStreamRevision, options) {
         if (!input)
             invalid();

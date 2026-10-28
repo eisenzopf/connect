@@ -74,6 +74,9 @@ export class SdkSession {
         action.expected_revision = sdkRevision(input.expectedTopologyRevision);
         return this.context.mutate(this.id, action, this.context.kinds.session_invite, options);
     }
+    handoff(input, options) {
+        return this.context.handoff(this.id, input, options);
+    }
     consult(input, options) {
         if (!input ||
             !identifier(input.via) ||

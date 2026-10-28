@@ -1,3 +1,4 @@
+import type { SdkHandoffInput, SdkHandoffResult } from "./node_movements.js";
 import type { SdkConnections } from "./node_connections.js";
 import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind, SdkConsultInput, SdkConsultationOperation, SdkConsultationResult } from "./node_sdk.js";
 import type { Json, JsonObject } from "./uctp_json.js";
@@ -64,6 +65,7 @@ interface Kinds {
     readonly session_cancel: SdkOperationKind<SdkSessionDecision>;
 }
 interface Context {
+    handoff(sid: SessionId, input: SdkHandoffInput, options: SdkMutationOptions): Promise<SdkOperation<SdkHandoffResult>>;
     connections(id: SessionId): SdkConnections;
     readonly cid: ConversationId;
     readonly kinds: Kinds;
@@ -86,6 +88,7 @@ export declare class SdkSession {
         readonly capabilities: Json;
         readonly expectedTopologyRevision: SdkRevision<"topology">;
     }, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
+    handoff(input: SdkHandoffInput, options: SdkMutationOptions): Promise<SdkOperation<SdkHandoffResult>>;
     consult(input: SdkConsultInput, options: SdkMutationOptions): Promise<SdkConsultationOperation>;
     accept(input: {
         readonly capabilities: Json;

@@ -75,3 +75,15 @@ export type {
     SdkConnection,
     SdkStream,
 } from "./node_connections.js";
+
+export type {
+    EndpointId,
+    DeviceId,
+    SdkTopologyChange,
+    SdkHandoffRole,
+    SdkHandoffInput,
+    SdkHandoffResult,
+    SdkMoveTarget,
+    SdkMoveInput,
+    SdkMoveResult,
+} from "./node_movements.js";

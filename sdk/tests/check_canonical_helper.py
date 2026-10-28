@@ -37,7 +37,7 @@ def main():
     paths += [ROOT / name for name in ['sdk/typescript/package.json', 'sdk/typescript/package-lock.json',
              'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs',
              'sdk/tests/canonical_helper_consumer.mjs', 'sdk/tests/fixtures/canonical_helper.mjs',
-             'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs', 'sdk/tests/node_sdk_types.mts',
+             'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs', 'sdk/tests/node_movements.test.mjs', 'sdk/tests/node_sdk_types.mts',
              'sdk/tests/node_sdk_server_consumer.mjs', 'sdk/tests/fixtures/sdk_helper.mjs',
              'sdk/tests/prepare_native_consumer.py']]
     paths.append(Path(__file__))
@@ -47,7 +47,7 @@ def main():
     timed_out = False
     with (directory / 'tests.log').open('w') as output:
         child = subprocess.Popen(['node', '--test', '--test-reporter=tap',
-            'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs', 'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs'], cwd=ROOT,
+            'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs', 'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs', 'sdk/tests/node_movements.test.mjs'], cwd=ROOT,
             env=environment, stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
         try:
             child.wait(timeout=30)
@@ -64,7 +64,7 @@ def main():
             'sdk/tests/node_sdk_types.mts'], cwd=ROOT, stdout=output, stderr=subprocess.STDOUT, timeout=30)
     changed = [p for p, value in before.items() if digest(ROOT / p) != value]
     result = {'passed': bool(child.returncode == 0 and not timed_out and not changed
-                and types.returncode == 0 and len(functions) == 53 and re.search(r'^# pass 53$', log, re.M)
+                and types.returncode == 0 and len(functions) == 59 and re.search(r'^# pass 59$', log, re.M)
                 and re.search(r'^# fail 0$', log, re.M) and re.search(r'^# skipped 0$', log, re.M)),
         'scope': 'Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.',
         'typecheck_exit_code': types.returncode, 'typecheck_log_sha256': digest(directory / 'types.log'),

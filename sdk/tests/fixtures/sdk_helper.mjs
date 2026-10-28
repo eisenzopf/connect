@@ -22,6 +22,11 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='oversize')return process.stdout.write('x'.repeat(2097154)+'\n');
  let result;
  if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
+ else if(a.type==='session_handoff'||a.type==='connection_move') {
+  const i=a.input,handoff=a.type==='session_handoff',scope={conversation_id:a.conversation_id,session_id:a.session_id,connection_id:handoff?i.via:a.connection_id};
+  const continuation=handoff?{kind:'handoff',retained_connection_id:i.retain,source_participant:i.from_participant,target_participant:i.to,candidate:i.candidate,role:i.role,outgoing:i.outgoing}:{kind:'replacement',retained_connection_id:i.retain,target:i.target};
+  result={Ok:reference(i.mutation.operation_id,handoff?'session.handoff':'connection.replace',scope,continuation)};
+ }
  else if(a.type==='consultation_return')result={Ok:reference(a.mutation.operation_id,'session.consult.return',a.reference.scope,{kind:'consultation-return',retained_connection_id:a.reference.continuation.retained_connection_id,consultation_record_id:a.reference.continuation.record_id??'record-original'})};
  else if(a.type==='conversation_create')result={Ok:reference(a.mutation.operation_id,'conversation.create')};
  else if(a.type==='conversation_send')result={Ok:reference(a.mutation.operation_id,'message.send',{conversation_id:a.conversation_id})};
@@ -48,7 +53,13 @@ createInterface({input:process.stdin}).on('line',line=>{
        a.kind==='session_consult'?{session:{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id},retained:[{...conn(a),id:a.reference.continuation.retained_connection_id}],admitted:[{...conn(a),id:'private'}],retired:[],topologyRevision:3,conversationRevision:null}:a.kind==='session_reject'||a.kind==='session_cancel'?{session:{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id},state:a.kind==='session_reject'?'rejected':'cancelled',topologyRevision:2}:
        a.kind.startsWith('session_')?{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id}:{decision:key(a.reference),target:'original',observedState:'completed',disposition:'already-terminal',evidenceId:a.kind==='operation_reconcile'?'evidence':null};
      let actual=value;
-     if(a.kind==='connection_offer'||a.kind==='connection_end')actual=conn(a,a.kind==='connection_offer'?1:null);
+     if(a.kind==='session_handoff'||a.kind==='connection_replace'){
+      const c=a.reference.continuation,handoff=a.kind==='session_handoff',id=handoff?c.candidate??'admitted':c.target.kind==='candidate'?c.target.id:'admitted';
+      const handle=id=>({...conn(a),id});
+      actual={retained:[handle(c.retained_connection_id)],admitted:[handle(id)],retired:handoff?(c.outgoing==='leave'?[a.reference.scope.connection_id]:[]):[a.reference.scope.connection_id],topologyRevision:3,conversationRevision:handoff&&c.role.scope==='conversation'?c.role.expected_conversation_revision+1:null};
+      if(handoff)actual.roleChange=config.mode==='handoff-no-native'?null:{participantRevision:4,roleScope:c.role.scope,outgoing:c.outgoing,sourceParticipant:c.source_participant,targetParticipant:c.target_participant,cleanup:c.outgoing==='leave'?'pending':'not_requested'};
+      else {actual.connection=handle(id);actual.binding={generation:3,participantId:'from',membershipEpoch:2,endpointId:c.target.kind==='endpoint'?c.target.id:'endpoint',deviceId:'device'};}
+     } else if(a.kind==='connection_offer'||a.kind==='connection_end')actual=conn(a,a.kind==='connection_offer'?1:null);
      else if(a.kind==='connection_update'){
       const u=intents.get(a.reference.operation_id)?.update??{action:'quality',interval_ms:250};let outcome;
       if(u.action==='quality')outcome={kind:'quality',intervalMs:u.interval_ms};
@@ -61,6 +72,24 @@ createInterface({input:process.stdin}).on('line',line=>{
    else result={Ok:snap};
  }
  if(config.mode==='refuse'&&n===1)result={Err:{kind:config.kind??'receipt-unavailable',certainty:config.certainty??'recorded',operation:null,problem:{code:410,category:'receipt-unavailable',reason:'receipt-expired'},observation:config.observation??null}};
+ if(config.mode==='state-array') {const snap=result.Ok?.snapshot??result.Ok;if(snap?.state)snap.state=[snap.state];}
+ if(config.mode==='decision-state-array'&&result.Ok?.value?.observedState)result.Ok.value.observedState=[result.Ok.value.observedState];
+ if(config.mode==='participant-kind-array'&&result.Ok?.kind)result.Ok.kind=[result.Ok.kind];
+ if(config.mode==='conversation-kind-array'&&result.Ok?.participants)result.Ok.participants=[{id:'participant',conversationId:a.conversation_id,identityId:'identity',kind:['human'],role:'participant',membershipEpoch:1,active:true,removalReason:null}];
+ if(config.mode==='movement-context'&&result.Ok?.continuation)result.Ok.continuation.retained_connection_id='foreign';
+ if(config.mode==='movement-scope'&&result.Ok?.scope)result.Ok.scope.session_id='foreign';
+ if(config.mode==='movement-duplicate'&&result.Ok?.value?.admitted)result.Ok.value.admitted[0].id=result.Ok.value.retained[0].id;
+ if(config.mode==='movement-local-receipt'&&result.Ok?.value?.retained)result.Ok.value.retained[0].receiptStreamRevision=7;
+ if(config.mode==='handoff-candidate'&&result.Ok?.value?.admitted)result.Ok.value.admitted[0].id='foreign';
+ if(config.mode==='handoff-role'&&result.Ok?.value?.roleChange)result.Ok.value.roleChange.targetParticipant='foreign';
+ if(config.mode==='handoff-revision'&&result.Ok?.value)result.Ok.value.conversationRevision=99;
+ if(config.mode==='handoff-outgoing'&&result.Ok?.value)result.Ok.value.retired=[];
+ if(config.mode==='handoff-cleanup'&&result.Ok?.value?.roleChange)result.Ok.value.roleChange.cleanup='not_requested';
+ if(config.mode==='move-endpoint'&&result.Ok?.value?.binding)result.Ok.value.binding.endpointId='foreign';
+ if(config.mode==='move-generation'&&result.Ok?.value?.binding)result.Ok.value.binding.generation=0;
+ if(config.mode==='move-foreign-connection'&&result.Ok?.value?.connection)result.Ok.value.connection.sessionId='foreign';
+ if(config.mode==='move-unretired'&&result.Ok?.value)result.Ok.value.retired=[];
+ if(config.mode==='move-candidate'&&result.Ok?.value?.admitted){result.Ok.value.admitted[0].id='foreign';result.Ok.value.connection.id='foreign';}
  if(config.mode==='consult-foreign-context'&&result.Ok?.continuation)result.Ok.continuation.retained_connection_id='foreign';
  if(config.mode==='consult-foreign-record'&&result.Ok?.continuation) {if(result.Ok.continuation.kind==='consultation-return')result.Ok.continuation.consultation_record_id='record-foreign';}
  if(config.mode==='consult-foreign-retained'&&result.Ok?.value?.retained)result.Ok.value.retained[0].id='foreign';

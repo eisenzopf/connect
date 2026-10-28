@@ -1,3 +1,4 @@
+import { type SdkHandoffInput, type SdkHandoffResult, type SdkMoveInput, type SdkMoveResult } from "./node_movements.js";
 import { type ConnectionContext, type ConnectionId, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
 import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
@@ -120,6 +121,9 @@ declare const mutateSession: unique symbol;
 declare const readSession: unique symbol;
 declare const connectionContext: unique symbol;
 declare const returnConsultation: unique symbol;
+declare const handoffSession: unique symbol;
+declare const moveConnection: unique symbol;
+declare const submitMovement: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
@@ -127,6 +131,8 @@ export declare function sdkId<K extends string>(value: string): SdkId<K>;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        session_handoff: SdkOperationKind<SdkHandoffResult>;
+        connection_replace: SdkOperationKind<SdkMoveResult>;
         session_consult: SdkOperationKind<SdkConsultationResult>;
         session_consult_return: SdkOperationKind<SdkSession>;
         connection_offer: SdkOperationKind<SdkConnection>;
@@ -182,6 +188,9 @@ export declare class NodeClient {
     [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
     [mutateSession]<T>(cid: ConversationId, sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions, via?: ConnectionId): Promise<SdkOperation<T>>;
     [returnConsultation](saved: Json, original: OperationKey, expected: SdkRevision<"topology">, options: SdkMutationOptions): Promise<SdkOperation<SdkSession>>;
+    [submitMovement]<T>(type: "session_handoff" | "connection_move", cid: ConversationId, sid: SessionId, via: ConnectionId, input: JsonObject, kind: SdkOperationKind<T>, context: JsonObject, options: SdkMutationOptions): Promise<SdkOperation<T>>;
+    [handoffSession](cid: ConversationId, sid: SessionId, input: SdkHandoffInput, options: SdkMutationOptions): Promise<SdkOperation<SdkHandoffResult>>;
+    [moveConnection](cid: ConversationId, sid: SessionId, via: ConnectionId, input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
     [readSession](cid: ConversationId, sid: SessionId, options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;
     [connectionContext](cid: ConversationId, sid: SessionId): ConnectionContext;
     close(options: CanonicalRequestOptions): Promise<void>;

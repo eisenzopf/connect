@@ -1,3 +1,4 @@
+import type { SdkHandoffInput, SdkHandoffResult } from "./node_movements.js";
 import type { SdkConnections } from "./node_connections.js";
 import { sdkRevision } from "./node_sdk.js";
 import type {
@@ -87,6 +88,11 @@ interface Kinds {
     readonly session_cancel: SdkOperationKind<SdkSessionDecision>;
 }
 interface Context {
+    handoff(
+        sid: SessionId,
+        input: SdkHandoffInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkHandoffResult>>;
     connections(id: SessionId): SdkConnections;
     readonly cid: ConversationId;
     readonly kinds: Kinds;
@@ -199,6 +205,12 @@ export class SdkSession {
             this.context.kinds.session_invite,
             options,
         );
+    }
+    handoff(
+        input: SdkHandoffInput,
+        options: SdkMutationOptions,
+    ): Promise<SdkOperation<SdkHandoffResult>> {
+        return this.context.handoff(this.id, input, options);
     }
     consult(
         input: SdkConsultInput,

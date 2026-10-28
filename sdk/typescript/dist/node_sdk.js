@@ -1,3 +1,4 @@
+import { handoffInput, moveInput, movementContext, handoffResult, moveResult, } from "./node_movements.js";
 import { createConnections, connectionHandle, connectionUpdate, streamSelection, } from "./node_connections.js";
 import { createSessions, sessionSnapshot, } from "./node_sessions.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
@@ -54,6 +55,9 @@ const mutateSession = Symbol("session-mutation");
 const readSession = Symbol("session-read");
 const connectionContext = Symbol("connection-context");
 const returnConsultation = Symbol("consultation-return");
+const handoffSession = Symbol("session-handoff");
+const moveConnection = Symbol("connection-move");
+const submitMovement = Symbol("movement-submit");
 const kinds = new WeakMap();
 const references = new WeakMap();
 const states = new Set([
@@ -141,7 +145,8 @@ function snapshot(value, key) {
         "problem",
     ]) ||
         !equalKey(readKey(value.key), key) ||
-        !states.has(String(value.state)) ||
+        typeof value.state !== "string" ||
+        !states.has(value.state) ||
         !Number.isSafeInteger(value.revision) ||
         Number(value.revision) < 0 ||
         (value.recordId !== null &&
@@ -186,7 +191,8 @@ function decision(value, _client, key) {
         !equalKey(readKey(value.decision), key) ||
         !identifier(value.target) ||
         value.target === key.operationId ||
-        !states.has(String(value.observedState)) ||
+        typeof value.observedState !== "string" ||
+        !states.has(value.observedState) ||
         typeof value.disposition !== "string" ||
         !value.disposition ||
         value.disposition.length > 256 ||
@@ -228,7 +234,8 @@ function participantSnapshot(value, cid, pid) {
         value.id !== pid ||
         value.conversationId !== cid ||
         !identifier(value.identityId) ||
-        !["human", "ai", "system", "external"].includes(String(value.kind)) ||
+        typeof value.kind !== "string" ||
+        !["human", "ai", "system", "external"].includes(value.kind) ||
         typeof value.role !== "string" ||
         !Number.isSafeInteger(value.membershipEpoch) ||
         Number(value.membershipEpoch) < 0 ||
@@ -345,6 +352,20 @@ function selectionReceipt(value, client, key) {
     return streamSelection(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
 }
 const operationKinds = Object.freeze({
+    session_handoff: kind("session_handoff", "session.handoff", (value, client, key, saved) => handoffResult(value, {
+        key,
+        connection: (id) => client.conversations
+            .byId(key.scope.conversationId)
+            .sessions.byId(key.scope.sessionId)
+            .connections.byId(id),
+    }, saved)),
+    connection_replace: kind("connection_replace", "connection.replace", (value, client, key, saved) => moveResult(value, {
+        key,
+        connection: (id) => client.conversations
+            .byId(key.scope.conversationId)
+            .sessions.byId(key.scope.sessionId)
+            .connections.byId(id),
+    }, saved)),
     session_consult: kind("session_consult", "session.consult", consultation),
     session_consult_return: kind("session_consult_return", "session.consult.return", session),
     connection_offer: kind("connection_offer", "connection.offer", connection),
@@ -465,10 +486,15 @@ export class NodeClient {
                 "connection_id",
             ]))
             invalid();
-        const transition = k.name === "session_consult" || k.name === "session_consult_return";
-        if (transition
-            ? !validConsultationContext(copy.continuation, k.command, copy.scope.connection_id)
-            : "continuation" in copy)
+        const movement = k.name === "session_handoff" || k.name === "connection_replace";
+        const transition = movement ||
+            k.name === "session_consult" ||
+            k.name === "session_consult_return";
+        if (movement
+            ? !movementContext(copy.continuation, k.command, copy.scope.connection_id)
+            : transition
+                ? !validConsultationContext(copy.continuation, k.command, copy.scope.connection_id)
+                : "continuation" in copy)
             invalid();
         const s = copy.scope;
         for (const id of Object.values(s))
@@ -578,7 +604,8 @@ export class NodeClient {
                     seen.has(p.id) ||
                     p.conversationId !== id ||
                     !identifier(p.identityId) ||
-                    !["human", "ai", "system", "external"].includes(String(p.kind)) ||
+                    typeof p.kind !== "string" ||
+                    !["human", "ai", "system", "external"].includes(p.kind) ||
                     typeof p.role !== "string" ||
                     !Number.isSafeInteger(p.membershipEpoch) ||
                     Number(p.membershipEpoch) < 0 ||
@@ -659,6 +686,63 @@ export class NodeClient {
             return operation;
         }, key, true);
     }
+    [submitMovement](type, cid, sid, via, input, kind, context, options) {
+        const key = makeKey(options?.operationId, kind.command, {
+            conversationId: cid,
+            sessionId: sid,
+            connectionId: via,
+        });
+        return this.helper.request({
+            type,
+            conversation_id: cid,
+            session_id: sid,
+            ...(type === "connection_move" ? { connection_id: via } : {}),
+            input: { ...input, mutation: mutation(options) },
+        }, options, (value) => {
+            const op = this.fromReply(value, kind, key);
+            if (canonicalJson(value.continuation) !==
+                canonicalJson(context))
+                return protocol();
+            return op;
+        }, key, true);
+    }
+    [handoffSession](cid, sid, input, options) {
+        const captured = handoffInput(input);
+        if (input.consultation !== undefined) {
+            const ref = input.consultation?.reference, metadata = references.get(ref);
+            if (!metadata ||
+                kinds.get(metadata.kind)?.name !== "session_consult" ||
+                ref.scope.conversationId !== cid ||
+                ref.scope.sessionId !== sid ||
+                ref.operationId === options?.operationId ||
+                metadata.saved.continuation === undefined ||
+                metadata.saved.continuation
+                    .retained_connection_id !== captured.retain ||
+                (options?.extensions &&
+                    typeof options.extensions === "object" &&
+                    Object.hasOwn(options.extensions, "consultation_record_id")))
+                invalid();
+            captured.consultation = metadata.saved;
+        }
+        const context = {
+            kind: "handoff",
+            retained_connection_id: captured.retain,
+            source_participant: captured.from_participant,
+            target_participant: captured.to,
+            candidate: captured.candidate,
+            role: captured.role,
+            outgoing: captured.outgoing,
+        };
+        return this[submitMovement]("session_handoff", cid, sid, captured.via, captured, this.operationKinds.session_handoff, context, options);
+    }
+    [moveConnection](cid, sid, via, input, options) {
+        const captured = moveInput(input, via), context = {
+            kind: "replacement",
+            retained_connection_id: captured.retain,
+            target: captured.target,
+        };
+        return this[submitMovement]("connection_move", cid, sid, via, captured, this.operationKinds.connection_replace, context, options);
+    }
     [readSession](cid, sid, options) {
         return this.helper.request({
             type: "session",
@@ -672,6 +756,7 @@ export class NodeClient {
             cid,
             sid,
             kinds: this.operationKinds,
+            move: (id, input, options) => this[moveConnection](cid, sid, id, input, options),
             mutate: (id, action, kind, options) => {
                 const key = makeKey(options?.operationId, kind.command, {
                     conversationId: cid,
@@ -710,6 +795,7 @@ export class SdkConversation {
         this.sessions = createSessions({
             cid: this.id,
             kinds: client.operationKinds,
+            handoff: (sid, input, options) => client[handoffSession](this.id, sid, input, options),
             connections: (sid) => createConnections(client[connectionContext](this.id, sid)),
             mutate: (sid, action, kind, options, via) => client[mutateSession](this.id, sid, action, kind, options, via),
             refresh: (sid, options) => client[readSession](this.id, sid, options),

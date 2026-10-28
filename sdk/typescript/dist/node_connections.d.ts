@@ -1,3 +1,4 @@
+import type { SdkMoveInput, SdkMoveResult } from "./node_movements.js";
 import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
 import type { SessionId, SdkMedium, SdkNonEmpty } from "./node_sessions.js";
 import type { Json, JsonObject } from "./uctp_json.js";
@@ -124,6 +125,7 @@ interface Kinds {
     readonly stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
 }
 export interface ConnectionContext {
+    move(id: ConnectionId, input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
     readonly cid: ConversationId;
     readonly sid: SessionId;
     readonly kinds: Kinds;
@@ -151,6 +153,7 @@ export declare class SdkConnection {
     }>;
     constructor(ctx: ConnectionContext, id: ConnectionId, receiptStreamRevision?: SdkRevision<"stream"> | undefined);
     refresh(options: CanonicalRequestOptions): Promise<SdkConnectionSnapshot>;
+    move(input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
     update(input: SdkConnectionUpdate, expectedStreamRevision: SdkRevision<"stream">, options: SdkMutationOptions): Promise<SdkOperation<SdkConnectionUpdateReceipt>>;
     end(input: {
         readonly reasonCode: number;

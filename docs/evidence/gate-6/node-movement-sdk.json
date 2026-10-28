@@ -1,0 +1,161 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "implementation_status": "in-progress",
+  "synthetic_component_passed": true,
+  "actual_positive_native_transitions_qualified": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scope": "Typed Node handoff and Endpoint/candidate device movement metadata, captured results and original journal operations through public Rust SDK. Synthetic/declaration and offline installed-file verification only; new helper compile and actual native transitions not qualified.",
+  "implementation": {
+    "owner": "Client-owned helper::movement calls public SDK Session.handoff/Connection.replace_device. Original Rust SDK owns authorization, original-record lookup, native transition and remaining deadline.",
+    "operation_kinds": [
+      "session_handoff",
+      "connection_replace"
+    ],
+    "intent": "Captured full controller/retained scope, distinct source/target participants, explicit role scope and revision, optional candidate and outgoing disposition. Exact saved continuation equality on initial helper reply.",
+    "consultation": "Only original branded metadata reference with matching Conversation/Session/retained scope, distinct operation ID and no injected consultation_record_id extension. Rust public restore/host recheck, no forged wire reply IDs or native custody.",
+    "results": "Bounded disjoint topology, retained original/candidate or Endpoint match, outgoing retirement, Conversation role revision assertion+1, captured native role/binding observations without native media ownership.",
+    "declarations": "Distinct Endpoint/Connection IDs, invariant Handoff/Move results and separate topology/Conversation revisions.",
+    "parser_fix": "Explicit string enum checks for operation state, decision observedState and participant kind in direct/current Conversation snapshots; coercible arrays now protocol-fence original helper."
+  },
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 2.238959207898006,
+    "functions": [
+      "canonical HTTP uses current path/bearer and captures intent before yielding",
+      "canonical HTTP configuration rejects implicit remote/credential URL destinations",
+      "canonical HTTP refuses invalid/missing mutation intent and live/native paths without writing",
+      "canonical HTTP rejects mismatched profile, correlation, scope, signatures and terminal order",
+      "canonical HTTP enforces duplicate-key, UTF8, MIME and HTTP status boundaries",
+      "canonical HTTP accepts a bounded multi-envelope batch larger than one envelope",
+      "canonical HTTP structured refusals retain current identity and never become transport retries",
+      "canonical HTTP refusal code must agree with HTTP and public diagnostics stay closed",
+      "canonical HTTP never follows redirects with bearer or retries an uncertain mutation",
+      "canonical HTTP one absolute deadline includes a partially delivered body",
+      "canonical HTTP cancellation after admission preserves logical mutation identity",
+      "canonical HTTP finite journal responses bind every nested resource and cursor",
+      "canonical HTTP caps active requests and close joins cancelled work without retry",
+      "current helper captures canonical intent, independent exchange IDs and original Rust signatures",
+      "configuration is explicit and invalid intent/aborted requests never write helper input",
+      "queued deadline removes only the unsent intent and later work uses the same original helper",
+      "queued cancellation keeps the helper and cannot become a submitted mutation",
+      "sent deadline includes partial output, fences helper and retains the saved mutation key",
+      "sent cancellation fences this instance without restarting or retrying",
+      "corrupt, oversized, unsigned, duplicate or foreign helper replies fail closed and are never retried",
+      "late uncorrelated output fences an otherwise idle original helper",
+      "structured refusals are redacted and leave the helper usable",
+      "helper exit leaves sent work uncertain and no replacement helper is created",
+      "missing executable proves no submission and still has an owned close",
+      "queue capacity and close settle every original wait and join the child",
+      "bounded close reports unconfirmed cleanup and kills the original hanging helper",
+      "native control handles preserve full scopes, captured receipt revisions and separate current observations",
+      "receive-selection bindings preserve unavailable versus known empty without granting local ownership",
+      "invalid native scope, stream identity, revisions and selector shapes never write helper input",
+      "foreign native identities, malformed binding captures, generations and clock integers fail closed",
+      "handoff captures original intent, role scope and topology without granting native ownership",
+      "handoff carries the branded original consultation record and rejects injected or foreign continuations before I/O",
+      "device move distinguishes endpoint and candidate targets with original scope and captured binding observations",
+      "invalid movement targets, role assertions, scopes and saved context shapes never write helper input",
+      "changed movement contexts, foreign topology, roles and binding observations fail closed",
+      "typed restore and recover are local, immutable and bound to the declared result/scope",
+      "typed mutations capture original intent; handles complete through a separate SDK journal wait",
+      "typed Conversation creation resolves a handle and refresh remains current",
+      "decisions retain their own IDs and scope separately from the target reference",
+      "structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics",
+      "invalid typed inputs and already aborted mutations never write the helper",
+      "queued typed deadline removes only unsent work and passes the remaining deadline to Rust",
+      "submitted typed deadline fences the original helper; saved recovery never resubmits",
+      "corrupt helper framing, cross-operation observations and wrong typed results fail closed",
+      "readiness/completion never accept an arbitrary status as a completed result",
+      "missing executable is not submitted and explicit close joins; hanging close reports incomplete cleanup",
+      "one owned operation rejects a changed host record identity across separate API calls",
+      "typed participants preserve Conversation scope and independent mutation/revision identity",
+      "invalid participant scopes, identity kinds and noninteger revisions never write",
+      "participant results and refresh observations cannot cross Conversation scope",
+      "Node capabilities reflect exposed interfaces and immutable feature sets, never helper media ownership",
+      "capability profile, original runtime, transport and duplicate feature violations fence the helper",
+      "typed status, decision and participant observations reject coercible nonstring enum values",
+      "typed Session controls preserve scoped original operations, topology assertions and decision result types",
+      "invalid Session target/revision/update and restoration shapes never write helper input",
+      "Session results, current snapshots and decision metadata cannot cross their original scope",
+      "consultation retains original host record, full scope and captured intent through typed return recovery",
+      "consultation restoration and invalid return inputs are local and cannot change scope or continuation kind",
+      "consultation rejects changed host records, foreign retained results, duplicate topology and altered return metadata"
+    ],
+    "source_count": 198,
+    "changed_inputs": [],
+    "source_inputs_sha256": "a31f49fe3732e2ca45ba02afbeedf3abe960a62517354c183b7f34289fa979c1",
+    "log_sha256": "431ecc946c487156056f6a78c66969a7478f9918acceb62cc444137b70317846",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T17:38:34.445236+00:00"
+  },
+  "installed_package": {
+    "archive": "dist/gate-6/node-movement-package375/rudeless-connect-0.1.0.tgz",
+    "sha256": "587932e504a8b4587d3465ba77ed5123d842f45af93940975af8cfb599bb39e7",
+    "consumer_sha256": "554d5b3f880ee9497c40f827fecdb189047229d2a77f01eb09bea2ae51784cd0",
+    "installed_dist_matches": true,
+    "package_result_sha256": "aba5ab0efe7991f6b7c0052be2022736058b377284379c7ecc04a4ece08a8000"
+  },
+  "parser_negative_before": {
+    "scope": "Synthetic owned helper JSON only. Previous installed SDK incorrectly accepted four coercible arrays as typed enum values. No crypto/server/native qualification.",
+    "old_installed_sdk": "node-recovery-package366",
+    "helpers_joined": 4,
+    "observed": [
+      {
+        "mode": "state-array",
+        "old_sdk_accepted": true,
+        "value_is_array": true
+      },
+      {
+        "mode": "decision-state-array",
+        "old_sdk_accepted": true,
+        "value_is_array": true
+      },
+      {
+        "mode": "participant-kind-array",
+        "old_sdk_accepted": true,
+        "value_is_array": true
+      },
+      {
+        "mode": "conversation-kind-array",
+        "old_sdk_accepted": true,
+        "value_is_array": true
+      }
+    ]
+  },
+  "parser_negative_sources": {
+    "older_installed_node_sdk_sha256": "516210b71d6e4223c2b032c1bc62ec895bfdf7fb616a6ebf120391e27df2d629",
+    "fixture_sha256": "8f920020bccf77334c268e95550a1a423e93b46a607b506ad3404aad44ca0c79",
+    "private_script_sha256": "8afd506d3737c40aa3675b4402618f9d8ad720ca47424cb1be3c2dc6f5f85476"
+  },
+  "native_verification": {
+    "status": "pending new source-bound Ubuntu run",
+    "new_checks": "Current SDK/Rust typed dispatch must return structured403/refused with exact original key for ordinary caller without session.handoff/connection.replace grants, then continue native ends/restart/current revocation/drains. Positive native transitions remain required.",
+    "budgets": "Existing4srequests/15sabsolutephase/90swholefunction unchanged.",
+    "mac": "No build/link attempted for new Rust source because prior linker ENOSPC remains; explicit skip, not pass.",
+    "dependency_preparation": "scripts/prepare-dependencies.sh verifies pinned sources and patch digests in existing prepared root before build; no upstream edits."
+  },
+  "remaining": "Positive installed Node consultation/handoff/move native behavior, incoming invitations/step-up custody, events, trusted provisioning, raw controls, full typed explicit remote HTTP, frozen public names/exports and complete journey/profile qualification. Earlier startup/recovery deadlines remain retained unresolved.",
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "10b588619fa63dd5134ad5f4d0982e730d219c45df8db81524ce401ce47e2274",
+    "crates/connect-client/src/sdk/helper/movement.rs": "0feb7e970e6cf5c2ac99a03991bf0fc79485d808f1d153e3be0b625e67e359c5",
+    "sdk/typescript/src/node_movements.ts": "7aace29b0f970ed872f9ef95451fc4b43219129dcddbaf0bc1f09ab850eacad1",
+    "sdk/typescript/src/node_sdk.ts": "62b80ba300f9786179bcad0c1b9d9699ad9162bba6e83bd239cbebb185286015",
+    "sdk/typescript/src/node_connections.ts": "8953c5a34e8aed120efef77079226b3932544088a5b80059b09cd9924be3d9eb",
+    "sdk/typescript/src/node_sessions.ts": "614129532e89d4c7c827f5e691c9ad5adc6cc2dccc1dd73a9a587c76acfd0c75",
+    "sdk/tests/node_movements.test.mjs": "1e92ccb46116ae1e1d653c6fe115f6286c4d114d1f76144e3d8758ef6f63bb77",
+    "sdk/tests/node_sdk.test.mjs": "21ae2d60ceeb8f25787666ed4cd94721ecb96cf71d5367ae3afee4c296515cb4",
+    "sdk/tests/node_sdk_server_consumer.mjs": "554d5b3f880ee9497c40f827fecdb189047229d2a77f01eb09bea2ae51784cd0",
+    "scripts/check-gate6-linux-hosting.py": "425d24774eade8e7adf73f662a101694ed2a81b18296ee7915d6265358b5bd63"
+  }
+}

@@ -25,8 +25,9 @@ Clock units use `bigint`, preserving the full unsigned 64-bit value.
 Stream refresh currently reports the Rust SDK's observation ownership. These
 controls do not expose Node media frames; programmatic media remains G6-064.
 Typed [consultation controls](node-consultation-sdk.md) are also available.
-Handoff, device movement, incoming invitations, events, trusted administration
-and the complete Node contract remain unfinished.
+Typed [handoff and device-move controls](node-movement-sdk.md) are available
+with positive native qualification pending. Incoming invitations, events,
+trusted administration and the complete Node contract remain unfinished.
 
 The recorded `1ac57f40` Ubuntu24.04 x86_64 / Node26.12.1 cohort passes the
 installed control function for EdDSA and ES256 in 53.47 seconds. All ten scenario
