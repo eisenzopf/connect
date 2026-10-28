@@ -1,0 +1,190 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "component_passed": true,
+  "implementation_status": "in-progress",
+  "scope": "Owned Linux/amd64 guest under QEMU on local Lima arm64 VM to macOS arm64 server; two signed public SDK PCMU peers, decoded duplex and drain. No native x86 performance, WAN, video, browser, SIP, relay, loss or ICE restart qualification.",
+  "implementation_base_revision": "57d59096b21408911e9b7d22974557322b13963a",
+  "procedure": "docs/developer/native-media-rehearsal.md",
+  "profiles": [
+    {
+      "algorithm": "EdDSA",
+      "guest_exit_code": 0,
+      "server_exit_code": 0,
+      "elapsed_seconds": 5.220126416999847,
+      "guest_witness": [
+        {
+          "algorithm": "EdDSA",
+          "architecture": "x86_64",
+          "os": "linux",
+          "owned_peer_shutdown": true,
+          "profile": "remote",
+          "received_bytes": 31200,
+          "sent_frames": 200
+        }
+      ],
+      "server_witness": [
+        {
+          "algorithm": "EdDSA",
+          "durable_native_offers": 2,
+          "physical_peers_drained": true,
+          "received_bytes": 29600,
+          "sent_frames": 200
+        }
+      ],
+      "guest_log_sha256": "528562585dd14504a940d2dec4e464a0290ce1507353e6877f73465340755af4",
+      "server_log_sha256": "738025a873d702fae96b93e0f2e6e75153c69d2bbb719fe7833c0282e305f794",
+      "passed": true,
+      "decoded_at_host": {
+        "expected_hz": 660,
+        "excluded_self_hz": 440,
+        "decoded_samples": 29600,
+        "active_frames": 185,
+        "matching_frames": 185,
+        "pcmu_sha256": "0322aaf251ef5314661fdd02ad3d02b980669ba69686b97d8e9181964eb316ef",
+        "decoded_s16le_sha256": "76525af01679fe757345b18f831b0e6f901f6f237b47e02f0de641b604f13a8d",
+        "passed": true
+      },
+      "decoded_at_guest": {
+        "expected_hz": 440,
+        "excluded_self_hz": 660,
+        "decoded_samples": 31200,
+        "active_frames": 195,
+        "matching_frames": 195,
+        "pcmu_sha256": "f2511650947048356591d955d89a5f94bb31c8c3bcb3e0513348e27f1c219626",
+        "decoded_s16le_sha256": "b5ab4f1d2d17300f42def1f9d04ad22df5fb5c835213b049b7719e5d30bf4150",
+        "passed": true
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "guest_exit_code": 0,
+      "server_exit_code": 0,
+      "elapsed_seconds": 5.244964583078399,
+      "guest_witness": [
+        {
+          "algorithm": "ES256",
+          "architecture": "x86_64",
+          "os": "linux",
+          "owned_peer_shutdown": true,
+          "profile": "remote",
+          "received_bytes": 31680,
+          "sent_frames": 200
+        }
+      ],
+      "server_witness": [
+        {
+          "algorithm": "ES256",
+          "durable_native_offers": 2,
+          "physical_peers_drained": true,
+          "received_bytes": 31680,
+          "sent_frames": 200
+        }
+      ],
+      "guest_log_sha256": "ca4854099c11b453151ddf2fbc3ebaf3fc6a423419cb844737b5b03b0936d6d7",
+      "server_log_sha256": "e0f8618823c5561343fbf7ea90b86a4273664a3591d409ed2cafdba6a3299403",
+      "passed": true,
+      "decoded_at_host": {
+        "expected_hz": 660,
+        "excluded_self_hz": 440,
+        "decoded_samples": 31680,
+        "active_frames": 198,
+        "matching_frames": 198,
+        "pcmu_sha256": "561238e8fa6152316aa129766b50fb1644920a7ba6f3a34cc64a1fdab4cab89b",
+        "decoded_s16le_sha256": "42456a8b97fae5a6be669caca37662b1896147110126f3947ae9fe5d3b8064f3",
+        "passed": true
+      },
+      "decoded_at_guest": {
+        "expected_hz": 440,
+        "excluded_self_hz": 660,
+        "decoded_samples": 31680,
+        "active_frames": 198,
+        "matching_frames": 198,
+        "pcmu_sha256": "31ef12b41abbc4736021a9cfa4e27e29cedcf36e933d2fa06640500198a0cb70",
+        "decoded_s16le_sha256": "a2764e34df16170d41de79a0132e47f515682e78e3dc8d07792bae5f0cf9455d",
+        "passed": true
+      }
+    }
+  ],
+  "source_binding": {
+    "mac_server": {
+      "sha256": "34808819f0fb99f0f8e16fad0edb2dac43b854f3da94d0bd6a388be9534e086e",
+      "build_seconds": 16.470753624802455,
+      "source_count": 5250,
+      "changed_inputs": [],
+      "private_build_summary": ".local/gate-6/rtc-signed-av/build-191-summary.json",
+      "private_build_summary_sha256": "37807a8ecbda030b1e89036da90e1c039a70ca421932fa62bdfaf0c07face134",
+      "private_source_manifest": ".local/gate-6/rtc-signed-av/root-inputs-191.json",
+      "private_source_manifest_sha256": "50791bc7064668241a0aebae9f105f321229f9977e4463fcc21ec12143c38982"
+    },
+    "linux_guest": {
+      "sha256": "a7d50c17c6dd16619537e2c0f6969a5a53ec024005923d896f87d2e65c0530aa",
+      "build_seconds": 353.60436841705814,
+      "source_count": 417,
+      "image_id": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+      "source_inputs_unchanged": true,
+      "private_build_summary": ".local/gate-6/native-remote/linux-media190/build/summary.json",
+      "private_build_summary_sha256": "8082f120ec518c2fb68d7e497155b0650bbb3bb29c5b0c29361086563c630d91",
+      "cache_custody": "Built in a fresh APFS clone. The older Linux build target with an existing VM file handle was not modified."
+    },
+    "runtime_source_count": 2243,
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executables_unchanged": true,
+    "private_run_summary": ".local/gate-6/native-remote/media192/summary.json",
+    "private_run_summary_sha256": "34cea7dddb8fc0dd4872db75aa72578b9247703f8706df4d35a4450e373d6b91"
+  },
+  "observer_validation": {
+    "passed": true,
+    "positive_opposite_tone": {
+      "expected_hz": 440,
+      "excluded_self_hz": 660,
+      "decoded_samples": 16000,
+      "active_frames": 100,
+      "matching_frames": 100,
+      "pcmu_sha256": "7ab53e6e82c72c46335ee9aada682382c07f7889c18f5ec7cefc4eef78307da3",
+      "decoded_s16le_sha256": "59105a8f72ace9442ba04ce86870231bde9ce01c268b867faea5a1ab13ec1d00",
+      "passed": true
+    },
+    "negative_self_tone": {
+      "expected_hz": 660,
+      "excluded_self_hz": 440,
+      "decoded_samples": 16000,
+      "active_frames": 100,
+      "matching_frames": 0,
+      "pcmu_sha256": "7ab53e6e82c72c46335ee9aada682382c07f7889c18f5ec7cefc4eef78307da3",
+      "decoded_s16le_sha256": "59105a8f72ace9442ba04ce86870231bde9ce01c268b867faea5a1ab13ec1d00",
+      "passed": false
+    },
+    "negative_silence": {
+      "expected_hz": 440,
+      "excluded_self_hz": 660,
+      "decoded_samples": 16000,
+      "active_frames": 0,
+      "matching_frames": 0,
+      "pcmu_sha256": "c1130846d44e78ec44a7d995ef4a8aab42f5496a96ebc83cc7833bf7164d8a5d",
+      "decoded_s16le_sha256": "0c92bddb4e96f3ea9ec9f0f64a668255a6c15527ac09f6f119cafde60c7c4a39",
+      "passed": false
+    }
+  },
+  "pre_execution_corrections": [
+    "Initial rustfmt refused the new nested module without an explicit path attribute. Corrected before building.",
+    "The first compiled server fixture had a wildcard client destination. Source review caught this before runtime; build191 explicitly sets local clients to loopback. The guest independently resolves the non-loopback host. Build190 was not executed or counted as a pass."
+  ],
+  "source_sha256": {
+    "crates/connect-client/examples/native_media_probe.rs": "2054dcda30b5084015f7f787a170aabeddfe0061243ae62c5e8ebb2ad99d1efa",
+    "crates/connect-server/tests/support/canonical_native_connections/remote.rs": "e1a75ff23b483ba1cc1265e32ee6e0799abab396f984f83b8763512df0c26008",
+    "crates/connect-server/tests/support/canonical_native_connections/remote/media.rs": "4e9190c1a114bdcb572011f927bdfa2ce5fbbbb8f2776f9bb7f1c9ff847b60ba",
+    "scripts/rehearse-gate6-native-media.py": "52c617d13f83081d3440f7d9f9370ada07d59fc4ea4d94270d20a071a601c1e2",
+    "docs/developer/native-media-rehearsal.md": "918e90c70e7d2cf4dda7dfc8ede4a9837389976cb2b091a5c6be9332d4080d24",
+    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
+  },
+  "remaining": [
+    "Distinct-network browser and telephone media, native video and approved full operating profiles.",
+    "Direct and relay coverage across required clients, ICE restart, packet loss, unreachable ports and allocation cleanup under those conditions.",
+    "Native Linux x86_64 performance and Linux server installation remain separate; the guest is emulated on a local arm64 VM."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

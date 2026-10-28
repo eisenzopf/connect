@@ -3,7 +3,7 @@
   "task": "G6-054",
   "implementation_status": "in-progress",
   "date": "2026-10-28",
-  "scope": "Explicit canonical WebRTC/SIP addressing, protected TURN references and owned loopback UDP/TCP relay media. Distinct-network/browser/telephone and complete G6-054 verification remain open.",
+  "scope": "Explicit canonical WebRTC/SIP addressing, protected TURN references and owned loopback UDP/TCP relay media; distinct-network Linux guest to Mac native PCMU duplex. Distinct-network browser/telephone and complete G6-054 verification remain open.",
   "implementation": [
     "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
     "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
@@ -287,5 +287,16 @@
     "status": "component-passed",
     "evidence": "docs/evidence/gate-6/stun-turn-routing.json",
     "scope": "Two causal STUN protocol functions and five actual configured AV functions pass: shared-endpoint All, relay UDP/TCP and direct EdDSA/ES256. All three coturn lanes report zero allocations within10seconds and join the original process within a separate10second bound, without forced cleanup. Initial combined-drain timeout remains failed. Current-source188/189 executables are byte-identical to the tested182/180 artifacts."
+  },
+  "native_distinct_network_audio": {
+    "evidence": "docs/evidence/gate-6/native-distinct-network-audio.json",
+    "component_passed": true,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "decoded_directions": 4,
+    "physical_peers_drained": true,
+    "scope": "Owned Linux/amd64 guest on local Lima arm64 VM to macOS server; public canonical SDK PCMU. No native x86 performance, native video, browser, SIP or full G6-054 qualification."
   }
 }

@@ -8,6 +8,8 @@ use std::{
 use tokio::net::UdpSocket;
 use tokio_util::sync::CancellationToken;
 const NAME: &str = "native.fixture.invalid";
+#[path = "remote/media.rs"]
+mod media;
 #[path = "remote/rotation.rs"]
 mod rotation;
 
