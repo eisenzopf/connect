@@ -16,11 +16,22 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             algorithm,
             8,
             true,
-            false,
-            false,
+            true,
+            true,
             &["operation.cancel", "operation.reconcile"],
         )
         .await;
+        crate::canonical_native_connections::ready_endpoint_with_capabilities(
+            &f,
+            vec!["audio".into(), "video".into(), "data".into()],
+        )
+        .await;
+        let mut peer_scope = connect_store::Scope::collaboration(vec!["*".into()]);
+        peer_scope.operations.extend([
+            "stream.subscribe".into(),
+            "stream.unsubscribe".into(),
+            "connection.end".into(),
+        ]);
         let sdk_config = connect_client::sdk::ClientConfig {
             control: f.client.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
@@ -31,7 +42,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             &f.peer.identity_id,
             72,
             vec!["audio".into()],
-            connect_store::Scope::collaboration(vec!["*".into()]),
+            peer_scope,
         );
         let peer_sdk_config = connect_client::sdk::ClientConfig {
             control: peer_control.clone(),
@@ -157,10 +168,20 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                     .contains(&peer_control.credential));
             }
         }
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while {
+                let observed = f.server.service.canonical_runtime_snapshot().unwrap();
+                observed.physical_peers != 0 || observed.media_readers != 0
+            } {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .unwrap();
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"initial":initial,"recovered":recovered,"completed":completed,"server_shutdown_joined":true})
+            json!({"initial":initial,"recovered":recovered,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

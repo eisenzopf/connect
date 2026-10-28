@@ -7,7 +7,12 @@ use super::*;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::BTreeMap;
+mod connection;
 mod session;
+pub use connection::{
+    ConnectionAction, Offer as ConnectionOffer, Selector as ReceiveSelector,
+    Update as ConnectionChange,
+};
 pub use session::{Change as SessionChange, InviteMedium, SessionAction};
 
 pub const PROFILE: &str = "connect-sdk-helper/1";
@@ -82,6 +87,12 @@ pub enum Action {
         session_id: SessionId,
         action: SessionAction,
     },
+    Connection {
+        conversation_id: ConversationId,
+        session_id: SessionId,
+        connection_id: ConnectionId,
+        action: ConnectionAction,
+    },
     Operation {
         reference: Value,
         kind: Kind,
@@ -104,6 +115,11 @@ pub enum Kind {
     SessionEnd,
     SessionReject,
     SessionCancel,
+    ConnectionOffer,
+    ConnectionUpdate,
+    ConnectionEnd,
+    StreamSubscribe,
+    StreamUnsubscribe,
 }
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
@@ -225,6 +241,22 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
             session_id,
             action,
         } => session::execute(client, conversation_id, session_id, action, options).await,
+        Action::Connection {
+            conversation_id,
+            session_id,
+            connection_id,
+            action,
+        } => {
+            connection::execute(
+                client,
+                conversation_id,
+                session_id,
+                connection_id,
+                action,
+                options,
+            )
+            .await
+        }
         Action::Operation {
             reference,
             kind,
@@ -247,6 +279,11 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                 Kind::SessionEnd => run(client.restore(reference,kinds.session_end)?,action,options,session::handle_json).await,
                 Kind::SessionReject => run(client.restore(reference,kinds.session_reject)?,action,options,session::decision_json).await,
                 Kind::SessionCancel => run(client.restore(reference,kinds.session_cancel)?,action,options,session::decision_json).await,
+                Kind::ConnectionOffer => run(client.restore(reference,kinds.connection_offer)?,action,options,connection::handle_json).await,
+                Kind::ConnectionUpdate => run(client.restore(reference,kinds.connection_update)?,action,options,connection::update_json).await,
+                Kind::ConnectionEnd => run(client.restore(reference,kinds.connection_end)?,action,options,connection::handle_json).await,
+                Kind::StreamSubscribe => run(client.restore(reference,kinds.stream_subscribe)?,action,options,connection::selection_json).await,
+                Kind::StreamUnsubscribe => run(client.restore(reference,kinds.stream_unsubscribe)?,action,options,connection::selection_json).await,
             }
         }
     }

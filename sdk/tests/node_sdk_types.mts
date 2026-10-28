@@ -33,3 +33,11 @@ session.end({reasonCode:1000,reason:'done',expectedTopologyRevision:stateRevisio
 session.inviteParticipants({to:[],medium:'voice',intent:'join',capabilities:{},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
 // @ts-expect-error Session completion is not a Conversation result.
 const wrongSessionResult:SdkOperation<SdkConversation>=client.operations.restore(saved,client.operationKinds.session_invite);
+
+const connection=session.connections.byId('connection' as import('../typescript/dist/index.js').ConnectionId);
+// @ts-expect-error Session topology revision cannot authorize native stream controls.
+connection.update({action:'quality',intervalMs:250},topology,{timeoutMs:1000,operationId});
+// @ts-expect-error Stream resource revision is not the negotiated native Stream revision.
+connection.update({action:'quality',intervalMs:250},1 as SdkRevision<'stream-resource'>,{timeoutMs:1000,operationId});
+// @ts-expect-error Connection results cannot become Session results.
+const wrongConnectionResult:SdkOperation<import('../typescript/dist/index.js').SdkSession>=client.operations.restore(saved,client.operationKinds.connection_offer);

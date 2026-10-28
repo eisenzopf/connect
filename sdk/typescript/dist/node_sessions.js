@@ -55,11 +55,13 @@ export function createSessions(context) {
 export class SdkSession {
     context;
     id;
+    connections;
     conversationId;
     constructor(context, id) {
         this.context = context;
         this.id = id;
         this.conversationId = context.cid;
+        this.connections = context.connections(id);
         Object.freeze(this);
     }
     refresh(options) {

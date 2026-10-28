@@ -2,8 +2,9 @@
 
 G6-062 remains in progress. `NodeClient` now provides typed Session invitations,
 current refresh, accept, reject, cancel, updates and end through the public Rust
-SDK helper. Consultation, handoff, Connection/Stream controls, owned invitation
-delivery, events and trusted administration remain separate unfinished parts of
+SDK helper. Connection/Stream controls are described in
+[`node-connection-sdk.md`](node-connection-sdk.md). Consultation, handoff, owned
+invitation delivery, events and trusted administration remain unfinished parts of
 the full Node contract. Programmatic media belongs to G6-064.
 
 `conversation.sessions.byId(id)` constructs a scoped metadata handle without

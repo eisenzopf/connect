@@ -77,6 +77,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang cmake pkg-config libopus-dev libssl-dev
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26'
+      - name: Prepare locked Node native consumer distribution
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund --prefix sdk/typescript
+          npm run build --prefix sdk/typescript
+          git diff --exit-code -- sdk/typescript/dist
       - name: Record exact host and native ABI
         id: native
         run: python3 scripts/check-gate6-linux-hosting.py --preflight
@@ -101,7 +109,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
       - name: Run isolated source-bound fixtures
         id: fixtures
-        run: python3 scripts/check-gate6-linux-hosting.py
+        run: python3 scripts/check-gate6-linux-hosting.py --node-sdk
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: always() && steps.fixtures.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
         with:

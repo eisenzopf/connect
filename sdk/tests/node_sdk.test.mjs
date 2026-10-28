@@ -84,9 +84,13 @@ test('invalid typed inputs and already aborted mutations never write the helper'
 test('queued typed deadline removes only unsent work and passes the remaining deadline to Rust',async()=>{
  await fixture({delayMs:100},async(client,dir)=>{
   const room=client.conversations.byId('room');await room.refresh(opts);
+  const started=performance.now();
   const first=room.send(input(),mutation),second=room.send(input(),{...opts,timeoutMs:20,operationId:'expired'}),third=room.send(input(),{...mutation,operationId:'third'});
-  await assert.rejects(second,error('deadline','not-submitted'));await first;await third;
-  const requests=await calls(dir);assert.equal(requests.length,3);assert.ok(requests[2].request.timeout_ms<1400);assert.ok(requests.every(r=>r.request.action.mutation?.operation_id!=='expired'));
+  await assert.rejects(second,error('deadline','not-submitted'));
+  // A 100ms fixture timer may fire slightly early. Assert the independently
+  // observed queue residence, rather than assuming an exact timer duration.
+  const queuedFor=performance.now()-started;await first;await third;
+  const requests=await calls(dir);assert.equal(requests.length,3);assert.ok(queuedFor>0);assert.ok(requests[2].request.timeout_ms<=Math.ceil(opts.timeoutMs-queuedFor)+2);assert.ok(requests.every(r=>r.request.action.mutation?.operation_id!=='expired'));
  });
 });
 test('submitted typed deadline fences the original helper; saved recovery never resubmits',async()=>{

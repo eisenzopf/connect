@@ -1,3 +1,4 @@
+import type { SdkConnections } from "./node_connections.js";
 import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
 import type { Json, JsonObject } from "./uctp_json.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
@@ -62,6 +63,7 @@ interface Kinds {
     readonly session_cancel: SdkOperationKind<SdkSessionDecision>;
 }
 interface Context {
+    connections(id: SessionId): SdkConnections;
     readonly cid: ConversationId;
     readonly kinds: Kinds;
     mutate<T>(sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions): Promise<SdkOperation<T>>;
@@ -72,6 +74,7 @@ export declare function createSessions(context: Context): SdkSessions;
 export declare class SdkSession {
     private readonly context;
     readonly id: SessionId;
+    readonly connections: SdkConnections;
     readonly conversationId: ConversationId;
     constructor(context: Context, id: SessionId);
     refresh(options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;

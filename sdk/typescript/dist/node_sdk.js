@@ -1,3 +1,4 @@
+import { createConnections, connectionHandle, connectionUpdate, streamSelection, } from "./node_connections.js";
 import { createSessions, sessionSnapshot, } from "./node_sessions.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -14,6 +15,7 @@ const mutateParticipant = Symbol("participant-mutation");
 const readParticipant = Symbol("participant-read");
 const mutateSession = Symbol("session-mutation");
 const readSession = Symbol("session-read");
+const connectionContext = Symbol("connection-context");
 const kinds = new WeakMap();
 const references = new WeakMap();
 const states = new Set([
@@ -220,7 +222,21 @@ function sessionDecision(value, client, key) {
         topologyRevision: value.topologyRevision,
     });
 }
+function connection(value, client, key) {
+    return connectionHandle(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
+}
+function connectionReceipt(value, client, key) {
+    return connectionUpdate(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
+}
+function selectionReceipt(value, client, key) {
+    return streamSelection(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
+}
 const operationKinds = Object.freeze({
+    connection_offer: kind("connection_offer", "connection.offer", connection),
+    connection_update: kind("connection_update", "connection.update", connectionReceipt),
+    connection_end: kind("connection_end", "connection.end", connection),
+    stream_subscribe: kind("stream_subscribe", "stream.subscribe", selectionReceipt),
+    stream_unsubscribe: kind("stream_unsubscribe", "stream.unsubscribe", selectionReceipt),
     session_invite: kind("session_invite", "session.invite", session),
     session_accept: kind("session_accept", "session.accept", session),
     session_update: kind("session_update", "session.update", session),
@@ -325,12 +341,17 @@ export class NodeClient {
             invalid();
         if (k.name === "conversation_create"
             ? Object.keys(s).length !== 0
-            : k.name.startsWith("session_")
-                ? !s.conversation_id || !s.session_id || !!s.connection_id
-                : k.name === "message_send" ||
-                    k.name.startsWith("conversation_participant_")
-                    ? !s.conversation_id || !!s.session_id || !!s.connection_id
-                    : !!s.connection_id)
+            : k.name.startsWith("connection_") ||
+                k.name.startsWith("stream_")
+                ? !s.conversation_id || !s.session_id || !s.connection_id
+                : k.name.startsWith("session_")
+                    ? !s.conversation_id || !s.session_id || !!s.connection_id
+                    : k.name === "message_send" ||
+                        k.name.startsWith("conversation_participant_")
+                        ? !s.conversation_id ||
+                            !!s.session_id ||
+                            !!s.connection_id
+                        : !!s.connection_id)
             invalid();
         const key = makeKey(copy.operation_id, copy.command, {
             ...(s.conversation_id
@@ -464,6 +485,34 @@ export class NodeClient {
             action: { type: "refresh" },
         }, options, (value) => sessionSnapshot(value, cid, sid));
     }
+    [connectionContext](cid, sid) {
+        return {
+            cid,
+            sid,
+            kinds: this.operationKinds,
+            mutate: (id, action, kind, options) => {
+                const key = makeKey(options?.operationId, kind.command, {
+                    conversationId: cid,
+                    sessionId: sid,
+                    connectionId: id,
+                });
+                return this.helper.request({
+                    type: "connection",
+                    conversation_id: cid,
+                    session_id: sid,
+                    connection_id: id,
+                    action: { ...action, mutation: mutation(options) },
+                }, options, (value) => this.fromReply(value, kind, key), key, true);
+            },
+            read: (id, action, options, decode) => this.helper.request({
+                type: "connection",
+                conversation_id: cid,
+                session_id: sid,
+                connection_id: id,
+                action,
+            }, options, decode),
+        };
+    }
     close(options) {
         return this.helper.close(options);
     }
@@ -479,6 +528,7 @@ export class SdkConversation {
         this.sessions = createSessions({
             cid: this.id,
             kinds: client.operationKinds,
+            connections: (sid) => createConnections(client[connectionContext](this.id, sid)),
             mutate: (sid, action, kind, options) => client[mutateSession](this.id, sid, action, kind, options),
             refresh: (sid, options) => client[readSession](this.id, sid, options),
         });

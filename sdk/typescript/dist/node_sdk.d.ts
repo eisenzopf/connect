@@ -1,3 +1,4 @@
+import { type ConnectionContext, type SdkConnection, type SdkConnectionUpdateReceipt, type SdkStreamSelectionReceipt } from "./node_connections.js";
 import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
@@ -86,6 +87,7 @@ declare const mutateParticipant: unique symbol;
 declare const readParticipant: unique symbol;
 declare const mutateSession: unique symbol;
 declare const readSession: unique symbol;
+declare const connectionContext: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
@@ -93,6 +95,11 @@ export declare function sdkId<K extends string>(value: string): SdkId<K>;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        connection_offer: SdkOperationKind<SdkConnection>;
+        connection_update: SdkOperationKind<SdkConnectionUpdateReceipt>;
+        connection_end: SdkOperationKind<SdkConnection>;
+        stream_subscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
+        stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
         session_invite: SdkOperationKind<SdkSession>;
         session_accept: SdkOperationKind<SdkSession>;
         session_update: SdkOperationKind<SdkSession>;
@@ -140,6 +147,7 @@ export declare class NodeClient {
     [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
     [mutateSession]<T>(cid: ConversationId, sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions): Promise<SdkOperation<T>>;
     [readSession](cid: ConversationId, sid: SessionId, options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;
+    [connectionContext](cid: ConversationId, sid: SessionId): ConnectionContext;
     close(options: CanonicalRequestOptions): Promise<void>;
 }
 export declare class SdkConversation {

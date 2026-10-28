@@ -1,3 +1,4 @@
+import type { SdkConnections } from "./node_connections.js";
 import { sdkRevision } from "./node_sdk.js";
 import type {
     ConversationId,
@@ -82,6 +83,7 @@ interface Kinds {
     readonly session_cancel: SdkOperationKind<SdkSessionDecision>;
 }
 interface Context {
+    connections(id: SessionId): SdkConnections;
     readonly cid: ConversationId;
     readonly kinds: Kinds;
     mutate<T>(
@@ -158,12 +160,14 @@ export function createSessions(context: Context): SdkSessions {
 }
 /** Stable IDs and typed control; creation of a handle never acquires media. */
 export class SdkSession {
+    readonly connections: SdkConnections;
     readonly conversationId: ConversationId;
     constructor(
         private readonly context: Context,
         readonly id: SessionId,
     ) {
         this.conversationId = context.cid;
+        this.connections = context.connections(id);
         Object.freeze(this);
     }
     refresh(options: CanonicalRequestOptions): Promise<SdkSessionSnapshot> {

@@ -68,12 +68,18 @@ def preflight():
     output("native_key", key)
 
 
-def run():
+def run(node_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = BASE / "private-tmp"
     temporary.mkdir(exist_ok=True, mode=0o700)
     os.environ["TMPDIR"] = str(temporary)
+    node_package = None
+    if node_sdk:
+        sys.path.insert(0, str(ROOT / 'sdk/tests'))
+        from prepare_native_consumer import prepare
+        node_package = prepare(PRIVATE / 'node-native', ROOT / 'dist/gate-6/node-linux-runtime')
+        os.environ['CONNECT_GATE6_NODE_CONSUMER'] = str(ROOT / node_package['consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -143,6 +149,17 @@ def run():
                           and row["target"]["name"] == wanted and row["profile"]["test"] and row.get("executable")]
             assert len(executable) == 1
             artifacts[name] = executable[0]
+            if node_sdk and name == 'hosting':
+                cli = {row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
+                       and row['target']['name'] == 'connect' and row.get('executable')
+                       and not row['profile']['test']}
+                assert len(cli) == 1, 'Missing exact compiled CLI for installed Node fixture'
+                cli = Path(cli.pop())
+                assert cli.stat().st_size > 1_000_000 and os.access(cli, os.X_OK)
+                with cli.open('rb') as stream:
+                    assert stream.read(4) == b'\x7fELF', 'Native Linux CLI header required'
+                execute('node-cli-preflight', [str(cli), 'sdk-stdio', '--help'], 10)
+                artifacts['cli'] = str(cli)
         assert sources() == before, "Sources changed during compilation"
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
@@ -164,6 +181,27 @@ def run():
             text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90)
             counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", text)
             assert len(counts) == 1 and int(counts[0][0]) >= expected and counts[0][1:] == ("0", "0"), "Missing/skipped fixture coverage"
+        if node_sdk:
+            case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
+            text = execute('installed-node-native-control', [artifacts['hosting'], case, '--exact',
+                           '--ignored', '--nocapture', '--test-threads=1'], 90)
+            counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
+            assert counts == [('1', '0', '0')]
+            witnesses = [json.loads(line.split('installed-typed-node-sdk-witness ', 1)[1])
+                         for line in text.splitlines() if 'installed-typed-node-sdk-witness ' in line]
+            assert len(witnesses) == 2
+            assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
+            for witness in witnesses:
+                assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
+                assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
+                assert witness['recovered']['typed_connection_end_recovered']
+                assert witness['completed']['helpers_joined'] == 3
+                assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
+            report['installed_node_native'] = {'passed': True, 'package': node_package,
+                'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 6, 'servers_joined': 2,
+                'physical_peers_drained': True, 'media_readers_drained': True,
+                'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
+            report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'
         report["behavior_passed"] = True
     finally:
         report["source_inputs_unchanged"] = sources() == before
@@ -177,8 +215,9 @@ def run():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--node-sdk", action="store_true", help="Include installed synthetic caller/peer Node native control journey")
     args = parser.parse_args()
-    preflight() if args.preflight else run()
+    preflight() if args.preflight else run(args.node_sdk)
 
 
 if __name__ == "__main__":
