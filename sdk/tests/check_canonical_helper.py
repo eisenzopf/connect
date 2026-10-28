@@ -36,7 +36,9 @@ def main():
     paths = list((ROOT / 'sdk/typescript/src').rglob('*.ts')) + list((ROOT / 'sdk/typescript/dist').rglob('*'))
     paths += [ROOT / name for name in ['sdk/typescript/package.json', 'sdk/typescript/package-lock.json',
              'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs',
-             'sdk/tests/canonical_helper_consumer.mjs', 'sdk/tests/fixtures/canonical_helper.mjs']]
+             'sdk/tests/canonical_helper_consumer.mjs', 'sdk/tests/fixtures/canonical_helper.mjs',
+             'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sdk_types.mts',
+             'sdk/tests/node_sdk_server_consumer.mjs', 'sdk/tests/fixtures/sdk_helper.mjs']]
     paths.append(Path(__file__))
     before = {str(p.relative_to(ROOT)): digest(p) for p in sorted(set(paths)) if p.is_file()}
     (directory / 'source-inputs.json').write_text(json.dumps(before, indent=2) + '\n')
@@ -44,7 +46,7 @@ def main():
     timed_out = False
     with (directory / 'tests.log').open('w') as output:
         child = subprocess.Popen(['node', '--test', '--test-reporter=tap',
-            'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs'], cwd=ROOT,
+            'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs', 'sdk/tests/node_sdk.test.mjs'], cwd=ROOT,
             env=environment, stdout=output, stderr=subprocess.STDOUT, start_new_session=True)
         try:
             child.wait(timeout=30)
@@ -54,11 +56,17 @@ def main():
             child.wait(timeout=10)
     log = (directory / 'tests.log').read_text(errors='replace')
     functions = re.findall(r'^ok [0-9]+ - (.+)$', log, re.M)
+    with (directory / 'types.log').open('w') as output:
+        types = subprocess.run([str(ROOT / 'sdk/typescript/node_modules/.bin/tsc'), '--noEmit',
+            '--strict', '--target', 'ES2022', '--module', 'NodeNext', '--types', 'node',
+            '--typeRoots', str(ROOT / 'sdk/typescript/node_modules/@types'),
+            'sdk/tests/node_sdk_types.mts'], cwd=ROOT, stdout=output, stderr=subprocess.STDOUT, timeout=30)
     changed = [p for p, value in before.items() if digest(ROOT / p) != value]
     result = {'passed': bool(child.returncode == 0 and not timed_out and not changed
-                and len(functions) == 26 and re.search(r'^# pass 26$', log, re.M)
+                and types.returncode == 0 and len(functions) == 38 and re.search(r'^# pass 38$', log, re.M)
                 and re.search(r'^# fail 0$', log, re.M) and re.search(r'^# skipped 0$', log, re.M)),
-        'scope': 'Synthetic owned helper process lifecycle/current canonical JSON-lines and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.',
+        'scope': 'Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.',
+        'typecheck_exit_code': types.returncode, 'typecheck_log_sha256': digest(directory / 'types.log'),
         'exit_code': child.returncode, 'timed_out': timed_out, 'forced_cleanup': timed_out,
         'seconds': time.monotonic() - started, 'functions': functions, 'source_count': len(before),
         'changed_inputs': changed, 'source_inputs_sha256': digest(directory / 'source-inputs.json'),

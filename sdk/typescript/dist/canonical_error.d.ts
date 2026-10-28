@@ -1,6 +1,6 @@
 /** Current SDK errors retain logical intent without copying response bodies. */
-export type CanonicalErrorKind = "validation" | "configuration" | "authentication" | "protocol" | "deadline" | "cancelled" | "transport-uncertain" | "unsupported" | "conflict" | "application" | "resync-required" | "cleanup-incomplete";
-export type Certainty = "not-submitted" | "refused" | "uncertain" | "read-only";
+export type CanonicalErrorKind = "validation" | "configuration" | "trust" | "authentication" | "protocol" | "deadline" | "cancelled" | "transport-uncertain" | "unsupported" | "conflict" | "application" | "receipt-unavailable" | "resync-required" | "cleanup-incomplete";
+export type Certainty = "not-submitted" | "refused" | "uncertain" | "recorded" | "read-only";
 export interface OperationKey {
     readonly operationId: string;
     readonly command: string;

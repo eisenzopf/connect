@@ -2,8 +2,9 @@
 
 G6-062 is in progress. `CanonicalNativeClient` implements finite current
 canonical control using one owned Rust `connect stdio` process. The typed
-`NodeClient` handles, saved-operation recovery facade, trusted provisioning,
-remote HTTP enrollment and the full real-server native/HTTP journey remain open.
+[NodeClient component](node-typed-sdk.md) additionally implements Conversation,
+message and durable operation/decision recovery through the public Rust SDK.
+The full SDK, trusted provisioning, remote HTTP enrollment and full journey remain open.
 Programmatic media is G6-064.
 
 Install the matching trusted `connect` executable and protect its native client
@@ -66,7 +67,8 @@ python3 sdk/tests/check_canonical_helper.py \
   --output .local/gate-6/node-helper-FRESH
 ```
 
-The 26 tests use a synthetic helper and fake HTTP listener. They exercise real
+The 38 tests and negative TypeScript declaration checks use synthetic raw/typed
+helpers and a fake HTTP listener. They exercise real
 owned child processes, deadlines, queue cancellation, malformed/unsigned/foreign
 output, redacted refusals and joined cleanup. Fixture signatures are shaped data;
 these tests do not qualify cryptography or current server authorization.

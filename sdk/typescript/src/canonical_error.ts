@@ -2,6 +2,7 @@
 export type CanonicalErrorKind =
     | "validation"
     | "configuration"
+    | "trust"
     | "authentication"
     | "protocol"
     | "deadline"
@@ -10,9 +11,11 @@ export type CanonicalErrorKind =
     | "unsupported"
     | "conflict"
     | "application"
+    | "receipt-unavailable"
     | "resync-required"
     | "cleanup-incomplete";
-export type Certainty = "not-submitted" | "refused" | "uncertain" | "read-only";
+export type Certainty =
+    "not-submitted" | "refused" | "uncertain" | "recorded" | "read-only";
 export interface OperationKey {
     readonly operationId: string;
     readonly command: string;

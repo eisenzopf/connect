@@ -1,0 +1,249 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "implementation_status": "in-progress",
+  "component_passed": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scope": "Typed Node Conversation/message/decision and original-operation recovery component using the public Rust SDK; local macOS arm64 functional fixture, no model/provider/telephone calls. Full approved NodeClient remains incomplete.",
+  "implementation": {
+    "helper_profile": "connect-sdk-helper/1",
+    "cli": "connect sdk-stdio --config PATH",
+    "configuration": "Fixed connect_client::sdk::ClientConfig; explicit native control and tenant_id, no credential reload/fallback.",
+    "owner": "connect-client::sdk::helper delegates to public Rust SDK; server CLI owns framing only; Node owns process/framing/typed handle and stable record validation.",
+    "operation_kinds": [
+      "conversation_create",
+      "message_send",
+      "operation_cancel",
+      "operation_reconcile"
+    ],
+    "references": "Rust-compatible connect-operation-reference/1, command/scope/result bound, immutable, no-I/O restore/recover, current authority for reads/decisions; no automatic resubmission.",
+    "lifecycle": "16 owned exchanges, one submitted, remaining absolute budget passed to Rust; queued cancellation removes unsent intent, submitted uncertainty fences original helper, EOF close joins.",
+    "errors": "NodeSdkError retains SDK kind/certainty/key/problem/recorded observation; trust, receipt-unavailable and recorded distinctions covered by synthetic tests; no raw stderr or helper messages."
+  },
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 2.183439667103812,
+    "functions": [
+      "canonical HTTP uses current path/bearer and captures intent before yielding",
+      "canonical HTTP configuration rejects implicit remote/credential URL destinations",
+      "canonical HTTP refuses invalid/missing mutation intent and live/native paths without writing",
+      "canonical HTTP rejects mismatched profile, correlation, scope, signatures and terminal order",
+      "canonical HTTP enforces duplicate-key, UTF8, MIME and HTTP status boundaries",
+      "canonical HTTP accepts a bounded multi-envelope batch larger than one envelope",
+      "canonical HTTP structured refusals retain current identity and never become transport retries",
+      "canonical HTTP refusal code must agree with HTTP and public diagnostics stay closed",
+      "canonical HTTP never follows redirects with bearer or retries an uncertain mutation",
+      "canonical HTTP one absolute deadline includes a partially delivered body",
+      "canonical HTTP cancellation after admission preserves logical mutation identity",
+      "canonical HTTP finite journal responses bind every nested resource and cursor",
+      "canonical HTTP caps active requests and close joins cancelled work without retry",
+      "current helper captures canonical intent, independent exchange IDs and original Rust signatures",
+      "configuration is explicit and invalid intent/aborted requests never write helper input",
+      "queued deadline removes only the unsent intent and later work uses the same original helper",
+      "queued cancellation keeps the helper and cannot become a submitted mutation",
+      "sent deadline includes partial output, fences helper and retains the saved mutation key",
+      "sent cancellation fences this instance without restarting or retrying",
+      "corrupt, oversized, unsigned, duplicate or foreign helper replies fail closed and are never retried",
+      "late uncorrelated output fences an otherwise idle original helper",
+      "structured refusals are redacted and leave the helper usable",
+      "helper exit leaves sent work uncertain and no replacement helper is created",
+      "missing executable proves no submission and still has an owned close",
+      "queue capacity and close settle every original wait and join the child",
+      "bounded close reports unconfirmed cleanup and kills the original hanging helper",
+      "typed restore and recover are local, immutable and bound to the declared result/scope",
+      "typed mutations capture original intent; handles complete through a separate SDK journal wait",
+      "typed Conversation creation resolves a handle and refresh remains current",
+      "decisions retain their own IDs and scope separately from the target reference",
+      "structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics",
+      "invalid typed inputs and already aborted mutations never write the helper",
+      "queued typed deadline removes only unsent work and passes the remaining deadline to Rust",
+      "submitted typed deadline fences the original helper; saved recovery never resubmits",
+      "corrupt helper framing, cross-operation observations and wrong typed results fail closed",
+      "readiness/completion never accept an arbitrary status as a completed result",
+      "missing executable is not submitted and explicit close joins; hanging close reports incomplete cleanup",
+      "one owned operation rejects a changed host record identity across separate API calls"
+    ],
+    "source_count": 185,
+    "changed_inputs": [],
+    "source_inputs_sha256": "42e61b1902a7305d86f1bc7f47d9c1d54f7a2ba29a4605f5b6cf48672ae9c4e6",
+    "log_sha256": "95f7ccdf3e342483a4f9da06a76a4cfa6f31123a19e65fcda572586f4ba0bdae",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T15:21:36.534785+00:00"
+  },
+  "installed_package": {
+    "path": "dist/gate-6/node-sdk301/rudeless-connect-0.1.0.tgz",
+    "sha256": "e5f1a5998fbe319f73dc19b523c458b3696a3db832a2a5e29140f50c18b79411",
+    "installed_dist_matches": true,
+    "consumer_sha256": "c1d3edbb4721dd41c8e5b07e085ed20b3a07e01f26302b7ae637998e4cf7adf3",
+    "offline_install_ignore_scripts": true,
+    "publication": false
+  },
+  "rust_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 0.3722563327755779,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5635,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/typed-node-sdk-runtime-test-303",
+      "sha256": "4357737d6802a0798577f99d3e69ae36db85c4898179356a9c1684b4ecfa25a0",
+      "bytes": 268793880
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "db7ce6990dfe9b50a2a6b1ec274713550a0035eba0cc61275e05974c0d3a5a79"
+  },
+  "actual_server": {
+    "passed": true,
+    "function": "canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority",
+    "seconds": 5.030663707992062,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "source_count": 5635,
+    "changed_inputs": [],
+    "binary_sha256": "4357737d6802a0798577f99d3e69ae36db85c4898179356a9c1684b4ecfa25a0",
+    "log_sha256": "0cd21647e8593caff0e86ce49475bbb3b286687aafbacffe457aed901b6c8a10",
+    "forced_cleanup": false,
+    "original_helpers_joined": 4,
+    "original_servers_joined": 2,
+    "observed": [
+      "Typed Conversation create/wait/refresh and MessageAcceptance completion.",
+      "Same durable original message record through native SDK and canonical HTTP; explicit same-ID replay produces one message.",
+      "Typed cancel decision has a separate ID, retains target, completes and restores after helper restart; completed target stays completed.",
+      "Fixed loaded SDK configuration survives file edits; replacement helper queries original saved reference and result without resubmission.",
+      "Committed revocation: native mutation authentication/refused with saved key; HTTP status authentication/read-only."
+    ],
+    "private_summary": ".local/gate-6/node-sdk-real304/summary.json",
+    "profile": "Functional Root store/service/server opt0; upstream/client normal release; no performance qualification."
+  },
+  "stable_record_negative": {
+    "reproduced": true,
+    "first_record": "record-original",
+    "incorrectly_accepted_record": "record-foreign",
+    "scope": "Adversarial synthetic helper, previous installed Node package only",
+    "exit_code": 0,
+    "original_helper_joined": true,
+    "package_sha256": "42622f616702cb4b56838446cdede6ea630247ed70b5fe68b72e657a14e83cba",
+    "fixture_sha256": "fb8487ff1193e77553e9e419cfc1b01195ae64fd8f0dcbb72e4acde6711f7b7b",
+    "probe_sha256": "72b2c69cbfd3adea67fa4a3283178f9bc9a1053cd787c9e14fdc678d0df7f020"
+  },
+  "retained_failures": [
+    {
+      "path": ".local/gate-6/telephone-remote/rtcp-fix245/node292-unit.log",
+      "result": "9/11 pass, two fixture failures: strict comparison confused safe null-prototype JSON with ordinary objects; hostile scope injection targeted a field absent from wait responses. Corrected fixtures only; assertions retained."
+    },
+    {
+      "path": ".local/gate-6/node-record-negative302/summary.json",
+      "result": "Previous installed package accepts a changed host record identity on the same operation. Final owned handle rejects it; new exact adversarial function passes."
+    },
+    {
+      "path": ".local/gate-6/node-sdk295/package-failed-path.json",
+      "result": "First local npm pack used a nonexistent destination; corrected paths before installed consumer. No publication or runtime pass inferred."
+    },
+    {
+      "finding": "Initial plan-integrity check found roadmap stale at1active task while authoritative task plan already had2. Progress sync restored61done/2active/42not-started across docs without promoting any task or acceptance."
+    }
+  ],
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "eb19fe5315311d140124f34c89bd9d5463ab0abda469c32d641121b1b1a6a786",
+    "crates/connect-client/src/sdk.rs": "344d5fee5c23cd82e6e951e4c4cc8cf4d81782c1317b23bb4f7269b3ef34e3b9",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "27def1e849a0c4cc50ce93492b1341fcf825d4684fcdbcbb1c81ced42f96e9cc",
+    "crates/connect-server/src/cli/mod.rs": "b49a0bc251926095ca3d9a1474f10011fb734b22241134e345e9e00f5b80eac7",
+    "crates/connect-server/src/main.rs": "8b63c95fcc2010641cc2cc3f33f4b8ae2eccdeaa189d2e88c26a318881bbd101",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "e5056fab9c048f16c257b25e16c0332347a7cae43a8b6f4e1b2950bb367543b7",
+    "sdk/typescript/src/node_sdk.ts": "87d01185687da09869c198bc1086f3a3584c2f141e8a7a4367037ac30fefb030",
+    "sdk/typescript/src/sdk_helper.ts": "ba2d3170ec05cb43594bf29560c4aac92ba28ac53e0f1440db3e729222efbf66",
+    "sdk/typescript/src/canonical_error.ts": "9c72de0e862f4b4e80a3a492da85d83361eef2f4f247de8235a5f5d0875fdcd7",
+    "sdk/typescript/src/index.ts": "eee742ed311d10acb1238eee08a87b5258e74550e3f2f0af28867cba5f651151",
+    "sdk/tests/node_sdk.test.mjs": "b340f775f67d8098810087d25de27c3083e056e2b2955040f67f17c7b1cbeec2",
+    "sdk/tests/node_sdk_types.mts": "c449856ddb6d3cc7f21382149b1a4e968c46b98dd772fd1de50063a31c13f92e",
+    "sdk/tests/node_sdk_server_consumer.mjs": "c1d3edbb4721dd41c8e5b07e085ed20b3a07e01f26302b7ae637998e4cf7adf3",
+    "sdk/tests/fixtures/sdk_helper.mjs": "fb8487ff1193e77553e9e419cfc1b01195ae64fd8f0dcbb72e4acde6711f7b7b",
+    "sdk/tests/check_canonical_helper.py": "17f989539e075d68f2f7051f9fe6a093e4c9fe3ab4c2906f98bcae69544788f0"
+  },
+  "remaining": [
+    "Full frozen NodeClient Session/Participant/Connection/Stream, topology, invitation/step-up/capability/event interfaces and their owned lifetimes.",
+    "Extend public Rust SDK helper dispatch for remaining typed kinds and current-authorized restore/recovery; preserve original verified invitation custody.",
+    "Explicit trusted administration/provisioning, supported remote HTTP trust/enrollment and full canonical error/operation parity.",
+    "Full installed external Node fixture journey, cancellation/reconnect/authority and package profiles under G6-062/G6-069/G6-070.",
+    "Programmatic media belongs G6-064; no media or complete-Gate6 qualification from this component."
+  ],
+  "current_stdio_regressions": {
+    "passed": true,
+    "cases": [
+      {
+        "function": "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 0.6094242921099067,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 0.55s"
+        ],
+        "log_sha256": "d11b80a88469414bde99c02367b50d3f3df46198d4fdf66f9323031e75d8d56a"
+      },
+      {
+        "function": "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.4802572082262486,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 1.41s"
+        ],
+        "log_sha256": "052e159ebb460892e6a08377676a8a7a437566d055db8ad2a2a8392c716da375"
+      },
+      {
+        "function": "canonical_stdio::node::installed_node_helper_preserves_original_journal_recovery_and_current_authority",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.7535234158858657,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 1.71s"
+        ],
+        "log_sha256": "4e30c5167df05ae61fdf777657edbdf723dadcad63c52f87ad3314e3ee71b1d7"
+      }
+    ],
+    "source_count": 5748,
+    "changed_inputs": [],
+    "binary_sha256": "4357737d6802a0798577f99d3e69ae36db85c4898179356a9c1684b4ecfa25a0"
+  }
+}

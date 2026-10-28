@@ -142,6 +142,11 @@ enum Command {
         #[arg(long)]
         connect_number: Option<String>,
     },
+    /// Typed SDK control through one owned, fixed-authority Rust client.
+    SdkStdio {
+        #[arg(long)]
+        config: PathBuf,
+    },
     Stdio {
         #[arg(long)]
         config: PathBuf,
@@ -416,6 +421,7 @@ async fn main() -> Result<()> {
             human_number.as_deref(),
             connect_number.as_deref(),
         )?,
+        Command::SdkStdio { config } => connect_server::cli::sdk_stdio::serve(&config).await?,
         Command::Stdio {
             config,
             application,

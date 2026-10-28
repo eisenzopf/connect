@@ -102,7 +102,7 @@
     "real287_log_sha256": "fc4c0d647ca99fb580b245b81a0643e3e2160fc6fd883dab78e642ab2dc90a1e"
   },
   "remaining": [
-    "Complete the contract NodeClient typed conversation/session/participant/connection/stream/operation handles, branded validation, saved references/status/wait/cancel/reconcile and current-scope recovery.",
+    "Extend current typed Conversation/message/operation/decision component to the full frozen Session/Participant/Connection/Stream/topology contract.",
     "Complete full G6-059 error/problem details and trust/receipt-unavailable/recorded distinctions across helper/HTTP; current transport maps kind/certainty/key.",
     "Extend the managed helper for the approved typed facade event/invitation/step-up/provisioning lifetimes; finite CLI coverage alone is not full SDK support.",
     "Broader real-server session/topology/invitation/administrative isolation and installed native/HTTP full-contract parity; the current actual component covers message/journal/finite-events/recovery/revocation only.",
@@ -245,5 +245,11 @@
     "cli_binary_sha256": "6a2e14e818b25819244dc73f13727bf81558e919ee4ea3ac84e7f241654c4f34",
     "profile_note": "Functional profile: Root store/service/server opt-level0; unchanged normal upstream release optimization. No performance claim.",
     "scope": "One exact real-server function covers both signing algorithms: same durable record/result through native and HTTP; explicit same-ID replay produces one message; finite events; configuration edit does not change running helper authority; fresh helper queries original without resubmitting; committed credential revocation gives authentication/refused on both facades with original mutation keys; four exec-traced helper PIDs and both servers join. No provider/model/PSTN or remote named lane."
+  },
+  "typed_sdk_component": {
+    "evidence": "docs/evidence/gate-6/node-typed-sdk.json",
+    "component_passed": true,
+    "full_sdk_qualified": false,
+    "note": "New separate sdk-stdio typed public Rust SDK path, Conversation/message/decision original recovery; finite raw CanonicalNativeClient remains available for supported raw control. No legacy fallback."
   }
 }

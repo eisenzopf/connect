@@ -1,0 +1,326 @@
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { CanonicalError, } from "./canonical_error.js";
+import { canonicalJson, parseCanonicalJson, jsonObject, } from "./uctp_json.js";
+import { duration, } from "./canonical_validation.js";
+const profile = "connect-sdk-helper/1";
+export function object(value, fields) {
+    return (jsonObject(value) &&
+        Object.keys(value).every((k) => fields.includes(k)));
+}
+export class NodeSdkError extends CanonicalError {
+    observation;
+    constructor(kind, certainty, operation, problem, observation) {
+        super(kind, certainty, operation, problem);
+        this.observation = observation;
+        this.name = "NodeSdkError";
+    }
+}
+/** Internal framing only. The Rust SDK owns trust, journals and typed behavior. */
+export class SdkHelper {
+    child;
+    exited;
+    joined = false;
+    closed = false;
+    queue = [];
+    active;
+    chunks = [];
+    bytes = 0;
+    constructor(config) {
+        const executable = config?.executable ?? "connect";
+        if (!config ||
+            [config.config, executable].some((v) => typeof v !== "string" ||
+                !v ||
+                v.length > 4096 ||
+                v.includes("\0")))
+            throw new NodeSdkError("configuration", "not-submitted");
+        this.child = spawn(executable, ["sdk-stdio", "--config", config.config], { stdio: ["pipe", "pipe", "pipe"] });
+        this.child.stderr.resume();
+        this.exited = new Promise((resolve) => this.child.once("close", () => {
+            this.joined = true;
+            this.fence("transport-uncertain");
+            resolve();
+        }));
+        const failed = () => {
+            if (this.child.pid === undefined && this.active)
+                this.active.sent = false;
+            this.fence(this.child.pid === undefined
+                ? "configuration"
+                : "transport-uncertain");
+        };
+        this.child.once("error", failed);
+        this.child.stdin.on("error", failed);
+        this.child.stdout.on("data", (chunk) => this.receive(chunk));
+        this.child.stdout.once("end", () => this.fence("transport-uncertain"));
+    }
+    request(action, options, decode, key, mutation = false) {
+        const started = performance.now();
+        let captured;
+        try {
+            duration(options);
+            const bytes = Buffer.from(canonicalJson(action));
+            if (bytes.length > 63 * 1024)
+                throw new Error();
+            captured = parseCanonicalJson(bytes);
+        }
+        catch {
+            throw new NodeSdkError("validation", mutation ? "not-submitted" : "read-only", key);
+        }
+        const error = (kind) => new NodeSdkError(kind, mutation ? "not-submitted" : "read-only", key);
+        if (options.signal?.aborted)
+            throw error("cancelled");
+        const expires = started + options.timeoutMs;
+        if (performance.now() >= expires)
+            throw error("deadline");
+        if (this.closed)
+            throw error("configuration");
+        if (this.queue.length + Number(!!this.active) >= 16)
+            throw error("application");
+        return new Promise((resolve, reject) => {
+            let job;
+            const abort = () => this.cancel(job, "cancelled");
+            job = {
+                id: "sdk_" + randomUUID().replaceAll("-", ""),
+                action: captured,
+                options: { ...options },
+                expires,
+                key,
+                mutation,
+                sent: false,
+                decode,
+                resolve,
+                reject,
+                abort,
+                timer: setTimeout(() => this.cancel(job, "deadline"), Math.max(1, expires - performance.now())),
+            };
+            options.signal?.addEventListener("abort", abort, { once: true });
+            this.queue.push(job);
+            this.next();
+        });
+    }
+    error(job, kind) {
+        return new NodeSdkError(kind, job.mutation
+            ? job.sent
+                ? "uncertain"
+                : "not-submitted"
+            : "read-only", job.key);
+    }
+    release(job) {
+        clearTimeout(job.timer);
+        job.options.signal?.removeEventListener("abort", job.abort);
+    }
+    cancel(job, kind) {
+        if (this.active === job) {
+            this.fence(kind);
+            return;
+        }
+        const i = this.queue.indexOf(job);
+        if (i < 0)
+            return;
+        this.queue.splice(i, 1);
+        this.release(job);
+        job.reject(this.error(job, kind));
+    }
+    next() {
+        if (this.closed || this.active)
+            return;
+        const job = this.queue.shift();
+        if (!job)
+            return;
+        const remaining = Math.floor(job.expires - performance.now());
+        if (remaining < 1 || job.options.signal?.aborted) {
+            this.release(job);
+            job.reject(this.error(job, job.options.signal?.aborted ? "cancelled" : "deadline"));
+            this.next();
+            return;
+        }
+        this.active = job;
+        try {
+            const line = canonicalJson({
+                profile,
+                id: job.id,
+                request: { timeout_ms: remaining, action: job.action },
+            }) + "\n";
+            if (Buffer.byteLength(line) > 65536)
+                throw new Error();
+            job.sent = true;
+            this.child.stdin.write(line, (error) => {
+                if (error)
+                    this.fence("transport-uncertain");
+            });
+        }
+        catch {
+            this.fence("protocol");
+        }
+    }
+    fence(kind) {
+        this.closed = true;
+        const jobs = [...(this.active ? [this.active] : []), ...this.queue];
+        this.active = undefined;
+        this.queue.length = 0;
+        this.chunks = [];
+        this.bytes = 0;
+        for (const job of jobs) {
+            this.release(job);
+            job.reject(this.error(job, kind));
+        }
+        if (!this.joined &&
+            this.child.exitCode === null &&
+            this.child.signalCode === null)
+            this.child.kill("SIGKILL");
+    }
+    receive(chunk) {
+        if (this.closed)
+            return;
+        const job = this.active;
+        if (!job || this.bytes + chunk.length > 2 * 1024 * 1024 + 1) {
+            this.fence("protocol");
+            return;
+        }
+        if (performance.now() >= job.expires) {
+            this.fence("deadline");
+            return;
+        }
+        const newline = chunk.indexOf(10);
+        if (newline >= 0 && newline !== chunk.length - 1) {
+            this.fence("protocol");
+            return;
+        }
+        this.chunks.push(chunk);
+        this.bytes += chunk.length;
+        if (newline < 0)
+            return;
+        try {
+            const v = parseCanonicalJson(Buffer.concat(this.chunks, this.bytes).subarray(0, -1), 2 * 1024 * 1024);
+            this.chunks = [];
+            this.bytes = 0;
+            if (!object(v, ["profile", "id", "result"]) ||
+                v.profile !== profile ||
+                v.id !== job.id ||
+                !object(v.result, ["Ok", "Err"]) ||
+                Object.keys(v.result).length !== 1)
+                throw new Error();
+            let error, result;
+            if ("Err" in v.result) {
+                const e = v.result.Err;
+                if (!object(e, [
+                    "kind",
+                    "certainty",
+                    "operation",
+                    "problem",
+                    "observation",
+                ]) ||
+                    ![
+                        "validation",
+                        "configuration",
+                        "trust",
+                        "authentication",
+                        "protocol",
+                        "deadline",
+                        "cancelled",
+                        "transport-uncertain",
+                        "unsupported",
+                        "conflict",
+                        "application",
+                        "receipt-unavailable",
+                        "resync-required",
+                        "cleanup-incomplete",
+                    ].includes(String(e.kind)) ||
+                    ![
+                        "not-submitted",
+                        "refused",
+                        "uncertain",
+                        "recorded",
+                        "read-only",
+                    ].includes(String(e.certainty)))
+                    throw new Error();
+                // The trusted SDK's operation must agree with our captured intent.
+                // Null is allowed for failures before Rust constructed its key.
+                if (e.operation !== null &&
+                    canonicalJson(e.operation) !==
+                        canonicalJson(wireKey(job.key)))
+                    throw new Error();
+                const p = e.problem;
+                if (p !== null &&
+                    (!object(p, ["code", "category", "reason"]) ||
+                        !Number.isSafeInteger(p.code) ||
+                        Number(p.code) < 0 ||
+                        typeof p.category !== "string" ||
+                        typeof p.reason !== "string"))
+                    throw new Error();
+                error = new NodeSdkError(e.kind, e.certainty, job.key, p === null
+                    ? undefined
+                    : p, e.observation === null ? undefined : e.observation);
+            }
+            else
+                result = job.decode(v.result.Ok);
+            if (performance.now() >= job.expires) {
+                this.fence("deadline");
+                return;
+            }
+            this.active = undefined;
+            this.release(job);
+            if (error) {
+                job.reject(error);
+                if ([
+                    "protocol",
+                    "transport-uncertain",
+                    "cleanup-incomplete",
+                ].includes(error.kind)) {
+                    this.fence(error.kind);
+                    return;
+                }
+            }
+            else
+                job.resolve(result);
+            this.next();
+        }
+        catch {
+            this.fence("protocol");
+        }
+    }
+    async close(options) {
+        duration(options);
+        if (!this.closed) {
+            this.closed = true;
+            if (this.active || this.queue.length)
+                this.fence("cancelled");
+            else
+                this.child.stdin.end();
+        }
+        if (this.joined)
+            return;
+        await new Promise((resolve, reject) => {
+            const cleanup = () => {
+                clearTimeout(timer);
+                options.signal?.removeEventListener("abort", abort);
+            };
+            const abort = () => {
+                this.fence("cancelled");
+                cleanup();
+                reject(new NodeSdkError("cleanup-incomplete", "read-only"));
+            };
+            const timer = setTimeout(abort, options.timeoutMs);
+            this.exited.then(() => {
+                cleanup();
+                resolve();
+            });
+            options.signal?.addEventListener("abort", abort, { once: true });
+            if (options.signal?.aborted)
+                abort();
+        });
+    }
+}
+function wireKey(key) {
+    return key
+        ? {
+            operationId: key.operationId,
+            command: key.command,
+            scope: {
+                conversationId: key.scope.conversationId ?? null,
+                sessionId: key.scope.sessionId ?? null,
+                connectionId: key.scope.connectionId ?? null,
+            },
+        }
+        : null;
+}

@@ -3,8 +3,10 @@
 Gate6 migrates the pre-alpha language interfaces to canonical UCTP. The current
 Rust public SDK, finite Node canonical HTTP consumer and managed canonical Node
 helper component have developer contracts under `docs/developer/`. The new
-`CanonicalNativeClient` uses the current command shape; its typed Node facade
-and full journey/native-HTTP parity remain G6-062 work. See
+`CanonicalNativeClient` uses the current command shape. The typed
+[`NodeClient` component](../docs/developer/node-typed-sdk.md) delegates Conversation,
+message and durable operation/decision recovery to the public Rust SDK. Full
+control/provisioning/events and the complete journey remain G6-062 work. See
 [the canonical Node helper](../docs/developer/node-canonical-helper.md). The older Python/TypeScript generic
 `NativeClient` adapters below are historical Gate2 interfaces pending G6-062 and
 G6-063; they do not consume the current canonical JSON-lines command shape.

@@ -2,6 +2,9 @@
 #[cfg(unix)]
 #[path = "canonical_stdio/node.rs"]
 mod node;
+#[cfg(unix)]
+#[path = "canonical_stdio/node_sdk.rs"]
+mod node_sdk;
 use super::*;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},

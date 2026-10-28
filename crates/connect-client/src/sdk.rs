@@ -38,6 +38,7 @@ mod data;
 mod decisions;
 mod error;
 mod events;
+pub mod helper;
 mod ids;
 mod invitations;
 mod journal_recovery;

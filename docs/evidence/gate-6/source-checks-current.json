@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "date": "2026-10-28",
+  "scope": "Read-only audit of existing Local source checks run; no claim of current whole-source pass or behavior qualification.",
+  "run_id": 40701798640,
+  "source_revision": "3a88370b3d240131f94d7f3799c76618c002aeec",
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/40701798640",
+  "passed": false,
+  "failures": [
+    {
+      "job_id": 122863652535,
+      "finding": "connect-store strict Clippy fails77 existing errors; other source phases not reached."
+    },
+    {
+      "job_id": 122863652682,
+      "finding": "Gate3 compile action times out at30minutes; recovery runtime skipped."
+    },
+    {
+      "job_id": 122863652108,
+      "finding": "Gate5 native-example cold-build phase failed."
+    },
+    {
+      "job_id": 122863652875,
+      "finding": "Gate5 source video-measurement-tests phase failed."
+    },
+    {
+      "job_id": 122863652950,
+      "finding": "Gate5 independent cold-build phase failed."
+    }
+  ],
+  "private_logs": ".local/gate-6/telephone-remote/rtcp-fix245/ci-JOBID.log",
+  "log_sha256": {
+    "122863652535": "768f6316ff2de0f1bbf74c4eda14a6b6717d669413ca7d90cd044894da6fdc28",
+    "122863652682": "f3dd1ddc6afc00c2b5be46fe864bfd0fe90d99aaed9576a0735da0724114f9aa",
+    "122863652108": "01a632f3493ae8d3f9299d364e043c45057ddc0ca1e2aadb5f0acb4c2fe5d071",
+    "122863652875": "766a1be0dd8495ac9414f0e55127a9c9f9afdc5f4089609c5e5aa799cb616ac2",
+    "122863652950": "d88e34267baff98b5d62659470d374316cc1993aa42ef76a6bf07be982b516ff"
+  },
+  "disposition": "Unresolved; preserve named failures for retained capability/source qualification work. No CI thresholds changed, jobs cancelled or source-only failure represented as a pass. Typed Node component and native Ubuntu77 evidence have separate explicit scopes."
+}

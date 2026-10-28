@@ -1,0 +1,226 @@
+//! Typed managed-helper control. All behavior delegates to the public SDK.
+//!
+//! This first control slice covers Conversation and message operations and their
+//! durable decisions. The wire adapter owns framing; this module owns no Store,
+//! alternate journal, credential reload, or automatic mutation replay.
+use super::*;
+use serde::Deserialize;
+use serde_json::json;
+use std::collections::BTreeMap;
+
+pub const PROFILE: &str = "connect-sdk-helper/1";
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Request {
+    pub timeout_ms: u64,
+    pub action: Action,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Mutation {
+    pub operation_id: OperationId,
+    #[serde(default)]
+    pub extensions: Option<BTreeMap<String, Value>>,
+}
+impl Mutation {
+    fn options(self, request: RequestOptions) -> MutationOptions {
+        MutationOptions {
+            operation_id: self.operation_id,
+            request,
+            extensions: self.extensions,
+        }
+    }
+}
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum Action {
+    ConversationCreate {
+        participants: Vec<IdentityId>,
+        policy: ConversationPolicy,
+        mutation: Mutation,
+    },
+    ConversationSend {
+        conversation_id: ConversationId,
+        message_id: MessageId,
+        to: Vec<ParticipantId>,
+        text: String,
+        mutation: Mutation,
+    },
+    ConversationRefresh {
+        conversation_id: ConversationId,
+    },
+    Operation {
+        reference: Value,
+        kind: Kind,
+        action: OperationAction,
+    },
+}
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    ConversationCreate,
+    MessageSend,
+    OperationCancel,
+    OperationReconcile,
+}
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum OperationAction {
+    Status,
+    Wait,
+    WaitUntilReady,
+    Cancel {
+        mutation: Mutation,
+    },
+    Reconcile {
+        outcome: ReconcileOutcome,
+        evidence_id: String,
+        mutation: Mutation,
+    },
+}
+
+/// A request never restores a grant. Every observation and decision goes through
+/// the original SDK's command/scope/result checks and current host authority.
+pub async fn execute(client: &Client, request: Request) -> Result<Value> {
+    let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
+    match request.action {
+        Action::ConversationCreate {
+            participants,
+            policy,
+            mutation,
+        } => Ok(client
+            .create_conversation(participants, policy, mutation.options(options))
+            .await?
+            .reference_json()),
+        Action::ConversationSend {
+            conversation_id,
+            message_id,
+            to,
+            text,
+            mutation,
+        } => {
+            let mut to = to.into_iter();
+            let first = to
+                .next()
+                .ok_or_else(|| Error::local(ErrorKind::Validation))?;
+            Ok(client
+                .conversation_by_id(conversation_id)
+                .send(
+                    message_id,
+                    NonEmpty {
+                        first,
+                        rest: to.collect(),
+                    },
+                    text,
+                    mutation.options(options),
+                )
+                .await?
+                .reference_json())
+        }
+        Action::ConversationRefresh { conversation_id } => {
+            let room = client
+                .conversation_by_id(conversation_id)
+                .refresh(options)
+                .await?;
+            Ok(
+                json!({"id":room.id,"revision":room.revision,"closed":room.closed,
+                "participants":room.participants.into_iter().map(|p| json!({
+                    "id":p.id,"conversationId":p.conversation_id,"identityId":p.identity_id,
+                    "kind":p.kind,"role":p.role,"membershipEpoch":p.membership_epoch,
+                    "active":p.active,"removalReason":p.removal_reason
+                })).collect::<Vec<_>>()}),
+            )
+        }
+        Action::Operation {
+            reference,
+            kind,
+            action,
+        } => {
+            let kinds = client.operation_kinds();
+            match kind {
+                Kind::ConversationCreate => run(client.restore(reference, kinds.conversation_create)?, action, options,
+                    |room| json!({"id":room.id()})).await,
+                Kind::MessageSend => run(client.restore(reference, kinds.message_send)?, action, options,
+                    |message| json!({"messageId":message.message_id,"operation":key_json(&message.operation),"boundary":message.boundary})).await,
+                Kind::OperationCancel => run(client.restore(reference, kinds.operation_cancel)?, action, options, decision_json).await,
+                Kind::OperationReconcile => run(client.restore(reference, kinds.operation_reconcile)?, action, options, decision_json).await,
+            }
+        }
+    }
+}
+async fn run<T>(
+    operation: Operation<T>,
+    action: OperationAction,
+    options: RequestOptions,
+    encode: fn(T) -> Value,
+) -> Result<Value> {
+    match action {
+        OperationAction::Status => Ok(snapshot_json(&operation.status(options).await?)),
+        OperationAction::WaitUntilReady => {
+            Ok(snapshot_json(&operation.wait_until_ready(options).await?))
+        }
+        OperationAction::Wait => {
+            let completed = operation.wait(options).await?;
+            Ok(
+                json!({"snapshot":snapshot_json(&completed.snapshot),"value":encode(completed.value)}),
+            )
+        }
+        OperationAction::Cancel { mutation } => Ok(operation
+            .cancel(mutation.options(options))
+            .await?
+            .reference_json()),
+        OperationAction::Reconcile {
+            outcome,
+            evidence_id,
+            mutation,
+        } => Ok(operation
+            .reconcile(outcome, evidence_id, mutation.options(options))
+            .await?
+            .reference_json()),
+    }
+}
+fn decision_json(value: DecisionReceipt) -> Value {
+    json!({"decision":key_json(&value.decision),"target":value.target,
+        "observedState":value.observed_state,"disposition":value.disposition,"evidenceId":value.evidence_id})
+}
+pub fn key_json(key: &OperationKey) -> Value {
+    json!({"operationId":key.operation_id,"command":key.command,"scope":{
+        "conversationId":key.scope.conversation_id,"sessionId":key.scope.session_id,
+        "connectionId":key.scope.connection_id}})
+}
+pub fn snapshot_json(snapshot: &OperationSnapshot) -> Value {
+    json!({"key":key_json(&snapshot.key),"state":snapshot.state,"revision":snapshot.revision,
+        "recordId":snapshot.record_id,"cancelRequested":snapshot.cancel_requested,
+        "expiresAt":snapshot.expires_at,"problem":snapshot.problem})
+}
+/// Preserve safe SDK distinctions and recorded observations, never Debug/raw
+/// transport bodies, command text, stderr, or credentials.
+pub fn error_json(error: &Error) -> Value {
+    let kind = match error.kind {
+        ErrorKind::Validation => "validation",
+        ErrorKind::Configuration => "configuration",
+        ErrorKind::Trust => "trust",
+        ErrorKind::Authentication => "authentication",
+        ErrorKind::Protocol => "protocol",
+        ErrorKind::Deadline => "deadline",
+        ErrorKind::Cancelled => "cancelled",
+        ErrorKind::TransportUncertain => "transport-uncertain",
+        ErrorKind::Unsupported => "unsupported",
+        ErrorKind::Conflict => "conflict",
+        ErrorKind::Application => "application",
+        ErrorKind::ReceiptUnavailable => "receipt-unavailable",
+        ErrorKind::ResyncRequired => "resync-required",
+        ErrorKind::CleanupIncomplete => "cleanup-incomplete",
+    };
+    let certainty = match error.certainty {
+        Certainty::NotSubmitted => "not-submitted",
+        Certainty::Refused => "refused",
+        Certainty::Uncertain => "uncertain",
+        Certainty::Recorded => "recorded",
+        Certainty::ReadOnly => "read-only",
+    };
+    json!({"kind":kind,"certainty":certainty,"operation":error.operation.as_ref().map(key_json),
+        "problem":error.problem.as_ref().map(|p| json!({"code":p.code,"category":p.category,"reason":p.reason})),
+        "observation":error.observation.as_ref().map(snapshot_json)})
+}
