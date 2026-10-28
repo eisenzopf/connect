@@ -80,6 +80,7 @@ def run(node_sdk=False):
         from prepare_native_consumer import prepare
         node_package = prepare(PRIVATE / 'node-native', ROOT / 'dist/gate-6/node-linux-runtime')
         os.environ['CONNECT_GATE6_NODE_CONSUMER'] = str(ROOT / node_package['consumer'])
+        os.environ['CONNECT_GATE6_NODE_CONSULT_CONSUMER'] = str(ROOT / node_package['consultation_consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -135,6 +136,23 @@ def run(node_sdk=False):
                 assert failure['command'] is None or failure['command'] in {'conversation.create','message.send','operation.cancel','operation.reconcile','session.invite','session.accept','session.update','session.end','session.reject','session.cancel','session.handoff','connection.replace','connection.offer','connection.update','connection.end','stream.subscribe','stream.unsubscribe','operation.get','conversation.get','message.history','conversation.participant.add','conversation.participant.update','conversation.participant.remove'}
                 assert failure['observedState'] is None or failure['observedState'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
                 step['node_failures'].append(failure)
+        step['node_consultation_phases'] = []
+        step['node_consultation_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('installed-node-consultation-phase '):
+                phase = json.loads(line.split(' ', 1)[1])
+                assert set(phase) == {'algorithm', 'phase', 'seconds', 'deadline_seconds'}
+                assert phase['algorithm'] in {'EdDSA', 'ES256'}
+                assert phase['phase'] in {'submitted', 'completed', 'returned', 'revoked', 'closed'}
+                assert type(phase['seconds']) in (int, float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
+                step['node_consultation_phases'].append(phase)
+            if line.startswith('installed-node-consultation-failure '):
+                failure = json.loads(line.split(' ', 1)[1])
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty'} and failure['phase'] == 'failed'
+                assert failure['checkpoint'] in {'submit', 'completed', 'revoked', 'close', 'invalid'}
+                assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
+                assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
+                step['node_consultation_failures'].append(failure)
         if child.returncode != 0:
             diagnostics = []
             for line in text.splitlines():
@@ -197,6 +215,8 @@ def run(node_sdk=False):
         for name, binary, pattern, expected in (
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
+            ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
+            ("rust-sdk-consultation-eof", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call", 1),
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
             ("config", "library", "canonical_webrtc::config::tests::", 4),
             ("sip-config", "library", "canonical_telephone::tests::", 4),
@@ -214,6 +234,25 @@ def run(node_sdk=False):
             counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", text)
             assert len(counts) == 1 and int(counts[0][0]) >= expected and counts[0][1:] == ("0", "0"), "Missing/skipped fixture coverage"
         if node_sdk:
+            for scenario, name, helpers in (
+                ('restored', 'installed_node_consultation_and_return_preserve_actual_private_and_restored_audio', 3),
+                ('remote-ended', 'installed_node_consultation_return_after_remote_eof_cannot_claim_a_continuing_call', 2),
+            ):
+                case = 'canonical_native_connections::consultation::sdk_controls::node_controls::' + name
+                text = execute('installed-node-consultation-' + scenario, [artifacts['hosting'], case, '--exact',
+                               '--ignored', '--nocapture', '--test-threads=1'], 90)
+                assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text) == [('1', '0', '0')]
+                witnesses = [json.loads(line.split('installed-node-consultation-witness ', 1)[1])
+                             for line in text.splitlines() if 'installed-node-consultation-witness ' in line]
+                assert len(witnesses) == 2 and {w['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
+                for witness in witnesses:
+                    assert witness['audio_case'] == scenario and witness['current_return_authority']
+                    assert witness['original_record_recovered'] and witness['helpers_joined'] == helpers and witness['server_joined']
+                    assert witness['physical_peers_drained'] and witness['media_readers_drained']
+            report['installed_node_consultation_audio'] = {'passed': True, 'algorithms': ['EdDSA', 'ES256'],
+                'whole_function_deadline_seconds': 90, 'request_budget_ms': 4000, 'phase_deadline_seconds': 15,
+                'scenarios': ['restored', 'remote-ended'], 'original_helpers_joined': 10, 'servers_joined': 4,
+                'scope': 'Public installed Node controls with actual native private/restored audio and remote EOF; no model/provider/remote lane or full SDK qualification.'}
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = execute('installed-node-native-control', [artifacts['hosting'], case, '--exact',
                            '--ignored', '--nocapture', '--test-threads=1'], 90)

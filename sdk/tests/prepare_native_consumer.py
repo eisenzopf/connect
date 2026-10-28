@@ -46,7 +46,10 @@ def prepare(output, package_output):
     assert observed == files, 'Installed distribution differs from current build'
     consumer = project / 'server-consume.mjs'
     shutil.copyfile(ROOT / 'sdk/tests/node_sdk_server_consumer.mjs', consumer)
-    result = {'archive': str(archive.relative_to(ROOT)), 'archive_sha256': digest(archive),
+    consultation = project / 'consultation-consume.mjs'
+    shutil.copyfile(ROOT / 'sdk/tests/node_consultation_server_consumer.mjs', consultation)
+    result = {'consultation_consumer': str(consultation.relative_to(ROOT)),
+              'consultation_consumer_sha256': digest(consultation), 'archive': str(archive.relative_to(ROOT)), 'archive_sha256': digest(archive),
               'installed_dist_matches': True, 'installed_dist_sha256': observed,
               'consumer': str(consumer.relative_to(ROOT)), 'consumer_sha256': digest(consumer),
               'node_version': subprocess.check_output(['node', '--version'], text=True).strip(),

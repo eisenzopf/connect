@@ -13,7 +13,7 @@ fn mutation(id: &str) -> MutationOptions {
         extensions: None,
     }
 }
-pub(super) struct Probe {
+pub(super) struct RustProbe {
     pub client: Client,
     pub reference: Value,
     operation: sdk::Operation<sdk::ConsultationResult>,
@@ -67,7 +67,7 @@ pub(in crate::canonical_native_connections::consultation) fn controller_config(
         .unwrap();
     config
 }
-pub(super) async fn submit(f: &Fixture, command: &TransitionCommand, token: &str) -> Probe {
+async fn submit_rust(f: &Fixture, command: &TransitionCommand, token: &str) -> RustProbe {
     let config = controller_config(f, token, 901);
     let client = Client::connect(config.clone(), "tnt_default".parse().unwrap())
         .await
@@ -116,14 +116,14 @@ pub(super) async fn submit(f: &Fixture, command: &TransitionCommand, token: &str
         "admission cannot claim a private audio switch"
     );
     assert!(snapshot.record_id.is_some());
-    Probe {
+    RustProbe {
         reference: operation.reference_json(),
         client,
         operation,
         config,
     }
 }
-pub(super) async fn completed(f: &Fixture, probe: &Probe, revision: u64) {
+async fn completed_rust(f: &Fixture, probe: &RustProbe, revision: u64) {
     let completion = probe.operation.wait(options()).await.unwrap();
     assert_eq!(completion.value.topology.topology_revision.get(), revision);
     assert_eq!(completion.value.topology.admitted.len(), 1);
@@ -190,7 +190,7 @@ pub(super) async fn completed(f: &Fixture, probe: &Probe, revision: u64) {
     assert_eq!(attempts, 1);
     println!("SDK consultation {}:completed_topology={revision},original_record,fresh_observation_without_custody,one_native_attempt",f.client.signing_algorithm);
 }
-pub(super) async fn restore(
+async fn restore_rust(
     f: &Fixture,
     token: &str,
     reference: Value,
@@ -289,4 +289,137 @@ async fn production_public_rust_sdk_consultation_return_after_remote_eof_reports
         )
         .await;
     }
+}
+
+#[path = "node_controls.rs"]
+mod node_controls;
+
+#[derive(Clone)]
+pub(super) struct Saved {
+    reference: Value,
+    node: bool,
+}
+pub(super) enum Probe {
+    Rust(RustProbe),
+    Node(node_controls::Probe),
+}
+impl Probe {
+    pub(super) fn reference(&self) -> Saved {
+        match self {
+            Self::Rust(p) => Saved {
+                reference: p.reference.clone(),
+                node: false,
+            },
+            Self::Node(p) => Saved {
+                reference: p.reference.clone(),
+                node: true,
+            },
+        }
+    }
+    pub(super) async fn revoked(&self) {
+        match self {
+            Self::Rust(p) => {
+                let error = p
+                    .operation
+                    .status(options())
+                    .await
+                    .err()
+                    .expect("revoked consultation authority cannot read");
+                assert!(
+                    error.certainty == sdk::Certainty::Refused
+                        || (error.certainty == sdk::Certainty::ReadOnly
+                            && matches!(
+                                error.kind,
+                                sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
+                            ))
+                );
+            }
+            Self::Node(p) => p.revoked().await,
+        }
+    }
+    pub(super) async fn close(self) {
+        match self {
+            Self::Rust(p) => p.client.close(options()).await.unwrap(),
+            Self::Node(p) => p.close().await,
+        }
+    }
+}
+pub(super) async fn submit(
+    f: &Fixture,
+    command: &TransitionCommand,
+    token: &str,
+    node: bool,
+) -> Probe {
+    if node {
+        Probe::Node(node_controls::submit(f, command, token).await)
+    } else {
+        Probe::Rust(submit_rust(f, command, token).await)
+    }
+}
+pub(super) async fn completed(f: &Fixture, probe: &Probe, revision: u64) {
+    match probe {
+        Probe::Rust(p) => completed_rust(f, p, revision).await,
+        Probe::Node(p) => p.completed(f, revision).await,
+    }
+}
+pub(super) enum ReturnProbe {
+    Rust(Client, sdk::Operation<sdk::Session>),
+    Node(node_controls::Probe),
+}
+pub(super) async fn restore(
+    f: &Fixture,
+    token: &str,
+    saved: Saved,
+    revision: u64,
+    continuing: bool,
+    retired: &[&str],
+) -> ReturnProbe {
+    if saved.node {
+        ReturnProbe::Node(node_controls::restore(f, token, saved.reference, revision).await)
+    } else {
+        let (client, operation) =
+            restore_rust(f, token, saved.reference, revision, continuing, retired).await;
+        ReturnProbe::Rust(client, operation)
+    }
+}
+impl ReturnProbe {
+    pub(super) async fn revoked_and_close(self) {
+        match self {
+            Self::Node(p) => {
+                p.revoked().await;
+                p.close().await;
+            }
+            Self::Rust(client, operation) => {
+                let error = operation
+                    .status(options())
+                    .await
+                    .err()
+                    .expect("revoked return authority cannot read");
+                assert!(
+                    error.certainty == sdk::Certainty::Refused
+                        || (error.certainty == sdk::Certainty::ReadOnly
+                            && matches!(
+                                error.kind,
+                                sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
+                            )),
+                    "revoked return read must refuse or retire authenticated peer: {error:?}"
+                );
+                client.close(options()).await.unwrap();
+            }
+        }
+    }
+}
+
+pub(super) async fn node_drained(f: &Fixture) {
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let state = f.server.service.canonical_runtime_snapshot().unwrap();
+            if state.physical_peers == 0 && state.media_readers == 0 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
 }

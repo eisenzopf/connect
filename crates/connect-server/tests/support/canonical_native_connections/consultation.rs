@@ -299,6 +299,7 @@ enum Auxiliary {
     Capability(&'static str),
     Dtmf(&'static str),
     Sdk(&'static str),
+    Node(&'static str),
     Mcp(&'static str),
 }
 #[tokio::test]
@@ -335,7 +336,7 @@ async fn private_candidate_case_with_auxiliary_checks(
         _ => None,
     };
     let sdk_algorithm = match auxiliary {
-        Some(Auxiliary::Sdk(a)) => Some(a),
+        Some(Auxiliary::Sdk(a) | Auxiliary::Node(a)) => Some(a),
         _ => None,
     };
     let capability_algorithm = match auxiliary {
@@ -360,6 +361,9 @@ async fn private_candidate_case_with_auxiliary_checks(
             capacity: 8,
             ttl_seconds: 60,
         });
+        if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+            sdk_controls::node_drained(&f).await;
+        }
         f.server.shutdown().await.unwrap();
         f.server = RunningCanonicalServer::start(f.config.clone())
             .await
@@ -566,7 +570,15 @@ async fn private_candidate_case_with_auxiliary_checks(
         None
     };
     let sdk_probe = if sdk_algorithm.is_some() {
-        Some(sdk_controls::submit(&f, &command, &credential.token).await)
+        Some(
+            sdk_controls::submit(
+                &f,
+                &command,
+                &credential.token,
+                matches!(auxiliary, Some(Auxiliary::Node(_))),
+            )
+            .await,
+        )
     } else {
         None
     };
@@ -862,7 +874,10 @@ async fn private_candidate_case_with_auxiliary_checks(
                 client.shutdown().await.unwrap();
             }
             if let Some(probe) = sdk_probe {
-                probe.client.close(sdk_controls::options()).await.unwrap();
+                probe.close().await;
+            }
+            if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+                sdk_controls::node_drained(&f).await;
             }
             f.server.shutdown().await.unwrap();
             return;
@@ -930,6 +945,9 @@ async fn private_candidate_case_with_auxiliary_checks(
             if return_to_public {
                 let operator = f.server.store.authenticate(&f.admin).unwrap();
                 f.server.store.revoke(&operator, &credential.id).unwrap();
+                if let Some(probe) = &sdk_probe {
+                    probe.revoked().await;
+                }
                 perform_return_with_sdk(
                     &f,
                     &cid,
@@ -937,7 +955,7 @@ async fn private_candidate_case_with_auxiliary_checks(
                     revision(),
                     false,
                     vec!["codec-source", "private-consultant"],
-                    sdk_probe.as_ref().map(|p| p.reference.clone()),
+                    sdk_probe.as_ref().map(|p| p.reference()),
                 )
                 .await;
                 let c = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -971,7 +989,10 @@ async fn private_candidate_case_with_auxiliary_checks(
                 client.shutdown().await.unwrap();
             }
             if let Some(probe) = sdk_probe {
-                probe.client.close(sdk_controls::options()).await.unwrap();
+                probe.close().await;
+            }
+            if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+                sdk_controls::node_drained(&f).await;
             }
             f.server.shutdown().await.unwrap();
             return;
@@ -1065,6 +1086,9 @@ async fn private_candidate_case_with_auxiliary_checks(
         let operator = f.server.store.authenticate(&f.admin).unwrap();
         f.server.store.revoke(&operator, &credential.id).unwrap();
         assert!(controller.transition(command.clone()).await.is_err());
+        if let Some(probe) = &sdk_probe {
+            probe.revoked().await;
+        }
         if let Some(probe) = mcp_probe {
             probe.revoked_and_close().await;
         }
@@ -1085,7 +1109,7 @@ async fn private_candidate_case_with_auxiliary_checks(
                 revision(),
                 true,
                 vec!["private-consultant"],
-                sdk_probe.as_ref().map(|p| p.reference.clone()),
+                sdk_probe.as_ref().map(|p| p.reference()),
                 mcp_algorithm.is_some(),
             )
             .await;
@@ -1128,7 +1152,7 @@ async fn private_candidate_case_with_auxiliary_checks(
             .await;
         }
         if let Some(probe) = sdk_probe {
-            probe.client.close(sdk_controls::options()).await.unwrap();
+            probe.close().await;
         }
         let replay = if verify_records {
             Some(
@@ -1150,9 +1174,15 @@ async fn private_candidate_case_with_auxiliary_checks(
         }
         if let Some(replay) = replay {
             let config = f.config.clone();
+            if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+                sdk_controls::node_drained(&f).await;
+            }
             f.server.shutdown().await.unwrap();
             f.server = RunningCanonicalServer::start(config).await.unwrap();
             record_erasure::after_restart(&f, &cid, replay).await;
+        }
+        if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+            sdk_controls::node_drained(&f).await;
         }
         f.server.shutdown().await.unwrap();
         return;
@@ -1188,6 +1218,9 @@ async fn private_candidate_case_with_auxiliary_checks(
     for client in probes {
         client.shutdown().await.unwrap();
     }
+    if matches!(auxiliary, Some(Auxiliary::Node(_))) {
+        sdk_controls::node_drained(&f).await;
+    }
     f.server.shutdown().await.unwrap();
 }
 
@@ -1209,7 +1242,7 @@ async fn perform_return_with_sdk(
     expected_revision: u64,
     continuing: bool,
     retired: Vec<&str>,
-    sdk_reference: Option<serde_json::Value>,
+    sdk_reference: Option<sdk_controls::Saved>,
 ) -> serde_json::Value {
     perform_return_with_control(
         f,
@@ -1231,7 +1264,7 @@ async fn perform_return_with_control(
     expected_revision: u64,
     continuing: bool,
     retired: Vec<&str>,
-    sdk_reference: Option<serde_json::Value>,
+    sdk_reference: Option<sdk_controls::Saved>,
     mcp: bool,
 ) -> serde_json::Value {
     let mut grant = Scope::collaboration(vec!["*".into()]);
@@ -1354,23 +1387,8 @@ async fn perform_return_with_control(
     if let Some(probe) = mcp_return {
         probe.revoked_and_close().await;
     }
-    if let Some((client, operation)) = sdk_return {
-        let error = operation
-            .status(sdk_controls::options())
-            .await
-            .err()
-            .expect("revoked return authority cannot read");
-        assert!(
-            error.certainty == connect_client::sdk::Certainty::Refused
-                || (error.certainty == connect_client::sdk::Certainty::ReadOnly
-                    && matches!(
-                        error.kind,
-                        connect_client::sdk::ErrorKind::Authentication
-                            | connect_client::sdk::ErrorKind::Cancelled
-                    )),
-            "revoked return read must refuse or retire authenticated peer: {error:?}"
-        );
-        client.close(sdk_controls::options()).await.unwrap();
+    if let Some(probe) = sdk_return {
+        probe.revoked_and_close().await;
     }
     returned
 }

@@ -38,7 +38,7 @@ def main():
              'sdk/tests/canonical_native.test.mjs', 'sdk/tests/canonical_http.test.mjs',
              'sdk/tests/canonical_helper_consumer.mjs', 'sdk/tests/fixtures/canonical_helper.mjs',
              'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs', 'sdk/tests/node_movements.test.mjs', 'sdk/tests/node_sdk_types.mts',
-             'sdk/tests/node_sdk_server_consumer.mjs', 'sdk/tests/fixtures/sdk_helper.mjs',
+             'sdk/tests/node_sdk_server_consumer.mjs', 'sdk/tests/node_consultation_server_consumer.mjs', 'sdk/tests/fixtures/sdk_helper.mjs',
              'sdk/tests/prepare_native_consumer.py']]
     paths.append(Path(__file__))
     before = {str(p.relative_to(ROOT)): digest(p) for p in sorted(set(paths)) if p.is_file()}

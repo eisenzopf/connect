@@ -46,9 +46,23 @@ Return references retain their own mutation identity and the original
 consultation record. A return cannot reuse the consultation's logical ID.
 
 TypeScript restricts `returnToRetained` to a consultation result operation through
-its `this` type; the runtime independently rejects other operation kinds. These
-controls do not yet implement handoff or device movement. The 53 local helper,
-HTTP and negative declaration checks include consultation input capture,
-restoration/return recovery and fail-closed foreign topology/record cases.
-Actual consultation/native audio qualification through the installed Node
-interface is pending. See [the evidence record](../evidence/gate-6/node-consultation-sdk.json).
+its `this` type; the runtime independently rejects other operation kinds. Separate typed handoff and device movement controls are described in
+[node-movement-sdk.md](node-movement-sdk.md). The current 59 local helper, HTTP
+and negative declaration checks include captured consultation input, restoration
+and fail-closed foreign topology/record cases.
+
+An installed Node consumer now drives the existing actual native consultation
+fixture through the public API. It covers private and restored duplex audio,
+missing return grants, current revocation, original-record restoration, fresh
+observation without media custody and remote EOF. The independent host journal
+checks the return topology and whether a remote call continues; the Node return
+result remains a scoped Session handle. Both signing algorithms, original helper
+joins, server shutdowns and zero physical peers/media readers are required.
+
+The new consumer passed a synthetic process check using an installed package;
+all three original helpers joined. This checks the consumer protocol only.
+Actual Ubuntu compilation/audio verification is pending. Each SDK request keeps
+its four-second budget, each phase has an absolute 15-second cap, and each of the
+two-algorithm functions has a 90-second cap. The previous native refresh failure
+remains recorded. See the [native fixture evidence](../evidence/gate-6/node-consultation-audio.json)
+and [typed consultation evidence](../evidence/gate-6/node-consultation-sdk.json).
