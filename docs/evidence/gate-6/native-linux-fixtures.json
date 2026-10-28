@@ -126,9 +126,9 @@
   "acceptance_qualified": false,
   "publication": false,
   "latest": {
-    "run_id": 40663600214,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40663600214",
-    "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
+    "run_id": 40672184507,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40672184507",
+    "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
     "preflight": {
       "os": {
         "NAME": "Ubuntu",
@@ -146,7 +146,7 @@
         "LOGO": "ubuntu-logo"
       },
       "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
-      "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
+      "source_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
       "runner_image_version": "20261023.334.3",
       "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
       "toolchain": {
@@ -158,15 +158,15 @@
     },
     "result": {
       "passed": true,
-      "started_at": "2026-10-28T09:22:11.062072+00:00",
+      "started_at": "2026-10-28T10:29:58.938407+00:00",
       "steps": [
         {
           "name": "compile-library",
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 1718.770846092,
-          "log_sha256": "98719eaadf05ad3e52ddee8678eb99fc97a4742485c3e101af335e1aaf57fec2",
+          "seconds": 0.4658772150000061,
+          "log_sha256": "84d96e3006fd53e6dd5b648cb316aed11e633360c6b77d6710c9531ac382fb20",
           "test_results": [],
           "panic_locations": []
         },
@@ -175,8 +175,8 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 165.70655782199992,
-          "log_sha256": "a6fc057320e82f1a572008a043cf8827f2e653afbde1ba190dab812416663502",
+          "seconds": 33.57576613500001,
+          "log_sha256": "5fcca6840498ea5b0bb0bd4df41e7461b955e47c58cff4211a12b5e22a9a98a9",
           "test_results": [],
           "panic_locations": []
         },
@@ -185,7 +185,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.007813690000148199,
+          "seconds": 0.01609756599999912,
           "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
           "test_results": [
             "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
@@ -197,7 +197,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.015724933999990753,
+          "seconds": 0.016035150000007548,
           "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
           "test_results": [
             "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
@@ -209,7 +209,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.007649681999964741,
+          "seconds": 0.0160967239999934,
           "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
           "test_results": [
             "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
@@ -221,10 +221,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.8658450190000622,
-          "log_sha256": "7b7404b6e0719c1a5fd1b62537ab8993de65201b149ea1a79de58ca6552778f8",
+          "seconds": 0.9670797299999947,
+          "log_sha256": "0858e5d94d86f2dd483fc32986b0edc3cb9f5b9d1a694d12c8afcbc9ffc328a9",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.83s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.95s"
           ],
           "panic_locations": []
         },
@@ -233,10 +233,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 13.095103754000093,
-          "log_sha256": "a9481320d70cef517db51515893680a254c4577d02eb8b38247dd4b2957e5c54",
+          "seconds": 12.999508319,
+          "log_sha256": "70898bf21f9c2991fcef0d6c3b50cfe093a819713f322604067d8b72f44f943c",
           "test_results": [
-            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 13.04s"
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 359 filtered out; finished in 12.98s"
           ],
           "panic_locations": []
         },
@@ -245,10 +245,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.6154844279999452,
-          "log_sha256": "101e8e758314ae4caf97b8ea995f8109b1d7bde57505702bfc58476f4dd707b9",
+          "seconds": 0.8164046289999902,
+          "log_sha256": "8dada62664e3a0a821afffe272eaf5089799b0a86392c499f127711fb6d6d0fa",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.60s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.78s"
           ],
           "panic_locations": []
         },
@@ -257,10 +257,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.666529669000056,
-          "log_sha256": "4648ac4b050c22270da21a39225b1be0b1c27c0d3a2b93fec55e0cb4b0f6e670",
+          "seconds": 0.8170228370000245,
+          "log_sha256": "7c48863cd4a79ba9af512d98545955feaf1bc5e891f67d5e1e298061aea4e60a",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.61s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
           ],
           "panic_locations": []
         },
@@ -269,10 +269,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.66553775400007,
-          "log_sha256": "8eaefb2d53c413a63225f86ab0bc0ffde985bc12414e40625b208a3dc21898ed",
+          "seconds": 0.8168566190000206,
+          "log_sha256": "89b9db3709dd508ab33ff76f4c02f26764d41fb7beb061627d0602c640aa8672",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.61s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 0.79s"
           ],
           "panic_locations": []
         },
@@ -281,38 +281,38 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 9.388581036999994,
-          "log_sha256": "ac67429b05a30661139c90f9bfa46f815fb9589c9f51a9f8b9d9cfb412866f0e",
+          "seconds": 10.552853591999991,
+          "log_sha256": "982bed946a3d2cfce40f089caf840a3b0555f34cc2d1a5ce8a9609b269096cda",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 9.36s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 365 filtered out; finished in 10.51s"
           ],
           "panic_locations": []
         }
       ],
       "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
-      "source_count": 7988,
-      "source_inputs_sha256": "5ee1149dae0f0c81b5a40c5a14da80fc8241d8024d372cdab82c6853a20f40d5",
+      "source_count": 7998,
+      "source_inputs_sha256": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
       "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
       "compiled_artifacts": {
-        "library": "4d1a43b0fa0ede9159c92d69221a37e086f8d387c595ec2c2f5c41aa393648af",
-        "hosting": "a3d9c8ea66693d085f96297ffd40bdc50752f0dc94c174387334c5483ff3aa3c"
+        "library": "262932153f7e2065e4c11cc8e917181760fe085f5fb4f314ec8b74f5bbc3ca1a",
+        "hosting": "f4f8b1c664760058f19137af8ff19b3c1f289b5eaefc74e162a6658ca38a8932"
       },
       "behavior_passed": true,
       "source_inputs_unchanged": true,
-      "finished_at": "2026-10-28T09:54:02.867367+00:00"
+      "finished_at": "2026-10-28T10:31:02.718807+00:00"
     },
     "functions_passed": 23,
     "artifact_sha256": {
-      "summary.json": "3cf5d20ea9e7d468898489de9e0bd200290c6b6e2fbf4045046e56ef2163c397",
-      "preflight.json": "79dec7dd57ae61bb6ffdaf2df304d88c477a2b2bf06e6f629e32ecfcec69d032",
-      "source-inputs.json": "5ee1149dae0f0c81b5a40c5a14da80fc8241d8024d372cdab82c6853a20f40d5"
+      "preflight.json": "45f4220077916011048fd85ccd365034e445648fdc551578112cca06a79c6048",
+      "source-inputs.json": "87519df3da1fe1cdc3c6f8f25eefa8aa1dbe22939ef134bab95fb374ba4a4528",
+      "summary.json": "e889a2468b47e92853585e068da070d5e2285e6499b198d0a100b69ada888941"
     },
-    "scope_note": "Actual native Ubuntu lib/runtime configuration/security/SIP/HTTPS/owned-DTLS-close checks. Predates the STUN routing fix and All fixture; no actual Linux TURN/media/restart/network profile qualification."
+    "scope_note": "Native Ubuntu24.04x86_64 source-bound23function group with all source inputs unchanged. Native guest fixture support compiles, but these selected tests do not execute Linux-to-Mac native media or distinct-network browser media. No actual TURN allocation, installation, native performance or whole acceptance qualification."
   },
   "previous_latest": {
-    "run_id": 40656596259,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40656596259",
-    "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
+    "run_id": 40665181305,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40665181305",
+    "source_revision": "00b820869486e3a3203d36cd5988e18194455388",
     "preflight": {
       "os": {
         "NAME": "Ubuntu",
@@ -330,7 +330,7 @@
         "LOGO": "ubuntu-logo"
       },
       "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
-      "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
+      "source_revision": "00b820869486e3a3203d36cd5988e18194455388",
       "runner_image_version": "20261023.334.3",
       "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
       "toolchain": {
@@ -342,15 +342,15 @@
     },
     "result": {
       "passed": true,
-      "started_at": "2026-10-28T08:29:33.536940+00:00",
+      "started_at": "2026-10-28T09:54:55.017048+00:00",
       "steps": [
         {
           "name": "compile-library",
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 99.53178034100002,
-          "log_sha256": "33c29c5a8a37c88799a5e70fcc9d1b7d716cd7d821421e52db46e442954df468",
+          "seconds": 1832.774787075,
+          "log_sha256": "2417f1618744b7468b787f47481ac5e26e47d4ff6beab6505e699ea6715b0a4a",
           "test_results": [],
           "panic_locations": []
         },
@@ -359,8 +359,8 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 179.09539407200003,
-          "log_sha256": "7f2a5bc94f4f758bef8168358afb88005b22e4ea8e70e64b5cb77bd5d77d440a",
+          "seconds": 174.21851812099976,
+          "log_sha256": "441eafa5b9260ba506f9ffe38a1b5ae75612bfd735b7fbf1ad7d2699b35badfc",
           "test_results": [],
           "panic_locations": []
         },
@@ -369,7 +369,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.008090052000000014,
+          "seconds": 0.007906524000190984,
           "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
           "test_results": [
             "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
@@ -381,7 +381,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.007689144000039505,
+          "seconds": 0.015868732999933854,
           "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
           "test_results": [
             "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
@@ -393,7 +393,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.007730852000008781,
+          "seconds": 0.0077530270000352175,
           "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
           "test_results": [
             "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
@@ -405,10 +405,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.9668763239999976,
-          "log_sha256": "e0e6d579c5e6c3d28fbbaa325e877fbdc4078a7ae1582ad4cd28c9f7d369df2a",
+          "seconds": 0.9664315469999565,
+          "log_sha256": "84209e9b3d51fbe7666c2dde509d1f7ca6a53a9cff953a62beac59e68bd8ba3f",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.94s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.93s"
           ],
           "panic_locations": []
         },
@@ -417,10 +417,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 13.198265780999975,
-          "log_sha256": "c0a6718c9febf005b46776e41a65b2aa94b75b3c3f29c818cad33fc57afcccc7",
+          "seconds": 12.79441090399996,
+          "log_sha256": "0ce3021ddd0c277180933c383bbb6233f089487b41ad9ee718841eef6771e8cb",
           "test_results": [
-            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 13.14s"
+            "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 12.74s"
           ],
           "panic_locations": []
         },
@@ -429,10 +429,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.8161872690000109,
-          "log_sha256": "b14cc804812920d95c39ae7fc1eca72d27c8509909d9c4f13941baafc3253a60",
+          "seconds": 0.7657915289996708,
+          "log_sha256": "bb971d09867d982c6383b96a7d56abcf17501f020adc7bd4425794ad97611051",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.77s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.74s"
           ],
           "panic_locations": []
         },
@@ -441,7 +441,7 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.8159135910000259,
+          "seconds": 0.8158835330000329,
           "log_sha256": "ffeaa7f8fd7e2c917403c48a469b8723b88058c4da56eddd8be8c87591fa7b54",
           "test_results": [
             "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.75s"
@@ -453,10 +453,10 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 0.7658472200000119,
-          "log_sha256": "08b51c70364d56148d99d1403d88e90825b251e82c9a59c54f0fa3e9b2ef26f9",
+          "seconds": 0.8182262539999101,
+          "log_sha256": "a8712cf6eba8a148fb0b7423a2f4b6e445245c039544d64500cbcf370ebf0a2c",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.72s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.79s"
           ],
           "panic_locations": []
         },
@@ -465,31 +465,399 @@
           "exit_code": 0,
           "timed_out": false,
           "forced_kill": false,
-          "seconds": 10.193980427000042,
-          "log_sha256": "9214495307dedc2a2b392121ce7eb875deb4a4984edd8c83afac0094ea55e950",
+          "seconds": 10.147595405000175,
+          "log_sha256": "171d1e96e6e126ae5095c95720415e6d34c34ed15bafaeefff48c29f905be04e",
           "test_results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 10.14s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 10.11s"
           ],
           "panic_locations": []
         }
       ],
       "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
-      "source_count": 7979,
-      "source_inputs_sha256": "4e759238bf13fe6f96b2ee997f3deef3db42c6b30a547131fba1e83f6edaaa3e",
+      "source_count": 7991,
+      "source_inputs_sha256": "3856688b370bc0acc5615b5d6bdc28c13a7379a45e1181ac5f1d1b1122c225bb",
       "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
       "compiled_artifacts": {
-        "library": "109698a8b8e0cd62d7ead635c4cf6bc35cb6e431211a1758e9398cd5e6b07d40",
-        "hosting": "a6569f9335a01d3ec4d095658b65c278f539d11e3d886033fbde89d1c50305cb"
+        "library": "262932153f7e2065e4c11cc8e917181760fe085f5fb4f314ec8b74f5bbc3ca1a",
+        "hosting": "cf1ef68c71ddfbd280ef216710cb39086bf983714d51cf662625ffddd7ec6b98"
       },
       "behavior_passed": true,
       "source_inputs_unchanged": true,
-      "finished_at": "2026-10-28T08:34:41.582218+00:00"
+      "finished_at": "2026-10-28T10:28:50.957982+00:00"
     },
+    "functions_passed": 23,
     "artifact_sha256": {
-      "summary.json": "c09ca15ce0f6a1eb4b9cf149938381211bfbe918737e10bc582e292cf52942a3",
-      "preflight.json": "d9109b34d55150cc3e955eceb4d3d43a170b234bc5c91ed7dab4fa34c71b199e",
-      "source-inputs.json": "4e759238bf13fe6f96b2ee997f3deef3db42c6b30a547131fba1e83f6edaaa3e"
+      "preflight.json": "7afda683345783e3d7daa3cf4729d76beb8fae2724bd58c1ed153e971814ffe3",
+      "source-inputs.json": "3856688b370bc0acc5615b5d6bdc28c13a7379a45e1181ac5f1d1b1122c225bb",
+      "summary.json": "685d873c2a495c38da02d0bbd265e9af0eba6a0e89b6373771c34dc5f5ba4c4f"
     },
-    "functions_passed": 23
+    "scope_note": "Native Ubuntu24.04x86_64 source-bound fixtures at the STUN-routing source revision:23functions pass,7991inputs unchanged. No actual Linux TURN allocation, distinct-network browser/native/telephone media, installation or full acceptance qualification.",
+    "previous_latest": {
+      "run_id": 40663600214,
+      "run_url": "https://github.com/eisenzopf/connect/actions/runs/40663600214",
+      "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
+      "preflight": {
+        "os": {
+          "NAME": "Ubuntu",
+          "ID": "ubuntu",
+          "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+          "VERSION_ID": "24.04",
+          "VERSION": "24.04.5 LTS (Noble Numbat)",
+          "VERSION_CODENAME": "noble",
+          "ID_LIKE": "debian",
+          "HOME_URL": "https://www.ubuntu.com/",
+          "SUPPORT_URL": "https://help.ubuntu.com/",
+          "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+          "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+          "UBUNTU_CODENAME": "noble",
+          "LOGO": "ubuntu-logo"
+        },
+        "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+        "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
+        "runner_image_version": "20261023.334.3",
+        "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
+        "toolchain": {
+          "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+          "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+          "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
+        },
+        "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
+      },
+      "result": {
+        "passed": true,
+        "started_at": "2026-10-28T09:22:11.062072+00:00",
+        "steps": [
+          {
+            "name": "compile-library",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 1718.770846092,
+            "log_sha256": "98719eaadf05ad3e52ddee8678eb99fc97a4742485c3e101af335e1aaf57fec2",
+            "test_results": [],
+            "panic_locations": []
+          },
+          {
+            "name": "compile-hosting",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 165.70655782199992,
+            "log_sha256": "a6fc057320e82f1a572008a043cf8827f2e653afbde1ba190dab812416663502",
+            "test_results": [],
+            "panic_locations": []
+          },
+          {
+            "name": "addressing",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.007813690000148199,
+            "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
+            "test_results": [
+              "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "config",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.015724933999990753,
+            "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
+            "test_results": [
+              "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-config",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.007649681999964741,
+            "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
+            "test_results": [
+              "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "owned-dtls",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.8658450190000622,
+            "log_sha256": "7b7404b6e0719c1a5fd1b62537ab8993de65201b149ea1a79de58ca6552778f8",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.83s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "https-hosting",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 13.095103754000093,
+            "log_sha256": "a9481320d70cef517db51515893680a254c4577d02eb8b38247dd4b2957e5c54",
+            "test_results": [
+              "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 13.04s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-unknown-account",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.6154844279999452,
+            "log_sha256": "101e8e758314ae4caf97b8ea995f8109b1d7bde57505702bfc58476f4dd707b9",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.60s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-bind-failure",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.666529669000056,
+            "log_sha256": "4648ac4b050c22270da21a39225b1be0b1c27c0d3a2b93fec55e0cb4b0f6e670",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.61s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-owner-drop",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 0.66553775400007,
+            "log_sha256": "8eaefb2d53c413a63225f86ab0bc0ffde985bc12414e40625b208a3dc21898ed",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.61s"
+            ],
+            "panic_locations": []
+          },
+          {
+            "name": "sip-readiness",
+            "exit_code": 0,
+            "timed_out": false,
+            "forced_kill": false,
+            "seconds": 9.388581036999994,
+            "log_sha256": "ac67429b05a30661139c90f9bfa46f815fb9589c9f51a9f8b9d9cfb412866f0e",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 9.36s"
+            ],
+            "panic_locations": []
+          }
+        ],
+        "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
+        "source_count": 7988,
+        "source_inputs_sha256": "5ee1149dae0f0c81b5a40c5a14da80fc8241d8024d372cdab82c6853a20f40d5",
+        "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
+        "compiled_artifacts": {
+          "library": "4d1a43b0fa0ede9159c92d69221a37e086f8d387c595ec2c2f5c41aa393648af",
+          "hosting": "a3d9c8ea66693d085f96297ffd40bdc50752f0dc94c174387334c5483ff3aa3c"
+        },
+        "behavior_passed": true,
+        "source_inputs_unchanged": true,
+        "finished_at": "2026-10-28T09:54:02.867367+00:00"
+      },
+      "functions_passed": 23,
+      "artifact_sha256": {
+        "summary.json": "3cf5d20ea9e7d468898489de9e0bd200290c6b6e2fbf4045046e56ef2163c397",
+        "preflight.json": "79dec7dd57ae61bb6ffdaf2df304d88c477a2b2bf06e6f629e32ecfcec69d032",
+        "source-inputs.json": "5ee1149dae0f0c81b5a40c5a14da80fc8241d8024d372cdab82c6853a20f40d5"
+      },
+      "scope_note": "Actual native Ubuntu lib/runtime configuration/security/SIP/HTTPS/owned-DTLS-close checks. Predates the STUN routing fix and All fixture; no actual Linux TURN/media/restart/network profile qualification.",
+      "previous_latest": {
+        "run_id": 40656596259,
+        "run_url": "https://github.com/eisenzopf/connect/actions/runs/40656596259",
+        "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
+        "preflight": {
+          "os": {
+            "NAME": "Ubuntu",
+            "ID": "ubuntu",
+            "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+            "VERSION_ID": "24.04",
+            "VERSION": "24.04.5 LTS (Noble Numbat)",
+            "VERSION_CODENAME": "noble",
+            "ID_LIKE": "debian",
+            "HOME_URL": "https://www.ubuntu.com/",
+            "SUPPORT_URL": "https://help.ubuntu.com/",
+            "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+            "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+            "UBUNTU_CODENAME": "noble",
+            "LOGO": "ubuntu-logo"
+          },
+          "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+          "source_revision": "563d16bc467dc766582579709b10d93952d47b68",
+          "runner_image_version": "20261023.334.3",
+          "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
+          "toolchain": {
+            "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+            "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+            "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
+          },
+          "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
+        },
+        "result": {
+          "passed": true,
+          "started_at": "2026-10-28T08:29:33.536940+00:00",
+          "steps": [
+            {
+              "name": "compile-library",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 99.53178034100002,
+              "log_sha256": "33c29c5a8a37c88799a5e70fcc9d1b7d716cd7d821421e52db46e442954df468",
+              "test_results": [],
+              "panic_locations": []
+            },
+            {
+              "name": "compile-hosting",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 179.09539407200003,
+              "log_sha256": "7f2a5bc94f4f758bef8168358afb88005b22e4ea8e70e64b5cb77bd5d77d440a",
+              "test_results": [],
+              "panic_locations": []
+            },
+            {
+              "name": "addressing",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.008090052000000014,
+              "log_sha256": "0450adaed9ecfb9768a0fed577ff8041fbdc1dba33db218327fa66df54024dfe",
+              "test_results": [
+                "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "config",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.007689144000039505,
+              "log_sha256": "2af85d740b297c5908632677fc76d04c053680dd9b2776db8a63aa498e658e0f",
+              "test_results": [
+                "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "sip-config",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.007730852000008781,
+              "log_sha256": "5b7b847443c2f79d0e0d437d3ee744e4662c67bc42a937f12412a31fee637c4d",
+              "test_results": [
+                "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.00s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "owned-dtls",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.9668763239999976,
+              "log_sha256": "e0e6d579c5e6c3d28fbbaa325e877fbdc4078a7ae1582ad4cd28c9f7d369df2a",
+              "test_results": [
+                "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.94s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "https-hosting",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 13.198265780999975,
+              "log_sha256": "c0a6718c9febf005b46776e41a65b2aa94b75b3c3f29c818cad33fc57afcccc7",
+              "test_results": [
+                "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 13.14s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "sip-unknown-account",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.8161872690000109,
+              "log_sha256": "b14cc804812920d95c39ae7fc1eca72d27c8509909d9c4f13941baafc3253a60",
+              "test_results": [
+                "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.77s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "sip-bind-failure",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.8159135910000259,
+              "log_sha256": "ffeaa7f8fd7e2c917403c48a469b8723b88058c4da56eddd8be8c87591fa7b54",
+              "test_results": [
+                "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.75s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "sip-owner-drop",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 0.7658472200000119,
+              "log_sha256": "08b51c70364d56148d99d1403d88e90825b251e82c9a59c54f0fa3e9b2ef26f9",
+              "test_results": [
+                "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.72s"
+              ],
+              "panic_locations": []
+            },
+            {
+              "name": "sip-readiness",
+              "exit_code": 0,
+              "timed_out": false,
+              "forced_kill": false,
+              "seconds": 10.193980427000042,
+              "log_sha256": "9214495307dedc2a2b392121ce7eb875deb4a4984edd8c83afac0094ea55e950",
+              "test_results": [
+                "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 10.14s"
+              ],
+              "panic_locations": []
+            }
+          ],
+          "runner_sha256": "034cc273a7a088adcc265d97b817c0b48073d9d7fbf127f1ca3ff385285fa9ca",
+          "source_count": 7979,
+          "source_inputs_sha256": "4e759238bf13fe6f96b2ee997f3deef3db42c6b30a547131fba1e83f6edaaa3e",
+          "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification.",
+          "compiled_artifacts": {
+            "library": "109698a8b8e0cd62d7ead635c4cf6bc35cb6e431211a1758e9398cd5e6b07d40",
+            "hosting": "a6569f9335a01d3ec4d095658b65c278f539d11e3d886033fbde89d1c50305cb"
+          },
+          "behavior_passed": true,
+          "source_inputs_unchanged": true,
+          "finished_at": "2026-10-28T08:34:41.582218+00:00"
+        },
+        "artifact_sha256": {
+          "summary.json": "c09ca15ce0f6a1eb4b9cf149938381211bfbe918737e10bc582e292cf52942a3",
+          "preflight.json": "d9109b34d55150cc3e955eceb4d3d43a170b234bc5c91ed7dab4fa34c71b199e",
+          "source-inputs.json": "4e759238bf13fe6f96b2ee997f3deef3db42c6b30a547131fba1e83f6edaaa3e"
+        },
+        "functions_passed": 23
+      }
+    }
   }
 }

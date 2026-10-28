@@ -51,6 +51,19 @@ export function installPeerDiagnostics() {
             return {current, events: entry.events, omitted_events: entry.omitted_events, snapshot_errors: entry.snapshot_errors};
         }),
     });
+    globalThis.connectPeerMediaDiagnostics = async () => Promise.all(entries.map(async(entry)=>{
+        const report=await entry.peer.getStats(),rows=[];
+        const fields=["packetsSent","packetsReceived","bytesSent","bytesReceived","framesEncoded","framesDecoded",
+            "framesReceived","framesDropped","totalSamplesSent","totalSamplesReceived","totalAudioEnergy",
+            "totalSamplesDuration","audioLevel","frameWidth","frameHeight"];
+        report.forEach(stat=>{
+            if(!["inbound-rtp","outbound-rtp","media-source"].includes(stat.type)||rows.length>=8)return;
+            const row={type:stat.type,kind:["audio","video"].includes(stat.kind)?stat.kind:"other"};
+            for(const field of fields)if(Number.isFinite(stat[field])&&stat[field]>=0)row[field]=stat[field];
+            rows.push(row);
+        });
+        return rows;
+    }));
 }
 
 export async function browserFailure(pages, error) {
@@ -61,7 +74,18 @@ export async function browserFailure(pages, error) {
                 new Promise((_, reject) => setTimeout(() => reject(Error()), 1000)),
             ]);
             const control=await page.evaluate(()=>globalThis.connectControlDiagnostics?.()??{unavailable:true});
-            return {participant: index, ...value,control};
+            const media=await Promise.race([page.evaluate(async()=>{
+                const f=globalThis.videoFixture;
+                if(!f?.session)return {unavailable:true};
+                return {rtp:await globalThis.connectPeerMediaDiagnostics?.(),video:(await f.session.diagnostics()).slice(0,4),
+                    audio_context_state:f.audio?.state,source_draws:f.sourceObservation?.draws,
+                    element:f.video?{ready_state:f.video.readyState,network_state:f.video.networkState,
+                        media_error_code:f.video.error?.code??null,paused:f.video.paused,
+                        width:f.video.videoWidth,height:f.video.videoHeight}:undefined,
+                    remote_tracks:f.session.remoteStream.getTracks().slice(0,4).map(track=>({
+                        kind:track.kind,ready_state:track.readyState,enabled:track.enabled,muted:track.muted}))};
+            }),new Promise(resolve=>setTimeout(()=>resolve({unavailable:true}),1000))]);
+            return {participant: index, ...value,control,media};
         } catch { return {participant: index, unavailable: true}; }
     }));
     return {status: "failed", profile: "connect-video-vp8/1", phase: "browser-participation",

@@ -319,5 +319,10 @@
       "ES256"
     ],
     "scope": "Owned native UDP blackhole: specific client timeout near5.02s, no guest offer, post-timeout signed heartbeat, exactly1local durable offer and zero peers. Final source group also passes direct and measured-loss decoded duplex;6profiles source/executables unchanged. Initial empty-subscription fixture failure retained."
+  },
+  "distinct_network_browser": {
+    "evidence": "docs/evidence/gate-6/remote-browser-network.json",
+    "component_passed": false,
+    "scope": "Actual Linux Chromium151 to Mac Remote host: normal TLS, signed offers/subscriptions and ICE/DTLS connect, paced source sends Opus/VP8, but no inbound RTP rows/decoded media. Entire rehearsal remains failed; server routes/capacity drain. Trace ingress/forwarding/egress next."
   }
 }

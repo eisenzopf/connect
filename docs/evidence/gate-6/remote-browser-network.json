@@ -1,0 +1,465 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "implementation_status": "in-progress",
+  "component_passed": false,
+  "scope": "Owned actual Linux arm64 Chromium151 peers in local Lima VM to macOS Remote host. Normal CA and hostname verification, HTTPS frontend, explicit public media addressing, signed WSS offers/subscriptions, ICE/DTLS and original capacity drain are observed. Duplex decoded audio/video remains failed and unqualified.",
+  "procedure": "docs/developer/remote-browser-rehearsal.md",
+  "latest_failed_trial": "direct215",
+  "layers_observed": {
+    "unconfigured_ca_refused": {
+      "mode": "untrusted",
+      "os": "linux",
+      "architecture": "arm64",
+      "browser": "Chromium 151.0.7922.34",
+      "unconfigured_ca_refused": true,
+      "normal_certificate_verification": true
+    },
+    "normal_ca_import": {
+      "normal_user_ca_import": true,
+      "nss_version": "3.98",
+      "root_sha256": "32ac71f775008a156bcadfea00df585e81000f634a02e998322ecefd5cad31ff"
+    },
+    "source_clock": {
+      "startup_audio_seconds": 0.25541950113378686,
+      "wall_seconds": 1.2087999999523162,
+      "audio_seconds": 1.2074376417233559,
+      "ratio": 0.9988729663889692,
+      "passed": true
+    },
+    "peers": [
+      {
+        "participant": 0,
+        "states": [
+          {
+            "connection": "connected",
+            "ice": "connected",
+            "gathering": "complete",
+            "signaling": "stable",
+            "local_description_set": true,
+            "remote_description_set": true,
+            "dtls": [
+              "connected"
+            ]
+          }
+        ],
+        "rtp": [
+          {
+            "type": "outbound-rtp",
+            "kind": "audio",
+            "packetsSent": 768,
+            "bytesSent": 61890
+          },
+          {
+            "type": "outbound-rtp",
+            "kind": "video",
+            "packetsSent": 965,
+            "bytesSent": 793070,
+            "framesEncoded": 461,
+            "frameWidth": 640,
+            "frameHeight": 360
+          },
+          {
+            "type": "media-source",
+            "kind": "audio",
+            "totalAudioEnergy": 2.744163018002499,
+            "totalSamplesDuration": 15.779999999999708,
+            "audioLevel": 0.0499893185216834
+          },
+          {
+            "type": "media-source",
+            "kind": "video"
+          }
+        ],
+        "inbound_rtp_rows": 0,
+        "video": [
+          {
+            "direction": "outbound",
+            "codec": "video/VP8",
+            "frames": 461,
+            "keyframes": 17,
+            "width": 640,
+            "height": 360,
+            "packets": 965,
+            "bytes": 793070,
+            "lost": 0,
+            "jitter": 0,
+            "timestamp": 1793184552957.003,
+            "capturedFrames": 467,
+            "capturedFramesPerSecond": 30,
+            "targetBitrate": 1000000,
+            "remotePacketsLost": 0,
+            "remoteFractionLost": 0,
+            "remoteRoundTripTimeSeconds": 0.001,
+            "availableOutgoingBitrate": 2152941,
+            "worker": {
+              "observedFrames": 461,
+              "observedKeyframes": 17,
+              "keyframeRequests": 16,
+              "keyframeCompletions": 16,
+              "keyframeFailures": 0,
+              "keyframeRequestPending": false,
+              "pendingRequestSeconds": 0
+            },
+            "encodeSeconds": 1.468,
+            "packetSendDelaySeconds": 0.147051,
+            "framesPerSecond": 30,
+            "qualityLimit": "none",
+            "selectedCandidatePairSource": "stats",
+            "selectedRemotePort": 38131,
+            "selectedLocalPort": 57967,
+            "selectedTransport": "udp",
+            "selectedCandidateType": "host"
+          }
+        ],
+        "audio_context_state": "running",
+        "source_draws": 479,
+        "remote_tracks": [
+          {
+            "kind": "audio",
+            "ready_state": "live",
+            "enabled": true,
+            "muted": true
+          },
+          {
+            "kind": "video",
+            "ready_state": "live",
+            "enabled": true,
+            "muted": true
+          }
+        ],
+        "element": {
+          "ready_state": 0,
+          "network_state": 0,
+          "media_error_code": null,
+          "paused": true,
+          "width": 0,
+          "height": 0
+        }
+      },
+      {
+        "participant": 1,
+        "states": [
+          {
+            "connection": "connected",
+            "ice": "connected",
+            "gathering": "complete",
+            "signaling": "stable",
+            "local_description_set": true,
+            "remote_description_set": true,
+            "dtls": [
+              "connected"
+            ]
+          }
+        ],
+        "rtp": [
+          {
+            "type": "outbound-rtp",
+            "kind": "audio",
+            "packetsSent": 768,
+            "bytesSent": 62034
+          },
+          {
+            "type": "outbound-rtp",
+            "kind": "video",
+            "packetsSent": 960,
+            "bytesSent": 792979,
+            "framesEncoded": 461,
+            "frameWidth": 640,
+            "frameHeight": 360
+          },
+          {
+            "type": "media-source",
+            "kind": "audio",
+            "totalAudioEnergy": 2.7977527261384325,
+            "totalSamplesDuration": 15.759999999999708,
+            "audioLevel": 0.0499893185216834
+          },
+          {
+            "type": "media-source",
+            "kind": "video"
+          }
+        ],
+        "inbound_rtp_rows": 0,
+        "video": [
+          {
+            "direction": "outbound",
+            "codec": "video/VP8",
+            "frames": 461,
+            "keyframes": 17,
+            "width": 640,
+            "height": 360,
+            "packets": 960,
+            "bytes": 792979,
+            "lost": 0,
+            "jitter": 0,
+            "timestamp": 1793184552959.02,
+            "capturedFrames": 467,
+            "capturedFramesPerSecond": 29,
+            "targetBitrate": 1000000,
+            "remotePacketsLost": 0,
+            "remoteFractionLost": 0,
+            "remoteRoundTripTimeSeconds": 0.001923,
+            "availableOutgoingBitrate": 2142023,
+            "worker": {
+              "observedFrames": 461,
+              "observedKeyframes": 17,
+              "keyframeRequests": 16,
+              "keyframeCompletions": 16,
+              "keyframeFailures": 0,
+              "keyframeRequestPending": false,
+              "pendingRequestSeconds": 0
+            },
+            "encodeSeconds": 1.518,
+            "packetSendDelaySeconds": 0.15192899999999998,
+            "framesPerSecond": 30,
+            "qualityLimit": "none",
+            "selectedCandidatePairSource": "stats",
+            "selectedRemotePort": 38130,
+            "selectedLocalPort": 50596,
+            "selectedTransport": "udp",
+            "selectedCandidateType": "host"
+          }
+        ],
+        "audio_context_state": "running",
+        "source_draws": 479,
+        "remote_tracks": [
+          {
+            "kind": "audio",
+            "ready_state": "live",
+            "enabled": true,
+            "muted": true
+          },
+          {
+            "kind": "video",
+            "ready_state": "live",
+            "enabled": true,
+            "muted": true
+          }
+        ],
+        "element": {
+          "ready_state": 0,
+          "network_state": 0,
+          "media_error_code": null,
+          "paused": true,
+          "width": 0,
+          "height": 0
+        }
+      }
+    ],
+    "server": {
+      "algorithm": "EdDSA",
+      "capacity_reclaimed": 2,
+      "durable_offers": 2,
+      "physical_routes_drained": true,
+      "server_shutdown_joined": true
+    },
+    "whole_rehearsal_passed": false,
+    "full_measurement_started": false
+  },
+  "retained_trials": [
+    {
+      "trial": "direct202",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct202/summary.json",
+      "private_summary_sha256": "5a5c156e71a0756076dfec5f5efc2eb47f18705c0ac256e9b221efa44e45b31e",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Before guest launch, Remote config correctly rejected an HTTP frontend origin. Fixture changed to HTTPS with a separate leaf/key."
+    },
+    {
+      "trial": "direct204",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct204/summary.json",
+      "private_summary_sha256": "8c30a7c99427e378e4dafc1f617e54a0e5fff1ba5b3d7aef178623cb02c997ed",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Before guest launch, the common enrolled-peer helper required its optional WebTransport contact. Fixture now provides the exact Remote contact; WSS remains the selected browser control."
+    },
+    {
+      "trial": "direct207",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct207/summary.json",
+      "private_summary_sha256": "15c57f5bd66b09478abf2a9924cf6da85cda8a73dd13726b61ac32e9620f2583",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Normal CA refusal/import and both ICE/DTLS connections succeeded, but attach failed. Container lacked an output sound card; no decoded-media pass."
+    },
+    {
+      "trial": "direct209",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct209/summary.json",
+      "private_summary_sha256": "271fc5aff1844e2ebc841dffd7a6e67aba62568f3275013690ec4a6f5e9ba451",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Physical output mute alone did not fix attach. Both actual peer connections succeeded; whole case failed."
+    },
+    {
+      "trial": "direct210",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct210/summary.json",
+      "private_summary_sha256": "0e203c7f8f05e15b26fa760d08ff712611823ff5f1f1abac8433bf23be8f5460",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "ALSA null sink removed device-open errors but did not qualify media. First added diagnostics used the voice facade method name for a video facade; corrected observer without SDK changes."
+    },
+    {
+      "trial": "direct211",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct211/summary.json",
+      "private_summary_sha256": "8888db32ac47b216ea3a28ef987af646e2d24f4d5d3c0c8412e820a903a0c0ef",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Numeric diagnostics showed an unpaced ALSA null sink: thousands of seconds of audio generation in about16wall seconds. This invalid source trial remains failed."
+    },
+    {
+      "trial": "direct213",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct213/summary.json",
+      "private_summary_sha256": "c90f5843a3c62fbab4665b20ee1b076d60a524b01f4c7733ebc377c18221d2e4",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "The new paced sink source clock had not settled during the initial calibration. The source-validity guard refused before media publication; whole case failed."
+    },
+    {
+      "trial": "direct215",
+      "passed": false,
+      "private_summary": ".local/gate-6/browser-remote/direct215/summary.json",
+      "private_summary_sha256": "15339b0ab45a077dcd9dd2f0dd61e17b93020936c46667f393d5bac703197db0",
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executable_unchanged": true,
+      "result": "Paced source calibration passes and both peers send normally paced Opus/VP8 through connected ICE/DTLS, but no inbound RTP rows appear, tracks remain muted and attach fails. The 60second measurement never starts. Root cause remains under investigation."
+    }
+  ],
+  "source_binding": {
+    "implementation_base_revision": "34b5a59217655c6b0322d29ff2c83915f4eea822",
+    "server_build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 3.6013327911496162,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5251,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-browser-server-206",
+        "sha256": "4c178dee79522aa27f317ba73d32c4515c51800ac9f169c28a7d0c405d591464",
+        "bytes": 216207552
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "2ed7266a7f3860e7925fd456a9651c39175b7493918f0ed1db8451f301c29957"
+    },
+    "private_build_summary": ".local/gate-6/rtc-signed-av/build-206-summary.json",
+    "private_build_summary_sha256": "223ab20181aeec4b91bcaaab7194ce86dae4404a571e03cd4e660850def46a3b",
+    "runtime_source_count": 2584,
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "private_runtime_summary": ".local/gate-6/browser-remote/direct215/summary.json",
+    "private_runtime_summary_sha256": "15339b0ab45a077dcd9dd2f0dd61e17b93020936c46667f393d5bac703197db0",
+    "runtime_runner_sha256": "f16ca16b8acd9faef161c99ea49db47456a5c1cbc951e7bd245b74393531a077",
+    "preflight_binary_archives": ".local/gate-6/browser-remote/preflight-archives206.json",
+    "preflight_archives_sha256": "360c750da9397c2d673c44cf013dc30a0b2ab78f548f20de6c1048ae9cfeed91"
+  },
+  "image": {
+    "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
+    "base": "mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e",
+    "browser": "Chromium151.0.7922.34",
+    "nss": "3.98",
+    "pulseaudio": "1:16.1+dfsg1-2ubuntu10.1",
+    "private_build_log_sha256": "059f8c158626ad1f6e0104607c3b546ae2241178da03ae113e205a902d48eff2",
+    "packages_sha256": "b0b13c40fd1ec6809b9617ef173d2cf62424a563d84e2beb77c2394265435819",
+    "standalone_paced_clock": {
+      "startup_audio_seconds": 0.26702947845804986,
+      "wall_seconds": 1.2017999999523163,
+      "audio_seconds": 1.207437641723356,
+      "ratio": 1.0046909983119183,
+      "passed": true
+    },
+    "standalone_process_ownership": {
+      "passed": true,
+      "original_browser_joined": true,
+      "forced_kill": false,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "audio_server": {
+        "original_joined": true,
+        "forced_kill": false,
+        "exit": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "source_clock": {
+        "startup_audio_seconds": 0.26702947845804986,
+        "wall_seconds": 1.2017999999523163,
+        "audio_seconds": 1.207437641723356,
+        "ratio": 1.0046909983119183,
+        "passed": true
+      },
+      "os": "linux",
+      "architecture": "arm64",
+      "browser": "Chromium 151.0.7922.34"
+    }
+  },
+  "next_required_work": [
+    "Trace actual server ingress, Core forwarding and physical egress under this now-valid source. ICE/DTLS success must never be substituted for media success.",
+    "Correct the demonstrated failure, preserve its causal evidence, and run both signing algorithms with the full unchanged decoder/quality/cleanup checks.",
+    "Complete required distinct-network browser/native/telephone direct/relay, ICE restart and full fault/quality profiles."
+  ],
+  "limits": [
+    "Linux arm64 Chromium151 is an owned network fixture, not the approved installed Chrome155/Firefox158 matrix or native Linux x86 hosting/performance.",
+    "Installed Mac Chrome now reports156.0.8078.48; the existing normal-trust helper is pinned to155.0.8059.85. A Mac local regression was not run with a version-bypass or silently updated profile.",
+    "Earlier sound-device and unpaced-clock failures are fixture failures. No causal server media/NAT bug is asserted solely from those trials. The paced215failure still requires tracing.",
+    "No TURN, WAN, SIP/RTP, native x86performance, installation, models/providers, publication or acceptance qualification."
+  ],
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "5d8d98b84e816c032e12d963ed04db6b9f3832ea458f4c36d3fd97421232e0c6",
+    "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs": "ad8afb0afd3b16b9dcc05f3fc20ed8eba60f0070232a9ade5a04ace3f3d21ffc",
+    "scripts/rehearse-gate6-remote-browser.py": "f16ca16b8acd9faef161c99ea49db47456a5c1cbc951e7bd245b74393531a077",
+    "scripts/video/browser-qualify.mjs": "600438df6247fdf46e39938193fe75c82be4d2f1c863ad4179573be9dd47e80a",
+    "scripts/video/browser_failure.mjs": "f9064fc7af46d2c16890e6069c39a1c9e9acbb401ddfa68be5fdde0275e39221",
+    "scripts/video/linux_remote_browser.mjs": "73cba1f12f2e6fe5b12a5be8c5ea921ced85a4d1ddc7c77e410a5757c114ee94",
+    "scripts/video/linux_browser_trust.py": "df58a2ae49717d7c9f69e265efe35e251ef95bf437c5404cd3083bd772d101ec",
+    "scripts/video/Dockerfile.remote-browser": "0ec3ba806338b2146d8747f9bcde0890df2b21b5fc2dc002531daa4d26e9bac9",
+    "docs/developer/remote-browser-rehearsal.md": "4b0523d1c5e2ee663b9c4173c7f8f4eaa5a2bbf3e7d8d7ccb1e875d47e1d8b71",
+    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
+  },
+  "acceptance_qualified": false,
+  "publication": false
+}

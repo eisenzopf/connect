@@ -6,6 +6,7 @@ import process from "node:process";
 import {connectFirefoxBidi} from "./browser_bidi_adapter.mjs";
 import {createPrivateKey,webcrypto} from "node:crypto";
 import http from "node:http";
+import https from "node:https";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ordinalSync } from "./marker_calibration.mjs";
@@ -54,7 +55,7 @@ let assets;
 if(spec.root) {
     const root=await fs.realpath(spec.root);
     const publicFolders=await Promise.all(["examples/conversation-client","sdk/typescript/dist"].map(name=>fs.realpath(path.join(root,name))));
-    assets=http.createServer(async(request,response)=>{
+    const serveAsset=async(request,response)=>{
         try {
             const url=new URL(request.url,"http://127.0.0.1");
             if(request.method==="GET"&&url.pathname==="/_qualification/source-identity.mjs"){
@@ -84,13 +85,17 @@ if(spec.root) {
             const bytes=await fs.readFile(actual);
             response.writeHead(200,{"Content-Type":actual.endsWith(".js")?"text/javascript":actual.endsWith(".css")?"text/css":"text/html"});response.end(bytes);
         }catch {response.writeHead(404);response.end("asset unavailable");}
-    });
+    };
+    assets=spec.assetTls?https.createServer({cert:await fs.readFile(spec.assetTls.certFile),
+        key:await fs.readFile(spec.assetTls.keyFile)},serveAsset):http.createServer(serveAsset);
     await new Promise((resolve,reject)=>{assets.once("error",reject);assets.listen(spec.assetPort??0,"127.0.0.1",resolve)});
-    spec.baseURL=`http://127.0.0.1:${assets.address().port}`;
+    spec.baseURL=spec.assetTls?`https://localhost:${assets.address().port}`:`http://127.0.0.1:${assets.address().port}`;
 }
 for (const address of [spec.baseURL, ...spec.participants.map(p=>p.url)]) {
     const url = new URL(address);
-    if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.username || url.password || url.search)
+    const ownedRemote=spec.designatedRemoteHost==="host.lima.internal"&&url.hostname===spec.designatedRemoteHost
+        &&url.protocol==="wss:"&&url.pathname==="/connect"&&url.port&&!url.hash;
+    if ((!ownedRemote&&!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) || url.username || url.password || url.search)
         throw new Error("Use an isolated loopback browser fixture");
 }
 if (!Number.isInteger(spec.seconds) || spec.seconds < 1 || spec.seconds > 120 || ![1,2].includes(spec.participants.length))

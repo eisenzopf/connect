@@ -3,6 +3,8 @@
 mod audio_trace;
 #[path = "canonical_webrtc_browser/recovery.rs"]
 mod recovery;
+#[path = "canonical_webrtc_browser/remote.rs"]
+mod remote;
 #[path = "canonical_webrtc_browser/transitions.rs"]
 mod transitions;
 use super::*;

@@ -1,0 +1,8 @@
+FROM mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+USER root
+# Paced software output only; no host sound device or existing user profile.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       pulseaudio=1:16.1+dfsg1-2ubuntu10.1 \
+    && dpkg-query -W > /usr/local/share/connect-browser-packages.tsv \
+    && rm -rf /var/lib/apt/lists/*
