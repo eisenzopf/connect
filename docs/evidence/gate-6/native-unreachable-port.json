@@ -1,0 +1,400 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "component_passed": true,
+  "implementation_status": "in-progress",
+  "scope": "Actual owned Linux/amd64 guest on local Lima arm64 VM to Mac native UDP endpoint; specific timeout before guest offer when an owned port sends no replies, post-timeout authenticated heartbeat, original local offer count and zero physical peers. Direct and measured-loss decoded PCMU regressions on the same final sources. No whole Gate 6 qualification.",
+  "procedure": "docs/developer/native-media-rehearsal.md",
+  "implementation_base_revision": "96285b2d5acf0c2a43d5b5481c7cf8ea354dc25e",
+  "observations": {
+    "unreachable198": {
+      "passed": true,
+      "mode": "unreachable-port",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.797114749904722,
+          "guest_witness": [
+            {
+              "algorithm": "EdDSA",
+              "architecture": "x86_64",
+              "elapsed_seconds": 5.024262129,
+              "no_offer_submitted": true,
+              "open_refused": "timeout",
+              "os": "linux",
+              "profile": "remote"
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "EdDSA",
+              "durable_native_offers": 1,
+              "guest_open_refused": true,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": true,
+              "received_bytes": 0,
+              "sent_frames": 0
+            }
+          ],
+          "guest_log_sha256": "a4af59407a311d78276e01d91ddc610b5488d7fdb56fc03dc7e4e929a4daca35",
+          "server_log_sha256": "1ea6f6dc6fd26628fae5098da8a5fc332e9cecfcc8d42711349166e79e95d77e",
+          "passed": true,
+          "observed_unanswered_datagrams": 6
+        },
+        {
+          "algorithm": "ES256",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.752528457902372,
+          "guest_witness": [
+            {
+              "algorithm": "ES256",
+              "architecture": "x86_64",
+              "elapsed_seconds": 5.023973106,
+              "no_offer_submitted": true,
+              "open_refused": "timeout",
+              "os": "linux",
+              "profile": "remote"
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "ES256",
+              "durable_native_offers": 1,
+              "guest_open_refused": true,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": true,
+              "received_bytes": 0,
+              "sent_frames": 0
+            }
+          ],
+          "guest_log_sha256": "adf1721ed243283af24f75fbe1b0fea3a6f32e973ee11358315bdb7ff5114b21",
+          "server_log_sha256": "f0fd5c8eb7d5934ca9b0cc093cf3b48a79c2b115f0dc032f22763df8718070d4",
+          "passed": true,
+          "observed_unanswered_datagrams": 6
+        }
+      ],
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "private_summary": ".local/gate-6/native-remote/media-unreachable198/summary.json",
+      "private_summary_sha256": "9d25780a173f8f1454e8fe9fe607831d8435affa11222bb409e581ca597e15b4"
+    },
+    "direct199": {
+      "passed": true,
+      "mode": "direct",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.263865000102669,
+          "guest_witness": [
+            {
+              "algorithm": "EdDSA",
+              "architecture": "x86_64",
+              "os": "linux",
+              "owned_peer_shutdown": true,
+              "profile": "remote",
+              "received_bytes": 31840,
+              "sent_frames": 200
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "EdDSA",
+              "durable_native_offers": 2,
+              "guest_open_refused": false,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": false,
+              "received_bytes": 31520,
+              "sent_frames": 200
+            }
+          ],
+          "guest_log_sha256": "b4630551fd62b4c93d5e6397d5b76561caa565bde55624222d11ef4f4c90cb18",
+          "server_log_sha256": "62857c2b816ac44fb292b7731d935caf515655bb0ce2f5cb496e318683320de0",
+          "passed": true,
+          "decoded_at_host": {
+            "expected_hz": 660,
+            "excluded_self_hz": 440,
+            "decoded_samples": 31520,
+            "active_frames": 197,
+            "matching_frames": 197,
+            "pcmu_sha256": "5a747fb9928cc0810d145c580b9570ac7e1bde8d6cfb234a1d481a98b7381a43",
+            "decoded_s16le_sha256": "ec895db3c316e7d17073a08f819e52e4ed593880bd96bd31c592ad9aca6bf8ce",
+            "passed": true
+          },
+          "decoded_at_guest": {
+            "expected_hz": 440,
+            "excluded_self_hz": 660,
+            "decoded_samples": 31840,
+            "active_frames": 199,
+            "matching_frames": 199,
+            "pcmu_sha256": "66889f88c5221003bbd9d8797d776e782f2b9f217837f6eddee95bbf12c82a19",
+            "decoded_s16le_sha256": "f5808e4951b7ae1969226ba28764b446fb71c701eff3131e2ea7834b6c5e50a3",
+            "passed": true
+          }
+        },
+        {
+          "algorithm": "ES256",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.216001417022198,
+          "guest_witness": [
+            {
+              "algorithm": "ES256",
+              "architecture": "x86_64",
+              "os": "linux",
+              "owned_peer_shutdown": true,
+              "profile": "remote",
+              "received_bytes": 31680,
+              "sent_frames": 200
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "ES256",
+              "durable_native_offers": 2,
+              "guest_open_refused": false,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": false,
+              "received_bytes": 31680,
+              "sent_frames": 200
+            }
+          ],
+          "guest_log_sha256": "ca4854099c11b453151ddf2fbc3ebaf3fc6a423419cb844737b5b03b0936d6d7",
+          "server_log_sha256": "11a05b4f3d80986164aea4c22a452ddd9ca3eb174b45c5d62874d178b5b5b986",
+          "passed": true,
+          "decoded_at_host": {
+            "expected_hz": 660,
+            "excluded_self_hz": 440,
+            "decoded_samples": 31680,
+            "active_frames": 198,
+            "matching_frames": 198,
+            "pcmu_sha256": "561238e8fa6152316aa129766b50fb1644920a7ba6f3a34cc64a1fdab4cab89b",
+            "decoded_s16le_sha256": "42456a8b97fae5a6be669caca37662b1896147110126f3947ae9fe5d3b8064f3",
+            "passed": true
+          },
+          "decoded_at_guest": {
+            "expected_hz": 440,
+            "excluded_self_hz": 660,
+            "decoded_samples": 31680,
+            "active_frames": 198,
+            "matching_frames": 198,
+            "pcmu_sha256": "a0410d1609b39cad756acb6edb1c15def63ffb3d481b824f7ce9c0bce3b50c04",
+            "decoded_s16le_sha256": "e9d6022e1d0b2e862e518c043c0c0c35b30b0528abfe8349f5220ddddda5e906",
+            "passed": true
+          }
+        }
+      ],
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "private_summary": ".local/gate-6/native-remote/media-direct199/summary.json",
+      "private_summary_sha256": "0e75bc05899c6dadbd539fa8dc633939f1ac0d935705684cd42e64b2569690c3"
+    },
+    "loss200": {
+      "passed": true,
+      "mode": "loss",
+      "profiles": [
+        {
+          "algorithm": "EdDSA",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.274722165893763,
+          "guest_witness": [
+            {
+              "algorithm": "EdDSA",
+              "architecture": "x86_64",
+              "os": "linux",
+              "owned_peer_shutdown": true,
+              "profile": "remote",
+              "received_bytes": 28960,
+              "sent_frames": 200
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "EdDSA",
+              "durable_native_offers": 2,
+              "guest_open_refused": false,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": false,
+              "received_bytes": 28480,
+              "sent_frames": 200
+            }
+          ],
+          "guest_log_sha256": "7c167a293ffc94710b6e9e933b5ff7106bbd1cfe8046bafca5ad3056b9db758d",
+          "server_log_sha256": "223ade0704c1ad71df9553b522854e70f39e5150b6b9cbd498c7f40f71d8375a",
+          "passed": true,
+          "transport_fault": {
+            "drop_every_after_media_go": 10,
+            "foreign_datagrams": 0,
+            "guest_to_server": {
+              "eligible": 227,
+              "dropped": 22,
+              "forwarded": 225
+            },
+            "server_to_guest": {
+              "eligible": 249,
+              "dropped": 24,
+              "forwarded": 249
+            },
+            "worker_joined": true
+          },
+          "decoded_at_host": {
+            "expected_hz": 660,
+            "excluded_self_hz": 440,
+            "decoded_samples": 28480,
+            "active_frames": 178,
+            "matching_frames": 178,
+            "pcmu_sha256": "b2747defa8fdcfcf247d549d329911a3ac48a6b8428d6ffcf2524b4d123aa2e7",
+            "decoded_s16le_sha256": "009f46b797da51f9f3a24d377528b0ab6c0a6570e872ed903ee0e553614a81b5",
+            "passed": true
+          },
+          "decoded_at_guest": {
+            "expected_hz": 440,
+            "excluded_self_hz": 660,
+            "decoded_samples": 28960,
+            "active_frames": 181,
+            "matching_frames": 181,
+            "pcmu_sha256": "7690eed2ae55303073a32887c2ee9531f17ec8657538791b98ddbe687294362b",
+            "decoded_s16le_sha256": "eec9d82c77dd337c82ba6f30113b3f7211124d8ac6530dc03948a86b05689a47",
+            "passed": true
+          }
+        },
+        {
+          "algorithm": "ES256",
+          "guest_exit_code": 0,
+          "server_exit_code": 0,
+          "elapsed_seconds": 5.270319290924817,
+          "guest_witness": [
+            {
+              "algorithm": "ES256",
+              "architecture": "x86_64",
+              "os": "linux",
+              "owned_peer_shutdown": true,
+              "profile": "remote",
+              "received_bytes": 28800,
+              "sent_frames": 200
+            }
+          ],
+          "server_witness": [
+            {
+              "algorithm": "ES256",
+              "durable_native_offers": 2,
+              "guest_open_refused": false,
+              "physical_peers_drained": true,
+              "post_timeout_signed_heartbeat": false,
+              "received_bytes": 28640,
+              "sent_frames": 200
+            }
+          ],
+          "guest_log_sha256": "19c16fa015d0a4d03f8850d91f03bbd57b91db1fbc432d9be79726606b149488",
+          "server_log_sha256": "807fbf3945d339fa1db2add65d5e340510b168ddb4769a55465665a2f5fd5b3f",
+          "passed": true,
+          "transport_fault": {
+            "drop_every_after_media_go": 10,
+            "foreign_datagrams": 0,
+            "guest_to_server": {
+              "eligible": 231,
+              "dropped": 23,
+              "forwarded": 228
+            },
+            "server_to_guest": {
+              "eligible": 259,
+              "dropped": 25,
+              "forwarded": 258
+            },
+            "worker_joined": true
+          },
+          "decoded_at_host": {
+            "expected_hz": 660,
+            "excluded_self_hz": 440,
+            "decoded_samples": 28640,
+            "active_frames": 179,
+            "matching_frames": 179,
+            "pcmu_sha256": "a3845ca2d19fc17b4af1a763e0332be1e0896c1c09ef0bf51e394a93d7b8523f",
+            "decoded_s16le_sha256": "4cabf5a383fa2889319ba7e4a23cd1730e5f4788361651ddf3692a529e3e5ee1",
+            "passed": true
+          },
+          "decoded_at_guest": {
+            "expected_hz": 440,
+            "excluded_self_hz": 660,
+            "decoded_samples": 28800,
+            "active_frames": 180,
+            "matching_frames": 180,
+            "pcmu_sha256": "e6c3eef161fed7eac090ba24e89a7680823b845d984c93ec3cd584084529df49",
+            "decoded_s16le_sha256": "e632563bc3ceacc7327534eff579c797427d79bc5e4589dcfdb9a77913c81e3d",
+            "passed": true
+          }
+        }
+      ],
+      "source_inputs_unchanged": true,
+      "build_inputs_unchanged": true,
+      "executables_unchanged": true,
+      "private_summary": ".local/gate-6/native-remote/media-loss200/summary.json",
+      "private_summary_sha256": "c34338666122d50d516cf798196e8da12bfe350e2a1f9ec66e62e344e75844bf"
+    }
+  },
+  "source_binding": {
+    "mac_server": {
+      "sha256": "2cd0f45a949a29db411e8e9801134247bbf8cc634aa6851bff0f3428b1ab347f",
+      "source_count": 5250,
+      "changed_inputs": [],
+      "build_seconds": 14.759531624848023,
+      "private_summary": ".local/gate-6/rtc-signed-av/build-197-summary.json",
+      "private_summary_sha256": "87f88e007f6ddb882356c045ad7147f8b3bba8c172aa6e2b3b0b6571b252d601"
+    },
+    "linux_guest": {
+      "sha256": "ca0658475b68aa44ee08956f0e6189844561d6dae87c9f7622edcfcc789c3ac1",
+      "source_count": 417,
+      "source_inputs_unchanged": true,
+      "build_seconds": 10.33483974984847,
+      "image_id": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+      "private_summary": ".local/gate-6/native-remote/linux-media195/sealed-summary.json",
+      "private_summary_sha256": "019d6569225a6b6797a4b0cfe86c0ec5c60704c6f72526ae2c4d397174e1a961",
+      "sealed": true
+    },
+    "runner_sha256": "e30eab5c34c311458c4dc67dcdd8dcb123106a71b13785610798d54ee1f5a0d4",
+    "all_six_profiles_source_and_executables_unchanged": true
+  },
+  "retained_failure": {
+    "passed": false,
+    "private_summary": ".local/gate-6/native-remote/media-unreachable196/summary.json",
+    "private_summary_sha256": "2bcc6e7cce9abf6479af271ac00ea2108a4716438b58b1f1de17137ea2f96c9b",
+    "algorithm": "EdDSA",
+    "guest_observation": [
+      {
+        "algorithm": "EdDSA",
+        "architecture": "x86_64",
+        "elapsed_seconds": 5.021504282,
+        "no_offer_submitted": true,
+        "open_refused": "timeout",
+        "os": "linux",
+        "profile": "remote"
+      }
+    ],
+    "server_exit_code": 101,
+    "cause": "Fixture submitted an invalid empty stream.subscribe as its post-timeout liveness check; server correctly returned invalid-request. The guest had already correctly timed out. Entire rehearsal remains failed.",
+    "correction": "Use a valid signed heartbeat on a fresh authorized local control peer. No production timeout, protocol validator or acceptance threshold changed."
+  },
+  "limits": [
+    "The owned unresponsive port is a blackhole with six observed queued datagrams per algorithm. No claim that it represents an externally named endpoint, SIP/RTP public port mapping or browser UDP fallback.",
+    "Timeout and zero guest offers are the successful negative observations; no decoded media is counted for the unreachable case.",
+    "The eight direct/loss regression directions identify opposite tones with the previously fixed observer thresholds. Loss counters describe encrypted QUIC datagrams, not RTP loss-rate or latency acceptance.",
+    "Emulated Linux guest, local owned networks and Mac server only. Native Linux hosting/performance, native video, browser, telephone, relay across required distinct networks, ICE restart and frozen full quality profiles remain open."
+  ],
+  "source_sha256": {
+    "crates/connect-client/examples/native_media_probe.rs": "537901466d4dcd305952ff3e52e4f537d41e898deb46fd587850ee8ee0a9b7a8",
+    "crates/connect-server/tests/support/canonical_native_connections/remote/media.rs": "52a230db5ffddd2aaefc8a03bfb3cfa8225a03701cc8555ab33619288f562c5b",
+    "scripts/rehearse-gate6-native-media.py": "e30eab5c34c311458c4dc67dcdd8dcb123106a71b13785610798d54ee1f5a0d4",
+    "docs/developer/native-media-rehearsal.md": "c80059b119fcfea5f0af959ed8c5a949c8b68c09da54619061c4bc7abb12685c",
+    "dependencies/source-lock.json": "90f14ff375204faf017565b8c36022b8330398fe93825438c410817c18c50017"
+  },
+  "acceptance_qualified": false,
+  "publication": false
+}

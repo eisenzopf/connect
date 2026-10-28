@@ -18,6 +18,11 @@ async fn distinct_network_audio_server_child() {
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
     let algorithm = std::env::var("CONNECT_G6_DISTINCT_NATIVE_ALGORITHM").unwrap();
     assert!(matches!(algorithm.as_str(), "EdDSA" | "ES256"));
+    let unreachable = match std::env::var("CONNECT_G6_NATIVE_UNREACHABLE") {
+        Err(std::env::VarError::NotPresent) => false,
+        Ok(value) if value == "1" => true,
+        _ => panic!("invalid unreachable-port fixture mode"),
+    };
     let mut f = configured_at(&algorithm, true, "0.0.0.0:0".parse().unwrap()).await;
     // A wildcard is a listener address, never a client destination. The guest
     // independently resolves the Mac's designated non-loopback host address.
@@ -65,12 +70,30 @@ async fn distinct_network_audio_server_child() {
     .unwrap();
     std::fs::rename(dir.join("ready-writing.json"), dir.join("ready.json")).unwrap();
     tokio::time::timeout(Duration::from_secs(90), async {
-        while !dir.join("guest-ready").exists() {
+        while !dir
+            .join(if unreachable {
+                "guest-refused"
+            } else {
+                "guest-ready"
+            })
+            .exists()
+        {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     })
     .await
     .unwrap();
+    if unreachable {
+        // The unreachable guest submitted no offer. A fresh authorized local
+        // control peer must still authenticate and receive its correlated ack.
+        let mut health = CanonicalClient::open(f.client.clone()).await.unwrap();
+        let id = health.keepalive().await.unwrap();
+        reply(&mut health, &id, "ack").await;
+        health.shutdown().await.unwrap();
+        peer.shutdown().await.unwrap();
+        finish(f, &algorithm, 0, 1, true).await;
+        return;
+    }
     wait_native_operation(&f, &f.client.credential, &cid, "distinct-media-guest-offer").await;
     assert_eq!(
         peer.subscribe_audio(
@@ -107,6 +130,16 @@ async fn distinct_network_audio_server_child() {
     })
     .await
     .unwrap();
+    finish(f, &algorithm, received.len(), 2, false).await;
+}
+
+async fn finish(
+    f: Fixture,
+    algorithm: &str,
+    received_bytes: usize,
+    offers: u64,
+    unreachable: bool,
+) {
     tokio::time::timeout(Duration::from_secs(5), async {
         while f
             .server
@@ -130,12 +163,12 @@ async fn distinct_network_audio_server_child() {
         db.query_row("SELECT count(*) FROM native_offer_operations", [], |r| r
             .get::<_, u64>(0))
             .unwrap(),
-        2
+        offers
     );
     drop(db);
     eprintln!(
         "distinct-media-server-witness {}",
-        json!({"algorithm":algorithm,"sent_frames":200,"received_bytes":received.len(),"durable_native_offers":2,"physical_peers_drained":true})
+        json!({"algorithm":algorithm,"sent_frames":if unreachable {0}else{200},"received_bytes":received_bytes,"durable_native_offers":offers,"physical_peers_drained":true,"guest_open_refused":unreachable,"post_timeout_signed_heartbeat":unreachable})
     );
     f.server.shutdown().await.unwrap();
 }

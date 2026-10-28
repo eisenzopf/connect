@@ -2,7 +2,7 @@
 //! All credentials, synthetic audio and observations stay in its private directory.
 use connect_client::{
     canonical::{CanonicalClient, CanonicalClientConfig, CommandScope},
-    NativeNetworkProfile,
+    ClientError, NativeNetworkProfile,
 };
 use serde_json::json;
 use std::{net::ToSocketAddrs, path::PathBuf, time::Duration};
@@ -16,6 +16,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("expected designated host")?
         .into_string()
         .map_err(|_| "invalid host")?;
+    let unreachable = match args.next() {
+        None => false,
+        Some(flag) if flag == "--expect-unreachable" => true,
+        Some(_) => return Err("unexpected argument".into()),
+    };
     if args.next().is_some() {
         return Err("unexpected argument".into());
     }
@@ -36,6 +41,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let wave = std::fs::read(dir.join("guest-send.pcmu"))?;
     if wave.len() != 200 * 160 {
         return Err("expected four seconds of synthetic PCMU".into());
+    }
+    if unreachable {
+        let started = std::time::Instant::now();
+        match CanonicalClient::open(config.clone()).await {
+            Err(ClientError::Timeout) => {}
+            Err(error) => return Err(error.into()),
+            Ok(client) => {
+                client.shutdown().await?;
+                return Err("unreachable endpoint unexpectedly authenticated".into());
+            }
+        }
+        std::fs::write(dir.join("guest-refused"), b"timeout\n")?;
+        println!(
+            "{}",
+            json!({"profile":"remote","os":std::env::consts::OS,"architecture":std::env::consts::ARCH,"algorithm":config.signing_algorithm,"open_refused":"timeout","no_offer_submitted":true,"elapsed_seconds":started.elapsed().as_secs_f64()})
+        );
+        return Ok(());
     }
     let mut peer = CanonicalClient::open(config.clone()).await?
         .prepare_public_native_audio(CommandScope {

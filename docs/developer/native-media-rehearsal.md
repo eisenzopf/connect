@@ -51,6 +51,17 @@ The same tone-identification thresholds and peer-drain checks apply. The
 fixture rewrites only the designated private client endpoint port; trust roots
 and verified server name remain unchanged.
 
+Use `--unreachable-port` separately for an unresponsive native endpoint. The
+runner retains an owned UDP socket on the Mac and directs the guest only to
+that unresponsive port. It sends no reply and records actual queued datagrams
+after the client finishes. The public client must return its specific timeout
+error before submitting an offer. A fresh authorized local control peer must
+still authenticate and receive its correlated signed heartbeat acknowledgement.
+The server retains only the original local audio offer and drains all peers.
+No decoded media is counted in this negative case.
+This checks a blackholed native UDP endpoint; it does not qualify SIP/RTP port
+mapping or browser blocked-UDP fallback.
+
 The server checks completion of both original signed offer operation IDs,
 exactly two durable native offer records, explicit peer shutdown and zero
 physical peers before its own shutdown. The runner checks both actual process

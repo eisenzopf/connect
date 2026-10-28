@@ -131,7 +131,10 @@ def main():
     parser.add_argument("--ffmpeg", default="ffmpeg")
     parser.add_argument("--drop-every", type=int, choices=(0, 10), default=0,
                         help="Drop every tenth encrypted UDP datagram in each direction after media starts")
+    parser.add_argument("--unreachable-port", action="store_true",
+                        help="Keep an owned UDP port unresponsive; require client timeout before its offer")
     args = parser.parse_args()
+    assert not (args.unreachable_port and args.drop_every), "Choose one bounded fault"
     out = args.output.absolute()
     assert out.parent.resolve().is_relative_to((ROOT / ".local/gate-6/native-remote").resolve())
     out.mkdir(mode=0o700, exist_ok=False)
@@ -149,7 +152,8 @@ def main():
     assert image["Id"] == guest["image_id"] and image["Architecture"] == "amd64" and image["Os"] == "linux"
     assert CASE + ": test" in subprocess.check_output([str(binary), "--list"], text=True).splitlines()
     before = HELPERS["sources"]()
-    report = {"passed": False, "scope": "Owned Linux/amd64 guest under QEMU on local Lima arm64 VM to macOS arm64 server; two signed public SDK PCMU peers, decoded duplex and drain. No native x86 performance, WAN, video, browser, SIP, relay, loss or ICE restart qualification.",
+    report = {"passed": False, "scope": "Owned Linux/amd64 guest under QEMU on local Lima arm64 VM to macOS arm64 server; public canonical SDK audio or the selected bounded transport refusal. No native x86 performance, WAN, video, browser, SIP, relay, full loss-quality or ICE restart qualification.",
+              "mode": "unreachable-port" if args.unreachable_port else "loss" if args.drop_every else "direct",
               "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "source_inputs_sha256": before, "server_executable_sha256": digest(binary),
               "guest_executable_sha256": digest(probe), "image_id": image["Id"],
@@ -165,8 +169,13 @@ def main():
                                 "-c:a", "pcm_mulaw", "-f", "mulaw", str(fixture / f"{name}-send.pcmu")], check=True, timeout=15)
             env = dict(os.environ, CONNECT_G6_DISTINCT_NATIVE_DIR=str(fixture),
                        CONNECT_G6_DISTINCT_NATIVE_ALGORITHM=algorithm, TMPDIR=str(fixture))
+            env.pop("CONNECT_G6_NATIVE_UNREACHABLE", None)
+            if args.unreachable_port:
+                env["CONNECT_G6_NATIVE_UNREACHABLE"] = "1"
             with (fixture / "server.log").open("w") as log:
                 proxy = None
+                blackhole = None
+                blocked_datagrams = 0
                 process = subprocess.Popen([str(binary), CASE, "--exact", "--ignored", "--test-threads=1", "--nocapture"],
                                            cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
                 try:
@@ -175,13 +184,21 @@ def main():
                         assert process.poll() is None, "Server ended before readiness"
                         assert time.monotonic() - started < 60, "Server readiness deadline"
                         time.sleep(.02)
-                    if args.drop_every:
+                    if args.drop_every or args.unreachable_port:
                         ready = json.loads((fixture / "ready.json").read_text())
-                        proxy = LossProxy(ready["port"], fixture, args.drop_every)
+                        if args.unreachable_port:
+                            # Retain custody of this port, so another process
+                            # cannot accidentally turn the negative into a dial.
+                            blackhole = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                            blackhole.bind(("0.0.0.0", 0))
+                            port = blackhole.getsockname()[1]
+                        else:
+                            proxy = LossProxy(ready["port"], fixture, args.drop_every)
+                            port = proxy.front.getsockname()[1]
                         config_path = fixture / "client.toml"
                         config, replacements = re.subn(
                             r'^endpoint = "127\.0\.0\.1:' + str(ready["port"]) + r'"$',
-                            'endpoint = "127.0.0.1:' + str(proxy.front.getsockname()[1]) + '"',
+                            'endpoint = "127.0.0.1:' + str(port) + '"',
                             config_path.read_text(), flags=re.M)
                         assert replacements == 1, "Fixture endpoint was not the designated local server"
                         config_path.write_text(config)
@@ -190,6 +207,8 @@ def main():
                                "--security-opt", "no-new-privileges", "--mount", f"type=bind,source={probe.parent},target=/probe,readonly",
                                "--mount", f"type=bind,source={fixture},target=/fixture", image["Id"],
                                "/probe/native_media_probe", "/fixture", "host.lima.internal"]
+                    if args.unreachable_port:
+                        command.append("--expect-unreachable")
                     with (fixture / "guest.log").open("w") as guest_log:
                         child = subprocess.Popen(command, stdout=guest_log, stderr=subprocess.STDOUT, start_new_session=True)
                         try:
@@ -206,6 +225,17 @@ def main():
                     stop(process)
                     if proxy is not None:
                         proxy.close()
+                    if blackhole is not None:
+                        try:
+                            blackhole.setblocking(False)
+                            while True:
+                                try:
+                                    blackhole.recvfrom(65535)
+                                    blocked_datagrams += 1
+                                except BlockingIOError:
+                                    break
+                        finally:
+                            blackhole.close()
             guest_rows = [json.loads(line) for line in (fixture / "guest.log").read_text().splitlines() if line.startswith("{")]
             server_raw = (fixture / "server.log").read_text()
             server_rows = [json.loads(line.split("distinct-media-server-witness ", 1)[1]) for line in server_raw.splitlines() if "distinct-media-server-witness " in line]
@@ -221,13 +251,21 @@ def main():
                                  and all(proxy.stats[d]["dropped"] >= 1 for d in ("guest_to_server", "server_to_guest")))
             if row["passed"]:
                 gw, sw = guest_rows[0], server_rows[0]
-                row["decoded_at_host"] = decoded_tone(fixture / "host-received.pcmu", 660, 440, args.ffmpeg)
-                row["decoded_at_guest"] = decoded_tone(fixture / "guest-received.pcmu", 440, 660, args.ffmpeg)
                 row["passed"] = (gw["algorithm"] == sw["algorithm"] == algorithm and gw["os"] == "linux"
-                                 and gw["architecture"] == "x86_64" and gw["owned_peer_shutdown"]
-                                 and sw["physical_peers_drained"] and sw["durable_native_offers"] == 2
-                                 and row["decoded_at_host"]["passed"] and row["decoded_at_guest"]["passed"]
+                                 and gw["architecture"] == "x86_64" and sw["physical_peers_drained"]
                                  and bool(re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", server_raw)))
+                if args.unreachable_port:
+                    row["observed_unanswered_datagrams"] = blocked_datagrams
+                    row["passed"] = (row["passed"] and blocked_datagrams > 0 and gw["open_refused"] == "timeout"
+                                     and gw["no_offer_submitted"] and sw["durable_native_offers"] == 1
+                                     and sw["guest_open_refused"] and sw["post_timeout_signed_heartbeat"]
+                                     and not (fixture / "guest-ready").exists()
+                                     and not (fixture / "guest-received.pcmu").exists())
+                else:
+                    row["decoded_at_host"] = decoded_tone(fixture / "host-received.pcmu", 660, 440, args.ffmpeg)
+                    row["decoded_at_guest"] = decoded_tone(fixture / "guest-received.pcmu", 440, 660, args.ffmpeg)
+                    row["passed"] = (row["passed"] and gw["owned_peer_shutdown"] and sw["durable_native_offers"] == 2
+                                     and row["decoded_at_host"]["passed"] and row["decoded_at_guest"]["passed"])
             report["profiles"].append(row)
             print(json.dumps(row), flush=True)
             assert row["passed"], "Distinct-network media profile failed"

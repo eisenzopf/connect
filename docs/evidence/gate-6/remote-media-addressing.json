@@ -297,7 +297,8 @@
     ],
     "decoded_directions": 4,
     "physical_peers_drained": true,
-    "scope": "Owned Linux/amd64 guest on local Lima arm64 VM to macOS server; public canonical SDK PCMU. No native x86 performance, native video, browser, SIP or full G6-054 qualification."
+    "scope": "Owned Linux/amd64 guest on local Lima arm64 VM to macOS server; public canonical SDK PCMU. No native x86 performance, native video, browser, SIP or full G6-054 qualification.",
+    "latest_source_group": "docs/evidence/gate-6/native-unreachable-port.json"
   },
   "native_network_loss": {
     "evidence": "docs/evidence/gate-6/native-network-loss.json",
@@ -307,6 +308,16 @@
       "ES256"
     ],
     "decoded_directions": 4,
-    "scope": "Every tenth encrypted UDP datagram after media-go dropped per direction; 22-23 actual drops per direction, decoded opposite tones and original offer/peer/proxy drains. Only this bounded transport fault, not full loss-quality profiles."
+    "scope": "Every tenth encrypted UDP datagram after media-go dropped per direction; 22-23 actual drops per direction, decoded opposite tones and original offer/peer/proxy drains. Only this bounded transport fault, not full loss-quality profiles.",
+    "latest_source_group": "docs/evidence/gate-6/native-unreachable-port.json"
+  },
+  "native_unreachable_port": {
+    "evidence": "docs/evidence/gate-6/native-unreachable-port.json",
+    "component_passed": true,
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "scope": "Owned native UDP blackhole: specific client timeout near5.02s, no guest offer, post-timeout signed heartbeat, exactly1local durable offer and zero peers. Final source group also passes direct and measured-loss decoded duplex;6profiles source/executables unchanged. Initial empty-subscription fixture failure retained."
   }
 }
