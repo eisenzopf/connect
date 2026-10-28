@@ -251,5 +251,26 @@
     "failed_function": "queued typed deadline removes only unsent work and passes the remaining deadline to Rust",
     "finding": "Strict timeout_ms<1400 assumes exact100ms fixture timer residence. Revised assertion independently measures queue residence before original first request completes and bounds the transmitted remaining budget; original20ms unsent expiry remains required. No production deadline/timeout change. New Node22 execution pending."
   },
-  "remaining": "Consultation/handoff, incoming invitation custody, events, trusted provisioning, explicit remote full typed facade, full frozen contract/export reconciliation, complete external native/HTTP fixture and all required profiles. Earlier309/315first-create deadlines remain unresolved."
+  "remaining": "Consultation/handoff, incoming invitation custody, events, trusted provisioning, explicit remote full typed facade, full frozen contract/export reconciliation, complete external native/HTTP fixture and all required profiles. Earlier309/315first-create deadlines remain unresolved.",
+  "ubuntu_node_synthetic": {
+    "commit": "28dd131a4e1f55697691565957939c1dd7d29935",
+    "run_id": 40728989705,
+    "passed": true,
+    "functions_each": 48,
+    "source_count": 194,
+    "source_maps_match_local345": true,
+    "artifacts": [
+      {
+        "id": 12833742951,
+        "node": "v22.23.4",
+        "zip_sha256": "d2ef76642594426b3d186a2bc01777f34e78ff5c3e17d356f7574d37153cbb28"
+      },
+      {
+        "id": 12833433203,
+        "node": "v26.12.1",
+        "zip_sha256": "07a8fd0a98d5804fe8ce83b942580b945aecad154cb4b030f71f851eb15c95a8"
+      }
+    ],
+    "native_lane": "pending"
+  }
 }

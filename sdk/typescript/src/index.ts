@@ -20,6 +20,8 @@ export type {
     SdkOperationSnapshot,
     SdkOperationKey,
     SdkCompletion,
+    SdkCapabilities,
+    SdkCapabilitySnapshot,
     SdkOperationKind,
     SdkOperationReference,
     SdkMessageAcceptance,

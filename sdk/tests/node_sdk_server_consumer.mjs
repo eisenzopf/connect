@@ -19,6 +19,7 @@ const stopped=async()=>{
 const record=frames=>{const p=frames.find(f=>f.type==='operation.updated')?.payload;assert.ok(p);return p;};
 let client=new NodeClient({config:spec.config,executable:spec.executable});
 let peerClient;
+let checkpoint="create";
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
 try {
  const created=await client.conversations.create({participants:[spec.peer_identity],policy:'persistent'},{...opts,operationId:'typed-node-room'});
@@ -43,6 +44,11 @@ try {
  const beforeReturn=await room.refresh(opts),returned=(await (await room.participants.add({...addInput,expectedRevision:beforeReturn.revision},{...opts,operationId:'typed-node-member-return'})).wait(opts)).value;
  assert.equal(returned.id,peer.id);assert.ok((await returned.refresh(opts)).membershipEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
+ checkpoint='capabilities';
+ const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features],['original-id-operations']);
+ await client.capabilities.require('original-id-operations',opts);
+ for(const feature of ['native-programmatic-media','durable-events','incoming-invitations'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
+ checkpoint='session';
  const capabilities={audio:['g.711-mu','g.711-a'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
  const own=refreshed.participants.find(p=>p.id!==peer.id);assert.ok(own);
  const solo=(await (await room.sessions.invite({sessionId:'typed-node-solo',to:[],medium:'voice',intent:'typed-control',capabilities},{...opts,operationId:'typed-session-solo'})).wait(opts)).value;
@@ -61,25 +67,32 @@ try {
  const peerRoom=peerClient.conversations.byId(room.id),peerSolo=peerRoom.sessions.byId(solo.id);
  current=await peerSolo.refresh(opts);
  await (await peerSolo.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend-accept'})).wait(opts);
+ checkpoint='native-offer';
  const nativeInput=(connectionId,streamId)=>({connectionId,streams:{first:{id:streamId,kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:['g.711-a']}},rest:[]}});
  const nativeOffer=await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'}),native=(await nativeOffer.wait(opts)).value;
  const nativeSaved=nativeOffer.referenceJson();assert.equal(native.id,'typed-node-native');assert.ok(native.receiptStreamRevision>0);
  assert.equal((await native.refresh(opts)).streamRevision,undefined);
  const audio=native.streams.byId('typed-native-audio');assert.equal((await audio.refresh(opts)).ownership,'observation');
  assert.equal((await (await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'})).wait(opts)).value.id,native.id);
+ checkpoint='peer-offer';
  const remote=(await (await peerSolo.connections.offer(nativeInput('typed-peer-native','typed-peer-audio'),{...opts,operationId:'typed-peer-offer'})).wait(opts)).value;
  let streamRevision=native.receiptStreamRevision;
  const updateNative=async(input,id)=>{const op=await native.update(input,streamRevision,{...opts,operationId:id}),result=(await op.wait(opts)).value;assert.equal(result.connection.id,native.id);assert.ok(result.connectionGeneration>0);streamRevision=result.streamRevision;return result;};
+ checkpoint='native-quality';
  assert.equal((await updateNative({action:'quality',intervalMs:250},'typed-native-quality')).outcome.kind,'quality');
+ checkpoint='native-gates';
  const muted=await updateNative({action:'mute',streams:{first:audio.id,rest:[]}},'typed-native-mute');assert.equal(muted.outcome.kind,'gates');assert.ok(muted.outcome.streams.every(s=>s.sourceMuted));
  await updateNative({action:'unmute',streams:{first:audio.id,rest:[]}},'typed-native-unmute');
  const held=await updateNative({action:'hold',direction:'inactive',streams:{first:audio.id,rest:[]}},'typed-native-hold');assert.equal(held.outcome.kind,'gates');assert.ok(held.outcome.streams.every(s=>s.state==='paused'));
  assert.equal((await audio.refresh(opts)).state,'paused');
  await updateNative({action:'resume',streams:{first:audio.id,rest:[]}},'typed-native-resume');
+ checkpoint='native-codecs';
  const codecs=await updateNative({action:'codec-renegotiate',streams:{first:audio.id,rest:[]},codecPreferences:{first:'g.711-a',rest:[]}},'typed-native-codecs');assert.equal(codecs.outcome.kind,'codecs');
+ checkpoint='native-selection';
  const selectedOp=await native.streams.subscribe({selectors:{first:{participant:peer.id,kinds:{first:'audio',rest:[]}},rest:[]},expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-subscribe'}),selected=(await selectedOp.wait(opts)).value;streamRevision=selected.streamRevision;assert.equal(selected.connection.id,native.id);assert.ok(selected.bindings===null||Array.isArray(selected.bindings));
  const beforeUnsubscribe=await native.streams.unsubscribe({streams:{first:'typed-peer-audio',rest:[]},expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-unsubscribe'}),unsubscribed=(await beforeUnsubscribe.wait(opts)).value;streamRevision=unsubscribed.streamRevision;
  const nativeRecord=await nativeOffer.status(opts),nativeHttp=record(await http.request('operation.get',{operation_id:'typed-native-offer'},{cid:room.id,sid:solo.id,connid:native.id},opts));assert.equal(nativeRecord.recordId,nativeHttp.record_id);
+ checkpoint='native-end';
  const nativeEnd=await native.end({reasonCode:1000,reason:'control complete',expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-end'}),nativeEndSaved=nativeEnd.referenceJson();assert.equal((await nativeEnd.wait(opts)).value.id,native.id);
  await (await remote.end({reasonCode:1000,reason:'peer complete'},{...opts,operationId:'typed-peer-end'})).wait(opts);
  current=await solo.refresh(opts);
@@ -109,18 +122,20 @@ try {
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await client.close(opts);assert.equal(await stopped(),2);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,node_capability_support_only:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);
  assert.equal(status.recordId,original.recordId);assert.equal((await recovered.wait(opts)).value.messageId,intent.messageId);
  assert.equal((await client.operations.recover(recovered.reference).status(opts)).recordId,original.recordId);
  const restoredDecision=await client.operations.restore(cancelSaved,client.operationKinds.operation_cancel).wait(opts);assert.equal(restoredDecision.value.target,mutation.operationId);
+ checkpoint='native-recovery';
  const restoredNativeEnd=(await client.operations.restore(nativeEndSaved,client.operationKinds.connection_end).wait(opts)).value;assert.equal(restoredNativeEnd.id,native.id);
  const restoredEnd=(await client.operations.restore(endedSaved,client.operationKinds.session_end).wait(opts)).value;assert.equal((await restoredEnd.refresh(opts)).state,'ended');
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
  emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true});
  await resume('revoked');
+ checkpoint='current-revocation';
  let nativeFailure,httpFailure;
  await assert.rejects(client.conversations.byId(room.id).send(intent,mutation),e=>{
   assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','transport-uncertain'].includes(e.kind));assert.ok(['refused','uncertain'].includes(e.certainty));assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
@@ -128,4 +143,10 @@ try {
  await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{assert.equal(e.kind,'authentication');httpFailure={kind:e.kind,certainty:e.certainty};return true;});
  await client.close(opts);await http.close(opts);assert.equal(await stopped(),3);
  emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:3,query_recovery_without_replay:true});
+} catch(error) {
+ // Only fixed labels/enums and source coordinates enter CI evidence. Raw
+ // diagnostics remain on the private stderr owned by the Rust harness.
+ const at=/server-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
+ emit({phase:'failed',checkpoint,kind:error instanceof NodeSdkError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof NodeSdkError?error.certainty:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
+ throw error;
 } finally {await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

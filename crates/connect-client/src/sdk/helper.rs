@@ -42,6 +42,7 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    CapabilitiesRefresh,
     ConversationCreate {
         participants: Vec<IdentityId>,
         policy: ConversationPolicy,
@@ -142,6 +143,10 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
+        Action::CapabilitiesRefresh => {
+            serde_json::to_value(client.capabilities().refresh(options).await?)
+                .map_err(|_| Error::local(ErrorKind::Protocol))
+        }
         Action::ConversationCreate {
             participants,
             policy,

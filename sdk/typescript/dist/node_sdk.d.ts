@@ -52,6 +52,18 @@ export interface SdkOperationKind<T> {
 export interface SdkOperationReference<T> extends OperationKey {
     readonly [resultType]: (value: T) => T;
 }
+/** Interface support on the selected Node facade; not permission or readiness. */
+export interface SdkCapabilitySnapshot {
+    readonly profile: "connect/2";
+    readonly runtimeRole: "node";
+    readonly selectedTransport: "quic";
+    readonly features: ReadonlySet<string>;
+    readonly fallbackReason?: string;
+}
+export interface SdkCapabilities {
+    refresh(options: CanonicalRequestOptions): Promise<SdkCapabilitySnapshot>;
+    require(feature: string, options: CanonicalRequestOptions): Promise<void>;
+}
 export interface SdkMessageAcceptance {
     readonly messageId: MessageId;
     readonly operation: OperationKey;
@@ -114,6 +126,7 @@ export declare class NodeClient {
         operation_cancel: SdkOperationKind<SdkDecisionReceipt>;
         operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
     }>;
+    readonly capabilities: SdkCapabilities;
     readonly conversations: Readonly<{
         byId: (id: ConversationId) => SdkConversation;
         create: (input: {

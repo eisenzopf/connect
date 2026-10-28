@@ -41,3 +41,9 @@ connection.update({action:'quality',intervalMs:250},topology,{timeoutMs:1000,ope
 connection.update({action:'quality',intervalMs:250},1 as SdkRevision<'stream-resource'>,{timeoutMs:1000,operationId});
 // @ts-expect-error Connection results cannot become Session results.
 const wrongConnectionResult:SdkOperation<import('../typescript/dist/index.js').SdkSession>=client.operations.restore(saved,client.operationKinds.connection_offer);
+
+const capabilities = await client.capabilities.refresh({timeoutMs:1000});
+// @ts-expect-error support set is immutable
+capabilities.features.add('native-programmatic-media');
+// @ts-expect-error Node facade cannot report the Rust runtime role
+const helperRole: 'rust' = capabilities.runtimeRole;

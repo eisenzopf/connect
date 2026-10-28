@@ -113,6 +113,17 @@ def run(node_sdk=False):
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
             for location in re.findall(r"^thread '[^']+' panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
+        step["node_failures"] = []
+        for line in text.splitlines():
+            if line.startswith('installed-typed-node-sdk-failure '):
+                failure = json.loads(line.split(' ', 1)[1])
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'line', 'column'}
+                assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+                    'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'current-revocation'}
+                assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
+                assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
+                assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
+                step['node_failures'].append(failure)
         if child.returncode != 0:
             diagnostics = []
             for line in text.splitlines():
@@ -192,6 +203,7 @@ def run(node_sdk=False):
             assert len(witnesses) == 2
             assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
             for witness in witnesses:
+                assert witness['initial']['node_capability_support_only']
                 assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
                 assert witness['initial']['native_http_record'] and witness['initial']['observation_only_stream']
                 assert witness['recovered']['typed_connection_end_recovered']

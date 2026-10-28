@@ -21,7 +21,8 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='utf8')return process.stdout.write(Buffer.from([255,10]));
  if(config.mode==='oversize')return process.stdout.write('x'.repeat(2097154)+'\n');
  let result;
- if(a.type==='conversation_create')result={Ok:reference(a.mutation.operation_id,'conversation.create')};
+ if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
+ else if(a.type==='conversation_create')result={Ok:reference(a.mutation.operation_id,'conversation.create')};
  else if(a.type==='conversation_send')result={Ok:reference(a.mutation.operation_id,'message.send',{conversation_id:a.conversation_id})};
  else if(a.type.startsWith('participant_')&&a.type!=='participant_refresh')result={Ok:reference(a.mutation.operation_id,'conversation.participant.'+a.type.slice(12),{conversation_id:a.conversation_id})};
  else if(a.type==='participant_refresh')result={Ok:{id:a.participant_id,conversationId:a.conversation_id,identityId:'identity',kind:'human',role:'participant',membershipEpoch:1,active:true,removalReason:null}};

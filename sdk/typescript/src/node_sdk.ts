@@ -88,6 +88,70 @@ export interface SdkOperationKind<T> {
 export interface SdkOperationReference<T> extends OperationKey {
     readonly [resultType]: (value: T) => T;
 }
+/** Interface support on the selected Node facade; not permission or readiness. */
+export interface SdkCapabilitySnapshot {
+    readonly profile: "connect/2";
+    readonly runtimeRole: "node";
+    readonly selectedTransport: "quic";
+    readonly features: ReadonlySet<string>;
+    readonly fallbackReason?: string;
+}
+export interface SdkCapabilities {
+    refresh(options: CanonicalRequestOptions): Promise<SdkCapabilitySnapshot>;
+    require(feature: string, options: CanonicalRequestOptions): Promise<void>;
+}
+function capabilitySnapshot(value: Json): SdkCapabilitySnapshot {
+    if (
+        !object(value, [
+            "profile",
+            "runtime_role",
+            "selected_transport",
+            "fallback_reason",
+            "features",
+        ]) ||
+        value.profile !== "connect/2" ||
+        value.runtime_role !== "rust" ||
+        value.selected_transport !== "quic" ||
+        value.fallback_reason !== null ||
+        !Array.isArray(value.features) ||
+        value.features.length > 128 ||
+        value.features.some(
+            (f) => typeof f !== "string" || !/^[a-z0-9-]{1,128}$/.test(f),
+        ) ||
+        new Set(value.features).size !== value.features.length
+    )
+        return protocol();
+    // Rust supports media/events/invitations; the current Node API does not yet.
+    const set = new Set<string>(
+        value.features.filter(
+            (f) => f === "original-id-operations",
+        ) as string[],
+    );
+    const features: ReadonlySet<string> = Object.freeze({
+        get size() {
+            return set.size;
+        },
+        has: (feature: string) => set.has(feature),
+        entries: () => set.entries(),
+        keys: () => set.keys(),
+        values: () => set.values(),
+        [Symbol.iterator]: () => set.values(),
+        forEach: (
+            callback: (
+                value: string,
+                key: string,
+                owner: ReadonlySet<string>,
+            ) => void,
+            thisArg?: unknown,
+        ) => set.forEach((v) => callback.call(thisArg, v, v, features)),
+    });
+    return Object.freeze({
+        profile: "connect/2",
+        runtimeRole: "node",
+        selectedTransport: "quic",
+        features,
+    });
+}
 export interface SdkMessageAcceptance {
     readonly messageId: MessageId;
     readonly operation: OperationKey;
@@ -525,6 +589,7 @@ const operationKinds = Object.freeze({
 export class NodeClient {
     readonly role = "node" as const;
     readonly operationKinds = operationKinds;
+    readonly capabilities: SdkCapabilities;
     readonly conversations;
     readonly operations;
     private readonly helper: SdkHelper;
@@ -533,6 +598,27 @@ export class NodeClient {
         readonly executable?: string;
     }) {
         this.helper = new SdkHelper(config);
+        const refresh = (options: CanonicalRequestOptions) =>
+            this.helper.request(
+                { type: "capabilities_refresh" },
+                options,
+                capabilitySnapshot,
+            );
+        this.capabilities = Object.freeze({
+            refresh,
+            require: async (
+                feature: string,
+                options: CanonicalRequestOptions,
+            ): Promise<void> => {
+                if (
+                    typeof feature !== "string" ||
+                    !/^[a-z0-9-]{1,128}$/.test(feature)
+                )
+                    throw new NodeSdkError("validation", "read-only");
+                if (!(await refresh(options)).features.has(feature))
+                    throw new NodeSdkError("unsupported", "read-only");
+            },
+        });
         this.conversations = Object.freeze({
             byId: (id: ConversationId): SdkConversation => {
                 sdkId(id);

@@ -8,6 +8,43 @@ export function sdkRevision(value) {
         invalid();
     return value;
 }
+function capabilitySnapshot(value) {
+    if (!object(value, [
+        "profile",
+        "runtime_role",
+        "selected_transport",
+        "fallback_reason",
+        "features",
+    ]) ||
+        value.profile !== "connect/2" ||
+        value.runtime_role !== "rust" ||
+        value.selected_transport !== "quic" ||
+        value.fallback_reason !== null ||
+        !Array.isArray(value.features) ||
+        value.features.length > 128 ||
+        value.features.some((f) => typeof f !== "string" || !/^[a-z0-9-]{1,128}$/.test(f)) ||
+        new Set(value.features).size !== value.features.length)
+        return protocol();
+    // Rust supports media/events/invitations; the current Node API does not yet.
+    const set = new Set(value.features.filter((f) => f === "original-id-operations"));
+    const features = Object.freeze({
+        get size() {
+            return set.size;
+        },
+        has: (feature) => set.has(feature),
+        entries: () => set.entries(),
+        keys: () => set.keys(),
+        values: () => set.values(),
+        [Symbol.iterator]: () => set.values(),
+        forEach: (callback, thisArg) => set.forEach((v) => callback.call(thisArg, v, v, features)),
+    });
+    return Object.freeze({
+        profile: "connect/2",
+        runtimeRole: "node",
+        selectedTransport: "quic",
+        features,
+    });
+}
 const runOperation = Symbol("operation");
 const sendMessage = Symbol("send");
 const refreshConversation = Symbol("refresh");
@@ -272,11 +309,23 @@ const operationKinds = Object.freeze({
 export class NodeClient {
     role = "node";
     operationKinds = operationKinds;
+    capabilities;
     conversations;
     operations;
     helper;
     constructor(config) {
         this.helper = new SdkHelper(config);
+        const refresh = (options) => this.helper.request({ type: "capabilities_refresh" }, options, capabilitySnapshot);
+        this.capabilities = Object.freeze({
+            refresh,
+            require: async (feature, options) => {
+                if (typeof feature !== "string" ||
+                    !/^[a-z0-9-]{1,128}$/.test(feature))
+                    throw new NodeSdkError("validation", "read-only");
+                if (!(await refresh(options)).features.has(feature))
+                    throw new NodeSdkError("unsupported", "read-only");
+            },
+        });
         this.conversations = Object.freeze({
             byId: (id) => {
                 sdkId(id);

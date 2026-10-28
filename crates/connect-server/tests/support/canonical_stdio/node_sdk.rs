@@ -106,6 +106,9 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 .expect("Node phase result");
             assert!(line.len() < 4096);
             let value: Value = serde_json::from_str(&line).unwrap();
+            if value["phase"] == "failed" {
+                eprintln!("installed-typed-node-sdk-failure {}", value);
+            }
             assert_eq!(value["phase"], expected);
             value
         }
