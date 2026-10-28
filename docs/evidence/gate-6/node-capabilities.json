@@ -177,5 +177,13 @@
       "compiler_diagnostics": []
     },
     "finding": "Original phase failed15.40s, no Node failed witness observed. Location/cause remains unproven. bb981bbc adds fixed progress-stage reporting under same15sabsolute deadline; no retry/cancellation of live runs."
+  },
+  "latest_actual_capability_observation": {
+    "commit": "1ac57f40f0077914e9bdb357ef70c6b4b56de51b",
+    "run_id": 40734325121,
+    "artifact_id": 12837291223,
+    "passed": true,
+    "scope": "Inside recorded UbuntuNode26 installed control function, both algorithms validate node/quic runtime and original-id-only features; unsupported helper-only media/events/invitation requirements remain read-only refusals. Whole SDK unqualified.",
+    "source": "docs/evidence/gate-6/node-connection-sdk.json latest_ubuntu_native_positive"
   }
 }
