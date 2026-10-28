@@ -5,7 +5,7 @@
   "implementation_status": "in-progress",
   "component_passed": true,
   "full_sdk_qualified": false,
-  "scope": "Current finite canonical managed Node helper transport and shared HTTP response validation. Synthetic owned helper processes, fake HTTP and external installed package only; actual Rust/server/authority/native-HTTP parity and full typed facade not yet qualified.",
+  "scope": "Current finite canonical managed Node helper and shared HTTP validation.26synthetic functions plus an installed external Node message/operation/finite-event/recovery/revocation component against the actual signed Rust helper and production Local canonical HTTP server, EdDSA/ES256 on macOSarm64. Full typed NodeClient/provisioning/remote HTTP/full journey remain open.",
   "implementation": {
     "entrypoint": "CanonicalNativeClient",
     "procedure": "docs/developer/node-canonical-helper.md",
@@ -87,20 +87,163 @@
     "sdk/tests/canonical_native.test.mjs": "78fe58284ac5ccb4bea2323bcb2ec647575465a97883b2875bbefcd07db2f8e0",
     "sdk/tests/fixtures/canonical_helper.mjs": "a40a7d8d9bf6a0dec8d5fd7e2d88afc4c5845725162773a7e59b1f3efb407ac9",
     "sdk/tests/canonical_helper_consumer.mjs": "c651f1f74e0902f095d1fe4d4d07fdc73a550b6965a58a0b816286ae14c9e494",
-    "sdk/tests/check_canonical_helper.py": "b10025ed55417523fa78b740a8e3b7f703eab378a142e31e650b8b582fa1b67e"
+    "sdk/tests/check_canonical_helper.py": "b10025ed55417523fa78b740a8e3b7f703eab378a142e31e650b8b582fa1b67e",
+    "crates/connect-server/tests/support/canonical_stdio.rs": "f232952906891441854d3f56d19c2f1438e1de929afec07b8f0dd81cdeae94b1",
+    "crates/connect-server/tests/support/canonical_stdio/node.rs": "21c1bcdd72eec629ea5c30f5ca209b6485073775209b870cdfd8c7d7eb793f1a",
+    "sdk/tests/canonical_native_server_consumer.mjs": "a17b5d0d0fec57fe4613436fabf91fe3217c0f9909a45301595da91f4a88b51d"
   },
   "retained_failures": {
     "node273": "Initial combined group25pass/1fail: unsupported-command was classified application. Corrected to unsupported and reran final26functions with source guards.",
     "node273_log_sha256": "67205b7330753da410bc2c6e5963085931479c117bb82ac9f7962051fa07f4bd",
     "package_invocation": "Initial npm pack from repository root failed because there is no root package.json; no package was produced. Packing from sdk/typescript succeeded.",
-    "whole_sdk_format": "npm run format:check reports existing formatting issues in unchanged protocol.ts, record_context.ts and task_protocol.ts. Their bytes equal HEAD. Targeted Prettier check on all four changed TypeScript sources passes; full SDK format is not reported as passed."
+    "whole_sdk_format": "npm run format:check reports existing formatting issues in unchanged protocol.ts, record_context.ts and task_protocol.ts. Their bytes equal HEAD. Targeted Prettier check on all four changed TypeScript sources passes; full SDK format is not reported as passed.",
+    "build281": "Terminal linker failure errno28 ENOSPC after compilation,5618sourceinputs unchanged; no executable/test pass. Verified compressed custody of closed historical executables restored space; final288/290 compile/bind succeeds.",
+    "real287": "Whole first actual Node case failed after the initial message/native-HTTP/replay/events/helper-close phase because fixture init::private_write is create-only and refused restoring the intentionally edited existing TOML. Corrected only that known600-mode fixture file with std::fs::write. Both-algorithm full289/291 then pass; original failure retained.",
+    "real287_log_sha256": "fc4c0d647ca99fb580b245b81a0643e3e2160fc6fd883dab78e642ab2dc90a1e"
   },
   "remaining": [
     "Complete the contract NodeClient typed conversation/session/participant/connection/stream/operation handles, branded validation, saved references/status/wait/cancel/reconcile and current-scope recovery.",
-    "Actual installed external Node project against the real signed Rust helper and canonical HTTP: current authority, shared IDs/status, reconnect/revocation, fixed configuration and original process cleanup.",
-    "Explicit trusted-backend provisioning/administrative isolation and supported remote HTTP enrollment; no application or legacy transport substitution.",
+    "Complete full G6-059 error/problem details and trust/receipt-unavailable/recorded distinctions across helper/HTTP; current transport maps kind/certainty/key.",
+    "Extend the managed helper for the approved typed facade event/invitation/step-up/provisioning lifetimes; finite CLI coverage alone is not full SDK support.",
+    "Broader real-server session/topology/invitation/administrative isolation and installed native/HTTP full-contract parity; the current actual component covers message/journal/finite-events/recovery/revocation only.",
+    "Explicit trusted-backend provisioning and supported remote HTTP enrollment; no application or legacy transport substitution.",
     "Full fixture journey and installed SDK/package parity under G6-062/G6-069/G6-070; native programmatic media remains G6-064."
   ],
   "acceptance_qualified": false,
-  "publication": "not performed"
+  "publication": "not performed",
+  "real_server_component_passed": true,
+  "real_server_verification": {
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 0.3699828330427408,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5618,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/node-helper-runtime-test-290",
+        "sha256": "9f59fea8dee52a5c1c38fb1d6578f922240539bbab7054ebdfaf0a54bf320f8a",
+        "bytes": 268511720
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "db7ce6990dfe9b50a2a6b1ec274713550a0035eba0cc61275e05974c0d3a5a79"
+    },
+    "result": {
+      "passed": true,
+      "function": "canonical_stdio::node::installed_node_helper_preserves_original_journal_recovery_and_current_authority",
+      "exit_code": 0,
+      "seconds": 5.208680208073929,
+      "timed_out": false,
+      "runner_forced_cleanup": false,
+      "results": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 367 filtered out; finished in 5.17s"
+      ],
+      "witnesses": [
+        {
+          "completed": {
+            "algorithm": "EdDSA",
+            "helpers_joined": 2,
+            "http_failure": {
+              "certainty": "refused",
+              "kind": "authentication"
+            },
+            "native_failure": {
+              "certainty": "refused",
+              "kind": "authentication"
+            },
+            "phase": "completed",
+            "recovered_original": true,
+            "revoked_http_replay_refused": true,
+            "revoked_native_replay_not_accepted": true
+          },
+          "initial": {
+            "first_helper_joined": true,
+            "fixed_configuration": true,
+            "native_http_same_record": true,
+            "phase": "initial",
+            "record_id": "opr_5a740e19-648f-40f3-a426-0c990d27a573",
+            "saved_replay_once": true,
+            "state": "completed"
+          },
+          "recovered": {
+            "phase": "recovered",
+            "record_id": "opr_5a740e19-648f-40f3-a426-0c990d27a573",
+            "resubmitted": false,
+            "state": "completed"
+          },
+          "server_shutdown_joined": true
+        },
+        {
+          "completed": {
+            "algorithm": "ES256",
+            "helpers_joined": 2,
+            "http_failure": {
+              "certainty": "refused",
+              "kind": "authentication"
+            },
+            "native_failure": {
+              "certainty": "refused",
+              "kind": "authentication"
+            },
+            "phase": "completed",
+            "recovered_original": true,
+            "revoked_http_replay_refused": true,
+            "revoked_native_replay_not_accepted": true
+          },
+          "initial": {
+            "first_helper_joined": true,
+            "fixed_configuration": true,
+            "native_http_same_record": true,
+            "phase": "initial",
+            "record_id": "opr_4f643e62-a845-4bb2-ad00-347edec1971f",
+            "saved_replay_once": true,
+            "state": "completed"
+          },
+          "recovered": {
+            "phase": "recovered",
+            "record_id": "opr_4f643e62-a845-4bb2-ad00-347edec1971f",
+            "resubmitted": false,
+            "state": "completed"
+          },
+          "server_shutdown_joined": true
+        }
+      ],
+      "changed_inputs": [],
+      "log_sha256": "c21d54fc76117f140aeac637c5a1ac52f3b3e28af209600c56769633aa201540",
+      "binary_sha256": "9f59fea8dee52a5c1c38fb1d6578f922240539bbab7054ebdfaf0a54bf320f8a"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "source_inputs_sha256": "77026efad5d8b55bca58314dd77faa7239270e7590832c0472a24028e3c91118",
+    "source_count": 5618,
+    "consumer_sha256": "a17b5d0d0fec57fe4613436fabf91fe3217c0f9909a45301595da91f4a88b51d",
+    "installed_consumer_sha256": "a17b5d0d0fec57fe4613436fabf91fe3217c0f9909a45301595da91f4a88b51d",
+    "cli_binary_sha256": "6a2e14e818b25819244dc73f13727bf81558e919ee4ea3ac84e7f241654c4f34",
+    "profile_note": "Functional profile: Root store/service/server opt-level0; unchanged normal upstream release optimization. No performance claim.",
+    "scope": "One exact real-server function covers both signing algorithms: same durable record/result through native and HTTP; explicit same-ID replay produces one message; finite events; configuration edit does not change running helper authority; fresh helper queries original without resubmitting; committed credential revocation gives authentication/refused on both facades with original mutation keys; four exec-traced helper PIDs and both servers join. No provider/model/PSTN or remote named lane."
+  }
 }

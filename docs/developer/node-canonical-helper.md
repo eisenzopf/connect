@@ -3,7 +3,7 @@
 G6-062 is in progress. `CanonicalNativeClient` implements finite current
 canonical control using one owned Rust `connect stdio` process. The typed
 `NodeClient` handles, saved-operation recovery facade, trusted provisioning,
-remote HTTP enrollment and full real-server native/HTTP journey remain open.
+remote HTTP enrollment and the full real-server native/HTTP journey remain open.
 Programmatic media is G6-064.
 
 Install the matching trusted `connect` executable and protect its native client
@@ -82,3 +82,24 @@ original helper EOF exit0 and joined PID. It also uses synthetic backends.
 Evidence and remaining work are in
 [`node-canonical-helper.json`](../evidence/gate-6/node-canonical-helper.json).
 No npm publication or full G6-062 qualification has occurred.
+
+The installed real-server component also passes for EdDSA and ES256 on the
+recorded local macOS arm64 host. It sends a real message through the Rust helper,
+reads the same durable operation/result through both facades, replays the same
+mutation without another message, reads finite events, edits configuration
+without changing the running helper, and then restarts the worker to query the
+original operation. After committed revocation, both facades report
+`authentication/refused` with the saved mutation key. All four exec-traced helper
+PIDs and both servers join. This covers message/journal control, not the complete
+typed session/topology/provisioning journey.
+
+To reproduce, copy `sdk/tests/canonical_native_server_consumer.mjs` into the
+fresh external project with the locally installed package. Build the
+`gate6_canonical_runtime` integration executable with `test-support` after
+preparing dependencies. Set `TMPDIR` to a fresh private directory under `.local/`
+and `CONNECT_GATE6_NODE_CONSUMER` to that copied script's absolute path. Run the
+exact ignored test
+`canonical_stdio::node::installed_node_helper_preserves_original_journal_recovery_and_current_authority`
+with `--exact --ignored --nocapture --test-threads=1`. The fixture creates its own
+scoped credentials and trusted native configuration; no operator credential is
+passed to Node. It never starts a provider or model.

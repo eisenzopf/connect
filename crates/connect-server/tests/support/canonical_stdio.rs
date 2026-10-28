@@ -1,4 +1,7 @@
 //! Actual installed JSON-lines process against the production canonical server.
+#[cfg(unix)]
+#[path = "canonical_stdio/node.rs"]
+mod node;
 use super::*;
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},

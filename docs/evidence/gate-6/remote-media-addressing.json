@@ -108,10 +108,10 @@
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
-    "run_id": 40686679630,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40686679630",
-    "source_revision": "40393b03feb599f175f4f9c931b9a5f73c502a86",
-    "result": "23 native Ubuntu functions pass with all8015inputs unchanged at40393b03; downloaded source-only artifact independently inspected. Predates negotiated RTCP routing patch239; no distinct-network decoded media/TURN/browser/RTCP-profile qualification.",
+    "run_id": 40696718286,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40696718286",
+    "source_revision": "fc123900de06e67d6efd2694287fb131f7f4a667",
+    "result": "77nativeUbuntu functions pass at exactfc123900/all8017inputs unchanged, including final manualRTCP session route/mode/drain regression. Downloaded source-only artifact independently inspected. Predates Node work; no remote/decoded-media qualification.",
     "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
@@ -338,6 +338,6 @@
   "negotiated_rtcp_routing": {
     "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
     "status": "protocol-and-owned-telephone-component-passed",
-    "result": "Final patch239/v43 passes73local session/UDP/allocator functions and all four final full telephone network profiles. Original manual-report negative retained; direct/relay WebRTC regressions277/278 now running. Whole G6-054 remains open."
+    "result": "Final patch239/v43 passes73local session/UDP/allocator functions, four complete actual telephone direct/loss profiles,4SIPintegration/4configuration functions, and5direct/relay/shared-STUN-TURN AV regressions.12realTURNallocations drain/join. Whole G6-054 remains open."
   }
 }
