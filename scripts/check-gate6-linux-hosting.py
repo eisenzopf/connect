@@ -85,7 +85,7 @@ def run(node_sdk=False):
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
-              "scope": "Bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/decoded media, browser/performance or installation qualification."}
+              "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/decoded media, browser/performance or installation qualification."}
 
     def execute(name, command, timeout):
         log = PRIVATE / (name + ".log")
@@ -157,6 +157,7 @@ def run(node_sdk=False):
     artifacts = {}
     try:
         for name, wanted, arguments in (
+            ("store", "connect_store", ["--offline", "-p", "connect-store", "--lib"]),
             ("library", "connect_server", ["--offline", "-p", "connect-server", "--features", "test-support", "--lib"]),
             ("hosting", "gate6_canonical_runtime", ["--offline", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_runtime"]),
             # Targeted locked upstream compilation may fetch its registry-only
@@ -186,7 +187,16 @@ def run(node_sdk=False):
         # A failed compile must never stamp source times as a completed build.
         MANIFEST.write_text(json.dumps({"format": 1, "files": snapshot(ROOT)}, sort_keys=True) + "\n")
         report["compiled_artifacts"] = {name: digest(path) for name, path in artifacts.items()}
+        inventory = execute("snapshot-test-inventory", [artifacts['store'], '--list'], 10)
+        for case in (
+            'single_credential_snapshot_checks_current_projection_without_duplicate_source_captures',
+            'multi_credential_snapshot_keeps_each_credentials_projection_revalidation',
+            'snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks',
+        ):
+            assert f'peer_authority::tests::{case}: test' in inventory.splitlines()
         for name, binary, pattern, expected in (
+            ("snapshot-store", "store", "events::tests::", 1),
+            ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
             ("config", "library", "canonical_webrtc::config::tests::", 4),
             ("sip-config", "library", "canonical_telephone::tests::", 4),

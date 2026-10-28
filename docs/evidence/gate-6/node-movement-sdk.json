@@ -139,11 +139,78 @@
     "private_script_sha256": "8afd506d3737c40aa3675b4402618f9d8ad720ca47424cb1be3c2dc6f5f85476"
   },
   "native_verification": {
-    "status": "pending new source-bound Ubuntu run",
+    "status": "New helper compiles; EdDSA no-grant handoff/move cases and native setup/control/cleanup pass, full function fails later Session refresh; ES256 not reached.",
     "new_checks": "Current SDK/Rust typed dispatch must return structured403/refused with exact original key for ordinary caller without session.handoff/connection.replace grants, then continue native ends/restart/current revocation/drains. Positive native transitions remain required.",
     "budgets": "Existing4srequests/15sabsolutephase/90swholefunction unchanged.",
     "mac": "No build/link attempted for new Rust source because prior linker ENOSPC remains; explicit skip, not pass.",
-    "dependency_preparation": "scripts/prepare-dependencies.sh verifies pinned sources and patch digests in existing prepared root before build; no upstream edits."
+    "dependency_preparation": "scripts/prepare-dependencies.sh verifies pinned sources and patch digests in existing prepared root before build; no upstream edits.",
+    "observed_failure": {
+      "commit": "48750178f077ad7c49dfa8bf5dd4022fe902ff21",
+      "run_id": 40738226918,
+      "artifact_id": 12838177997,
+      "zip_sha256": "975bc6df400fdb3d238b47dd40ee3ae080171190c4dbfa862e600769fbbee9ee",
+      "source_bound_tracked_files_verified": 3983,
+      "guarded_inputs": 8075,
+      "source_inputs_unchanged": true,
+      "compiled_artifacts": {
+        "library": "d314f61723d769aad04f94534b4b00bc6ff9a450058240fc73d05efdcaef2251",
+        "hosting": "32b990ccb80237ce86ab0d6b791778be5e02c205394b066c9d0b1c7110cccdc1",
+        "cli": "2058870c62860c304824dcde1c3714c2258c69aacfa533f2e6cdd26d245a14c4",
+        "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+      },
+      "prior_native_functions_passed": 77,
+      "installed_node_native_passed": false,
+      "failure": {
+        "name": "installed-node-native-control",
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 39.67318692499998,
+        "log_sha256": "e9d7ed9593b774e94e35f8a2a846b48edf1f80d3dcdd851c1bac7c6f6d85184d",
+        "test_results": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 368 filtered out; finished in 39.63s"
+        ],
+        "panic_locations": [],
+        "node_completed_phases": [
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "passed": true,
+            "phase": "controls-ready",
+            "seconds": 11.104748206
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "passed": true,
+            "phase": "native-complete",
+            "seconds": 9.885399919
+          },
+          {
+            "algorithm": "EdDSA",
+            "deadline_seconds": 15,
+            "passed": true,
+            "phase": "initial",
+            "seconds": 13.052908708
+          }
+        ],
+        "node_failures": [
+          {
+            "certainty": "read-only",
+            "checkpoint": "session-end-refresh",
+            "column": null,
+            "command": null,
+            "kind": "deadline",
+            "line": null,
+            "observedState": null,
+            "phase": "failed"
+          }
+        ],
+        "compiler_diagnostics": []
+      },
+      "finding": "Compiled new helper and EdDSA setup/native/cleanup including both no-grant movement refusals pass. Native end status/wait and Session end wait recover; current Session snapshot refresh exceeds4s. ES256 scene not reached, so no full current native qualification. Snapshot source performs repeated equivalent projection walks; optimization candidate pending unchanged authority/deadline regressions."
+    },
+    "next": "Snapshot source revalidation optimization and added Store security regressions pending unchanged-budget Ubuntu execution; positive native transitions still open."
   },
   "remaining": "Positive installed Node consultation/handoff/move native behavior, incoming invitations/step-up custody, events, trusted provisioning, raw controls, full typed explicit remote HTTP, frozen public names/exports and complete journey/profile qualification. Earlier startup/recovery deadlines remain retained unresolved.",
   "source_sha256": {
@@ -157,5 +224,25 @@
     "sdk/tests/node_sdk.test.mjs": "21ae2d60ceeb8f25787666ed4cd94721ecb96cf71d5367ae3afee4c296515cb4",
     "sdk/tests/node_sdk_server_consumer.mjs": "554d5b3f880ee9497c40f827fecdb189047229d2a77f01eb09bea2ae51784cd0",
     "scripts/check-gate6-linux-hosting.py": "425d24774eade8e7adf73f662a101694ed2a81b18296ee7915d6265358b5bd63"
+  },
+  "ubuntu_node_synthetic": {
+    "commit": "48750178f077ad7c49dfa8bf5dd4022fe902ff21",
+    "run_id": 40738226918,
+    "passed": true,
+    "functions_each": 59,
+    "source_count": 198,
+    "source_maps_match_local374": true,
+    "artifacts": [
+      {
+        "id": 12838427146,
+        "node": "v22.23.4",
+        "zip_sha256": "23c7270e4d5e92ad0704ec8fe390c029956a80847137b2af1129d497d792974a"
+      },
+      {
+        "id": 12838186833,
+        "node": "v26.12.1",
+        "zip_sha256": "c0397a01d23362f0d2b0156b8c4db13ff9ffa144870a10ad5782180aa994bdd4"
+      }
+    ]
   }
 }

@@ -1125,3 +1125,107 @@ mod read_receipts;
 
 mod session_control;
 mod session_decisions;
+
+#[test]
+fn single_credential_snapshot_checks_current_projection_without_duplicate_source_captures() {
+    let f = Fixture::new(300);
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(100),
+    };
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    let before = crate::events::snapshot_capture_count();
+    let page = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+        .unwrap();
+    assert!(!page.items.is_empty());
+    // Current scopes before/after plus one frozen result capture. Source
+    // binding/key/device checks must not perform two extra complete captures.
+    assert_eq!(crate::events::snapshot_capture_count() - before, 3);
+}
+#[test]
+fn multi_credential_snapshot_keeps_each_credentials_projection_revalidation() {
+    let f = Fixture::new(300);
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "INSERT INTO credential_signing_keys(credential_id,key_id) VALUES(?1,'key')",
+            [&f.admin],
+        )
+        .unwrap();
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(100),
+    };
+    let mut request = f.request.clone();
+    request.credentials = vec![f.admin.clone(), f.user.clone()];
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    let before = crate::events::snapshot_capture_count();
+    let page = f
+        .store
+        .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+        .unwrap();
+    assert!(!page.items.is_empty());
+    // Two credentials are checked twice, in addition to the three captures
+    // required by the result/projection executor itself.
+    assert_eq!(crate::events::snapshot_capture_count() - before, 7);
+}
+#[test]
+fn snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks() {
+    let f = Fixture::new(300);
+    let query = connect_protocol::events::SnapshotQuery {
+        page: None,
+        limit: Some(100),
+    };
+    let mut binding = f.request.clone();
+    binding.command = PeerCommand::Binding;
+    let mut proof = f.admit(&binding).unwrap();
+    // A source-only proof is not a projection grant, even with an otherwise
+    // correctly named snapshot request. Simulate an invalid internal caller.
+    proof.request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    assert_eq!(
+        f.store
+            .conversation_snapshot_with_peer(&f.user, &f.cid, query.clone(), Some(&proof))
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    drop(proof);
+    let mut request = f.request.clone();
+    request.command = PeerCommand::Snapshot {
+        conversation_id: f.cid.clone(),
+        query: query.clone(),
+    };
+    let proof = f.admit(&request).unwrap();
+    // Bypass ordinary write fencing only in this test to prove the reader
+    // still revalidates its current key rather than trusting old admission.
+    f.store
+        .connection()
+        .unwrap()
+        .execute(
+            "UPDATE peer_signing_keys SET revoked=1 WHERE key_id='key'",
+            [],
+        )
+        .unwrap();
+    assert_eq!(
+        f.store
+            .conversation_snapshot_with_peer(&f.user, &f.cid, query, Some(&proof))
+            .unwrap_err()
+            .code,
+        "forbidden"
+    );
+}

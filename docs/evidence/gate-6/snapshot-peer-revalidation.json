@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "pending-runtime-verification",
+  "component_passed": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "observed_failure": {
+    "commit": "48750178f077ad7c49dfa8bf5dd4022fe902ff21",
+    "run_id": 40738226918,
+    "artifact_id": 12838177997,
+    "zip_sha256": "975bc6df400fdb3d238b47dd40ee3ae080171190c4dbfa862e600769fbbee9ee",
+    "source_bound_tracked_files_verified": 3983,
+    "guarded_inputs": 8075,
+    "source_inputs_unchanged": true,
+    "compiled_artifacts": {
+      "library": "d314f61723d769aad04f94534b4b00bc6ff9a450058240fc73d05efdcaef2251",
+      "hosting": "32b990ccb80237ce86ab0d6b791778be5e02c205394b066c9d0b1c7110cccdc1",
+      "cli": "2058870c62860c304824dcde1c3714c2258c69aacfa533f2e6cdd26d245a14c4",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "prior_native_functions_passed": 77,
+    "installed_node_native_passed": false,
+    "failure": {
+      "name": "installed-node-native-control",
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 39.67318692499998,
+      "log_sha256": "e9d7ed9593b774e94e35f8a2a846b48edf1f80d3dcdd851c1bac7c6f6d85184d",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 368 filtered out; finished in 39.63s"
+      ],
+      "panic_locations": [],
+      "node_completed_phases": [
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "controls-ready",
+          "seconds": 11.104748206
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "native-complete",
+          "seconds": 9.885399919
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "passed": true,
+          "phase": "initial",
+          "seconds": 13.052908708
+        }
+      ],
+      "node_failures": [
+        {
+          "certainty": "read-only",
+          "checkpoint": "session-end-refresh",
+          "column": null,
+          "command": null,
+          "kind": "deadline",
+          "line": null,
+          "observedState": null,
+          "phase": "failed"
+        }
+      ],
+      "compiler_diagnostics": []
+    },
+    "finding": "Compiled new helper and EdDSA setup/native/cleanup including both no-grant movement refusals pass. Native end status/wait and Session end wait recover; current Session snapshot refresh exceeds4s. ES256 scene not reached, so no full current native qualification. Snapshot source performs repeated equivalent projection walks; optimization candidate pending unchanged authority/deadline regressions."
+  },
+  "candidate_change": {
+    "scope": "Single-credential peer Conversation snapshot source checks; no wire/API/deadline change.",
+    "removed": "Two equivalent full projection walks in source revalidation, already performed before/after by the snapshot executor in the same immediate transaction.",
+    "preserved": [
+      "current credential/device/signing-key and owner/proof revalidation at both source points",
+      "exact Conversation and query binding",
+      "executor current projection scopes and coverage checks before/after read",
+      "current visibility/pagination/final actor validation",
+      "full per-credential snapshot checks for multiple credentials",
+      "no cross-request/transaction authority or data cache",
+      "4sSDKrequest/15sabsolutephase/90swholeNodefunction budgets"
+    ]
+  },
+  "required_tests": [
+    "peer_authority::tests::single_credential_snapshot_checks_current_projection_without_duplicate_source_captures",
+    "peer_authority::tests::multi_credential_snapshot_keeps_each_credentials_projection_revalidation",
+    "peer_authority::tests::snapshot_source_shortcut_cannot_replace_projection_coverage_or_current_key_checks",
+    "events::tests:: full group",
+    "peer_authority::tests:: full group",
+    "existing77nativefunctions and both-algorithm installedNodecontrol/refusal/recovery/drains"
+  ],
+  "local_checks": {
+    "root_format": "passed",
+    "python_compile": "passed",
+    "diff_check": "passed",
+    "rust_build": "skipped: retained Mac linker ENOSPC; Ubuntu compile/testing pending"
+  },
+  "qualification_limit": "Repeated work is identified in source; faster current-authorized behavior and a timing fix are not claimed before actual tests. Earlier cold-start and recovery failures remain retained.",
+  "source_sha256": {
+    "crates/connect-store/src/peer_authority.rs": "5146409217a9b5bca6c3bdcc072fc127d071cf606ea378dd99b01f997e7bdeeb",
+    "crates/connect-store/src/peer_authority/tests.rs": "44b2512da660998f0b39dbeac5814a44b9dcf2c9f92b3f76745736145d739862",
+    "crates/connect-store/src/events/mod.rs": "2b49d5e62f3cd6e1ae7888d69d722cb5f45dda8a9f10ad70416577c6f71836ae",
+    "crates/connect-store/src/events/snapshots.rs": "7d0726928a224a5213a6c748d56d5eb2ffcca86103c14dc24bdf8a7695759083",
+    "scripts/check-gate6-linux-hosting.py": "2b26123d2d37d5ac92b82f5c5e30dac0362e7915e6e5a0ec0ce4f8228913e6ec"
+  }
+}

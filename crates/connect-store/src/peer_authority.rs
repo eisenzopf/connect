@@ -497,7 +497,13 @@ pub(crate) fn checked(
     Ok((meta, key, AuthorityScope::merged(&scopes)?, expires_at))
 }
 impl Store {
-    pub(crate) fn require_peer_snapshot(
+    /// Bind the exact snapshot request and revalidate current credentials,
+    /// devices and keys. The snapshot executor independently recomputes and
+    /// checks projection scopes before and after reading in its one immediate
+    /// transaction. For one credential those are exactly this actor's scopes;
+    /// repeating full topology capture here adds no authority check. Multiple
+    /// credentials still require each credential's snapshot admission below.
+    pub(crate) fn require_peer_snapshot_source(
         &self,
         c: &Connection,
         proof: &PeerAuthorityGuard,
@@ -510,9 +516,11 @@ impl Store {
         {
             return Err(Error::forbidden());
         }
-        let (_, _, scopes, _) = checked(self, c, &proof.request)?;
-        if !self.authority_covers(&proof._scopes, &scopes) {
-            return Err(crate::events::admission::changed());
+        if proof.request.credentials.len() != 1 {
+            let (_, _, scopes, _) = checked(self, c, &proof.request)?;
+            if !self.authority_covers(&proof._scopes, &scopes) {
+                return Err(crate::events::admission::changed());
+            }
         }
         Ok(())
     }

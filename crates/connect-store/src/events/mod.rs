@@ -154,7 +154,7 @@ impl Store {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|_| Error::storage())?;
         if let Some(peer) = peer {
-            self.require_peer_snapshot(&tx, peer, credential, cid, &query)?;
+            self.require_peer_snapshot_source(&tx, peer, credential, cid, &query)?;
         }
         let actor = actor_from_connection(&tx, credential)?;
         let epoch = authorize(&tx, &actor, cid, "conversation.get")?;
@@ -174,7 +174,7 @@ impl Store {
         }
         current(&tx, &actor)?;
         if let Some(peer) = peer {
-            self.require_peer_snapshot(&tx, peer, credential, cid, &query)?;
+            self.require_peer_snapshot_source(&tx, peer, credential, cid, &query)?;
         }
         tx.commit().map_err(|_| Error::storage())?;
         Ok(result)
@@ -330,4 +330,9 @@ impl Store {
         tx.commit().map_err(|_| Error::storage())?;
         Ok(n as u32)
     }
+}
+
+#[cfg(test)]
+pub(crate) fn snapshot_capture_count() -> usize {
+    snapshots::capture_count()
 }

@@ -305,6 +305,8 @@ pub(super) fn capture(
     actor: &Actor,
     cid: &str,
 ) -> Result<(u64, Vec<SnapshotItem>, usize, i64)> {
+    #[cfg(test)]
+    CAPTURES.with(|count| count.set(count.get() + 1));
     let (revision, closed, policy): (u64, bool, String) = c
         .query_row(
             "SELECT revision,closed,policy FROM conversations WHERE id=?1",
@@ -461,4 +463,13 @@ pub(super) fn scope_items(
     } else {
         Ok(capture(c, actor, cid)?.1)
     }
+}
+
+#[cfg(test)]
+thread_local! {
+    static CAPTURES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn capture_count() -> usize {
+    CAPTURES.with(std::cell::Cell::get)
 }
