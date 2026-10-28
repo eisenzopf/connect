@@ -156,5 +156,7 @@
     "sdk/tests/node_connections.test.mjs": "11f731a18052c9ec1754b0e4040afa0d71e49fa25f094d8fc8f6f0b9b4602e3d",
     "sdk/tests/check_canonical_helper.py": "9fc2308666760f659103840329f7c7a4d7aa9cae89f9db71b2adaec20c0c4b05"
   },
-  "limits": "The two focused tests initially failed against the prior generated distribution; the full current61 tests pass. All6 before/after helpers and3 consultation-process helpers joined. Native snapshot/consultation runs are separate pending checks, and this deterministic parser fix does not explain or resolve earlier native timing failures."
+  "limits": "The two focused tests initially failed against the prior generated distribution; the full current61 tests pass. All6 before/after helpers and3 consultation-process helpers joined. Native snapshot/consultation runs are separate pending checks, and this deterministic parser fix does not explain or resolve earlier native timing failures.",
+  "implementation_commit": "b1f9dd6bc8389a7d43f6ceb7e5b31f2f1e741fe6",
+  "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes."
 }

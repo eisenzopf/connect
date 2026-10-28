@@ -70,7 +70,7 @@ try {
       assert.equal(completion.snapshot.recordId, record);
       assert.equal(completion.value.topologyRevision, request.revision);
       assert.equal(completion.value.session.id, spec.detail.sid);
-      assert.deepEqual(completion.value.retained.map(c => c.id), [spec.detail.retain]);
+      assert.deepEqual(completion.value.retained.map(c => c.id).sort(), [spec.detail.via, spec.detail.retain].sort());
       assert.deepEqual(completion.value.admitted.map(c => c.id), ['private-consultant']);
       assert.deepEqual(completion.value.retired, []);
       // Handles are observations; they grant no native negotiation custody.
@@ -89,6 +89,7 @@ try {
       assert.equal(replay.snapshot.recordId, record);
       assert.equal(replay.value.topologyRevision, request.revision);
       assert.deepEqual(replay.value.admitted.map(c => c.id), ['private-consultant']);
+      assert.deepEqual(replay.value.retained.map(c => c.id).sort(), [spec.detail.via, spec.detail.retain].sort());
       await fresh.close(opts);
       emit({phase: 'completed', record_id: record, fresh_observation: true, return_without_grant_refused: true});
     } else if (request.action === 'revoked') {

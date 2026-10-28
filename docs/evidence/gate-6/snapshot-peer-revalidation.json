@@ -106,5 +106,33 @@
     "crates/connect-store/src/events/mod.rs": "2b49d5e62f3cd6e1ae7888d69d722cb5f45dda8a9f10ad70416577c6f71836ae",
     "crates/connect-store/src/events/snapshots.rs": "7d0726928a224a5213a6c748d56d5eb2ffcca86103c14dc24bdf8a7695759083",
     "scripts/check-gate6-linux-hosting.py": "2b26123d2d37d5ac92b82f5c5e30dac0362e7915e6e5a0ec0ce4f8228913e6ec"
-  }
+  },
+  "implementation_commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+  "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes.",
+  "node_ci_verification": [
+    {
+      "commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+      "run_id": 40743632054,
+      "artifact_id": 12841190229,
+      "zip_sha256": "e440e882eba9159a6aefbe118cef95cc3c058effa1f4b0f6738a35c1e24f18a9",
+      "node_version": "v22.23.4",
+      "functions": 59,
+      "passed": true,
+      "source_inputs_verified": 198,
+      "exact_prior_local_map": true,
+      "scope": "Synthetic helper/HTTP/declaration checks only; no native runtime qualification"
+    },
+    {
+      "commit": "8e7a8d21652e4cc14f009f63dfa5a36a5f09be9a",
+      "run_id": 40743632054,
+      "artifact_id": 12839344096,
+      "zip_sha256": "a7d22fd628e3ebc48a05850c7141f37e9813c95a9c2189c86dfab6f3e5ba919d",
+      "node_version": "v26.12.1",
+      "functions": 59,
+      "passed": true,
+      "source_inputs_verified": 198,
+      "exact_prior_local_map": true,
+      "scope": "Synthetic helper/HTTP/declaration checks only; no native runtime qualification"
+    }
+  ]
 }

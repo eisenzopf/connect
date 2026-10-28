@@ -142,5 +142,7 @@
     "sdk/tests/fixtures/sdk_helper.mjs": "d599d699fd277af3e5a4f64e93f215630861d23a6dd551949a4cec757d86a82e",
     "sdk/tests/check_canonical_helper.py": "060cc5ef07f9ffda089f1e190f8b5caf4146bd0e3457e02e862f9a909a80fe96"
   },
-  "qualification_limit": "No actual application read, cryptographic/native control, full Node SDK or Gate6 qualification until exact Ubuntu source-bound results. Earlier native timing failures remain retained."
+  "qualification_limit": "No actual application read, cryptographic/native control, full Node SDK or Gate6 qualification until exact Ubuntu source-bound results. Earlier native timing failures remain retained.",
+  "implementation_commit": "5d4343451e2371ae7e5b63f34a8a3fff06f05219",
+  "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes."
 }
