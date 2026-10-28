@@ -18,7 +18,7 @@ pub use connection::{
 };
 pub use session::{Change as SessionChange, InviteMedium, SessionAction};
 
-pub const PROFILE: &str = "connect-sdk-helper/1";
+pub const PROFILE: &str = "connect-sdk-helper/2";
 pub const VALIDATION_PROFILE: &str = "connect-sdk-validation/1";
 /// Local frozen validation/intent description; no payload echo, client or grant.
 pub fn validation_descriptor_bytes(bytes: &[u8]) -> Value {

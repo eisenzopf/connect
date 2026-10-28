@@ -265,6 +265,7 @@ def run(node_sdk=False):
             assert f'peer_authority::tests::{case}: test' in inventory.splitlines()
         sdk_failures = []
         for name, binary, pattern, expected in (
+            ("sdk-startup-context", "library", "cli::sdk_stdio::tests::", 3),
             ("admin-local-validation", "hosting", "sdk_handles::administration::local_administrative_validator_", 3),
             ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),
             ("snapshot-store", "store", "events::tests::", 1),

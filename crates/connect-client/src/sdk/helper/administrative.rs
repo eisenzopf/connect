@@ -1,6 +1,6 @@
 //! Explicit trusted backend adapter; participant helper actions cannot reach it.
 use super::*;
-pub const PROFILE: &str = "connect-sdk-administration/1";
+pub const PROFILE: &str = "connect-sdk-administration/2";
 pub const VALIDATION_PROFILE: &str = "connect-sdk-provisioning-validation/1";
 
 pub fn validate_bytes(bytes: &[u8], reference: bool) -> Value {

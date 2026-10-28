@@ -1,0 +1,121 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "startup-context-corrected-synthetic-passed-native-pending",
+  "synthetic_component_passed": true,
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "implementation_parent_commit": "ba5864945c6634ce294f50404ebc4a44b6036bb3",
+  "problem": "Backend initialization errors were cloned without indicating that no logical request ran. A mutation could surface authentication/read-only although no mutation had been submitted.",
+  "old_installed_reproduction": {
+    "scope": "Original installed Node parser against synthetic exact pre-context Backend startup error framing; no network/authority qualification",
+    "old_mutation_error": {
+      "kind": "authentication",
+      "certainty": "read-only",
+      "operationId": "original"
+    },
+    "required_mutation_certainty": "not-submitted",
+    "original_helper_joined": true
+  },
+  "old_installed_archive_sha256": "fd94d04617d43c1d56104da760526e6f4a8b4b17755d3aebbbd872425c9427fd",
+  "old_installed_helper_sha256": "84fad59d5281efb014ab3f7039e20dc4c640b1a5a45a3b6ceec1e625b387ac56",
+  "correction": [
+    "Explicit response phase startup/request comes from the actual Backend client state, independent of remote response payloads",
+    "Participant/admin helper profiles2 require phase; old profiles/missing/array phase and successful startup results fail closed",
+    "Only startup errors with no operation/problem/observation and safe pre-request certainty are mapped to captured caller intent: unsent mutation/not-submitted, read/read-only; original key retained",
+    "Actual request errors preserve original SDK certainty; malformed context fences sent mutations as uncertain, with no retry"
+  ],
+  "profiles": {
+    "participant": "connect-sdk-helper/2",
+    "administrative": "connect-sdk-administration/2",
+    "local_validators": "unchanged profile1; no configuration/client/network"
+  },
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.603806458879262,
+    "source_count": 213,
+    "changed_inputs": [],
+    "source_inputs_sha256": "307339a5925f1b1b46e50de34c9ec09f2fec7a92ab4edcf35c7532b9d2482c0a",
+    "log_sha256": "27aa3574c4049d8b346d2f503bcf737c7da2c5d1be847ed382ba9a0430ef8a6d",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T20:53:57.059355+00:00"
+  },
+  "functions_passed": 81,
+  "installed_protocol_only": {
+    "passed": true,
+    "scope": "Installed public package with synthetic SDK helper protocol/process only; no real service/authorization/cryptography qualification",
+    "consumer_sha256": "fc512bbc8082690ded6b1ac7c8d912a46349dfc380f85d0c8e17dd090d472000",
+    "scenarios": [
+      {
+        "scenario": "apply-recover-replay-read-conflict-close",
+        "passed": true,
+        "consumer_exit": 0,
+        "helpers_joined": 1,
+        "validators_joined": 4,
+        "phases": [
+          "ready",
+          "applied",
+          "read",
+          "refused",
+          "closed"
+        ]
+      },
+      {
+        "scenario": "foreign-original-record-refused",
+        "passed": true,
+        "consumer_exit": 1,
+        "helpers_joined": 1,
+        "validators_joined": 3,
+        "phases": [
+          "ready",
+          "applied",
+          "failed"
+        ]
+      }
+    ]
+  },
+  "package": {
+    "archive_sha256": "dc4a4826b538d0a2a2d5ce9aaf0d2dc9bcc7d7159454bdbb153362bfa4533935",
+    "installed_dist_matches": true,
+    "helper_sha256": "94cd20e9d08fe812d1384f0168cc8bcebc2fad6e114578239e70fc8eb4237bdd"
+  },
+  "rust_unit_candidates": [
+    "cli::sdk_stdio::tests::administrative_initialization_failure_is_distinct_from_logical_submission",
+    "cli::sdk_stdio::tests::participant_initialization_failure_keeps_explicit_context_for_reads_and_mutations",
+    "cli::sdk_stdio::tests::initialization_failure_cannot_make_cross_role_actions_valid"
+  ],
+  "checks": {
+    "negative_types": true,
+    "rust_format": true,
+    "node_python_syntax": true,
+    "generated_http_references": true,
+    "http_declarations": 25,
+    "http_operations": 26,
+    "uncovered": 0,
+    "diff": true,
+    "rust_compile_and_actual_native": "pending; local link skipped for retained ENOSPC"
+  },
+  "qualification_limit": "Synthetic original installed-parser reproduction, current81 helper/HTTP/type checks and installed consumer protocol only. Actual Rust unit and Node22/26 native behavior remain pending.",
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "16c64ee119b7091d0a15dc0ce29eb4dc889bf6abe5810aa04e85f98f026ac794",
+    "crates/connect-client/src/sdk/helper/administrative.rs": "54db84833980c141a33c79043e1f394927cc1192f39ca4d8e77a850f5122d842",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "8534499248938d052d40c9a34daf09d8eaa5ac743a5a15aa9c3d8b42efeb583b",
+    "sdk/typescript/src/sdk_helper.ts": "cb2a5c4ba36910c245a93569b7373cb06a65eee44e4e837088f9ae933fd6345a",
+    "sdk/typescript/dist/sdk_helper.js": "94cd20e9d08fe812d1384f0168cc8bcebc2fad6e114578239e70fc8eb4237bdd",
+    "sdk/tests/fixtures/sdk_helper.mjs": "47a6f8759fc0e4aaf9e44e86fdce9df44df0672a0367f63025b3795d0f628e89",
+    "sdk/tests/node_sdk.test.mjs": "21adc2b027897d03dbe4121180ce661c57cd66598c490a2e59039556e9948816",
+    "sdk/tests/node_administration.test.mjs": "2c45d13c63892500f44148a53ee94c3f509b6c7826924bedad3491318e16ebb7",
+    "sdk/tests/check_canonical_helper.py": "c4f14cac944d69c44438d7b61c1d7409dcb6679be8463d94c09317cacf469f58",
+    "scripts/check-gate6-linux-hosting.py": "ac5f0ff0387f77c5f4a4ac36c21d2f7dfd0087069472bf4cf60a280afaa410fa"
+  }
+}

@@ -9,7 +9,7 @@
   "acceptance_qualified": false,
   "publication": false,
   "implementation_parent_commit": "5d984b5723d4182e60201d6905a66b80a2171a48",
-  "source_hash_scope": "Exact administrative candidate hashes below; actual Rust compile/native pending. Historical raw/schema/native proofs retain their exact committed scope.",
+  "source_hash_scope": "Exact ba586 implementation hashes. Startup-context profile2 correction is a subsequent separate source checkpoint; actual native qualification remains pending.",
   "implementation": [
     "Separate NodeAdministrativeClient and fixed SDK-administration helper profile; no provisioning on participant facade",
     "Local Rust normalized trusted-command and shared original operation-reference validation without client/configuration/network",
@@ -185,5 +185,7 @@
     "sdk/typescript/src/sdk_helper.ts": "3c2d748ef37d29e8a0767be5e059d095c8a18af031c673c4939f529416dc941f",
     "sdk/typescript/dist/node_administration.js": "4590a43dba6d3b34910ef2240c5a9cee8c38fcafcd4d12b142b0962407d32d33",
     "sdk/typescript/dist/node_administration.d.ts": "18b8feb379d49b91affc3ba9778f44da151d62acb154daa27f33e371eed6194c"
-  }
+  },
+  "implementation_commit": "ba5864945c6634ce294f50404ebc4a44b6036bb3",
+  "startup_context_correction": "docs/evidence/gate-6/node-startup-context.json"
 }

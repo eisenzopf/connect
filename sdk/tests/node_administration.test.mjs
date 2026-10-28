@@ -30,7 +30,7 @@ test('trusted backend uses a separate owned profile and local normalized immutab
   const exported=command.referenceJson();exported.operation_id='other';assert.equal(command.referenceJson().operation_id,'original');
   assert.equal((await lines(dir,'requests.jsonl')).length,0);const checks=await lines(dir,'admin-validation.jsonl');assert.deepEqual(checks[0].argv,['sdk-validate-provisioning']);
   const operation=await client.provision(command,mutation),result=await operation.wait(opts);assert.deepEqual(JSON.parse(JSON.stringify(result.value)),{kind:'identity',identity_id:'created',created:true});assert.throws(()=>result.value.identity_id='foreign');
-  const calls=await lines(dir,'requests.jsonl');assert.equal(calls[0].profile,'connect-sdk-administration/1');assert.equal(calls[0].request.action.type,'administrative_provision');assert.equal(calls[0].request.action.command.alias,'local');assert.equal(calls[0].request.action.command.operation_id,'original');
+  const calls=await lines(dir,'requests.jsonl');assert.equal(calls[0].profile,'connect-sdk-administration/2');assert.equal(calls[0].request.action.type,'administrative_provision');assert.equal(calls[0].request.action.command.alias,'local');assert.equal(calls[0].request.action.command.operation_id,'original');
   assert.equal(JSON.parse(await readFile(join(dir,'argv.json'),'utf8'))[0],'sdk-admin-stdio');
  });
 });
@@ -93,4 +93,16 @@ test('trusted local validator input and runtime stay bounded and wrapper accommo
   const command=client.validateProvisioning({...draft(),display_name:'x'.repeat(65000)});const operation=await client.provision(command,mutation);assert.equal(operation.reference.operationId,'original');
  });
  await fixture({adminValidator:'hang'},async(client)=>{const start=performance.now();assert.throws(()=>client.validateProvisioning(draft()),error('configuration','not-submitted'));assert.ok(performance.now()-start<3000);});
+});
+
+test('helper startup failures preserve original intent and distinguish unsent mutations from reads',async()=>{
+ for(const kind of ['authentication','configuration','trust','deadline'])for(const certainty of ['read-only','not-submitted'])await fixture({mode:'startup',kind,certainty},async(client,dir)=>{
+  const command=client.validateProvisioning(draft());await assert.rejects(client.provision(command,mutation),error(kind,'not-submitted','original'));
+  const operation=client.operations.restore(saved());await assert.rejects(operation.status(opts),error(kind,'read-only','original'));
+  const calls=await lines(dir,'requests.jsonl');assert.equal(calls.length,2);assert.equal(calls[0].request.action.mutation.operation_id,'original');
+ });
+ for(const mode of ['phase-array','phase-missing','profile-old','startup-success','startup-uncertain','startup-observation'])await fixture({mode},async(client,dir)=>{
+  const command=client.validateProvisioning(draft());await assert.rejects(client.provision(command,mutation),error('protocol','uncertain','original'));
+  assert.throws(()=>client.provision(command,mutation),error('configuration','not-submitted','original'));assert.equal((await lines(dir,'requests.jsonl')).length,1);
+ });
 });

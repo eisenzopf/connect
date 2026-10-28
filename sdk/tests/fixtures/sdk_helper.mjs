@@ -187,7 +187,15 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='binding-state-array'&&result.Ok?.value?.outcome?.streams)result.Ok.value.outcome.streams[0].state=['active'];
  if(config.mode==='caps-no-receipts'&&a.type==='capabilities_refresh')result.Ok.features=result.Ok.features.filter(f=>f!=='message-receipts');
  if(config.mode==='caps-no-receipts'&&a.type==='message_receipts')result={Err:{kind:'unsupported',certainty:'read-only',operation:null,problem:null,observation:null}};
- const response={profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/1',id:config.mode==='wrong-id'?'foreign':req.id,result};
+ let phase='request';
+ if(config.mode==='startup'){phase='startup';result={Err:{kind:config.kind??'authentication',certainty:config.certainty??'read-only',operation:null,problem:null,observation:null}};}
+ if(config.mode==='phase-array')phase=['request'];
+ if(config.mode==='startup-success')phase='startup';
+ if(config.mode==='startup-uncertain'){phase='startup';result={Err:{kind:'authentication',certainty:'uncertain',operation:null,problem:null,observation:null}};}
+ if(config.mode==='startup-observation'){phase='startup';result={Err:{kind:'authentication',certainty:'read-only',operation:null,problem:null,observation:{private:'untrusted'}}};}
+ const response={phase,profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/2':'connect-sdk-helper/2',id:config.mode==='wrong-id'?'foreign':req.id,result};
+ if(config.mode==='phase-missing')delete response.phase;
+ if(config.mode==='profile-old')response.profile=process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/1';
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);
  if(config.mode==='extra')raw+='\n'+raw;

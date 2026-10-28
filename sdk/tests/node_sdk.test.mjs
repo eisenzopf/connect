@@ -214,3 +214,18 @@ test('malformed SDK error kind and certainty fence the original helper and prese
   assert.equal((await calls(dir)).length,1);
  });
 });
+
+
+test('participant helper startup context proves no logical mutation was submitted and keeps read certainty',async()=>{
+ await fixture({mode:'startup',kind:'authentication',certainty:'read-only'},async(client,dir)=>{
+  const room=client.conversations.byId('room');
+  await assert.rejects(room.send(input(),mutation),e=>{error('authentication','not-submitted')(e);assert.equal(e.operation.operationId,'original');return true;});
+  const original=client.operations.restore(saved(),client.operationKinds.message_send);
+  await assert.rejects(original.status(opts),e=>{error('authentication','read-only')(e);assert.equal(e.operation.operationId,'original');return true;});
+  assert.equal((await calls(dir)).length,2);
+ });
+ for(const mode of ['phase-array','phase-missing','profile-old','startup-success','startup-uncertain','startup-observation'])await fixture({mode},async(client,dir)=>{
+  const operation=client.operations.restore(saved(),client.operationKinds.message_send);await assert.rejects(operation.status(opts),error('protocol','read-only'));
+  assert.throws(()=>client.conversations.byId('room').refresh(opts),error('configuration','read-only'));assert.equal((await calls(dir)).length,1);
+ });
+});

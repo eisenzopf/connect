@@ -38,7 +38,7 @@ branded. Save the explicit normalized command privately; it can contain private
 labels and endpoint data. Default inspection and JSON serialization of the client/command redact the body; explicit command.value is the private export. Ordinary structural JSON cannot forge this token.
 
 Submission uses `connect sdk-admin-stdio --config ...`, profile
-`connect-sdk-administration/1`, and delegates to the existing public Rust
+`connect-sdk-administration/2`, and delegates to the existing public Rust
 `AdministrativeClient`. The participant helper rejects administrative actions,
 and the administrative helper rejects participant actions. Native and HTTP
 configuration are fixed for this original worker lifetime. No parser, credential,
@@ -61,7 +61,7 @@ nonempty mutation extensions is refused before submission. Started timeout,
 cancellation or malformed helper output preserves the original mutation key and
 uncertainty, fences the original worker and never retries automatically.
 
-The current local component passes 79 synthetic SDK functions, negative types,
+The administrative baseline passes 79 synthetic SDK functions, negative types,
 installed-file equality and an installed public-consumer protocol with successful
 recovery/replay/refusal/close and deliberate foreign-record failure. These are
 protocol/process checks, not actual authority or cryptographic qualification.
@@ -70,3 +70,12 @@ independent Rust signed-journal comparisons, exact replay across a server restar
 changed-intent refusal, one original receipt and original resource drains. Its
 runtime results remain pending. Ordinary-caller/current-revocation and uncertain
 HTTP commit scenes also remain required. See [the evidence](../evidence/gate-6/node-administration-sdk.json).
+
+The current suite passes 81 component functions, including startup-context checks.
+The managed helper profiles are version 2. Every response identifies
+`startup` or `request`. An initialization failure proves no logical mutation was
+submitted: the Node error retains its captured operation key and reports
+`not-submitted`, while a read reports `read-only`. Request errors retain the Rust
+SDK's actual certainty. Invalid phase, success labeled startup, or startup errors
+claiming a recorded/uncertain result fence the original helper. The matching
+current CLI and SDK are required.

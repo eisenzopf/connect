@@ -17,6 +17,24 @@ enum Backend {
     Participant(sdk::Result<Client>),
     Administrative(sdk::Result<AdministrativeClient>),
 }
+enum Execution {
+    Startup(sdk::Error),
+    Request(sdk::Result<serde_json::Value>),
+}
+impl Execution {
+    fn phase(&self) -> &'static str {
+        match self {
+            Self::Startup(_) => "startup",
+            Self::Request(_) => "request",
+        }
+    }
+    fn result(self) -> sdk::Result<serde_json::Value> {
+        match self {
+            Self::Startup(error) => Err(error),
+            Self::Request(result) => result,
+        }
+    }
+}
 impl Backend {
     fn profile(&self) -> &'static str {
         match self {
@@ -30,11 +48,7 @@ impl Backend {
             Self::Administrative(_) => 128 * 1024,
         }
     }
-    async fn execute(
-        &self,
-        value: serde_json::Value,
-        bytes: usize,
-    ) -> anyhow::Result<sdk::Result<serde_json::Value>> {
+    async fn execute(&self, value: serde_json::Value, bytes: usize) -> anyhow::Result<Execution> {
         Ok(match self {
             Self::Participant(client) => {
                 let request: helper::Request = serde_json::from_value(value)
@@ -44,16 +58,18 @@ impl Backend {
                     "Typed SDK request exceeds64KiB"
                 );
                 match client {
-                    Ok(client) => helper::execute(client, request).await,
-                    Err(error) => Err(error.clone()),
+                    Ok(client) => Execution::Request(helper::execute(client, request).await),
+                    Err(error) => Execution::Startup(error.clone()),
                 }
             }
             Self::Administrative(client) => {
                 let request: helper::administrative::Request = serde_json::from_value(value)
                     .map_err(|_| anyhow::anyhow!("Invalid administrative SDK request"))?;
                 match client {
-                    Ok(client) => helper::administrative::execute(client, request).await,
-                    Err(error) => Err(error.clone()),
+                    Ok(client) => {
+                        Execution::Request(helper::administrative::execute(client, request).await)
+                    }
+                    Err(error) => Execution::Startup(error.clone()),
                 }
             }
         })
@@ -120,12 +136,13 @@ async fn bridge(backend: &Backend) -> anyhow::Result<()> {
             rvoip_uctp::v2::Identifier::try_from(value.id.clone()).is_ok(),
             "Invalid SDK exchange ID"
         );
-        let result = backend
-            .execute(value.request, line.len())
-            .await?
+        let execution = backend.execute(value.request, line.len()).await?;
+        let phase = execution.phase();
+        let result = execution
+            .result()
             .map_err(|error| helper::error_json(&error));
         let bytes = serde_json::to_vec(
-            &serde_json::json!({"profile":backend.profile(),"id":value.id,"result":result}),
+            &serde_json::json!({"profile":backend.profile(),"id":value.id,"phase":phase,"result":result}),
         )?;
         anyhow::ensure!(bytes.len() <= 2 * 1024 * 1024, "SDK reply exceeds 2 MiB");
         output.write_all(&bytes).await?;
@@ -160,4 +177,55 @@ pub async fn validate_provisioning(reference: bool) -> anyhow::Result<()> {
     output.write_all(b"\n").await?;
     output.flush().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn failed_initialization() -> sdk::Error {
+        sdk::Error {
+            kind: sdk::ErrorKind::Authentication,
+            certainty: sdk::Certainty::ReadOnly,
+            operation: None,
+            problem: None,
+            observation: None,
+        }
+    }
+    #[tokio::test]
+    async fn administrative_initialization_failure_is_distinct_from_logical_submission() {
+        let backend = Backend::Administrative(Err(failed_initialization()));
+        let request = serde_json::json!({"timeout_ms":100,"action":{"type":"administrative_provision","command":{"type":"identity","operation_id":"original","alias":"local","kind":"human"},"mutation":{"operation_id":"original"}}});
+        let execution = backend.execute(request, 512).await.unwrap();
+        assert_eq!(execution.phase(), "startup");
+        let error = execution.result().unwrap_err();
+        assert_eq!(error.kind, sdk::ErrorKind::Authentication);
+        assert!(
+            error.operation.is_none() && error.problem.is_none() && error.observation.is_none()
+        );
+    }
+    #[tokio::test]
+    async fn participant_initialization_failure_keeps_explicit_context_for_reads_and_mutations() {
+        let backend = Backend::Participant(Err(failed_initialization()));
+        for action in [
+            serde_json::json!({"type":"conversation_refresh","conversation_id":"room"}),
+            serde_json::json!({"type":"conversation_create","participants":[],"policy":"persistent","mutation":{"operation_id":"original"}}),
+        ] {
+            let execution = backend
+                .execute(serde_json::json!({"timeout_ms":100,"action":action}), 512)
+                .await
+                .unwrap();
+            assert_eq!(execution.phase(), "startup");
+            assert_eq!(
+                execution.result().unwrap_err().kind,
+                sdk::ErrorKind::Authentication
+            );
+        }
+    }
+    #[tokio::test]
+    async fn initialization_failure_cannot_make_cross_role_actions_valid() {
+        let participant = Backend::Participant(Err(failed_initialization()));
+        let administrative = Backend::Administrative(Err(failed_initialization()));
+        assert!(participant.execute(serde_json::json!({"timeout_ms":100,"action":{"type":"administrative_provision","command":{},"mutation":{"operation_id":"original"}}}),512).await.is_err());
+        assert!(administrative.execute(serde_json::json!({"timeout_ms":100,"action":{"type":"conversation_refresh","conversation_id":"room"}}),512).await.is_err());
+    }
 }

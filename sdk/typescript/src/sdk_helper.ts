@@ -17,7 +17,7 @@ import {
     type CanonicalRequestOptions,
 } from "./canonical_validation.js";
 
-const profile = "connect-sdk-helper/1";
+const profile = "connect-sdk-helper/2";
 export function object(
     value: unknown,
     fields: readonly string[],
@@ -76,7 +76,7 @@ export class SdkHelper {
             throw new NodeSdkError("configuration", "not-submitted");
         this.administrative = backend === "administrative";
         this.wireProfile = this.administrative
-            ? "connect-sdk-administration/1"
+            ? "connect-sdk-administration/2"
             : profile;
         const executable = config?.executable ?? "connect";
         if (
@@ -325,9 +325,11 @@ export class SdkHelper {
             this.chunks = [];
             this.bytes = 0;
             if (
-                !object(v, ["profile", "id", "result"]) ||
+                !object(v, ["profile", "id", "phase", "result"]) ||
                 v.profile !== this.wireProfile ||
                 v.id !== job.id ||
+                typeof v.phase !== "string" ||
+                !["startup", "request"].includes(v.phase) ||
                 !object(v.result, ["Ok", "Err"]) ||
                 Object.keys(v.result).length !== 1
             )
@@ -388,16 +390,31 @@ export class SdkHelper {
                         typeof p.reason !== "string")
                 )
                     throw new Error();
+                if (
+                    v.phase === "startup" &&
+                    (e.operation !== null ||
+                        p !== null ||
+                        e.observation !== null ||
+                        !["not-submitted", "read-only"].includes(e.certainty))
+                )
+                    throw new Error();
                 error = new NodeSdkError(
                     e.kind as CanonicalErrorKind,
-                    e.certainty as NodeSdkError["certainty"],
+                    v.phase === "startup"
+                        ? job.mutation
+                            ? "not-submitted"
+                            : "read-only"
+                        : (e.certainty as NodeSdkError["certainty"]),
                     job.key,
                     p === null
                         ? undefined
                         : (p as unknown as NodeSdkError["problem"]),
                     e.observation === null ? undefined : e.observation,
                 );
-            } else result = job.decode(v.result.Ok);
+            } else {
+                if (v.phase !== "request") throw new Error();
+                result = job.decode(v.result.Ok);
+            }
             if (performance.now() >= job.expires) {
                 this.fence("deadline");
                 return;
