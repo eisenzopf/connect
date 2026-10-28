@@ -1266,6 +1266,11 @@
       "path": "patches/rvoip/gate6-audio-short-lookahead.patch",
       "source": "G6-050/G6-051 retain two pending short original PCM chunks after each mixed quantum (40ms for frozen20ms profile), avoiding skipped middle audio in three-packet bursts. Playing long original still keeps remainder plus newest future. Existing10chunk/200ms insertion/original age/current authority/cadence/IO ownership retained. Exact prior/candidate regression and focused Core tests.",
       "sha256": "75fc1f0eb9387c705e67f0abd9944c924350beeb2add5cc0906049496afc4c98"
+    },
+    {
+      "path": "patches/rvoip/gate6-opus-general-fidelity.patch",
+      "source": "G6-050/G6-051 general-media Opus factory uses Audio application at unchanged mono32k/stereo64k bitrate, negotiated rates/channels,20ms frame and complexity/VBR defaults. Real fullband source cascade regression reproduces speech-mode source shifts without network/mixing; no queue, authority, original age or IO deadline changes.",
+      "sha256": "9cc7c730e2aa900db8cad59347e48cd2c3e8771a8d70a351fe389292acc99e89"
     }
   ]
 }

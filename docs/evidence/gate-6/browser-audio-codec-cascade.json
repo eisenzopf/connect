@@ -3,8 +3,8 @@
     "G6-050",
     "G6-051"
   ],
-  "status": "current factory failure reproduced; production fix in preparation",
-  "recorded_at": "2026-10-28T00:21:17.458305+00:00",
+  "status": "factory component fix verified; full normal runtime build and qualification pending",
+  "recorded_at": "2026-10-28T00:32:48.631321+00:00",
   "base_revision": "70afa88aa08da10b1bb475a4ce9e586fc351953d",
   "scope": "Real current codec API, generated PCM and captured synthetic sender payloads. No full browser/task qualification, provider/model execution, profile threshold change or publication.",
   "finding": "The general conference codec factory selects32kbit/s mono Opus with the default speech-oriented VoIP application. The captured native browser source emits CELT-only packets; server output uses Hybrid. An uninterrupted legal audio-mode source cascaded through the actual factory reproduces the same398.4375/703.125Hz transients as the browser witnesses. Changing only the second encoder application to general Audio, at the same32kbit/s/48kHz/mono/20ms/complexity5/VBR settings, eliminates the measured errors in these controls.",
@@ -177,19 +177,159 @@
     },
     "initial_live_capture": "One diagnostic pass followed by a failed0/2audio run with2PCM/encoded witnesses; owners joined. Initial unsuppressed collector reached65536events and omitted58005, ending before the failures; it is incomplete near the failed event and cannot support absence-of-refusal claims. The tested success suppression addresses this diagnostic volume; no later complete live timeline is claimed yet."
   },
-  "next_action": "Prepare a source-locked upstream factory general-Audio fix and its real cascade regression. Verify the unchanged actual-factory probe becomes green, then run current normal browser profiles and relevant native/codec checks without changing bitrate, deadlines, authority, capture waveform or acceptance thresholds.",
+  "next_action": "Finish the current normal-feature server build, then run unchanged normal installed Chrome/Firefox/signing profiles and relevant native/codec behavior checks. Component success is not full browser/task qualification. Preserve prior failures and original thresholds.",
   "private_hashes": {
     ".local/gate-6/audio-witness-analysis-85/factory-probe-before-summary.json": "65dc17a091907a1885876532d356404316d214322d9dcfb4c79b8720b3335ca5",
     ".local/gate-6/audio-witness-analysis-85/replay-factory-scores.json": "4fbf2fb88f4c36cec42e2feed29ddf806853a493ed8d4b20925fdc983a1c68e7",
     ".local/gate-6/audio-witness-analysis-85/cross32-scores.json": "c42e10f3d049a6757e10b871c69c5084bd9539d0f6ec6026556482e4da53d013",
     ".local/gate-6/audio-witness-analysis-85/codec32-scores.json": "ee4a0e821fe3a277d8207e5129535c4b2a26da60ce1fa0e246c8a91e1a4177a6",
     ".local/gate-6/audio-witness-analysis-85/trace-controls-final.json": "ec31be664cd4e70fdc5a32eb3b000772e181cbca0fe08338ea459be33eeeff4a",
-    ".local/gate-6/canonical-browser-host/chrome-es256-trace90-02/decoded-audio/core-audio-timeline.json": "b20ec174e6979cc077bb051758ea9a63175d5976cacd06ae0a01de8f13384a48"
+    ".local/gate-6/canonical-browser-host/chrome-es256-trace90-02/decoded-audio/core-audio-timeline.json": "b20ec174e6979cc077bb051758ea9a63175d5976cacd06ae0a01de8f13384a48",
+    ".local/gate-6/opus-general-fidelity/component-positive.json": "8986b7e155e5e521b0957f8652e832007ef91d879ee2dbf906123c743a544e6a",
+    ".local/gate-6/opus-general-fidelity/prepare-active.log": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
   },
   "progress": {
     "tasks_complete": 57,
     "in_progress": 2,
     "acceptance_qualified": 0
   },
-  "publication": false
+  "publication": false,
+  "implementation": {
+    "patch": "patches/rvoip/gate6-opus-general-fidelity.patch",
+    "patch_sha256": "9cc7c730e2aa900db8cad59347e48cd2c3e8771a8d70a351fe389292acc99e89",
+    "source_lock_sha256": "8f2b93caaaf1d7972a5db172f9319e2f8bea23edbe16fd305e0ce0f0698fbe76",
+    "change": "General-purpose Opus factory chooses Application::Audio while retaining mono32kbit/s/stereo64kbit/s, negotiated sample rates/channels,20ms frames, complexity5 and VBR. Explicit OpusConfig defaults remain separately configurable. No mixer, queue, authorization, deadline, receiver-buffer or classifier/window changes.",
+    "upstream_regression_source": "crates/media/media-core/src/codec/factory/opus_fidelity.rs",
+    "prepared_source": "/Users/jonathaneisenzopf/.local/share/connect/deps-opus-general-fidelity-20261027-v24",
+    "preparation": {
+      "verified_identical_files_with_original_mtimes": 4081,
+      "changed_or_new_source_files": [
+        "rvoip/crates/media/media-core/src/codec/factory.rs",
+        "rvoip/crates/media/media-core/src/codec/factory/opus_fidelity.rs"
+      ],
+      "new_verified_archive_cache": [
+        {
+          "path": ".archives/rtc-dtls-0.20.0-alpha.1.crate",
+          "sha256": "067a19d0491fa2b09363bf9fdab2b3889447498844da092f875a1de9968750d0"
+        },
+        {
+          "path": ".archives/rtc-interceptor-0.20.0-alpha.1.crate",
+          "sha256": "e5d531f43e290ee72bc782225ecb23d82b38994d69b6c8db9fbdc8eed07ed35e"
+        },
+        {
+          "path": ".archives/quinn-proto-0.11.19.crate",
+          "sha256": "0e750cca55fe4f0439a15d0bb529da9651e79993e8e72c61a899a36d462befbe"
+        },
+        {
+          "path": ".archives/web-transport-proto-0.6.2.crate",
+          "sha256": "1a81bcc79bf48ad0b819bfa51ec28524ee7c356056d43c316727d6b505dcc71e"
+        }
+      ],
+      "note": "Only byte-identical prepared files inherit prior mtimes; changed source retains fresh mtimes. Cargo fingerprints/binaries untouched. Initial comparison also included four newly cached pinned archive downloads, now verified separately."
+    },
+    "sealed_before_library": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/opus-general-fidelity/lib-media-core-before.rlib",
+      "sha256": "9aec7440967cbcfee8373ea90772fe17b52f0cd0bd77ea9fafcab2aa4452cb41"
+    }
+  },
+  "component_after": {
+    "scope": "Same public actual-factory probe and the actual upstream regression source compiled against sealed prior/current normal-feature media-core libraries. Full server build remains running.",
+    "normal_feature_artifact": {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.deps/rvoip/crates/media/media-core#rvoip-media-core@0.3.12",
+      "manifest_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.deps/rvoip/crates/media/media-core/Cargo.toml",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "rvoip_media_core",
+        "src_path": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.deps/rvoip/crates/media/media-core/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "3",
+        "debuginfo": 0,
+        "debug_assertions": false,
+        "overflow_checks": false,
+        "test": false
+      },
+      "features": [
+        "default",
+        "opus",
+        "pcma",
+        "pcmu"
+      ],
+      "filenames": [
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rmeta"
+      ],
+      "executable": null,
+      "fresh": false
+    },
+    "guard": {
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/opus-cascade-probe.rs": "1f1ec0121742ec0993f0021e024a788135ecb6bd29dcade2d8219a49cdb819c9",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.deps/rvoip/crates/media/media-core/src/codec/factory/opus_fidelity.rs": "d84662819e2ef5d3fc9778659986c52584727fe26260ddd2728780540459bb55",
+      "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib": "716bd76be5966fdfcedd2f26eeda226a776ae8cc732275f0e324b09057803269",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/opus-general-fidelity/lib-media-core-before.rlib": "9aec7440967cbcfee8373ea90772fe17b52f0cd0bd77ea9fafcab2aa4452cb41",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/dependencies/source-lock.json": "8f2b93caaaf1d7972a5db172f9319e2f8bea23edbe16fd305e0ce0f0698fbe76",
+      "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/patches/rvoip/gate6-opus-general-fidelity.patch": "9cc7c730e2aa900db8cad59347e48cd2c3e8771a8d70a351fe389292acc99e89"
+    },
+    "changed_inputs": [],
+    "probe": {
+      "exit_code": 0,
+      "seconds": 0.5352415828965604,
+      "result": {
+        "scope": "Actual codec cascade only; no Core mixing, network or browser playout",
+        "audio_control": false,
+        "bitrate": 32000,
+        "cases": [
+          {
+            "expected_hz": 440,
+            "windows": 1672,
+            "source_bad": 0,
+            "cascade_bad": 0,
+            "minimum_hz": 445.3125,
+            "maximum_hz": 445.3125
+          },
+          {
+            "expected_hz": 660,
+            "windows": 1672,
+            "source_bad": 0,
+            "cascade_bad": 0,
+            "minimum_hz": 656.25,
+            "maximum_hz": 656.25
+          }
+        ],
+        "passed": true
+      }
+    },
+    "probe_sha256": "1c16a1499a8215d164dba61fcbcff2ee1ddc42b1a039d48673a7036f8b57013f",
+    "upstream_regression": [
+      {
+        "case": "before",
+        "exit_code": 101,
+        "seconds": 0.49613637500442564,
+        "test_result": [
+          "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s"
+        ],
+        "executable_sha256": "eaad1820673963287493ec67fd069050ea1ada619ba97ad41c9db804e3d0aeeb"
+      },
+      {
+        "case": "after",
+        "exit_code": 0,
+        "seconds": 0.44819141714833677,
+        "test_result": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s"
+        ],
+        "executable_sha256": "8d6b70df1f9cf1f197f31234ef463bfe9ef2f5f345931435de2297db80135d6f"
+      }
+    ]
+  }
 }
