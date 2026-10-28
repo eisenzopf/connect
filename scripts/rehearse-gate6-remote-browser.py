@@ -78,9 +78,9 @@ def main():
         result = HELPERS["sources"]()
         dockerfile = "scripts/video/Dockerfile.remote-browser"
         result[dockerfile] = digest(ROOT / dockerfile)
-        for folder in [ROOT / "sdk/typescript/src", ROOT / "sdk/typescript/dist", module.parent, module.parent.parent / "playwright-core"]:
+        for folder in [ROOT / "scripts/video", ROOT / "examples/conversation-client", ROOT / "sdk/typescript/src", ROOT / "sdk/typescript/dist", module.parent, module.parent.parent / "playwright-core"]:
             for path in sorted(folder.rglob("*")):
-                if path.is_file():
+                if path.is_file() and "__pycache__" not in path.parts:
                     result[str(path.relative_to(ROOT))] = digest(path)
         return result
 

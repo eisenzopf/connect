@@ -451,16 +451,17 @@
   "source_sha256": {
     "crates/connect-server/tests/support/canonical_webrtc_browser.rs": "5d8d98b84e816c032e12d963ed04db6b9f3832ea458f4c36d3fd97421232e0c6",
     "crates/connect-server/tests/support/canonical_webrtc_browser/remote.rs": "9208c203b5a76c95fbc408b206e870d81adf0e8b38da911ce82dc604a8a9382f",
-    "scripts/rehearse-gate6-remote-browser.py": "c1e29cd2618126461ed124b1d47b15abf0f7e64dec32ba94c330e73d7a685bfd",
+    "scripts/rehearse-gate6-remote-browser.py": "8774f0a59968afefc560eceb9a9374f9b6758ec0b623514eb34a0a08523b7fd3",
     "scripts/video/browser-qualify.mjs": "600438df6247fdf46e39938193fe75c82be4d2f1c863ad4179573be9dd47e80a",
-    "scripts/video/browser_failure.mjs": "f9064fc7af46d2c16890e6069c39a1c9e9acbb401ddfa68be5fdde0275e39221",
+    "scripts/video/browser_failure.mjs": "d7c8bc26b417fb6dd9aedca29d9d3b655442e5ea97042bfc54153efcd0d42145",
     "scripts/video/linux_remote_browser.mjs": "73cba1f12f2e6fe5b12a5be8c5ea921ced85a4d1ddc7c77e410a5757c114ee94",
     "scripts/video/linux_browser_trust.py": "df58a2ae49717d7c9f69e265efe35e251ef95bf437c5404cd3083bd772d101ec",
     "scripts/video/Dockerfile.remote-browser": "0ec3ba806338b2146d8747f9bcde0890df2b21b5fc2dc002531daa4d26e9bac9",
     "docs/developer/remote-browser-rehearsal.md": "4b0523d1c5e2ee663b9c4173c7f8f4eaa5a2bbf3e7d8d7ccb1e875d47e1d8b71",
     "dependencies/source-lock.json": "ca67cedb3f6065ee5adef32e3fa06913c069e98c19b6e00e7a691db88daad4c6",
     "crates/connect-server/tests/support/canonical_webrtc_browser/audio_trace.rs": "96417ac7c88d8b26a712bdde49c912b309f219d56f455c5afca9519841503b05",
-    "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a"
+    "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a",
+    "scripts/video/browser-failure.test.mjs": "4ef84cfb6286163aa35982f9f1bde8edc870951a3a590325d668a99b363b1257"
   },
   "acceptance_qualified": false,
   "publication": false,
@@ -661,5 +662,555 @@
       }
     ],
     "reference_refresh": "Only three64hex provenance leaves changed across application dispatch/OpenAPI and HTTPinventory. No schema/dispatch contents changed. All4OpenAPI generators --check and HTTPinventory --check pass;25declarations26ops0uncovered."
+  },
+  "feedback_negotiation_observation": {
+    "whole_rehearsal_passed": false,
+    "private_summary": ".local/gate-6/browser-remote/trace225/summary.json",
+    "private_summary_sha256": "9892e2c21cf5c84ae4e93885467f244f6c16ba935759abd8461cf50c3058d6e2",
+    "private_timeline_sha256": "87a6846bb869a2a84fa4d0428a1359188bfdcf8b489b3ae7112289883fc02b09",
+    "source_count": 2611,
+    "source_inputs_unchanged": true,
+    "build_inputs_unchanged": true,
+    "executable_unchanged": true,
+    "codec_direction_metadata": [
+      {
+        "participant": 0,
+        "codecs": [
+          {
+            "local": {
+              "type": "offer",
+              "media": [
+                {
+                  "kind": "audio",
+                  "codecs": [
+                    {
+                      "payload_type": 111,
+                      "name": "opus",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 63,
+                      "name": "red",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 9,
+                      "name": "G722",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 0,
+                      "name": "PCMU",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 8,
+                      "name": "PCMA",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 13,
+                      "name": "CN",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 110,
+                      "name": "telephone-event",
+                      "clock_rate": 48000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 126,
+                      "name": "telephone-event",
+                      "clock_rate": 8000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 111,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 63,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 9,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 0,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 8,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 13,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 110,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 126,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 111,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    }
+                  ],
+                  "direction": "sendrecv"
+                },
+                {
+                  "kind": "video",
+                  "codecs": [
+                    {
+                      "payload_type": 96,
+                      "name": "VP8",
+                      "clock_rate": 90000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 97,
+                      "name": "rtx",
+                      "clock_rate": 90000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 96,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 97,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "goog-remb",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "ccm",
+                      "parameter": "fir"
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": "pli"
+                    }
+                  ],
+                  "direction": "sendrecv"
+                }
+              ]
+            },
+            "remote": {
+              "type": "answer",
+              "media": [
+                {
+                  "kind": "audio",
+                  "codecs": [
+                    {
+                      "payload_type": 111,
+                      "name": "opus",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 110,
+                      "name": "telephone-event",
+                      "clock_rate": 48000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 126,
+                      "name": "telephone-event",
+                      "clock_rate": 8000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 111,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    }
+                  ],
+                  "direction": "sendrecv"
+                },
+                {
+                  "kind": "video",
+                  "codecs": [
+                    {
+                      "payload_type": 96,
+                      "name": "VP8",
+                      "clock_rate": 90000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 97,
+                      "name": "rtx",
+                      "clock_rate": 90000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 96,
+                      "type": "goog-remb",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "ccm",
+                      "parameter": "fir"
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": "pli"
+                    }
+                  ],
+                  "direction": "sendrecv"
+                }
+              ]
+            },
+            "transceivers": [
+              {
+                "direction": "sendrecv",
+                "current_direction": "sendrecv"
+              },
+              {
+                "direction": "sendrecv",
+                "current_direction": "sendrecv"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "participant": 1,
+        "codecs": [
+          {
+            "local": {
+              "type": "offer",
+              "media": [
+                {
+                  "kind": "audio",
+                  "codecs": [
+                    {
+                      "payload_type": 111,
+                      "name": "opus",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 63,
+                      "name": "red",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 9,
+                      "name": "G722",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 0,
+                      "name": "PCMU",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 8,
+                      "name": "PCMA",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 13,
+                      "name": "CN",
+                      "clock_rate": 8000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 110,
+                      "name": "telephone-event",
+                      "clock_rate": 48000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 126,
+                      "name": "telephone-event",
+                      "clock_rate": 8000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 111,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 63,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 9,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 0,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 8,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 13,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 110,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 126,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 111,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    }
+                  ],
+                  "direction": "sendrecv"
+                },
+                {
+                  "kind": "video",
+                  "codecs": [
+                    {
+                      "payload_type": 96,
+                      "name": "VP8",
+                      "clock_rate": 90000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 97,
+                      "name": "rtx",
+                      "clock_rate": 90000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 96,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 97,
+                      "type": "rrtr",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "goog-remb",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "ccm",
+                      "parameter": "fir"
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": "pli"
+                    }
+                  ],
+                  "direction": "sendrecv"
+                }
+              ]
+            },
+            "remote": {
+              "type": "answer",
+              "media": [
+                {
+                  "kind": "audio",
+                  "codecs": [
+                    {
+                      "payload_type": 111,
+                      "name": "opus",
+                      "clock_rate": 48000,
+                      "channels": 2
+                    },
+                    {
+                      "payload_type": 110,
+                      "name": "telephone-event",
+                      "clock_rate": 48000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 126,
+                      "name": "telephone-event",
+                      "clock_rate": 8000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 111,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    }
+                  ],
+                  "direction": "sendrecv"
+                },
+                {
+                  "kind": "video",
+                  "codecs": [
+                    {
+                      "payload_type": 96,
+                      "name": "VP8",
+                      "clock_rate": 90000,
+                      "channels": null
+                    },
+                    {
+                      "payload_type": 97,
+                      "name": "rtx",
+                      "clock_rate": 90000,
+                      "channels": null
+                    }
+                  ],
+                  "feedback": [
+                    {
+                      "payload_type": 96,
+                      "type": "goog-remb",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "transport-cc",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "ccm",
+                      "parameter": "fir"
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": ""
+                    },
+                    {
+                      "payload_type": 96,
+                      "type": "nack",
+                      "parameter": "pli"
+                    }
+                  ],
+                  "direction": "sendrecv"
+                }
+              ]
+            },
+            "transceivers": [
+              {
+                "direction": "sendrecv",
+                "current_direction": "sendrecv"
+              },
+              {
+                "direction": "sendrecv",
+                "current_direction": "sendrecv"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "source_clock": {
+      "startup_audio_seconds": 0.25541950113378686,
+      "wall_seconds": 1.2011000001430512,
+      "audio_seconds": 1.2074376417233559,
+      "ratio": 1.0052765311627256,
+      "passed": true
+    },
+    "sender_prepare_refusals": 3184,
+    "error": "ErrRTPTransceiverCodecUnsupported",
+    "source_inference": "The browser offers RRTR for Opus and VP8; the answer correctly omits it. rvoip-rtc transceiver/internal.rs set_codec_preferences_from_remote_description rewrites PT and clones the remote codec feedback unchanged into set_codec_preferences, which copies it into sender send_codecs. That differs from MediaEngine update_from_remote_description, which intersects feedback. The guarded sender rejects unsupported feedback. This is a concrete likely explanation requiring causal before/after tests and a behavior fix; it is not yet a verified root-cause closure.",
+    "planned_correction": "Intersect remote primary codec feedback with the matched local/negotiated codec while preserving codec preference order, PT mapping and RTX associations. Preserve the guarded sender feedback checks; do not simply add unsupported RRTR to their whitelist.",
+    "observer_privacy_test": {
+      "command": "node --test scripts/video/browser-failure.test.mjs",
+      "tests_passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "source_sha256": "4ef84cfb6286163aa35982f9f1bde8edc870951a3a590325d668a99b363b1257",
+      "scope": "Actual Node test checks extracted codec/direction metadata and rejection of synthetic ICE password/fingerprint/address/msid fields. No browser media qualification."
+    },
+    "runtime_guard_correction": "Shared source helper omitted JS/MJS/HTML/CSS suffixes. Earlier runtime before/after sets therefore did not automatically guard those fixture files, though selected script hashes were published. None of those trials qualified decoded media. The corrected runner now hashes all non-pycache files under scripts/video and examples/conversation-client, alongside SDK source/dist and the actual Playwright package. Latest225 guards2611inputs including those files."
   }
 }

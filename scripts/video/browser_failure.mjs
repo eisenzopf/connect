@@ -64,6 +64,26 @@ export function installPeerDiagnostics() {
         });
         return rows;
     }));
+    const descriptionCodecs=description=>{
+        if(!description||typeof description.sdp!=="string"||description.sdp.length>65536)return {unavailable:true};
+        const media=[];let section;
+        for(const line of description.sdp.split(/\r?\n/)){
+            let match;
+            if(line.startsWith("m=")){
+                const kind=/^m=(audio|video) /.exec(line)?.[1];
+                section=kind&&media.length<4?{kind,codecs:[],feedback:[]}:undefined;
+                if(section)media.push(section);
+            }else if(section&&(match=/^a=(sendrecv|sendonly|recvonly|inactive)$/.exec(line)))section.direction=match[1];
+            else if(section&&section.codecs.length<32&&(match=/^a=rtpmap:(\d{1,3}) ([A-Za-z0-9._-]{1,32})\/(\d{1,8})(?:\/(\d{1,2}))?$/.exec(line)))
+                section.codecs.push({payload_type:Number(match[1]),name:match[2],clock_rate:Number(match[3]),channels:match[4]===undefined?null:Number(match[4])});
+            else if(section&&section.feedback.length<64&&(match=/^a=rtcp-fb:(\d{1,3}|\*) ([A-Za-z0-9_-]{1,32})(?: ([A-Za-z0-9_-]{1,32}))?$/.exec(line)))
+                section.feedback.push({payload_type:match[1]==="*"?"*":Number(match[1]),type:match[2],parameter:match[3]??""});
+        }
+        return {type:["offer","answer","pranswer","rollback"].includes(description.type)?description.type:"other",media};
+    };
+    globalThis.connectPeerCodecDiagnostics=()=>entries.map(entry=>({
+        local:descriptionCodecs(entry.peer.localDescription),remote:descriptionCodecs(entry.peer.remoteDescription),
+        transceivers:entry.peer.getTransceivers().slice(0,4).map(tx=>({direction:tx.direction,current_direction:tx.currentDirection}))}));
 }
 
 export async function browserFailure(pages, error) {
@@ -77,7 +97,7 @@ export async function browserFailure(pages, error) {
             const media=await Promise.race([page.evaluate(async()=>{
                 const f=globalThis.videoFixture;
                 if(!f?.session)return {unavailable:true};
-                return {rtp:await globalThis.connectPeerMediaDiagnostics?.(),video:(await f.session.diagnostics()).slice(0,4),
+                return {rtp:await globalThis.connectPeerMediaDiagnostics?.(),codecs:globalThis.connectPeerCodecDiagnostics?.(),video:(await f.session.diagnostics()).slice(0,4),
                     audio_context_state:f.audio?.state,source_draws:f.sourceObservation?.draws,
                     element:f.video?{ready_state:f.video.readyState,network_state:f.video.networkState,
                         media_error_code:f.video.error?.code??null,paused:f.video.paused,
@@ -91,7 +111,7 @@ export async function browserFailure(pages, error) {
     return {status: "failed", profile: "connect-video-vp8/1", phase: "browser-participation",
         error_class: ["Error", "TimeoutError", "ConnectError"].includes(error?.name) ? error.name : "OtherError",
         observations: [], peer_diagnostics: peerDiagnostics,
-        diagnostic_scope: "bounded native RTCPeerConnection/DTLS state events and description-presence flags; no SDP, ICE candidates, keys, credentials or media content"};
+        diagnostic_scope: "bounded peer state, numeric RTP counters and codec/direction metadata; no raw SDP, ICE candidates, keys, credentials or media content"};
 }
 
 /** Bounded wire correlation metadata; no payloads, signatures or addresses. */
