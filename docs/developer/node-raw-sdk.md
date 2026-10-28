@@ -53,3 +53,11 @@ for Ubuntu CI. They cover local validation with invalid configuration, original
 signed record reads, same-ID replay without another message, fresh wire IDs and
 current revocation. These runtime results remain pending. See
 [the evidence](../evidence/gate-6/node-raw-sdk.json); G6-062 remains in progress.
+
+The first actual Rust cohorts (`02238a30`/`72e07ba9`) compiled the SDK/CLI, but
+the new validator suite exposed stale embedded operation metadata constraints:
+two local functions passed and the full-vector function failed. The older232
+vector/schema copy accepted19 negative Connect vectors. A recorded240th upstream
+patch synchronizes the exact254-vector contract in a fresh prepared tree. The
+existing test remains required; current Rust/native execution is pending. See
+[the schema comparison and retained failures](../evidence/gate-6/node-embedded-schema.json).

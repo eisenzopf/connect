@@ -1306,6 +1306,11 @@
       "path": "patches/rvoip/gate6-negotiated-rtcp-routing.patch",
       "source": "G6-054 retain an indexed adjacent RTP/RTCP allocation through the original media owner; connect validated SIP separate/default/explicit and multiplexed RTCP negotiation to a coherent socket/destination route. Refuse unconfigured, stale, missing-socket and closed routes; preserve SRTP and original task drains. Negative actual distinct-network telephone case retained; full positive qualification pending. Manual sender/receiver reports and RTCP goodbye resolve the same committed destination; exact split/mux/close socket regression.",
       "sha256": "238d81de77b7c436de8aedfc91bd634ababac40d98f305fee59aa2a38e4e4313"
+    },
+    {
+      "path": "patches/rvoip/gate6-current-operation-envelope-schema.patch",
+      "source": "G6-062 frozen local validation exposed stale embedded operation.updated schema: synchronize exact current Connect transition identity, reconciliation and routing hint constraints plus254vectors. Preserve original frozen parser/duplicate guards; no validation weakening or lifecycle compatibility. Prepared source gets a fresh verified root.",
+      "sha256": "58f1bd4c75f12e77c20ebb59d31ce38287257846f4e6402bb7b4e5048c83679b"
     }
   ]
 }

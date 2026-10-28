@@ -1049,7 +1049,7 @@
     "crates/connect-protocol/tests/conversation_control.rs": "7d3c41934d97499a567f35e4576b6782c1d366eb8c9104e09895514f7b391546",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
-    "dependencies/source-lock.json": "0d6f562955fbf5f1f17af21e31cd29a92e50345be1c427cade5d4e8ff1ef1458",
+    "dependencies/source-lock.json": "418d50c4103cef3d90060a838df2d26b384e51034c4132f6faf79cc96b1368a2",
     "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135"
   }
 }

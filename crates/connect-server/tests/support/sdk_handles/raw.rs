@@ -294,6 +294,12 @@ fn local_helper_validator_matches_every_frozen_schema_vector() {
             &serde_json::to_vec(&vector["envelope"]).unwrap(),
         );
         assert_eq!(result["profile"], sdk::helper::VALIDATION_PROFILE);
+        if result["valid"] != vector["valid"] {
+            eprintln!(
+                "sdk-local-schema-mismatch {}",
+                json!({"id":vector["id"],"expected":vector["valid"],"observed":result["valid"]})
+            );
+        }
         assert_eq!(result["valid"], vector["valid"], "{}", vector["id"]);
         assert!(result.get("envelope").is_none() && result.get("value").is_none());
         assert!(serde_json::to_vec(&result).unwrap().len() < 16_384);

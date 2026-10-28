@@ -116,6 +116,14 @@ def run(node_sdk=False):
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
             for location in re.findall(r"thread '[^']+'(?: \([0-9]+\))? panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
+        step["local_schema_mismatches"] = []
+        for line in text.splitlines():
+            if line.startswith('sdk-local-schema-mismatch '):
+                mismatch = json.loads(line.split(' ', 1)[1])
+                assert set(mismatch) == {'id', 'expected', 'observed'}
+                assert isinstance(mismatch['id'], str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,160}', mismatch['id'])
+                assert type(mismatch['expected']) is bool and type(mismatch['observed']) is bool
+                step['local_schema_mismatches'].append(mismatch)
         step["node_completed_phases"] = []
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-phase '):

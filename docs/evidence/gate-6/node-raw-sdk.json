@@ -100,7 +100,7 @@
     "uncovered": 0,
     "diff_check": true,
     "mac_rust_compile": "skipped: retained internal-disk ENOSPC; no build/link attempted",
-    "linux_rust_compile_and_native": "pending"
+    "linux_rust_compile_and_native": "022/72e Rust/CLI compile passed; local validator tests2pass1fail due stale embedded schema; other native functions not reached. Current240patch schema candidate pending."
   },
   "runner_control_flow_only": {
     "passed": true,
@@ -171,5 +171,6 @@
         "scope": "Ubuntu Node synthetic helper/process/local HTTP/type checks only; no Rust frozen validation/crypto/actual native qualification"
       }
     ]
-  }
+  },
+  "embedded_schema_failure_and_correction": "docs/evidence/gate-6/node-embedded-schema.json"
 }

@@ -1,0 +1,783 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
++++ b/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json
+@@ -2305,6 +2305,26 @@
+         "record_id": {
+           "$ref": "#/$defs/Identifier"
+         },
++        "subscription_record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "command_type": {
++          "type": "string",
++          "minLength": 1,
++          "maxLength": 128
++        },
++        "expected_revision": {
++          "anyOf": [
++            {
++              "type": "integer",
++              "minimum": 0,
++              "maximum": 9007199254740991
++            },
++            {
++              "type": "null"
++            }
++          ]
++        },
+         "state": {
+           "$ref": "#/$defs/OperationState"
+         },
+@@ -2342,8 +2362,150 @@
+               ]
+             }
+           }
++        },
++        {
++          "if": {
++            "required": [
++              "command_type"
++            ],
++            "properties": {
++              "command_type": {
++                "enum": [
++                  "session.consult",
++                  "session.consult.return",
++                  "session.handoff",
++                  "connection.replace"
++                ]
++              }
++            }
++          },
++          "then": {
++            "required": [
++              "record_id",
++              "expected_revision"
++            ],
++            "properties": {
++              "expected_revision": {
++                "type": "integer",
++                "minimum": 0,
++                "maximum": 9007199254740990
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "command_type"
++            ],
++            "properties": {
++              "command_type": {
++                "const": "stream.reconcile"
++              }
++            }
++          },
++          "then": {
++            "required": [
++              "record_id",
++              "subscription_record_id",
++              "expected_revision"
++            ],
++            "properties": {
++              "expected_revision": {
++                "type": "integer",
++                "minimum": 0,
++                "maximum": 9007199254740990
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "subscription_record_id"
++            ]
++          },
++          "then": {
++            "required": [
++              "command_type"
++            ],
++            "properties": {
++              "command_type": {
++                "const": "stream.reconcile"
++              }
++            }
++          }
++        },
++        {
++          "if": {
++            "required": [
++              "journal_hint"
++            ],
++            "properties": {
++              "journal_hint": {
++                "const": true
++              }
++            }
++          },
++          "then": {
++            "$ref": "#/$defs/ReconciliationHint"
++          }
+         }
+       ]
++    },
++    "ReconciliationHint": {
++      "type": "object",
++      "properties": {
++        "operation_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "command_type": {
++          "const": "stream.reconcile"
++        },
++        "expected_revision": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740990
++        },
++        "state": {
++          "const": "completed"
++        },
++        "revision": {
++          "type": "integer",
++          "minimum": 0,
++          "maximum": 9007199254740991
++        },
++        "subscription_record_id": {
++          "$ref": "#/$defs/Identifier"
++        },
++        "stream_revision": {
++          "type": "integer",
++          "minimum": 1,
++          "maximum": 9007199254740991
++        },
++        "journal_hint": {
++          "const": true
++        },
++        "resources_changed": {
++          "const": false
++        }
++      },
++      "required": [
++        "operation_id",
++        "record_id",
++        "command_type",
++        "expected_revision",
++        "state",
++        "revision",
++        "subscription_record_id",
++        "stream_revision",
++        "journal_hint",
++        "resources_changed"
++      ],
++      "additionalProperties": false
+     },
+     "MemberAdd": {
+       "type": "object",
+@@ -4413,6 +4575,51 @@
+           }
+         ]
+       }
++    },
++    {
++      "if": {
++        "required": [
++          "type",
++          "payload"
++        ],
++        "properties": {
++          "type": {
++            "const": "operation.updated"
++          },
++          "payload": {
++            "required": [
++              "journal_hint"
++            ],
++            "properties": {
++              "journal_hint": {
++                "const": true
++              }
++            }
++          }
++        }
++      },
++      "then": {
++        "required": [
++          "cid",
++          "sid",
++          "connid",
++          "operation_id"
++        ],
++        "not": {
++          "anyOf": [
++            {
++              "required": [
++                "in_reply_to"
++              ]
++            },
++            {
++              "required": [
++                "expected_revision"
++              ]
++            }
++          ]
++        }
++      }
+     }
+   ]
+ }
+--- a/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
++++ b/crates/uctp/rvoip-uctp/src/v2/golden-vectors.json
+@@ -4711,6 +4711,548 @@
+       }
+     },
+     {
++      "id": "operation-transition-original-identity",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "accepted",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "session.consult",
++          "expected_revision": 0
++        }
++      }
++    },
++    {
++      "id": "operation-transition-identity-missing-record",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "accepted",
++          "revision": 0,
++          "command_type": "session.consult",
++          "expected_revision": 0
++        }
++      }
++    },
++    {
++      "id": "operation-transition-identity-missing-revision",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "accepted",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "session.consult"
++        }
++      }
++    },
++    {
++      "id": "operation-transition-identity-null-revision",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "accepted",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "session.consult",
++          "expected_revision": null
++        }
++      }
++    },
++    {
++      "id": "operation-transition-identity-unsafe-revision",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "accepted",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "session.consult",
++          "expected_revision": 9007199254740991
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-original-subscription",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 0,
++          "subscription_record_id": "opr_explicit_subscription"
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-missing-parent",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 0
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-invalid-parent",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 0,
++          "subscription_record_id": "invalid/record"
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-missing-record",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "command_type": "stream.reconcile",
++          "expected_revision": 0,
++          "subscription_record_id": "opr_explicit_subscription"
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-missing-revision",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "subscription_record_id": "opr_explicit_subscription"
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-null-revision",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": null,
++          "subscription_record_id": "opr_explicit_subscription"
++        }
++      }
++    },
++    {
++      "id": "operation-reconciliation-foreign-command",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.subscribe",
++          "expected_revision": 0,
++          "subscription_record_id": "opr_explicit_subscription"
++        }
++      }
++    },
++    {
++      "id": "routing-journal-hint-shape",
++      "scope": "schema-only",
++      "valid": true,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-missing-parent",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-missing-root-operation",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        }
++      }
++    },
++    {
++      "id": "routing-journal-hint-reply-header",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        },
++        "operation_id": "example",
++        "in_reply_to": "invented-request"
++      }
++    },
++    {
++      "id": "routing-journal-hint-assertion-header",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        },
++        "operation_id": "example",
++        "expected_revision": 2
++      }
++    },
++    {
++      "id": "routing-journal-hint-result",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3,
++          "result": {
++            "unproven": "capture"
++          }
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-plan",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3,
++          "plan": {
++            "private": "descriptor"
++          }
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-resources",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": true,
++          "stream_revision": 3
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-state",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "preparing",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 3
++        },
++        "operation_id": "example"
++      }
++    },
++    {
++      "id": "routing-journal-hint-unsafe-counter",
++      "scope": "schema-only",
++      "valid": false,
++      "envelope": {
++        "v": 2,
++        "type": "operation.updated",
++        "id": "env_vector_63",
++        "ts": "2026-10-15T12:00:00Z",
++        "cid": "conv_example",
++        "sid": "sess_example",
++        "connid": "conn_example",
++        "payload": {
++          "operation_id": "example",
++          "state": "completed",
++          "revision": 0,
++          "record_id": "opr_record_reference",
++          "command_type": "stream.reconcile",
++          "expected_revision": 2,
++          "subscription_record_id": "opr_explicit_subscription",
++          "journal_hint": true,
++          "resources_changed": false,
++          "stream_revision": 9007199254740992
++        },
++        "operation_id": "example"
++      }
++    },
++    {
+       "id": "handoff-target-owned-preparation",
+       "scope": "schema-only",
+       "valid": true,

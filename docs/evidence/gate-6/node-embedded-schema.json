@@ -1,0 +1,273 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "embedded-frozen-schema-synchronized-runtime-pending",
+  "contract_component_passed": true,
+  "rust_runtime_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "problem": "Prepared Rust v43 embeds232vectors/older schema while approved Connect contract has254. Local frozen-validation tests expose19 invalid operation transition/reconciliation/routing-hint vectors accepted by the old embedded schema.",
+  "causal_schema_comparison": {
+    "passed": true,
+    "scope": "Actual old/current embedded JSON schemas against254 public frozen vectors using Draft202012Validator; Rust frozen-parser execution remains pending",
+    "vectors": 254,
+    "old_mismatches": [
+      {
+        "id": "operation-transition-identity-missing-record",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-transition-identity-missing-revision",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-transition-identity-null-revision",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-transition-identity-unsafe-revision",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-missing-parent",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-invalid-parent",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-missing-record",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-missing-revision",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-null-revision",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "operation-reconciliation-foreign-command",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-missing-parent",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-missing-root-operation",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-reply-header",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-assertion-header",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-result",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-plan",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-resources",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-state",
+        "expected": false,
+        "observed": true
+      },
+      {
+        "id": "routing-journal-hint-unsafe-counter",
+        "expected": false,
+        "observed": true
+      }
+    ],
+    "new_mismatches": [],
+    "old_schema_sha256": "8d3d5a1098c8eebafe30960b8b35d83e11f9c8ac09453ab7e528251368d11c32",
+    "current_schema_sha256": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+    "patch_sha256": "58f1bd4c75f12e77c20ebb59d31ce38287257846f4e6402bb7b4e5048c83679b"
+  },
+  "upstream_patch": "patches/rvoip/gate6-current-operation-envelope-schema.patch",
+  "source_lock_sha256": "418d50c4103cef3d90060a838df2d26b384e51034c4132f6faf79cc96b1368a2",
+  "patches_verified": 240,
+  "prepared_source": "Fresh verified v44 root; original v43 and primary v26 roots preserved. Prepared schema and golden-vector bytes exactly match approved contracts. No direct .deps source edit.",
+  "contract_checks": {
+    "status": "passed",
+    "scope": "Source audit, schema vectors and contract invariants only; no runtime/media/provider qualification.",
+    "source_sections": 99,
+    "source_clauses": 207,
+    "baseline_envelopes": 49,
+    "target_envelopes": 66,
+    "schema_vectors": 254,
+    "semantic_boundary_checks": [
+      "unbounded-correlation-id",
+      "non-ascii-identifier",
+      "unsafe-revision-precision",
+      "negative-revision",
+      "invalid-outgoing-authority-mode",
+      "missing-retained-connection",
+      "conversation-role-transfer-needs-revision",
+      "unbounded-unknown-envelope-type",
+      "ambiguous-replacement-target",
+      "duplicate-consultation-audience",
+      "return-needs-consultation_record_id",
+      "return-needs-retained_connid",
+      "return-needs-explicit-primary",
+      "typed-session-update",
+      "role-change-required-target",
+      "unknown-is-not-completed",
+      "fresh-envelope-stable-operation",
+      "optional-extensions-do-not-change-authority"
+    ],
+    "operation_states": 9,
+    "contract_sha256": {
+      "contracts/connect-uctp.md": "dea860ef997ae0cf363725adb345001c527a8ac7e305b06ad61e8774c7d09459",
+      "contracts/connect-audiences.md": "a163aad5218f11fa03ad364230327653f5b1cedbfa37dbabc0700f188da285b1",
+      "contracts/connect-transitions.md": "db04ce75853054f42da08d2645e94e9cc9958bdcba95a2b829fbf60a9c21d155",
+      "contracts/connect-operations.md": "7a9b71d77245faef57accbc5da5a46d288f10a5a0f03f38f884f8a0af42ca860",
+      "contracts/connect-events.md": "cd490fd4124d8babd1736d8f981764fa0ed62aca97fdf9f3e594e760be6c1515",
+      "contracts/connect-media-v2.md": "79d582e875d1c13b58903bc0c38d081c145b4b0d777656e2a1acc80302619de1",
+      "contracts/connect-records.md": "fa2e6354b24e3e8f1454b5696cba7766fc8bfc9c946102c2de4a0a2e611af5ca"
+    },
+    "tool_versions": {
+      "python": "3.14.7",
+      "jsonschema": "4.26.0"
+    }
+  },
+  "retained_source_bound_failures": [
+    {
+      "commit": "02238a301da430a01cae2f6066336aab76a252d2",
+      "run_id": 40759244615,
+      "artifact_id": 12846084413,
+      "zip_sha256": "26f748c79a8b784d0e0f80bc35cc659a530891d0664aa89c92e369303e291ee5",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "8876e13ffcef509c8b84e9e9e4bb9bd66710557332a0dd3fd9ec8efa38a8537b",
+      "guarded_inputs": 8098,
+      "source_bound_tracked_files_verified": 4006,
+      "compiled_artifacts": {
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "550c25690715918132af981eadfebd91988cf197c2d8c6bec358981fbefa8b0c",
+        "hosting": "74738863cfc426fd5c809e162428ae2d9cb0d77b654d3dfe2b8872841a63d2d4",
+        "cli": "67459636b99b5e816f1d472ead474fa2162f4c8f6fd12d48f14a1a97728bec81",
+        "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+      },
+      "failure": {
+        "name": "raw-local-validation",
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 0.06402380899999116,
+        "log_sha256": "000e49a77589bcd1a8600be8eeed1c910f477e604e8b327b9993bb5d5ea05ae0",
+        "test_results": [
+          "test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 395 filtered out; finished in 0.03s"
+        ],
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/sdk_handles/raw.rs",
+            "line": 297,
+            "column": 9
+          }
+        ],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_consultation_phases": [],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "compiler_diagnostics": []
+      },
+      "runtime_matrix_executed": false,
+      "scope": "All four Rust targets and actual SDK CLI compile. New local validation test2passed1failed; runtime scenarios not reached. Modern safe panic coordinate capture worked."
+    },
+    {
+      "commit": "72e07ba900f5776e663f620f8cf73d771851733b",
+      "run_id": 40759706679,
+      "artifact_id": 12847283588,
+      "zip_sha256": "953a33ba9b700b3af41aa10c4cfca026a89a4d441e078485394c47669382d847",
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "3f93c39b9966a9658e50772d345f7d513c99246e2a6e6657df915af552497736",
+      "guarded_inputs": 8099,
+      "source_bound_tracked_files_verified": 4007,
+      "compiled_artifacts": {
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "550c25690715918132af981eadfebd91988cf197c2d8c6bec358981fbefa8b0c",
+        "hosting": "74738863cfc426fd5c809e162428ae2d9cb0d77b654d3dfe2b8872841a63d2d4",
+        "cli": "67459636b99b5e816f1d472ead474fa2162f4c8f6fd12d48f14a1a97728bec81",
+        "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+      },
+      "failure": {
+        "name": "raw-local-validation",
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 0.11434044399999266,
+        "log_sha256": "c23cb8d0338d6a79dc13e026e69d0356f027ed131bdc025f82f885ccc225a234",
+        "test_results": [
+          "test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 395 filtered out; finished in 0.05s"
+        ],
+        "panic_locations": [
+          {
+            "file": "crates/connect-server/tests/support/sdk_handles/raw.rs",
+            "line": 297,
+            "column": 9
+          }
+        ],
+        "node_completed_phases": [],
+        "node_failures": [],
+        "node_consultation_phases": [],
+        "node_consultation_failures": [],
+        "node_movement_phases": [],
+        "node_movement_failures": [],
+        "compiler_diagnostics": []
+      },
+      "runtime_matrix_executed": false,
+      "scope": "All four Rust targets and actual SDK CLI compile. New local validation test2passed1failed; runtime scenarios not reached. Modern safe panic coordinate capture worked."
+    }
+  ],
+  "qualification_limit": "Draft202012254vector/18semantic-boundary checks and dependency patch preparation pass. Frozen Rust254vector check, native Node22/26 matrix and whole SDK remain pending; no assertion weakened or vector skipped.",
+  "safe_failure_diagnostics": {
+    "passed": true,
+    "scope": "Synthetic runner diagnostic/control flow only",
+    "source_sha256": "0ac8bb77edf90bb39ad3db6bbd59dceaa5a9c8c770b389b9352acef302c2b707",
+    "public_vector_identity_preserved_without_payload": true
+  },
+  "prepared_verification_log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+  "generated_http_references": {
+    "application": "regenerated and check passed for current source lock",
+    "canonical": "regenerated and check passed for current source lock",
+    "protected": "regenerated and check passed for current source lock",
+    "declarations": 25,
+    "operations": 26,
+    "uncovered": 0
+  }
+}
