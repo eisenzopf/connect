@@ -2,9 +2,9 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "authoritative-source-comparison-corrected-native-pending",
+  "status": "approved-invitation-contract-and-authoritative-source-linux-passed",
   "implementation_parent_commit": "01dd18caccb4edc50850790b01e3495e79e295b3",
-  "native_component_passed": false,
+  "native_component_passed": true,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
@@ -73,5 +73,7 @@
     "diff": true,
     "actual_native": "Pending normal source run; no local Rust linking due retained ENOSPC."
   },
-  "qualification_limit": "Fixture correction follows established source-ID contract and preserves production behavior. Local94 component checks/unchanged SDK package do not prove the new SQL/native digest check. Current contract iterator, graceful native drain, other incoming matrix, unresolved Rust EOF/audio findings, events/remoteHTTP/full SDK remain open."
+  "qualification_limit": "Fixture correction follows established source-ID contract and preserves production behavior. Local94 component checks/unchanged SDK package do not prove the new SQL/native digest check. Current contract iterator, graceful native drain, other incoming matrix, unresolved Rust EOF/audio findings, events/remoteHTTP/full SDK remain open.",
+  "verified_native_evidence": "docs/evidence/gate-6/node-native-972.json",
+  "verified_native_scope": "Exact972source on Linux x86_64 Node22.23.4/26.12.1, EdDSA/ES256: profile6 incoming captured async iterator, authoritative original source SHA matches independent one-row SQLite source and differs from caller mutation, recipient hinted Session decision and close/control progression;8helpers6validators2servers original drains each matrix. Native-control component only. Full incoming journey/native media custody/reconnect and G6-062 remain open."
 }

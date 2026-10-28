@@ -50,7 +50,8 @@
   },
   "rust_candidates": [
     "Three exact pending-fact ACK/budget/current-failure unit tests",
-    "Original nine signed journal bootstrap/renewal/duplicate/authority/scope/overflow/cancellation/capacity tests"
+    "Original nine signed journal bootstrap/renewal/duplicate/authority/scope/overflow/cancellation/capacity tests",
+    "Tenth signed helper regression holds original ACK across multiple short polls and60ms, then requires exact repeated fact, wrong ACK refusal, original control and close. Pending Linux execution."
   ],
   "limits": {
     "readers": 8,
@@ -70,5 +71,23 @@
     "sdk/typescript/src/sdk_helper.ts": "ed34f04e5ec326a5e3820740009d4d29a6055fea752c97157aea913d54164c0f",
     "sdk/tests/node_events.test.mjs": "7255db837301b71594a4007f679c7e766976c32e2db6e05fa385d8e823010a42"
   },
-  "scope": "Synthetic lifecycle/framing and exact packed distribution only; no local Rust link due retained disk exhaustion. Linux Rust and actual server event evidence pending. No credential/provider/model execution or publication."
+  "scope": "Synthetic lifecycle/framing and exact packed distribution only; no local Rust link due retained disk exhaustion. Linux Rust and actual server event evidence pending. No credential/provider/model execution or publication.",
+  "native_candidate_profile": "node-controls/7",
+  "native_candidate": [
+    "Complete original authorized bootstrap/subscription before explicit message send. Observe original completed journal event scoped to same conversation and original operation/record; persist its opaque cursor in mode0600 file, detach reader and original helper.",
+    "Restore cursor in fresh helper after existing host restart. Observe a second explicit synthetic message operation, require distinct event/cursor and original record equality with both native SDK status and independent HTTP. No automatic replay or new helper process.",
+    "Keep a fresh resumed source through current credential revocation. Independent actual HTTP401/403 accompanies no event data. Original server/physical/media drains and4s requests/15s phases/90s function remain required.",
+    "Rust independently requires eventId SHA from visible_journal row bound to original record and exactly one additional message/operation. Public witness contains only booleans/hash."
+  ],
+  "native_candidate_package": {
+    "archive_sha256": "0d357663075a57aa35ee2c7e13a7e5e1b81ffcf8aa33d3641cba90e2f539c954",
+    "installed_dist_matches": true,
+    "consumer_sha256": "77589d538564ee37da1cf8580ed88d6517abbf79f8b8b22f2c235e03b4c91516"
+  },
+  "native_candidate_source_sha256": {
+    "crates/connect-client/src/canonical/tests/sdk_events.rs": "3cad4830584aa09d6a9d7e6e90ff22a8e2538ff09298e68fd7440408419f7c7e",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "dad2608139ddaabbba1421d61bc1a115d10e1c01faa6314786c617f506bce8c9",
+    "sdk/tests/node_sdk_server_consumer.mjs": "77589d538564ee37da1cf8580ed88d6517abbf79f8b8b22f2c235e03b4c91516",
+    "scripts/check-gate6-linux-hosting.py": "82e297384409d0d15dcf58eae2eff74b7016b96fbf36c71513e0ae0a7fafae29"
+  }
 }

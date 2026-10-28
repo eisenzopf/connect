@@ -2,9 +2,9 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "approved-incoming-iterator-contract-aligned-component-passed-native-pending",
+  "status": "approved-invitation-contract-and-authoritative-source-linux-passed",
   "implementation_parent_commit": "3c06bdcc",
-  "native_component_passed": false,
+  "native_component_passed": true,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
@@ -70,5 +70,7 @@
     "sdk/tests/check_canonical_helper.py": "dcfa4de55fb3c03376cd3ff01f296cb8bf81275615cc7923e174bf1b722b0c52"
   },
   "qualification_limit": "Current94 component/type/HTTP functions,217 unchanged guarded inputs and9 installed synthetic incoming functions only. Historical per-wait draft is superseded, not qualified. Current iterator/native incoming matrix/graceful native drain/durable events/remoteHTTP and whole G6-062 remain pending. This verifies the incoming slice, not full ParticipantClient structural conformance.",
-  "native_source_fixture_correction": "docs/evidence/gate-6/node-incoming-source.json"
+  "native_source_fixture_correction": "docs/evidence/gate-6/node-incoming-source.json",
+  "verified_native_evidence": "docs/evidence/gate-6/node-native-972.json",
+  "verified_native_scope": "Exact972source on Linux x86_64 Node22.23.4/26.12.1, EdDSA/ES256: profile6 incoming captured async iterator, authoritative original source SHA matches independent one-row SQLite source and differs from caller mutation, recipient hinted Session decision and close/control progression;8helpers6validators2servers original drains each matrix. Native-control component only. Full incoming journey/native media custody/reconnect and G6-062 remain open."
 }

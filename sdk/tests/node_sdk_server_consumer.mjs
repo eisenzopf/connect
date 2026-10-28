@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {NodeClient,NodeSdkError,CanonicalError,CanonicalHttpClient,HttpClient,ConnectError} from '@rudeless/connect';
+import {NodeClient,NodeSdkError,sdkCursor,CanonicalError,CanonicalHttpClient,HttpClient,ConnectError} from '@rudeless/connect';
 const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project+'/node_modules/'));
 const opts={timeoutMs:4000},mutation={...opts,operationId:'typed-node-original-send'};
@@ -19,7 +19,7 @@ const stopped=async()=>{
 };
 const record=frames=>{const p=frames.find(f=>f.type==='operation.updated')?.payload;assert.ok(p);return p;};
 let client=new NodeClient({config:spec.config,executable:spec.executable});
-let peerClient, rawRevokedClient;
+let peerClient, rawRevokedClient, authorityEvents;
 let checkpoint="create",observedKind=null,observedCertainty=null,observedHttpStatus=null;
 const captureFailure=error=>{
  observedKind=error instanceof CanonicalError?error.kind:error instanceof ConnectError?['unauthorized','forbidden'].includes(error.code)?'http-'+error.code:'application-error':null;
@@ -130,12 +130,27 @@ try {
  const cancellation=(await (await cancelled.cancelInvitation({reasonCode:487,reason:'cancelled',expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-cancel'})).wait(opts)).value;assert.equal(cancellation.state,'cancelled');assert.equal(cancellation.session.id,cancelled.id);
  await peerClient.close(opts);
  const intent={messageId:'typed-node-original-message',to:{first:peer.id,rest:[]},text:'synthetic typed Node journey'};
+ progress('events-bootstrap');
+ const journal=room.events({},opts);await journal.ready();
+ const operationFact=async(stream,operationId)=>{
+  const until=performance.now()+opts.timeoutMs;
+  for(let count=0;count<256&&performance.now()<until;count++){
+   const next=await stream.next();assert.equal(next.done,false);const fact=next.value;assert.equal(fact.conversationId,room.id);
+   if(fact.operationId===operationId&&fact.data?.kind==='operation'&&fact.data.data.state==='completed')return fact;
+  }
+  assert.fail('original completed journal fact missing');
+ };
  const sent=await room.send(intent,mutation),saved=sent.referenceJson();
  assert.throws(()=>sent.reference.scope.conversationId='foreign');assert.throws(()=>client.operations.restore(saved,client.operationKinds.conversation_create));
  const ready=await sent.waitUntilReady(opts),completion=await sent.wait(opts);
  assert.equal(ready.state,'completed');assert.equal(completion.value.messageId,intent.messageId);assert.equal(completion.value.boundary,'local-mutation');
  const original=completion.snapshot,viaHttp=record(await http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts));
  assert.equal(original.recordId,viaHttp.record_id);assert.equal(viaHttp.state,'completed');
+ progress('events-original');
+ const originalFact=await operationFact(journal,mutation.operationId);assert.equal(originalFact.data.data.record_id,original.recordId);assert.equal(originalFact.data.data.operation_id,mutation.operationId);assert.equal(originalFact.sessionId,undefined);assert.equal(originalFact.connectionId,undefined);assert.ok(originalFact.audience.some(v=>v.participantId===own.id&&v.membershipEpoch>0));
+ await writeFile(spec.pid_file+'.event-cursor',originalFact.cursor,{mode:0o600});await journal.close();
+ const originalFactDigest=createHash('sha256').update(originalFact.eventId).digest('hex');
+
  await room.send(intent,mutation);
  const history=await http.request('message.history',{limit:100},{cid:room.id},opts);
  assert.equal(history.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
@@ -145,7 +160,7 @@ try {
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await client.close(opts);assert.equal(await stopped(),2);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true,events_original_record:true,events_cursor_persisted:true,event_id_sha256:originalFactDigest});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);
@@ -162,8 +177,15 @@ try {
  const restoredEnd=(await client.operations.restore(endedSaved,client.operationKinds.session_end).wait(opts)).value;
  progress('session-end-refresh');
  assert.equal((await restoredEnd.refresh(opts)).state,'ended');
+ progress('events-resume');
+ const resumed=client.conversations.byId(room.id).events({after:sdkCursor(await readFile(spec.pid_file+'.event-cursor','utf8'))},opts);await resumed.ready();
+ const resumeMutation={...opts,operationId:'typed-node-events-resume-send'},resumeIntent={...intent,messageId:'typed-node-events-resume-message',text:'synthetic event resume'};
+ const resumedSend=await client.conversations.byId(room.id).send(resumeIntent,resumeMutation),resumedCompletion=await resumedSend.wait(opts),resumedFact=await operationFact(resumed,resumeMutation.operationId);
+ assert.equal(resumedFact.data.data.record_id,resumedCompletion.snapshot.recordId);assert.equal(resumedFact.data.data.operation_id,resumeMutation.operationId);assert.notEqual(resumedFact.eventId,originalFact.eventId);assert.notEqual(resumedFact.cursor,originalFact.cursor);
+ const resumedHttp=record(await http.request('operation.get',{operation_id:resumeMutation.operationId},{cid:room.id},opts));assert.equal(resumedHttp.record_id,resumedCompletion.snapshot.recordId);
+ await resumed.close();authorityEvents=client.conversations.byId(room.id).events({after:resumedFact.cursor},opts);await authorityEvents.ready();
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
- emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true});
+ emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true,events_resume_original_record:true,events_resume_http_record:true,events_resume_new_fact:true});
  await resume('receipts');
  progress('message-receipts');
  const facts=await client.conversations.byId(room.id).receipts(intent.messageId,opts);
@@ -199,6 +221,9 @@ try {
  await assert.rejects(application.messageReceipts(room.id,intent.messageId),e=>{
   captureFailure(e);assert.ok(e instanceof ConnectError);assert.ok(['unauthorized','forbidden'].includes(e.code));assert.ok([401,403].includes(e.httpStatus));receiptHttpStatus=e.httpStatus;return true;
  });
+ progress('events-current-authority');
+ await assert.rejects(authorityEvents.next(),e=>{captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));return true;});
+ await authorityEvents.close();
  await assert.rejects(client.conversations.byId(room.id).receipts(intent.messageId,opts),e=>{
   captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));receiptFailure={kind:e.kind,certainty:e.certainty};return true;
  });
@@ -212,7 +237,7 @@ try {
  await client.close(opts);await http.close(opts);assert.equal(await stopped(),4);
  const validators=(await readFile(spec.pid_file+'.validators','utf8')).trim().split('\n').filter(Boolean).map(Number);assert.equal(validators.length,3);assert.equal(new Set(validators).size,3);
  for(const pid of validators)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true});
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true,events_current_authority_no_data:true,events_close_control_live:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.
@@ -220,4 +245,4 @@ try {
  const knownStates=new Set(['accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown']);
  emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',observedKind,observedCertainty,observedHttpStatus,certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:knownStates.has(error?.actual)?error.actual:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  throw error;
-} finally {await rawRevokedClient?.close(opts);await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}
+} finally {await authorityEvents?.close();await rawRevokedClient?.close(opts);await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

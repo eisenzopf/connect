@@ -44,3 +44,12 @@ installed distribution. Rust ACK units and the original nine signed journal test
 are included in the Linux lane. Their execution and real-server event qualification
 remain pending. This does not close G6-062 or qualify remote HTTP, native media
 ownership, acceptance or publication.
+
+The next Linux candidate (`node-controls/7`) extends the original installed
+native control journey with initial event delivery, original record and independent
+SQL event identity, private cursor persistence, explicit resume in a fresh helper
+after the existing host restart, another synthetic message with native/HTTP record
+equality, and no-data observation after current credential revocation. No budgets,
+helper counts, drain assertions, or audio thresholds are relaxed. The candidate
+also adds one signed helper-specific slow-ACK/exact-delivery test alongside the
+original nine SDK journal regressions. Execution remains pending.

@@ -185,6 +185,24 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         stdin.write_all(b"restart\n").await.unwrap();
         let recovered = phase(&mut lines, "recovered", algorithm).await;
         assert_eq!(initial["record_id"], recovered["record_id"]);
+        for field in ["events_original_record", "events_cursor_persisted"] {
+            assert_eq!(initial[field], true);
+        }
+        for field in [
+            "events_resume_original_record",
+            "events_resume_http_record",
+            "events_resume_new_fact",
+        ] {
+            assert_eq!(recovered[field], true);
+        }
+        assert_eq!(
+            std::fs::metadata(format!("{}.event-cursor", pid_file.display()))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
         // Report through the independent recipient's public application client.
         // Message acceptance alone must not synthesize delivery evidence.
         let mut recipient = connect_client::application::ApplicationClient::open(
@@ -263,6 +281,30 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 .unwrap(),
             1
         );
+        let event_id: String = database.query_row("SELECT id FROM visible_journal WHERE operation_record_id=?1 AND kind LIKE 'operation_%' AND json_extract(data_json,'$.state')='completed' LIMIT 1", [initial["record_id"].as_str().unwrap()], |row|row.get(0)).unwrap();
+        assert_eq!(
+            initial["event_id_sha256"],
+            hex::encode(sha2::Sha256::digest(event_id.as_bytes()))
+        );
+        for (table, field, id) in [
+            ("messages", "id", "typed-node-events-resume-message"),
+            (
+                "operations",
+                "operation_id",
+                "typed-node-events-resume-send",
+            ),
+        ] {
+            let count: u64 = database
+                .query_row(
+                    &format!("SELECT COUNT(*) FROM {table} WHERE {field}=?1"),
+                    [id],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1);
+        }
+        assert_eq!(completed["events_current_authority_no_data"], true);
+        assert_eq!(completed["events_close_control_live"], true);
         drop(database);
         assert_eq!(completed["local_validators_joined"], 3);
         assert_eq!(completed["helpers_joined"], 4);
@@ -320,7 +362,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/6","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/7","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

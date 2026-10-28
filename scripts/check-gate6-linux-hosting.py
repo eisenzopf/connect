@@ -160,7 +160,7 @@ def run(node_sdk=False):
                 failure = json.loads(line.split(' ', 1)[1])
                 assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
                 assert failure['phase'] == 'failed'
-                assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+                assert failure['checkpoint'] in {'events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
                     'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
@@ -299,7 +299,7 @@ def run(node_sdk=False):
         sdk_failures = []
         for name, binary, pattern, expected in (
             ("sdk-event-delivery", "client", "sdk::events::helper_delivery_tests::", 3),
-            ("sdk-events", "client", "canonical::tests::sdk_events::", 9),
+            ("sdk-events", "client", "canonical::tests::sdk_events::", 10),
             ("sdk-managed-delivery", "client", "sdk::helper::managed::tests::", 3),
             ("sdk-startup-context", "library", "cli::sdk_stdio::tests::", 3),
             ("admin-local-validation", "hosting", "sdk_handles::administration::local_administrative_validator_", 3),
@@ -432,7 +432,7 @@ def run(node_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/6'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/7'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -441,10 +441,14 @@ def run(node_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/6'
+                    assert witness['functional_phase_profile'] == 'node-controls/7'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
+                    assert all(witness['initial'][f] for f in ('events_original_record','events_cursor_persisted'))
+                    assert re.fullmatch(r'[0-9a-f]{64}',witness['initial']['event_id_sha256'])
+                    assert all(witness['recovered'][f] for f in ('events_resume_original_record','events_resume_http_record','events_resume_new_fact'))
+                    assert witness['completed']['events_current_authority_no_data'] and witness['completed']['events_close_control_live']
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
                     assert witness['initial']['node_capability_support_only']
@@ -459,7 +463,7 @@ def run(node_sdk=False):
                     assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/6', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/7', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,

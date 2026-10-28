@@ -484,3 +484,96 @@ async fn eight_live_readers_are_bounded_and_closing_one_releases_capacity_withou
     replacement.close().await.unwrap();
     close(client, host).await;
 }
+
+#[tokio::test]
+async fn managed_helper_preserves_owned_initialization_and_exact_pending_fact_across_short_polls() {
+    use sdk::helper::{ManagedClient, Request};
+    let (client, host, signal) = client(Case::DropStart).await;
+    let control = client.clone();
+    let managed = ManagedClient::new(client);
+    let poll = |ack: serde_json::Value, ready| -> Request {
+        serde_json::from_value(json!({"timeout_ms":1000,"action":{"type":"events_poll","reader_id":"reader","conversation_id":"conv_one","after":"base","acknowledged":ack,"ready":ready}})).unwrap()
+    };
+    let started = signal.notified();
+    tokio::pin!(started);
+    started.as_mut().enable();
+    let initial = managed
+        .execute(poll(serde_json::Value::Null, true))
+        .await
+        .unwrap();
+    assert_eq!(initial["ready"], false);
+    started.await;
+    // More than one short poll interval elapses while the original signed ACK
+    // is deliberately held. The one owned SDK initialization must survive.
+    tokio::time::sleep(Duration::from_millis(60)).await;
+    let still_pending = managed
+        .execute(poll(serde_json::Value::Null, true))
+        .await
+        .unwrap();
+    assert_eq!(still_pending["ready"], false);
+    signal.notify_one();
+    let mut opened = false;
+    for _ in 0..20 {
+        let reply = managed
+            .execute(poll(serde_json::Value::Null, true))
+            .await
+            .unwrap();
+        if reply["ready"] == true {
+            assert_eq!(reply["cursor"], "base");
+            opened = true;
+            break;
+        }
+    }
+    assert!(opened);
+    let mut original = None;
+    for _ in 0..20 {
+        let reply = managed
+            .execute(poll(serde_json::Value::Null, false))
+            .await
+            .unwrap();
+        if !reply["event"].is_null() {
+            original = Some(reply["event"].clone());
+            break;
+        }
+    }
+    let fact = original.unwrap();
+    assert_eq!(fact["eventId"], "event-1");
+    for _ in 0..2 {
+        let reply = managed
+            .execute(poll(serde_json::Value::Null, false))
+            .await
+            .unwrap();
+        assert_eq!(reply["event"], fact);
+        assert_eq!(reply["cursor"], "base");
+    }
+    let error = managed
+        .execute(poll(
+            json!({"event_id":"foreign","cursor":fact["cursor"]}),
+            false,
+        ))
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind, ErrorKind::Validation);
+    let reply = managed
+        .execute(poll(serde_json::Value::Null, false))
+        .await
+        .unwrap();
+    assert_eq!(reply["event"], fact);
+    let accepted = managed
+        .execute(poll(
+            json!({"event_id":fact["eventId"],"cursor":fact["cursor"]}),
+            true,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(accepted["cursor"], "base");
+    assert!(accepted["event"].is_null());
+    query(&control).await;
+    let close:Request=serde_json::from_value(json!({"timeout_ms":1000,"action":{"type":"events_close","reader_id":"reader","conversation_id":"conv_one"}})).unwrap();
+    assert_eq!(managed.execute(close).await.unwrap()["closed"], true);
+    managed.close(options()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(3), host)
+        .await
+        .unwrap()
+        .unwrap();
+}
