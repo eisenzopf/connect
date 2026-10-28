@@ -22,6 +22,7 @@ async function withBrowser(mode,run){
         iceGatheringState='complete';connectionState='new';
         transceivers=[];
         constructor(configuration){super();state.peerConfiguration=structuredClone(configuration);state.peer=this;if(mode==='peer-constructor')throw Error('fixture peer failure');}
+        getConfiguration(){return mode==='relay-ignored'?{iceTransportPolicy:'all'}:structuredClone(state.peerConfiguration??{});}
         addTrack(track){if(mode==='track-add')throw Error('fixture track failure');
             const receiver={track:{kind:track.kind},jitterBufferTarget:null};
             if(mode==='receiver-unsupported')delete receiver.jitterBufferTarget;
@@ -460,10 +461,12 @@ test('ICE configuration is snapshotted before pending capture permission',()=>wi
     let finish;const pending=new Promise(resolve=>finish=resolve);
     navigator.mediaDevices.getUserMedia=()=>pending;
     const iceServers=[{urls:['turn:relay.example:3478'],username:'original-user',credential:'original-secret'}];
-    const opening=open(state,{iceServers});
+    const options={iceServers,iceTransportPolicy:'relay'};
+    const opening=open(state,options);
+    options.iceTransportPolicy='all';
     iceServers[0].urls[0]='turn:changed.example:3478';iceServers[0].credential='changed-secret';iceServers.push({urls:'stun:changed.example'});
     finish(state.stream);const voice=await opening;
-    assert.deepEqual(state.peerConfiguration,{iceServers:[{urls:['turn:relay.example:3478'],username:'original-user',credential:'original-secret'}]});
+    assert.deepEqual(state.peerConfiguration,{iceServers:[{urls:['turn:relay.example:3478'],username:'original-user',credential:'original-secret'}],iceTransportPolicy:'relay'});
     await voice.close();
 }));
 
@@ -480,6 +483,26 @@ test('invalid or excessive ICE services refuse before capture and keep error det
         [{urls:'stun:localhost',privateSecret:'private-secret'}]];
     for(const iceServers of invalid)await assert.rejects(open(state,{iceServers}),error=>error.code==='invalid-request'&&!error.message.includes('private-secret'));
     assert.equal(state.microphoneRequests,0);assert.equal(state.peer,undefined);assert.equal(state.offers.length,0);
+}));
+
+test('relay-only policy requires explicit TURN and rejects invalid policy before capture',()=>withBrowser('early',async state=>{
+    for(const options of [{iceTransportPolicy:'relay'},{iceTransportPolicy:'relay',iceServers:[]},
+        {iceTransportPolicy:'relay',iceServers:[{urls:'stun:localhost'}]},
+        ...[null,4,'none','private-policy-canary'].map(iceTransportPolicy=>({iceTransportPolicy}))]){
+        await assert.rejects(open(state,options),error=>error.code==='invalid-request'&&!error.message.includes('canary'));
+    }
+    assert.equal(state.microphoneRequests,0);assert.equal(state.peer,undefined);assert.equal(state.offers.length,0);
+}));
+
+test('unverifiable relay policy refuses before capture',()=>withBrowser('early',async state=>{
+    delete RTCPeerConnection.prototype.getConfiguration;
+    await assert.rejects(open(state,{iceTransportPolicy:'relay',iceServers:[{urls:'turn:localhost:3478',username:'synthetic',credential:'synthetic'}]}),{code:'unsupported-media-profile'});
+    assert.equal(state.microphoneRequests,0);assert.equal(state.offers.length,0);assert.equal(state.peer,undefined);
+}));
+
+test('ignored relay policy closes owned capture and peer before submitting an offer',()=>withBrowser('relay-ignored',async state=>{
+    await assert.rejects(open(state,{iceTransportPolicy:'relay',iceServers:[{urls:'turn:localhost:3478',username:'synthetic',credential:'synthetic'}]}),{code:'unsupported-media-profile'});
+    assert.equal(state.offers.length,0);assert.equal(state.peerCloses,1);assert.equal(state.trackStops,1);
 }));
 
 

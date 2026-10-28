@@ -21,6 +21,9 @@ export interface BrowserVoiceOptions extends BrowserSessionSelection, BrowserCap
     /** Explicit STUN/TURN services. Copied before capture; credentials stay local.
      * Omit to use native host candidates without an implicit public service. */
     iceServers?: readonly RTCIceServer[];
+    /** Relay-only refuses before capture without explicit TURN services and
+     * requires the native peer to retain the requested policy before signaling. */
+    iceTransportPolicy?: RTCIceTransportPolicy;
 }
 /** An unsuccessful open retains its original offer for authoritative status recovery.
  * This snapshot can contain private SDP; keep it in application-owned private state. */

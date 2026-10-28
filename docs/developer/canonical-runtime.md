@@ -364,3 +364,23 @@ uploads source-only summaries; raw output and synthetic state stay private.
 Its cache restores source times only when both bytes and permissions match a
 completed build, so changed code cannot inherit an older source timestamp.
 It does not qualify named remote/provider runs, media quality or installation.
+
+Within an existing authorized canonical telephone configuration, optional
+`media_bind_ip`, `advertised` and `media_public_ip` separate the RTP interface,
+public SIP contact and public RTP IP. Nonloopback use requires the Remote
+profile. A wildcard SIP bind requires a concrete same-family media interface
+and explicit signaling contact. The media port range is limited to 4096 ports.
+Each call advertises its own allocated RTP port with the configured public IP;
+arbitrary RTP port translation is not provided by this mapping. Startup probes
+the local media interface before trunk registration, while actual endpoint
+reachability and media delivery still require separate observations.
+
+Browser voice/video options accept `iceTransportPolicy: "relay"` alongside
+explicit caller-owned scoped `iceServers`. The policy and service values are
+snapshotted before capture. Missing TURN or invalid policy refuses before
+capture; absent native policy inspection also refuses early. A peer that ignores
+relay-only policy is closed with its owned tracks before an offer is submitted.
+ICE credentials remain outside the canonical offer/control intents. This uses
+the client's scoped relay credentials; it does not expose server secret refs.
+The wrapper tests use synthetic RTC boundaries; actual relay traffic remains
+part of G6-054 verification.

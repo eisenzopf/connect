@@ -1,5 +1,6 @@
 //! Configured outbound telephone replacement on the canonical Core.
 use anyhow::{Context, Result};
+use connect_protocol::native_network::NativeNetworkProfile;
 use connect_service::{InitialTelephoneRoute, Service, TelephoneReplacementRoute};
 use connect_store::{InitialTelephonePolicy, Store, TelephoneReplacementPolicy};
 use rvoip_sip::{
@@ -8,17 +9,24 @@ use rvoip_sip::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     sync::{Arc, Weak},
     time::Duration,
 };
 
-/// Local canonical SIP listener and bounded administrator-selected routes.
+/// Explicit canonical SIP listener and bounded administrator-selected routes.
 /// Destinations come from verified Store Endpoints, never this listener's callers.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CanonicalTelephoneConfig {
     pub bind: SocketAddr,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_bind_ip: Option<IpAddr>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub advertised: Option<SocketAddr>,
+    /// Port-preserving one-to-one RTP NAT; each call keeps its allocated port.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_public_ip: Option<IpAddr>,
     pub media_port_start: u16,
     pub media_port_end: u16,
     #[serde(default)]
@@ -35,13 +43,45 @@ pub struct CanonicalTelephoneRoute {
     pub policy: TelephoneReplacementPolicy,
 }
 impl CanonicalTelephoneConfig {
-    pub(crate) fn validate(&self, capacity: usize) -> Result<()> {
+    pub(crate) fn validate(&self, network: NativeNetworkProfile, capacity: usize) -> Result<()> {
+        let bind = NativeNetworkProfile::canonical_address(self.bind);
         anyhow::ensure!(
-            self.bind.ip().is_loopback() && self.bind.port() != 0,
-            "Canonical telephone listener requires a concrete loopback address"
+            network.permits_listener(bind) && bind.port() != 0,
+            "Canonical telephone bind requires its explicit network profile and port"
+        );
+        let media = NativeNetworkProfile::canonical_address(SocketAddr::new(
+            self.media_bind_ip.unwrap_or(bind.ip()),
+            1,
+        ))
+        .ip();
+        anyhow::ensure!(
+            network.permits_endpoint(SocketAddr::new(media, 1))
+                && media.is_ipv4() == bind.is_ipv4(),
+            "SIP media requires a concrete same-family interface within its network profile"
         );
         anyhow::ensure!(
-            self.media_port_start >= 1024 && self.media_port_start <= self.media_port_end,
+            !bind.ip().is_unspecified() || self.advertised.is_some(),
+            "Wildcard SIP bind requires an explicit advertised signaling address"
+        );
+        if let Some(advertised) = self.advertised.map(NativeNetworkProfile::canonical_address) {
+            anyhow::ensure!(
+                network.permits_endpoint(advertised)
+                    && advertised.port() != 0
+                    && advertised.is_ipv4() == bind.is_ipv4(),
+                "Invalid SIP advertised address, port or family"
+            );
+        }
+        if let Some(public) = self.media_public_ip {
+            let public = NativeNetworkProfile::canonical_address(SocketAddr::new(public, 1));
+            anyhow::ensure!(
+                network.permits_endpoint(public) && public.is_ipv4() == media.is_ipv4(),
+                "Invalid SIP public RTP address or family"
+            );
+        }
+        anyhow::ensure!(
+            self.media_port_start >= 1024
+                && self.media_port_start <= self.media_port_end
+                && u32::from(self.media_port_end) - u32::from(self.media_port_start) < 4096,
             "Invalid canonical telephone media port range"
         );
         anyhow::ensure!(
@@ -83,6 +123,30 @@ impl CanonicalTelephoneConfig {
         }
         Ok(())
     }
+
+    fn listener(&self) -> SipConfig {
+        let bind = NativeNetworkProfile::canonical_address(self.bind);
+        let mut listener = SipConfig::local("connect-canonical", bind.port());
+        listener.bind_addr = bind;
+        listener.sip_port = bind.port();
+        listener.local_ip = NativeNetworkProfile::canonical_address(SocketAddr::new(
+            self.media_bind_ip.unwrap_or(bind.ip()),
+            1,
+        ))
+        .ip();
+        listener.sip_advertised_addr = self.advertised.map(NativeNetworkProfile::canonical_address);
+        listener.local_uri = format!(
+            "sip:connect@{}",
+            listener.sip_advertised_addr.unwrap_or(bind)
+        );
+        listener.media_port_start = self.media_port_start;
+        listener.media_port_end = self.media_port_end;
+        if let Some(ip) = self.media_public_ip {
+            let public = NativeNetworkProfile::canonical_address(SocketAddr::new(ip, 0));
+            listener = listener.with_media_public_addr(public);
+        }
+        listener
+    }
 }
 
 /// Also guards startup failures and dropping the server without explicit shutdown.
@@ -95,10 +159,11 @@ pub(crate) struct TelephoneTransport {
 impl TelephoneTransport {
     pub(crate) async fn start(
         config: &CanonicalTelephoneConfig,
+        network: NativeNetworkProfile,
         store: &Arc<Store>,
         service: &Arc<Service>,
     ) -> Result<Self> {
-        config.validate(store.limits().connections)?;
+        config.validate(network, store.limits().connections)?;
         // Reject stale/missing accounts before binding any listener. The service
         // independently repeats these checks at installation and every operation.
         for route in &config.routes {
@@ -117,12 +182,14 @@ impl TelephoneTransport {
                 .revalidate(&policy.route_credential_id)?
                 .require("sip_dial")?;
         }
-        let mut listener = SipConfig::local("connect-canonical", config.bind.port());
-        listener.bind_addr = config.bind;
-        listener.local_ip = config.bind.ip();
-        listener.local_uri = format!("sip:connect@{}", config.bind);
-        listener.media_port_start = config.media_port_start;
-        listener.media_port_end = config.media_port_end;
+        let mut listener = config.listener();
+        // Refuse an unavailable local media interface before registration or
+        // any future authorized dial. This is configuration admission, not
+        // evidence that RTP can reach the remote endpoint.
+        let media_probe = tokio::net::UdpSocket::bind(SocketAddr::new(listener.local_ip, 0))
+            .await
+            .context("Cannot bind configured SIP media interface")?;
+        drop(media_probe);
         if let Some(outbound) = &config.outbound {
             crate::media_transports::apply_outbound_trunk(&mut listener, outbound, |name| {
                 crate::secrets::resolve(name).map(|value| value.expose().to_owned())
@@ -220,6 +287,111 @@ impl Drop for TelephoneTransport {
                         .await;
                 });
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn config() -> CanonicalTelephoneConfig {
+        CanonicalTelephoneConfig {
+            bind: "127.0.0.1:5060".parse().unwrap(),
+            media_bind_ip: None,
+            advertised: None,
+            media_public_ip: None,
+            media_port_start: 20000,
+            media_port_end: 20063,
+            outbound: None,
+            initial: Vec::new(),
+            routes: vec![CanonicalTelephoneRoute {
+                credential_id: "credential_fixture".into(),
+                policy: TelephoneReplacementPolicy {
+                    route_reference: "route_fixture".into(),
+                    sip_authority: "127.0.0.1:5099".into(),
+                    confirmation_digits: "55#".into(),
+                    timeout_seconds: 30,
+                },
+            }],
+        }
+    }
+    #[test]
+    fn remote_signaling_and_media_mapping_preserves_each_allocated_rtp_port() {
+        let mut config = config();
+        config.bind = "0.0.0.0:5060".parse().unwrap();
+        config.media_bind_ip = Some("10.0.0.2".parse().unwrap());
+        config.advertised = Some("203.0.113.44:15060".parse().unwrap());
+        config.media_public_ip = Some("203.0.113.45".parse().unwrap());
+        config.validate(NativeNetworkProfile::Remote, 4).unwrap();
+        assert!(config.validate(NativeNetworkProfile::Local, 4).is_err());
+        let listener = config.listener();
+        listener.validate().unwrap();
+        assert_eq!(listener.bind_addr, config.bind);
+        assert_eq!(listener.sip_port, 5060);
+        assert_eq!(listener.local_ip, config.media_bind_ip.unwrap());
+        assert_eq!(listener.sip_advertised_addr, config.advertised);
+        assert_eq!(listener.local_uri, "sip:connect@203.0.113.44:15060");
+        assert_eq!(
+            listener.media_public_addr,
+            Some("203.0.113.45:0".parse().unwrap())
+        );
+        assert_eq!(
+            (listener.media_port_start, listener.media_port_end),
+            (20000, 20063)
+        );
+        let loaded: CanonicalTelephoneConfig =
+            toml::from_str(&toml::to_string(&config).unwrap()).unwrap();
+        loaded.validate(NativeNetworkProfile::Remote, 4).unwrap();
+    }
+    #[test]
+    fn local_defaults_remain_concrete_loopback_without_public_contacts() {
+        let config = config();
+        config.validate(NativeNetworkProfile::Local, 4).unwrap();
+        let listener = config.listener();
+        listener.validate().unwrap();
+        assert!(listener.local_ip.is_loopback());
+        assert!(listener.bind_addr.ip().is_loopback());
+        assert_eq!(listener.local_uri, "sip:connect@127.0.0.1:5060");
+        assert!(listener.sip_advertised_addr.is_none());
+        assert!(listener.media_public_addr.is_none());
+    }
+    #[test]
+    fn ambiguous_wildcard_contacts_families_and_ranges_refuse() {
+        let base = config();
+        let mut cases = Vec::new();
+        let mut value = base.clone();
+        value.bind = "0.0.0.0:5060".parse().unwrap();
+        cases.push(value);
+        let mut value = base.clone();
+        value.bind = "0.0.0.0:5060".parse().unwrap();
+        value.media_bind_ip = Some("10.0.0.2".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.advertised = Some("0.0.0.0:5060".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.advertised = Some("203.0.113.44:0".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.advertised = Some("[2001:db8::44]:5060".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.media_bind_ip = Some("0.0.0.0".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.media_bind_ip = Some("::1".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.media_public_ip = Some("224.0.0.1".parse().unwrap());
+        cases.push(value);
+        let mut value = base.clone();
+        value.media_port_end = 10000;
+        cases.push(value);
+        let mut value = base.clone();
+        value.media_port_end = 30000;
+        cases.push(value);
+        for value in cases {
+            assert!(value.validate(NativeNetworkProfile::Remote, 4).is_err());
         }
     }
 }

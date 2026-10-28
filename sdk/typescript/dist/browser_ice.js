@@ -1,12 +1,20 @@
 import { ConnectError } from "./errors.js";
 /** Snapshot explicit ICE services before capture. No implicit public service. */
-export function browserIceConfiguration(servers) {
-    if (servers === undefined)
-        return undefined;
+export function browserIceConfiguration(servers, policy) {
     const invalid = () => new ConnectError("invalid-request", "Invalid bounded explicit ICE server configuration");
+    if (policy !== undefined && policy !== "all" && policy !== "relay")
+        throw invalid();
+    if (servers === undefined) {
+        if (policy === "relay")
+            throw invalid();
+        return policy === undefined
+            ? undefined
+            : { iceTransportPolicy: policy };
+    }
     if (!Array.isArray(servers) || servers.length > 8)
         throw invalid();
     let count = 0;
+    let hasTurn = false;
     const iceServers = Array.from(servers, (server) => {
         if (!server ||
             typeof server !== "object" ||
@@ -27,6 +35,8 @@ export function browserIceConfiguration(servers) {
                 (match[1].startsWith("stun") && match[4]) ||
                 (match[3] && (Number(match[3]) < 1 || Number(match[3]) > 65535)))
                 throw invalid();
+            if (match[1].startsWith("turn"))
+                hasTurn = true;
             try {
                 new URL(`https://${match[2]}${match[3] ? ":" + match[3] : ""}`);
             }
@@ -55,5 +65,10 @@ export function browserIceConfiguration(servers) {
                 : { credential: server.credential }),
         };
     });
-    return { iceServers };
+    if (policy === "relay" && !hasTurn)
+        throw invalid();
+    return {
+        iceServers,
+        ...(policy === undefined ? {} : { iceTransportPolicy: policy }),
+    };
 }

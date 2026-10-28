@@ -95,7 +95,7 @@
       "scope": "Changed same-size source and mode/untracked private paths cannot inherit cached source times; unchanged tracked contents/mode can.",
       "log_sha256": "5769d5abf8bc0ae87bb5b0b99ad05ecbb887b56238584f4b0c5779d623b7e45f"
     },
-    "scope_note": "The final library adds only one test in the cfg(test) module after the two configured AV regressions. The production implementation remains unchanged from build159; every recorded execution guards its own exact unchanged source snapshot. These are short local regressions, not remote relay/browser or60second quality qualification."
+    "scope_note": "At the first WebRTC-addressing checkpoint, the final library added only one cfg(test) function after the two configured AV regressions; production code was unchanged between those recorded executions. Subsequent SIP changes have their own build161/162 and execution guards. Historical snapshots remain identified by artifact/source manifests; current source_sha256 values describe the latest component. These short local regressions do not qualify remote relay/browser or60second quality profiles."
   },
   "unrun_attempts": [
     {
@@ -104,10 +104,14 @@
     }
   ],
   "native_linux_ci": {
-    "status": "prepared-not-run",
+    "status": "running",
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
-    "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job."
+    "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
+    "run_id": 40653461271,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40653461271",
+    "source_revision": "20b77823d8e05e4cab7a45e914d29e8c6140b620",
+    "result": "Unqualified until completed; this first run predates the later SIP/browser component."
   },
   "linux_emulation_attempt": {
     "source_revision": "c88bc599a26570448d00cb1c9cdf88b4c5239af6",
@@ -122,17 +126,149 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Configure canonical SIP signaling/media bind and advertised addresses, bounded remote RTP and deployment templates.",
-    "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Extend client relay selection and diagnostics as required.",
+    "Actual remote SIP/NAT path verification and deployment templates. Address mapping is now configured and has Local startup/readiness regression evidence.",
+    "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Browser relay policy is implemented at the synthetic native boundary; actual relay traffic remains unqualified.",
     "Execute the native Linux CI lane and retain its actual result; the emulated attempt supplies no Linux server pass. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
   ],
   "source_sha256": {
-    "crates/connect-server/src/canonical.rs": "5223408f4c23b10de7d031cf69ee89583121fab4df5215c77ba53a64b36ccae7",
+    "crates/connect-server/src/canonical.rs": "eb62b731189aa45bfb73debead2d37e415990433c7b4a35de85bd1f1ab8ed4f8",
     "crates/connect-server/src/canonical_webrtc.rs": "cac220964fc26b85121842dad522d22fb40310b393d2c2b4729c21e105b05cb7",
     "crates/connect-server/src/canonical_webrtc/config.rs": "45e10b8b84d9bb400a611c61ad7d504ca9c650f683198617a914bd31d4623c0f",
     "crates/connect-server/src/canonical_webrtc/addressing.rs": "6e7d6328886016931ec3c6ef51434540e6948d71137134dfa48216833a9a3fde",
-    "crates/connect-server/src/canonical_webrtc/addressing/tests.rs": "5dff7c308f32ce3ebb094983adb93d4239242448e2f761e945da1b1ae6fa267f"
+    "crates/connect-server/src/canonical_webrtc/addressing/tests.rs": "5dff7c308f32ce3ebb094983adb93d4239242448e2f761e945da1b1ae6fa267f",
+    "crates/connect-server/src/canonical_telephone.rs": "025569d235b6d9232fbd43a48498b329c543d41c6e0030c708c57ed715b4bd38",
+    "sdk/typescript/src/browser_ice.ts": "78a18fe91ec0e2e4ccdf2338155735b6832c07dc8661ff0f23c6822b5ec87552",
+    "sdk/typescript/src/browser_voice.ts": "86be93d14226fdf6c3f5ae00c098fa55803985bee63df7738f7a282fa6d50f3a",
+    "sdk/tests/browser_voice.test.mjs": "b112371137ba4f2abe01b30959749d03895485b9ec6052310f6449bd5901b31f"
   },
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "sip_addressing": {
+    "implementation": [
+      "Explicit Remote profile permits configured signaling/media interfaces; wildcard signaling requires concrete same-family media and advertised contacts. Multicast/unspecified/family/port ambiguities and excessive media ranges refuse. Local defaults stay loopback.",
+      "Each call retains its allocated RTP port with an optional port-preserving public IP. A startup UDP interface probe closes before trunk registration. Existing Store route authority and original attempts remain unchanged."
+    ],
+    "unit_build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 55.85121333296411,
+      "arguments": [
+        "cargo",
+        "test",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "source_count": 5243,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-a82006a77c6e6ce7",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/sip-addressing-unit-test-161",
+        "sha256": "125fe91b115f68f78cdd22a6fe56bcea4d0afb66cf252b8b6c734943fe822604",
+        "bytes": 113558720
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "5ad6524645ce9b84b56b4c44d1e9ebd0569ed9e6bb8566d658d1092c10a70a76"
+    },
+    "unit": {
+      "exit_code": 0,
+      "seconds": 0.9607181660830975,
+      "results": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s"
+      ],
+      "panics": [],
+      "changed_inputs": [],
+      "log_sha256": "3df8ca2070602b7d668d9660b5235e25329c4b4f6ca1279ec009f77a7052fa8d",
+      "binary_sha256": "125fe91b115f68f78cdd22a6fe56bcea4d0afb66cf252b8b6c734943fe822604"
+    },
+    "integration": {
+      "steps": [
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_unknown_account_refuses_before_binding_and_releases_installation",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.26027354202233255,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.22s"
+          ],
+          "panics": [],
+          "changed_inputs": [],
+          "log_sha256": "34bfc964c94abe1d660eea6cdd6283fd502dea22e242f9e2200bb6ce971bbf37"
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.211117957951501,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.20s"
+          ],
+          "panics": [],
+          "changed_inputs": [],
+          "log_sha256": "424013463d738f10fd366665743eb9595c69b734f57a256da419cbd8141e2f4c"
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.21093249996192753,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 0.20s"
+          ],
+          "panics": [],
+          "changed_inputs": [],
+          "log_sha256": "58e515c565433641e479f9c641a2509d195b4f968dd16a93dabad9dbc7067f38"
+        },
+        {
+          "test": "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 4.440464416053146,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 364 filtered out; finished in 4.43s"
+          ],
+          "panics": [],
+          "changed_inputs": [],
+          "log_sha256": "e4e27e7325c3b5ec86fb70a83bff9bf101a4f0440c4cdbadd13eb389954fe475"
+        }
+      ],
+      "binary_sha256": "8c3476c27edda5aeacbc1210b2cf56469f17462839e9fc3dc89b2108ee30870e",
+      "scope": "Three actual configured SIP authority/startup/drop cleanup functions plus mixed native/SIP readiness across EdDSA/ES256 and PCMU/PCMA; Local defaults, no remote NAT/SIP or provider qualification."
+    },
+    "scope": "Three new configuration tests and four actual Local authority/startup/drop/mixed-readiness functions; the latter includes EdDSA/ES256 with PCMU/PCMA. No actual remote SIP/NAT path qualification."
+  },
+  "browser_relay_policy": {
+    "implementation": "Explicit all/relay policy is copied with bounded ICE services before capture. Relay requires TURN. Missing native getConfiguration refuses before capture; ignored policy closes owned peer/tracks before any offer. No relay credentials enter canonical intents.",
+    "tests_passed": 49,
+    "tests_skipped": 0,
+    "log_sha256": "92150b8e72e506a1f52c766bbe3eb6093d620690feebdd6b677094dd7ed3ac7b",
+    "typescript_build_log_sha256": "f6ea279e1bcf369805db5e0aaea8d5b71fdac16bad265e77d5b6ff179cbeed02",
+    "scope": "Synthetic native capture/RTC boundary tests; not an actual browser or relay media pass.",
+    "format_verification": {
+      "changed_source_files": "pass",
+      "full_sdk_format": "failed on three unchanged pre-existing files",
+      "unchanged_files": [
+        "sdk/typescript/src/protocol.ts",
+        "sdk/typescript/src/record_context.ts",
+        "sdk/typescript/src/task_protocol.ts"
+      ],
+      "full_log_sha256": "45d04c8125d3c65145c3de7350606d8a755bee2c12f2e8d6de31a49816292863",
+      "focused_log_sha256": "0f258acc785343b6debdae50cf8eac02a031f471a2c04a20aeb8053ef8037bdb"
+    }
+  }
 }

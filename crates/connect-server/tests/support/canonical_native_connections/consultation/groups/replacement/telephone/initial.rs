@@ -311,6 +311,9 @@ async fn configured_initial_at(
     server.shutdown().await.unwrap();
     config.telephone = Some(
         connect_server::canonical_telephone::CanonicalTelephoneConfig {
+            media_bind_ip: None,
+            advertised: None,
+            media_public_ip: None,
             bind: std::net::UdpSocket::bind("127.0.0.1:0")
                 .unwrap()
                 .local_addr()

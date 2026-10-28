@@ -4,6 +4,9 @@ use connect_server::canonical_telephone::{CanonicalTelephoneConfig, CanonicalTel
 
 fn listener_config(credential_id: String) -> CanonicalTelephoneConfig {
     CanonicalTelephoneConfig {
+        media_bind_ip: None,
+        advertised: None,
+        media_public_ip: None,
         bind: std::net::UdpSocket::bind("127.0.0.1:0")
             .unwrap()
             .local_addr()

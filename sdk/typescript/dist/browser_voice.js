@@ -108,7 +108,12 @@ export class BrowserVoiceSession {
         if (client.closed)
             throw new ConnectError("closed", "Canonical control client closed");
         const selection = browserOfferSelection(options);
-        const iceConfiguration = browserIceConfiguration(options.iceServers);
+        const iceConfiguration = browserIceConfiguration(options.iceServers, options.iceTransportPolicy);
+        if (iceConfiguration?.iceTransportPolicy === "relay" &&
+            (typeof RTCPeerConnection !== "function" ||
+                typeof RTCPeerConnection.prototype?.getConfiguration !==
+                    "function"))
+            throw new ConnectError("unsupported-media-profile", "Browser cannot verify relay-only ICE policy");
         const video = selection.videoStreamId !== undefined;
         const inputStream = options.inputStream;
         const videoCanvas = options.videoCanvas;
@@ -199,6 +204,9 @@ export class BrowserVoiceSession {
             // Attach the encoded transform in the same task as sender creation. Awaiting
             // capture constraints first prevents Chromium's sender bypass task.
             session.peer = new RTCPeerConnection(iceConfiguration);
+            if (iceConfiguration?.iceTransportPolicy === "relay" &&
+                session.peer.getConfiguration().iceTransportPolicy !== "relay")
+                throw new ConnectError("unsupported-media-profile", "Browser did not retain relay-only ICE policy");
             for (const track of session.localStream.getTracks()) {
                 if (track.kind === "video")
                     addBoundedVideoSender(session.peer, track, session.localStream);

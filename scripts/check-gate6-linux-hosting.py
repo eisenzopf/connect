@@ -79,7 +79,7 @@ def run():
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
-              "scope": "Bounded configuration/security, ICE/DTLS owned-close and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote media, SIP, browser/performance or installation qualification."}
+              "scope": "Bounded configuration/security, ICE/DTLS owned-close, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT/media, browser/performance or installation qualification."}
 
     def execute(name, command, timeout):
         log = PRIVATE / (name + ".log")
@@ -145,8 +145,13 @@ def run():
         for name, binary, pattern, expected in (
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
             ("config", "library", "canonical_webrtc::config::tests::", 4),
+            ("sip-config", "library", "canonical_telephone::tests::", 3),
             ("owned-dtls", "library", "canonical_webrtc::tests::store_bound_peer_completes_actual_dtls_and_original_close_releases_capacity", 1),
             ("https-hosting", "hosting", "canonical_https_hosting::", 7),
+            ("sip-unknown-account", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_unknown_account_refuses_before_binding_and_releases_installation", 1),
+            ("sip-bind-failure", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip", 1),
+            ("sip-owner-drop", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip", 1),
+            ("sip-readiness", "hosting", "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities", 1),
         ):
             text = execute(name, [artifacts[binary], pattern, "--test-threads=1"], 90)
             counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;", text)

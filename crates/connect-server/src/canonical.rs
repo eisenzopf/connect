@@ -158,7 +158,7 @@ impl CanonicalServerConfig {
         rvoip_uctp::v2::Identifier::try_from(self.signing_key_id.clone())
             .map_err(|_| anyhow::anyhow!("Invalid canonical signing key ID"))?;
         if let Some(telephone) = &self.telephone {
-            telephone.validate(self.limits.connections)?;
+            telephone.validate(self.network_profile, self.limits.connections)?;
         }
         if let Some(voice) = &self.provider_voice {
             voice.validate(self.limits.connections)?;
@@ -446,8 +446,13 @@ impl RunningCanonicalServer {
             .and_then(|h| h.callback_address());
         let telephone = match &config.telephone {
             Some(telephone) => Some(
-                crate::canonical_telephone::TelephoneTransport::start(telephone, &store, &service)
-                    .await?,
+                crate::canonical_telephone::TelephoneTransport::start(
+                    telephone,
+                    config.network_profile,
+                    &store,
+                    &service,
+                )
+                .await?,
             ),
             None => None,
         };

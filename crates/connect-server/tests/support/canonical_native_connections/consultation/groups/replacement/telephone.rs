@@ -684,6 +684,9 @@ async fn telephone_case_profile(stop: Stop, configured: bool, algorithm: &str) {
         (
             (endpoint_id, route_key, owner),
             connect_server::canonical_telephone::CanonicalTelephoneConfig {
+                media_bind_ip: None,
+                advertised: None,
+                media_public_ip: None,
                 bind: sip_bind,
                 media_port_start: 20000,
                 media_port_end: 20063,
