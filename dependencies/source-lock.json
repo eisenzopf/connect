@@ -1296,6 +1296,11 @@
       "path": "patches/rvoip/gate6-owned-rtp-refusal-diagnostics.patch",
       "source": "G6-054 bounded explicit synthetic-trace stage/error diagnostics for guarded original RTC RTP write refusals. Return values and all ownership/clock/pipeline/socket checks are preserved; this is diagnostic instrumentation, not a media fix or qualification.",
       "sha256": "300b3ad1802288c66901145572012820f8cdd968f0c1af0945f7254470d4e27a"
+    },
+    {
+      "path": "patches/rvoip/gate6-negotiated-sender-feedback.patch",
+      "source": "G6-054 intersect remote transceiver sender/receiver feedback with the negotiated media-engine subset instead of restoring unsupported RRTR. Real causal audio/video offer-answer regressions preserve remote payload types, preference order, VP8 RTX association and supported repair/congestion feedback; no owned RTP guard relaxation.",
+      "sha256": "e0ca6ca7edfbace88bac2517b6e3b296b8c09d67cc374072c6f2138c102502e5"
     }
   ]
 }

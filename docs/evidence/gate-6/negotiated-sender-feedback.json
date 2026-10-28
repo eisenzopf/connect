@@ -1,0 +1,156 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "status": "causal-regressions-passed; full browser runtime pending",
+  "scope": "Real rvoip-rtc public offer/answer sender parameters only. No decoded browser media qualification yet.",
+  "patch": {
+    "path": "patches/rvoip/gate6-negotiated-sender-feedback.patch",
+    "sha256": "e0ca6ca7edfbace88bac2517b6e3b296b8c09d67cc374072c6f2138c102502e5"
+  },
+  "behavior": "Intersect remote primary codec RTCP feedback with the matched media-engine codec before installing transceiver preferences. Preserve payload mapping, codec order, RTX associations and original owned RTP guards.",
+  "negative_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 48.771889958065,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "--config",
+      "profile.release.lto=false",
+      "--config",
+      "profile.release.codegen-units=16",
+      "--config",
+      "profile.release.debug=0",
+      "--config",
+      "profile.release.panic=\"unwind\"",
+      "--config",
+      "profile.release.strip=\"debuginfo\"",
+      "-p",
+      "rvoip-rtc",
+      "--test",
+      "answer_codec_preference_order",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 5253,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/answer_codec_preference_order-06494dd9b17d8dbf",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/sender-feedback-negative-test-227",
+      "sha256": "962483cb7b743ec3827bc8ccaab4964aa38856b03f7a7aa3367a1f998a7d1b45",
+      "bytes": 3306320
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "1a92bdd32e7da4817fb8694d750857fdc6483840d02c8751e1f35324e80589e5"
+  },
+  "negative": {
+    "expected_old_behavior": true,
+    "binary_sha256": "962483cb7b743ec3827bc8ccaab4964aa38856b03f7a7aa3367a1f998a7d1b45",
+    "results": [
+      {
+        "name": "answer_preserves_remote_audio_codec_preference_order",
+        "exit_code": 0,
+        "seconds": 0.3241819590330124,
+        "log_sha256": "1a9ea7cf1cc16cedb2e2fcbc4fc7a3e2c325fd22f83c7a5aa177acde2f7027f7"
+      },
+      {
+        "name": "answerer_sender_parameters_exclude_unnegotiated_audio_feedback",
+        "exit_code": 101,
+        "seconds": 0.005724417045712471,
+        "log_sha256": "7bb765029d4764b2985420a463c38c324f282b3f65c1d879a865a6fd9e3484c7"
+      },
+      {
+        "name": "answerer_sender_parameters_exclude_unnegotiated_video_feedback_and_keep_rtx",
+        "exit_code": 101,
+        "seconds": 0.004399833967909217,
+        "log_sha256": "751f8598231e1c3dd50c915d2552fd1cda56be11adcc21c9d5bbd930fd5e64ea"
+      }
+    ],
+    "changed_inputs": []
+  },
+  "negative_failure": "Both audio/video assertions fail specifically because sender parameters retain rrtr after the answer correctly excludes it. Existing codec-order test passes.",
+  "positive_build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 5.676182458177209,
+    "arguments": [
+      "cargo",
+      "test",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "--manifest-path",
+      ".deps/rvoip/Cargo.toml",
+      "--config",
+      "profile.release.lto=false",
+      "--config",
+      "profile.release.codegen-units=16",
+      "--config",
+      "profile.release.debug=0",
+      "--config",
+      "profile.release.panic=\"unwind\"",
+      "--config",
+      "profile.release.strip=\"debuginfo\"",
+      "-p",
+      "rvoip-rtc",
+      "--test",
+      "answer_codec_preference_order",
+      "--no-run",
+      "--message-format=json"
+    ],
+    "source_count": 5253,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/answer_codec_preference_order-06494dd9b17d8dbf",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/sender-feedback-final-test-228",
+      "sha256": "9f25222e19c83d803a6e28b4207bee7de819e3d8286d633aff0b1ca2175ce1bf",
+      "bytes": 3306368
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "60fef908cd8cf61b8d5d96dfa2a051b80cd66b666777cd5121b15fb3ad277d52"
+  },
+  "positive": {
+    "exit_code": 0,
+    "seconds": 0.4227419998496771,
+    "binary_sha256": "9f25222e19c83d803a6e28b4207bee7de819e3d8286d633aff0b1ca2175ce1bf",
+    "source_count": 5253,
+    "changed_inputs": [],
+    "log_sha256": "f9491d7abc8ff79ae8dc7647778cbf7446013fa6e28566b1f8bbe15754e09421"
+  },
+  "tests_passed": [
+    "answer_preserves_remote_audio_codec_preference_order",
+    "answerer_sender_parameters_exclude_unnegotiated_audio_feedback",
+    "answerer_sender_parameters_exclude_unnegotiated_video_feedback_and_keep_rtx"
+  ],
+  "reference_refresh": {
+    "changed_leaves": {
+      "contracts/application-http-dispatch.json": "/inputs/dependencies/source-lock.json",
+      "contracts/openapi-application-http.json": "/x-connect-generation-inputs/dependencies/source-lock.json",
+      "contracts/http-endpoints.json": "/inputs/contracts/openapi-application-http.json"
+    },
+    "scope": "Only source provenance digests; all four HTTP generators and the 25-declaration/26-operation inventory check pass with zero uncovered."
+  },
+  "remaining": "Normal distinct-network decoded browser duplex, both algorithms, and relevant native/direct/relay regressions remain required. G6-054 stays in progress."
+}

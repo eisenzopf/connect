@@ -1,0 +1,188 @@
+--- a/crates/webrtc/rvoip-rtc/tests/answer_codec_preference_order.rs
++++ b/crates/webrtc/rvoip-rtc/tests/answer_codec_preference_order.rs
+@@ -50,3 +50,160 @@
+     assert_eq!(answered_formats, offered_formats);
+     assert_eq!(answered_formats.first().map(String::as_str), Some("111"));
+ }
++
++use rtc::peer_connection::RTCPeerConnection;
++use rtc::rtp_transceiver::rtp_sender::{
++    RTCPFeedback, RTCRtpCodec, RTCRtpCodecParameters, RTCRtpCodingParameters,
++    RTCRtpEncodingParameters, RTCRtpSendParameters,
++};
++use rtc::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit};
++
++fn feedback(typ: &str, parameter: &str) -> RTCPFeedback {
++    RTCPFeedback {
++        typ: typ.into(),
++        parameter: parameter.into(),
++    }
++}
++fn codec(
++    pt: u8,
++    mime: &str,
++    rate: u32,
++    channels: u16,
++    fb: Vec<RTCPFeedback>,
++    fmtp: &str,
++) -> RTCRtpCodecParameters {
++    RTCRtpCodecParameters {
++        payload_type: pt,
++        rtp_codec: RTCRtpCodec {
++            mime_type: mime.into(),
++            clock_rate: rate,
++            channels,
++            rtcp_feedback: fb,
++            sdp_fmtp_line: fmtp.into(),
++        },
++    }
++}
++fn peer(kind: RtpCodecKind, codecs: &[RTCRtpCodecParameters], ssrc: u32) -> RTCPeerConnection {
++    let mut media = MediaEngine::default();
++    for c in codecs {
++        media.register_codec(c.clone(), kind).unwrap();
++    }
++    let mut peer = RTCPeerConnectionBuilder::new()
++        .with_media_engine(media)
++        .build()
++        .unwrap();
++    peer.add_transceiver_from_kind(
++        kind,
++        Some(RTCRtpTransceiverInit {
++            direction: RTCRtpTransceiverDirection::Sendrecv,
++            streams: vec![],
++            send_encodings: vec![RTCRtpEncodingParameters {
++                codec: codecs[0].rtp_codec.clone(),
++                active: true,
++                rtp_coding_parameters: RTCRtpCodingParameters {
++                    ssrc: Some(ssrc),
++                    ..Default::default()
++                },
++                ..Default::default()
++            }],
++        }),
++    )
++    .unwrap();
++    peer
++}
++fn negotiated_sender(
++    kind: RtpCodecKind,
++    offered: &[RTCRtpCodecParameters],
++    supported: &[RTCRtpCodecParameters],
++) -> (String, RTCRtpSendParameters) {
++    let mut offerer = peer(kind, offered, 1001);
++    let mut answerer = peer(kind, supported, 2001);
++    let offer = offerer.create_offer(None).unwrap();
++    assert!(
++        offer.sdp.contains(" rrtr"),
++        "fixture must offer the actual browser extension"
++    );
++    offerer.set_local_description(offer.clone()).unwrap();
++    answerer.set_remote_description(offer).unwrap();
++    let answer = answerer.create_answer(None).unwrap();
++    assert!(
++        !answer.sdp.contains(" rrtr"),
++        "SDP answer already negotiates only supported feedback"
++    );
++    answerer.set_local_description(answer.clone()).unwrap();
++    offerer.set_remote_description(answer.clone()).unwrap();
++    let id = answerer.get_transceivers().next().unwrap();
++    let sender = answerer.rtp_transceiver(id).unwrap().sender().unwrap();
++    let params = answerer
++        .rtp_sender(sender)
++        .unwrap()
++        .get_parameters()
++        .clone();
++    (answer.sdp, params)
++}
++#[test]
++fn answerer_sender_parameters_exclude_unnegotiated_audio_feedback() {
++    let allowed = vec![feedback("transport-cc", "")];
++    let supported = [codec(111, "audio/opus", 48000, 2, allowed.clone(), "")];
++    let offered = [codec(
++        109,
++        "audio/opus",
++        48000,
++        2,
++        vec![feedback("rrtr", ""), feedback("transport-cc", "")],
++        "",
++    )];
++    let (_, parameters) = negotiated_sender(RtpCodecKind::Audio, &offered, &supported);
++    let codecs = parameters.rtp_parameters.codecs;
++    assert_eq!(codecs.len(), 1);
++    assert_eq!(codecs[0].payload_type, 109, "keep the negotiated remote PT");
++    assert_eq!(
++        codecs[0].rtp_codec.rtcp_feedback, allowed,
++        "sender parameters must agree with the feedback subset in its SDP answer"
++    );
++}
++#[test]
++fn answerer_sender_parameters_exclude_unnegotiated_video_feedback_and_keep_rtx() {
++    let allowed = vec![
++        feedback("transport-cc", ""),
++        feedback("nack", ""),
++        feedback("nack", "pli"),
++        feedback("ccm", "fir"),
++        feedback("goog-remb", ""),
++    ];
++    let supported = [
++        codec(96, "video/VP8", 90000, 0, allowed.clone(), ""),
++        codec(97, "video/rtx", 90000, 0, vec![], "apt=96"),
++    ];
++    let mut remote_feedback = vec![feedback("rrtr", "")];
++    remote_feedback.extend(allowed.clone());
++    let offered = [
++        codec(100, "video/VP8", 90000, 0, remote_feedback, ""),
++        codec(
++            101,
++            "video/rtx",
++            90000,
++            0,
++            vec![feedback("rrtr", "")],
++            "apt=100",
++        ),
++    ];
++    let (answer, parameters) = negotiated_sender(RtpCodecKind::Video, &offered, &supported);
++    let codecs = parameters.rtp_parameters.codecs;
++    assert_eq!(codecs.len(), 2);
++    assert_eq!(codecs[0].payload_type, 100);
++    assert_eq!(
++        codecs[0].rtp_codec.rtcp_feedback, allowed,
++        "retain negotiated repair/congestion feedback without unsupported RRTR"
++    );
++    assert_eq!(codecs[1].payload_type, 101);
++    assert!(
++        codecs[1]
++            .rtp_codec
++            .mime_type
++            .eq_ignore_ascii_case("video/rtx")
++    );
++    assert_eq!(codecs[1].rtp_codec.sdp_fmtp_line, "apt=100");
++    assert!(codecs[1].rtp_codec.rtcp_feedback.is_empty());
++    assert!(answer.contains("a=fmtp:101 apt=100"));
++}
+--- a/crates/webrtc/rvoip-rtc/src/rtp_transceiver/internal.rs
++++ b/crates/webrtc/rvoip-rtc/src/rtp_transceiver/internal.rs
+@@ -4,7 +4,7 @@
+ use crate::rtp_transceiver::rtp_receiver::internal::RTCRtpReceiverInternal;
+ use crate::rtp_transceiver::rtp_sender::internal::RTCRtpSenderInternal;
+ use crate::rtp_transceiver::rtp_sender::rtp_codec::{
+-    CodecMatch, codec_parameters_fuzzy_search, find_rtx_payload_type,
++    CodecMatch, codec_parameters_fuzzy_search, find_rtx_payload_type, rtcp_feedback_intersection,
+ };
+ use crate::rtp_transceiver::rtp_sender::{RTCRtpCodecParameters, RtpCodecKind};
+ use crate::rtp_transceiver::{RTCRtpTransceiverDirection, RTCRtpTransceiverInit, fmtp};
+@@ -304,6 +304,13 @@
+                     payload_mapping.insert(remote_codec.payload_type, match_codec.payload_type);
+ 
+                     remote_codec.payload_type = match_codec.payload_type;
++                    // Keep sender/receiver preferences consistent with the feedback
++                    // subset negotiated by the media engine, rather than restoring
++                    // unsupported extensions from the unfiltered remote offer.
++                    remote_codec.rtp_codec.rtcp_feedback = rtcp_feedback_intersection(
++                        &match_codec.rtp_codec.rtcp_feedback,
++                        &remote_codec.rtp_codec.rtcp_feedback,
++                    );
+                     filtered_codecs.push(remote_codec.clone());
+ 
+                     // removed matched codec for next round

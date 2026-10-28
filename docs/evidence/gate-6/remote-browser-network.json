@@ -1212,5 +1212,11 @@
       "scope": "Actual Node test checks extracted codec/direction metadata and rejection of synthetic ICE password/fingerprint/address/msid fields. No browser media qualification."
     },
     "runtime_guard_correction": "Shared source helper omitted JS/MJS/HTML/CSS suffixes. Earlier runtime before/after sets therefore did not automatically guard those fixture files, though selected script hashes were published. None of those trials qualified decoded media. The corrected runner now hashes all non-pycache files under scripts/video and examples/conversation-client, alongside SDK source/dist and the actual Playwright package. Latest225 guards2611inputs including those files."
+  },
+  "causal_sender_feedback": {
+    "evidence": "docs/evidence/gate-6/negotiated-sender-feedback.json",
+    "negative": "Two real offer/answer tests fail on unsupported rrtr retained by audio/video sender parameters.",
+    "positive": "Both pass after feedback intersection; codec-order and VP8 RTX remapping checks pass.",
+    "runtime_status": "Full server rebuilding; no decoded browser pass inferred."
   }
 }
