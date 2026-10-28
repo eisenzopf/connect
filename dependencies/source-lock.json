@@ -1281,6 +1281,11 @@
       "path": "patches/rvoip/gate6-fresh-publication-metadata-recovery.patch",
       "source": "G6-050/G6-051 recover fresh native ingress model contention within one20ms metadata budget, without any policy reader across the wait. Repeat current policy using original frozen generations and earliest IO expiry; never drop a transient fresh metadata collision into the native UDP capacity-drop path. Context-bearing/retained/data/held paths keep their existing semantics. Real negative7/7fail and corrected294distinct stream/cadence cases pass; existing task Authority/IO Deadline refusals retained.",
       "sha256": "b287f2d7332d1c30f7692206aa87cb5666777b8189c7f6d9af4a154d5deeaf72"
+    },
+    {
+      "path": "patches/rvoip/gate6-owned-turn-relay.patch",
+      "source": "G6-054 actual TURN UDP/TCP control with UDP relay allocations and relay-only candidate policy in the original sans-I/O driver, bounded TCP framing, authenticated deallocation acknowledgement, no detached tasks or queued application media. Unsupported secure ICE transports refuse explicitly; no remote/profile qualification inferred.",
+      "sha256": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "task": "G6-054",
-  "status": "component-passed-final-candidate-under-verification",
+  "status": "component-passed",
   "scope": "Owned loopback Mac arm64 coturn4.18.0 UDP/TCP implementation probes; actual signed WSS/Store/Core decoded Opus/VP8 duplex and allocation drain. No distinct-network/browser/telephone, secure TURN, loss/restart/unreachable media-port or remote profile qualification.",
   "build": {
     "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
@@ -118,7 +118,7 @@
   },
   "candidate_patch_sha256": "2c56526e1ca517fee055fcd3505c2e56f600016df10e8ae8611a1da7c9b3238f",
   "candidate_source_lock_sha256": "6709ca9dfae77421ba987d8a6894575b6806aa1bb765c0be0ef6ac73f52a5847",
-  "scope_note": "Both runs use sealed build170/preparedv29. Later write-cancellation/control-queue hardening and TCP framing tests are being verified at build172/preparedv30; these earlier passes are not final-source passes for that later candidate.",
+  "scope_note": "Historical build170 results remain retained. The final build172/preparedv30 now independently passes both actual relay lanes, both direct media regressions and two TCP framing unit functions. This qualifies only the recorded local implementation component, not G6-054 closure or acceptance.",
   "failed_attempts": [
     {
       "attempt": "udp170",
@@ -134,5 +134,234 @@
     }
   ],
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "final": {
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 678.4101082079578,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_webtransport",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5246,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/turn-relay-integration-test-172",
+        "sha256": "452b82ee785bfbbd542f129743b474ec0c26ee27289f075e7511e7fcd36b1159",
+        "bytes": 216083568
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "a0485d32b8df5534f2fde0638336cfc160eb79181253b09746155c2b3e38c1e5"
+    },
+    "executions": {
+      "udp": {
+        "format": 1,
+        "passed": true,
+        "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_udp_expiry_and_decoded_duplex",
+        "transport": "udp",
+        "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+        "source_manifest_sha256": "0bd1c565baaa6f23b3ed58a9e23972059f472617976283cd212d157346219aaa",
+        "source_count": 5246,
+        "coturn_version": "4.18.0",
+        "binary_sha256": "452b82ee785bfbbd542f129743b474ec0c26ee27289f075e7511e7fcd36b1159",
+        "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "runner_sha256": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "server_pid": 45265,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 10.96737725008279,
+          "log_sha256": "952d0e72657eb550ffecac290f8dc812c5e589dab8a398270647d09d088da335",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 10.93s"
+          ],
+          "panic_locations": []
+        },
+        "drain_exit_code": 0,
+        "coturn_log_sha256": "abfdce0da07006c113a51c6239ad7a288bf4c2a243a4fd92d64b40e27fcb682a",
+        "allocation_successes": 4,
+        "server_joined": true,
+        "changed_source_inputs": []
+      },
+      "tcp": {
+        "format": 1,
+        "passed": true,
+        "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_tcp_expiry_and_decoded_duplex",
+        "transport": "tcp",
+        "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+        "source_manifest_sha256": "0bd1c565baaa6f23b3ed58a9e23972059f472617976283cd212d157346219aaa",
+        "source_count": 5246,
+        "coturn_version": "4.18.0",
+        "binary_sha256": "452b82ee785bfbbd542f129743b474ec0c26ee27289f075e7511e7fcd36b1159",
+        "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+        "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+        "runner_sha256": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245",
+        "fixtures_sha256": {
+          "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+          "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+        },
+        "server_pid": 45266,
+        "udp_listener_unreachable": true,
+        "execution": {
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 10.570091292029247,
+          "log_sha256": "b81b38f8a999fa5ba5c16a15a3daae524f27d0e90553e1b5e5bafb0dd50d069a",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 10.51s"
+          ],
+          "panic_locations": []
+        },
+        "drain_exit_code": 0,
+        "coturn_log_sha256": "d2770429fad38580bd2981d5d3eb2a7e34c0ab8c35a199447b4e2db3e1fbac59",
+        "allocation_successes": 4,
+        "server_joined": true,
+        "changed_source_inputs": []
+      }
+    },
+    "configured_local_av": {
+      "steps": [
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_eddsa",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 4.139425000175834,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 4.10s"
+          ],
+          "panics": [],
+          "log_sha256": "eb5745a00bb03e6a9f937159142bd092e6fc13a11b2d075c75893c35335f8dcf",
+          "changed_inputs": []
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_es256",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 4.006508791819215,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 3.99s"
+          ],
+          "panics": [],
+          "log_sha256": "b791216e15f7bbec1cb5205e178613075343f378c1efe5ccb8fde290fa06976a",
+          "changed_inputs": []
+        }
+      ],
+      "binary_sha256": "452b82ee785bfbbd542f129743b474ec0c26ee27289f075e7511e7fcd36b1159",
+      "ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "input_manifest_sha256": "1a53aa950d89a0e9abd0700df99bd5a3530e1892bae8685b166f1503b079be27",
+      "scope": "Actual configured production Local WSS/WebRTC Opus/VP8 duplex decode regressions for EdDSA and ES256; synthetic fixtures and independent FFmpeg. No remote addressing/relay/SIP or browser profile qualification."
+    },
+    "tcp_unit_build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 83.38513899990357,
+      "arguments": [
+        "cargo",
+        "test",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "--manifest-path",
+        ".deps/rvoip/Cargo.toml",
+        "--config",
+        "profile.release.lto=false",
+        "--config",
+        "profile.release.codegen-units=16",
+        "--config",
+        "profile.release.debug=0",
+        "--config",
+        "profile.release.panic=\"unwind\"",
+        "--config",
+        "profile.release.strip=\"debuginfo\"",
+        "-p",
+        "rvoip-webrtc-stack",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "source_count": 5246,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/webrtc-e1c6d15152338368",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/turn-tcp-unit-test-173",
+        "sha256": "0eb6a71ea1fa0c12b835af591b7191c2841c3cfd092953c72a9118bac4feaf16",
+        "bytes": 7855472
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "96a0911d8f83d15966f6a1845fd574162432eee43a8f6b3950451e7fa5c69e59"
+    },
+    "tcp_unit": {
+      "exit_code": 0,
+      "seconds": 0.007165167015045881,
+      "results": [
+        "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 0.00s"
+      ],
+      "panics": [],
+      "log_sha256": "82bef5aa68c2c7311f6379a6c3f3142d0db6914993d1bcfa97db82cb70bc9146",
+      "changed_inputs": [],
+      "binary_sha256": "0eb6a71ea1fa0c12b835af591b7191c2841c3cfd092953c72a9118bac4feaf16",
+      "upstream_cargo_metadata_sha256": {
+        ".deps/rvoip/Cargo.toml": "5a4e1052681f54e38ec68e2fa1fbe5888e53ed34ce46da5cbbe038e663afadb8",
+        ".deps/rvoip/Cargo.lock": "7d4c8c10933015f935ead97d4c4932055b95c444d427c78808facc23c9904fea"
+      },
+      "scope": "Two actual TCP wire cases: split/coalesced STUN+ChannelData framing and wrong-target refusal; oversized frame refuses before payload delivery. No live cancellation/packet-loss/network profile qualification."
+    },
+    "functions_passed": 6,
+    "patch_sha256": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042",
+    "source_lock_sha256": "855d5095ba155d1ea2b6c7039900f1e48b02c0cb9c9bf9d0b19e605106a9c6a5",
+    "input_manifest_sha256": "0bd1c565baaa6f23b3ed58a9e23972059f472617976283cd212d157346219aaa",
+    "source_sha256": {
+      "patches/rvoip/gate6-owned-turn-relay.patch": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042",
+      "dependencies/source-lock.json": "855d5095ba155d1ea2b6c7039900f1e48b02c0cb9c9bf9d0b19e605106a9c6a5",
+      "scripts/rehearse-gate6-turn-relay.py": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245",
+      "crates/connect-server/tests/support/canonical_websocket_control/webrtc/av.rs": "54e267f779bc4a4db34a6ea112f3ae76bf7b14d33ff29119dfc6da36b7516c11",
+      "docs/developer/remote-media-configuration.md": "90654572cb06915d9a9ebc2585a8a72985488019f0c2fed77795a70a49541dbf"
+    },
+    "format_check_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "implementation": [
+    "Relay-only policy suppresses direct host and server-reflexive candidates. Explicit UDP/TCP TURN control uses real UDP relay allocations and permissions; unsupported secure schemes refuse. No implicit public STUN service.",
+    "TURN control sockets and sans-I/O clients belong to the original RTC driver, without detached relay workers. Per-peer route/control bounds apply. TURN control transport is independent of requested UDP relay transport.",
+    "Owned canonical RTP and DTMF writes encapsulate exactly the original output and complete the actual wire send inside the original guarded write. No application packet survives into a later unguarded control poll, including output-capacity refusal. A cancelled/failed TCP write taints the stream so later writes refuse.",
+    "Close retains the original driver handle while awaiting bounded authenticated Refresh/lifetime-zero acknowledgements. Unknown allocation/timeout or failed cleanup reports unconfirmed rather than success. Existing direct-only close remains unchanged.",
+    "Still-owned relay candidates are emitted on regather; actual ICE restart/recovery qualification remains open."
+  ]
 }

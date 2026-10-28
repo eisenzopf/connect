@@ -1,0 +1,1095 @@
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/mod.rs
+@@ -2,6 +2,8 @@
+ 
+ pub(crate) mod driver;
+ pub(crate) mod ice_gatherer;
++mod turn;
++mod turn_tcp;
+ 
+ use log::error;
+ use std::collections::{HashMap, HashSet};
+@@ -449,6 +451,8 @@
+ {
+     inner: Arc<PeerConnectionRef<I>>,
+     driver_handle: Mutex<Option<JoinHandle>>,
++    relay_close_required: bool,
++    driver_result: Arc<AtomicUsize>,
+ }
+ 
+ pub(crate) struct PeerConnectionRef<I = NoopInterceptor>
+@@ -502,6 +506,11 @@
+             }
+         }
+ 
++        let relay_close_required = opts
++            .ice_servers
++            .iter()
++            .any(|s| s.urls.iter().any(|u| u.starts_with("turn:")));
++        let driver_result = Arc::new(AtomicUsize::new(0));
+         let (driver_event_tx, driver_event_rx) =
+             channel(PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY);
+         let peer_connection = Self {
+@@ -515,12 +524,20 @@
+                 driver_event_tx,
+             }),
+             driver_handle: Mutex::new(None),
++            relay_close_required,
++            driver_result: driver_result.clone(),
+         };
+ 
+         let (host_candidate_addrs, advertised_to_socket) =
+             advertised_udp_addrs(&local_addrs, udp_options.advertised_ip)?;
+-        let ice_gatherer = RTCIceGatherer::new(local_addrs, host_candidate_addrs, opts);
+         let socket_count = async_udp_sockets.len();
++        let ice_gatherer = RTCIceGatherer::new(
++            local_addrs,
++            host_candidate_addrs,
++            opts,
++            &mut async_udp_sockets,
++        )
++        .await?;
+         let mut driver = PeerConnectionDriver::new(
+             peer_connection.inner.clone(),
+             ice_gatherer,
+@@ -533,7 +550,9 @@
+             .map(|counter| AllocatedUdpSocketGuard::new(counter, socket_count));
+         let driver_handle = runtime.spawn(Box::pin(async move {
+             let _socket_ownership = socket_ownership;
+-            if let Err(e) = driver.event_loop(driver_event_rx).await {
++            let result = driver.event_loop(driver_event_rx).await;
++            driver_result.store(if result.is_ok() { 1 } else { 2 }, Ordering::Release);
++            if let Err(e) = result {
+                 error!("I/O error: {}", e);
+             }
+         }));
+@@ -555,8 +574,13 @@
+         let local_addr = socket.local_addr()?;
+         let async_udp_socket = runtime.wrap_udp_socket(socket)?;
+         let local_addrs = vec![local_addr];
+-        let async_udp_sockets = HashMap::from([(local_addr, async_udp_socket)]);
+-
++        let mut async_udp_sockets = HashMap::from([(local_addr, async_udp_socket)]);
++
++        let relay_close_required = opts
++            .ice_servers
++            .iter()
++            .any(|s| s.urls.iter().any(|u| u.starts_with("turn:")));
++        let driver_result = Arc::new(AtomicUsize::new(0));
+         let (driver_event_tx, driver_event_rx) =
+             channel(PEER_CONNECTION_DRIVER_EVENT_CHANNEL_CAPACITY);
+         let peer_connection = Self {
+@@ -570,11 +594,19 @@
+                 driver_event_tx,
+             }),
+             driver_handle: Mutex::new(None),
++            relay_close_required,
++            driver_result: driver_result.clone(),
+         };
+         let (host_candidate_addrs, advertised_to_socket) =
+             advertised_udp_addrs(&local_addrs, udp_options.advertised_ip)?;
+-        let ice_gatherer = RTCIceGatherer::new(local_addrs, host_candidate_addrs, opts);
+         let socket_count = async_udp_sockets.len();
++        let ice_gatherer = RTCIceGatherer::new(
++            local_addrs,
++            host_candidate_addrs,
++            opts,
++            &mut async_udp_sockets,
++        )
++        .await?;
+         let mut driver = PeerConnectionDriver::new(
+             peer_connection.inner.clone(),
+             ice_gatherer,
+@@ -587,7 +619,9 @@
+             .map(|counter| AllocatedUdpSocketGuard::new(counter, socket_count));
+         let driver_handle = runtime.spawn(Box::pin(async move {
+             let _socket_ownership = socket_ownership;
+-            if let Err(e) = driver.event_loop(driver_event_rx).await {
++            let result = driver.event_loop(driver_event_rx).await;
++            driver_result.store(if result.is_ok() { 1 } else { 2 }, Ordering::Release);
++            if let Err(e) = result {
+                 error!("I/O error: {}", e);
+             }
+         }));
+@@ -635,11 +669,20 @@
+             .try_send(PeerConnectionDriverEvent::Close);
+         let mut original = self.driver_handle.lock().await;
+         if let Some(handle) = original.as_ref() {
++            if self.relay_close_required {
++                let deadline = Instant::now() + std::time::Duration::from_secs(4);
++                while !handle.is_finished() && Instant::now() < deadline {
++                    crate::runtime::sleep(std::time::Duration::from_millis(5)).await;
++                }
++            }
+             // Keep custody in the owner while awaiting destruction. If this
+             // close observation is cancelled, the next one joins this task.
+             handle.abort_and_wait().await;
+         }
+         original.take();
++        if self.relay_close_required && self.driver_result.load(Ordering::Acquire) != 1 {
++            return Err(Error::Other("TURN allocation cleanup unconfirmed".into()));
++        }
+         closed
+     }
+ 
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/ice_gatherer.rs
+@@ -4,6 +4,7 @@
+ //! Unlike the old async version, this gatherer is a configuration object that holds
+ //! the ICE servers and state.
+ 
++use super::turn::Relays;
+ use crate::runtime;
+ use rtc::ice::candidate::CandidateConfig;
+ use rtc::peer_connection::configuration::{RTCIceServer, RTCIceTransportPolicy};
+@@ -36,10 +37,10 @@
+     pub(crate) ice_gather_policy: RTCIceTransportPolicy,
+ }
+ 
+-#[derive(Debug)]
+ pub enum RTCIceGathererEvent {
+     LocalIceCandidate(RTCIceCandidateInit),
+     IceGatheringComplete,
++    RelayedDatagram(TaggedBytesMut),
+ }
+ 
+ /// RTCIceGatherer gathers local host, server reflexive and relay candidates
+@@ -53,6 +54,7 @@
+     gather_policy: RTCIceTransportPolicy,
+     state: RTCIceGatheringState,
+ 
++    relays: Relays,
+     stun_clients: Vec<StunClient>,
+     gathering_clients: HashSet<FourTuple>,
+ 
+@@ -62,24 +64,52 @@
+ 
+ impl RTCIceGatherer {
+     /// Create a new ICE gatherer with ICE servers and gather policy
+-    pub(crate) fn new(
++    pub(crate) async fn new(
+         local_addrs: Vec<SocketAddr>,
+         host_candidate_addrs: Vec<SocketAddr>,
+         opts: RTCIceGatherOptions,
+-    ) -> Self {
++        sockets: &mut std::collections::HashMap<
++            SocketAddr,
++            std::sync::Arc<dyn crate::runtime::AsyncUdpSocket>,
++        >,
++    ) -> Result<Self, Error> {
++        let relays = Relays::prepare(&local_addrs, &opts.ice_servers, sockets).await?;
+         debug_assert_eq!(local_addrs.len(), host_candidate_addrs.len());
+-        Self {
++        Ok(Self {
+             local_addrs,
+             host_candidate_addrs,
+             ice_servers: opts.ice_servers,
+             gather_policy: opts.ice_gather_policy,
+             state: RTCIceGatheringState::New,
+ 
++            relays,
+             stun_clients: Vec::new(),
+             gathering_clients: HashSet::new(),
+ 
+             wouts: VecDeque::new(),
+             events: VecDeque::new(),
++        })
++    }
++    pub(super) fn relay_output(
++        &mut self,
++        msg: &TaggedBytesMut,
++    ) -> Result<Option<TaggedBytesMut>, Error> {
++        self.relays.encapsulate(msg)
++    }
++    pub(super) fn begin_relay_close(&mut self) -> Result<(), Error> {
++        self.relays.begin_close()
++    }
++    pub(super) fn relays_closed(&self) -> bool {
++        self.relays.closed()
++    }
++    fn maybe_complete(&mut self) {
++        if self.gathering_clients.is_empty()
++            && !self.relays.pending()
++            && self.state == RTCIceGatheringState::Gathering
++        {
++            self.state = RTCIceGatheringState::Complete;
++            self.events
++                .push_back(RTCIceGathererEvent::IceGatheringComplete);
+         }
+     }
+ 
+@@ -88,6 +118,9 @@
+     }
+ 
+     pub(crate) fn is_ice_message(&self, msg: &TaggedBytesMut) -> bool {
++        if self.relays.matches(msg) {
++            return true;
++        }
+         for stun_client in &self.stun_clients {
+             if stun_client.peer_addr() == msg.transport.peer_addr
+                 && stun_client.local_addr() == msg.transport.local_addr
+@@ -101,13 +134,12 @@
+ 
+     pub(crate) async fn gather(&mut self) -> Result<(), Error> {
+         self.state = RTCIceGatheringState::Gathering;
+-        self.gather_host_candidates()?;
+-        self.gather_srflx_candidates().await?;
+-        if self.gathering_clients.is_empty() && self.state != RTCIceGatheringState::Complete {
+-            self.state = RTCIceGatheringState::Complete;
+-            self.events
+-                .push_back(RTCIceGathererEvent::IceGatheringComplete);
+-        }
++        if self.gather_policy != RTCIceTransportPolicy::Relay {
++            self.gather_host_candidates()?;
++            self.gather_srflx_candidates().await?;
++        }
++        self.relays.gather()?;
++        self.maybe_complete();
+         Ok(())
+     }
+ 
+@@ -233,6 +265,9 @@
+     type Time = Instant;
+ 
+     fn handle_read(&mut self, msg: TaggedBytesMut) -> Result<(), Self::Error> {
++        if self.relays.matches(&msg) {
++            return self.relays.read(msg);
++        }
+         for stun_client in &mut self.stun_clients {
+             if stun_client.peer_addr() == msg.transport.peer_addr
+                 && stun_client.local_addr() == msg.transport.local_addr
+@@ -259,7 +294,7 @@
+             }
+         }
+ 
+-        self.wouts.pop_front()
++        self.wouts.pop_front().or_else(|| self.relays.poll_write())
+     }
+ 
+     fn handle_event(&mut self, _evt: ()) -> Result<(), Self::Error> {
+@@ -319,7 +354,9 @@
+                     local_addr,
+                     peer_addr,
+                 });
+-                if self.gathering_clients.is_empty() && self.state != RTCIceGatheringState::Complete
++                if self.gathering_clients.is_empty()
++                    && !self.relays.pending()
++                    && self.state != RTCIceGatheringState::Complete
+                 {
+                     self.state = RTCIceGatheringState::Complete;
+                     self.events
+@@ -328,10 +365,15 @@
+             }
+         }
+ 
++        if let Some(event) = self.relays.poll_event() {
++            return Some(event);
++        }
++        self.maybe_complete();
+         self.events.pop_front()
+     }
+ 
+     fn handle_timeout(&mut self, now: Self::Time) -> Result<(), Self::Error> {
++        self.relays.timeout(now)?;
+         for stun_client in &mut self.stun_clients {
+             stun_client.handle_timeout(now)?;
+         }
+@@ -339,7 +381,7 @@
+     }
+ 
+     fn poll_timeout(&mut self) -> Option<Self::Time> {
+-        let mut eto: Option<Instant> = None;
++        let mut eto: Option<Instant> = self.relays.next_timeout();
+         for stun_client in &mut self.stun_clients {
+             if let Some(next) = stun_client.poll_timeout() {
+                 eto = Some(eto.map_or(next, |curr| std::cmp::min(curr, next)));
+--- a/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/driver.rs
+@@ -153,7 +153,16 @@
+             })
+             .collect();
+ 
++        let mut close_deadline = None;
+         loop {
++            if let Some(deadline) = close_deadline {
++                if self.ice_gatherer.relays_closed() {
++                    return Ok(());
++                }
++                if Instant::now() >= deadline {
++                    return Err(Error::Other("TURN allocation close deadline".into()));
++                }
++            }
+             self.video_repairs.expire(Instant::now());
+             // 1.a ice_gatherer poll_write()
+             {
+@@ -166,7 +175,7 @@
+                 self.handle_write(msg).await;
+             }
+             // 1.b peer_connection poll_write() - Send all outgoing packets
+-            {
++            if close_deadline.is_none() {
+                 let mut core = self.inner.core.lock().await;
+                 while let Some(msg) = core.poll_write() {
+                     drop(core);
+@@ -183,7 +192,7 @@
+             }
+ 
+             // 2.b peer_connection poll_event() - Process all events
+-            {
++            if close_deadline.is_none() {
+                 let mut core = self.inner.core.lock().await;
+                 while let Some(event) = core.poll_event() {
+                     drop(core);
+@@ -195,7 +204,7 @@
+             // 3.a no need for ice_gatherer poll_read()
+ 
+             // 3.b peer_connection poll_read() - Process incoming messages
+-            {
++            if close_deadline.is_none() {
+                 let mut core = self.inner.core.lock().await;
+                 while let Some(message) = core.poll_read() {
+                     drop(core);
+@@ -216,6 +225,9 @@
+                 }
+             }
+ 
++            if let Some(deadline) = close_deadline {
++                timeout = timeout.min(deadline);
++            }
+             if let Some(expiry) = self.video_repairs.next_expiry() {
+                 timeout = timeout.min(expiry);
+             }
+@@ -228,7 +240,9 @@
+                 let now = Instant::now();
+                 self.ice_gatherer.handle_timeout(now)?;
+                 let mut core = self.inner.core.lock().await;
+-                core.handle_timeout(now)?;
++                if close_deadline.is_none() {
++                    core.handle_timeout(now)?;
++                }
+                 continue;
+             }
+ 
+@@ -242,15 +256,16 @@
+                     let now = Instant::now();
+                     self.ice_gatherer.handle_timeout(now)?;
+                     let mut core = self.inner.core.lock().await;
+-                    core.handle_timeout(now)?;
++                    if close_deadline.is_none() { core.handle_timeout(now)?; }
+                 }
+ 
+                 // Driver events (RTP, RTCP, or ICE candidate)
+                 evt = driver_event_rx.recv().fuse() => {
+                     if let Some(evt) = evt {
+                         let is_closed = self.handle_driver_event(evt).await;
+-                        if is_closed {
+-                            return Ok(());
++                        if is_closed && close_deadline.is_none() {
++                            self.ice_gatherer.begin_relay_close()?;
++                            close_deadline = Some(Instant::now() + Duration::from_secs(3));
+                         }
+                     }
+                 }
+@@ -385,6 +400,7 @@
+             if !control.current(deadline) {
+                 return Err(Error::ErrConnectionClosed);
+             }
++            let msg = self.ice_gatherer.relay_output(&msg)?.unwrap_or(msg);
+             let addr = self
+                 .advertised_to_socket
+                 .get(&msg.transport.local_addr)
+@@ -472,7 +488,12 @@
+         let _ = completion.send(result);
+     }
+ 
+-    async fn handle_write(&self, msg: TaggedBytesMut) {
++    async fn handle_write(&mut self, msg: TaggedBytesMut) {
++        let msg = match self.ice_gatherer.relay_output(&msg) {
++            Ok(Some(wire)) => wire,
++            Ok(None) => msg,
++            Err(_) => return,
++        };
+         let socket_addr = self
+             .advertised_to_socket
+             .get(&msg.transport.local_addr)
+@@ -516,6 +537,10 @@
+ 
+     async fn handle_gather_event(&mut self, event: RTCIceGathererEvent) {
+         match event {
++            RTCIceGathererEvent::RelayedDatagram(msg) => {
++                let mut core = self.inner.core.lock().await;
++                let _ = core.handle_read(msg);
++            }
+             RTCIceGathererEvent::LocalIceCandidate(candidate) => {
+                 trace!("LocalIceCandidate {:?}", candidate);
+                 let mut core = self.inner.core.lock().await;
+@@ -1033,6 +1058,11 @@
+         {
+             return Err(Error::ErrConnectionClosed);
+         }
++        let message = self
++            .driver
++            .ice_gatherer
++            .relay_output(&message)?
++            .unwrap_or(message);
+         let address = self
+             .driver
+             .advertised_to_socket
+@@ -1051,10 +1081,10 @@
+             return Err(Error::ErrConnectionClosed);
+         }
+         let written = socket
+-            .send_to(bytes, message.transport.peer_addr)
++            .send_to(&message.message, message.transport.peer_addr)
+             .await
+             .map_err(|_| Error::ErrConnectionClosed)?;
+-        if written != bytes.len() {
++        if written != message.message.len() {
+             return Err(Error::ErrConnectionClosed);
+         }
+         self.written = true;
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/turn.rs
+@@ -0,0 +1,423 @@
++//! Owned TURN client state; all network IO remains in the original RTC driver.
++//! No detached relay tasks, implicit public services or retained media queue.
++use super::ice_gatherer::RTCIceGathererEvent;
++use rtc::peer_connection::configuration::RTCIceServer;
++use rtc::peer_connection::transport::{CandidateConfig, CandidateRelayConfig, RTCIceCandidate};
++use rtc::sansio::Protocol;
++use rtc::shared::error::{Error, Result};
++use rtc::shared::{TaggedBytesMut, TransportContext, TransportProtocol};
++use rtc::stun::{
++    attributes::ATTR_REALM,
++    integrity::MessageIntegrity,
++    message::{
++        CLASS_ERROR_RESPONSE, CLASS_SUCCESS_RESPONSE, Getter, METHOD_REFRESH, Message,
++        TransactionId,
++    },
++    textattrs::Realm,
++};
++use rtc::turn::{
++    client::{Client, ClientConfig, Event},
++    proto::lifetime::Lifetime,
++};
++use std::{collections::VecDeque, net::SocketAddr, time::Instant};
++
++pub(super) struct Relays {
++    routes: Vec<Route>,
++    events: VecDeque<RTCIceGathererEvent>,
++    closing: bool,
++    control: VecDeque<TaggedBytesMut>,
++}
++struct Route {
++    client: Client,
++    local: SocketAddr,
++    server: SocketAddr,
++    allocated: Option<SocketAddr>,
++    pending: bool,
++    uncertain: bool,
++    closed: bool,
++    close_transaction: Option<TransactionId>,
++    integrity: Option<MessageIntegrity>,
++    username: String,
++    password: String,
++}
++impl Relays {
++    pub(super) fn validate(servers: &[RTCIceServer]) -> Result<()> {
++        for server in servers {
++            for url in &server.urls {
++                if url.starts_with("turn:") {
++                    let (authority, query) = url[5..]
++                        .split_once('?')
++                        .map_or((&url[5..], None), |(a, q)| (a, Some(q)));
++                    if authority.is_empty()
++                        || query.is_some_and(|q| !matches!(q, "transport=udp" | "transport=tcp"))
++                        || server.username.is_empty()
++                        || server.credential.is_empty()
++                    {
++                        return Err(Error::Other(
++                            "unsupported TURN transport or missing credentials".into(),
++                        ));
++                    }
++                } else if !url.starts_with("stun:") {
++                    return Err(Error::Other("unsupported ICE service transport".into()));
++                }
++            }
++        }
++        Ok(())
++    }
++    pub(super) fn prepare<'a>(
++        locals: &'a [SocketAddr],
++        servers: &'a [RTCIceServer],
++        sockets: &'a mut std::collections::HashMap<
++            SocketAddr,
++            std::sync::Arc<dyn crate::runtime::AsyncUdpSocket>,
++        >,
++    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Self>> + Send + 'a>> {
++        // Erase transport setup's future at this non-generic IO boundary rather
++        // than exporting its TCP/DNS auto-trait graph through every RTC user.
++        Box::pin(async move {
++            Self::validate(servers)?;
++            let mut routes = Vec::<Route>::new();
++            // This stage opens only bounded owned control sockets. No allocation
++            // exists before all configuration/transport preparation succeeds.
++            for server in servers {
++                for url in &server.urls {
++                    let Some(rest) = url.strip_prefix("turn:") else {
++                        continue;
++                    };
++                    let (authority, query) = rest
++                        .split_once('?')
++                        .map_or((rest, None), |(a, q)| (a, Some(q)));
++                    let tcp = query == Some("transport=tcp");
++                    let endpoint = if authority.starts_with('[') {
++                        if authority.contains("]:") {
++                            authority.to_owned()
++                        } else {
++                            format!("{authority}:3478")
++                        }
++                    } else if authority.contains(':') {
++                        authority.to_owned()
++                    } else {
++                        format!("{authority}:3478")
++                    };
++                    let addresses = crate::runtime::resolve_host(&endpoint).await?;
++                    for base in locals {
++                        let Some(remote) = addresses
++                            .iter()
++                            .find(|a| a.is_ipv4() == base.is_ipv4())
++                            .copied()
++                        else {
++                            continue;
++                        };
++                        if !tcp
++                            && routes
++                                .iter()
++                                .any(|r| r.local == *base && r.server == remote)
++                        {
++                            continue;
++                        }
++                        if routes.len() >= 16 {
++                            return Err(Error::Other("TURN route capacity exceeded".into()));
++                        }
++                        let local = if tcp {
++                            let socket = super::turn_tcp::TurnTcp::connect(*base, remote).await?;
++                            let local = socket.local_addr()?;
++                            if sockets.contains_key(&local) {
++                                return Err(Error::Other("TURN control address collision".into()));
++                            }
++                            sockets.insert(local, socket);
++                            local
++                        } else {
++                            *base
++                        };
++                        let client = Client::new(ClientConfig {
++                            stun_serv_addr: String::new(),
++                            turn_serv_addr: remote.to_string(),
++                            local_addr: local,
++                            // TURN control transport and requested relay transport are independent.
++                            transport_protocol: TransportProtocol::UDP,
++                            username: server.username.clone(),
++                            password: server.credential.clone(),
++                            realm: String::new(),
++                            software: String::new(),
++                            rto_in_ms: 200,
++                        })?;
++                        routes.push(Route {
++                            client,
++                            local,
++                            server: remote,
++                            allocated: None,
++                            pending: false,
++                            uncertain: false,
++                            closed: false,
++                            close_transaction: None,
++                            integrity: None,
++                            username: server.username.clone(),
++                            password: server.credential.clone(),
++                        });
++                    }
++                }
++            }
++            Ok(Self {
++                routes,
++                events: VecDeque::new(),
++                closing: false,
++                control: VecDeque::new(),
++            })
++        })
++    }
++    pub(super) fn gather(&mut self) -> Result<()> {
++        for route in &mut self.routes {
++            if let Some(address) = route.allocated {
++                if !route.closed {
++                    let candidate = CandidateRelayConfig {
++                        base_config: CandidateConfig {
++                            network: "udp".into(),
++                            address: address.ip().to_string(),
++                            port: address.port(),
++                            component: 1,
++                            ..Default::default()
++                        },
++                        rel_addr: route.local.ip().to_string(),
++                        rel_port: route.local.port(),
++                        ..Default::default()
++                    }
++                    .new_candidate_relay()?;
++                    self.events
++                        .push_back(RTCIceGathererEvent::LocalIceCandidate(
++                            RTCIceCandidate::from(&candidate).to_json()?,
++                        ));
++                }
++            } else if !route.pending && !route.closed {
++                route.client.allocate()?;
++                route.pending = true;
++            }
++        }
++        Ok(())
++    }
++    pub(super) fn pending(&self) -> bool {
++        self.routes.iter().any(|r| r.pending)
++    }
++    pub(super) fn matches(&self, msg: &TaggedBytesMut) -> bool {
++        self.routes.iter().any(|r| {
++            !r.closed && r.local == msg.transport.local_addr && r.server == msg.transport.peer_addr
++        })
++    }
++    pub(super) fn encapsulate(&mut self, msg: &TaggedBytesMut) -> Result<Option<TaggedBytesMut>> {
++        let Some(route) = self
++            .routes
++            .iter_mut()
++            .find(|r| !r.closed && r.allocated == Some(msg.transport.local_addr))
++        else {
++            return Ok(None);
++        };
++        if self.closing {
++            return Err(Error::ErrConnectionClosed);
++        }
++        let mut relay = route.client.relay(msg.transport.local_addr)?;
++        relay.create_permission(msg.transport.peer_addr)?;
++        // Permission preparation may drop an initial ICE check; ICE owns its
++        // retransmission. Application packets never wait in a relay queue.
++        relay.send_to(&msg.message, msg.transport.peer_addr)?;
++        let mut output = None;
++        let mut invalid = false;
++        while let Some(wire) = route.client.poll_write() {
++            let bytes = &wire.message;
++            let (application, matches_original) = if bytes.len() >= 4 && bytes[0] & 0xc0 == 0x40 {
++                let size = usize::from(u16::from_be_bytes([bytes[2], bytes[3]]));
++                (true, bytes.get(4..4 + size) == Some(msg.message.as_ref()))
++            } else if rtc::stun::message::is_stun_message(bytes) {
++                let mut packet = Message::new();
++                packet.raw = bytes.to_vec();
++                let mut data = rtc::turn::proto::data::Data::default();
++                let application =
++                    packet.decode().is_ok() && packet.typ.method == rtc::stun::message::METHOD_SEND;
++                (
++                    application,
++                    application
++                        && data.get_from(&packet).is_ok()
++                        && data.0.as_slice() == msg.message.as_ref(),
++                )
++            } else {
++                (false, false)
++            };
++            if application {
++                if !matches_original || output.is_some() {
++                    invalid = true;
++                } else {
++                    output = Some(wire);
++                }
++            } else if self.control.len() < 64 {
++                self.control.push_back(wire);
++            } else {
++                invalid = true;
++            }
++        }
++        // Always drain the client after this original send, including refusal.
++        // No error path can leave application bytes for a later unguarded poll.
++        if invalid {
++            return Err(Error::ErrConnectionClosed);
++        }
++        output.map(Some).ok_or(Error::ErrConnectionClosed)
++    }
++
++    pub(super) fn read(&mut self, msg: TaggedBytesMut) -> Result<()> {
++        let route = self
++            .routes
++            .iter_mut()
++            .find(|r| {
++                !r.closed
++                    && r.local == msg.transport.local_addr
++                    && r.server == msg.transport.peer_addr
++            })
++            .ok_or(Error::ErrConnectionClosed)?;
++        if rtc::stun::message::is_stun_message(&msg.message) {
++            let mut response = Message::new();
++            response.raw = msg.message.to_vec();
++            response.decode()?;
++            if response.typ.class == CLASS_ERROR_RESPONSE && route.integrity.is_none() {
++                if let Ok(realm) = Realm::get_from_as(&response, ATTR_REALM) {
++                    route.integrity = Some(MessageIntegrity::new_long_term_integrity(
++                        route.username.clone(),
++                        realm.text,
++                        route.password.clone(),
++                    ));
++                }
++            }
++            if response.typ.class == CLASS_SUCCESS_RESPONSE {
++                route
++                    .integrity
++                    .as_ref()
++                    .ok_or(Error::ErrIntegrityMismatch)?
++                    .check(&mut response)?;
++                if response.typ.method == METHOD_REFRESH
++                    && route.close_transaction == Some(response.transaction_id)
++                {
++                    let mut lifetime = Lifetime::default();
++                    lifetime.get_from(&response)?;
++                    if lifetime.0.is_zero() {
++                        route.closed = true;
++                        route.pending = false;
++                        return Ok(());
++                    }
++                }
++            }
++        }
++        route.client.handle_read(msg)
++    }
++    pub(super) fn poll_write(&mut self) -> Option<TaggedBytesMut> {
++        if let Some(msg) = self.control.pop_front() {
++            return Some(msg);
++        }
++        for route in &mut self.routes {
++            if route.closed {
++                continue;
++            }
++            if let Some(msg) = route.client.poll_write() {
++                if self.closing && rtc::stun::message::is_stun_message(&msg.message) {
++                    let mut request = Message::new();
++                    request.raw = msg.message.to_vec();
++                    if request.decode().is_ok() && request.typ.method == METHOD_REFRESH {
++                        route.close_transaction = Some(request.transaction_id);
++                    }
++                }
++                return Some(msg);
++            }
++        }
++        None
++    }
++    pub(super) fn poll_event(&mut self) -> Option<RTCIceGathererEvent> {
++        for route in &mut self.routes {
++            if route.closed {
++                continue;
++            }
++            while let Some(event) = route.client.poll_event() {
++                match event {
++                    Event::AllocateResponse(_, address) => {
++                        route.pending = false;
++                        route.allocated = Some(address);
++                        if self.closing {
++                            if let Ok(mut relay) = route.client.relay(address) {
++                                let _ = relay.close();
++                            }
++                            continue;
++                        }
++                        let candidate = CandidateRelayConfig {
++                            base_config: CandidateConfig {
++                                network: "udp".into(),
++                                address: address.ip().to_string(),
++                                port: address.port(),
++                                component: 1,
++                                ..Default::default()
++                            },
++                            rel_addr: route.local.ip().to_string(),
++                            rel_port: route.local.port(),
++                            ..Default::default()
++                        }
++                        .new_candidate_relay()
++                        .and_then(|c| RTCIceCandidate::from(&c).to_json());
++                        if let Ok(candidate) = candidate {
++                            self.events
++                                .push_back(RTCIceGathererEvent::LocalIceCandidate(candidate));
++                        }
++                    }
++                    Event::AllocateError(..) => {
++                        route.pending = false;
++                    }
++                    Event::TransactionTimeout(..) => {
++                        route.pending = false;
++                        route.uncertain = true;
++                    }
++                    Event::DataIndicationOrChannelData(_, peer_addr, message) => {
++                        if let Some(local_addr) = route.allocated {
++                            self.events.push_back(RTCIceGathererEvent::RelayedDatagram(
++                                TaggedBytesMut {
++                                    now: Instant::now(),
++                                    transport: TransportContext {
++                                        local_addr,
++                                        peer_addr,
++                                        transport_protocol: TransportProtocol::UDP,
++                                        ecn: None,
++                                    },
++                                    message,
++                                },
++                            ));
++                        }
++                    }
++                    _ => {}
++                }
++            }
++        }
++        self.events.pop_front()
++    }
++    pub(super) fn timeout(&mut self, now: Instant) -> Result<()> {
++        for route in &mut self.routes {
++            if !route.closed {
++                route.client.handle_timeout(now)?;
++            }
++        }
++        Ok(())
++    }
++    pub(super) fn next_timeout(&mut self) -> Option<Instant> {
++        self.routes
++            .iter_mut()
++            .filter(|r| !r.closed)
++            .filter_map(|r| r.client.poll_timeout())
++            .min()
++    }
++    pub(super) fn begin_close(&mut self) -> Result<()> {
++        self.closing = true;
++        for route in &mut self.routes {
++            if let Some(address) = route.allocated {
++                if !route.closed {
++                    route.client.relay(address)?.close()?;
++                }
++            } else if !route.pending && !route.uncertain {
++                route.closed = true;
++            }
++        }
++        Ok(())
++    }
++    pub(super) fn closed(&self) -> bool {
++        self.routes.iter().all(|r| r.closed)
++    }
++}
+--- /dev/null
++++ b/crates/webrtc/rvoip-webrtc-stack/src/peer_connection/turn_tcp.rs
+@@ -0,0 +1,206 @@
++//! TURN-over-TCP framing. This socket belongs to the original RTC driver;
++//! the sans-I/O TURN client still requests a UDP *relay* allocation.
++use crate::runtime::AsyncUdpSocket;
++use std::{
++    future::Future,
++    io,
++    net::SocketAddr,
++    pin::Pin,
++    sync::{
++        Arc,
++        atomic::{AtomicBool, Ordering},
++    },
++    time::Duration,
++};
++use tokio::io::{AsyncReadExt, AsyncWriteExt};
++use tokio::net::{
++    TcpSocket,
++    tcp::{OwnedReadHalf, OwnedWriteHalf},
++};
++use tokio::sync::Mutex;
++
++pub(super) struct TurnTcp {
++    local: SocketAddr,
++    remote: SocketAddr,
++    reader: Mutex<OwnedReadHalf>,
++    writer: Mutex<OwnedWriteHalf>,
++    write_tainted: AtomicBool,
++}
++struct WriteAttempt<'a> {
++    tainted: &'a AtomicBool,
++    complete: bool,
++}
++impl Drop for WriteAttempt<'_> {
++    fn drop(&mut self) {
++        if !self.complete {
++            self.tainted.store(true, Ordering::Release);
++        }
++    }
++}
++impl std::fmt::Debug for TurnTcp {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.write_str("TurnTcp([owned])")
++    }
++}
++impl TurnTcp {
++    pub(super) async fn connect(
++        local: SocketAddr,
++        remote: SocketAddr,
++    ) -> io::Result<Arc<dyn AsyncUdpSocket>> {
++        let socket = if local.is_ipv4() {
++            TcpSocket::new_v4()?
++        } else {
++            TcpSocket::new_v6()?
++        };
++        socket.bind(SocketAddr::new(local.ip(), 0))?;
++        let stream = tokio::time::timeout(Duration::from_secs(3), socket.connect(remote)).await??;
++        stream.set_nodelay(true)?;
++        let local = stream.local_addr()?;
++        let (reader, writer) = stream.into_split();
++        Ok(Arc::new(Self {
++            local,
++            remote,
++            reader: Mutex::new(reader),
++            writer: Mutex::new(writer),
++            write_tainted: AtomicBool::new(false),
++        }))
++    }
++}
++impl AsyncUdpSocket for TurnTcp {
++    fn local_addr(&self) -> io::Result<SocketAddr> {
++        Ok(self.local)
++    }
++    fn send_to<'a>(
++        &'a self,
++        buf: &'a [u8],
++        target: SocketAddr,
++    ) -> Pin<Box<dyn Future<Output = io::Result<usize>> + Send + 'a>> {
++        Box::pin(async move {
++            if target != self.remote || buf.len() < 4 {
++                return Err(io::Error::new(
++                    io::ErrorKind::InvalidInput,
++                    "Invalid TURN control target/frame",
++                ));
++            }
++            let mut writer = self.writer.lock().await;
++            if self.write_tainted.load(Ordering::Acquire) {
++                return Err(io::Error::new(
++                    io::ErrorKind::BrokenPipe,
++                    "Prior TURN write incomplete",
++                ));
++            }
++            let mut attempt = WriteAttempt {
++                tainted: &self.write_tainted,
++                complete: false,
++            };
++            tokio::time::timeout(Duration::from_millis(500), async {
++                writer.write_all(buf).await?;
++                // ChannelData uses four-byte alignment on TCP (RFC8656 section12).
++                if buf[0] & 0xc0 == 0x40 {
++                    let padding = (4 - buf.len() % 4) % 4;
++                    writer.write_all(&[0u8; 3][..padding]).await?;
++                }
++                Ok::<(), io::Error>(())
++            })
++            .await??;
++            attempt.complete = true;
++            Ok(buf.len())
++        })
++    }
++    fn recv_from<'a>(
++        &'a self,
++        buf: &'a mut [u8],
++    ) -> Pin<Box<dyn Future<Output = io::Result<(usize, SocketAddr)>> + Send + 'a>> {
++        Box::pin(async move {
++            if buf.len() < 20 {
++                return Err(io::Error::new(
++                    io::ErrorKind::InvalidInput,
++                    "TURN receive capacity",
++                ));
++            }
++            let mut reader = self.reader.lock().await;
++            // The driver retains this one receive future between polls. It is
++            // dropped only with the owned connection, never resumed after cancel.
++            reader.read_exact(&mut buf[..4]).await?;
++            let payload = usize::from(u16::from_be_bytes([buf[2], buf[3]]));
++            let size = match buf[0] & 0xc0 {
++                0 => 20 + payload,
++                0x40 => 4 + payload,
++                _ => {
++                    return Err(io::Error::new(
++                        io::ErrorKind::InvalidData,
++                        "Invalid TURN TCP frame",
++                    ));
++                }
++            };
++            if size > buf.len() {
++                return Err(io::Error::new(
++                    io::ErrorKind::InvalidData,
++                    "TURN TCP frame exceeds receive bound",
++                ));
++            }
++            reader.read_exact(&mut buf[4..size]).await?;
++            if buf[0] & 0xc0 == 0x40 {
++                let padding = (4 - size % 4) % 4;
++                reader.read_exact(&mut [0u8; 3][..padding]).await?;
++            }
++            Ok((size, self.remote))
++        })
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[tokio::test]
++    async fn framed_tcp_reads_split_and_coalesced_messages_and_refuses_wrong_target() {
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let server = listener.local_addr().unwrap();
++        let client = TurnTcp::connect("127.0.0.1:0".parse().unwrap(), server)
++            .await
++            .unwrap();
++        let task = tokio::spawn(async move {
++            let (mut socket, _) = listener.accept().await.unwrap();
++            let mut input = [0u8; 20];
++            socket.read_exact(&mut input).await.unwrap();
++            assert_eq!(input, [0u8; 20]);
++            socket.write_all(&[0u8; 2]).await.unwrap();
++            tokio::task::yield_now().await;
++            let mut rest = vec![0u8; 18];
++            rest.extend_from_slice(&[0x40, 1, 0, 3, 7, 8, 9, 0]);
++            socket.write_all(&rest).await.unwrap();
++        });
++        let mut wrong = server;
++        wrong.set_port(if server.port() == 65535 {
++            65534
++        } else {
++            server.port() + 1
++        });
++        assert!(client.send_to(&[0u8; 20], wrong).await.is_err());
++        assert_eq!(client.send_to(&[0u8; 20], server).await.unwrap(), 20);
++        let mut buf = [0u8; 64];
++        assert_eq!(client.recv_from(&mut buf).await.unwrap(), (20, server));
++        assert_eq!(&buf[..20], &[0u8; 20]);
++        assert_eq!(client.recv_from(&mut buf).await.unwrap(), (7, server));
++        assert_eq!(&buf[..7], &[0x40, 1, 0, 3, 7, 8, 9]);
++        task.await.unwrap();
++    }
++    #[tokio::test]
++    async fn oversized_tcp_frame_refuses_before_payload_delivery() {
++        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
++        let server = listener.local_addr().unwrap();
++        let client = TurnTcp::connect("127.0.0.1:0".parse().unwrap(), server)
++            .await
++            .unwrap();
++        let task = tokio::spawn(async move {
++            let (mut socket, _) = listener.accept().await.unwrap();
++            socket.write_all(&[0, 1, 255, 255]).await.unwrap();
++        });
++        let mut buf = [0u8; 64];
++        assert_eq!(
++            client.recv_from(&mut buf).await.unwrap_err().kind(),
++            io::ErrorKind::InvalidData
++        );
++        task.await.unwrap();
++    }
++}
+--- a/crates/webrtc/rvoip-webrtc-stack/Cargo.toml
++++ b/crates/webrtc/rvoip-webrtc-stack/Cargo.toml
+@@ -208,6 +208,7 @@
+ [dependencies.tokio]
+ version = "1.49.0"
+ features = [
++    "io-util",
+     "net",
+     "time",
+     "sync",

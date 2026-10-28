@@ -3,7 +3,7 @@
   "task": "G6-054",
   "implementation_status": "in-progress",
   "date": "2026-10-28",
-  "scope": "Explicit canonical WebRTC addressing and secret-reference configuration; local configured-media regressions. Actual remote media, TURN allocation, SIP addressing and complete G6-054 verification remain open.",
+  "scope": "Explicit canonical WebRTC/SIP addressing, protected TURN references and owned loopback UDP/TCP relay media. Distinct-network/browser/telephone and complete G6-054 verification remain open.",
   "implementation": [
     "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
     "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
@@ -127,9 +127,10 @@
     "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
   },
   "remaining": [
-    "Actual remote SIP/NAT path verification and deployment templates. Address mapping is now configured and has Local startup/readiness regression evidence.",
-    "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Browser relay policy is implemented at the synthetic native boundary; actual relay traffic remains unqualified.",
-    "Latest native Linux configuration/security/SIP fixture lane passed23functions at563d16bc. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
+    "Actual distinct-network SIP/NAT paths and deployment qualification. Configuration examples now document public WebRTC, SIP contacts and RTP mapping; Local startup/readiness proofs do not establish remote reachability.",
+    "Distinct-network browser/native/telephone direct and relay profiles, ICE restart, packet loss, unreachable media ports and their duplex/cleanup behavior. Current loopback native UDP/TCP lanes cover expiry and deallocation; no browser or60second quality profile is inferred.",
+    "Secure STUN/TURN transports and runtime TURN credential issuance/refresh remain unimplemented or unqualified. The fixture generates documented SHA1 REST credentials externally; the unused upstream SHA256 credential helper is not qualified by it. Reproduce/repair the inspected default-port STUN resolution concern before claiming that path.",
+    "Native Linux configuration/security/SIP lane passed23functions at563d16bc; no Linux TURN runtime pass is inherited. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
   ],
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "eb62b731189aa45bfb73debead2d37e415990433c7b4a35de85bd1f1ab8ed4f8",
@@ -140,7 +141,10 @@
     "crates/connect-server/src/canonical_telephone.rs": "025569d235b6d9232fbd43a48498b329c543d41c6e0030c708c57ed715b4bd38",
     "sdk/typescript/src/browser_ice.ts": "78a18fe91ec0e2e4ccdf2338155735b6832c07dc8661ff0f23c6822b5ec87552",
     "sdk/typescript/src/browser_voice.ts": "86be93d14226fdf6c3f5ae00c098fa55803985bee63df7738f7a282fa6d50f3a",
-    "sdk/tests/browser_voice.test.mjs": "b112371137ba4f2abe01b30959749d03895485b9ec6052310f6449bd5901b31f"
+    "sdk/tests/browser_voice.test.mjs": "b112371137ba4f2abe01b30959749d03895485b9ec6052310f6449bd5901b31f",
+    "patches/rvoip/gate6-owned-turn-relay.patch": "534cb5ca3313233e25c52a109717d2d39e2f952baec07662f35f77271b174042",
+    "dependencies/source-lock.json": "855d5095ba155d1ea2b6c7039900f1e48b02c0cb9c9bf9d0b19e605106a9c6a5",
+    "scripts/rehearse-gate6-turn-relay.py": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245"
   },
   "acceptance_qualified": false,
   "publication": false,
@@ -273,9 +277,9 @@
     }
   },
   "turn_relay": {
-    "status": "component-passed-final-candidate-under-verification",
+    "status": "component-passed",
     "evidence": "docs/evidence/gate-6/turn-relay-implementation.json",
     "negative_evidence": "docs/evidence/gate-6/turn-relay-negative.json",
-    "scope": "Actual loopback UDP/TCP-control relay-only duplex AV, expired credential refusal and four-allocation drain per lane passed on sealed170. Final source hardening/framing cases are not yet qualified; distinct-network/browser/SIP/full G6-054 remains open."
+    "scope": "Final sealed172 passes actual loopback UDP/TCP-control relay-only duplex AV, expired credential refusal, four-allocation drain per lane and both direct media regressions. Two real TCP wire functions pass from sealed173. All5246source inputs unchanged; no forced fixture cleanup. Full G6-054 remains open."
   }
 }
