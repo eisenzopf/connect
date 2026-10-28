@@ -1,4 +1,6 @@
 //! Explicit installed-browser lane: synthetic sources, normal private CA trust.
+#[path = "canonical_webrtc_browser/audio_trace.rs"]
+mod audio_trace;
 use super::*;
 use connect_client::{
     canonical::CanonicalHttpClient,
@@ -263,15 +265,19 @@ fn original_message_counts(f: &Fixture) -> (i64, i64, i64) {
 }
 
 async fn run(algorithm: &str, browser_kind: &str, forced_fallback: bool) {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
-        )
-        .try_init();
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
         .unwrap();
+    let _audio_trace = audio_trace::install(&root);
+    if _audio_trace.is_none() {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "warn".into()),
+            )
+            .try_init();
+    }
     let output = PathBuf::from(
         std::env::var_os("CONNECT_GATE6_CANONICAL_BROWSER_ARTIFACTS")
             .expect("explicit private output directory"),

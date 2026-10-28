@@ -1,0 +1,195 @@
+{
+  "tasks": [
+    "G6-050",
+    "G6-051"
+  ],
+  "status": "current factory failure reproduced; production fix in preparation",
+  "recorded_at": "2026-10-28T00:21:17.458305+00:00",
+  "base_revision": "70afa88aa08da10b1bb475a4ce9e586fc351953d",
+  "scope": "Real current codec API, generated PCM and captured synthetic sender payloads. No full browser/task qualification, provider/model execution, profile threshold change or publication.",
+  "finding": "The general conference codec factory selects32kbit/s mono Opus with the default speech-oriented VoIP application. The captured native browser source emits CELT-only packets; server output uses Hybrid. An uninterrupted legal audio-mode source cascaded through the actual factory reproduces the same398.4375/703.125Hz transients as the browser witnesses. Changing only the second encoder application to general Audio, at the same32kbit/s/48kHz/mono/20ms/complexity5/VBR settings, eliminates the measured errors in these controls.",
+  "references": [
+    {
+      "url": "https://opus-codec.org/docs/opus_api-1.5/group__opus__encoder.html",
+      "basis": "Official API distinguishes speech-enhancing VoIP from general music/mixed-content Audio application modes."
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc6716#section-3.1",
+      "basis": "TOC configuration15(0x78 mono single frame) is Hybrid fullband20ms;31(0xf8) is CELT-only fullband20ms."
+    }
+  ],
+  "durable_probe": {
+    "source": "docs/evidence/gate-6/opus-cascade-probe.rs",
+    "source_sha256": "1f1ec0121742ec0993f0021e024a788135ecb6bd29dcade2d8219a49cdb819c9",
+    "build": {
+      "arguments": [
+        "rustc",
+        "--edition=2021",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "strip=debuginfo",
+        "--extern",
+        "rvoip_media_core=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib",
+        "-L",
+        "dependency=/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/opus-cascade-probe.rs",
+        "-o",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/audio-witness-analysis-85/factory-probe-before"
+      ],
+      "guard": {
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/docs/evidence/gate-6/opus-cascade-probe.rs": "1f1ec0121742ec0993f0021e024a788135ecb6bd29dcade2d8219a49cdb819c9",
+        "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/librvoip_media_core-01bdd42b23ddab7c.rlib": "9aec7440967cbcfee8373ea90772fe17b52f0cd0bd77ea9fafcab2aa4452cb41"
+      },
+      "changed_inputs": [],
+      "executable_sha256": "6bcc717f431fefe249251f41dea7996f823664689fdf330e1e8714a003493cfa",
+      "runs": [
+        {
+          "case": "before",
+          "exit_code": 1,
+          "seconds": 0.6059885420836508,
+          "result": {
+            "scope": "Actual codec cascade only; no Core mixing, network or browser playout",
+            "audio_control": false,
+            "bitrate": 32000,
+            "cases": [
+              {
+                "expected_hz": 440,
+                "windows": 1672,
+                "source_bad": 0,
+                "cascade_bad": 2,
+                "minimum_hz": 398.4375,
+                "maximum_hz": 492.1875
+              },
+              {
+                "expected_hz": 660,
+                "windows": 1672,
+                "source_bad": 0,
+                "cascade_bad": 4,
+                "minimum_hz": 656.25,
+                "maximum_hz": 703.125
+              }
+            ],
+            "passed": false
+          }
+        },
+        {
+          "case": "audio-control",
+          "exit_code": 0,
+          "seconds": 0.25498362514190376,
+          "result": {
+            "scope": "Actual codec cascade only; no Core mixing, network or browser playout",
+            "audio_control": true,
+            "bitrate": 32000,
+            "cases": [
+              {
+                "expected_hz": 440,
+                "windows": 1672,
+                "source_bad": 0,
+                "cascade_bad": 0,
+                "minimum_hz": 445.3125,
+                "maximum_hz": 445.3125
+              },
+              {
+                "expected_hz": 660,
+                "windows": 1672,
+                "source_bad": 0,
+                "cascade_bad": 0,
+                "minimum_hz": 656.25,
+                "maximum_hz": 656.25
+              }
+            ],
+            "passed": true
+          }
+        }
+      ]
+    },
+    "scope": "Two5-second source/cascade cases,440/660Hz, legal32kbit/s Audio-mode producer. Independent2048Blackman FFT after0.5s warmup, every128samples; original35Hz bound. No Core mixer, Store, packet loss, network or browser playout."
+  },
+  "actual_sender_replay": {
+    "input": "Captured and independently decoded source-sender PCM from chrome-es256-encoded87-03",
+    "result": [
+      {
+        "file": "660-audio-0.s16le",
+        "sha256": "9df2b7060089e91c354595b21e6045cdb86ebae2d932807cbfc944845a156eeb",
+        "windows": 1297,
+        "bad_windows": 0,
+        "minimum_hz": 656.25,
+        "maximum_hz": 656.25,
+        "cases": []
+      },
+      {
+        "file": "660-factory-0.s16le",
+        "sha256": "3f5fda8fa1ce079d4ec927296c0e67a9a4bb119521001962ea773d1b4d35bd84",
+        "windows": 1297,
+        "bad_windows": 4,
+        "minimum_hz": 632.8125,
+        "maximum_hz": 750.0,
+        "cases": [
+          {
+            "at_seconds": 3.6853333333333333,
+            "peak_hz": 703.125
+          },
+          {
+            "at_seconds": 3.688,
+            "peak_hz": 703.125
+          },
+          {
+            "at_seconds": 3.6906666666666665,
+            "peak_hz": 726.5625
+          },
+          {
+            "at_seconds": 3.6933333333333334,
+            "peak_hz": 750.0
+          }
+        ]
+      }
+    ],
+    "interpretation": "Replaying the captured clean sender PCM through the actual factory produces4wrong dense windows; the same PCM through Audio32 produces0. This is a codec counterfactual, not bit-identical replay of unknown earlier encoder state."
+  },
+  "capture_support": {
+    "evidence": "docs/evidence/gate-6/browser-audio-failure-witness.json",
+    "native_sender_toc": "0xf8 throughout retained200frames",
+    "server_receiver_toc": "0x78 throughout retained200frames",
+    "receiver_timestamps": "continuous960ticks and sequences1 in the captured failing stream"
+  },
+  "trace_infrastructure": {
+    "source": "crates/connect-server/tests/support/canonical_webrtc_browser/audio_trace.rs",
+    "enabled_only_by": "CONNECT_GATE6_CANONICAL_AUDIO_TRACE pointing to an existing ignored.local directory",
+    "limits": {
+      "events": 65536,
+      "event_bytes": 33554432,
+      "string_characters": 256
+    },
+    "properties": [
+      "Selected numeric/enum trace fields are kept in memory; one private0600 create-new file is written at test exit, including unwind.",
+      "Canonicalized path must stay under ignored.local; existing files and escaping symlinks refuse. Unknown fields are omitted.",
+      "Repeated successful Current native packet authority records are explicitly suppressed; refusals and source/mixer/publication/write events remain selected. Console stays WARN in this explicit diagnostic lane.",
+      "Absent the diagnostic flag, the original logger remains. No production media, authority, age/IO deadline, queue or profile setting changes."
+    ],
+    "controls": {
+      "exit_code": 0,
+      "seconds": 1.5311422501690686,
+      "results": [
+        "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.01s"
+      ],
+      "executable_sha256": "72a554a3d53f8f2ae8f45a69af434dda1ecbaa3a28e6705a50879b6397c66075"
+    },
+    "initial_live_capture": "One diagnostic pass followed by a failed0/2audio run with2PCM/encoded witnesses; owners joined. Initial unsuppressed collector reached65536events and omitted58005, ending before the failures; it is incomplete near the failed event and cannot support absence-of-refusal claims. The tested success suppression addresses this diagnostic volume; no later complete live timeline is claimed yet."
+  },
+  "next_action": "Prepare a source-locked upstream factory general-Audio fix and its real cascade regression. Verify the unchanged actual-factory probe becomes green, then run current normal browser profiles and relevant native/codec checks without changing bitrate, deadlines, authority, capture waveform or acceptance thresholds.",
+  "private_hashes": {
+    ".local/gate-6/audio-witness-analysis-85/factory-probe-before-summary.json": "65dc17a091907a1885876532d356404316d214322d9dcfb4c79b8720b3335ca5",
+    ".local/gate-6/audio-witness-analysis-85/replay-factory-scores.json": "4fbf2fb88f4c36cec42e2feed29ddf806853a493ed8d4b20925fdc983a1c68e7",
+    ".local/gate-6/audio-witness-analysis-85/cross32-scores.json": "c42e10f3d049a6757e10b871c69c5084bd9539d0f6ec6026556482e4da53d013",
+    ".local/gate-6/audio-witness-analysis-85/codec32-scores.json": "ee4a0e821fe3a277d8207e5129535c4b2a26da60ce1fa0e246c8a91e1a4177a6",
+    ".local/gate-6/audio-witness-analysis-85/trace-controls-final.json": "ec31be664cd4e70fdc5a32eb3b000772e181cbca0fe08338ea459be33eeeff4a",
+    ".local/gate-6/canonical-browser-host/chrome-es256-trace90-02/decoded-audio/core-audio-timeline.json": "b20ec174e6979cc077bb051758ea9a63175d5976cacd06ae0a01de8f13384a48"
+  },
+  "progress": {
+    "tasks_complete": 57,
+    "in_progress": 2,
+    "acceptance_qualified": 0
+  },
+  "publication": false
+}
