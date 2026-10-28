@@ -1800,5 +1800,10 @@
     },
     "unchanged_minimum_changing_fps": 24,
     "next": "Isolate actual headless compositor/render callback behavior with local synthetic video; do not substitute decoder counters for changing pixel observations or lower the threshold."
+  },
+  "rendering_observer_investigation": {
+    "evidence": "docs/evidence/gate-6/browser-observer-calibration.json",
+    "result": "Independent local capture/video already delivers only~22callbacks/s with~29rAF/s, source~30fps, below24fps minimum. Tested display/GPU/background variants did not correct it. Actual remote~11changingfps remains unresolved; no full browser pass.",
+    "next": "Keep this environment unqualified; continue remaining G6-054 telephone/ICE restart and native Linux/browser-profile work without repeating unchanged failing flags."
   }
 }

@@ -1,0 +1,257 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "date": "2026-10-28",
+  "status": "rendering-profile-unqualified",
+  "scope": "Owned Linux arm64 Chromium151 in the pinned local Lima container, synthetic local canvas capture to video only. No control, RTC transport, Core, provider/account or physical display is exercised. This narrows a fixture/environment limitation and is not a remote media pass.",
+  "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
+  "resources": {
+    "cpus": 4,
+    "memory_gib": 4,
+    "shared_memory_mib": 512,
+    "vm_cpus": 6
+  },
+  "cases": [
+    {
+      "script_sha256": "039064196cccabcb9193191c213eaab3823f3e90e1aeeaad7a21e65e4171083b",
+      "results_sha256": "3b411e4c943064f60a61e6ca28637bb148d7b8e40464c2cfdde24de21c325e8b",
+      "observations": [
+        {
+          "label": "baseline",
+          "extra": [],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.001,
+              "draw_fps": 30.371203599550057,
+              "callback_fps": 22.872140982377203,
+              "raf_fps": 29.121359830021248,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.001299999952316,
+              "draw_fps": 30.370064864640515,
+              "callback_fps": 22.99626310738212,
+              "raf_fps": 29.12026795663062,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "occlusion",
+          "extra": [
+            "--disable-backgrounding-occluded-windows"
+          ],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.000099999904632,
+              "draw_fps": 30.374620317608123,
+              "callback_fps": 22.624717191304818,
+              "raf_fps": 29.124635942397912,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.000299999952317,
+              "draw_fps": 30.373860980394277,
+              "callback_fps": 22.249165656420498,
+              "raf_fps": 28.99891254095256,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "software",
+          "extra": [
+            "--disable-backgrounding-occluded-windows",
+            "--disable-gpu"
+          ],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.000299999952317,
+              "draw_fps": 30.373860980394277,
+              "callback_fps": 22.249165656420498,
+              "raf_fps": 28.99891254095256,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.000199999809265,
+              "draw_fps": 30.37424064470806,
+              "callback_fps": 22.74943126476077,
+              "raf_fps": 29.12427189389703,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "uncapped",
+          "extra": [
+            "--disable-backgrounding-occluded-windows",
+            "--disable-frame-rate-limit"
+          ],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.000299999952317,
+              "draw_fps": 30.373860980394277,
+              "callback_fps": 22.62415159445006,
+              "raf_fps": 28.49893129024648,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.000099999904632,
+              "draw_fps": 30.374620317608123,
+              "callback_fps": 22.624717191304818,
+              "raf_fps": 28.499643754792807,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        }
+      ]
+    },
+    {
+      "script_sha256": "4bd5ed236ed0f622fcc0d83c24535ac0f6de001f42fbff31c14740afc9f6b5f7",
+      "results_sha256": "4e3b04fe977a5c4d1e6236457693eb29fcd5d62a1faf83500aa85b943635929f",
+      "observations": [
+        {
+          "label": "one",
+          "extra": [],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.00060000014305,
+              "draw_fps": 30.372722045303497,
+              "callback_fps": 22.49831262615074,
+              "raf_fps": 29.122815788295124,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "vsync",
+          "extra": [
+            "--disable-gpu-vsync"
+          ],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.001200000047684,
+              "draw_fps": 30.370444433154006,
+              "callback_fps": 21.62175673636067,
+              "raf_fps": 28.99565065222934,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.008399999856948,
+              "draw_fps": 30.343139703853534,
+              "callback_fps": 22.601268668302428,
+              "raf_fps": 28.969581939481564,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "angle",
+          "extra": [
+            "--use-gl=angle",
+            "--use-angle=swiftshader",
+            "--enable-unsafe-swiftshader"
+          ],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.000200000047684,
+              "draw_fps": 31.249218769344505,
+              "callback_fps": 22.374440638850665,
+              "raf_fps": 28.9992750179517,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.001099999904632,
+              "draw_fps": 31.245703716111514,
+              "callback_fps": 21.87199260127806,
+              "raf_fps": 29.12099586341593,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "label": "default",
+          "extra": [],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.000399999856949,
+              "draw_fps": 30.373481326476796,
+              "callback_fps": 22.623868806964197,
+              "raf_fps": 29.1235438233296,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.000400000095368,
+              "draw_fps": 30.37348132557164,
+              "callback_fps": 22.373881305667997,
+              "raf_fps": 28.9985500721507,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        }
+      ]
+    },
+    {
+      "script_sha256": "6075f8222dd2c41099b79734f469ad3a0c65d38b711586693b9391c2d7020b8d",
+      "results_sha256": "061fa9b6c1d87fe67dd862947f8e8584da19f7155d65b0e4bdd443ace2dd9e90",
+      "observations": [
+        {
+          "label": "headed",
+          "extra": [],
+          "result": [
+            {
+              "index": 0,
+              "seconds": 8.0005,
+              "draw_fps": 30.373101681144927,
+              "callback_fps": 22.74857821386163,
+              "raf_fps": 29.12317980126242,
+              "visibility": "visible"
+            },
+            {
+              "index": 1,
+              "seconds": 8.0005,
+              "draw_fps": 30.373101681144927,
+              "callback_fps": 22.998562589838134,
+              "raf_fps": 29.12317980126242,
+              "visibility": "visible"
+            }
+          ],
+          "original_joined": true
+        },
+        {
+          "original_display_joined": true,
+          "exit": {
+            "code": 0,
+            "signal": null
+          }
+        }
+      ]
+    }
+  ],
+  "finding": "Source draws about30fps, requestAnimationFrame about29fps and local capture/video callbacks about22fps, below the unchanged24fps clean threshold. A single context, occlusion switch, GPU-vsync switch, disabled GPU, explicit SwiftShader, uncapped-frame flag and an owned private Xvfb display did not restore qualifying callback cadence. No source/threshold change or transport fix is inferred. The actual remote runs decoded about30fps but observed about11changing renderedfps; their additional rendered reduction is unresolved.",
+  "remaining": "Establish a qualifying renderer/observer environment (including the approved native Linux/browser matrix) and rerun full profiles. Do not lower24fps, replace independent pixels with RTP decoder counters or claim physical display performance. Continue other open G6-054 implementation clauses meanwhile.",
+  "private_log_policy": "Raw browser/container logs and diagnostic scripts remain ignored under.local; only bounded synthetic measurements/digests are published."
+}
