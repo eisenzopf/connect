@@ -1,0 +1,233 @@
+{
+  "format": 1,
+  "task": "G6-053",
+  "implementation_status": "done",
+  "date": "2026-10-28",
+  "scope": "Supported listener/routing implementation, current-authority and recovery evidence, and an actual isolated Mac host accepting a Linux client over the local VM boundary. Ubuntu server installation, named remote/media profiles and whole-gate acceptance retain their own tasks.",
+  "requirements_audit": [
+    {
+      "requirement": "Explicit HTTPS listeners, network exposure, local defaults and diagnostics",
+      "evidence": [
+        "docs/evidence/gate-6/https-hosting-surfaces.json"
+      ],
+      "observed": "At most four unique opt-in surfaces; explicit Remote origin/profile, normal certificate-name admission before bind; local plaintext stays loopback. Bounded socket lifetime/deadline, minimal no-store health and owned drain are tested."
+    },
+    {
+      "requirement": "HTTPS/WSS/HTTP3 routing and certificate provisioning/rotation",
+      "evidence": [
+        "docs/evidence/gate-6/tls-certificate-rotation.json",
+        "docs/evidence/gate-6/https-hosting-surfaces.json"
+      ],
+      "observed": "Owner-provisioned protected chain/key paths, shared atomic reload and last-good refusal; actual native duplex sessions survive rotation. Nine accepted full handshakes span current HTTPS/WSS/WT, h3 ALPN is observed, foreign Origins refuse upgrade. CLI SIGHUP and joined SIGTERM are observed."
+    },
+    {
+      "requirement": "Trusted reverse proxy without identity delegation",
+      "evidence": [
+        "docs/evidence/gate-6/https-hosting-surfaces.json"
+      ],
+      "observed": "Actual immediate peer exact match is required for a complete one-hop tuple; other peer, ambiguous fields, wrong Host/proto/For and identity/provider-context assertions refuse. Trusted forwarding does not authenticate."
+    },
+    {
+      "requirement": "Separate application, administration, provider callbacks and health",
+      "evidence": [
+        "docs/evidence/gate-6/https-hosting-completion.json"
+      ],
+      "observed": "Linux client observes all four TLS roles, six cross-surface route refusals, unsigned callback rejection, no-bearer and non-admin refusals before malformed body parsing, then authenticated admin retry and current revocation."
+    },
+    {
+      "requirement": "An isolated host accepts valid remote clients and rejects origins, forged proxy identity, plaintext credentials and unauthenticated administration",
+      "evidence": [
+        "docs/evidence/gate-6/https-hosting-completion.json"
+      ],
+      "observed": "25 checks pass across Linux/Lima-to-Mac HTTPS with exact advertised host/port and normal private-CA/name validation. One identity results from two original-ID admin requests; an actual plaintext synthetic operator request creates zero identities. Wrong TLS name and unconfigured root fail. All server listeners remain loopback, both processes finish and server shutdown joins."
+    }
+  ],
+  "remote_client": {
+    "task": "G6-053",
+    "passed": true,
+    "binary_sha256": "544a60032f3264a1867ea2e052d34c8f93e2ba5ffb582040566fed56176fcb31",
+    "runner_sha256": "d3d6b771852a816f5dad834c2b0b5ffa3e679298f9163f5d6500c72f71ca553a",
+    "source_revision": "aace5b8e9670881bf6f64d6136137a50554f3889",
+    "server_platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "client_image": "sha256:a81873456efa5d13f9b67cfbecc4e11bf6946e924684f6ffc9a1161ca20fe2b5",
+    "scope": "Owned Mac arm64 Remote-policy HTTPS host, Linux amd64 client in the local arm64 Lima VM, normal TLS via host.lima.internal. Every server listener binds loopback. No Ubuntu server, named external remote, browser/media, performance, provider/model or whole-gate qualification.",
+    "external_provider_model_calls": 0,
+    "client_exit_code": 0,
+    "client": {
+      "passed": true,
+      "cases": [
+        {
+          "case": "minimal-health",
+          "status": 200,
+          "body_sha256": "99d63c47c3f1b505a78a3137e382617815e3cceba5b0002213c024704afbfeaa"
+        },
+        {
+          "case": "no-bearer",
+          "status": 401,
+          "body_sha256": "3ff866335054912fcb2f7b43302682bbbfead16655986d72cddea0ffcd6b6925"
+        },
+        {
+          "case": "authenticated-allowed-origin",
+          "status": 200,
+          "body_sha256": "efd7b14af33721a5066384292b4e12cbb4b58c619081a9e4d9f8bf1021675556"
+        },
+        {
+          "case": "foreign-origin-https://foreign.fixture.invalid",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "foreign-origin-null",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "wrong-authority",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "forged-identity",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "untrusted-forwarding",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "unauthenticated-admin-before-json",
+          "status": 401,
+          "body_sha256": "c1622c9c7ada0b98316bfd67f70e1a356baa21290f7fb13a017dd09f6a9019d7"
+        },
+        {
+          "case": "non-admin-before-json",
+          "status": 403,
+          "body_sha256": "2d0b62f3374a5f0e7805cc2a7e8f5e1fa88b8519033439621fcb34ddbfd53401"
+        },
+        {
+          "case": "asserted-admin-refused",
+          "status": 403,
+          "body_sha256": "2bb1f8e67f436cb2179e7513158c8410bba17937a639a4c7a1dff51fe42781f8"
+        },
+        {
+          "case": "unsigned-callback",
+          "status": 401,
+          "body_sha256": "08d03ee14d8124025f47ce0aeebd9ee8fa74c25fcf1b91597dfdc9818eb8cbaa"
+        },
+        {
+          "case": "administration-no-app-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "callbacks-no-app-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "health-no-app-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "application-no-admin-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "callbacks-no-admin-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "health-no-admin-route",
+          "status": 404,
+          "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case": "admin-same-original-id",
+          "status": 200,
+          "body_sha256": "c3e45c02307115ebadd8953d9b5c0f829f8601448593ab6f66da0bbda6f6ed0b"
+        },
+        {
+          "case": "admin-same-original-id",
+          "status": 200,
+          "body_sha256": "c3e45c02307115ebadd8953d9b5c0f829f8601448593ab6f66da0bbda6f6ed0b"
+        },
+        {
+          "case": "plaintext-real-synthetic-operator-refused",
+          "passed": true
+        },
+        {
+          "case": "unconfigured-root",
+          "certificate_verification_refused": true
+        },
+        {
+          "case": "wrong-name",
+          "certificate_verification_refused": true
+        },
+        {
+          "case": "admin-revoke",
+          "status": 200,
+          "body_sha256": "e27b343f0bc72d38c902ff23aad7b9d6c53e8c97e8d9c1ed310c0cd7cb78102b"
+        },
+        {
+          "case": "current-revocation",
+          "status": 401,
+          "body_sha256": "3ff866335054912fcb2f7b43302682bbbfead16655986d72cddea0ffcd6b6925"
+        }
+      ],
+      "normal_ca_and_name_validation": true,
+      "wire_leaf_sha256": [
+        "6fe715e05c5f489c9334f979c5b997fefcb59e78152d67902a39b3b8213c728c"
+      ],
+      "openssl_version": "OpenSSL 3.0.13 30 Jan 2024"
+    },
+    "identity_effects": {
+      "same_original_id_requests": 2,
+      "original_id_rows": 1,
+      "plaintext_rows": 0
+    },
+    "behavior_passed": true,
+    "server_exit_code": 0,
+    "forced_server_cleanup": false,
+    "joined_stop_observed": true,
+    "panic_observed": false,
+    "credential_bytes_in_server_logs": false,
+    "forced_client_cleanup": false,
+    "binary_unchanged": true,
+    "runner_unchanged": true,
+    "seconds": 2.8947315830737352
+  },
+  "custody": {
+    "build_source_reference": ".local/gate-6/rtc-signed-av/root-inputs-149.json",
+    "build_source_manifest_sha256": "559aaab6161f1d3a7bc704df74cb6f9534db005d1fac4a65780e9a527099df06",
+    "guarded_production_dependency_contract_inputs": 3868,
+    "changed_before_or_after_execution": [],
+    "scope": "Excludes test-only paths changed for build151; all3868 retained production/dependency/contract inputs match build149 before and after the remote-client execution. New runner source is recorded independently.",
+    "summary_sha256": "5712a66c56de8bea53e421a5e6fda14628510bc01761042f4c254e441f60883a",
+    "client_log_sha256": "9aff3d42a1590ed55a094bc85cc93f974a11bb5a4c64f95d88afa951e21fa93a",
+    "server_stdout_sha256": "be9588167d81f771ab4a367f9445df6011cce877bfe2a05bd706ea4620675fbb",
+    "server_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "private_state_and_logs": ".local/gate-6/https-listeners/remote-client-156"
+  },
+  "source_sha256": {
+    "crates/connect-server/src/canonical.rs": "90e67a876f8716e86aa71ac7421a6db84a0d0f4e8ea72440d08251ff2fb80242",
+    "crates/connect-server/src/hosting.rs": "3fa2277d0311287999b43c2e218a8c22edab8d716d5942ffa3aafe94bbf42958",
+    "crates/connect-server/src/tls/rotation.rs": "9a81861a53d4ea4fca23f1448c27d6d56136c6f16a61e38abefa93ca3715915f",
+    "crates/connect-server/src/cli/serve.rs": "fd68a8f8e4fdfe8614ef96c16fa68c15ec67f58f12d0a44280490708465fee90",
+    "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
+    "crates/connect-server/src/transports/hosting_policy.rs": "088e5a0d3ee233b5d227a7b3cc5d36c7caa550b909883a1aff210068291c2cec",
+    "crates/connect-server/src/transports/http_record_io.rs": "1e03f9398478c0dcdd2e239020da12ccd50a310bd67c00a8a1ff5380356c250a",
+    "scripts/rehearse-gate6-https-remote-client.py": "d3d6b771852a816f5dad834c2b0b5ffa3e679298f9163f5d6500c72f71ca553a"
+  },
+  "remaining_gate_work": [
+    "G6-054/G6-055 remote media/NAT/ICE/TURN and remote enrollment; G6-056 supported Ubuntu installation/lifecycle and later hosting/matrix work.",
+    "The current Ubuntu amd64 server compilation is still running under local arm64 emulation from an immutable c88bc599 snapshot. Its original1800s observation ended; the same container/compiler continues under a recorded bounded controller. No Linux server build/runtime or native x86 performance pass is inferred.",
+    "Named remote/provider prerequisites and actual browser/media/profile qualification remain G6-093/G6-095/G6-098. No acceptance criterion or publication is promoted."
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

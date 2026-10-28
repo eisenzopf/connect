@@ -7,6 +7,7 @@ The output retains private state and raw logs under .local/gate-6.
 """
 import argparse
 import base64
+from contextlib import closing
 import datetime
 import hashlib
 import http.client
@@ -220,7 +221,7 @@ def main():
         for _ in range(2):
             data, _ = request("administration", "/v2/identities", 200, admin, json.dumps(command), "POST", "admin-original-id")
             assert "Ok" in json.loads(data)["result"]
-        with sqlite3.connect(f"file:{installation / 'state.sqlite3'}?mode=ro", uri=True) as database:
+        with closing(sqlite3.connect(f"file:{installation / 'state.sqlite3'}?mode=ro", uri=True)) as database:
             assert database.execute("SELECT count(*) FROM identities WHERE alias=?", (command["alias"],)).fetchone()[0] == 1
             credential = database.execute("SELECT id FROM credentials WHERE identity_id=? AND revoked=0", (client["identity_id"],)).fetchall()
             assert len(credential) == 1
@@ -280,7 +281,7 @@ def main():
         data, _ = request("administration", f"/v2/credentials/{credential[0][0]}/revoke", 200, admin, json.dumps(revoke), "POST", "admin-revoke")
         assert "Ok" in json.loads(data)["result"]
         request("application", "/v2/discovery", 401, auth, case="current-revocation")
-        with sqlite3.connect(f"file:{installation / 'state.sqlite3'}?mode=ro", uri=True) as database:
+        with closing(sqlite3.connect(f"file:{installation / 'state.sqlite3'}?mode=ro", uri=True)) as database:
             plaintext_count = database.execute("SELECT count(*) FROM identities WHERE alias=?", (plain_command["alias"],)).fetchone()[0]
             replay_count = database.execute("SELECT count(*) FROM identities WHERE alias=?", (command["alias"],)).fetchone()[0]
             assert plaintext_count == 0 and replay_count == 1

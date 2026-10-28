@@ -286,3 +286,29 @@ An amd64 guest running under local arm64 emulation can prove Linux hosting
 behavior; it cannot qualify native x86 performance, named remote browser/media
 profiles, the supported installation lifecycle, or whole Gate 6 acceptance.
 Those remain separate tasks in the approved dependency graph.
+
+The [G6-053 completion audit](../evidence/gate-6/https-hosting-completion.json)
+also records an actual Linux/Lima client reaching the current Mac arm64 server
+through `host.lima.internal`. Its 25 checks pass with normal CA/name validation,
+exact advertised contacts and four separate loopback TLS listeners. The remote
+client observes authentication, origin/proxy and cross-surface refusals, repeats
+one original administrative ID, rejects plaintext with a real synthetic operator
+credential, then revokes its client through the production API. Read-only SQL
+inspection finds one original identity and zero plaintext effects. The client
+exits and server shutdown joins without forced cleanup or credential logs.
+
+Replay that topology with a recorded native Mac server binary and the existing
+pinned Linux image:
+
+```sh
+python3 scripts/rehearse-gate6-https-remote-client.py \
+  --binary /absolute/path/to/recorded-mac-connect \
+  --binary-sha256 <sha256-from-the-build-summary> \
+  --image sha256:<existing-Ubuntu-image-id> \
+  --output .local/gate-6/https-listeners/fresh-remote-client
+```
+
+This completes the listener/routing implementation audit. The Ubuntu server
+build and installation lifecycle retain their own evidence; no Linux-server,
+native x86 performance or named remote/browser/media qualification is inherited
+from a Linux client running against a Mac host.

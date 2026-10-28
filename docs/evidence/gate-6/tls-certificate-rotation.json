@@ -1,7 +1,7 @@
 {
   "format": 1,
   "task": "G6-053",
-  "implementation_status": "in-progress",
+  "implementation_status": "done",
   "date": "2026-10-27",
   "scope": "Shared operator-owned TLS certificate resolver, actual loopback TCP/TLS and production canonical QUIC/public native SDK reload with independent FFmpeg-decoded duplex audio. Isolated macOS arm64 Remote-address-policy fixture; not distinct-host/Linux/remote-account qualification.",
   "behavior": [
@@ -138,5 +138,7 @@
     "manifest": ".local/gate-6/rtc-signed-av/closed-compiler-cache-144/manifest.json",
     "sha256": "cef85f7f88bf1206ef9f0a7ba2207391f46e7d596304265f164be6964ef105fc",
     "roundtrip_verified": true
-  }
+  },
+  "checkpoint_status_at_recording": "in-progress",
+  "completion_evidence": "docs/evidence/gate-6/https-hosting-completion.json"
 }

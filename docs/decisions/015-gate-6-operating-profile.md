@@ -66,6 +66,15 @@ published ports. Freeze this target before executing the host/client checks.
 It cannot establish native x86 performance, named remote browser/media coverage,
 the G6-056 installation lifecycle or any whole-gate acceptance criterion.
 
+The G6-053 isolated remote-client fixture uses the same pinned Linux client
+image and the current Mac arm64 server CLI (SHA256 recorded with its build).
+The Linux client reaches four Mac loopback HTTPS listeners through the local
+Lima `host.lima.internal` alias. That exact name and port are provisioned in
+the private fixture CA/leaf and each Remote-profile public origin before start.
+This is a distinct-kernel local hosting boundary, with no external host/provider
+or model account. It does not substitute for Ubuntu server installation or the
+named remote/media qualifications. Freeze this topology before its wire checks.
+
 ## Default bounds
 
 | Resource | Default / hard check |

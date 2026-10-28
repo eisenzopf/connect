@@ -1,9 +1,9 @@
 {
   "format": 1,
   "task": "G6-053",
-  "implementation_status": "in-progress",
+  "implementation_status": "done",
   "date": "2026-10-27",
-  "scope": "Actual isolated macOS arm64 canonical HTTPS application/admin/callback/health surfaces, explicit Origin/Host/immediate-proxy policy and owned CLI TLS reload/shutdown. Remote configuration rejection is checked, but no distinct-host/Linux/reverse-proxy deployment or provider/account execution is claimed.",
+  "scope": "Actual macOS arm64 HTTPS surface/rotation/routing and proxy checks, supplemented by25 current Linux/Lima-to-Mac remote-client wire checks. No Ubuntu server installation, named external host/provider, browser/media or whole-gate acceptance qualification is claimed.",
   "implementation": [
     "Optional CanonicalServerConfig.https exposes at most four unique named surface bindings, disabled by default. Public origins are exact HTTPS contacts; Remote requires explicit network profile/origin. Certificate name checks precede installation recovery/binding. Local HTTP remains loopback.",
     "Application, administration, Telnyx callback and minimal health routes are separate. Existing shared Store/Service authority, original IDs, protected issuance/record response writers and bounded bodies remain installed. Only application allows explicitly configured browser origins; administrative/provider-context requests keep their existing Origin refusals.",
@@ -411,8 +411,9 @@
     "crates/connect-server/tests/support/canonical_https_hosting/transports.rs": "f6d7688dc0badec2c76ec61ef58f631208c509861c7c39347d170445fefe2471"
   },
   "remaining": [
-    "Complete the isolated-host requirement audit and deployment preparation with current evidence. A local Ubuntu24.04/amd64 image/VM is available for an owned synthetic host; no current Linux server execution is claimed yet.",
-    "Full Linux installation/package lifecycle is G6-056; named remote/live prerequisites and browser/media/profile qualification remain G6-093/G6-095/G6-098. No Gate 6 acceptance or publication is promoted."
+    "G6-054/G6-055 remote media/NAT/ICE/TURN and remote enrollment; G6-056 supported Ubuntu installation/lifecycle and later hosting/matrix work.",
+    "The current Ubuntu amd64 server compilation is still running under local arm64 emulation from an immutable c88bc599 snapshot. Its original1800s observation ended; the same container/compiler continues under a recorded bounded controller. No Linux server build/runtime or native x86 performance pass is inferred.",
+    "Named remote/provider prerequisites and actual browser/media/profile qualification remain G6-093/G6-095/G6-098. No acceptance criterion or publication is promoted."
   ],
   "acceptance_qualified": false,
   "publication": false,
@@ -549,5 +550,7 @@
     "roundtrip_sha256_and_bytes_verified": true,
     "archive_files_fsynced": true,
     "failed_initial_compression": "First large executable compression ran out of space before original unlink. The intact445033944-byte original SHA1ef7f06074fc7b09521bc521bf4f421e64cd4064fef391423f94dc8945986cb9was verified, only its failed partial archive removed, then smaller closed libraries were archived first. Final manifest retains that same executable hash. No source/state/log data was deleted."
-  }
+  },
+  "checkpoint_status_at_recording": "in-progress",
+  "completion_evidence": "docs/evidence/gate-6/https-hosting-completion.json"
 }
