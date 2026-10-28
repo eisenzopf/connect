@@ -144,5 +144,45 @@
   },
   "qualification_limit": "No actual application read, cryptographic/native control, full Node SDK or Gate6 qualification until exact Ubuntu source-bound results. Earlier native timing failures remain retained.",
   "implementation_commit": "5d4343451e2371ae7e5b63f34a8a3fff06f05219",
-  "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes."
+  "source_hash_scope": "Recorded implementation/checker cohort at implementation_commit; subsequent source changes do not inherit runtime passes.",
+  "native_compile_796": {
+    "commit": "7969f2b856d73cbef5e22fc0b4613d32dbf43383",
+    "run_id": 40747526583,
+    "artifact_id": 12843066934,
+    "zip_sha256": "f39258d57b5b7a238da4ebbfea84f2e0fceef52dcaf7b231018784be8d382308",
+    "new_helper_compiled": true,
+    "cli_sha256": "791dd31e8b87242fd93bb7b0a8b5275ca5f2b0aae46b4b9a01c333ef1689703e",
+    "source_bound_tracked_files_verified": 3995,
+    "guarded_inputs": 8087,
+    "receipt_scenario_executed": false,
+    "reason": "Earlier Node consultation assertion failed, so old fail-fast verifier never reached node-controls/3. The later verifier continues independent SDK scenes but still fails its aggregate on any failed scene."
+  },
+  "ubuntu_node_synthetic": [
+    {
+      "commit": "b36e119b22017fac36347156bb062936352de975",
+      "run_id": 40751024173,
+      "artifact_id": 12843577579,
+      "zip_sha256": "f32ff4a12f35d7c4c2e48d59c4194771fe861c64d4fadb50cf27d2b9eae6da9d",
+      "node_version": "v22.23.4",
+      "functions": 64,
+      "guarded_inputs": 204,
+      "tracked_files_verified": 204,
+      "exact_local_map": true,
+      "passed": true,
+      "scope": "Synthetic helper/HTTP/declaration and generated SDK checks only; no actual native/media/authority qualification"
+    },
+    {
+      "commit": "b36e119b22017fac36347156bb062936352de975",
+      "run_id": 40751024173,
+      "artifact_id": 12843334037,
+      "zip_sha256": "32c8a29d3642eee2e58222f0e21caf17d9b43620568d875b072543123e896f80",
+      "node_version": "v26.12.1",
+      "functions": 64,
+      "guarded_inputs": 204,
+      "tracked_files_verified": 204,
+      "exact_local_map": true,
+      "passed": true,
+      "scope": "Synthetic helper/HTTP/declaration and generated SDK checks only; no actual native/media/authority qualification"
+    }
+  ]
 }

@@ -943,7 +943,9 @@ async fn handoff_case_with_control(
     if let Some(browser) = browser_control {
         browser.close(&f).await;
     }
-    super::sdk_movements::shutdown(&f).await;
+    let movement_controller = super::sdk_movements::before_shutdown(&f).await;
+    f.server.shutdown().await.unwrap();
+    super::sdk_movements::shutdown_joined(movement_controller);
 }
 
 #[tokio::test]

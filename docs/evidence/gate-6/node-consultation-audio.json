@@ -227,5 +227,156 @@
       "finished_at": "2026-10-28T18:40:32.142650+00:00"
     },
     "native_status": "pending exact Ubuntu current fixture execution"
+  },
+  "native_failure_796": {
+    "commit": "7969f2b856d73cbef5e22fc0b4613d32dbf43383",
+    "run_id": 40747526583,
+    "artifact_id": 12843066934,
+    "zip_sha256": "f39258d57b5b7a238da4ebbfea84f2e0fceef52dcaf7b231018784be8d382308",
+    "source_bound_tracked_files_verified": 3995,
+    "guarded_inputs": 8087,
+    "source_inputs_unchanged": true,
+    "compiled_artifacts": {
+      "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+      "library": "a7cb59e7d2c26b37856fb33420d4c0b0bd9a386453936ba675c59effab6e206d",
+      "hosting": "958ef14a90dc5b69f44a051baa6a67731833dde2146678e8e72fcb8bd5dada11",
+      "cli": "791dd31e8b87242fd93bb7b0a8b5275ca5f2b0aae46b4b9a01c333ef1689703e",
+      "rtp": "dca5f73fdc2d4af97d2c6fe6e07fefeb4a9839b7fa41cf6bf0547c94abbbdb12"
+    },
+    "passed_native_and_store_functions": 139,
+    "passed_groups": {
+      "snapshot-store": 22,
+      "snapshot-peer-authority": 38,
+      "rust-sdk-consultation-audio": 1,
+      "rust-sdk-consultation-eof": 1,
+      "addressing": 4,
+      "config": 4,
+      "sip-config": 4,
+      "rtcp-udp": 32,
+      "rtcp-allocator": 20,
+      "rtcp-session-route": 1,
+      "owned-dtls": 1,
+      "https-hosting": 7,
+      "sip-unknown-account": 1,
+      "sip-bind-failure": 1,
+      "sip-owner-drop": 1,
+      "sip-readiness": 1
+    },
+    "failed_function": {
+      "name": "installed-node-consultation-restored",
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_kill": false,
+      "seconds": 45.714753263000034,
+      "log_sha256": "e2528dff20c2051b3e07cb626b2c43ce6fe0e9fc41f065c262fae54044cc3efa",
+      "test_results": [
+        "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 370 filtered out; finished in 45.69s"
+      ],
+      "panic_locations": [],
+      "node_completed_phases": [],
+      "node_failures": [],
+      "node_consultation_phases": [
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "submitted",
+          "seconds": 0.272414546
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "completed",
+          "seconds": 0.352691976
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "revoked",
+          "seconds": 0.042010996
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "returned",
+          "seconds": 1.1954461570000001
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "revoked",
+          "seconds": 0.005279866
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "closed",
+          "seconds": 0.135829284
+        },
+        {
+          "algorithm": "EdDSA",
+          "deadline_seconds": 15,
+          "phase": "closed",
+          "seconds": 0.006961578
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "submitted",
+          "seconds": 0.268702812
+        },
+        {
+          "algorithm": "ES256",
+          "deadline_seconds": 15,
+          "phase": "completed",
+          "seconds": 0.361905568
+        }
+      ],
+      "node_consultation_failures": [
+        {
+          "certainty": null,
+          "checkpoint": "revoked",
+          "kind": "consumer-assertion",
+          "phase": "failed"
+        }
+      ],
+      "compiler_diagnostics": []
+    },
+    "finding": "New helper including configured receipts compiles. Original Rust consultation/return and remote-EOF functions pass both algorithms plus60Store/77baseline. Node restoration completes EdDSA including revoke/return/close, then ES256 submission/completion passes but revocation assertion fails with consumer-assertion. Underlying Node refusal kind/certainty were not recorded, so precise cause is unproven. Remote-EOF Node and node-controls/3 receipts were not reached. No complete new Node audio/receipt/runtime pass claimed."
+  },
+  "revocation_candidate": {
+    "native_rule": "The original status read must return no data, via authentication/cancelled/read-only transport retirement or a structured refused application error. Deadline/protocol/generic errors remain failures.",
+    "independent_rule": "The public canonical HTTP operation.get, with the same original token/key scope, must independently reject authentication. A transport closure alone never establishes this fact.",
+    "diagnostics": "Record safe last native error kind/certainty and consumer source coordinates on failure; do not expose payloads, token or raw exception text.",
+    "root_cause_limit": "796 ES256 assertion did not expose its underlying refusal kind/certainty. Transport retirement is an allowed observation boundary, not a proven explanation of that failure or a production-fix claim. Current runtime pending.",
+    "synthetic_authentication_and_http401": {
+      "passed": true,
+      "scope": "Installed public Node consumer with synthetic helper only; no native, cryptographic or server qualification",
+      "helpers_joined": 3,
+      "consumer_sha256": "3d8bd0e84c837cd2fd8beb5d63b60b287e522f22ab80f95851bb9e15dd252a56",
+      "seconds": 0.5763638748321682
+    },
+    "synthetic_transport_and_http401": {
+      "passed": true,
+      "scope": "Installed public Node consumer with synthetic helper only; no native, cryptographic or server qualification",
+      "helpers_joined": 3,
+      "consumer_sha256": "3d8bd0e84c837cd2fd8beb5d63b60b287e522f22ab80f95851bb9e15dd252a56",
+      "seconds": 0.4781187910120934
+    },
+    "synthetic_transport_and_http500_rejected": {
+      "passed": true,
+      "scope": "Synthetic helper plus synthetic HTTP only; rejects native read-only transport closure paired with HTTP500 as authorization evidence",
+      "generic_http_failure_rejected": true,
+      "helpers_joined": 2,
+      "safe_failure": {
+        "phase": "failed",
+        "checkpoint": "revoked",
+        "kind": "consumer-assertion",
+        "certainty": null,
+        "observedKind": "transport-uncertain",
+        "observedCertainty": "read-only",
+        "line": 110,
+        "column": 59
+      }
+    }
   }
 }

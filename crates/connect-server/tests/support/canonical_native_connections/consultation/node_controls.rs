@@ -112,7 +112,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         &input,
         &serde_json::to_vec(&json!({
             "project":project,"config":native,"executable":wrapper,"pid_file":pid_file,
-            "mode":mode,"detail":detail
+            "mode":mode,"detail":detail,"http":format!("http://{}",f.server.http_address.unwrap()),"credential":token
         }))
         .unwrap(),
     )
@@ -203,6 +203,7 @@ impl Probe {
             .request(json!({"action":"revoked"}), "revoked")
             .await;
         assert_eq!(value["current_authority_refused"], true);
+        assert_eq!(value["http_current_authority_refused"], true);
     }
     pub(super) async fn close(self) {
         let mut process = self.process.into_inner();

@@ -150,10 +150,13 @@ def run(node_sdk=False):
                 step['node_consultation_phases'].append(phase)
             if line.startswith('installed-node-consultation-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
-                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty'} and failure['phase'] == 'failed'
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'observedKind', 'observedCertainty', 'line', 'column'} and failure['phase'] == 'failed'
                 assert failure['checkpoint'] in {'submit', 'completed', 'revoked', 'close', 'invalid'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
+                assert failure['observedKind'] is None or re.fullmatch(r'[a-z-]{1,64}', failure['observedKind'])
+                assert failure['observedCertainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['observedCertainty'])
+                assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
                 step['node_consultation_failures'].append(failure)
         step['node_movement_phases'] = []
         step['node_movement_failures'] = []

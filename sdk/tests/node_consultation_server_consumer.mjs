@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile, realpath} from 'node:fs/promises';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {NodeClient, NodeSdkError} from '@rudeless/connect';
+import {NodeClient, NodeSdkError, CanonicalHttpClient, CanonicalError} from '@rudeless/connect';
 
 const spec = JSON.parse(await readFile(process.argv[2], 'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project + '/node_modules/'));
@@ -26,7 +26,8 @@ const joined = async () => {
 };
 const lines = createInterface({input: process.stdin});
 let client, operation, saved, record;
-let checkpoint = 'submit';
+let checkpoint = 'submit', observedKind = null, observedCertainty = null;
+const http = new CanonicalHttpClient({endpoint: spec.http, credential: spec.credential});
 try {
   client = open();
   const d = spec.detail;
@@ -94,11 +95,21 @@ try {
       emit({phase: 'completed', record_id: record, fresh_observation: true, return_without_grant_refused: true});
     } else if (request.action === 'revoked') {
       await assert.rejects(operation.status(opts), error => {
+        observedKind = error instanceof NodeSdkError ? error.kind : null;
+        observedCertainty = error instanceof NodeSdkError ? error.certainty : null;
         assert.ok(error instanceof NodeSdkError);
-        assert.ok(error.certainty === 'refused' || error.certainty === 'read-only' && ['authentication', 'cancelled'].includes(error.kind));
+        assert.ok(['refused', 'read-only'].includes(error.certainty) &&
+          (['authentication', 'cancelled', 'transport-uncertain'].includes(error.kind) || error.certainty === 'refused' && error.kind === 'application'));
         return true;
       });
-      emit({phase: 'revoked', current_authority_refused: true});
+      // A current authenticated HTTP read must independently reject the token.
+      // A native transport closure alone cannot establish this authorization fact.
+      const scope = operation.reference.scope;
+      await assert.rejects(http.request('operation.get', {operation_id: operation.reference.operationId},
+        {cid: scope.conversationId, sid: scope.sessionId, connid: scope.connectionId}, opts), error => {
+        assert.ok(error instanceof CanonicalError);assert.equal(error.kind, 'authentication');return true;
+      });
+      emit({phase: 'revoked', current_authority_refused: true, http_current_authority_refused: true});
     } else {
       assert.equal(request.action, 'close');
       for (const active of clients) await active.close(opts);
@@ -107,12 +118,15 @@ try {
     }
   }
 } catch (error) {
+  const at = /consultation-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
   const known = ['submit', 'completed', 'revoked', 'close'].includes(checkpoint) ? checkpoint : 'invalid';
   emit({phase: 'failed', checkpoint: known,
     kind: error instanceof NodeSdkError ? error.kind : 'consumer-assertion',
-    certainty: error instanceof NodeSdkError ? error.certainty : null});
+    certainty: error instanceof NodeSdkError ? error.certainty : null, observedKind, observedCertainty,
+    line: at ? Number(at[1]) : null, column: at ? Number(at[2]) : null});
   process.exitCode = 1;
 } finally {
   for (const active of clients) await active.close(opts).catch(() => {process.exitCode = 1;});
+  await http.close(opts).catch(() => {process.exitCode = 1;});
   lines.close();
 }

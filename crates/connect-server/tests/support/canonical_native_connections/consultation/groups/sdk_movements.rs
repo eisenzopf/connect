@@ -660,12 +660,14 @@ async fn registered_controller(
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
 }
-pub(super) async fn shutdown(f: &Fixture) {
+pub(super) async fn before_shutdown(f: &Fixture) -> bool {
     let node = super::super::sdk_controls::NodeMovementProbe::enabled();
     if node {
         super::super::sdk_controls::node_drained(f).await;
     }
-    f.server.shutdown().await.unwrap();
+    node
+}
+pub(super) fn shutdown_joined(node: bool) {
     if node {
         super::super::sdk_controls::NodeMovementProbe::server_joined();
     }

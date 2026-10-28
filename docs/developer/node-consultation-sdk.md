@@ -66,3 +66,18 @@ its four-second budget, each phase has an absolute 15-second cap, and each of th
 two-algorithm functions has a 90-second cap. The previous native refresh failure
 remains recorded. See the [native fixture evidence](../evidence/gate-6/node-consultation-audio.json)
 and [typed consultation evidence](../evidence/gate-6/node-consultation-sdk.json).
+
+The first native run at `7969f2b8` compiled the new helper and passed both original
+Rust SDK consultation/return and remote-EOF regressions. Node restoration
+completed EdDSA, then failed an ES256 revocation assertion; the underlying Node
+refusal kind/certainty was not captured. The complete Node function is failed,
+and the later EOF/receipt functions were not reached in that fail-fast run.
+
+The current candidate records safe error kinds/certainty and source coordinates.
+Its native revoked read must return no data, and an independent public canonical
+HTTP read using the same revoked token must reject authentication. Read-only
+native channel retirement is allowed only with that independent rejection;
+a generic HTTP failure cannot qualify authorization. Synthetic checks accept
+native authentication or transport retirement with HTTP401, reject transport
+retirement with HTTP500, and join every original helper. Current native
+verification remains pending; no production timing or revocation cause is claimed.

@@ -105,7 +105,7 @@ try {
       emit({phase: 'closed', helpers_joined: pids.length});break;
     }
   }
- } catch (error) {
+} catch (error) {
   const at = /movement-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
   emit({phase: 'failed', checkpoint: ['register', 'recover', 'begin', 'completed', 'stopped', 'close'].includes(checkpoint) ? checkpoint : 'invalid',
     kind: error instanceof NodeSdkError ? error.kind : 'consumer-assertion', certainty: error instanceof NodeSdkError ? error.certainty : null,

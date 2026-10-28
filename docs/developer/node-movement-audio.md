@@ -37,3 +37,9 @@ declarations pass with 204 guarded inputs unchanged. These are protocol/process
 checks only. Mac Rust compilation remains skipped for retained ENOSPC;
 Ubuntu compilation, media, authorization and failure-recovery results are pending.
 See [the evidence record](../evidence/gate-6/node-movement-audio.json).
+
+The first movement candidate `b36e119b` failed compilation with E0507: its shared
+shutdown helper tried to consume a server behind a borrowed Fixture. No new
+native movement function ran in that cohort. The correction keeps drain checks
+before the fixture's original consuming shutdown and counts the join only after
+success. Compilation and all actual movement checks remain pending.
