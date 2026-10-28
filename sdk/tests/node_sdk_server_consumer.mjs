@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 // Copy into an installed external Node project. Uses exported SDK API only.
 import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
@@ -73,12 +74,12 @@ try {
  await peerClient.capabilities.require('incoming-invitations',opts);
  const incoming=peerClient.incomingInvitations(opts),hintWait=incoming.next();void hintWait.catch(()=>{});
  await (await solo.inviteParticipants({to:{first:peer.id,rest:[]},medium:'voice+video',intent:'typed-control',capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend'})).wait(opts);
- const received=await hintWait;assert.equal(received.done,false);const hint=received.value;assert.ok(hint);assert.equal(hint.operationId,'typed-session-extend');assert.equal(hint.source.correlationId,hint.operationId);assert.equal(hint.from,own.id);assert.equal(hint.to,peer.id);assert.equal(hint.medium,'voice+video');assert.deepEqual(JSON.parse(JSON.stringify(hint.capabilities)),capabilities);
+ const received=await hintWait;assert.equal(received.done,false);const hint=received.value;assert.ok(hint);assert.notEqual(hint.operationId,'typed-session-extend');assert.equal(hint.source.correlationId,hint.operationId);assert.equal(hint.from,own.id);assert.equal(hint.to,peer.id);assert.equal(hint.medium,'voice+video');assert.deepEqual(JSON.parse(JSON.stringify(hint.capabilities)),capabilities);
  const peerRoom=peerClient.conversations.byId(room.id),peerSolo=hint.session;assert.equal(peerSolo.id,solo.id);assert.equal(peerSolo.conversationId,room.id);
  await incoming.close();await peerClient.capabilities.require('incoming-invitations',opts);
  current=await peerSolo.refresh(opts);
  await (await peerSolo.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend-accept'})).wait(opts);
- emit({phase:'controls-ready',session_participants_accepted:true,incoming_original_hint:true,incoming_session_decision:true,incoming_close_control_live:true});
+ emit({phase:'controls-ready',session_participants_accepted:true,incoming_original_hint:true,incoming_session_decision:true,incoming_close_control_live:true,incoming_source_sha256:createHash('sha256').update(hint.operationId).digest('hex')});
  await resume('native');
  progress('native-offer');
  const nativeInput=(connectionId,streamId)=>({connectionId,streams:{first:{id:streamId,kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:['g.711-a']}},rest:[]}});

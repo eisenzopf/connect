@@ -1,0 +1,77 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "authoritative-source-comparison-corrected-native-pending",
+  "implementation_parent_commit": "01dd18caccb4edc50850790b01e3495e79e295b3",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "problem": {
+    "original_commit": "d85c4398226e107247f77204ed86b05d4147f8cf",
+    "both_node_matrices": true,
+    "consumer_coordinate": "76:51",
+    "coordinate_verified_against_git": true,
+    "invalid_assertion": "assert.equal(hint.operationId,'typed-session-extend')",
+    "contract": "Incoming operationId identifies the server invitation-source correlation. The callers private mutation ID and the separately persisted decision ID remain distinct.",
+    "authoritative_existing_evidence": [
+      "docs/developer/rust-sdk.md incoming invitations",
+      "crates/connect-server/tests/support/sdk_handles/invitations.rs actual source row comparison and private mutation inequality",
+      "crates/connect-store/migrations/089_session_invitation_sources.sql unique per tenant/owner/caller mutation plus separately generated source ID"
+    ]
+  },
+  "correction": [
+    "Preserve public received operationId and source correlation; require inequality with caller private mutation, never relabel production metadata to satisfy the fixture.",
+    "External public Node consumer emits SHA256 of received source ID. Independent read-only Rust SQL requires exactly one host source row for the original Session/caller mutation, a distinct source ID and exact digest match. Only a digest enters public witness.",
+    "Keep original sender/recipient/medium/capabilities, hinted Session decision, typed/native/HTTP/current authority and original join/deadline checks.",
+    "Add safe stage/kind/certainty diagnostic for the independent old Rust revoked-return predicate failure. Its assertion and accepted outcomes remain unchanged; no error kind or cause is guessed from a missing diagnostic."
+  ],
+  "component_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.919009875040501,
+    "source_count": 217,
+    "changed_inputs": [],
+    "source_inputs_sha256": "8d354360cdc265d0cab90eaa19808d108f509f8985d3a1e069182de1fd489e55",
+    "log_sha256": "4282a2bf695a61bd4cf181810d8325589b6899cee4741923b8bda0d52b6725ec",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T22:16:02.395867+00:00"
+  },
+  "functions_passed": 94,
+  "installed_package": {
+    "archive_sha256": "5e22ea3a2a296a190b12a89605c13d09138c4299205edec5629b924dcfaa0406",
+    "installed_dist_matches": true,
+    "exact_same_sdk_archive_and_files_as_9_installed_iterator_checks": true,
+    "native_consumer_sha256": "3cb4c7ee818d2f907c1eea47de2854b928859767c325061f4e28e18a695da4f1"
+  },
+  "read_diagnostic_parser": {
+    "passed": true,
+    "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+    "checks": [
+      "valid-retained",
+      "invalid-kind-rejected",
+      "invalid-stage-rejected",
+      "extra-field-rejected"
+    ]
+  },
+  "source_sha256": {
+    "sdk/tests/node_sdk_server_consumer.mjs": "3cb4c7ee818d2f907c1eea47de2854b928859767c325061f4e28e18a695da4f1",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "366c0762f381d7fbc23e0082e7e30cbb4bcd43663259006b7578b7f4185b59db",
+    "scripts/check-gate6-linux-hosting.py": "960832f03f379807d689ef4c909f629b792bd38c143e660a66d4afba3a5d2dca",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs": "d1f314d89335e6fd16dad971e7cd26442d3c5d350c280d9f01a562b7287e2223"
+  },
+  "checks": {
+    "rust_format": true,
+    "node_python_syntax": true,
+    "diff": true,
+    "actual_native": "Pending normal source run; no local Rust linking due retained ENOSPC."
+  },
+  "qualification_limit": "Fixture correction follows established source-ID contract and preserves production behavior. Local94 component checks/unchanged SDK package do not prove the new SQL/native digest check. Current contract iterator, graceful native drain, other incoming matrix, unresolved Rust EOF/audio findings, events/remoteHTTP/full SDK remain open."
+}

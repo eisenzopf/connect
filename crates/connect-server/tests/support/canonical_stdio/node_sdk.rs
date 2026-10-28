@@ -1,5 +1,6 @@
 //! Installed typed Node package -> public Rust SDK + current canonical HTTP authority.
 use super::*;
+use sha2::Digest;
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Stdio};
 
 #[tokio::test]
@@ -153,6 +154,24 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         ] {
             assert_eq!(controls[field], true);
         }
+        let database = rusqlite::Connection::open_with_flags(
+            &f.config.database,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let source: String = database.query_row(
+            "SELECT id FROM session_invitation_sources WHERE session_id='typed-node-solo' AND operation_id='typed-session-extend'", [], |row|row.get(0)
+        ).unwrap();
+        let count: u64 = database.query_row(
+            "SELECT COUNT(*) FROM session_invitation_sources WHERE session_id='typed-node-solo' AND operation_id='typed-session-extend'", [], |row|row.get(0)
+        ).unwrap();
+        assert_eq!(count, 1);
+        assert_ne!(source, "typed-session-extend");
+        assert_eq!(
+            controls["incoming_source_sha256"],
+            hex::encode(sha2::Sha256::digest(source.as_bytes()))
+        );
+        drop(database);
         stdin.write_all(b"native\n").await.unwrap();
         let native_phase = phase(&mut lines, "native-complete", algorithm).await;
         assert_eq!(native_phase["native_controls_completed"], true);

@@ -396,13 +396,21 @@ impl ReturnProbe {
                     .await
                     .err()
                     .expect("revoked return authority cannot read");
+                let refused = error.certainty == sdk::Certainty::Refused
+                    || (error.certainty == sdk::Certainty::ReadOnly
+                        && matches!(
+                            error.kind,
+                            sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
+                        ));
+                if !refused {
+                    let encoded = sdk::helper::error_json(&error);
+                    eprintln!(
+                        "sdk-current-read-failure {}",
+                        json!({"stage":"revoked-return-read","kind":encoded["kind"],"certainty":encoded["certainty"]})
+                    );
+                }
                 assert!(
-                    error.certainty == sdk::Certainty::Refused
-                        || (error.certainty == sdk::Certainty::ReadOnly
-                            && matches!(
-                                error.kind,
-                                sdk::ErrorKind::Authentication | sdk::ErrorKind::Cancelled
-                            )),
+                    refused,
                     "revoked return read must refuse or retire authenticated peer: {error:?}"
                 );
                 client.close(options()).await.unwrap();

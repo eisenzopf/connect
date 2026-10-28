@@ -137,6 +137,14 @@ def run(node_sdk=False):
                 assert all(type(diagnostic[k]) is int and 0 <= diagnostic[k] <= 100000 for k in ('source_index','receiver_index','sent_packets','received_packets','non_silent_packets'))
                 assert isinstance(diagnostic['allowed_indices'],list) and len(diagnostic['allowed_indices']) <= 32 and all(type(v) is int and 0 <= v <= 32 for v in diagnostic['allowed_indices'])
                 step['native_audio_boundary_failures'].append(diagnostic)
+        step['sdk_current_read_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('sdk-current-read-failure '):
+                failure = json.loads(line.split(' ',1)[1])
+                assert set(failure) == {'stage','kind','certainty'} and failure['stage'] == 'revoked-return-read'
+                assert isinstance(failure['kind'],str) and re.fullmatch(r'[a-z-]{1,64}',failure['kind'])
+                assert isinstance(failure['certainty'],str) and re.fullmatch(r'[a-z-]{1,32}',failure['certainty'])
+                step['sdk_current_read_failures'].append(failure)
         step["node_completed_phases"] = []
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-phase '):
@@ -434,6 +442,7 @@ def run(node_sdk=False):
                     assert witness['functional_phase_profile'] == 'node-controls/6'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
+                    assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
                     assert witness['initial']['node_capability_support_only']

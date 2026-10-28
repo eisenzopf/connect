@@ -51,3 +51,13 @@ approved contract and outline were left unchanged. Current real iterator/native
 incoming media/decision/revocation/reconnect and graceful drain verification,
 durable events, remote HTTP and full G6-062 remain open. See
 [the contract evidence](../evidence/gate-6/node-incoming-contract.json).
+
+`operationId` is the server-issued invitation-source correlation. The caller's
+private mutation ID and your separately saved decision ID retain their separate
+meanings. The historical d85 native fixture incorrectly compared source and
+caller IDs; both runs failed at that equality. The corrected fixture compares a
+digest of the received source with the authoritative host row and requires a
+distinct caller ID. Production metadata is unchanged. Three real reader-state
+units passed in d85, while complete incoming execution remained failed. See
+[the retained runtime](../evidence/gate-6/node-native-d85.json) and
+[the source comparison](../evidence/gate-6/node-incoming-source.json).

@@ -69,5 +69,6 @@
     "sdk/tests/fixtures/sdk_helper.mjs": "a75211065e448fbff4fccecc5ecb51518b6792a167f7dcdfb7378bbca123604c",
     "sdk/tests/check_canonical_helper.py": "dcfa4de55fb3c03376cd3ff01f296cb8bf81275615cc7923e174bf1b722b0c52"
   },
-  "qualification_limit": "Current94 component/type/HTTP functions,217 unchanged guarded inputs and9 installed synthetic incoming functions only. Historical per-wait draft is superseded, not qualified. Current iterator/native incoming matrix/graceful native drain/durable events/remoteHTTP and whole G6-062 remain pending. This verifies the incoming slice, not full ParticipantClient structural conformance."
+  "qualification_limit": "Current94 component/type/HTTP functions,217 unchanged guarded inputs and9 installed synthetic incoming functions only. Historical per-wait draft is superseded, not qualified. Current iterator/native incoming matrix/graceful native drain/durable events/remoteHTTP and whole G6-062 remain pending. This verifies the incoming slice, not full ParticipantClient structural conformance.",
+  "native_source_fixture_correction": "docs/evidence/gate-6/node-incoming-source.json"
 }
