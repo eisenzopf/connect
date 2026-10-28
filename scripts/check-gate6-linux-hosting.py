@@ -70,7 +70,7 @@ def preflight():
 
 def audio_minimum_diagnostic(value):
     assert isinstance(value,dict) and set(value)=={'probe','source_index','receiver_index','allowed_indices','sent_packets','received_packets','non_silent_packets','timestamp_step_min','timestamp_step_max'}
-    assert value['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement','consultation','other'}
+    assert value['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement-first-committed-remote','replacement-old-authority-revoked-remote','replacement','consultation','other'}
     assert all(type(value[k]) is int and 0 <= value[k] <= 32 for k in ('source_index','receiver_index'))
     assert all(type(value[k]) is int and 0 <= value[k] <= 100000 for k in ('sent_packets','received_packets','non_silent_packets'))
     assert value['non_silent_packets'] <= 10 and value['non_silent_packets'] <= value['received_packets']
@@ -78,6 +78,15 @@ def audio_minimum_diagnostic(value):
     assert value['receiver_index'] in value['allowed_indices']
     low,high=value['timestamp_step_min'],value['timestamp_step_max']
     assert (low is None and high is None) or (type(low) is int and type(high) is int and 0 <= low <= high <= 4294967295)
+    return value
+
+
+def audio_quiescence_diagnostic(value):
+    assert isinstance(value,dict) and set(value)=={'probe','source_index','sent_packets','minimum_tail_ms','quiet_ms','maximum_tail_ms'}
+    assert value['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement-first-committed-remote','replacement-old-authority-revoked-remote','replacement','consultation','other'}
+    assert type(value['source_index']) is int and 0 <= value['source_index'] <= 32
+    assert type(value['sent_packets']) is int and 0 <= value['sent_packets'] <= 100000
+    assert all(type(value[k]) is int and value[k]==expected for k,expected in (('minimum_tail_ms',300),('quiet_ms',200),('maximum_tail_ms',2000)))
     return value
 
 
@@ -147,7 +156,7 @@ def run(node_sdk=False):
             if line.startswith('native-audio-boundary-failure '):
                 diagnostic = json.loads(line.split(' ',1)[1])
                 assert set(diagnostic) == {'probe','source_index','receiver_index','allowed_indices','sent_packets','received_packets','non_silent_packets'}
-                assert diagnostic['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement','consultation','other'}
+                assert diagnostic['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement-first-committed-remote','replacement-old-authority-revoked-remote','replacement','consultation','other'}
                 assert all(type(diagnostic[k]) is int and 0 <= diagnostic[k] <= 100000 for k in ('source_index','receiver_index','sent_packets','received_packets','non_silent_packets'))
                 assert isinstance(diagnostic['allowed_indices'],list) and len(diagnostic['allowed_indices']) <= 32 and all(type(v) is int and 0 <= v <= 32 for v in diagnostic['allowed_indices'])
                 step['native_audio_boundary_failures'].append(diagnostic)
@@ -155,6 +164,10 @@ def run(node_sdk=False):
         for line in text.splitlines():
             if line.startswith('native-audio-minimum-failure '):
                 step['native_audio_minimum_failures'].append(audio_minimum_diagnostic(json.loads(line.split(' ',1)[1])))
+        step['native_audio_quiescence_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('native-audio-quiescence-failure '):
+                step['native_audio_quiescence_failures'].append(audio_quiescence_diagnostic(json.loads(line.split(' ',1)[1])))
         step['sdk_current_read_failures'] = []
         for line in text.splitlines():
             if line.startswith('sdk-current-read-failure '):

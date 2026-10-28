@@ -89,7 +89,7 @@
     "crates/connect-client/src/canonical/tests/sdk_events.rs": "3cad4830584aa09d6a9d7e6e90ff22a8e2538ff09298e68fd7440408419f7c7e",
     "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "dad2608139ddaabbba1421d61bc1a115d10e1c01faa6314786c617f506bce8c9",
     "sdk/tests/node_sdk_server_consumer.mjs": "77589d538564ee37da1cf8580ed88d6517abbf79f8b8b22f2c235e03b4c91516",
-    "scripts/check-gate6-linux-hosting.py": "6d7472a343f7b42d4cc5f50b1960358d09caebd17f53f5ab74f6ff982f203155"
+    "scripts/check-gate6-linux-hosting.py": "a100ec20e8e5afd4529823f235af3ae3daea4cd8468c11684340bba54f898c0d"
   },
   "prior_component_snapshot": {
     "passed": true,
@@ -116,6 +116,11 @@
     "node_matrix": 26,
     "exact_ack_units_passed": 3,
     "original_signed_sdk_event_regressions_passed": 9,
-    "managed_helper_event_poll_and_installed_event_journey": "not exercised by that profile6 source; newer profile7/tenth signed case remain pending"
+    "managed_helper_event_poll_and_installed_event_journey": "not exercised by that profile6 source; newer profile7/tenth signed case remain pending",
+    "node_matrices": [
+      22,
+      26
+    ],
+    "node22_full_lane": "195passes,1 old movement forbidden-frame failure before current-source submission; not an event failure"
   }
 }

@@ -1,0 +1,89 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "bounded-media-probe-quiescence-implemented-runtime-pending",
+  "implementation_parent_commit": "0b2f17696229851831f8273ee0bbef072029403a",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "observed_evidence": {
+    "path": "docs/evidence/gate-6/node-native-ca6.json",
+    "run_id": 40783398938,
+    "artifact_id": 12859082221,
+    "source": "ca6fb159c303d99a19ce2449fec62867fb148c7c",
+    "zip_sha256": "a7a894c4063e526f8ead22c39fa816d5714e85d99b700852d7be0a9e3c2d6c58",
+    "guarded_inputs": 8140,
+    "tracked_files_and_modes_verified": 4048,
+    "node22_functions_passed": 195,
+    "failed_function": "installed_node_eddsa_move_speaker",
+    "source_location": "groups.rs619:21",
+    "diagnostic": {
+      "probe": "replacement",
+      "source_index": 0,
+      "receiver_index": 0,
+      "allowed_indices": [
+        2
+      ],
+      "sent_packets": 0,
+      "received_packets": 1,
+      "non_silent_packets": 1
+    }
+  },
+  "finding": "The marked frame arrived before the current source emitted any probe packet. It cannot establish routing of a newly submitted current-source marker. Prior-source tail or preparation traffic is an inference; exact old coarse probe label does not distinguish the first committed remote probe from the later old-authority-revoked remote probe. Earlier minimum/forbidden failures remain unresolved.",
+  "change": [
+    "Preserve2s marked source and original300ms minimum trailing observation. Continue sampling every live receiver under the same original audience until no marked packet has been observed for200ms.",
+    "Before accepting quiet, preferentially drain already-ready receive futures; require1ms with no ready packet. Fail if quiet is not reached within a bounded2s tail. Do not discard, filter or reclassify any received marked frame.",
+    "Zero forbidden frames and >10 allowed marked frames remain mandatory. Every old-source tail frame is still checked against its original source audience before a later source begins. Original90s function bound remains unchanged.",
+    "Add two finite probe categories for first committed remote and post-old-authority-revocation remote, and a strict quiescence-failure diagnostic with only fixed labels/indices/counts/constants. No raw media or identities."
+  ],
+  "verification": {
+    "rust_format_passed": true,
+    "python_runner_syntax_passed": true,
+    "parser": {
+      "passed": true,
+      "scope": "Original source parser functions on synthetic inputs only; no Rust/media execution",
+      "minimum_checks": [
+        "valid-minimum-retained",
+        "bool-source-rejected",
+        "foreign-label-rejected",
+        "extra-field-rejected",
+        "false-array-rejected",
+        "wrong-receiver-rejected",
+        "not-minimum-rejected",
+        "impossible-count-rejected",
+        "timestamp-bool-rejected",
+        "timestamp-order-rejected",
+        "timestamp-overflow-rejected",
+        "timestamp-half-null-rejected",
+        "no-timestamps-retained"
+      ],
+      "quiescence_checks": [
+        "valid-retained",
+        "bool-source-rejected",
+        "bool-packets-rejected",
+        "negative-count-rejected",
+        "foreign-probe-rejected",
+        "extra-field-rejected",
+        "boolean-bound-rejected",
+        "changed-bound-rejected",
+        "missing-bound-rejected"
+      ],
+      "new_controlled_probe_labels": [
+        "replacement-first-committed-remote",
+        "replacement-old-authority-revoked-remote"
+      ],
+      "source_sha256": "a100ec20e8e5afd4529823f235af3ae3daea4cd8468c11684340bba54f898c0d",
+      "function_ast_sha256": {
+        "audio_minimum_diagnostic": "2c0c0474269b234e49d510f1305fe7f1ddb7c05bc24a636a7f6ae5838e3f7f8d",
+        "audio_quiescence_diagnostic": "9df2ee3cff7ec2a38661bcb7c7fee572af1af0a5dcc185a2d10ca9bfdff230d0"
+      }
+    },
+    "native_runtime": "pending original source-bound Linux lane; no local Rust link under retained ENOSPC"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "9b373a22e5c8e73e01dabd7f7fbe2df0413fdc383ad571ce6db4ef9f57fdbbd2",
+    "scripts/check-gate6-linux-hosting.py": "a100ec20e8e5afd4529823f235af3ae3daea4cd8468c11684340bba54f898c0d"
+  }
+}

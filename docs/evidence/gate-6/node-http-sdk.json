@@ -77,7 +77,7 @@
     "sdk/tests/node_https_server_consumer.mjs": "fe2f91c7cf9ac6fed84ee0a4567c95ae3ed6fbf5b2e8e0bf5b0ca53e9635971f",
     "crates/connect-server/tests/support/canonical_https_hosting.rs": "c146e436264b75b902e5ce5e45fd290403c1c34b7b77fb391b48d62049d1fb4a",
     "crates/connect-server/tests/support/canonical_https_hosting/node.rs": "79ca09907594b63eed6193550e030c833481c3e73a31469512e919a19de1ed33",
-    "scripts/check-gate6-linux-hosting.py": "6d7472a343f7b42d4cc5f50b1960358d09caebd17f53f5ab74f6ff982f203155",
+    "scripts/check-gate6-linux-hosting.py": "a100ec20e8e5afd4529823f235af3ae3daea4cd8468c11684340bba54f898c0d",
     "sdk/tests/prepare_native_consumer.py": "ebb157affc63705db3cc0316a4ca374a98e1166d8320d8b2993ca70c0e310879"
   }
 }

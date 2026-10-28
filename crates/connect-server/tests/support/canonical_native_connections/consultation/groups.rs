@@ -522,6 +522,10 @@ fn audio_probe_category(name: &str) -> &'static str {
         "replace-real-preparation-retains-source-role" => "replacement-preparation-source",
         "replace-before-prepare-remote" => "replacement-baseline-remote",
         "replace-before-prepare-source" => "replacement-baseline-source",
+        "replace-moved-remote-reaches-only-target" => "replacement-first-committed-remote",
+        "replace-moved-survives-old-source-and-controller-revoke" => {
+            "replacement-old-authority-revoked-remote"
+        }
         _ if name.starts_with("replace-") => "replacement",
         _ if name.contains("private") => "consultation",
         _ => "other",
@@ -533,13 +537,18 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
     };
     enum Event {
         Tick,
+        Quiet,
         Packet(
             usize,
             std::result::Result<Vec<u8>, connect_client::ClientError>,
         ),
     }
     let send_until = tokio::time::Instant::now() + Duration::from_secs(2);
-    let until = send_until + Duration::from_millis(300);
+    let minimum_tail = send_until + Duration::from_millis(300);
+    let until = send_until + Duration::from_secs(2);
+    let quiet = Duration::from_millis(200);
+    let mut last_marked = tokio::time::Instant::now();
+    let mut quiesced = false;
     let mut tick = tokio::time::interval(Duration::from_millis(20));
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut counts = vec![0usize; peers.len()];
@@ -557,12 +566,26 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                     Box::pin(async move { (i, p.client.receive_native_media_datagram().await) })
                 })
                 .collect::<Vec<_>>();
-            tokio::select! {
-                _=tick.tick()=>Event::Tick,
-                ((i,packet),_,_)=select_all(receives)=>Event::Packet(i,packet),
+            // A fixed tail can leave authorized audio from this source queued
+            // for the next probe, where it would be attributed to another source.
+            // Keep enforcing this source's original audience until measured quiet.
+            if tokio::time::Instant::now() >= minimum_tail && last_marked.elapsed() >= quiet {
+                tokio::select! {biased;
+                    ((i,packet),_,_)=select_all(receives)=>Event::Packet(i,packet),
+                    _=tokio::time::sleep(Duration::from_millis(1))=>Event::Quiet,
+                }
+            } else {
+                tokio::select! {
+                    _=tick.tick()=>Event::Tick,
+                    ((i,packet),_,_)=select_all(receives)=>Event::Packet(i,packet),
+                }
             }
         };
         match event {
+            Event::Quiet => {
+                quiesced = true;
+                break;
+            }
             Event::Tick if tokio::time::Instant::now() < send_until => {
                 let p = &mut peers[source];
                 p.sequence += 1;
@@ -608,6 +631,7 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                     .iter()
                     .any(|b| !matches!(*b, 0xff | 0x7f))
                 {
+                    last_marked = tokio::time::Instant::now();
                     if !allowed.contains(&i) {
                         eprintln!(
                             "native-audio-boundary-failure {}",
@@ -626,6 +650,16 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
             _ => {}
         }
     }
+    if !quiesced {
+        eprintln!(
+            "native-audio-quiescence-failure {}",
+            json!({"probe":audio_probe_category(name),"source_index":source,"sent_packets":sent_packets,"minimum_tail_ms":300,"quiet_ms":200,"maximum_tail_ms":2000})
+        );
+    }
+    assert!(
+        quiesced,
+        "{name}: source did not reach a bounded quiet boundary"
+    );
     eprintln!("private-group audio {name}: source={source} allowed={allowed:?} frames={counts:?} sent={sent_packets} received={received_packets:?} source_timestamp_steps={timestamp_steps:?}");
     for i in allowed {
         if counts[*i] <= 10 {
