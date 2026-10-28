@@ -1,0 +1,138 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "status": "component-passed-final-candidate-under-verification",
+  "scope": "Owned loopback Mac arm64 coturn4.18.0 UDP/TCP implementation probes; actual signed WSS/Store/Core decoded Opus/VP8 duplex and allocation drain. No distinct-network/browser/telephone, secure TURN, loss/restart/unreachable media-port or remote profile qualification.",
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 889.7438287499826,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "2",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_webtransport",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5246,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_webtransport-5b25cc96447705c5",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/turn-relay-integration-test-170",
+      "sha256": "7b419af3b46fb6c1d51ab50fb3da48175b33a94fe387def4dc5e3e91bf2a803b",
+      "bytes": 216201840
+    },
+    "diagnostic_warnings": [],
+    "log_sha256": "5314bbaf32814a86bd55587147a831502a42697f73f11ddb4aef31f3cfeab4c1"
+  },
+  "executions": {
+    "udp": {
+      "format": 1,
+      "passed": true,
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_udp_expiry_and_decoded_duplex",
+      "transport": "udp",
+      "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+      "source_manifest_sha256": "07a9a05c245598d26a6d0a3bea46df30dde172d3e6d7927d87edb1ec37c6b3f9",
+      "source_count": 5246,
+      "coturn_version": "4.18.0",
+      "binary_sha256": "7b419af3b46fb6c1d51ab50fb3da48175b33a94fe387def4dc5e3e91bf2a803b",
+      "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+      "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "runner_sha256": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245",
+      "fixtures_sha256": {
+        "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+        "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+      },
+      "server_pid": 42671,
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 10.809933708049357,
+        "log_sha256": "1e64e25c3f527f81cc3b667867b144fa83e01938cfeecabf707054c263ae1ccd",
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 10.76s"
+        ],
+        "panic_locations": []
+      },
+      "drain_exit_code": 0,
+      "coturn_log_sha256": "ea37a8af1d2115e85c373056b33764a0b824250557eb05c3209b297b735eeda7",
+      "allocation_successes": 4,
+      "server_joined": true,
+      "changed_source_inputs": []
+    },
+    "tcp": {
+      "format": 1,
+      "passed": true,
+      "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_relay_tcp_expiry_and_decoded_duplex",
+      "transport": "tcp",
+      "scope": "Owned loopback TURN REST expiry, relay-only signed WSS/Store/Core Opus/VP8 duplex with independent decoders; no distinct-network/browser/SIP/remote qualification.",
+      "source_manifest_sha256": "07a9a05c245598d26a6d0a3bea46df30dde172d3e6d7927d87edb1ec37c6b3f9",
+      "source_count": 5246,
+      "coturn_version": "4.18.0",
+      "binary_sha256": "7b419af3b46fb6c1d51ab50fb3da48175b33a94fe387def4dc5e3e91bf2a803b",
+      "turnserver_sha256": "ba46c950a6492fe92501f08ee5347838c00279f48dc3489edb1f934ce20923d7",
+      "decoder_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "runner_sha256": "c98efabd3d2121231f7668189e67e70ceb7cd9ec8b9889f4e4b801cf0a7bc245",
+      "fixtures_sha256": {
+        "red.vp8": "9eb7b79c117340f9c5f4e2cf2b51d6058f7c19753bfdaca9c8d1dd8f8184510b",
+        "blue.vp8": "3465c373756bda541b97293bb4dda8b4bad3fb816f30b6f61e7365c1bc0de566"
+      },
+      "server_pid": 42768,
+      "udp_listener_unreachable": true,
+      "execution": {
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 10.935998667031527,
+        "log_sha256": "567b0161cabc54636ecfec2266778a4793e736be72e031664d94d0ea5b0e4796",
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 10.89s"
+        ],
+        "panic_locations": []
+      },
+      "drain_exit_code": 0,
+      "coturn_log_sha256": "9edfb41f2ba68dafeb5dcaaae70c493b0a2cda104915c0db02c31a7103013d22",
+      "allocation_successes": 4,
+      "server_joined": true,
+      "changed_source_inputs": []
+    }
+  },
+  "candidate_patch_sha256": "2c56526e1ca517fee055fcd3505c2e56f600016df10e8ae8611a1da7c9b3238f",
+  "candidate_source_lock_sha256": "6709ca9dfae77421ba987d8a6894575b6806aa1bb765c0be0ef6ac73f52a5847",
+  "scope_note": "Both runs use sealed build170/preparedv29. Later write-cancellation/control-queue hardening and TCP framing tests are being verified at build172/preparedv30; these earlier passes are not final-source passes for that later candidate.",
+  "failed_attempts": [
+    {
+      "attempt": "udp170",
+      "result": "Expired credentials correctly refused, then canonical host setup refused the fixture JSON secret-reference file; loader requires TOML. Fixed runner and the same sealed binary passed udp171/tcp171. No weaker secret policy or rebuilt binary was used."
+    },
+    {
+      "attempt": "build168",
+      "result": "Compilation refused a derived Debug enum containing a non-Debug TaggedBytesMut. Removed the unnecessary derive. Exit101, no behavior pass."
+    },
+    {
+      "attempt": "check-gate6-upstream.py",
+      "result": "Broad historical M1 aggregator refused before execution at existing required-component passed assertion line106. No full upstream qualification claimed."
+    }
+  ],
+  "acceptance_qualified": false,
+  "publication": false
+}

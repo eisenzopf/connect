@@ -155,10 +155,10 @@ def run(args):
     private_write(manifest, json.dumps({"listener_port": port,
         "media_port_start": media_start, "media_port_end": media_start + 7}) + "\n")
     env = os.environ.copy()
-    refs = base / "secret-references.json"
-    private_write(refs, json.dumps({"version": 1, "references": {
-        name: {"storage": "environment", "variable": name} for name in
-        ("CONNECT_GATE6_TURN_USER", "CONNECT_GATE6_TURN_PASSWORD")}}) + "\n")
+    refs = base / "secret-references.toml"
+    private_write(refs, 'version = 1\n' + ''.join(
+        f'\n[references.{name}]\nstorage = "environment"\nvariable = "{name}"\n'
+        for name in ("CONNECT_GATE6_TURN_USER", "CONNECT_GATE6_TURN_PASSWORD")))
     env.update(CONNECT_GATE6_TURN_FIXTURE=str(manifest), CONNECT_SECRET_REFERENCES=str(refs),
                CONNECT_GATE6_TURN_USER=user, CONNECT_GATE6_TURN_PASSWORD=password,
                CONNECT_GATE6_TURN_EXPIRED_USER=expired_user, CONNECT_GATE6_TURN_EXPIRED_PASSWORD=expired_password,

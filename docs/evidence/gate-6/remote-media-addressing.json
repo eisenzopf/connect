@@ -273,8 +273,9 @@
     }
   },
   "turn_relay": {
-    "status": "reproduced-failure",
-    "evidence": "docs/evidence/gate-6/turn-relay-negative.json",
-    "scope": "Owned coturn expiry negative caught ignored relay-only policy before any allocation. Actual relay media/fallback/cleanup unqualified; recorded upstream implementation is being verified separately."
+    "status": "component-passed-final-candidate-under-verification",
+    "evidence": "docs/evidence/gate-6/turn-relay-implementation.json",
+    "negative_evidence": "docs/evidence/gate-6/turn-relay-negative.json",
+    "scope": "Actual loopback UDP/TCP-control relay-only duplex AV, expired credential refusal and four-allocation drain per lane passed on sealed170. Final source hardening/framing cases are not yet qualified; distinct-network/browser/SIP/full G6-054 remains open."
   }
 }
