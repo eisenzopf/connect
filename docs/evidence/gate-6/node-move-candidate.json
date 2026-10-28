@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "public-preparing-candidate-native-scene-implemented-runtime-pending",
+  "implementation_parent_commit": "a277f06e07e50dc1bf9962c8793754fd6c44a909",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "profile": "node-movements/3",
+  "matrix": {
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "prior_functions_retained": 24,
+    "new_candidate_functions": 2,
+    "required_functions": 26,
+    "required_helpers_joined": 52,
+    "required_servers_joined": 26,
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90
+  },
+  "sequence": [
+    "Original signed target at separately provisioned Endpoint issues its own connection.offer. Independently require generation1 preparing domain row for exact Session/Participant/Endpoint and runtime; leave original parameter callback unanswered. This is metadata, not media readiness or a replacement ticket.",
+    "Installed public Node Connection.move selects that exact candidate ID with no Endpoint target substituted. Original managed replacement must own its ticket/one-effect phases and separately allocate/start/confirm actual target IO.",
+    "Require same supplied candidate ID, generation2 exact result/binding, existing strict actual audio isolation/retained control, original-ID replay/fresh helper record recovery, current revocation, later movement and original joins/drains.",
+    "Only the known pre-existing candidate domain row changes the explicit pre-start domain row count from2 to3. Media, outcome, permission, deadline and drain assertions stay unchanged."
+  ],
+  "verification": {
+    "rust_format_passed": true,
+    "runner_python_syntax_passed": true,
+    "26_exact_unique_names_bound_to_rust_declarations": true,
+    "local_rust_build": "skipped: retained disk exhaustion; Linux required",
+    "native_execution": "pending"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "2a0bfb6914d931e8c87e437afdd33739154f714f428cd63e65cd8bf7256db93f",
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/sdk_movements.rs": "4005c82576f4db30517ea7512410c1e7e61c155c965a79b9cb5ad44fbbbe5ebc",
+    "sdk/tests/node_movement_server_consumer.mjs": "c9eaed4bbd1ec022d057adf7e5a67719bc95c6c6e8c9b02c010e15bad14888f0",
+    "scripts/check-gate6-linux-hosting.py": "6d7472a343f7b42d4cc5f50b1960358d09caebd17f53f5ab74f6ff982f203155"
+  }
+}

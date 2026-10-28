@@ -89,7 +89,7 @@
     "crates/connect-client/src/canonical/tests/sdk_events.rs": "3cad4830584aa09d6a9d7e6e90ff22a8e2538ff09298e68fd7440408419f7c7e",
     "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "dad2608139ddaabbba1421d61bc1a115d10e1c01faa6314786c617f506bce8c9",
     "sdk/tests/node_sdk_server_consumer.mjs": "77589d538564ee37da1cf8580ed88d6517abbf79f8b8b22f2c235e03b4c91516",
-    "scripts/check-gate6-linux-hosting.py": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5"
+    "scripts/check-gate6-linux-hosting.py": "6d7472a343f7b42d4cc5f50b1960358d09caebd17f53f5ab74f6ff982f203155"
   },
   "prior_component_snapshot": {
     "passed": true,
@@ -109,5 +109,13 @@
     "finished_at": "2026-10-28T22:53:16.694711+00:00"
   },
   "prior105_retained": true,
-  "capacity_fixture_correction": "The original synthetic capacity fixture allowed8 readers for one conversation, unlike original Rust source conflict rules. Corrected fake now preserves same-conversation conflict and exercises the8-reader budget using distinct Conversations, plus local close/replacement. Previous synthetic capacity result is superseded; it never qualified native behavior."
+  "capacity_fixture_correction": "The original synthetic capacity fixture allowed8 readers for one conversation, unlike original Rust source conflict rules. Corrected fake now preserves same-conversation conflict and exercises the8-reader budget using distinct Conversations, plus local close/replacement. Previous synthetic capacity result is superseded; it never qualified native behavior.",
+  "verified_rust_event_foundation": {
+    "evidence": "docs/evidence/gate-6/node-native-ca6.json",
+    "source": "ca6fb159c303d99a19ce2449fec62867fb148c7c",
+    "node_matrix": 26,
+    "exact_ack_units_passed": 3,
+    "original_signed_sdk_event_regressions_passed": 9,
+    "managed_helper_event_poll_and_installed_event_journey": "not exercised by that profile6 source; newer profile7/tenth signed case remain pending"
+  }
 }

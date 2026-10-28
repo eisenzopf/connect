@@ -678,7 +678,7 @@ fn node_witness(scenario: &str, algorithms: &[&str], cases: usize) {
     assert_eq!(servers, cases);
     eprintln!(
         "installed-node-movement-witness {}",
-        json!({"profile":"node-movements/2","scenario":scenario,
+        json!({"profile":"node-movements/3","scenario":scenario,
         "algorithms":algorithms,"helpers_joined":helpers,"servers_joined":servers,"cases":cases,
         "physical_peers_drained":true,"media_readers_drained":true})
     );
@@ -869,3 +869,16 @@ node_move_case!(
     true,
     (false, false, false)
 );
+
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_eddsa_move_candidate() {
+    super::replacement::exercise_node_candidate_replacement_case("EdDSA").await;
+    node_witness("installed_node_eddsa_move_candidate", &["EdDSA"], 1);
+}
+#[tokio::test]
+#[ignore = "Requires installed Node movement consumer and explicit CONNECT_GATE6_NODE_MOVEMENTS=1"]
+async fn installed_node_es256_move_candidate() {
+    super::replacement::exercise_node_candidate_replacement_case("ES256").await;
+    node_witness("installed_node_es256_move_candidate", &["ES256"], 1);
+}

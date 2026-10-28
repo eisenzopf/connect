@@ -115,6 +115,7 @@ pub(super) async fn exercise_replacement_with_sdk(
         sdk_algorithm,
         false,
         None,
+        false,
     )
     .await
 }
@@ -134,6 +135,22 @@ pub(super) async fn exercise_node_replacement_case(
         Some(algorithm),
         false,
         Some(case),
+        false,
+    )
+    .await;
+}
+pub(super) async fn exercise_node_candidate_replacement_case(algorithm: &'static str) {
+    assert!(super::super::sdk_controls::NodeMovementProbe::enabled());
+    exercise_replacement_with_control(
+        true,
+        true,
+        false,
+        true,
+        false,
+        Some(algorithm),
+        false,
+        Some((false, false, false)),
+        true,
     )
     .await;
 }
@@ -146,7 +163,17 @@ async fn exercise_replacement_with_control(
     sdk_algorithm: Option<&'static str>,
     mcp: bool,
     selected_case: Option<(bool, bool, bool)>,
+    candidate_target: bool,
 ) {
+    if candidate_target {
+        assert!(
+            allocate
+                && start_media
+                && movement
+                && !deferred_projection
+                && selected_case == Some((false, false, false))
+        );
+    }
     let cases = if deferred_projection {
         vec![(false, false, false)]
     } else if movement {
@@ -295,6 +322,30 @@ async fn exercise_replacement_with_control(
             "replace-before-prepare-source",
         )
         .await;
+        // Only the real signed target's pending offer supplies candidate metadata.
+        // Keep its parameter callback unanswered: it proves neither media nor an
+        // owned replacement ticket. The new operation must acquire both itself.
+        let candidate_id = "node-explicit-preparing-candidate";
+        let mut preparing_target = if candidate_target {
+            let mut client = CanonicalClient::open(target.clone()).await.unwrap();
+            let request_id = client.send_value("connection.offer",json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"candidate-provisional-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]}),CommandScope {conversation_id:Some(cid.clone()),session_id:Some("native-session".into()),connection_id:Some(candidate_id.into()),operation_id:Some("node-candidate-initial-offer".into()),expected_revision:Some(0)}).await.unwrap();
+            let answer = client.receive_control().await.unwrap();
+            assert_eq!(answer.kind(), "connection.answer");
+            assert_eq!(answer.original()["in_reply_to"], request_id);
+            let parameters = client.receive_control().await.unwrap();
+            assert_eq!(parameters.kind(), "connection.offer");
+            assert_eq!(
+                parameters.scope(connect_client::canonical::Scope::Connection),
+                Some(candidate_id)
+            );
+            let database = rusqlite::Connection::open(&f.config.database).unwrap();
+            let exact:bool=database.query_row("SELECT EXISTS(SELECT 1 FROM connections c JOIN connection_offers o ON o.connection_id=c.id WHERE c.id=?1 AND c.session_id='native-session' AND c.participant_id=?2 AND c.endpoint_id=?3 AND c.state='preparing' AND c.generation=1 AND c.observed_runtime_id IS NOT NULL)",rusqlite::params![candidate_id,owner,endpoint],|row|row.get(0)).unwrap();
+            assert!(exact);
+            drop(database);
+            Some(client)
+        } else {
+            None
+        };
         let baseline = f.server.service.canonical_runtime_snapshot().unwrap();
         let mut scope = Scope::collaboration(vec!["*".into()]);
         scope
@@ -319,8 +370,8 @@ async fn exercise_replacement_with_control(
             connection_id: Some("codec-target".into()),
             expected_revision: revision(&f),
             intent: TransitionIntent::Replace {
-                endpoint_id: Some(endpoint.clone()),
-                candidate_connid: None,
+                endpoint_id: (!candidate_target).then(|| endpoint.clone()),
+                candidate_connid: candidate_target.then(|| candidate_id.to_owned()),
                 retained_connid: "codec-source".into(),
             },
             payload_extensions: Default::default(),
@@ -389,7 +440,10 @@ async fn exercise_replacement_with_control(
                 |r| r.get(0),
             )
             .unwrap();
-        assert!(!exists);
+        assert_eq!(exists, candidate_target);
+        if candidate_target {
+            assert_eq!(candidate, candidate_id);
+        }
         drop(c);
         // Real ticket ownership retains no idle Store grant. A bounded writer
         // may temporarily deny fresh polling without destroying the ticket.
@@ -422,7 +476,11 @@ async fn exercise_replacement_with_control(
         );
         let mut replacement_handle = None;
         let mut allocated_target = if allocate {
-            let mut client = CanonicalClient::open(target.clone()).await.unwrap();
+            let mut client = if let Some(client) = preparing_target.take() {
+                client
+            } else {
+                CanonicalClient::open(target.clone()).await.unwrap()
+            };
             let offer = json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"replacement-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}],"replacement_preparation":{"profile":"connect-replacement-preparation-v1","operation_record_id":prepared.record_id}});
             let offer_scope = CommandScope {
                 conversation_id: Some(cid.clone()),
@@ -493,7 +551,7 @@ async fn exercise_replacement_with_control(
                 c.query_row("SELECT COUNT(*) FROM connections", [], |r| r
                     .get::<_, u64>(0))
                     .unwrap(),
-                2
+                2 + u64::from(candidate_target)
             );
             drop(c);
             if start_media {
@@ -1376,6 +1434,7 @@ async fn production_mcp_device_movement_keeps_decoded_generation_two_audio_origi
             Some(algorithm),
             true,
             None,
+            false,
         )
         .await;
         eprintln!("MCP device movement {algorithm}: speaker/observer, current endpoint/target revocation, retained remote, decoded generation-two media, original replay/recovery, one effect per phase and joined owners");

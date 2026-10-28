@@ -411,11 +411,12 @@ def run(node_sdk=False):
             movement_cases = []
             for algorithm, label in (('EdDSA', 'eddsa'), ('ES256', 'es256')):
                 suffixes = [f'{scope}_handoff_{outgoing}' for scope in ('session', 'conversation') for outgoing in ('observe', 'leave')]
+                suffixes += ['move_candidate']
                 suffixes += ['move_' + case for case in ('speaker', 'observer', 'revoked_endpoint', 'revoked_target_key')]
                 suffixes += ['cancel_' + case for case in ('speaker', 'observer', 'revoked_endpoint')]
                 suffixes += ['move_recording_failure']
                 movement_cases.extend((f'installed_node_{label}_{suffix}', algorithm) for suffix in suffixes)
-            assert len(movement_cases) == len(set(name for name, _ in movement_cases)) == 24
+            assert len(movement_cases) == len(set(name for name, _ in movement_cases)) == 26
             for name, algorithm in movement_cases:
                 scenario, algorithms, cases = name, [algorithm], 1
                 case = 'canonical_native_connections::consultation::groups::sdk_movements::' + name
@@ -428,13 +429,13 @@ def run(node_sdk=False):
                              for line in text.splitlines() if 'installed-node-movement-witness ' in line]
                 assert len(witnesses) == 1
                 witness = witnesses[0]
-                assert witness['profile'] == 'node-movements/2' and witness['scenario'] == scenario
+                assert witness['profile'] == 'node-movements/3' and witness['scenario'] == scenario
                 assert witness['algorithms'] == algorithms and witness['cases'] == cases
                 assert witness['helpers_joined'] == cases * 2 and witness['servers_joined'] == cases
                 assert witness['physical_peers_drained'] and witness['media_readers_drained']
                 movement_results.append(dict(witness, passed=True))
             report['installed_node_movements'] = {'passed': all(v['passed'] for v in movement_results),
-                'profile': 'node-movements/2', 'results': movement_results, 'request_budget_ms': 4000,
+                'profile': 'node-movements/3', 'results': movement_results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'scope': 'Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification.'}
             consultation_results = []

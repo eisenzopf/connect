@@ -31,10 +31,12 @@
       "timestamp-half-null-rejected",
       "no-source-timestamps-retained"
     ],
-    "runner_sha256": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5"
+    "runner_sha256": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5",
+    "unchanged_function_ast_sha256": "fe19aea2494de0e129d7b8b5f9b438f9f6d1eda508bf6113c585249445180025"
   },
   "source_sha256": {
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "f367bddaa713a4451c398da518f1543c6e0d14bfa4050041f4a96cdb92b576e7",
-    "scripts/check-gate6-linux-hosting.py": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5"
-  }
+    "scripts/check-gate6-linux-hosting.py": "6d7472a343f7b42d4cc5f50b1960358d09caebd17f53f5ab74f6ff982f203155"
+  },
+  "latest_scope": "Later ca6 Node26 strict audio passes do not diagnose prior failures;13 parser checks still refer to the exact unchanged function AST. New minimum reports await a real failure."
 }

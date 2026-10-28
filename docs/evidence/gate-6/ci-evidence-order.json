@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "evidence-upload-before-cache-implemented-runtime-pending",
+  "observation": {
+    "run_id": 40783398938,
+    "job_id": 123150455749,
+    "node_matrix": 22,
+    "fixtures_step": "completed/failure",
+    "active_step": "actions/cache/save",
+    "source_artifact": "not available at inspection; no cause inferred"
+  },
+  "change": "Upload the existing small source-only evidence artifact immediately after fixtures and before saving build caches. Action pins, paths, conditions, retention and cache keys are unchanged.",
+  "verification": {
+    "passed": true,
+    "scope": "Exact step-block preservation/order check; no workflow runtime qualification",
+    "evidence_upload_precedes_cache_save": true,
+    "action_pins_paths_conditions_retention_and_cache_keys_unchanged": true,
+    "before_sha256": "92b9fc7616b9fd338a5b784ee5fda7ce811a9b4711ff05f23a67949216bc33ef",
+    "after_sha256": "aa1f11057bfbe29574c7b5e3e164d6eb4036314b3f05f2d09f0386c722814756",
+    "yaml_objects_verified": false
+  },
+  "acceptance_qualified": false,
+  "publication": false
+}

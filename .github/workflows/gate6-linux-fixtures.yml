@@ -115,15 +115,6 @@ jobs:
       - name: Run isolated source-bound fixtures
         id: fixtures
         run: python3 scripts/check-gate6-linux-hosting.py --node-sdk
-      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: always() && steps.fixtures.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
-        with:
-          path: |
-            ~/.cargo/registry
-            .deps
-            .local/gate6-linux-ci/target
-            .local/gate6-linux-ci/source-times.json
-          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}
       - name: Upload source-only fixture evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -133,3 +124,12 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && steps.fixtures.outputs.source_unchanged == 'true' && steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry
+            .deps
+            .local/gate6-linux-ci/target
+            .local/gate6-linux-ci/source-times.json
+          key: g6-linux-${{ steps.native.outputs.native_key }}-${{ hashFiles('Cargo.lock', 'dependencies/source-lock.json', 'rust-toolchain.toml') }}-${{ github.sha }}

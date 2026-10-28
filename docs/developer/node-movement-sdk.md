@@ -63,14 +63,20 @@ arrays in operation/decision states and participant kinds; the previously
 installed SDK accepted all four malformed synthetic outputs, while the current
 SDK fences the original helper as a protocol failure.
 
-Actual positive native Node handoff/move/consultation journeys remain pending.
-The installed Ubuntu control fixture passed both current-authority no-grant
-handoff/movement refusals for EdDSA and ES256 at `8e7a8d21`, preserving original
-IDs, scope and helper usability before its existing native recovery/drains.
-Local Rust linking remains skipped because of the retained Mac ENOSPC.
+Recorded Linux evidence now includes all24 original movement scenes with
+independent native media peers and the installed public Node controller. Exact
+`ca6fb159` passes the full Node26 lane, including these24 scenes with48 original
+helpers and24 servers joined; see `docs/evidence/gate-6/node-native-ca6.json`.
+Exact `972ed986` passes the Node22 lane; its Node26 scope retains a minimum-audio
+failure. Earlier audio/EOF causes remain unresolved by later success. Local Rust
+linking remains skipped because of the retained Mac ENOSPC.
 
-The [native movement fixture](node-movement-audio.md) now exercises public Node
-controllers against independent actual media peers, including role scopes,
+The [native movement fixture](node-movement-audio.md) exercises role scopes,
 outgoing dispositions, endpoint movement, cancellation, revocation and recording
-failure. Its compilation/runtime checks are pending; synthetic protocol results
-are kept separate. See [the evidence record](../evidence/gate-6/node-movement-sdk.json).
+failure. Current `node-movements/3` additionally requires two candidate-target
+cases. An original signed target creates a preparing Connection at its separate
+Endpoint; Node selects that exact ID and must still obtain the original managed
+replacement ticket, generation-two IO and strict media boundaries. The expanded
+matrix has26 cases,52 helpers and26 servers. All24 original cases remain required;
+the two new cases await Linux execution. See
+[the candidate evidence record](../evidence/gate-6/node-move-candidate.json).
