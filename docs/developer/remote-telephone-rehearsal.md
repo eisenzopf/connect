@@ -72,8 +72,10 @@ It retains adjacent original sockets and carries actual SDP mux/split RTCP
 negotiation into the media owner. All 52 UDP/allocator and seven SIP unit
 functions pass in the initial checkpoint. The final manual SR/RR/RTCP-BYE/close
 destination fix passes all 73 session, UDP and allocator functions. The four
-recorded network profiles are bound to the initial source; the final production
-runtime and profiles must establish their own verification.
+initial network profiles remain retained. Final production runtime266 and all
+four EdDSA/ES256 direct/loss267/268 profiles also pass on the final source,
+with five separate-port RTCP packets per profile including RTCP goodbye. Four
+SIP integration regressions and four configuration functions pass on that source.
 
 Use `--network-profile loss` for deterministic loss. The owned NAT witness drops
 every fifth PCMU RTP packet independently in each direction, records seen and

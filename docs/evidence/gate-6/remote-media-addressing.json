@@ -333,11 +333,11 @@
   "distinct_network_telephone": {
     "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
     "status": "owned-direct-and-loss-profiles-passed",
-    "result": "Actual Linuxarm64-to-Mac controlled peerNAT EdDSA/ES256 direct and20percentPCMUloss pass opposite FFmpeg-decoded tones, journal-before-effect, stable original replay, paired signed Session end/SIPBYE and all original drains. All5255buildinputs unchanged. Manual RTCP report/bye API follow-up remains open; no WAN/Linuxx86/fullG6-054qualification."
+    "result": "Final v43 runtime266 passes EdDSA/ES256 controlled peerNAT direct and20percentPCMUloss profiles with opposite independent decoded tones, journal-before-effect, one replayed original call, paired signed Session end/SIPBYE and all original drains. Five separate-portRTCP packets/profile include repaired goodbye. All5255buildinputs unchanged;4SIPintegration and4configuration functions pass. No WAN/Linuxx86/fullG6-054qualification."
   },
   "negotiated_rtcp_routing": {
     "evidence": "docs/evidence/gate-6/negotiated-rtcp-routing.json",
-    "status": "final73protocol-functions-passed-runtime-pending",
-    "result": "Final patch239/source-lock uses the committed original route for manual SR/RR/BYE/close too. Exact old-library public probe reproduces stale destination; final265 passes all21RtpSession/32UDP/20allocator functions on5255unchanged inputs. Four complete v40 direct/loss network profiles retained; final production runtime266 and profiles remain pending."
+    "status": "protocol-and-owned-telephone-component-passed",
+    "result": "Final patch239/v43 passes73local session/UDP/allocator functions and all four final full telephone network profiles. Original manual-report negative retained; direct/relay WebRTC regressions277/278 now running. Whole G6-054 remains open."
   }
 }

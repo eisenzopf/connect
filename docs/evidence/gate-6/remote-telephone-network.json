@@ -340,7 +340,7 @@
   "build": {
     "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
     "exit_code": 0,
-    "seconds": 1020.6222116670106,
+    "seconds": 1049.3020861661062,
     "arguments": [
       "cargo",
       "rustc",
@@ -370,21 +370,21 @@
     "changed_inputs": [],
     "artifact": {
       "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
-      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-253",
-      "sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
-      "bytes": 268370952
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-266",
+      "sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
+      "bytes": 268452136
     },
     "diagnostic_warnings": [],
-    "log_sha256": "f450e6911b6b4df0201c1dc44ea1119426885a1ad01c905831afa6d731f00448"
+    "log_sha256": "ec2cc0719133503efc9edb8845138aa17e951758796579c9f056e0c661379f7f"
   },
   "current_profiles": {
-    "nat254": {
+    "nat267": {
       "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
-      "source_revision": "eb00941f7c55c79f786c6726f4f2c28a7787b43b",
+      "source_revision": "fc123900de06e67d6efd2694287fb131f7f4a667",
       "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
-      "server_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
-      "started_at": "2026-10-28T13:21:14.786957+00:00",
-      "finished_at": "2026-10-28T13:21:25.338358+00:00",
+      "server_sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
+      "started_at": "2026-10-28T13:46:11.981175+00:00",
+      "finished_at": "2026-10-28T13:46:22.539556+00:00",
       "profiles": [
         {
           "algorithm": "EdDSA",
@@ -399,7 +399,7 @@
             "sip_acks": 1,
             "sip_byes": 1,
             "sent_rtp": 200,
-            "received_rtp": 186,
+            "received_rtp": 188,
             "foreign_datagrams": 0,
             "rtcp_mux_offered": false,
             "server_advertised_media_ip_matched": true,
@@ -410,12 +410,108 @@
             },
             "unique_call_ids": 1,
             "owned_sockets_closed": true,
-            "received_bytes": 29760,
-            "received_sha256": "1159f8dfc48e4b89b06b57ab4e095909da2a607b9543d65314d399552613e972"
+            "received_bytes": 30080,
+            "received_sha256": "32c0d968bb145e3b51d97f240346d0a79060b6a3cefccfbef65ceec90ce066c6"
           },
           "server_witness": [
             {
               "algorithm": "EdDSA",
+              "durable_initial_calls": 1,
+              "durable_native_offers": 1,
+              "network_profile": "remote",
+              "original_invite_replayed": true,
+              "paired_session_end": true,
+              "physical_peers_drained": true,
+              "received_bytes": 20320,
+              "server_shutdown_joined": true,
+              "sip_listener_released": true
+            }
+          ],
+          "host_decoded": {
+            "expected_hz": 660,
+            "excluded_self_hz": 440,
+            "decoded_samples": 20320,
+            "active_frames": 127,
+            "matching_frames": 127,
+            "pcmu_sha256": "3a3f8ea3a6107378a29277721d1ebd1a6d39427ac187322dcae9b248cfd0fdf4",
+            "decoded_s16le_sha256": "fc381a72669f0eea2e9a082231fea235b5f170c5b7f6a0acb3e8c688ab99b280",
+            "passed": true
+          },
+          "guest_decoded": {
+            "expected_hz": 440,
+            "excluded_self_hz": 660,
+            "decoded_samples": 30080,
+            "active_frames": 188,
+            "matching_frames": 188,
+            "pcmu_sha256": "32c0d968bb145e3b51d97f240346d0a79060b6a3cefccfbef65ceec90ce066c6",
+            "decoded_s16le_sha256": "40689b0334c4ab9c8a9de26da044874b8858fb7da2d44c0bac9e16027e92e4eb",
+            "passed": true
+          },
+          "forced_server_cleanup": false,
+          "forced_guest_cleanup": false,
+          "peer_nat": {
+            "sip": {
+              "guest_to_server": 2,
+              "server_to_guest": 3
+            },
+            "rtp": {
+              "guest_to_server": 200,
+              "server_to_guest": 188
+            },
+            "rtcp": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            },
+            "foreign_datagrams": 0,
+            "journal_before_first_invite": true,
+            "owned_rtcp_sink_packets": 5,
+            "worker_joined": true,
+            "unique_calls": 1,
+            "network_profile": "direct",
+            "pcmu_rtp_seen": {
+              "guest_to_server": 200,
+              "server_to_guest": 188
+            },
+            "pcmu_rtp_dropped": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
+            }
+          },
+          "logs_sha256": {
+            "server.log": "548fc5ef8c86efa6a0448cb39b08b8445fb693eb521996632b06e00c4f867b83",
+            "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        {
+          "algorithm": "ES256",
+          "passed": true,
+          "server_exit_code": 0,
+          "guest_exit_code": 0,
+          "guest": {
+            "passed": true,
+            "os": "linux",
+            "architecture": "aarch64",
+            "sip_invites": 1,
+            "sip_acks": 1,
+            "sip_byes": 1,
+            "sent_rtp": 200,
+            "received_rtp": 184,
+            "foreign_datagrams": 0,
+            "rtcp_mux_offered": false,
+            "server_advertised_media_ip_matched": true,
+            "last_rtp_header": {
+              "bytes": 172,
+              "first": 128,
+              "second": 0
+            },
+            "unique_call_ids": 1,
+            "owned_sockets_closed": true,
+            "received_bytes": 29440,
+            "received_sha256": "479a4fc8cba0fe744eed10f74924f4c5d84047ea76efde1cd6bee44cb198f1e9"
+          },
+          "server_witness": [
+            {
+              "algorithm": "ES256",
               "durable_initial_calls": 1,
               "durable_native_offers": 1,
               "network_profile": "remote",
@@ -433,18 +529,18 @@
             "decoded_samples": 20800,
             "active_frames": 130,
             "matching_frames": 130,
-            "pcmu_sha256": "2241e1909d7cb4c4e11b35a9dcdbb7d76469b7504299988e81954a3e31a08d22",
-            "decoded_s16le_sha256": "52d9730f576b9d69912dc843b7228ba4d1f4eafbe54769e7accdafac54e6727b",
+            "pcmu_sha256": "e332d1fec5a9567e2778c2d0d2c8ba894f20e4b061d3733bdb8bd8ae24e877fd",
+            "decoded_s16le_sha256": "ba642bc44cc0c9ac18c9c2fe3d396a014c42ab3c614bed564f47ca4226b42fbd",
             "passed": true
           },
           "guest_decoded": {
             "expected_hz": 440,
             "excluded_self_hz": 660,
-            "decoded_samples": 29760,
-            "active_frames": 186,
-            "matching_frames": 186,
-            "pcmu_sha256": "1159f8dfc48e4b89b06b57ab4e095909da2a607b9543d65314d399552613e972",
-            "decoded_s16le_sha256": "28d48fa96584f8f4b0cbe9dc20d1938f13f95a85420440d9f6aff31c3eee768d",
+            "decoded_samples": 29440,
+            "active_frames": 184,
+            "matching_frames": 184,
+            "pcmu_sha256": "479a4fc8cba0fe744eed10f74924f4c5d84047ea76efde1cd6bee44cb198f1e9",
+            "decoded_s16le_sha256": "5fd96c6ef67b4c15de93cc3ae44c812f46f898adb6b02b447968503ed98602e1",
             "passed": true
           },
           "forced_server_cleanup": false,
@@ -456,7 +552,7 @@
             },
             "rtp": {
               "guest_to_server": 200,
-              "server_to_guest": 186
+              "server_to_guest": 184
             },
             "rtcp": {
               "guest_to_server": 0,
@@ -464,99 +560,21 @@
             },
             "foreign_datagrams": 0,
             "journal_before_first_invite": true,
-            "owned_rtcp_sink_packets": 4,
+            "owned_rtcp_sink_packets": 5,
             "worker_joined": true,
-            "unique_calls": 1
-          },
-          "logs_sha256": {
-            "server.log": "3145610bbcfa0aac56e6fe63c00c589734548f6d5e92fc0ca8e7131f7698adb8",
-            "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-          }
-        },
-        {
-          "algorithm": "ES256",
-          "passed": true,
-          "server_exit_code": 0,
-          "guest_exit_code": 0,
-          "guest": {
-            "passed": true,
-            "os": "linux",
-            "architecture": "aarch64",
-            "sip_invites": 1,
-            "sip_acks": 1,
-            "sip_byes": 1,
-            "sent_rtp": 200,
-            "received_rtp": 183,
-            "foreign_datagrams": 0,
-            "rtcp_mux_offered": false,
-            "server_advertised_media_ip_matched": true,
-            "last_rtp_header": {
-              "bytes": 172,
-              "first": 128,
-              "second": 0
+            "unique_calls": 1,
+            "network_profile": "direct",
+            "pcmu_rtp_seen": {
+              "guest_to_server": 200,
+              "server_to_guest": 184
             },
-            "unique_call_ids": 1,
-            "owned_sockets_closed": true,
-            "received_bytes": 29280,
-            "received_sha256": "7457fe2ebc1683d0318153e9d7dc2f939f36d7796f0aed60ff27b5252f4571af"
-          },
-          "server_witness": [
-            {
-              "algorithm": "ES256",
-              "durable_initial_calls": 1,
-              "durable_native_offers": 1,
-              "network_profile": "remote",
-              "original_invite_replayed": true,
-              "paired_session_end": true,
-              "physical_peers_drained": true,
-              "received_bytes": 27520,
-              "server_shutdown_joined": true,
-              "sip_listener_released": true
+            "pcmu_rtp_dropped": {
+              "guest_to_server": 0,
+              "server_to_guest": 0
             }
-          ],
-          "host_decoded": {
-            "expected_hz": 660,
-            "excluded_self_hz": 440,
-            "decoded_samples": 27520,
-            "active_frames": 172,
-            "matching_frames": 172,
-            "pcmu_sha256": "931af8a4f07fadb8e3c6e286f04569bba4a7c11d27ae65cfa2c45f9342874be5",
-            "decoded_s16le_sha256": "8638faf276f7085fe8bc6facafd9cec291a1a559bdb2aded1643cce804d99f7d",
-            "passed": true
-          },
-          "guest_decoded": {
-            "expected_hz": 440,
-            "excluded_self_hz": 660,
-            "decoded_samples": 29280,
-            "active_frames": 183,
-            "matching_frames": 183,
-            "pcmu_sha256": "7457fe2ebc1683d0318153e9d7dc2f939f36d7796f0aed60ff27b5252f4571af",
-            "decoded_s16le_sha256": "12321112fbdc107e65b6fd2077f5fefb238303588c5164d49aabce2765e1369e",
-            "passed": true
-          },
-          "forced_server_cleanup": false,
-          "forced_guest_cleanup": false,
-          "peer_nat": {
-            "sip": {
-              "guest_to_server": 2,
-              "server_to_guest": 3
-            },
-            "rtp": {
-              "guest_to_server": 200,
-              "server_to_guest": 183
-            },
-            "rtcp": {
-              "guest_to_server": 0,
-              "server_to_guest": 0
-            },
-            "foreign_datagrams": 0,
-            "journal_before_first_invite": true,
-            "owned_rtcp_sink_packets": 4,
-            "worker_joined": true,
-            "unique_calls": 1
           },
           "logs_sha256": {
-            "server.log": "cd5744e99c2d091d863f119e9cc3ccbe986b35adc082abe85fafd581f72f07c6",
+            "server.log": "1aea61ea91c7da643712edee5bfe4a45b8f72817cb308da0aeca55691799696c",
             "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
         }
@@ -565,20 +583,20 @@
       "build_inputs_unchanged": true,
       "server_unchanged": true,
       "passed": true,
-      "summary_sha256": "53f48922a1a2fe2fdf8eaaff0bb4fdb827b9f6a30bc07f5f70cc004986065452",
       "network_profile": "direct",
+      "summary_sha256": "e40b9cf9a8064b62edd0d4e71cfbf600d6f86982b1326951cdf3cf04130459bb",
       "fixture_source_sha256": {
-        "scripts/rehearse-gate6-remote-telephone.py": "d9a86c1d8e8b51af9f25ccd2100d68b185d4af3e5438dece24739cf0a2e3b1b1",
+        "scripts/rehearse-gate6-remote-telephone.py": "bca52848a054cfdaa2578876f0cefe86986b2ebfedb40d822d5ec8599f9521e4",
         "scripts/telephone/linux_remote_phone.py": "3473c67dd2d1952ca32ac3f15c3bda9ff433d03898b296407462bce1db93a726"
       }
     },
-    "loss263": {
+    "loss268": {
       "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
-      "source_revision": "eb00941f7c55c79f786c6726f4f2c28a7787b43b",
+      "source_revision": "fc123900de06e67d6efd2694287fb131f7f4a667",
       "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
-      "server_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
-      "started_at": "2026-10-28T13:21:55.773257+00:00",
-      "finished_at": "2026-10-28T13:22:06.106656+00:00",
+      "server_sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
+      "started_at": "2026-10-28T13:46:23.023109+00:00",
+      "finished_at": "2026-10-28T13:46:33.335006+00:00",
       "profiles": [
         {
           "algorithm": "EdDSA",
@@ -593,7 +611,7 @@
             "sip_acks": 1,
             "sip_byes": 1,
             "sent_rtp": 200,
-            "received_rtp": 153,
+            "received_rtp": 148,
             "foreign_datagrams": 0,
             "rtcp_mux_offered": false,
             "server_advertised_media_ip_matched": true,
@@ -604,8 +622,8 @@
             },
             "unique_call_ids": 1,
             "owned_sockets_closed": true,
-            "received_bytes": 24480,
-            "received_sha256": "0d45e67ab435cf019373f68db3d52943a56cc4b0c379d4098cbdc792bd64cd6f"
+            "received_bytes": 23680,
+            "received_sha256": "246d4248afe2b98d4d36acc934c400e0b98133b385a524cb236f9d2e989ab049"
           },
           "server_witness": [
             {
@@ -616,7 +634,7 @@
               "original_invite_replayed": true,
               "paired_session_end": true,
               "physical_peers_drained": true,
-              "received_bytes": 19040,
+              "received_bytes": 19200,
               "server_shutdown_joined": true,
               "sip_listener_released": true
             }
@@ -624,21 +642,21 @@
           "host_decoded": {
             "expected_hz": 660,
             "excluded_self_hz": 440,
-            "decoded_samples": 19040,
-            "active_frames": 108,
-            "matching_frames": 98,
-            "pcmu_sha256": "b9f18d1ea4a4e37a4cd05c4c3298a5a44ff6cd33ff22015e5436cc6b6d2f0b08",
-            "decoded_s16le_sha256": "55cd25bbf28f84eeffb287f1fc19d46c33de67ee9e7e69dcdeb920d9122a526d",
+            "decoded_samples": 19200,
+            "active_frames": 104,
+            "matching_frames": 99,
+            "pcmu_sha256": "ed8c776bf7c9b40ba1a8f64e71db72fed656265a99d11b087fce8456be08ce0d",
+            "decoded_s16le_sha256": "e3ebe179facb564ed2f001d33abb19cdb4cd56badc5555d330b7d1615635218b",
             "passed": true
           },
           "guest_decoded": {
             "expected_hz": 440,
             "excluded_self_hz": 660,
-            "decoded_samples": 24480,
-            "active_frames": 153,
-            "matching_frames": 153,
-            "pcmu_sha256": "0d45e67ab435cf019373f68db3d52943a56cc4b0c379d4098cbdc792bd64cd6f",
-            "decoded_s16le_sha256": "a13d120fbfb55ee7a3672fb671ea9caaa101fc5e06dec24cbfb3f5553d2d81e1",
+            "decoded_samples": 23680,
+            "active_frames": 148,
+            "matching_frames": 148,
+            "pcmu_sha256": "246d4248afe2b98d4d36acc934c400e0b98133b385a524cb236f9d2e989ab049",
+            "decoded_s16le_sha256": "9030d0340548253dc9701cf45b2c502713a2ae71093bed418f99f0193f195bfa",
             "passed": true
           },
           "forced_server_cleanup": false,
@@ -650,7 +668,7 @@
             },
             "rtp": {
               "guest_to_server": 160,
-              "server_to_guest": 153
+              "server_to_guest": 148
             },
             "rtcp": {
               "guest_to_server": 0,
@@ -658,21 +676,21 @@
             },
             "foreign_datagrams": 0,
             "journal_before_first_invite": true,
-            "owned_rtcp_sink_packets": 4,
+            "owned_rtcp_sink_packets": 5,
             "worker_joined": true,
             "unique_calls": 1,
             "network_profile": "loss",
             "pcmu_rtp_seen": {
               "guest_to_server": 200,
-              "server_to_guest": 191
+              "server_to_guest": 185
             },
             "pcmu_rtp_dropped": {
               "guest_to_server": 40,
-              "server_to_guest": 38
+              "server_to_guest": 37
             }
           },
           "logs_sha256": {
-            "server.log": "6f06f243f1c0dd76d36497c041db711cc66249cdc9c1d3e133624c80a3a35d81",
+            "server.log": "c563cb413b2efaa310ae8d6ee907d4baac6117dd525925aa877ea7285ff9cd71",
             "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
         },
@@ -701,7 +719,7 @@
             "unique_call_ids": 1,
             "owned_sockets_closed": true,
             "received_bytes": 24320,
-            "received_sha256": "3b322d1d1fe683a17c350a85b744dab9c7f4ef9c32c4f1c04d0a928a6b26b887"
+            "received_sha256": "c90e913d6145225455716041392712310e2929202cd50cc4fb6fc3926a1271d4"
           },
           "server_witness": [
             {
@@ -712,7 +730,7 @@
               "original_invite_replayed": true,
               "paired_session_end": true,
               "physical_peers_drained": true,
-              "received_bytes": 21120,
+              "received_bytes": 23680,
               "server_shutdown_joined": true,
               "sip_listener_released": true
             }
@@ -720,11 +738,11 @@
           "host_decoded": {
             "expected_hz": 660,
             "excluded_self_hz": 440,
-            "decoded_samples": 21120,
-            "active_frames": 119,
-            "matching_frames": 107,
-            "pcmu_sha256": "ec89b50a697ebf5a77984de68bbfa0c683cb8410e7ba22583c7671132f3d67bd",
-            "decoded_s16le_sha256": "2ddd45c7adda779c57c19b403cf7716d0f62077e2ab47af39c863698f889f0b3",
+            "decoded_samples": 23680,
+            "active_frames": 141,
+            "matching_frames": 117,
+            "pcmu_sha256": "9a1187c2a56d673389fcf9e3912e2b44506489ca03ebf590224239a88b932920",
+            "decoded_s16le_sha256": "7836424ca2ea13448b86bc2602c373a21e81e5d35d339171e0bc86d24211e723",
             "passed": true
           },
           "guest_decoded": {
@@ -733,8 +751,8 @@
             "decoded_samples": 24320,
             "active_frames": 152,
             "matching_frames": 152,
-            "pcmu_sha256": "3b322d1d1fe683a17c350a85b744dab9c7f4ef9c32c4f1c04d0a928a6b26b887",
-            "decoded_s16le_sha256": "a816161cc9159ff0fd4ffcf1740d637f2e8a2663253f1fe996724f1e6bc7659a",
+            "pcmu_sha256": "c90e913d6145225455716041392712310e2929202cd50cc4fb6fc3926a1271d4",
+            "decoded_s16le_sha256": "26b3e3e536c79b5ac89c38b5b1ac2cfd1f3b68fb7edfe4629987a51e818fd8e7",
             "passed": true
           },
           "forced_server_cleanup": false,
@@ -754,7 +772,7 @@
             },
             "foreign_datagrams": 0,
             "journal_before_first_invite": true,
-            "owned_rtcp_sink_packets": 4,
+            "owned_rtcp_sink_packets": 5,
             "worker_joined": true,
             "unique_calls": 1,
             "network_profile": "loss",
@@ -768,7 +786,7 @@
             }
           },
           "logs_sha256": {
-            "server.log": "879254d918af4f2673082c9851990445141eb4834909a1e4591550009c158378",
+            "server.log": "b46d023fcf0fa2fe18d3843d929230c7bad45bf184c0d277aef7e843a7b8f5e2",
             "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
           }
         }
@@ -777,14 +795,560 @@
       "build_inputs_unchanged": true,
       "server_unchanged": true,
       "passed": true,
-      "summary_sha256": "05f5938803ca4f7a35eb1089395e1d7775696fc959424f9494346e4572d99896",
       "network_profile": "loss",
+      "summary_sha256": "d7e39e54e0c14325f481c6af817c83d15d205aaf05e7c30d57a2bbea057624b0",
       "fixture_source_sha256": {
         "scripts/rehearse-gate6-remote-telephone.py": "bca52848a054cfdaa2578876f0cefe86986b2ebfedb40d822d5ec8599f9521e4",
         "scripts/telephone/linux_remote_phone.py": "3473c67dd2d1952ca32ac3f15c3bda9ff433d03898b296407462bce1db93a726"
       }
     }
   },
-  "result": "Both algorithms pass the owned distinct-network direct and deterministic20percent PCMU-loss profiles: opposite decoded tones, journal-before-INVITE, stable replay/one call, native paired signed end/SIP BYE, original physical/SIP/NAT/guest/server drain and unchanged source/binary guards. This is the defined controlled NAT fixture, not direct WAN or whole G6-054 qualification.",
-  "known_follow_up": "Manual SR/RR/RTCP-BYE/close destination bug is fixed in the final v43 patch. Its actual old-library negative is retained; all73current RtpSession/UDP/allocator functions pass. The four network profiles in this file remain exact v40 evidence until final runtime266/direct267/loss268 are executed."
+  "result": "Final v43 production-upstream runtime266 passes both EdDSA/ES256 direct267 and deterministic20percent PCMU-loss268: all four opposite-tone decoder/replay/journal/signed-end/original-drain profiles pass with5255buildinputs unchanged. Five RTCP packets reach the owned separate-port sink per profile, including the repaired RTCP goodbye. No forced process cleanup.",
+  "known_follow_up": "Manual RTCP destination bug is fixed and covered by73local current-source functions plus the final complete network profiles. G6-054 still needs its remaining browser/ICE-restart/remote transport matrix and designated deployment profiles; these owned arm64 controlled-NAT fixtures are not WAN/PSTN/Linuxx86/performance or whole acceptance qualification.",
+  "previous_network_checkpoint": {
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 1020.6222116670106,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "2",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5255,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-253",
+        "sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+        "bytes": 268370952
+      },
+      "diagnostic_warnings": [],
+      "log_sha256": "f450e6911b6b4df0201c1dc44ea1119426885a1ad01c905831afa6d731f00448"
+    },
+    "profiles": {
+      "nat254": {
+        "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
+        "source_revision": "eb00941f7c55c79f786c6726f4f2c28a7787b43b",
+        "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
+        "server_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+        "started_at": "2026-10-28T13:21:14.786957+00:00",
+        "finished_at": "2026-10-28T13:21:25.338358+00:00",
+        "profiles": [
+          {
+            "algorithm": "EdDSA",
+            "passed": true,
+            "server_exit_code": 0,
+            "guest_exit_code": 0,
+            "guest": {
+              "passed": true,
+              "os": "linux",
+              "architecture": "aarch64",
+              "sip_invites": 1,
+              "sip_acks": 1,
+              "sip_byes": 1,
+              "sent_rtp": 200,
+              "received_rtp": 186,
+              "foreign_datagrams": 0,
+              "rtcp_mux_offered": false,
+              "server_advertised_media_ip_matched": true,
+              "last_rtp_header": {
+                "bytes": 172,
+                "first": 128,
+                "second": 0
+              },
+              "unique_call_ids": 1,
+              "owned_sockets_closed": true,
+              "received_bytes": 29760,
+              "received_sha256": "1159f8dfc48e4b89b06b57ab4e095909da2a607b9543d65314d399552613e972"
+            },
+            "server_witness": [
+              {
+                "algorithm": "EdDSA",
+                "durable_initial_calls": 1,
+                "durable_native_offers": 1,
+                "network_profile": "remote",
+                "original_invite_replayed": true,
+                "paired_session_end": true,
+                "physical_peers_drained": true,
+                "received_bytes": 20800,
+                "server_shutdown_joined": true,
+                "sip_listener_released": true
+              }
+            ],
+            "host_decoded": {
+              "expected_hz": 660,
+              "excluded_self_hz": 440,
+              "decoded_samples": 20800,
+              "active_frames": 130,
+              "matching_frames": 130,
+              "pcmu_sha256": "2241e1909d7cb4c4e11b35a9dcdbb7d76469b7504299988e81954a3e31a08d22",
+              "decoded_s16le_sha256": "52d9730f576b9d69912dc843b7228ba4d1f4eafbe54769e7accdafac54e6727b",
+              "passed": true
+            },
+            "guest_decoded": {
+              "expected_hz": 440,
+              "excluded_self_hz": 660,
+              "decoded_samples": 29760,
+              "active_frames": 186,
+              "matching_frames": 186,
+              "pcmu_sha256": "1159f8dfc48e4b89b06b57ab4e095909da2a607b9543d65314d399552613e972",
+              "decoded_s16le_sha256": "28d48fa96584f8f4b0cbe9dc20d1938f13f95a85420440d9f6aff31c3eee768d",
+              "passed": true
+            },
+            "forced_server_cleanup": false,
+            "forced_guest_cleanup": false,
+            "peer_nat": {
+              "sip": {
+                "guest_to_server": 2,
+                "server_to_guest": 3
+              },
+              "rtp": {
+                "guest_to_server": 200,
+                "server_to_guest": 186
+              },
+              "rtcp": {
+                "guest_to_server": 0,
+                "server_to_guest": 0
+              },
+              "foreign_datagrams": 0,
+              "journal_before_first_invite": true,
+              "owned_rtcp_sink_packets": 4,
+              "worker_joined": true,
+              "unique_calls": 1
+            },
+            "logs_sha256": {
+              "server.log": "3145610bbcfa0aac56e6fe63c00c589734548f6d5e92fc0ca8e7131f7698adb8",
+              "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "algorithm": "ES256",
+            "passed": true,
+            "server_exit_code": 0,
+            "guest_exit_code": 0,
+            "guest": {
+              "passed": true,
+              "os": "linux",
+              "architecture": "aarch64",
+              "sip_invites": 1,
+              "sip_acks": 1,
+              "sip_byes": 1,
+              "sent_rtp": 200,
+              "received_rtp": 183,
+              "foreign_datagrams": 0,
+              "rtcp_mux_offered": false,
+              "server_advertised_media_ip_matched": true,
+              "last_rtp_header": {
+                "bytes": 172,
+                "first": 128,
+                "second": 0
+              },
+              "unique_call_ids": 1,
+              "owned_sockets_closed": true,
+              "received_bytes": 29280,
+              "received_sha256": "7457fe2ebc1683d0318153e9d7dc2f939f36d7796f0aed60ff27b5252f4571af"
+            },
+            "server_witness": [
+              {
+                "algorithm": "ES256",
+                "durable_initial_calls": 1,
+                "durable_native_offers": 1,
+                "network_profile": "remote",
+                "original_invite_replayed": true,
+                "paired_session_end": true,
+                "physical_peers_drained": true,
+                "received_bytes": 27520,
+                "server_shutdown_joined": true,
+                "sip_listener_released": true
+              }
+            ],
+            "host_decoded": {
+              "expected_hz": 660,
+              "excluded_self_hz": 440,
+              "decoded_samples": 27520,
+              "active_frames": 172,
+              "matching_frames": 172,
+              "pcmu_sha256": "931af8a4f07fadb8e3c6e286f04569bba4a7c11d27ae65cfa2c45f9342874be5",
+              "decoded_s16le_sha256": "8638faf276f7085fe8bc6facafd9cec291a1a559bdb2aded1643cce804d99f7d",
+              "passed": true
+            },
+            "guest_decoded": {
+              "expected_hz": 440,
+              "excluded_self_hz": 660,
+              "decoded_samples": 29280,
+              "active_frames": 183,
+              "matching_frames": 183,
+              "pcmu_sha256": "7457fe2ebc1683d0318153e9d7dc2f939f36d7796f0aed60ff27b5252f4571af",
+              "decoded_s16le_sha256": "12321112fbdc107e65b6fd2077f5fefb238303588c5164d49aabce2765e1369e",
+              "passed": true
+            },
+            "forced_server_cleanup": false,
+            "forced_guest_cleanup": false,
+            "peer_nat": {
+              "sip": {
+                "guest_to_server": 2,
+                "server_to_guest": 3
+              },
+              "rtp": {
+                "guest_to_server": 200,
+                "server_to_guest": 183
+              },
+              "rtcp": {
+                "guest_to_server": 0,
+                "server_to_guest": 0
+              },
+              "foreign_datagrams": 0,
+              "journal_before_first_invite": true,
+              "owned_rtcp_sink_packets": 4,
+              "worker_joined": true,
+              "unique_calls": 1
+            },
+            "logs_sha256": {
+              "server.log": "cd5744e99c2d091d863f119e9cc3ccbe986b35adc082abe85fafd581f72f07c6",
+              "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "source_inputs_unchanged": true,
+        "build_inputs_unchanged": true,
+        "server_unchanged": true,
+        "passed": true,
+        "summary_sha256": "53f48922a1a2fe2fdf8eaaff0bb4fdb827b9f6a30bc07f5f70cc004986065452",
+        "network_profile": "direct",
+        "fixture_source_sha256": {
+          "scripts/rehearse-gate6-remote-telephone.py": "d9a86c1d8e8b51af9f25ccd2100d68b185d4af3e5438dece24739cf0a2e3b1b1",
+          "scripts/telephone/linux_remote_phone.py": "3473c67dd2d1952ca32ac3f15c3bda9ff433d03898b296407462bce1db93a726"
+        }
+      },
+      "loss263": {
+        "scope": "Owned Linux arm64 Python SIP/RTP peer across the local Lima VM network to Mac Remote SIP+PCMU and a public native SDK peer. Explicit fixed peer-side UDP NAT translations, real opposite decoded tones and original drains; no direct WAN/provider/PSTN, TURN/browser/native x86 performance or full G6-054 qualification.",
+        "source_revision": "eb00941f7c55c79f786c6726f4f2c28a7787b43b",
+        "image_id": "sha256:533cdd9c6983863f0c7ae50b3a4f9a6157bfe5b88f84b06dd44a5c61e3234bd0",
+        "server_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+        "started_at": "2026-10-28T13:21:55.773257+00:00",
+        "finished_at": "2026-10-28T13:22:06.106656+00:00",
+        "profiles": [
+          {
+            "algorithm": "EdDSA",
+            "passed": true,
+            "server_exit_code": 0,
+            "guest_exit_code": 0,
+            "guest": {
+              "passed": true,
+              "os": "linux",
+              "architecture": "aarch64",
+              "sip_invites": 1,
+              "sip_acks": 1,
+              "sip_byes": 1,
+              "sent_rtp": 200,
+              "received_rtp": 153,
+              "foreign_datagrams": 0,
+              "rtcp_mux_offered": false,
+              "server_advertised_media_ip_matched": true,
+              "last_rtp_header": {
+                "bytes": 172,
+                "first": 128,
+                "second": 0
+              },
+              "unique_call_ids": 1,
+              "owned_sockets_closed": true,
+              "received_bytes": 24480,
+              "received_sha256": "0d45e67ab435cf019373f68db3d52943a56cc4b0c379d4098cbdc792bd64cd6f"
+            },
+            "server_witness": [
+              {
+                "algorithm": "EdDSA",
+                "durable_initial_calls": 1,
+                "durable_native_offers": 1,
+                "network_profile": "remote",
+                "original_invite_replayed": true,
+                "paired_session_end": true,
+                "physical_peers_drained": true,
+                "received_bytes": 19040,
+                "server_shutdown_joined": true,
+                "sip_listener_released": true
+              }
+            ],
+            "host_decoded": {
+              "expected_hz": 660,
+              "excluded_self_hz": 440,
+              "decoded_samples": 19040,
+              "active_frames": 108,
+              "matching_frames": 98,
+              "pcmu_sha256": "b9f18d1ea4a4e37a4cd05c4c3298a5a44ff6cd33ff22015e5436cc6b6d2f0b08",
+              "decoded_s16le_sha256": "55cd25bbf28f84eeffb287f1fc19d46c33de67ee9e7e69dcdeb920d9122a526d",
+              "passed": true
+            },
+            "guest_decoded": {
+              "expected_hz": 440,
+              "excluded_self_hz": 660,
+              "decoded_samples": 24480,
+              "active_frames": 153,
+              "matching_frames": 153,
+              "pcmu_sha256": "0d45e67ab435cf019373f68db3d52943a56cc4b0c379d4098cbdc792bd64cd6f",
+              "decoded_s16le_sha256": "a13d120fbfb55ee7a3672fb671ea9caaa101fc5e06dec24cbfb3f5553d2d81e1",
+              "passed": true
+            },
+            "forced_server_cleanup": false,
+            "forced_guest_cleanup": false,
+            "peer_nat": {
+              "sip": {
+                "guest_to_server": 2,
+                "server_to_guest": 3
+              },
+              "rtp": {
+                "guest_to_server": 160,
+                "server_to_guest": 153
+              },
+              "rtcp": {
+                "guest_to_server": 0,
+                "server_to_guest": 0
+              },
+              "foreign_datagrams": 0,
+              "journal_before_first_invite": true,
+              "owned_rtcp_sink_packets": 4,
+              "worker_joined": true,
+              "unique_calls": 1,
+              "network_profile": "loss",
+              "pcmu_rtp_seen": {
+                "guest_to_server": 200,
+                "server_to_guest": 191
+              },
+              "pcmu_rtp_dropped": {
+                "guest_to_server": 40,
+                "server_to_guest": 38
+              }
+            },
+            "logs_sha256": {
+              "server.log": "6f06f243f1c0dd76d36497c041db711cc66249cdc9c1d3e133624c80a3a35d81",
+              "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "algorithm": "ES256",
+            "passed": true,
+            "server_exit_code": 0,
+            "guest_exit_code": 0,
+            "guest": {
+              "passed": true,
+              "os": "linux",
+              "architecture": "aarch64",
+              "sip_invites": 1,
+              "sip_acks": 1,
+              "sip_byes": 1,
+              "sent_rtp": 200,
+              "received_rtp": 152,
+              "foreign_datagrams": 0,
+              "rtcp_mux_offered": false,
+              "server_advertised_media_ip_matched": true,
+              "last_rtp_header": {
+                "bytes": 172,
+                "first": 128,
+                "second": 0
+              },
+              "unique_call_ids": 1,
+              "owned_sockets_closed": true,
+              "received_bytes": 24320,
+              "received_sha256": "3b322d1d1fe683a17c350a85b744dab9c7f4ef9c32c4f1c04d0a928a6b26b887"
+            },
+            "server_witness": [
+              {
+                "algorithm": "ES256",
+                "durable_initial_calls": 1,
+                "durable_native_offers": 1,
+                "network_profile": "remote",
+                "original_invite_replayed": true,
+                "paired_session_end": true,
+                "physical_peers_drained": true,
+                "received_bytes": 21120,
+                "server_shutdown_joined": true,
+                "sip_listener_released": true
+              }
+            ],
+            "host_decoded": {
+              "expected_hz": 660,
+              "excluded_self_hz": 440,
+              "decoded_samples": 21120,
+              "active_frames": 119,
+              "matching_frames": 107,
+              "pcmu_sha256": "ec89b50a697ebf5a77984de68bbfa0c683cb8410e7ba22583c7671132f3d67bd",
+              "decoded_s16le_sha256": "2ddd45c7adda779c57c19b403cf7716d0f62077e2ab47af39c863698f889f0b3",
+              "passed": true
+            },
+            "guest_decoded": {
+              "expected_hz": 440,
+              "excluded_self_hz": 660,
+              "decoded_samples": 24320,
+              "active_frames": 152,
+              "matching_frames": 152,
+              "pcmu_sha256": "3b322d1d1fe683a17c350a85b744dab9c7f4ef9c32c4f1c04d0a928a6b26b887",
+              "decoded_s16le_sha256": "a816161cc9159ff0fd4ffcf1740d637f2e8a2663253f1fe996724f1e6bc7659a",
+              "passed": true
+            },
+            "forced_server_cleanup": false,
+            "forced_guest_cleanup": false,
+            "peer_nat": {
+              "sip": {
+                "guest_to_server": 2,
+                "server_to_guest": 3
+              },
+              "rtp": {
+                "guest_to_server": 160,
+                "server_to_guest": 152
+              },
+              "rtcp": {
+                "guest_to_server": 0,
+                "server_to_guest": 0
+              },
+              "foreign_datagrams": 0,
+              "journal_before_first_invite": true,
+              "owned_rtcp_sink_packets": 4,
+              "worker_joined": true,
+              "unique_calls": 1,
+              "network_profile": "loss",
+              "pcmu_rtp_seen": {
+                "guest_to_server": 200,
+                "server_to_guest": 190
+              },
+              "pcmu_rtp_dropped": {
+                "guest_to_server": 40,
+                "server_to_guest": 38
+              }
+            },
+            "logs_sha256": {
+              "server.log": "879254d918af4f2673082c9851990445141eb4834909a1e4591550009c158378",
+              "guest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "source_inputs_unchanged": true,
+        "build_inputs_unchanged": true,
+        "server_unchanged": true,
+        "passed": true,
+        "summary_sha256": "05f5938803ca4f7a35eb1089395e1d7775696fc959424f9494346e4572d99896",
+        "network_profile": "loss",
+        "fixture_source_sha256": {
+          "scripts/rehearse-gate6-remote-telephone.py": "bca52848a054cfdaa2578876f0cefe86986b2ebfedb40d822d5ec8599f9521e4",
+          "scripts/telephone/linux_remote_phone.py": "3473c67dd2d1952ca32ac3f15c3bda9ff433d03898b296407462bce1db93a726"
+        }
+      }
+    },
+    "scope": "Exact v40 intermediate direct/loss pass; preserved, not substituted for final-source verification."
+  },
+  "current_regressions": {
+    "integration": {
+      "steps": [
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip",
+          "exit_code": 0,
+          "seconds": 0.20650024991482496,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
+          ],
+          "log_sha256": "707f89b98aff7858b14c9cb94256f036edc5f8d59bcd741d88e9a1dbb269abd6"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip",
+          "exit_code": 0,
+          "seconds": 0.20691737509332597,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
+          ],
+          "log_sha256": "d2416826e2e19d0a9a66d8dc8044385ebeccbb98786a7fc498e6a1f3e96ca7e6"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
+          "exit_code": 0,
+          "seconds": 4.472091125091538,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.46s"
+          ],
+          "log_sha256": "8093ba6ff0f765651ca42eed2d448c5e0fe483742be8dd68302c82587141462f"
+        },
+        {
+          "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+          "exit_code": 0,
+          "seconds": 4.201415500137955,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.19s"
+          ],
+          "log_sha256": "8a684591bd21bbff2a955ddf6e65ab55209f49a675971ad6b59bf79f72ec2d01"
+        }
+      ],
+      "binary_sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
+      "changed_inputs": []
+    },
+    "configuration": {
+      "build": {
+        "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+        "exit_code": 0,
+        "seconds": 57.16724408394657,
+        "arguments": [
+          "cargo",
+          "test",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "source_count": 5255,
+        "changed_inputs": [],
+        "artifact": {
+          "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/connect_server-a82006a77c6e6ce7",
+          "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/negotiated-rtcp-config-unit-test-270",
+          "sha256": "ef52a1da553d9a614a82560091f7ae866962140c1a1768533e75d577549700d4",
+          "bytes": 114063760
+        },
+        "diagnostic_warnings": [],
+        "log_sha256": "806686eb3aa44536323f79a73e9363afe37cb7da9e5a84877fcd44fab5e6ab29"
+      },
+      "result": {
+        "functions_passed": 4,
+        "prefix": "canonical_telephone::tests::",
+        "exit_code": 0,
+        "seconds": 0.01353295799344778,
+        "results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s"
+        ],
+        "binary_sha256": "ef52a1da553d9a614a82560091f7ae866962140c1a1768533e75d577549700d4",
+        "log_sha256": "4f08c5ee64376240cb5513ca377ff97d07a1836cf9c387b65af1f0016bb07b52",
+        "changed_inputs": []
+      }
+    }
+  }
 }

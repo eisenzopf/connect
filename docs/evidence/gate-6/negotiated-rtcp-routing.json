@@ -4,7 +4,7 @@
   "date": "2026-10-28",
   "implementation_status": "in-progress",
   "protocol_component_passed": true,
-  "distinct_network_component_passed": false,
+  "distinct_network_component_passed": true,
   "scope": "Actual local UDP sockets, original receiver tasks and indexed adjacent allocator; actual SDP negotiation and rollback unit functions. No account/provider/PSTN/SMS/model execution. Full remote telephone profiles remain pending.",
   "patch": "patches/rvoip/gate6-negotiated-rtcp-routing.patch",
   "implementation": [
@@ -20,15 +20,15 @@
     "unit262": "Terminal E0425 in the newly added regression: compound-BYE assertion helper lives in the original tests module, while the new test was first appended to negotiated_telephone_tests. Moved the new test into the owning module. No production helper or assertion was weakened. Final264/265 pass;262 remains failed."
   },
   "pending": [
-    "Full final v43runtime266, both-algorithm direct267/loss268,4SIPregressions269 and4configuration270 functions.",
-    "Native Ubuntu runner now selects77functions including52RTP/allocator and the exact manual-session route regression. This final group is prepared, not executed. Earlier40694009646 runs the previous76-function source.",
+    "Current-source direct WSS/WebRTC Opus/VP8 and owned UDP/TCP/shared-STUN-TURN regression build277 and runs278 are in progress because transport ownership changed.",
+    "Native Ubuntu final77-function group remains separate and must be inspected from its actual source-only artifact.",
     "Browser rendered24fps requirement, durable authorized ICE restart, remaining remote/relay/secure-transport/unreachable profiles and whole G6-054 qualification remain open."
   ],
   "acceptance_qualified": false,
   "publication": "not performed",
   "selected_unit_group_passed": true,
   "manual_report_follow_up": {
-    "status": "fixed-local-verified-full-runtime-pending",
+    "status": "fixed-local-and-owned-network-verified",
     "observation": "A standalone source-bound public RtpSession probe sets an explicit split RTCP peer, then send_sender_report() incorrectly supplies config.remote_addr (RTP), which the strict UDP route refuses as stale. Manual BYE/receiver reports and close have the same caller bug; periodic compound reports already resolve negotiated RTCP.",
     "probe": {
       "exit_code": 101,
@@ -52,7 +52,7 @@
     "build": {
       "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
       "exit_code": 0,
-      "seconds": 1020.6222116670106,
+      "seconds": 1049.3020861661062,
       "arguments": [
         "cargo",
         "rustc",
@@ -82,57 +82,159 @@
       "changed_inputs": [],
       "artifact": {
         "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
-        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-253",
-        "sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
-        "bytes": 268370952
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-266",
+        "sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
+        "bytes": 268452136
       },
       "diagnostic_warnings": [],
-      "log_sha256": "f450e6911b6b4df0201c1dc44ea1119426885a1ad01c905831afa6d731f00448"
+      "log_sha256": "ec2cc0719133503efc9edb8845138aa17e951758796579c9f056e0c661379f7f"
     },
     "regressions": {
       "steps": [
         {
           "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip",
           "exit_code": 0,
-          "seconds": 0.20239287498407066,
+          "seconds": 0.20650024991482496,
           "results": [
             "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
           ],
-          "log_sha256": "bf57dcc99c769976e5283284985f005590dfc2eedc607988e39188ecbf7bfa78"
+          "log_sha256": "707f89b98aff7858b14c9cb94256f036edc5f8d59bcd741d88e9a1dbb269abd6"
         },
         {
           "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip",
           "exit_code": 0,
-          "seconds": 0.20037833391688764,
+          "seconds": 0.20691737509332597,
           "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.19s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
           ],
-          "log_sha256": "1cb13cedf418d5c8a6ec0134f852660dbbdbba5f34a228ba9e2717a93b307e54"
+          "log_sha256": "d2416826e2e19d0a9a66d8dc8044385ebeccbb98786a7fc498e6a1f3e96ca7e6"
         },
         {
           "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
           "exit_code": 0,
-          "seconds": 4.646902082953602,
+          "seconds": 4.472091125091538,
           "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.64s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.46s"
           ],
-          "log_sha256": "08836796a4f513ba99e6c8e94562c04ccddb40fb6bf860d10a1b6ca52a26ad44"
+          "log_sha256": "8093ba6ff0f765651ca42eed2d448c5e0fe483742be8dd68302c82587141462f"
         },
         {
           "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
           "exit_code": 0,
-          "seconds": 4.197512667160481,
+          "seconds": 4.201415500137955,
           "results": [
-            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.18s"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.19s"
           ],
-          "log_sha256": "0b7214a17fb8cfbfab95588bc3d3ac43a80e389e704a48b19fef0344fcba20bf"
+          "log_sha256": "8a684591bd21bbff2a955ddf6e65ab55209f49a675971ad6b59bf79f72ec2d01"
         }
       ],
-      "binary_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+      "binary_sha256": "88c6a0767a49bc62c81a76928fc98b8981ddda48a2d71c6c6d2303623451afd2",
       "changed_inputs": []
     },
-    "limitation": "Four complete network profiles and four integration regressions pass on v40. Final v43 production runtime266, direct267/loss268, regressions269 and configuration270 are pending and must establish their own source guards.",
-    "prior_source_passed": true
+    "limitation": "Actual current-source local controlled peerNAT Linuxarm64-to-Mac profiles only. No WAN/PSTN/provider/model/browser/ICE restart/Linuxx86/performance or full G6-054 qualification.",
+    "prior_source_passed": true,
+    "previous_checkpoint": {
+      "evidence": "docs/evidence/gate-6/remote-telephone-network.json",
+      "direct_profiles": 2,
+      "loss_profiles": 2,
+      "build": {
+        "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+        "exit_code": 0,
+        "seconds": 1020.6222116670106,
+        "arguments": [
+          "cargo",
+          "rustc",
+          "--jobs",
+          "2",
+          "--release",
+          "--offline",
+          "--locked",
+          "--config",
+          "profile.release.package.connect-store.opt-level=0",
+          "--config",
+          "profile.release.package.connect-service.opt-level=0",
+          "--config",
+          "profile.release.package.connect-server.opt-level=0",
+          "-p",
+          "connect-server",
+          "--features",
+          "test-support",
+          "--test",
+          "gate6_canonical_runtime",
+          "--message-format=json",
+          "--",
+          "-C",
+          "strip=none"
+        ],
+        "source_count": 5255,
+        "changed_inputs": [],
+        "artifact": {
+          "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-62a46568b8e8873f",
+          "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/distinct-network-telephone-server-253",
+          "sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+          "bytes": 268370952
+        },
+        "diagnostic_warnings": [],
+        "log_sha256": "f450e6911b6b4df0201c1dc44ea1119426885a1ad01c905831afa6d731f00448"
+      },
+      "regressions": {
+        "steps": [
+          {
+            "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_later_http_bind_failure_drains_started_sip",
+            "exit_code": 0,
+            "seconds": 0.20239287498407066,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.20s"
+            ],
+            "log_sha256": "bf57dcc99c769976e5283284985f005590dfc2eedc607988e39188ecbf7bfa78"
+          },
+          {
+            "function": "canonical_native_connections::consultation::groups::replacement::telephone::configured::production_telephone_configured_server_drop_fences_owner_and_drains_sip",
+            "exit_code": 0,
+            "seconds": 0.20037833391688764,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 0.19s"
+            ],
+            "log_sha256": "1cb13cedf418d5c8a6ec0134f852660dbbdbba5f34a228ba9e2717a93b307e54"
+          },
+          {
+            "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::activation::production_mixed_session_activation_waits_for_actual_native_and_sip_readiness_with_exact_capabilities",
+            "exit_code": 0,
+            "seconds": 4.646902082953602,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.64s"
+            ],
+            "log_sha256": "08836796a4f513ba99e6c8e94562c04ccddb40fb6bf860d10a1b6ca52a26ad44"
+          },
+          {
+            "function": "canonical_native_connections::consultation::groups::replacement::telephone::initial::production_initial_telephone_public_end_confirms_original_cleanup_after_generation_fence",
+            "exit_code": 0,
+            "seconds": 4.197512667160481,
+            "results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 366 filtered out; finished in 4.18s"
+            ],
+            "log_sha256": "0b7214a17fb8cfbfab95588bc3d3ac43a80e389e704a48b19fef0344fcba20bf"
+          }
+        ],
+        "binary_sha256": "6c8755130cf285c25b6f26c0f9a442ba6e17205bd441ba9a6adaecd7b82b1a6f",
+        "changed_inputs": []
+      },
+      "limitation": "Four complete network profiles and four integration regressions pass on v40. Final v43 production runtime266, direct267/loss268, regressions269 and configuration270 are pending and must establish their own source guards.",
+      "prior_source_passed": true
+    },
+    "configuration": {
+      "functions_passed": 4,
+      "prefix": "canonical_telephone::tests::",
+      "exit_code": 0,
+      "seconds": 0.01353295799344778,
+      "results": [
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 96 filtered out; finished in 0.00s"
+      ],
+      "binary_sha256": "ef52a1da553d9a614a82560091f7ae866962140c1a1768533e75d577549700d4",
+      "log_sha256": "4f08c5ee64376240cb5513ca377ff97d07a1836cf9c387b65af1f0016bb07b52",
+      "changed_inputs": []
+    },
+    "current_source_passed": true
   },
   "configuration_verification": {
     "build": {
