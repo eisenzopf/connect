@@ -20,7 +20,7 @@ pub use connection::{
 pub use managed::ManagedClient;
 pub use session::{Change as SessionChange, InviteMedium, SessionAction};
 
-pub const PROFILE: &str = "connect-sdk-helper/3";
+pub const PROFILE: &str = "connect-sdk-helper/4";
 pub const VALIDATION_PROFILE: &str = "connect-sdk-validation/1";
 /// Local frozen validation/intent description; no payload echo, client or grant.
 pub fn validation_descriptor_bytes(bytes: &[u8]) -> Value {
@@ -71,6 +71,17 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    EventsPoll {
+        reader_id: OperationId,
+        conversation_id: ConversationId,
+        after: Option<Cursor>,
+        acknowledged: Option<EventAcknowledgement>,
+        ready: bool,
+    },
+    EventsClose {
+        reader_id: OperationId,
+        conversation_id: ConversationId,
+    },
     IncomingPoll {
         reader_id: OperationId,
         acknowledged: Option<OperationId>,
@@ -160,6 +171,12 @@ pub enum Action {
         action: OperationAction,
     },
 }
+#[derive(Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EventAcknowledgement {
+    pub event_id: String,
+    pub cursor: Cursor,
+}
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
@@ -207,9 +224,10 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
-        Action::IncomingPoll { .. } | Action::IncomingClose { .. } => {
-            Err(Error::request(ErrorKind::Unsupported, None, false))
-        }
+        Action::IncomingPoll { .. }
+        | Action::IncomingClose { .. }
+        | Action::EventsPoll { .. }
+        | Action::EventsClose { .. } => Err(Error::request(ErrorKind::Unsupported, None, false)),
         Action::RawRequest { envelope } => {
             let raw = client.raw();
             let checked = raw.validate(envelope)?;

@@ -1,5 +1,7 @@
 //! Owned helper readers. A bounded poll never acknowledges a pending delivery.
 use super::*;
+#[path = "managed/events.rs"]
+mod events;
 
 #[derive(Default)]
 struct Delivery {
@@ -50,18 +52,74 @@ struct Incoming {
 pub struct ManagedClient {
     client: Client,
     incoming: tokio::sync::Mutex<Incoming>,
+    events: tokio::sync::Mutex<BTreeMap<OperationId, events::Reader>>,
 }
 impl ManagedClient {
     pub fn new(client: Client) -> Self {
         Self {
             client,
             incoming: Default::default(),
+            events: Default::default(),
         }
     }
     pub async fn execute(&self, request: Request) -> Result<Value> {
         let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
         let until = tokio::time::Instant::now() + options.timeout;
         match request.action {
+            Action::EventsPoll {
+                reader_id,
+                conversation_id,
+                after,
+                acknowledged,
+                ready,
+            } => {
+                self.client.capabilities().refresh(options).await?;
+                let mut readers = tokio::time::timeout_at(until, self.events.lock())
+                    .await
+                    .map_err(|_| failure(ErrorKind::Deadline))?;
+                if !readers.contains_key(&reader_id) {
+                    if acknowledged.is_some() {
+                        return Err(failure(ErrorKind::Validation));
+                    }
+                    if readers.len() >= 8 {
+                        return Err(failure(ErrorKind::Configuration));
+                    }
+                    readers.insert(
+                        reader_id.clone(),
+                        events::Reader::new(&self.client, conversation_id.clone(), after.clone())?,
+                    );
+                }
+                readers
+                    .get_mut(&reader_id)
+                    .unwrap()
+                    .poll(
+                        &reader_id,
+                        &conversation_id,
+                        after.as_ref(),
+                        acknowledged,
+                        ready,
+                        until,
+                    )
+                    .await
+            }
+            Action::EventsClose {
+                reader_id,
+                conversation_id,
+            } => {
+                let mut readers = tokio::time::timeout_at(until, self.events.lock())
+                    .await
+                    .map_err(|_| failure(ErrorKind::Deadline))?;
+                if readers
+                    .get(&reader_id)
+                    .is_some_and(|reader| reader.conversation_id() != &conversation_id)
+                {
+                    return Err(failure(ErrorKind::Validation));
+                }
+                if let Some(reader) = readers.remove(&reader_id) {
+                    reader.close(until).await?;
+                }
+                Ok(json!({"reader_id":reader_id,"conversation_id":conversation_id,"closed":true}))
+            }
             Action::IncomingPoll {
                 reader_id,
                 acknowledged,
@@ -152,11 +210,21 @@ impl ManagedClient {
         }
     }
     pub async fn close(self, options: RequestOptions) -> Result<()> {
+        let until = tokio::time::Instant::now() + options.timeout;
         let mut incoming = self.incoming.into_inner();
-        if let Some(mut stream) = incoming.stream.take() {
-            stream.close().await?;
-        }
-        self.client.close(options).await
+        let readers = self.events.into_inner();
+        let detach = async {
+            if let Some(mut stream) = incoming.stream.take() {
+                stream.close().await?;
+            }
+            for (_, reader) in readers {
+                reader.close(until).await?;
+            }
+            Ok::<_, Error>(())
+        };
+        let (client, readers) = tokio::join!(self.client.close(options), detach);
+        client?;
+        readers
     }
 }
 

@@ -17,7 +17,7 @@ import {
     type CanonicalRequestOptions,
 } from "./canonical_validation.js";
 
-const profile = "connect-sdk-helper/3";
+const profile = "connect-sdk-helper/4";
 export function object(
     value: unknown,
     fields: readonly string[],
@@ -338,10 +338,15 @@ export class SdkHelper {
             const v = parseCanonicalJson(
                 Buffer.concat(this.chunks, this.bytes).subarray(0, -1),
                 2 * 1024 * 1024,
-                job.action.type === "raw_request" || this.administrative
+                job.action.type === "raw_request" ||
+                    job.action.type === "events_poll" ||
+                    this.administrative
                     ? 40
                     : 32,
-                job.action.type === "raw_request" ? 1100000 : 100000,
+                job.action.type === "raw_request" ||
+                    job.action.type === "events_poll"
+                    ? 1100000
+                    : 100000,
             );
             this.chunks = [];
             this.bytes = 0;
@@ -449,7 +454,12 @@ export class SdkHelper {
                         "protocol",
                         "transport-uncertain",
                         "cleanup-incomplete",
-                    ].includes(error.kind)
+                    ].includes(error.kind) &&
+                    !(
+                        error.kind === "protocol" &&
+                        job.action.type === "events_poll" &&
+                        v.phase === "request"
+                    )
                 ) {
                     this.fence(error.kind);
                     return;

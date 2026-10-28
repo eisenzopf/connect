@@ -281,7 +281,7 @@ impl Inbox {
             changed: Notify::new(),
         }
     }
-    fn check(&self) -> Result<()> {
+    pub(in crate::sdk) fn check(&self) -> Result<()> {
         let state = self.state.lock().map_err(|_| bad())?;
         if state.closed || self.signal.is_cancelled() {
             return Err(Error::request(ErrorKind::Cancelled, None, false));
@@ -413,6 +413,20 @@ impl Inbox {
         s.bytes = s.bytes.saturating_sub(*bytes);
         s.pending.take();
         s.delivered = Some(event.cursor.clone());
+        Ok(())
+    }
+    fn acknowledge(&self, id: &str, cursor: &Cursor) -> Result<()> {
+        self.check()?;
+        let mut state = self.state.lock().map_err(|_| bad())?;
+        let Some((event, bytes)) = state.pending.as_ref() else {
+            return Err(Error::request(ErrorKind::Validation, None, false));
+        };
+        if event.event_id != id || &event.cursor != cursor {
+            return Err(Error::request(ErrorKind::Validation, None, false));
+        }
+        state.bytes = state.bytes.saturating_sub(*bytes);
+        state.pending.take();
+        state.delivered = Some(cursor.clone());
         Ok(())
     }
 }
@@ -560,6 +574,18 @@ impl EventStream {
     /// journal under current authority. Interrupted catch-up retains the same
     /// charged fact and previous cursor; it never replays a mutation.
     pub async fn next(&mut self) -> Result<Option<JournalEvent>> {
+        self.next_observation(true).await
+    }
+    pub(in crate::sdk) async fn helper_peek(&mut self) -> Result<Option<JournalEvent>> {
+        self.next_observation(false).await
+    }
+    pub(in crate::sdk) fn helper_inbox(&self) -> Arc<Inbox> {
+        self.inbox.clone()
+    }
+    pub(in crate::sdk) fn helper_acknowledge(&self, id: &str, cursor: &Cursor) -> Result<()> {
+        self.inbox.acknowledge(id, cursor)
+    }
+    async fn next_observation(&mut self, advance: bool) -> Result<Option<JournalEvent>> {
         self.options.validate()?;
         let until = tokio::time::Instant::now() + self.options.timeout;
         if self.client.is_none() {
@@ -573,7 +599,9 @@ impl EventStream {
                 .expect("opened event owner")
                 .catch_up_native_event(event, &self.options, until)
                 .await?;
-            self.inbox.delivered(event)?;
+            if advance {
+                self.inbox.delivered(event)?;
+            }
         }
         Ok(event)
     }
@@ -587,5 +615,105 @@ impl EventStream {
         }
         self.client.take();
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod helper_delivery_tests {
+    use super::*;
+    fn inbox() -> Inbox {
+        let inbox = Inbox::new(
+            "room".parse().unwrap(),
+            Some("baseline".parse().unwrap()),
+            CancellationToken::new(),
+        );
+        let event = JournalEvent {
+            event_id: "original".into(),
+            cursor: "next".parse().unwrap(),
+            conversation_id: "room".parse().unwrap(),
+            session_id: None,
+            connection_id: None,
+            operation_id: None,
+            participant_id: None,
+            audience: vec![],
+            kind: "synthetic".into(),
+            revision: 1,
+            source: EventSource {
+                kind: "synthetic".into(),
+                correlation_id: "original".into(),
+            },
+            observed_at: 1,
+            data: serde_json::json!({"private":"synthetic"}),
+        };
+        let mut state = inbox.state.lock().unwrap();
+        state.bytes = 99;
+        state.pending = Some((event, 99));
+        drop(state);
+        inbox
+    }
+    #[test]
+    fn wrong_event_or_cursor_cannot_release_charge_or_advance_returned_boundary() {
+        let inbox = inbox();
+        for (id, cursor) in [("foreign", "next"), ("original", "foreign")] {
+            let error = inbox.acknowledge(id, &cursor.parse().unwrap()).unwrap_err();
+            assert_eq!(error.kind, ErrorKind::Validation);
+            assert_eq!(error.certainty, Certainty::ReadOnly);
+            let state = inbox.state.lock().unwrap();
+            assert_eq!(state.bytes, 99);
+            assert!(state.pending.is_some());
+            assert_eq!(state.delivered.as_ref().unwrap().as_str(), "baseline");
+        }
+        inbox
+            .acknowledge("original", &"next".parse().unwrap())
+            .unwrap();
+        let state = inbox.state.lock().unwrap();
+        assert_eq!(state.bytes, 0);
+        assert!(state.pending.is_none());
+        assert_eq!(state.delivered.as_ref().unwrap().as_str(), "next");
+    }
+    #[test]
+    fn retained_fact_acknowledgement_cannot_bypass_current_source_failure_or_cancel() {
+        for cancelled in [false, true] {
+            let inbox = inbox();
+            if cancelled {
+                inbox.signal.cancel();
+            } else {
+                inbox.fail(Error::request(ErrorKind::Authentication, None, false));
+            }
+            let error = inbox
+                .acknowledge("original", &"next".parse().unwrap())
+                .unwrap_err();
+            assert_eq!(
+                error.kind,
+                if cancelled {
+                    ErrorKind::Cancelled
+                } else {
+                    ErrorKind::Authentication
+                }
+            );
+            assert_eq!(inbox.cursor().unwrap().as_str(), "baseline");
+        }
+    }
+    #[tokio::test]
+    async fn repeated_peek_retains_one_charged_fact_until_exact_acknowledgement() {
+        let inbox = inbox();
+        let until = tokio::time::Instant::now() + Duration::from_secs(1);
+        for _ in 0..3 {
+            let event = inbox.receive(until).await.unwrap().unwrap();
+            assert_eq!(event.event_id, "original");
+            assert_eq!(inbox.state.lock().unwrap().bytes, 99);
+            assert_eq!(inbox.cursor().unwrap().as_str(), "baseline");
+        }
+        inbox
+            .acknowledge("original", &"next".parse().unwrap())
+            .unwrap();
+        assert!(inbox.state.lock().unwrap().pending.is_none());
+        assert_eq!(
+            inbox
+                .acknowledge("original", &"next".parse().unwrap())
+                .unwrap_err()
+                .kind,
+            ErrorKind::Validation
+        );
     }
 }

@@ -1,3 +1,4 @@
+import { createEvents, } from "./node_events.js";
 import { createIncoming, } from "./node_incoming.js";
 import { createRaw } from "./node_raw.js";
 import { deliveryObservations, } from "./node_receipts.js";
@@ -33,6 +34,7 @@ function capabilitySnapshot(value) {
     const set = new Set(value.features.filter((f) => f === "original-id-operations" ||
         f === "message-receipts" ||
         f === "incoming-invitations" ||
+        f === "durable-events" ||
         f === "raw-canonical"));
     const features = Object.freeze({
         get size() {
@@ -410,8 +412,9 @@ const operationKinds = Object.freeze({
     operation_reconcile: kind("operation_reconcile", "operation.reconcile", decision),
 });
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * events and remote HTTP remain under development. Incoming hints grant no custody.
+ * remote HTTP remains under development. Journal facts and incoming hints grant no custody.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
+const eventStream = Symbol("eventStream");
 export class NodeClient {
     role = "node";
     operationKinds = operationKinds;
@@ -421,6 +424,9 @@ export class NodeClient {
     operations;
     incomingInvitations(options) {
         return createIncoming(this.helper, (cid, sid) => this.conversations.byId(cid).sessions.byId(sid), options);
+    }
+    [eventStream](cid, input, options) {
+        return createEvents(this.helper, cid, input, options);
     }
     helper;
     constructor(config) {
@@ -842,6 +848,9 @@ export class SdkConversation {
             },
         });
         Object.freeze(this);
+    }
+    events(input, options) {
+        return this.client[eventStream](this.id, input, options);
     }
     refresh(options) {
         return this.client[refreshConversation](this.id, options);

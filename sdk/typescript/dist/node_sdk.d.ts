@@ -1,3 +1,4 @@
+import { type SdkEventStream, type SdkCursor } from "./node_events.js";
 import { type SdkIncomingInvitations } from "./node_incoming.js";
 import { type SdkRawCanonical } from "./node_raw.js";
 import { type SdkDeliveryObservation } from "./node_receipts.js";
@@ -155,8 +156,9 @@ declare const operationKinds: Readonly<{
     operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
 }>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * events and remote HTTP remain under development. Incoming hints grant no custody.
+ * remote HTTP remains under development. Journal facts and incoming hints grant no custody.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
+declare const eventStream: unique symbol;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
@@ -197,6 +199,9 @@ export declare class NodeClient {
         recover: <T>(reference: SdkOperationReference<T>) => SdkOperation<T>;
     }>;
     incomingInvitations(options: CanonicalRequestOptions): SdkIncomingInvitations;
+    [eventStream](cid: ConversationId, input: {
+        readonly after?: SdkCursor;
+    }, options: CanonicalRequestOptions): SdkEventStream;
     private readonly helper;
     constructor(config: {
         readonly config: string;
@@ -241,6 +246,9 @@ export declare class SdkConversation {
         }, options: SdkMutationOptions) => Promise<SdkOperation<SdkParticipant>>;
     }>;
     constructor(client: NodeClient, id: ConversationId);
+    events(input: {
+        readonly after?: SdkCursor;
+    }, options: CanonicalRequestOptions): SdkEventStream;
     refresh(options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
     receipts(messageId: MessageId, options: CanonicalRequestOptions): Promise<readonly SdkDeliveryObservation[]>;
     send(input: Parameters<NodeClient[typeof sendMessage]>[1], options: SdkMutationOptions): Promise<SdkOperation<SdkMessageAcceptance>>;

@@ -119,3 +119,17 @@ await incomingReader.close();
 client.incomingInvitations();
 // @ts-expect-error next uses captured stream options, not a separate per-wait API.
 incomingReader.next({timeoutMs:1000});
+
+import type {SdkCursor,SdkJournalEvent} from '../typescript/dist/index.js';
+declare const cursor:SdkCursor;
+const events=client.conversations.byId(roomId).events({after:cursor},{timeoutMs:1000});
+for await(const fact of events){ const original:SdkJournalEvent=fact; void original; break; }
+// @ts-expect-error Resource IDs cannot substitute for an opaque journal cursor.
+client.conversations.byId(roomId).events({after:roomId},{timeoutMs:1000});
+// @ts-expect-error Cursor cannot be used as a mutation ID.
+const eventOperation:OperationId=cursor;
+declare const fact:SdkJournalEvent;
+// @ts-expect-error Event audiences retain their readonly evidence boundary.
+fact.audience.push(fact.audience[0]);
+// @ts-expect-error Journal data is immutable recursively.
+const mutableData:{[key:string]:string}=fact.data;

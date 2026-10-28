@@ -53,9 +53,9 @@ try {
  assert.equal(returned.id,peer.id);const currentMemberEpoch=(await returned.refresh(opts)).membershipEpoch;assert.ok(currentMemberEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
  progress('capabilities');
- const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['incoming-invitations','message-receipts','original-id-operations','raw-canonical']);
+ const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['durable-events','incoming-invitations','message-receipts','original-id-operations','raw-canonical']);
  await client.capabilities.require('original-id-operations',opts);
- for(const feature of ['native-programmatic-media','durable-events'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
+ for(const feature of ['native-programmatic-media'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
  progress('session');
  const capabilities={audio:['g.711-mu','g.711-a'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
  const own=refreshed.participants.find(p=>p.id!==peer.id);assert.ok(own);

@@ -2,9 +2,9 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "graceful-helper-stop-implemented-component-passed-native-pending",
+  "status": "graceful-helper-stop-component-and-linux-administration-passed",
   "implementation_parent_commit": "d85c4398226e107247f77204ed86b05d4147f8cf",
-  "native_component_passed": false,
+  "native_component_passed": true,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
@@ -81,5 +81,7 @@
     "diff": true,
     "actual_rust_compile_and_native": "Pending new original normal-push Ubuntu run. No local Rust link due retained ENOSPC."
   },
-  "qualification_limit": "93 component/type/HTTP functions with217 unchanged guarded inputs and3 installed public synthetic lifecycle functions only. Synthetic signal-drain markers do not prove real peer cleanup. Current CLI signal branch/native drain, incoming native, audio-boundary cause and remaining SDK/Gate6 scopes remain unqualified."
+  "qualification_limit": "93 component/type/HTTP functions with217 unchanged guarded inputs and3 installed public synthetic lifecycle functions only. Synthetic signal-drain markers do not prove real peer cleanup. Current CLI signal branch/native drain, incoming native, audio-boundary cause and remaining SDK/Gate6 scopes remain unqualified.",
+  "verified_native_evidence": "docs/evidence/gate-6/node-native-3c.json",
+  "verified_native_scope": "Historical exact3c06 source, run40777202305: all6 administration functions pass each Node22.23.4/26.12.1 matrix, EdDSA/ES256, including held commit uncertain/queued not submitted/fresh recovery and original5s physical/media drains.16helpers/80validators/8servers per matrix. Whole run remains failed on old incoming assertion; Node26 also fails minimum allowed audio frames. Current full SDK remains open."
 }

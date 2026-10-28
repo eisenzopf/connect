@@ -9,3 +9,4 @@ export { NodeClient, sdkId, sdkRevision } from "./node_sdk.js";
 export { NodeSdkError } from "./sdk_helper.js";
 export { TASK_PROFILE } from "./tasks.js";
 export { NodeAdministrativeClient } from "./node_administration.js";
+export { sdkCursor } from "./node_events.js";

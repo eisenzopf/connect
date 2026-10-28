@@ -1,3 +1,4 @@
+import { readerOptions, readerWait } from "./node_readers.js";
 import { randomUUID } from "node:crypto";
 import { SdkHelper, NodeSdkError, object } from "./sdk_helper.js";
 import { identifier } from "./uctp_wire.js";
@@ -29,61 +30,6 @@ export interface SdkIncomingInvitations extends AsyncIterableIterator<SdkIncomin
     close(): Promise<void>;
 }
 
-function valid(options: CanonicalRequestOptions): void {
-    if (
-        !options ||
-        !Number.isSafeInteger(options.timeoutMs) ||
-        options.timeoutMs < 1 ||
-        options.timeoutMs > 120000 ||
-        (options.signal !== undefined &&
-            !(options.signal instanceof AbortSignal))
-    )
-        throw new NodeSdkError("validation", "read-only");
-}
-function wait<T>(
-    promise: Promise<T>,
-    expires: number,
-    signal: AbortSignal | undefined,
-    closed: AbortSignal,
-): Promise<T> {
-    return new Promise((resolve, reject) => {
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const cleanup = () => {
-            clearTimeout(timer);
-            signal?.removeEventListener("abort", cancelled);
-            closed.removeEventListener("abort", cancelled);
-        };
-        const cancelled = () => {
-            cleanup();
-            reject(new NodeSdkError("cancelled", "read-only"));
-        };
-        const remaining = expires - performance.now();
-        if (signal?.aborted || closed.aborted) {
-            cancelled();
-            return;
-        }
-        if (remaining <= 0) {
-            reject(new NodeSdkError("deadline", "read-only"));
-            return;
-        }
-        timer = setTimeout(() => {
-            cleanup();
-            reject(new NodeSdkError("deadline", "read-only"));
-        }, remaining);
-        signal?.addEventListener("abort", cancelled, { once: true });
-        closed.addEventListener("abort", cancelled, { once: true });
-        promise.then(
-            (value) => {
-                cleanup();
-                resolve(value);
-            },
-            (error) => {
-                cleanup();
-                reject(error);
-            },
-        );
-    });
-}
 function freeze(value: Json): Json {
     if (value !== null && typeof value === "object") {
         for (const child of Object.values(value)) freeze(child);
@@ -97,7 +43,7 @@ export function createIncoming(
     session: (cid: ConversationId, sid: SessionId) => SdkSession,
     options: CanonicalRequestOptions,
 ): SdkIncomingInvitations {
-    valid(options);
+    readerOptions(options);
     const captured = Object.freeze({
         timeoutMs: options.timeoutMs,
         signal: options.signal,
@@ -185,7 +131,7 @@ export function createIncoming(
     };
     const owner = Object.freeze({
         async next(options: CanonicalRequestOptions) {
-            valid(options);
+            readerOptions(options);
             const signal = options.signal;
             if (closed) return undefined;
             if (signal?.aborted)
@@ -199,7 +145,12 @@ export function createIncoming(
                 // never return a Node-cached hint after revocation/overflow.
                 const abandoned = flight;
                 if (abandoned) {
-                    await wait(abandoned, expires, signal, stopped.signal);
+                    await readerWait(
+                        abandoned,
+                        expires,
+                        signal,
+                        stopped.signal,
+                    );
                     if (flight === abandoned) flight = undefined;
                 }
                 while (true) {
@@ -224,7 +175,7 @@ export function createIncoming(
                         });
                     }
                     const original = flight,
-                        value = await wait(
+                        value = await readerWait(
                             original,
                             expires,
                             signal,
@@ -238,7 +189,7 @@ export function createIncoming(
                         return value.hint;
                     }
                     // Prevent a fast synthetic/idle helper from a busy loop.
-                    await wait(
+                    await readerWait(
                         new Promise((resolve) => setTimeout(resolve, 5)),
                         expires,
                         signal,
@@ -250,7 +201,7 @@ export function createIncoming(
             }
         },
         async close(options: CanonicalRequestOptions) {
-            valid(options);
+            readerOptions(options);
             const signal = options.signal,
                 expires = performance.now() + options.timeoutMs;
             if (signal?.aborted)
@@ -281,7 +232,12 @@ export function createIncoming(
                     if (closing === original) closing = undefined;
                 });
             }
-            await wait(closing, expires, signal, new AbortController().signal);
+            await readerWait(
+                closing,
+                expires,
+                signal,
+                new AbortController().signal,
+            );
         },
     });
     const stream: SdkIncomingInvitations = {

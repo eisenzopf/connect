@@ -20,3 +20,5 @@ export type { SdkValidatedEnvelope, SdkRawCanonical } from "./node_raw.js";
 export { NodeAdministrativeClient } from "./node_administration.js";
 export type { SdkTrustedProvisioningCommand } from "./node_administration.js";
 export type { SdkIncomingInvitation, SdkIncomingInvitations, } from "./node_incoming.js";
+export { sdkCursor } from "./node_events.js";
+export type { SdkCursor, SdkJournalEvent, SdkEventData, SdkEventStream, } from "./node_events.js";

@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "owned-node-events-component-and-installed-passed-rust-and-native-pending",
+  "implementation_parent_commit": "972ed9868d4e0bb1dd96f86bf8fc2461685649c2",
+  "helper_profile": "connect-sdk-helper/4",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "component": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.706948834005743,
+    "source_count": 224,
+    "changed_inputs": [],
+    "source_inputs_sha256": "907e5c21051423b094122ab003da02858a472dde54f9c7d105dbe1890920d5a7",
+    "log_sha256": "f8cc721d4960f9943d16573ea499a761e27804f2e1d3451006deeb9447afdb6e",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T22:53:16.694711+00:00"
+  },
+  "functions_passed": 105,
+  "prior94_retained": true,
+  "new_functions": [
+    "events bootstrap captures options, exposes complete immutable scoped facts and acknowledges only returned facts",
+    "events explicit opaque resume survives detach without granting scope or inventing a new cursor",
+    "timed-out event wait keeps the SDK fact unacknowledged and revalidates before returning it",
+    "abandoned event reply cannot bypass current authentication after revocation",
+    "event cancellation and reader close join only the local reader and retain control",
+    "events invalid cursor, input, options and pre-cancellation do not write helper input",
+    "malformed event scopes, opaque cursors, audience, resources and fields fence the original helper",
+    "event source protocol and resync failures preserve unrelated control on the original helper",
+    "event reply budget accepts large facts without widening ordinary outgoing input limits",
+    "event async iteration closes once on break or application failure and rejects concurrent reads",
+    "events enforce the original eight-reader budget and reject duplicate returned facts"
+  ],
+  "installed": {
+    "functions_passed": 11,
+    "archive_sha256": "0d357663075a57aa35ee2c7e13a7e5e1b81ffcf8aa33d3641cba90e2f539c954",
+    "installed_dist_matches": true,
+    "dist_files": 134,
+    "log_sha256": "2a01057717f162368e4816fd79c8363fdea88bb3b186a305dd10029e03d93356"
+  },
+  "rust_candidates": [
+    "Three exact pending-fact ACK/budget/current-failure unit tests",
+    "Original nine signed journal bootstrap/renewal/duplicate/authority/scope/overflow/cancellation/capacity tests"
+  ],
+  "limits": {
+    "readers": 8,
+    "source_facts": 256,
+    "source_bytes": 2097152,
+    "helper_reply_bytes": 2097152,
+    "short_poll_ms": 25,
+    "owned_sdk_wait_ms": 30000
+  },
+  "source_sha256": {
+    "crates/connect-client/src/sdk/events.rs": "88cd1be503a9bc8d6675e7de185bc6ff254a9b3fef24b4b6c6746fe1961a900f",
+    "crates/connect-client/src/sdk/helper.rs": "093ca2ed71f188cda585cd30fa4e9da31037acae40808ff22c0c001148da61a7",
+    "crates/connect-client/src/sdk/helper/managed.rs": "1c3e79ca037f2b57bee55c75f2beaa32dbdf1e36ebc53adcfa5f183812bb8b90",
+    "crates/connect-client/src/sdk/helper/managed/events.rs": "119cd9c4abc94a4814475b9a8618876d3553846a0c71f983af0785171e74a660",
+    "sdk/typescript/src/node_events.ts": "e110255cf694559e72688ddccc4ae7267f979868dcd36e95655be445bded7898",
+    "sdk/typescript/src/node_readers.ts": "120f70b39b2076e84587a1f9dc2a9b3c7110662411f44525fbf3ab038e9f4a77",
+    "sdk/typescript/src/sdk_helper.ts": "ed34f04e5ec326a5e3820740009d4d29a6055fea752c97157aea913d54164c0f",
+    "sdk/tests/node_events.test.mjs": "7255db837301b71594a4007f679c7e766976c32e2db6e05fa385d8e823010a42"
+  },
+  "scope": "Synthetic lifecycle/framing and exact packed distribution only; no local Rust link due retained disk exhaustion. Linux Rust and actual server event evidence pending. No credential/provider/model execution or publication."
+}

@@ -53,7 +53,7 @@ if(config.signalDrainMs!==undefined||config.ignoreTermination){setInterval(()=>{
 if(config.mode==='hang-close')setInterval(()=>{},1000);
 const key=reference=>({operationId:reference.operation_id,command:reference.command,scope:{conversationId:reference.scope.conversation_id??null,sessionId:reference.scope.session_id??null,connectionId:reference.scope.connection_id??null}});
 const reference=(id,command,scope={},continuation)=>({schema:'connect-operation-reference/1',operation_id:id,command,scope,...(continuation?{continuation}:{})});
-let count=0;const intents=new Map();let incomingReader=null,incomingPending=true,incomingPolls=0;
+let count=0;const eventReaders=new Map();let eventPolls=0;const intents=new Map();let incomingReader=null,incomingPending=true,incomingPolls=0;
 const conn=(a,rev=null)=>({id:a.connection_id??a.reference.scope.connection_id,conversationId:a.conversation_id??a.reference.scope.conversation_id,sessionId:a.session_id??a.reference.scope.session_id,receiptStreamRevision:rev});
 const binding=()=>({parameters:{id:'audio',medium:'audio',direction:'sendrecv',codec:{name:'pcmu'},streamLocalId:1},streamGeneration:1,connectionGeneration:1});
 createInterface({input:process.stdin}).on('line',line=>{
@@ -69,6 +69,31 @@ createInterface({input:process.stdin}).on('line',line=>{
   const names={identity:'identity.provision',participant:'participant.provision',endpoint:'endpoint.provision',endpoint_verify:'endpoint.verify',endpoint_revoke:'endpoint.revoke',identity_revoke:'identity.revoke',record_read_role:'record-read-role.configure',signing_key:'signing-key.enroll',signing_key_revoke:'signing-key.revoke',device_revoke:'device.revoke',credential_revoke:'credential.revoke'};
   result={Ok:reference(a.mutation.operation_id,names[a.command.type])};
  }
+ else if(a.type==='events_poll') {
+  eventPolls++;
+  let reader=eventReaders.get(a.reader_id);
+  if(!reader&&eventReaders.size<8){reader={after:a.after,cid:a.conversation_id,index:0};eventReaders.set(a.reader_id,reader);}
+  const fail=kind=>({Err:{kind,certainty:'read-only',operation:null,problem:null,observation:null}});
+  if(!reader)result=fail('configuration');
+  else if(reader.after!==a.after||reader.cid!==a.conversation_id)result=fail('validation');
+  else if(config.mode==='events-revoked-after-first'&&eventPolls>1)result=fail('authentication');
+  else if(config.mode==='events-protocol')result=fail('protocol');
+  else if(config.mode==='events-resync')result=fail('resync-required');
+  else {
+   if(a.acknowledged?.event_id==='event-1'&&a.acknowledged?.cursor==='cursor-1')reader.index=1;
+   const fact={eventId:reader.index?'event-2':'event-1',cursor:reader.index?'cursor-2':'cursor-1',conversationId:a.conversation_id,sessionId:'session',connectionId:'connection',operationId:'original',participantId:'participant',audience:[{participantId:'participant',membershipEpoch:2}],kind:'operation_updated',revision:3,source:{kind:'operation',correlationId:'original'},observedAt:1,data:{data:{conversation_id:a.conversation_id,session_id:'session',connection_id:'connection',operation_id:'original',resource_kind:'operation',resource_id:'original',record_id:'record-original'},private:'synthetic'}};
+   if(config.eventSize)fact.data.private='x'.repeat(config.eventSize);
+   if(config.eventNodes)fact.data.private=Array(config.eventNodes).fill(false);
+   if(config.mode==='events-foreign')fact.conversationId='foreign';
+   if(config.mode==='events-nested')fact.data.data.session={id:'foreign',conversation_id:a.conversation_id};
+   if(config.mode==='events-resource')fact.data.data.resource_id='foreign';
+   if(config.mode==='events-audience')fact.audience.push({...fact.audience[0]});
+   if(config.mode==='events-cursor')fact.cursor='bad cursor';
+   if(config.mode==='events-extra')fact.nativeOwner=true;
+   if(config.mode==='events-duplicate')fact.eventId='event-1';
+   result={Ok:{reader_id:config.mode==='events-reader'?'foreign':a.reader_id,conversation_id:a.conversation_id,ready:true,cursor:a.after??'baseline-original',event:a.ready||config.mode==='events-empty'?null:fact,done:false}};
+  }
+ } else if(a.type==='events_close') {eventReaders.delete(a.reader_id);result={Ok:{reader_id:a.reader_id,conversation_id:a.conversation_id,closed:true}};}
  else if(a.type==='incoming_poll') {
   incomingPolls++;
   if(config.mode==='incoming-revoked-after-first'&&incomingPolls>1)result={Err:{kind:'authentication',certainty:'read-only',operation:null,problem:null,observation:null}};
@@ -218,13 +243,13 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='startup-success')phase='startup';
  if(config.mode==='startup-uncertain'){phase='startup';result={Err:{kind:'authentication',certainty:'uncertain',operation:null,problem:null,observation:null}};}
  if(config.mode==='startup-observation'){phase='startup';result={Err:{kind:'authentication',certainty:'read-only',operation:null,problem:null,observation:{private:'untrusted'}}};}
- const response={phase,profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/2':'connect-sdk-helper/3',id:config.mode==='wrong-id'?'foreign':req.id,result};
+ const response={phase,profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/2':'connect-sdk-helper/4',id:config.mode==='wrong-id'?'foreign':req.id,result};
  if(config.mode==='phase-missing')delete response.phase;
- if(config.mode==='profile-old')response.profile=process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/2';
+ if(config.mode==='profile-old')response.profile=process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/3';
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);
  if(config.mode==='extra')raw+='\n'+raw;
  const send=()=>process.stdout.write(raw+'\n');
- const delay=a.type==='incoming_poll'?(incomingPolls===1?(config.incomingDelayMs??config.delayMs):(config.incomingLaterDelayMs??config.incomingDelayMs??config.delayMs)):config.delayMs;
+ const delay=a.type==='events_poll'?(eventPolls===1?(config.eventsDelayMs??config.delayMs):(config.eventsLaterDelayMs??config.eventsDelayMs??config.delayMs)):a.type==='incoming_poll'?(incomingPolls===1?(config.incomingDelayMs??config.delayMs):(config.incomingLaterDelayMs??config.incomingDelayMs??config.delayMs)):config.delayMs;
  if(delay)setTimeout(send,delay);else send();
 });
