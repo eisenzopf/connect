@@ -1,3 +1,4 @@
+import { type SdkIncomingInvitations } from "./node_incoming.js";
 import { type SdkRawCanonical } from "./node_raw.js";
 import { type SdkDeliveryObservation } from "./node_receipts.js";
 import { type SdkHandoffInput, type SdkHandoffResult, type SdkMoveInput, type SdkMoveResult } from "./node_movements.js";
@@ -154,7 +155,7 @@ declare const operationKinds: Readonly<{
     operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
 }>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * invitations, administration, events and remote HTTP remain under development.
+ * events and remote HTTP remain under development. Incoming hints grant no custody.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
 export declare class NodeClient {
     readonly role: "node";
@@ -195,6 +196,7 @@ export declare class NodeClient {
         restore: <T>(saved: Json, expected: SdkOperationKind<T>) => SdkOperation<T>;
         recover: <T>(reference: SdkOperationReference<T>) => SdkOperation<T>;
     }>;
+    incomingInvitations(): SdkIncomingInvitations;
     private readonly helper;
     constructor(config: {
         readonly config: string;

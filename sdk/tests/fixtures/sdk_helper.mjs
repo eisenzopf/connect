@@ -49,7 +49,7 @@ process.on('exit',code=>writeFileSync(join(dir,'exit.json'),JSON.stringify({code
 if(config.mode==='hang-close')setInterval(()=>{},1000);
 const key=reference=>({operationId:reference.operation_id,command:reference.command,scope:{conversationId:reference.scope.conversation_id??null,sessionId:reference.scope.session_id??null,connectionId:reference.scope.connection_id??null}});
 const reference=(id,command,scope={},continuation)=>({schema:'connect-operation-reference/1',operation_id:id,command,scope,...(continuation?{continuation}:{})});
-let count=0;const intents=new Map();
+let count=0;const intents=new Map();let incomingReader=null,incomingPending=true,incomingPolls=0;
 const conn=(a,rev=null)=>({id:a.connection_id??a.reference.scope.connection_id,conversationId:a.conversation_id??a.reference.scope.conversation_id,sessionId:a.session_id??a.reference.scope.session_id,receiptStreamRevision:rev});
 const binding=()=>({parameters:{id:'audio',medium:'audio',direction:'sendrecv',codec:{name:'pcmu'},streamLocalId:1},streamGeneration:1,connectionGeneration:1});
 createInterface({input:process.stdin}).on('line',line=>{
@@ -64,6 +64,27 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(a.type==='administrative_provision'){
   const names={identity:'identity.provision',participant:'participant.provision',endpoint:'endpoint.provision',endpoint_verify:'endpoint.verify',endpoint_revoke:'endpoint.revoke',identity_revoke:'identity.revoke',record_read_role:'record-read-role.configure',signing_key:'signing-key.enroll',signing_key_revoke:'signing-key.revoke',device_revoke:'device.revoke',credential_revoke:'credential.revoke'};
   result={Ok:reference(a.mutation.operation_id,names[a.command.type])};
+ }
+ else if(a.type==='incoming_poll') {
+  incomingPolls++;
+  if(config.mode==='incoming-revoked-after-first'&&incomingPolls>1)result={Err:{kind:'authentication',certainty:'read-only',operation:null,problem:null,observation:null}};
+  else if(incomingReader!==null&&incomingReader!==a.reader_id)result={Err:{kind:'conflict',certainty:'read-only',operation:null,problem:null,observation:null}};
+  else {
+   incomingReader=a.reader_id;
+   if(a.acknowledged==='delivery-original')incomingPending=false;
+   const hint={conversation_id:'room',session_id:'session',from_participant:'caller',to_participant:'callee',operation_id:'original-invite',source:{kind:'session.invite',correlation_id:'original-invite'},medium:'voice',intent:'synchronous-engagement',capabilities:{audio:['g.711-mu'],data:['reliable-ordered']}};
+   if(config.mode==='incoming-source')hint.source.correlation_id='foreign';
+   if(config.mode==='incoming-medium')hint.medium=['voice'];
+   if(config.mode==='incoming-participants')hint.from_participant=hint.to_participant;
+   if(config.mode==='incoming-intent')hint.intent='private\ncontrol';
+   if(config.mode==='incoming-extra')hint.native_owner=true;
+   const pending=!incomingPending||config.mode==='incoming-empty'||incomingPolls<=(config.incomingPendingPolls??0);
+   result={Ok:{reader_id:config.mode==='incoming-reader'?'foreign':a.reader_id,delivery_id:pending?null:'delivery-original',invitation:pending?null:hint}};
+   if(config.mode==='incoming-null')result.Ok.delivery_id=null;
+  }
+ } else if(a.type==='incoming_close') {
+  if(incomingReader!==null&&incomingReader!==a.reader_id)result={Err:{kind:'conflict',certainty:'read-only',operation:null,problem:null,observation:null}};
+  else {if(a.acknowledged==='delivery-original')incomingPending=false;incomingReader=null;result={Ok:{reader_id:a.reader_id,closed:true}};}
  }
  else if(a.type==='capabilities_refresh')result={Ok:{profile:'connect/2',runtime_role:config.mode==='caps-foreign'?'node':'rust',selected_transport:config.mode==='caps-transport'?'http':'quic',fallback_reason:null,features:config.mode==='caps-duplicate'?['original-id-operations','original-id-operations']:['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']}};
  else if(a.type==='raw_request') {
@@ -193,12 +214,13 @@ createInterface({input:process.stdin}).on('line',line=>{
  if(config.mode==='startup-success')phase='startup';
  if(config.mode==='startup-uncertain'){phase='startup';result={Err:{kind:'authentication',certainty:'uncertain',operation:null,problem:null,observation:null}};}
  if(config.mode==='startup-observation'){phase='startup';result={Err:{kind:'authentication',certainty:'read-only',operation:null,problem:null,observation:{private:'untrusted'}}};}
- const response={phase,profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/2':'connect-sdk-helper/2',id:config.mode==='wrong-id'?'foreign':req.id,result};
+ const response={phase,profile:config.mode==='profile'?'foreign':process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/2':'connect-sdk-helper/3',id:config.mode==='wrong-id'?'foreign':req.id,result};
  if(config.mode==='phase-missing')delete response.phase;
- if(config.mode==='profile-old')response.profile=process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/1';
+ if(config.mode==='profile-old')response.profile=process.argv[2]==='sdk-admin-stdio'?'connect-sdk-administration/1':'connect-sdk-helper/2';
  let raw=JSON.stringify(response);
  if(config.mode==='duplicate')raw='{"id":"duplicate",'+raw.slice(1);
  if(config.mode==='extra')raw+='\n'+raw;
  const send=()=>process.stdout.write(raw+'\n');
- if(config.delayMs)setTimeout(send,config.delayMs);else send();
+ const delay=a.type==='incoming_poll'?(config.incomingDelayMs??config.delayMs):config.delayMs;
+ if(delay)setTimeout(send,delay);else send();
 });

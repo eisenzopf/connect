@@ -188,5 +188,16 @@
   },
   "implementation_commit": "ba5864945c6634ce294f50404ebc4a44b6036bb3",
   "startup_context_correction": "docs/evidence/gate-6/node-startup-context.json",
-  "authority_candidate_evidence": "docs/evidence/gate-6/node-administration-authority.json"
+  "authority_candidate_evidence": "docs/evidence/gate-6/node-administration-authority.json",
+  "all_commands_source_bound_native": {
+    "evidence": "docs/evidence/gate-6/node-native-b2.json",
+    "commit": "b2e0cc2170fad0aae73d4454bcfed3fc4ad1f106",
+    "run_id": 40768333415,
+    "node_matrices": [
+      22,
+      26
+    ],
+    "passed": true,
+    "scope": "Historical b2 all11 administrative commands with restart/original recovery/changed-intent refusal and three startup-context units; current profiles/authority/uncertainty/native qualification remain separate."
+  }
 }

@@ -17,7 +17,7 @@ import {
     type CanonicalRequestOptions,
 } from "./canonical_validation.js";
 
-const profile = "connect-sdk-helper/2";
+const profile = "connect-sdk-helper/3";
 export function object(
     value: unknown,
     fields: readonly string[],

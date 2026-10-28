@@ -128,6 +128,15 @@ def run(node_sdk=False):
                 assert isinstance(mismatch['id'], str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,160}', mismatch['id'])
                 assert type(mismatch['expected']) is bool and type(mismatch['observed']) is bool
                 step['local_schema_mismatches'].append(mismatch)
+        step['native_audio_boundary_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('native-audio-boundary-failure '):
+                diagnostic = json.loads(line.split(' ',1)[1])
+                assert set(diagnostic) == {'probe','source_index','receiver_index','allowed_indices','sent_packets','received_packets','non_silent_packets'}
+                assert diagnostic['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement','consultation','other'}
+                assert all(type(diagnostic[k]) is int and 0 <= diagnostic[k] <= 100000 for k in ('source_index','receiver_index','sent_packets','received_packets','non_silent_packets'))
+                assert isinstance(diagnostic['allowed_indices'],list) and len(diagnostic['allowed_indices']) <= 32 and all(type(v) is int and 0 <= v <= 32 for v in diagnostic['allowed_indices'])
+                step['native_audio_boundary_failures'].append(diagnostic)
         step["node_completed_phases"] = []
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-phase '):
@@ -235,6 +244,7 @@ def run(node_sdk=False):
     artifacts = {}
     try:
         for name, wanted, arguments in (
+            ("client", "connect_client", ["--offline", "-p", "connect-client", "--lib"]),
             ("store", "connect_store", ["--offline", "-p", "connect-store", "--lib"]),
             ("library", "connect_server", ["--offline", "-p", "connect-server", "--features", "test-support", "--lib"]),
             ("hosting", "gate6_canonical_runtime", ["--offline", "-p", "connect-server", "--features", "test-support", "--test", "gate6_canonical_runtime"]),
@@ -274,6 +284,7 @@ def run(node_sdk=False):
             assert f'peer_authority::tests::{case}: test' in inventory.splitlines()
         sdk_failures = []
         for name, binary, pattern, expected in (
+            ("sdk-managed-delivery", "client", "sdk::helper::managed::tests::", 3),
             ("sdk-startup-context", "library", "cli::sdk_stdio::tests::", 3),
             ("admin-local-validation", "hosting", "sdk_handles::administration::local_administrative_validator_", 3),
             ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),
@@ -405,7 +416,7 @@ def run(node_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/5'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/6'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -414,8 +425,9 @@ def run(node_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/5'
+                    assert witness['functional_phase_profile'] == 'node-controls/6'
                     assert witness['controls']['session_participants_accepted']
+                    assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
                     assert witness['initial']['node_capability_support_only']
@@ -430,7 +442,7 @@ def run(node_sdk=False):
                     assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/5', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/6', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,

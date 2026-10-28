@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { CanonicalError, } from "./canonical_error.js";
 import { canonicalJson, parseCanonicalJson, jsonObject, } from "./uctp_json.js";
 import { duration, } from "./canonical_validation.js";
-const profile = "connect-sdk-helper/2";
+const profile = "connect-sdk-helper/3";
 export function object(value, fields) {
     return (jsonObject(value) &&
         Object.keys(value).every((k) => fields.includes(k)));

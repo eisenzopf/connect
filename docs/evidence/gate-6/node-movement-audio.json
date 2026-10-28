@@ -10,7 +10,7 @@
   "profile": "node-movements/2",
   "implementation": "Installed public Node controller in existing actual-media handoff/replacement fixtures. Exact host topology/role/binding comparisons and fresh original-record recovery, no metadata-to-native ownership. Original Rust and external-crate profiles remain distinct.",
   "required_native_scenarios": {
-    "functions": 6,
+    "functions": 24,
     "cases": 24,
     "algorithms": [
       "EdDSA",
@@ -342,14 +342,14 @@
     }
   ],
   "latest_source_bound_native": {
-    "evidence": "docs/evidence/gate-6/node-native-5d.json",
-    "commit": "5d984b5723d4182e60201d6905a66b80a2171a48",
-    "run_id": 40761634015,
+    "evidence": "docs/evidence/gate-6/node-native-b2.json",
+    "commit": "b2e0cc2170fad0aae73d4454bcfed3fc4ad1f106",
+    "run_id": 40768333415,
     "aggregate_passed": false,
-    "movement_matrix_passed": true,
-    "consultation_audio_component_passed": true,
-    "remote_eof_component_passed": true,
-    "scope": "Original Ubuntu x86_64 Node22/26 matrix jobs; all24 cases and48helpers/24servers per matrix with EdDSA/ES256. Candidate-target movement, full SDK, acceptance and publication unqualified."
+    "movement_matrix_passed": false,
+    "node26_cases_passed": 24,
+    "node22_cases_passed": 23,
+    "finding": "Node22 ES256 move speaker fails unchanged strict zero-forbidden-nonsilent assertion at groups.rs600:21. Cause unresolved; no timeout or forced kill. Do not dismiss as noise or qualify it from prior5d passes."
   },
   "bounded_case_correction": {
     "reason": "Five original batched functions exhausted their 90-second cap, with no recorded Node assertion failure; this does not prove later case success. Recording-failure function passed both algorithms.",
@@ -369,5 +369,30 @@
       "rust_sha256": "a96535c24b8f81d0212d5c41d1a236d91aea04f58bd278c21864ed157fd61ae0"
     },
     "runtime": "All24 independently bounded cases passed both original Ubuntu Node22/26 matrix jobs at5d; see node-native-5d.json. Aggregate fails later SDK revocation assertion."
+  },
+  "prior_source_bound_movement": {
+    "evidence": "docs/evidence/gate-6/node-native-5d.json",
+    "commit": "5d984b5723d4182e60201d6905a66b80a2171a48",
+    "run_id": 40761634015,
+    "aggregate_passed": false,
+    "movement_matrix_passed": true,
+    "consultation_audio_component_passed": true,
+    "remote_eof_component_passed": true,
+    "scope": "Original Ubuntu x86_64 Node22/26 matrix jobs; all24 cases and48helpers/24servers per matrix with EdDSA/ES256. Candidate-target movement, full SDK, acceptance and publication unqualified."
+  },
+  "current_boundary_diagnostics": {
+    "evidence": "docs/evidence/gate-6/node-native-b2.json",
+    "source_sha256": "237c1e450dde6b00009c3c2bfe9320e913c55ba74e1ec6450ff9915e44d2e4e6",
+    "parser": {
+      "passed": true,
+      "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+      "checks": [
+        "valid-retained",
+        "invalid-index-rejected",
+        "invalid-probe-rejected",
+        "extra-field-rejected"
+      ]
+    },
+    "scope": "Fixed probe category/source/receiver/allowed/counters only. Existing zero-forbidden assertion, media source, durations and frame thresholds unchanged. Runtime diagnosis pending; no root cause or fix claimed."
   }
 }

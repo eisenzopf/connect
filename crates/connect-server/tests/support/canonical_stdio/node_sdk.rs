@@ -146,6 +146,13 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         // runner independently retains its 90s whole-function limit.
         let controls = phase(&mut lines, "controls-ready", algorithm).await;
         assert_eq!(controls["session_participants_accepted"], true);
+        for field in [
+            "incoming_original_hint",
+            "incoming_session_decision",
+            "incoming_close_control_live",
+        ] {
+            assert_eq!(controls[field], true);
+        }
         stdin.write_all(b"native\n").await.unwrap();
         let native_phase = phase(&mut lines, "native-complete", algorithm).await;
         assert_eq!(native_phase["native_controls_completed"], true);
@@ -294,7 +301,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/5","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/6","controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

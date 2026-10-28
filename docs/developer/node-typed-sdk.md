@@ -7,7 +7,7 @@ durable cancel/reconcile decisions. Its supported operation kinds are
 `operation_reconcile`, plus the three `conversation_participant_*` kinds.
 The [Session control component](node-session-sdk.md) also implements invitations,
 accept/reject/cancel, updates, end and original-operation recovery. The full
-Connection/Stream/topology, invitation delivery, event,
+Connection/Stream/topology, full incoming invitation qualification, event,
 remote HTTP interfaces remain required. The separate [trusted administrative backend](node-administration-sdk.md) is implemented with synthetic checks; its actual qualification remains pending. The [raw canonical interface](node-raw-sdk.md) now delegates validation and finite requests to the original Rust SDK; actual qualification remains pending.
 Programmatic media is G6-064. There is no fallback to the historical generic API.
 
@@ -141,3 +141,12 @@ running the same source-bound fixtures and preserving all request/phase/function
 bounds. Native evidence artifact names include the Node major version. Configuring
 this matrix does not qualify either runtime; each cell must provide actual results.
 See [the runtime matrix record](../evidence/gate-6/node-native-runtime-matrix.json).
+
+The [incoming invitation component](node-incoming-sdk.md) now provides an owned
+reader with cancellation/timeout retention, scoped Session decisions and local
+close without stopping control. It requires the matching participant helper3;
+the administrative helper2 remains separate. Current90 component checks and8
+installed incoming checks pass; current Rust/native qualification is pending.
+The historical [b2 native evidence](../evidence/gate-6/node-native-b2.json)
+qualifies all11 administrative command families only in its recorded scopes,
+while retaining the later revocation assertion and Node22 audio-boundary failures.

@@ -110,3 +110,11 @@ eighty validators and eight servers joined. Nine installed synthetic protocols
 pass with nine helpers/seventeen validators joined. A completed request cannot
 be mislabeled uncertain. Real host commit, compilation and native qualification
 remain pending. See [the uncertainty evidence](../evidence/gate-6/node-administration-uncertainty.json).
+
+The historical exact `b2e0cc21` Ubuntu Node22/26 artifacts now independently
+qualify all11 administrative command families, original receipt recovery across
+restart, exact replay, changed-intent refusal and4helpers/52validators/4servers
+joined per matrix. Both signing algorithms pass. Current authority/uncertainty
+candidate behavior remains pending. The aggregate retained the separate
+revocation assertion and Node22 movement-audio failures. See
+[the source-bound b2 results](../evidence/gate-6/node-native-b2.json).

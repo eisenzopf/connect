@@ -137,6 +137,13 @@ fn parse(frame: &Envelope) -> Result<(Hint, [u8; 32])> {
     ))
 }
 impl Inbox {
+    pub(in crate::sdk) fn check(&self) -> Result<()> {
+        let state = self.state.lock().map_err(|_| bad())?;
+        match &state.failure {
+            Some(error) => Err(error.clone()),
+            None => Ok(()),
+        }
+    }
     fn fail(&self, error: Error) {
         if let Ok(mut state) = self.state.lock() {
             state.queue.clear();

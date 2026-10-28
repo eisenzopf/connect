@@ -1,0 +1,440 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "commit": "b2e0cc2170fad0aae73d4454bcfed3fc4ad1f106",
+  "run_id": 40768333415,
+  "aggregate_passed": false,
+  "all_commands_administration_component_passed": true,
+  "startup_context_units_passed": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scopes": [
+    {
+      "commit": "b2e0cc2170fad0aae73d4454bcfed3fc4ad1f106",
+      "run_id": 40768333415,
+      "artifact_id": 12852647483,
+      "zip_sha256": "31caacb0d154e488b5c9c18d13c5c8d5d0b236352cca0359d170fe18c0f49f95",
+      "node_matrix": 22,
+      "aggregate_passed": false,
+      "guarded_inputs": 8112,
+      "source_bound_tracked_files_verified": 4020,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "c45a401c71627e91275dc72f0a21efdde5e0ec7fda52c6fb94fa8ccb5498a1b9",
+      "functions_passed": 175,
+      "group_counts": {
+        "sdk-startup-context": 3,
+        "admin-local-validation": 3,
+        "raw-local-validation": 3,
+        "snapshot-store": 22,
+        "snapshot-peer-authority": 38,
+        "rust-sdk-consultation-audio": 1,
+        "rust-sdk-consultation-eof": 1,
+        "addressing": 4,
+        "config": 4,
+        "sip-config": 4,
+        "rtcp-udp": 32,
+        "rtcp-allocator": 20,
+        "rtcp-session-route": 1,
+        "owned-dtls": 1,
+        "https-hosting": 7,
+        "sip-unknown-account": 1,
+        "sip-bind-failure": 1,
+        "sip-owner-drop": 1,
+        "sip-readiness": 1,
+        "installed-node-administration-eddsa": 1,
+        "installed-node-administration-es256": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_move_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_move_observer": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_observer": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_recording_failure": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_move_observer": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_es256_cancel_speaker": 1,
+        "installed-node-movement-installed_node_es256_cancel_observer": 1,
+        "installed-node-movement-installed_node_es256_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_recording_failure": 1,
+        "installed-node-consultation-restored": 1,
+        "installed-node-consultation-remote-ended": 1
+      },
+      "compiled_artifacts": {
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "a4ffa0636e9a8a64176b8a24335a7def49afbae0d1a80b87b9915ab61e8b3854",
+        "hosting": "9db945fccc828cdc063505c5a1cb1f5a13390df9304367257dd41116e179fa82",
+        "cli": "b1affdd95b8f9c8cc69c8017513ecad0d98e3a39b0a8f197cd9065c7c57718e9",
+        "rtp": "4b36087660e07215505d78e5830ad0a9628551517e2d035b26692b953298afd9"
+      },
+      "administration": {
+        "passed": true,
+        "profile": "node-administration/1",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/1",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/1",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "verified_helpers_joined": 4,
+        "verified_validators_joined": 52,
+        "verified_servers_joined": 4,
+        "scope": "All11 actual trusted administrative command families via installed Node SDK; independent Rust signed journal comparisons, exact replay/one original receipt after server restart, changed-intent refusal and original joins/drains. Current revocation/ordinary authority/failure-recovery matrix and full SDK qualification remain separate."
+      },
+      "movement_cases_passed": 23,
+      "movement_helpers_joined": 46,
+      "movement_servers_joined": 23,
+      "consultation_audio_passed": true,
+      "failures": [
+        {
+          "name": "installed-node-movement-installed_node_es256_move_speaker",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 12.792470631000015,
+          "log_sha256": "17db72ec29e5b1c190f873531adc0bb27b071c85c09ed15dd0d26a040e8709bd",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 402 filtered out; finished in 12.76s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 600,
+              "column": 21
+            }
+          ],
+          "local_schema_mismatches": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "registered",
+              "seconds": 0.591734538
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "accepted",
+              "seconds": 0.176260185
+            }
+          ],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 33.591730966999876,
+          "log_sha256": "391258cec9dc8520baa4f8ee66e5f0e93b608478fccf3f5e4ab9c9a0a6dd0916",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 402 filtered out; finished in 33.57s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 135,
+              "column": 17
+            }
+          ],
+          "local_schema_mismatches": [],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.199396109
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.786443053
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "initial",
+              "seconds": 11.431585229
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "recovered",
+              "seconds": 4.014984904
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "receipts-observed",
+              "seconds": 0.404501153
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "current-revocation",
+              "column": 47,
+              "command": null,
+              "kind": "assertion",
+              "line": 186,
+              "observedState": "cancelled",
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "scope": "Exact b2 source-bound Ubuntu matrix. All11 administrative commands/restart/original receipt/changed-intent refusal pass both algorithms; three startup-context units pass. Current-authority native-control assertion still fails cancellation. Node22 additionally fails strict zero-forbidden-nonsilent audio boundary at groups.rs600:21 in ES256 speaker move. No relaxation/retry or claim of cause; source-safe diagnostics prepared separately. Incoming/events/current administrative authority/uncertainty/candidate move/full SDK/acceptance/publication remain unqualified."
+    },
+    {
+      "commit": "b2e0cc2170fad0aae73d4454bcfed3fc4ad1f106",
+      "run_id": 40768333415,
+      "artifact_id": 12851679013,
+      "zip_sha256": "36feb8f95fdc2d8485964ed8e1583001ac6ec4c247136342ae400761e9ec0cc7",
+      "node_matrix": 26,
+      "aggregate_passed": false,
+      "guarded_inputs": 8112,
+      "source_bound_tracked_files_verified": 4020,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "c45a401c71627e91275dc72f0a21efdde5e0ec7fda52c6fb94fa8ccb5498a1b9",
+      "functions_passed": 176,
+      "group_counts": {
+        "sdk-startup-context": 3,
+        "admin-local-validation": 3,
+        "raw-local-validation": 3,
+        "snapshot-store": 22,
+        "snapshot-peer-authority": 38,
+        "rust-sdk-consultation-audio": 1,
+        "rust-sdk-consultation-eof": 1,
+        "addressing": 4,
+        "config": 4,
+        "sip-config": 4,
+        "rtcp-udp": 32,
+        "rtcp-allocator": 20,
+        "rtcp-session-route": 1,
+        "owned-dtls": 1,
+        "https-hosting": 7,
+        "sip-unknown-account": 1,
+        "sip-bind-failure": 1,
+        "sip-owner-drop": 1,
+        "sip-readiness": 1,
+        "installed-node-administration-eddsa": 1,
+        "installed-node-administration-es256": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_move_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_move_observer": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_observer": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_recording_failure": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_move_speaker": 1,
+        "installed-node-movement-installed_node_es256_move_observer": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_es256_cancel_speaker": 1,
+        "installed-node-movement-installed_node_es256_cancel_observer": 1,
+        "installed-node-movement-installed_node_es256_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_recording_failure": 1,
+        "installed-node-consultation-restored": 1,
+        "installed-node-consultation-remote-ended": 1
+      },
+      "compiled_artifacts": {
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "a4ffa0636e9a8a64176b8a24335a7def49afbae0d1a80b87b9915ab61e8b3854",
+        "hosting": "9db945fccc828cdc063505c5a1cb1f5a13390df9304367257dd41116e179fa82",
+        "cli": "b1affdd95b8f9c8cc69c8017513ecad0d98e3a39b0a8f197cd9065c7c57718e9",
+        "rtp": "4b36087660e07215505d78e5830ad0a9628551517e2d035b26692b953298afd9"
+      },
+      "administration": {
+        "passed": true,
+        "profile": "node-administration/1",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/1",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/1",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "verified_helpers_joined": 4,
+        "verified_validators_joined": 52,
+        "verified_servers_joined": 4,
+        "scope": "All11 actual trusted administrative command families via installed Node SDK; independent Rust signed journal comparisons, exact replay/one original receipt after server restart, changed-intent refusal and original joins/drains. Current revocation/ordinary authority/failure-recovery matrix and full SDK qualification remain separate."
+      },
+      "movement_cases_passed": 24,
+      "movement_helpers_joined": 48,
+      "movement_servers_joined": 24,
+      "consultation_audio_passed": true,
+      "failures": [
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 33.59348118799994,
+          "log_sha256": "0e2f89225eecf672e83da8b837946a9eb231740e6b8180d55ad825df74fe8f32",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 402 filtered out; finished in 33.58s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 135,
+              "column": 17
+            }
+          ],
+          "local_schema_mismatches": [],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.293018403
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.698929347
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "initial",
+              "seconds": 11.423626933
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "recovered",
+              "seconds": 4.03440183
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "receipts-observed",
+              "seconds": 0.405839933
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "current-revocation",
+              "column": 47,
+              "command": null,
+              "kind": "assertion",
+              "line": 186,
+              "observedState": "cancelled",
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "scope": "Exact b2 source-bound Ubuntu matrix. All11 administrative commands/restart/original receipt/changed-intent refusal pass both algorithms; three startup-context units pass. Current-authority native-control assertion still fails cancellation. Node22 additionally fails strict zero-forbidden-nonsilent audio boundary at groups.rs600:21 in ES256 speaker move. No relaxation/retry or claim of cause; source-safe diagnostics prepared separately. Incoming/events/current administrative authority/uncertainty/candidate move/full SDK/acceptance/publication remain unqualified."
+    }
+  ],
+  "qualification_limit": "Exact historical b2 source only: both Ubuntu Node22/26 matrix scopes pass all11 administrative command families/restart/original receipt/changed-intent refusal,4helpers/52validators/4servers per matrix. Three startup-context units pass each. Node26 passes all24 movements; Node22 passes23 and fails one strict forbidden-audio boundary. Both fail the old receipt-revocation assertion. Newer authority/uncertainty, helper3/incoming, Node22 movement failure cause, candidate-target moves, events/remoteHTTP/fullSDK/acceptance/publication remain unqualified."
+}

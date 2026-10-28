@@ -597,6 +597,25 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                     .iter()
                     .any(|b| !matches!(*b, 0xff | 0x7f))
                 {
+                    if !allowed.contains(&i) {
+                        let category = match name {
+                            "replace-real-preparation-retains-remote-audio" => {
+                                "replacement-preparation-remote"
+                            }
+                            "replace-real-preparation-retains-source-role" => {
+                                "replacement-preparation-source"
+                            }
+                            "replace-before-prepare-remote" => "replacement-baseline-remote",
+                            "replace-before-prepare-source" => "replacement-baseline-source",
+                            _ if name.starts_with("replace-") => "replacement",
+                            _ if name.contains("private") => "consultation",
+                            _ => "other",
+                        };
+                        eprintln!(
+                            "native-audio-boundary-failure {}",
+                            json!({"probe":category,"source_index":source,"receiver_index":i,"allowed_indices":allowed,"sent_packets":sent_packets,"received_packets":received_packets[i],"non_silent_packets":counts[i]+1})
+                        );
+                    }
                     assert!(
                         allowed.contains(&i),
                         "{name}: source {} reached forbidden receiver {}",

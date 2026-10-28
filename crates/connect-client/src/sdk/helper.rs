@@ -11,14 +11,16 @@ pub mod administrative;
 mod connection;
 mod movement;
 pub use movement::{HandoffRequest, MoveRequest};
+mod managed;
 mod session;
 pub use connection::{
     ConnectionAction, Offer as ConnectionOffer, Selector as ReceiveSelector,
     Update as ConnectionChange,
 };
+pub use managed::ManagedClient;
 pub use session::{Change as SessionChange, InviteMedium, SessionAction};
 
-pub const PROFILE: &str = "connect-sdk-helper/2";
+pub const PROFILE: &str = "connect-sdk-helper/3";
 pub const VALIDATION_PROFILE: &str = "connect-sdk-validation/1";
 /// Local frozen validation/intent description; no payload echo, client or grant.
 pub fn validation_descriptor_bytes(bytes: &[u8]) -> Value {
@@ -69,6 +71,14 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    IncomingPoll {
+        reader_id: OperationId,
+        acknowledged: Option<OperationId>,
+    },
+    IncomingClose {
+        reader_id: OperationId,
+        acknowledged: Option<OperationId>,
+    },
     RawRequest {
         envelope: Value,
     },
@@ -197,6 +207,9 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
+        Action::IncomingPoll { .. } | Action::IncomingClose { .. } => {
+            Err(Error::request(ErrorKind::Unsupported, None, false))
+        }
         Action::RawRequest { envelope } => {
             let raw = client.raw();
             let checked = raw.validate(envelope)?;

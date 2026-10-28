@@ -41,3 +41,11 @@ component passes only. Current source changes, candidate-target movement, full
 SDK qualification and Gate 6 acceptance remain open. Mac Rust linking remains
 skipped for retained ENOSPC. See [the source-bound results](../evidence/gate-6/node-native-5d.json)
 and [the movement evidence](../evidence/gate-6/node-movement-audio.json).
+
+The subsequent exact `b2e0cc21` artifacts pass all24 movements on Node26 and23
+on Node22. The Node22 ES256 speaker move fails the unchanged strict assertion
+that non-silent audio cannot reach a forbidden receiver. Its cause is unresolved;
+prior successes do not qualify that failed scene. The next source records only
+fixed probe categories, source/receiver indices and counters before the same
+assertion. No media routing, threshold or probe duration was changed. See
+[the retained b2 results](../evidence/gate-6/node-native-b2.json).

@@ -14,7 +14,7 @@ struct Input {
     request: serde_json::Value,
 }
 enum Backend {
-    Participant(sdk::Result<Client>),
+    Participant(sdk::Result<helper::ManagedClient>),
     Administrative(sdk::Result<AdministrativeClient>),
 }
 enum Execution {
@@ -58,7 +58,7 @@ impl Backend {
                     "Typed SDK request exceeds64KiB"
                 );
                 match client {
-                    Ok(client) => Execution::Request(helper::execute(client, request).await),
+                    Ok(client) => Execution::Request(client.execute(request).await),
                     Err(error) => Execution::Startup(error.clone()),
                 }
             }
@@ -88,7 +88,7 @@ pub async fn serve(path: &Path) -> anyhow::Result<()> {
         Ok(config) => Client::connect_configured(config).await,
         Err(error) => Err(error),
     };
-    serve_backend(Backend::Participant(client)).await
+    serve_backend(Backend::Participant(client.map(helper::ManagedClient::new))).await
 }
 pub async fn serve_administrative(path: &Path) -> anyhow::Result<()> {
     let client = match ClientConfig::load(path) {

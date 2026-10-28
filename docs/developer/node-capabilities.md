@@ -7,10 +7,11 @@ adapter intersects that snapshot with features exposed by its own public API.
 The runtime role is `node`, the current selected transport is `quic`, and the
 profile is `connect/2`.
 
-The current typed Node facade advertises `original-id-operations`. It does not
-yet advertise the helper's native programmatic media, durable events, incoming
-invitations, raw canonical or application receipt interfaces. Separate low-level
-clients do not imply that those interfaces exist on `NodeClient`.
+The current typed Node facade advertises `original-id-operations`,
+`incoming-invitations`, `raw-canonical` and, when configured, `message-receipts`.
+Native programmatic media and durable events remain outside this facade.
+Separate low-level clients do not imply additional interfaces on `NodeClient`.
+The [incoming component](node-incoming-sdk.md) requires the matching helper3.
 
 ```ts
 const support = await client.capabilities.refresh({ timeoutMs: 2000 });

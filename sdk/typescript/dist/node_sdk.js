@@ -1,3 +1,4 @@
+import { createIncoming, } from "./node_incoming.js";
 import { createRaw } from "./node_raw.js";
 import { deliveryObservations, } from "./node_receipts.js";
 import { handoffInput, moveInput, movementContext, handoffResult, moveResult, } from "./node_movements.js";
@@ -31,6 +32,7 @@ function capabilitySnapshot(value) {
     // Advertise only exposed Node interfaces that this Rust configuration supports.
     const set = new Set(value.features.filter((f) => f === "original-id-operations" ||
         f === "message-receipts" ||
+        f === "incoming-invitations" ||
         f === "raw-canonical"));
     const features = Object.freeze({
         get size() {
@@ -408,7 +410,7 @@ const operationKinds = Object.freeze({
     operation_reconcile: kind("operation_reconcile", "operation.reconcile", decision),
 });
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * invitations, administration, events and remote HTTP remain under development.
+ * events and remote HTTP remain under development. Incoming hints grant no custody.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
 export class NodeClient {
     role = "node";
@@ -417,6 +419,9 @@ export class NodeClient {
     raw;
     conversations;
     operations;
+    incomingInvitations() {
+        return createIncoming(this.helper, (cid, sid) => this.conversations.byId(cid).sessions.byId(sid));
+    }
     helper;
     constructor(config) {
         const captured = {

@@ -98,3 +98,16 @@ const forgedTrusted:SdkTrustedProvisioningCommand={value:trustedCommand.value,op
 trustedCommand.value=null;
 // @ts-expect-error Trusted backend exposes no participant Conversation API.
 administrator.conversations.byId(roomId);
+
+const incomingReader=client.incomingInvitations();
+const incomingHint=await incomingReader.next({timeoutMs:1000});
+if(incomingHint){
+ const sourceOperation:OperationId=incomingHint.operationId;
+ const targetConversation:ConversationId=incomingHint.session.conversationId;
+ // @ts-expect-error An invitation source does not grant native packet custody.
+ incomingHint.session.native;
+ // @ts-expect-error Incoming metadata is immutable.
+ incomingHint.source.kind='foreign';
+ // @ts-expect-error Session and participant identities remain distinct.
+ const foreignParticipant:import('../typescript/dist/index.js').ParticipantId=incomingHint.session.id;
+}

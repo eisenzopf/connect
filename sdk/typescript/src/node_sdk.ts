@@ -1,3 +1,7 @@
+import {
+    createIncoming,
+    type SdkIncomingInvitations,
+} from "./node_incoming.js";
 import { createRaw, type SdkRawCanonical } from "./node_raw.js";
 import {
     deliveryObservations,
@@ -143,6 +147,7 @@ function capabilitySnapshot(value: Json): SdkCapabilitySnapshot {
             (f) =>
                 f === "original-id-operations" ||
                 f === "message-receipts" ||
+                f === "incoming-invitations" ||
                 f === "raw-canonical",
         ) as string[],
     );
@@ -785,7 +790,7 @@ const operationKinds = Object.freeze({
 });
 
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * invitations, administration, events and remote HTTP remain under development.
+ * events and remote HTTP remain under development. Incoming hints grant no custody.
  * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
 export class NodeClient {
     readonly role = "node" as const;
@@ -794,6 +799,11 @@ export class NodeClient {
     readonly raw: SdkRawCanonical;
     readonly conversations;
     readonly operations;
+    incomingInvitations(): SdkIncomingInvitations {
+        return createIncoming(this.helper, (cid, sid) =>
+            this.conversations.byId(cid).sessions.byId(sid),
+        );
+    }
     private readonly helper: SdkHelper;
     constructor(config: {
         readonly config: string;

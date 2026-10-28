@@ -1,0 +1,106 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "owned-incoming-implemented-component-passed-native-pending",
+  "implementation_parent_commit": "e732fcefd32c1c3f806a302a0f8c230c9b42c2a3",
+  "synthetic_component_passed": true,
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "profiles": {
+    "participant": "connect-sdk-helper/3",
+    "administrative": "connect-sdk-administration/2",
+    "local_validators": "unchanged profile1"
+  },
+  "implementation": [
+    "Public Node incomingInvitations().next/close with original invitation operation/source, scoped Session, sender/recipient, medium, intent and immutable capabilities. Metadata grants no native/media or decision authority. Refresh before a separately saved decision.",
+    "Original public Rust InvitationStream stays in a ManagedClient helper owner; one reader, one retained hint, exact reader/delivery acknowledgement, idempotent ACK and unacknowledged detach/reclaim. Payload63KiB preserves existing64KiB typed reply bound.",
+    "25ms bounded original SDK future polls preserve hints on dropped waits. Local next cancellation/deadline and reader close do not fence control or restart the helper. One absolute captured caller deadline/signal includes local polls/queue; concurrent next refuses locally.",
+    "Abandoned Node replies are not acknowledged or returned from a stale cache. The next explicit wait re-polls the Rust retained hint with current native closure/expiry and inbox-failure checks before returning metadata.",
+    "Participant helper3 requires matching current CLI. Administrative helper2 and local validators1 remain separate; no old-profile fallback. Node capability set advertises only exposed support: original IDs, incoming, raw, optional application receipts.",
+    "Current node-controls/6 native candidate connects the independent public peer before invitation, receives original unsolicited metadata, decides using hint.session rather than copied callee IDs, and proves local reader close leaves control usable; original joins/deadlines retained."
+  ],
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 13.455130957998335,
+    "source_count": 217,
+    "changed_inputs": [],
+    "source_inputs_sha256": "ae6c6e8e4138ed8f8f1b8ee470310da42985531bf29c14468688df28436ce18b",
+    "log_sha256": "e744e39151d4965a55c34a69a61e549ca082009593c939d2551206af444dad61",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T21:40:52.163270+00:00"
+  },
+  "functions_passed": 90,
+  "all_previous82_functions_retained": true,
+  "new_incoming_functions": [
+    "incoming metadata preserves original source and scoped Session without copied callee IDs or native ownership",
+    "cancelled incoming wait keeps the original in-flight reply unacknowledged and leaves control usable",
+    "timed-out incoming wait consumes no delivery and does not fence or restart the helper",
+    "incoming invalid options and pre-cancellation are local and an unopened reader closes without I/O",
+    "only one incoming reader owns the inbox and detach retains an unread delivery for a new reader",
+    "closing an incoming reader cancels only its local wait and preserves native control",
+    "foreign or malformed invitation correlation, enums, participants and metadata fence the original helper",
+    "an abandoned hint is revalidated and cannot bypass current authentication failure"
+  ],
+  "installed_package": {
+    "archive_sha256": "d8098587290148830750c959c00a863473bdf75de28fb91d9704c0b02270a5f7",
+    "installed_dist_matches": true,
+    "dist_files": 130,
+    "consumer_sha256": "44d650c377ef76ab2848cc3aaa40c4116d89542569a6e492f36626ac2335295a",
+    "installed_public_incoming_functions_passed": 8,
+    "installed_log_sha256": "df9811b067f5a3faa822331045f25c69832b212cb7f3f8dcb046a9864eb040de"
+  },
+  "rust_unit_candidates": [
+    "sdk::helper::managed::tests::pending_hint_requires_exact_owner_and_acknowledgement",
+    "sdk::helper::managed::tests::detach_preserves_unacknowledged_hint_but_no_old_reader_authority",
+    "sdk::helper::managed::tests::incoming_inbox_check_preserves_current_failure"
+  ],
+  "native_candidate": {
+    "profile": "node-controls/6",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "request_ms": 4000,
+    "phase_seconds": 15,
+    "function_seconds": 90,
+    "helpers_required": 8,
+    "validators_required": 6,
+    "servers_required": 2,
+    "incoming_medium": "voice+video",
+    "incoming_decision": "accept through current hint Session",
+    "actual_execution": "pending"
+  },
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "36a95566979ab3b05044b923c6a6c042e0772f32ef0e1ced30e9196d44d5de3d",
+    "crates/connect-client/src/sdk/helper/managed.rs": "5a025b6b03d5e6336e46033b2121b629eb671f90278572f15088bb53a4dea535",
+    "crates/connect-client/src/sdk/invitations.rs": "f51a790674213bbde675450de6fdfaf7b1a1a9d4ffa494c029346f295013d4fe",
+    "crates/connect-server/src/cli/sdk_stdio.rs": "151e61bc7017631227c63dbd410220d3329d4d8a976a81a6dd6f5e04705b637c",
+    "sdk/typescript/src/node_incoming.ts": "bd2e2362494a7828625049e83a960161fcad910caee303e56907c651f88020ff",
+    "sdk/typescript/src/node_sdk.ts": "39789653d15d0b1d74d81c5539923589307803d3b337a514faacaa227f72b866",
+    "sdk/typescript/src/sdk_helper.ts": "1edb6811b87d80e890b2bd82cdf8d371a55a1bd1a53ee2c439849309e94ca1b9",
+    "sdk/tests/node_incoming.test.mjs": "72287ad80ae51061b7395fcfc15b843f055df54ebc6702c3884866b287cb8602",
+    "sdk/tests/fixtures/sdk_helper.mjs": "ee79b23287caa0088a5f64523e58927c9e300814e59ec1b09612e3ad1ecc6bc7",
+    "sdk/tests/node_sdk_server_consumer.mjs": "44d650c377ef76ab2848cc3aaa40c4116d89542569a6e492f36626ac2335295a",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "a85064613b7f447aebb5962880b6f000efefcea5d8272602e25c48c099e570e0",
+    "scripts/check-gate6-linux-hosting.py": "e304c850420b02832faf4eac3091ec017c4e3e93bd6ee01975b3b94a1d37cb54"
+  },
+  "checks": {
+    "rust_format": true,
+    "node_python_syntax": true,
+    "negative_types": true,
+    "http_reference_inventory": "25declarations/26operations/0uncovered; all generated checks pass",
+    "diff": true,
+    "actual_rust_compile_and_native": "Pending current Linux runs. Local Rust linking skipped for retained ENOSPC."
+  },
+  "qualification_limit": "Current90 component/type functions and8 installed public synthetic incoming functions only,217 guarded inputs unchanged. No real helper3 Rust compile/crypto/native incoming result yet. Native incoming remaining media/decisions/revocation/reconnect, durable events, explicit remote HTTP and full SDK/G6-062 remain open."
+}
