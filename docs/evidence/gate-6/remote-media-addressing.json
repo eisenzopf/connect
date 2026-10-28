@@ -104,14 +104,15 @@
     }
   ],
   "native_linux_ci": {
-    "status": "running",
+    "status": "passed",
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
     "run_id": 40653461271,
     "run_url": "https://github.com/eisenzopf/connect/actions/runs/40653461271",
     "source_revision": "20b77823d8e05e4cab7a45e914d29e8c6140b620",
-    "result": "Unqualified until completed; this first run predates the later SIP/browser component."
+    "result": "16 actual functions passed, zero failed/ignored/panics, all7979source inputs unchanged. Exact20b77823revision predates SIP/browser changes; latest563d16bc run40656596259 is separately in progress.",
+    "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
     "source_revision": "c88bc599a26570448d00cb1c9cdf88b4c5239af6",
@@ -128,7 +129,7 @@
   "remaining": [
     "Actual remote SIP/NAT path verification and deployment templates. Address mapping is now configured and has Local startup/readiness regression evidence.",
     "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Browser relay policy is implemented at the synthetic native boundary; actual relay traffic remains unqualified.",
-    "Execute the native Linux CI lane and retain its actual result; the emulated attempt supplies no Linux server pass. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
+    "Retain the latest native Linux CI result when complete. The first native run passed16functions at20b77823; later SIP/browser code is not covered by that earlier run. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
   ],
   "source_sha256": {
     "crates/connect-server/src/canonical.rs": "eb62b731189aa45bfb73debead2d37e415990433c7b4a35de85bd1f1ab8ed4f8",

@@ -1,0 +1,128 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "run_id": 40653461271,
+  "run_url": "https://github.com/eisenzopf/connect/actions/runs/40653461271",
+  "source_revision": "20b77823d8e05e4cab7a45e914d29e8c6140b620",
+  "scope": "Bounded configuration/security, ICE/DTLS owned-close and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote media, SIP, browser/performance or installation qualification.",
+  "preflight": {
+    "os": {
+      "NAME": "Ubuntu",
+      "ID": "ubuntu",
+      "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+      "VERSION_ID": "24.04",
+      "VERSION": "24.04.5 LTS (Noble Numbat)",
+      "VERSION_CODENAME": "noble",
+      "ID_LIKE": "debian",
+      "HOME_URL": "https://www.ubuntu.com/",
+      "SUPPORT_URL": "https://help.ubuntu.com/",
+      "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+      "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+      "UBUNTU_CODENAME": "noble",
+      "LOGO": "ubuntu-logo"
+    },
+    "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.39",
+    "source_revision": "20b77823d8e05e4cab7a45e914d29e8c6140b620",
+    "runner_image_version": "20261026.354.1",
+    "native_key": "b5c78433c2476ed016d99781045cf05da7cdc318fa06921e45a42f547fa0cf1d",
+    "toolchain": {
+      "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+      "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+      "packages": "binutils\t2.42-4ubuntu2.10\nclang\t1:18.0-59~exp2\ncmake\t3.28.3-1build7\ng++\t4:13.2.0-7ubuntu1\nlibc6-dev:amd64\t2.39-0ubuntu8.9\nlibopus-dev:amd64\t1.4-1build1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16\npkg-config:amd64\t1.8.1-2build1\n"
+    },
+    "scope": "Native Ubuntu24.04x86 CI fixtures only. No named remote/provider, model account, media/performance, installation or full acceptance qualification."
+  },
+  "result": {
+    "passed": true,
+    "started_at": "2026-10-28T07:58:26.635529+00:00",
+    "steps": [
+      {
+        "name": "compile-library",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 1629.818332416,
+        "log_sha256": "1b921abbd35ea00b58be6408cf1cd2707f46d95a411e863dd951e297a394e8eb",
+        "test_results": [],
+        "panic_locations": []
+      },
+      {
+        "name": "compile-hosting",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 158.89274724999996,
+        "log_sha256": "b73fe486725c9de4979da2c64f46aa0a42b52e0bd1cccb3d6b9305ce507617d0",
+        "test_results": [],
+        "panic_locations": []
+      },
+      {
+        "name": "addressing",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 0.00778711300017676,
+        "log_sha256": "fec9186126fcb78f58a0812a98cd8d59fda1c3c092ce7fe4e4a8bbb3ab210412",
+        "test_results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 0.00s"
+        ],
+        "panic_locations": []
+      },
+      {
+        "name": "config",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 0.007578550000062023,
+        "log_sha256": "e38992078146d76c246458b625d7ea7b93041087d4bc5b12d01b28a807c7e633",
+        "test_results": [
+          "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 91 filtered out; finished in 0.00s"
+        ],
+        "panic_locations": []
+      },
+      {
+        "name": "owned-dtls",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 0.8158212220000678,
+        "log_sha256": "678054bc44091ea3180e37af3a6867bbed7dc2c416c6491f0bf94eefd1b91950",
+        "test_results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.76s"
+        ],
+        "panic_locations": []
+      },
+      {
+        "name": "https-hosting",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_kill": false,
+        "seconds": 11.541013890000158,
+        "log_sha256": "977a258a34efaf9892a4334a19426f86d3dbff9ac75bff72a7524790b2d4e07c",
+        "test_results": [
+          "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 358 filtered out; finished in 11.52s"
+        ],
+        "panic_locations": []
+      }
+    ],
+    "runner_sha256": "a77a528133029ec7090334fddfb72e8368e7c5f7f907a4eb8b7f19da5c384a5c",
+    "source_count": 7979,
+    "source_inputs_sha256": "356e135e848fc079aea85405ae8a3eddfc3aeef498d93f724eee3f81a414bf7a",
+    "scope": "Bounded configuration/security, ICE/DTLS owned-close and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote media, SIP, browser/performance or installation qualification.",
+    "compiled_artifacts": {
+      "library": "ce3a2df3503cbfd7b0edabd7c43f526993670ca316b255067a07b3046307e872",
+      "hosting": "ab77b37e7f050eb675e7d5ed4176fc0d60e5c933b447fad5842996d3f7704475"
+    },
+    "behavior_passed": true,
+    "source_inputs_unchanged": true,
+    "finished_at": "2026-10-28T08:28:29.566246+00:00"
+  },
+  "artifact_sha256": {
+    "summary.json": "d25803b844fc0d0b08b00874d9487993ec37996e7814d441921976f355253506",
+    "preflight.json": "9c3be0702883749a344e04e6504d5b1042ae95600d796b72d41415550c50339d",
+    "source-inputs.json": "356e135e848fc079aea85405ae8a3eddfc3aeef498d93f724eee3f81a414bf7a"
+  },
+  "functions_passed": 16,
+  "acceptance_qualified": false,
+  "publication": false
+}
