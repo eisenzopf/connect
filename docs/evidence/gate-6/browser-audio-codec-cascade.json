@@ -4,7 +4,7 @@
     "G6-051"
   ],
   "status": "factory regression repaired; current normal browser matrix2/4 passes, residual audio/cadence failures open",
-  "recorded_at": "2026-10-28T00:49:36.394801+00:00",
+  "recorded_at": "2026-10-28T00:53:40.704073+00:00",
   "base_revision": "70afa88aa08da10b1bb475a4ce9e586fc351953d",
   "scope": "Real current codec API, generated PCM and captured synthetic sender payloads. No full browser/task qualification, provider/model execution, profile threshold change or publication.",
   "finding": "The general conference codec factory selects32kbit/s mono Opus with the default speech-oriented VoIP application. The captured native browser source emits CELT-only packets; server output uses Hybrid. An uninterrupted legal audio-mode source cascaded through the actual factory reproduces the same398.4375/703.125Hz transients as the browser witnesses. Changing only the second encoder application to general Audio, at the same32kbit/s/48kHz/mono/20ms/complexity5/VBR settings, eliminates the measured errors in these controls.",
@@ -727,5 +727,772 @@
     ],
     "all_four_pass": false,
     "failure_analysis": "Chrome ES256 and Firefox EdDSA pass; Firefox ES256 has no wrong-tone samples but one audio cadence cannot be calibrated, including an extra decoded RMS edge. Chrome EdDSA has one440Hz expected/492.1875Hz measured sample at44.582s with RMS0.016907; A/V proof passes both directions. Existing factory regression fix does not establish full runtime repair. No observer/threshold/window changes or repeated attempts."
+  },
+  "connected_verification": {
+    "scope": "Current normal-feature build93 actual installed-Chrome production SDK signed WebTransport control, short synthetic/captured browser-browser/native Opus/VP8/data and explicit local capture boundaries. No full60/native live encoder/remote/impaired-profile claim.",
+    "webtransport_passed": 13,
+    "webtransport_total": 15,
+    "input_guard_count": 7706,
+    "guards_unchanged": true,
+    "cases": [
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.897518000099808,
+        "log_sha256": "513397cf3e4c51f5a8e4d7ffe7834b564e28e8d672eb30f909776f81b9b28f9d",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": null,
+          "decoded_reverse": null,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_signed_control_receipts_and_refusals_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.8263534170109779,
+        "log_sha256": "8cc5f4a6dc819c28ec74b93274021c5dd3275be764602f84e80d7d38c04664aa",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": null,
+          "decoded_reverse": null,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.432103832950816,
+        "log_sha256": "22e65430f78157745c9838f5b1be2d6afd1a22b0490002717823c8650b237e43",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_signed_control_reconnect_and_independently_decoded_duplex_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 4.406265500001609,
+        "log_sha256": "64d7153efde8473ca58972eeec2d1a4813f5a38e7d7200bb852be46f48ac4d94",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": false,
+        "exit_code": 101,
+        "seconds": 5.982625582953915,
+        "log_sha256": "2a8708c6cab40ff5ecc4ea92ebec3dd4108791402fc7f6edacdda2cf08dd0524",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": null,
+          "decoded_reverse": null,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_negotiated_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.093360209139064,
+        "log_sha256": "1f5b46b8b52f3064d0ba3de326f2981647c65d910e6d2e4bfaa9be1bba56d418",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 92.79999995231628,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 192,
+              "identified": 192
+            },
+            {
+              "decoded": 188,
+              "identified": 188
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 118,
+              "identified": 118,
+              "motion": 118
+            },
+            {
+              "decoded": 118,
+              "identified": 118,
+              "motion": 116
+            }
+          ],
+          "playback": []
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.383098958060145,
+        "log_sha256": "02e3f80cef046830835f1f14c6993522aa6521b025d53f1a6b890c7818c96645",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 61.09999990463257,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 192,
+              "identified": 192
+            },
+            {
+              "decoded": 195,
+              "identified": 195
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 111,
+              "identified": 111,
+              "motion": 100
+            },
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 82
+            }
+          ],
+          "playback": [
+            {
+              "audio": 191,
+              "maxPending": 6,
+              "maxQueuedSeconds": 0.10845766666666723,
+              "meanQueuedAudioSeconds": 0.07457024956369977,
+              "peakRms": 0.24748602924090818,
+              "queueSamples": 191,
+              "queueSecondsTotal": 14.242917666666656,
+              "video": 107
+            },
+            {
+              "audio": 193,
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13002666666666807,
+              "meanQueuedAudioSeconds": 0.10845089005235621,
+              "peakRms": 0.17851343816191143,
+              "queueSamples": 191,
+              "queueSecondsTotal": 20.714120000000037,
+              "video": 113
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.493920749984682,
+        "log_sha256": "21e814172c5aefca7acb27930613e5951825dbb607dea344d0746b2f53c6750a",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 90,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 196,
+              "identified": 196
+            },
+            {
+              "decoded": 193,
+              "identified": 193
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 94
+            },
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 84
+            }
+          ],
+          "playback": [
+            {
+              "audio": 195,
+              "maxPending": 5,
+              "maxQueuedSeconds": 0.09715533333333326,
+              "meanQueuedAudioSeconds": 0.07766291099476448,
+              "peakRms": 0.2613740717088339,
+              "queueSamples": 191,
+              "queueSecondsTotal": 14.833616000000017,
+              "video": 117
+            },
+            {
+              "audio": 190,
+              "maxPending": 5,
+              "maxQueuedSeconds": 0.09658600000000028,
+              "meanQueuedAudioSeconds": 0.06501595113437718,
+              "peakRms": 2.1099393284854666,
+              "queueSamples": 191,
+              "queueSecondsTotal": 12.41804666666604,
+              "video": 117
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.89344979217276,
+        "log_sha256": "ffe91d022c23286084c10b6891b375c36a008787c54877e252672abbc6de6b5e",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 178.30000019073486,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": {
+            "decoded": 192,
+            "identified": 192
+          },
+          "vp8": {
+            "decoded": 119,
+            "identified": 119,
+            "motion": 119
+          },
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.070722125004977,
+        "log_sha256": "5d128ec6811fbfa4c66df08ccf964b4b4c7c0706574511a53cc590dbaa97ecdd",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 233.5,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": {
+            "decoded": 194,
+            "identified": 194
+          },
+          "vp8": {
+            "decoded": 121,
+            "identified": 121,
+            "motion": 120
+          },
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_eddsa",
+        "boundary": null,
+        "passed": false,
+        "exit_code": 101,
+        "seconds": 10.913307332899421,
+        "log_sha256": "8e6e5f93ee13743ee37b0e62e5aad9654a293ff7820e696fbcbd1d6d18c99d99",
+        "actual": {
+          "owned_cleanup": null,
+          "teardown_ms": null,
+          "capture_boundary": null,
+          "decoded_forward": null,
+          "decoded_reverse": null,
+          "reliable_data_duplex": null,
+          "opus": null,
+          "vp8": null,
+          "playback": null
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_browser_native_opus_vp8_and_reliable_data_es256",
+        "boundary": null,
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.993933124933392,
+        "log_sha256": "b27a11b3c20459f1448b7dc4ba17d552b6a9fb528e5b31dc6e3aefaf5421674b",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 177,
+          "capture_boundary": null,
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": {
+            "decoded": 195,
+            "identified": 195
+          },
+          "vp8": {
+            "decoded": 121,
+            "identified": 121,
+            "motion": 108
+          },
+          "playback": {
+            "audio": 192,
+            "maxPending": 5,
+            "maxQueuedSeconds": 0.08753699999999998,
+            "peakRms": 0.48223654349379746,
+            "video": 119
+          }
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "permission-denied",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 7.705659625120461,
+        "log_sha256": "c0c433038f643b2d732a2c475e8f788c8d71e36ac5a9d0cacdb1be80ecc93d9b",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 105.20000004768372,
+          "capture_boundary": {
+            "graphs_created_on_denial": 0,
+            "mode": "permission-denied",
+            "passed": true,
+            "permission_denied": true
+          },
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 194,
+              "identified": 194
+            },
+            {
+              "decoded": 196,
+              "identified": 196
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 119,
+              "identified": 119,
+              "motion": 111
+            },
+            {
+              "decoded": 122,
+              "identified": 122,
+              "motion": 84
+            }
+          ],
+          "playback": [
+            {
+              "audio": 190,
+              "audio_refusal_observations": {
+                "late": 3,
+                "overlap": 1
+              },
+              "maxPending": 6,
+              "maxQueuedSeconds": 0.1165456666666671,
+              "meanQueuedAudioSeconds": 0.07475106631762472,
+              "peakRms": 0.2987249358443351,
+              "queueSamples": 191,
+              "queueSecondsTotal": 14.277453666666322,
+              "video": 116
+            },
+            {
+              "audio": 194,
+              "audio_refusal_observations": {
+                "late": 0,
+                "nonmonotonic": 2,
+                "overlap": 0
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13761200000000073,
+              "meanQueuedAudioSeconds": 0.08558923211168035,
+              "peakRms": 0.6174147936303496,
+              "queueSamples": 191,
+              "queueSecondsTotal": 16.347543333330947,
+              "video": 117
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "unsupported-api-codec",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 6.5825925830286,
+        "log_sha256": "b3c029b5822678768172182f4405bbc677d3dda6a6ade09dc8b1bee1257ddb60",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 145.20000004768372,
+          "capture_boundary": {
+            "control_requests": 0,
+            "device_requests": 0,
+            "injected_missing_api_refused": true,
+            "injected_unsupported_codec_refused": true,
+            "mode": "unsupported-api-codec",
+            "passed": true
+          },
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 190,
+              "identified": 190
+            },
+            {
+              "decoded": 190,
+              "identified": 190
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 121,
+              "identified": 121,
+              "motion": 109
+            },
+            {
+              "decoded": 119,
+              "identified": 119,
+              "motion": 80
+            }
+          ],
+          "playback": [
+            {
+              "audio": 188,
+              "audio_refusal_observations": {
+                "nonmonotonic": 2
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13430433333333403,
+              "meanQueuedAudioSeconds": 0.09829340488656105,
+              "peakRms": 0.24860440487284008,
+              "queueSamples": 191,
+              "queueSecondsTotal": 18.77404033333316,
+              "video": 115
+            },
+            {
+              "audio": 189,
+              "audio_refusal_observations": {
+                "late": 0,
+                "overlap": 1
+              },
+              "maxPending": 6,
+              "maxQueuedSeconds": 0.11770300000000056,
+              "meanQueuedAudioSeconds": 0.0918355968586388,
+              "peakRms": 0.30593576323732186,
+              "queueSamples": 191,
+              "queueSecondsTotal": 17.54059900000001,
+              "video": 115
+            }
+          ]
+        }
+      },
+      {
+        "case": "canonical_webtransport_browser::installed_chrome_production_sdk_captured_duplex_opus_vp8_and_reliable_data_eddsa",
+        "boundary": "background-resume",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 9.047182000009343,
+        "log_sha256": "33bb38082ee87d855add750ff9c6b3530d86c31e1d79202addc72c738302c50c",
+        "actual": {
+          "owned_cleanup": true,
+          "teardown_ms": 67.5,
+          "capture_boundary": {
+            "actual_hidden_pause": true,
+            "explicit_visible_resume": true,
+            "fresh_capture_recovery_ms": 146.40000009536743,
+            "hidden_encoded_after": [
+              88,
+              86
+            ],
+            "hidden_encoded_before": [
+              88,
+              86
+            ],
+            "mode": "background-resume",
+            "passed": true
+          },
+          "decoded_forward": true,
+          "decoded_reverse": true,
+          "reliable_data_duplex": true,
+          "opus": [
+            {
+              "decoded": 195,
+              "identified": 195
+            },
+            {
+              "decoded": 199,
+              "identified": 199
+            }
+          ],
+          "vp8": [
+            {
+              "decoded": 116,
+              "identified": 116,
+              "motion": 112
+            },
+            {
+              "decoded": 117,
+              "identified": 117,
+              "motion": 83
+            }
+          ],
+          "playback": [
+            {
+              "audio": 193,
+              "audio_refusal_observations": {
+                "inactive": 0,
+                "nonmonotonic": 1,
+                "overlap": 1
+              },
+              "maxPending": 7,
+              "maxQueuedSeconds": 0.13358266666666707,
+              "meanQueuedAudioSeconds": 0.08857566493055562,
+              "peakRms": 0.24920349188651278,
+              "queueSamples": 192,
+              "queueSecondsTotal": 17.006527666666678,
+              "video": 117
+            },
+            {
+              "audio": 197,
+              "audio_refusal_observations": {
+                "inactive": 0,
+                "nonmonotonic": 2,
+                "overlap": 0
+              },
+              "maxPending": 8,
+              "maxQueuedSeconds": 0.13971966666666846,
+              "meanQueuedAudioSeconds": 0.1241107222222227,
+              "peakRms": 0.3013847194164037,
+              "queueSamples": 192,
+              "queueSecondsTotal": 23.82925866666676,
+              "video": 117
+            }
+          ]
+        }
+      }
+    ],
+    "failures": {
+      "negotiated_browser_browser_eddsa": "89/90 identified decoded VP8 frames in one direction during original4second window; original limit retained.",
+      "captured_browser_native_eddsa": "Original BrowserClient request deadline; retain original logical operation ID. Stage/cause is not established by the current generic error."
+    },
+    "native_selected_cases": 33,
+    "native_steps": [
+      {
+        "name": "opus-fidelity-96-av",
+        "helper_exit_code": 0,
+        "seconds": 14.55200224998407,
+        "results": [
+          {
+            "generated_rgb": [
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/alice-receives-blue.rgb",
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/alice-restores-blue.rgb",
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/bob-continues-red.rgb",
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/bob-receives-red.rgb",
+              "signed-EdDSA-a1c707ca-5296-48b9-80d6-f611ebdeb5d1/bob-red-after-unmute.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/alice-blue-during-video-mute.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/alice-receives-blue.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/alice-restores-blue.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/bob-continues-red.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/bob-receives-red.rgb",
+              "signed-ES256-aaf370ca-86ab-4f6b-8ff8-2a002843bd5f/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 13.876313334098086,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_websocket_control::webrtc::subscriptions::av::signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "b2b09c4f2528130767301d54a99740ca4af98ee47669e19044a6835ca16ac07d",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 13.87s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "opus-fidelity-96-configured",
+        "helper_exit_code": 0,
+        "seconds": 16.364926500013098,
+        "results": [
+          {
+            "generated_rgb": [
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/alice-blue-during-video-mute.rgb",
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/alice-receives-blue.rgb",
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/alice-restores-blue.rgb",
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/bob-continues-red.rgb",
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/bob-receives-red.rgb",
+              "signed-EdDSA-fc3d1978-0ea5-4541-bc4d-7a9fb69f9ac7/bob-red-after-unmute.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/alice-blue-during-video-mute.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/alice-receives-blue.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/alice-restores-blue.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/bob-continues-red.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/bob-receives-red.rgb",
+              "signed-ES256-3ff363f3-87f2-457b-a8d5-8f92080b7c56/bob-red-after-unmute.rgb"
+            ],
+            "exit_code": 0,
+            "seconds": 15.72451224992983,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_",
+              "--nocapture",
+              "--test-threads=1",
+              "--ignored"
+            ],
+            "log_sha256": "0893184139b08490ac5e97d0c80c7b6766a97a787552a5ebd203209d3b0932b0",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 15.71s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "opus-fidelity-96-refusal",
+        "helper_exit_code": 0,
+        "seconds": 1.9991373340599239,
+        "results": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 1.3675087501760572,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_websocket_control::webrtc::subscriptions::av::",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "88c5f1b2d150b7194be01da806170ccbc6c2bf3ef4c532b42de487299b4c4fcd",
+            "test_results": [
+              "test result: ok. 2 passed; 0 failed; 4 ignored; 0 measured; 70 filtered out; finished in 1.30s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      },
+      {
+        "name": "opus-fidelity-96-regression",
+        "helper_exit_code": 0,
+        "seconds": 96.7620779168792,
+        "results": [
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 51.800012207822874,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_websocket_control::webrtc::subscriptions::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::av::"
+            ],
+            "log_sha256": "fbd4c7e55ac44fe00fd645202cb76ec2d3aadefdf5b8231197ef7367fc567c06",
+            "test_results": [
+              "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 51.79s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 39.37416620901786,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_websocket_control::",
+              "--nocapture",
+              "--test-threads=1",
+              "--skip",
+              "canonical_websocket_control::webrtc::subscriptions::"
+            ],
+            "log_sha256": "6fc5b39a817752f01d64d88a744caf376a5731cf8a271e840a219f9e8bf543ef",
+            "test_results": [
+              "test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 62 filtered out; finished in 39.36s"
+            ],
+            "changed_inputs": []
+          },
+          {
+            "generated_rgb": [],
+            "exit_code": 0,
+            "seconds": 4.334270583000034,
+            "arguments": [
+              "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/wss-integration-test-93",
+              "canonical_webtransport_media::independent_http3_actual_decoded_duplex_uses_webtransport_bindings_eddsa",
+              "--nocapture",
+              "--test-threads=1"
+            ],
+            "log_sha256": "b685d43dca7a106f267bea2840ed20c71928255f3384b02778d75a3c11a48afb",
+            "test_results": [
+              "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 75 filtered out; finished in 4.30s"
+            ],
+            "changed_inputs": []
+          }
+        ]
+      }
+    ],
+    "private_summary_hashes": {
+      "webtransport": "cee2127ff69a216f39cda599e0765f7d7ecba1bfd5f7324d6a91d4bb1cf7e691",
+      "native": "f76ca03860662f5e0056b2718e96f2e4a42345bcad484ab7127349e7dceb3e53"
+    },
+    "setup_failure_retained": "The first private WT wrapper stopped before any case because runpy lacked scripts/lib in sys.path. Corrected wrapper95a uses the same sealed runtime and guarded sources; the first setup log is retained. No runtime retry is represented as an initial pass.",
+    "remaining": "Current normal fallback tone/cadence failures, short VP8 loss/expiry and captured-native original-command timeout remain unresolved. These checks do not qualify frozen impaired/remote/native-live/full60 scopes or complete tasks/acceptance."
   }
 }
