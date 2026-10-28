@@ -224,14 +224,9 @@
     }
   ],
   "ci": {
-    "workflow": ".github/workflows/gate6-linux-fixtures.yml",
-    "node_matrix": [
-      "22",
-      "26"
-    ],
-    "configuration_checked": "Ruby YAML parser validates structure/matrix/non-cancellation policy. First optional PyYAML parse unavailable locally; no Python YAML pass claimed.",
-    "runtime_result": "pending; no CI pass inferred from local synthetic checks",
-    "scope": "Separate synthetic owned helper/HTTP/typecheck and generated dist equality only; not actual Rust/native Node or remote/installation qualification."
+    "evidence": "docs/evidence/gate-6/node-linux-control.json",
+    "passed": true,
+    "scope": "Downloaded Node22/26synthetic41checks/typechecks/generateddist,185inputs. No native actualNode or fullSDKqualification."
   },
   "source_sha256": {
     "crates/connect-client/src/sdk/helper.rs": "3c3e2ddd85dba13d495d062eb4c44e46966e14ce58ec1c0f354aea5ef51911a3",
@@ -250,5 +245,27 @@
     "Complete frozen Session/Connection/Stream/topology, event/invitation/step-up/capability and explicit trusted administration/provisioning interfaces.",
     "Supported remote HTTP enrollment/trust and complete native/HTTP authority/status/ID parity; full installed journey/package profiles.",
     "Independent Gate6 performance/failure/acceptance remains open; programmatic media is G6-064."
-  ]
+  ],
+  "later_uninstrumented_positive": {
+    "private_summary": ".local/gate-6/node-participants-real318/summary.json",
+    "seconds": 3.0077598749194294,
+    "passed": true,
+    "binary_sha256": "ae5cc224acdaaf53fdd6ac485d1077f5dcaa7a6766729f972565f542e78c8bed",
+    "source_count": 5635,
+    "changed_inputs": [],
+    "log_sha256": "dc9254ee67d7b3bf1c90482c41e7504a17bb545f67974793577a25387756e702",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "original_helpers_joined": 4,
+    "original_servers_joined": 2,
+    "sampling": false,
+    "note": "Same314binary/current306installed package/current4sper-call budgets; entire membership/message/decision/recovery/revocation assertions pass. Original309/315deadlinecause remains unproven. No production fix or full-profile qualification inferred."
+  },
+  "comparison_317": {
+    "private_summary": ".local/gate-6/node-helper-compare317/summary.json",
+    "passed": true,
+    "scope": "Old301installed Node+consumer passes bothalgorithms against current314Rusthelper. This rules out a universal currentRusthelper failure, not the intermittent prior4sdeadline cause."
+  }
 }

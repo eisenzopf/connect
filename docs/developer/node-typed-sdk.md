@@ -126,3 +126,10 @@ its unchanged four-second budget, before membership assertions. A subsequent
 instrumented run passes both signing algorithms and all membership/recovery
 assertions; the initial deadline cause remains unproven. This is an explicit
 open finding, not a completed uninstrumented profile or production fix.
+
+A later uninstrumented run on the same executable and current installed package
+passes both algorithms at the original request budgets. The earlier deadline
+cause is still unproven. The downloaded Ubuntu Node22/26 artifacts independently
+pass all41synthetic checks, negative declarations and generated dist equality;
+see [`node-linux-control.json`](../evidence/gate-6/node-linux-control.json).
+Neither result qualifies the remaining full SDK or resolves the failed events.
