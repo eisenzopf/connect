@@ -96,3 +96,17 @@ pass, including unexpected deadline/success and foreign-record rejection; all
 seven helpers and thirteen validators join. The runner retains only safe
 observed error kind/certainty and source coordinates. Real Linux compilation and
 behavior remain pending. See [the authority evidence](../evidence/gate-6/node-administration-authority.json).
+
+The `node-administration/3` candidate adds the original held-response commit
+fixture. The host must commit before Node cancels either wait. Queued work must
+report `cancelled/not-submitted`; the sent original must report
+`cancelled/uncertain` with its saved ID and reference. After joining the original
+helper, a fresh client must recover the same signed record and value without
+replaying the mutation. The proxy forbids a hidden second HTTP request; SQLite
+requires one original effect/receipt and zero queued effects/receipts.
+
+The combined six-function, two-algorithm candidate requires sixteen helpers,
+eighty validators and eight servers joined. Nine installed synthetic protocols
+pass with nine helpers/seventeen validators joined. A completed request cannot
+be mislabeled uncertain. Real host commit, compilation and native qualification
+remain pending. See [the uncertainty evidence](../evidence/gate-6/node-administration-uncertainty.json).

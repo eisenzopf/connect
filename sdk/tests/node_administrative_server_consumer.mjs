@@ -7,12 +7,12 @@ import {NodeAdministrativeClient,NodeSdkError} from '@rudeless/connect';
 const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project+'/node_modules/'));
 const client=new NodeAdministrativeClient({config:spec.config,executable:spec.executable}),opts={timeoutMs:4000};
-const emit=value=>process.stdout.write(JSON.stringify(value)+'\n'),lines=createInterface({input:process.stdin});
+const emit=value=>process.stdout.write(JSON.stringify(value)+'\n'),lines=createInterface({input:process.stdin}),iterator=lines[Symbol.asyncIterator]();
 let checkpoint='ready',observedKind=null,observedCertainty=null;
 const capture=error=>{observedKind=error instanceof NodeSdkError?error.kind:null;observedCertainty=error instanceof NodeSdkError?error.certainty:null;};
 try {
  emit({phase:'ready'});
- for await(const line of lines) {
+ for await(const line of iterator) {
   assert.ok(line.length<=128*1024);const request=JSON.parse(line);checkpoint=request.action;observedKind=null;observedCertainty=null;
   if(request.action==='apply') {
    const command=client.validateProvisioning(request.command),saved=command.referenceJson();
@@ -28,6 +28,19 @@ try {
    const operation=client.operations.restore(request.reference),read=await operation.wait(opts);
    if(request.expected_record!==null)assert.equal(read.snapshot.recordId,request.expected_record);
    emit({phase:'read',value:read.value,record_id:read.snapshot.recordId});
+  } else if(request.action==='held') {
+   const command=client.validateProvisioning(request.command),queuedCommand=client.validateProvisioning(request.queued);
+   const reference=command.referenceJson(),originalAbort=new AbortController(),queuedAbort=new AbortController();
+   const settle=promise=>promise.then(value=>({value}),error=>({error}));
+   const original=settle(client.provision(command,{...opts,operationId:command.operationId,signal:originalAbort.signal}));
+   const queued=settle(client.provision(queuedCommand,{...opts,operationId:queuedCommand.operationId,signal:queuedAbort.signal}));
+   emit({phase:'submitted',reference});
+   const cancel=await iterator.next();assert.equal(cancel.done,false);assert.deepEqual(JSON.parse(cancel.value),{action:'cancel-held'});checkpoint='held-cancel';
+   queuedAbort.abort();const queuedResult=await queued;capture(queuedResult.error);
+   assert.ok(queuedResult.error instanceof NodeSdkError);assert.equal(queuedResult.error.kind,'cancelled');assert.equal(queuedResult.error.certainty,'not-submitted');assert.equal(queuedResult.error.operation.operationId,queuedCommand.operationId);
+   originalAbort.abort();const originalResult=await original;capture(originalResult.error);
+   assert.ok(originalResult.error instanceof NodeSdkError);assert.equal(originalResult.error.kind,'cancelled');assert.equal(originalResult.error.certainty,'uncertain');assert.equal(originalResult.error.operation.operationId,command.operationId);
+   emit({phase:'uncertain',reference,original_id:command.operationId,original_certainty:'uncertain',queued_id:queuedCommand.operationId,queued_certainty:'not-submitted'});
   } else if(request.action==='read-refused') {
    const operation=client.operations.restore(request.reference);
    await assert.rejects(operation.status(opts),error=>{
@@ -50,6 +63,6 @@ try {
  }
 } catch(error) {
  const at=/admin-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
- emit({phase:'failed',checkpoint:['ready','apply','read','read-refused','refuse','close'].includes(checkpoint)?checkpoint:'invalid',kind:error instanceof NodeSdkError?error.kind:'consumer-assertion',certainty:error instanceof NodeSdkError?error.certainty:null,observedKind,observedCertainty,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
+ emit({phase:'failed',checkpoint:['ready','apply','read','read-refused','refuse','held','held-cancel','close'].includes(checkpoint)?checkpoint:'invalid',kind:error instanceof NodeSdkError?error.kind:'consumer-assertion',certainty:error instanceof NodeSdkError?error.certainty:null,observedKind,observedCertainty,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  process.exitCode=1;
 } finally {await client.close(opts).catch(()=>{process.exitCode=1;});lines.close();}

@@ -167,5 +167,6 @@
     "sdk/tests/node_administrative_server_consumer.mjs": "ce61204aaa4551ddb2975d3314953e8f7922c8b617f524857ab77c1219b9b787",
     "scripts/check-gate6-linux-hosting.py": "a7284310e68e735f9f7b26d923f390ea7cab3027e3ca9ede8c345266b226b8ea"
   },
-  "qualification_limit": "Seven installed synthetic consumer scenarios, seven original helper joins,13 validator joins and original runner-parser checks only. Real Node administrative authority/cryptography/native behavior remains pending. Uncertain HTTP commit is not covered here; full SDK incoming/events/explicit remote HTTP and other required scopes remain open."
+  "qualification_limit": "Seven installed synthetic consumer scenarios, seven original helper joins,13 validator joins and original runner-parser checks only. Real Node administrative authority/cryptography/native behavior remains pending. Uncertain HTTP commit is not covered here; full SDK incoming/events/explicit remote HTTP and other required scopes remain open.",
+  "subsequent_uncertainty_candidate": "docs/evidence/gate-6/node-administration-uncertainty.json"
 }

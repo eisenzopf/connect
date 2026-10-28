@@ -515,156 +515,162 @@ async fn authority_case(algorithm: &'static str) {
 #[tokio::test]
 async fn public_sdk_cancelled_administrative_http_wait_keeps_real_committed_operation_and_no_queued_effect(
 ) {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
     for algorithm in ["EdDSA", "ES256"] {
-        let f = Fixture::with_native_end_scope(algorithm, 16).await;
-        let config = administrator(&f, 242);
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let endpoint = listener.local_addr().unwrap();
-        let upstream = f.server.http_address.unwrap();
-        let ready = std::sync::Arc::new(tokio::sync::Notify::new());
-        let release = std::sync::Arc::new(tokio::sync::Notify::new());
-        let entered = ready.clone();
-        let gate = release.clone();
-        let proxy = tokio::spawn(async move {
-            let (mut downstream, _) = listener.accept().await.unwrap();
-            let mut header = vec![];
-            let mut b = [0; 1];
-            while !header.ends_with(b"\r\n\r\n") {
-                downstream.read_exact(&mut b).await.unwrap();
-                header.push(b[0]);
-                assert!(header.len() <= 8192);
-            }
-            let text = String::from_utf8(header).unwrap();
-            let len: usize = text
-                .lines()
-                .find_map(|l| {
-                    l.to_ascii_lowercase()
-                        .strip_prefix("content-length:")
-                        .map(|n| n.trim().parse().unwrap())
-                })
-                .unwrap();
-            assert!(len <= 65_536);
-            let mut body = vec![0; len];
-            downstream.read_exact(&mut body).await.unwrap();
-            assert_eq!(
-                serde_json::from_slice::<Value>(&body).unwrap()["operation_id"],
-                "sdk-admin-uncertain"
-            );
-            let mut request = text
-                .lines()
-                .filter(|l| {
-                    !l.to_ascii_lowercase().starts_with("connection:")
-                        && !l.to_ascii_lowercase().starts_with("host:")
-                        && !l.is_empty()
-                })
-                .collect::<Vec<_>>()
-                .join("\r\n");
-            request += &format!("\r\nHost: {upstream}\r\nConnection: close\r\n\r\n");
-            let mut server = tokio::net::TcpStream::connect(upstream).await.unwrap();
-            server.write_all(request.as_bytes()).await.unwrap();
-            server.write_all(&body).await.unwrap();
-            let mut response = vec![];
-            tokio::time::timeout(
-                Duration::from_secs(5),
-                server.take(2 * 1024 * 1024 + 1).read_to_end(&mut response),
-            )
-            .await
-            .unwrap()
+        uncertainty_case(algorithm).await;
+    }
+}
+async fn uncertainty_case(algorithm: &'static str) {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let f = Fixture::with_native_end_scope(algorithm, 16).await;
+    let config = administrator(&f, 242);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = listener.local_addr().unwrap();
+    let upstream = f.server.http_address.unwrap();
+    let ready = std::sync::Arc::new(tokio::sync::Notify::new());
+    let release = std::sync::Arc::new(tokio::sync::Notify::new());
+    let entered = ready.clone();
+    let gate = release.clone();
+    let proxy = tokio::spawn(async move {
+        let (mut downstream, _) = listener.accept().await.unwrap();
+        let mut header = vec![];
+        let mut b = [0; 1];
+        while !header.ends_with(b"\r\n\r\n") {
+            downstream.read_exact(&mut b).await.unwrap();
+            header.push(b[0]);
+            assert!(header.len() <= 8192);
+        }
+        let text = String::from_utf8(header).unwrap();
+        let len: usize = text
+            .lines()
+            .find_map(|l| {
+                l.to_ascii_lowercase()
+                    .strip_prefix("content-length:")
+                    .map(|n| n.trim().parse().unwrap())
+            })
             .unwrap();
-            assert!(response.len() <= 2 * 1024 * 1024);
-            assert!(response.starts_with(b"HTTP/1.1 200"));
-            entered.notify_one();
-            gate.notified().await;
-            let _ = downstream.write_all(&response).await;
-            let _ = downstream.shutdown().await;
-            assert!(
-                tokio::time::timeout(Duration::from_millis(100), listener.accept())
-                    .await
-                    .is_err(),
-                "no hidden provisioning resubmission"
-            );
-        });
-        let mut application = app(&f, &config);
-        application.endpoint = endpoint;
-        let admin =
-            AdministrativeClient::connect(config, "tnt_default".parse().unwrap(), application)
-                .await
-                .unwrap();
-        let mut opts = mutation("sdk-admin-uncertain");
-        let cancel = opts.request.signal.clone();
-        opts.request.timeout = Duration::from_secs(5);
-        let original = admin.provision(
-            admin
-                .validate_provisioning(
-                    serde_json::to_value(identity(
-                        "sdk-admin-uncertain",
-                        "sdk-admin-uncertain-target",
-                    ))
-                    .unwrap(),
-                )
-                .unwrap(),
-            opts,
-        );
-        tokio::pin!(original);
-        tokio::select! {result=&mut original=>panic!("unexpected response before held receipt: {}",result.is_ok()),_=ready.notified()=>()};
-        let queued_opts = mutation("sdk-admin-never-written");
-        let queued_cancel = queued_opts.request.signal.clone();
-        let queued = admin.provision(
-            admin
-                .validate_provisioning(
-                    serde_json::to_value(identity(
-                        "sdk-admin-never-written",
-                        "sdk-admin-never-written-target",
-                    ))
-                    .unwrap(),
-                )
-                .unwrap(),
-            queued_opts,
-        );
-        tokio::pin!(queued);
-        std::future::poll_fn(|cx| {
-            use std::future::Future;
-            assert!(queued.as_mut().poll(cx).is_pending());
-            std::task::Poll::Ready(())
-        })
-        .await;
-        queued_cancel.cancel();
-        assert_eq!(queued.await.err().unwrap().kind, sdk::ErrorKind::Cancelled);
-        cancel.cancel();
-        let error = original.await.err().unwrap();
-        assert_eq!(error.certainty, sdk::Certainty::Uncertain);
+        assert!(len <= 65_536);
+        let mut body = vec![0; len];
+        downstream.read_exact(&mut body).await.unwrap();
         assert_eq!(
-            error.operation.unwrap().operation_id.as_str(),
+            serde_json::from_slice::<Value>(&body).unwrap()["operation_id"],
             "sdk-admin-uncertain"
         );
-        let recovered = admin
-            .restore(saved("sdk-admin-uncertain"))
-            .unwrap()
-            .wait(options())
-            .await
-            .unwrap();
-        assert_eq!(recovered.value["alias"], "sdk-admin-uncertain-target");
-        release.notify_one();
-        proxy.await.unwrap();
-        // A missing unscoped record has no original source to authorize. Its
-        // refusal is not a fabricated unknown/absent observation; independent
-        // evidence below proves that this fixture's queued work never wrote.
-        assert!(
-            matches!(admin.restore(saved("sdk-admin-never-written")).unwrap().status(options()).await,Err(e) if e.kind==sdk::ErrorKind::Authentication && e.certainty==sdk::Certainty::Refused)
-        );
-        let db = rusqlite::Connection::open_with_flags(
-            &f.config.database,
-            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        let mut request = text
+            .lines()
+            .filter(|l| {
+                !l.to_ascii_lowercase().starts_with("connection:")
+                    && !l.to_ascii_lowercase().starts_with("host:")
+                    && !l.is_empty()
+            })
+            .collect::<Vec<_>>()
+            .join("\r\n");
+        request += &format!("\r\nHost: {upstream}\r\nConnection: close\r\n\r\n");
+        let mut server = tokio::net::TcpStream::connect(upstream).await.unwrap();
+        server.write_all(request.as_bytes()).await.unwrap();
+        server.write_all(&body).await.unwrap();
+        let mut response = vec![];
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            server.take(2 * 1024 * 1024 + 1).read_to_end(&mut response),
         )
+        .await
+        .unwrap()
         .unwrap();
-        let count:i64=db.query_row("SELECT COUNT(*) FROM operations WHERE operation_id IN ('sdk-admin-uncertain','sdk-admin-never-written')",[],|r|r.get(0)).unwrap();
-        assert_eq!(count, 1);
-        drop(db);
-        admin.close(options()).await.unwrap();
-        f.server.shutdown().await.unwrap();
-        eprintln!("SDK administrative uncertainty {algorithm}: actual backend commit with held HTTP response, cancelled local waits retain original key, live independent signed recovery, one receipt and zero queued effect/no hidden resubmission, joined cleanup");
+        assert!(response.len() <= 2 * 1024 * 1024);
+        assert!(response.starts_with(b"HTTP/1.1 200"));
+        entered.notify_one();
+        gate.notified().await;
+        let _ = downstream.write_all(&response).await;
+        let _ = downstream.shutdown().await;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "no hidden provisioning resubmission"
+        );
+    });
+    if node::enabled() {
+        node::uncertainty(f, config, endpoint, ready, release, proxy).await;
+        return;
     }
+    let mut application = app(&f, &config);
+    application.endpoint = endpoint;
+    let admin = AdministrativeClient::connect(config, "tnt_default".parse().unwrap(), application)
+        .await
+        .unwrap();
+    let mut opts = mutation("sdk-admin-uncertain");
+    let cancel = opts.request.signal.clone();
+    opts.request.timeout = Duration::from_secs(5);
+    let original = admin.provision(
+        admin
+            .validate_provisioning(
+                serde_json::to_value(identity(
+                    "sdk-admin-uncertain",
+                    "sdk-admin-uncertain-target",
+                ))
+                .unwrap(),
+            )
+            .unwrap(),
+        opts,
+    );
+    tokio::pin!(original);
+    tokio::select! {result=&mut original=>panic!("unexpected response before held receipt: {}",result.is_ok()),_=ready.notified()=>()};
+    let queued_opts = mutation("sdk-admin-never-written");
+    let queued_cancel = queued_opts.request.signal.clone();
+    let queued = admin.provision(
+        admin
+            .validate_provisioning(
+                serde_json::to_value(identity(
+                    "sdk-admin-never-written",
+                    "sdk-admin-never-written-target",
+                ))
+                .unwrap(),
+            )
+            .unwrap(),
+        queued_opts,
+    );
+    tokio::pin!(queued);
+    std::future::poll_fn(|cx| {
+        use std::future::Future;
+        assert!(queued.as_mut().poll(cx).is_pending());
+        std::task::Poll::Ready(())
+    })
+    .await;
+    queued_cancel.cancel();
+    assert_eq!(queued.await.err().unwrap().kind, sdk::ErrorKind::Cancelled);
+    cancel.cancel();
+    let error = original.await.err().unwrap();
+    assert_eq!(error.certainty, sdk::Certainty::Uncertain);
+    assert_eq!(
+        error.operation.unwrap().operation_id.as_str(),
+        "sdk-admin-uncertain"
+    );
+    let recovered = admin
+        .restore(saved("sdk-admin-uncertain"))
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+    assert_eq!(recovered.value["alias"], "sdk-admin-uncertain-target");
+    release.notify_one();
+    proxy.await.unwrap();
+    // A missing unscoped record has no original source to authorize. Its
+    // refusal is not a fabricated unknown/absent observation; independent
+    // evidence below proves that this fixture's queued work never wrote.
+    assert!(
+        matches!(admin.restore(saved("sdk-admin-never-written")).unwrap().status(options()).await,Err(e) if e.kind==sdk::ErrorKind::Authentication && e.certainty==sdk::Certainty::Refused)
+    );
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let count:i64=db.query_row("SELECT COUNT(*) FROM operations WHERE operation_id IN ('sdk-admin-uncertain','sdk-admin-never-written')",[],|r|r.get(0)).unwrap();
+    assert_eq!(count, 1);
+    drop(db);
+    admin.close(options()).await.unwrap();
+    f.server.shutdown().await.unwrap();
+    eprintln!("SDK administrative uncertainty {algorithm}: actual backend commit with held HTTP response, cancelled local waits retain original key, live independent signed recovery, one receipt and zero queued effect/no hidden resubmission, joined cleanup");
 }
 
 #[test]
@@ -776,4 +782,19 @@ async fn installed_node_es256_administration_enforces_current_authority_and_orig
     assert!(node::enabled());
     authority_case("ES256").await;
     node::authority_witness("ES256");
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_eddsa_administration_recovers_held_committed_receipt_without_replay() {
+    assert!(node::enabled());
+    uncertainty_case("EdDSA").await;
+    node::uncertainty_witness("EdDSA");
+}
+#[tokio::test]
+#[ignore = "Requires installed Node administrative consumer and explicit CONNECT_GATE6_NODE_ADMIN=1"]
+async fn installed_node_es256_administration_recovers_held_committed_receipt_without_replay() {
+    assert!(node::enabled());
+    uncertainty_case("ES256").await;
+    node::uncertainty_witness("ES256");
 }

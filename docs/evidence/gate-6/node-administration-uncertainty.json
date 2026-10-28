@@ -1,0 +1,208 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "held-commit-node-candidate-protocol-passed-native-pending",
+  "implementation_parent_commit": "001ea8c1dfb6df0cce435b79de806d12b56e8c3e",
+  "profile": "node-administration/3",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "native_candidate": [
+    "Reuse original real upstream commit/held response proxy. Actual host200 response must be fully received privately before cancellation is allowed. No model/provider/remote accounts.",
+    "Installed public Node validates and saves original intent before I/O, starts original mutation and queues second distinct mutation on its original helper.",
+    "Cancel queued local wait first: cancelled/not-submitted and exact queued ID. Cancel original held wait: cancelled/uncertain and exact original ID/reference. No automatic retry/reconnect.",
+    "Join the original helper before proxy release. Proxy rejects any hidden second HTTP submission.",
+    "Fresh installed client restores original reference and compares exact record ID/value with independent Rust signed-journal recovery, without mutation replay. Queued missing unscoped record remains a current-auth refusal, never fabricated absence.",
+    "SQLite proves exactly one original operation/identity effect and zero queued operations/identity effects. All original workers/servers join, physical peers/media readers drain."
+  ],
+  "required_matrix": {
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "functions": 6,
+    "scenarios": [
+      "commands",
+      "authority",
+      "uncertainty"
+    ],
+    "helpers_joined": 16,
+    "validators_joined": 80,
+    "servers_joined": 8,
+    "per_uncertainty_function": {
+      "helpers_joined": 2,
+      "validators_joined": 4,
+      "servers_joined": 1
+    },
+    "request_ms": 4000,
+    "phase_seconds": 15,
+    "function_seconds": 90
+  },
+  "installed_protocol_only": [
+    {
+      "passed": true,
+      "scope": "Installed public package with synthetic SDK helper protocol/process only; no real service/authorization/cryptography qualification",
+      "consumer_sha256": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a",
+      "scenarios": [
+        {
+          "scenario": "apply-recover-replay-read-conflict-close",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 4,
+          "phases": [
+            "ready",
+            "applied",
+            "read",
+            "refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "foreign-original-record-refused",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 3,
+          "phases": [
+            "ready",
+            "applied",
+            "failed"
+          ]
+        }
+      ]
+    },
+    {
+      "passed": true,
+      "scope": "Installed public administrative consumer with synthetic helper/context/process only; no real authority, cryptographic or native qualification",
+      "consumer_sha256": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a",
+      "scenarios": [
+        {
+          "scenario": "ordinary-authentication-read",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "read-refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "revoked-cancelled-read",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "read-refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "revoked-startup-replay-and-new",
+          "passed": true,
+          "consumer_exit": 0,
+          "helpers_joined": 1,
+          "validators_joined": 2,
+          "phases": [
+            "ready",
+            "refused",
+            "refused",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "unexpected-deadline-rejected",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "failed"
+          ]
+        },
+        {
+          "scenario": "unexpected-success-rejected",
+          "passed": true,
+          "consumer_exit": 1,
+          "helpers_joined": 1,
+          "validators_joined": 1,
+          "phases": [
+            "ready",
+            "failed"
+          ]
+        }
+      ]
+    },
+    {
+      "passed": true,
+      "scope": "Installed public consumer with actual local synthetic helper/queue/cancellation/process only; no server commit/HTTP/native qualification",
+      "consumer_sha256": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a",
+      "scenarios": [
+        {
+          "scenario": "pending-cancel-retains-original-queue-never-written",
+          "passed": true,
+          "helpers_joined": 1,
+          "validators_joined": 2,
+          "consumer_exit": 0,
+          "helper_requests": 1,
+          "phases": [
+            "ready",
+            "submitted",
+            "uncertain",
+            "closed"
+          ]
+        },
+        {
+          "scenario": "already-completed-cannot-claim-uncertainty",
+          "passed": true,
+          "helpers_joined": 1,
+          "validators_joined": 2,
+          "consumer_exit": 1,
+          "helper_requests": 2,
+          "phases": [
+            "ready",
+            "submitted",
+            "failed"
+          ]
+        }
+      ]
+    }
+  ],
+  "helpers_joined": 9,
+  "validators_joined": 17,
+  "runner_parser": {
+    "passed": true,
+    "scope": "Original runner parser source with actual local synthetic subprocess output; no Rust/native/authorization qualification",
+    "checks": [
+      "valid-retained",
+      "unsafe-certainty-rejected",
+      "invalid-phase-rejected",
+      "unsafe-label-rejected"
+    ]
+  },
+  "package": {
+    "archive_sha256": "5da0762d6aed18759cf342622d2a703b7d18dc5f165368c550c36d1efa4baacb",
+    "installed_dist_matches": true,
+    "consumer_sha256": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/sdk_handles/administration.rs": "6d95adeaee49ad8b64764ea35ad5b5808802a489bcc218631f07d46d538b5cc2",
+    "crates/connect-server/tests/support/sdk_handles/administration/node.rs": "c426fe5b8de7f038d57ed045ee3ab97fb91894fca21ab77a6157ead8caa7324f",
+    "sdk/tests/node_administrative_server_consumer.mjs": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a",
+    "scripts/check-gate6-linux-hosting.py": "e893feedc67bf365ffa54ff8a5e027b322c7d199c231dcd6f5d8b634cb2b12ef"
+  },
+  "checks": {
+    "rust_format": true,
+    "node_python_syntax": true,
+    "diff": true,
+    "actual_rust_compile_and_native": "Pending original normal-push Ubuntu run; no local Rust link due retained ENOSPC."
+  },
+  "qualification_limit": "Nine installed synthetic protocols pass with9helpers/17validators joined. Pending helper cancellation writes only one request; already completed work cannot qualify as uncertainty. These do not qualify actual held HTTP commit/native/cryptography. Full SDK incoming/events/explicit remote HTTP and other required scopes remain open."
+}

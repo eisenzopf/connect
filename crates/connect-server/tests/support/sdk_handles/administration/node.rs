@@ -56,6 +56,14 @@ pub(super) struct Probe {
 }
 impl Probe {
     pub(super) async fn start(f: &Fixture, config: CanonicalClientConfig) -> Self {
+        let application = super::app(f, &config);
+        Self::start_with_application(f, config, application).await
+    }
+    async fn start_with_application(
+        f: &Fixture,
+        config: CanonicalClientConfig,
+        application: ApplicationClientConfig,
+    ) -> Self {
         let index = INDEX.fetch_add(1, Ordering::SeqCst);
         let script = PathBuf::from(std::env::var_os("CONNECT_GATE6_NODE_ADMIN_CONSUMER").unwrap())
             .canonicalize()
@@ -71,7 +79,7 @@ impl Probe {
         let sdk_config = sdk::ClientConfig {
             control: config.clone(),
             tenant_id: "tnt_default".parse().unwrap(),
-            application: Some(super::app(f, &config)),
+            application: Some(application),
         };
         let native = f.temp.path().join(format!("node-admin-{index}.toml"));
         init::private_write(&native, toml::to_string(&sdk_config).unwrap().as_bytes()).unwrap();
@@ -140,6 +148,27 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 json!({"action":"read","reference":reference,"expected_record":expected}),
                 "read",
             )
+            .await
+    }
+    async fn begin_held(&self, command: Value, queued: Value) -> Value {
+        self.process
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .request(
+                json!({"action":"held","command":command,"queued":queued}),
+                "submitted",
+            )
+            .await
+    }
+    async fn cancel_held(&self) -> Value {
+        self.process
+            .lock()
+            .await
+            .as_mut()
+            .unwrap()
+            .request(json!({"action":"cancel-held"}), "uncertain")
             .await
     }
     pub(super) async fn read_refused(&self, reference: Value, revoked: bool) {
@@ -216,7 +245,7 @@ pub(super) fn witness(algorithm: &str) {
     assert_eq!(VALIDATORS.load(Ordering::SeqCst), 26);
     eprintln!(
         "installed-node-administrative-witness {}",
-        json!({"profile":"node-administration/2","scenario":"commands","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
+        json!({"profile":"node-administration/3","scenario":"commands","algorithm":algorithm,"command_families":11,"helpers_joined":2,"validators_joined":26,"servers_joined":2,"original_record_recovered":true,"one_original_receipt":true,"changed_intent_refused":true,"physical_peers_drained":true,"media_readers_drained":true})
     );
 }
 
@@ -227,11 +256,145 @@ pub(super) fn authority_witness(algorithm: &str) {
     eprintln!(
         "installed-node-administrative-witness {}",
         json!({
-            "profile":"node-administration/2","scenario":"authority","algorithm":algorithm,
+            "profile":"node-administration/3","scenario":"authority","algorithm":algorithm,
             "helpers_joined":4,"validators_joined":10,"servers_joined":1,
             "ordinary_submit_read_refused":true,"revoked_current_read_refused":true,
             "revoked_startup_replay_and_submit_not_submitted":true,
             "independent_authorized_original_record_recovered":true,"no_forbidden_or_revoked_receipts":true,
+            "physical_peers_drained":true,"media_readers_drained":true
+        })
+    );
+}
+
+pub(super) async fn uncertainty(
+    f: Fixture,
+    config: CanonicalClientConfig,
+    endpoint: std::net::SocketAddr,
+    ready: std::sync::Arc<tokio::sync::Notify>,
+    release: std::sync::Arc<tokio::sync::Notify>,
+    proxy: tokio::task::JoinHandle<()>,
+) {
+    let mut application = super::app(&f, &config);
+    application.endpoint = endpoint;
+    let node = Probe::start_with_application(&f, config.clone(), application).await;
+    let submitted = node
+        .begin_held(
+            serde_json::to_value(super::identity(
+                "sdk-admin-uncertain",
+                "sdk-admin-uncertain-target",
+            ))
+            .unwrap(),
+            serde_json::to_value(super::identity(
+                "sdk-admin-never-written",
+                "sdk-admin-never-written-target",
+            ))
+            .unwrap(),
+        )
+        .await;
+    assert_eq!(submitted["reference"], super::saved("sdk-admin-uncertain"));
+    // The original host must actually commit before either local wait is cancelled.
+    tokio::time::timeout(Duration::from_secs(5), ready.notified())
+        .await
+        .unwrap();
+    let cancelled = node.cancel_held().await;
+    assert_eq!(cancelled["reference"], submitted["reference"]);
+    assert_eq!(cancelled["original_id"], "sdk-admin-uncertain");
+    assert_eq!(cancelled["original_certainty"], "uncertain");
+    assert_eq!(cancelled["queued_id"], "sdk-admin-never-written");
+    assert_eq!(cancelled["queued_certainty"], "not-submitted");
+    node.close().await;
+    release.notify_one();
+    tokio::time::timeout(Duration::from_secs(5), proxy)
+        .await
+        .unwrap()
+        .unwrap();
+    let recovered = super::connect(&f, config).await;
+    let reference = super::saved("sdk-admin-uncertain");
+    let observed = recovered
+        .restore(reference.clone())
+        .unwrap()
+        .wait(options())
+        .await
+        .unwrap();
+    assert_eq!(observed.value["alias"], "sdk-admin-uncertain-target");
+    let read = recovered
+        .node
+        .as_ref()
+        .unwrap()
+        .read(
+            reference,
+            Some(
+                observed
+                    .snapshot
+                    .record_id
+                    .as_ref()
+                    .unwrap()
+                    .as_str()
+                    .to_owned(),
+            ),
+        )
+        .await;
+    assert_eq!(read["value"], observed.value);
+    recovered
+        .node
+        .as_ref()
+        .unwrap()
+        .read_refused(super::saved("sdk-admin-never-written"), false)
+        .await;
+    let db = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let original: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-admin-uncertain'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let queued: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM operations WHERE operation_id='sdk-admin-never-written'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(original, 1);
+    assert_eq!(queued, 0);
+    let original_effect: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM identities WHERE alias='sdk-admin-uncertain-target'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let queued_effect: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM identities WHERE alias='sdk-admin-never-written-target'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(original_effect, 1);
+    assert_eq!(queued_effect, 0);
+    drop(db);
+    recovered.close(options()).await.unwrap();
+    drained(&f).await;
+    f.server.shutdown().await.unwrap();
+    server_joined();
+    assert_eq!(HELPERS.load(Ordering::SeqCst), 2);
+    assert_eq!(VALIDATORS.load(Ordering::SeqCst), 4);
+    assert_eq!(SERVERS.load(Ordering::SeqCst), 1);
+}
+pub(super) fn uncertainty_witness(algorithm: &str) {
+    eprintln!(
+        "installed-node-administrative-witness {}",
+        json!({
+            "profile":"node-administration/3","scenario":"uncertainty","algorithm":algorithm,
+            "helpers_joined":2,"validators_joined":4,"servers_joined":1,
+            "actual_commit_held_response":true,"original_cancelled_uncertain":true,"queued_cancelled_not_submitted":true,
+            "fresh_original_record_recovered_without_replay":true,"one_original_receipt":true,"zero_queued_receipts":true,"no_hidden_resubmission":true,
             "physical_peers_drained":true,"media_readers_drained":true
         })
     );
