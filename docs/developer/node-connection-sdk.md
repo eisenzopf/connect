@@ -64,3 +64,12 @@ revocation, helper joins and native-owner drain checks remain required. This
 profile change is functional verification, not a performance qualification or
 a claim to resolve the earlier startup deadline failures. Its actual run is
 pending; no prior failed cohort is promoted to a pass.
+
+The first `node-controls/2` run reached recovery after native control and first
+helper shutdown, then failed a four-second read-only request in the recovery
+block. The full function remains failed. The next source-bound probe separates
+HTTP recovery, native end status/wait, Session end wait and Session refresh,
+pins the original native end record and retains fixed command/state error
+metadata plus completed-phase durations. This adds observations while keeping
+the four-second request, 15-second absolute phase and 90-second whole-function
+bounds unchanged. No product cause or runtime qualification is yet established.

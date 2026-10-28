@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {NodeClient,NodeSdkError,CanonicalHttpClient} from '@rudeless/connect';
+import {NodeClient,NodeSdkError,CanonicalError,CanonicalHttpClient} from '@rudeless/connect';
 const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project+'/node_modules/'));
 const opts={timeoutMs:4000},mutation={...opts,operationId:'typed-node-original-send'};
@@ -96,7 +96,7 @@ try {
  const beforeUnsubscribe=await native.streams.unsubscribe({streams:{first:'typed-peer-audio',rest:[]},expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-unsubscribe'}),unsubscribed=(await beforeUnsubscribe.wait(opts)).value;streamRevision=unsubscribed.streamRevision;
  const nativeRecord=await nativeOffer.status(opts),nativeHttp=record(await http.request('operation.get',{operation_id:'typed-native-offer'},{cid:room.id,sid:solo.id,connid:native.id},opts));assert.equal(nativeRecord.recordId,nativeHttp.record_id);
  progress('native-end');
- const nativeEnd=await native.end({reasonCode:1000,reason:'control complete',expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-end'}),nativeEndSaved=nativeEnd.referenceJson();assert.equal((await nativeEnd.wait(opts)).value.id,native.id);
+ const nativeEnd=await native.end({reasonCode:1000,reason:'control complete',expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-end'}),nativeEndSaved=nativeEnd.referenceJson();const nativeEndCompleted=await nativeEnd.wait(opts);assert.equal(nativeEndCompleted.value.id,native.id);const nativeEndRecord=nativeEndCompleted.snapshot.recordId;assert.equal(typeof nativeEndRecord,'string');
  await (await remote.end({reasonCode:1000,reason:'peer complete'},{...opts,operationId:'typed-peer-end'})).wait(opts);
  emit({phase:'native-complete',native_controls_completed:true});
  await resume('finish');
@@ -135,9 +135,16 @@ try {
  assert.equal(status.recordId,original.recordId);assert.equal((await recovered.wait(opts)).value.messageId,intent.messageId);
  assert.equal((await client.operations.recover(recovered.reference).status(opts)).recordId,original.recordId);
  const restoredDecision=await client.operations.restore(cancelSaved,client.operationKinds.operation_cancel).wait(opts);assert.equal(restoredDecision.value.target,mutation.operationId);
- progress('native-recovery');
- const restoredNativeEnd=(await client.operations.restore(nativeEndSaved,client.operationKinds.connection_end).wait(opts)).value;assert.equal(restoredNativeEnd.id,native.id);
- const restoredEnd=(await client.operations.restore(endedSaved,client.operationKinds.session_end).wait(opts)).value;assert.equal((await restoredEnd.refresh(opts)).state,'ended');
+ progress('native-end-http-recovery');
+ const recoveredNativeHttp=record(await http.request('operation.get',{operation_id:'typed-native-end'},{cid:room.id,sid:solo.id,connid:native.id},opts));assert.equal(recoveredNativeHttp.state,'completed');assert.equal(recoveredNativeHttp.record_id,nativeEndRecord);
+ progress('native-end-status');
+ const restoredNativeOperation=client.operations.restore(nativeEndSaved,client.operationKinds.connection_end),restoredNativeStatus=await restoredNativeOperation.status(opts);assert.equal(restoredNativeStatus.state,'completed');assert.equal(restoredNativeStatus.recordId,nativeEndRecord);
+ progress('native-end-wait');
+ const restoredNativeEnd=(await restoredNativeOperation.wait(opts)).value;assert.equal(restoredNativeEnd.id,native.id);
+ progress('session-end-wait');
+ const restoredEnd=(await client.operations.restore(endedSaved,client.operationKinds.session_end).wait(opts)).value;
+ progress('session-end-refresh');
+ assert.equal((await restoredEnd.refresh(opts)).state,'ended');
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
  emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true});
  await resume('revoked');
@@ -153,6 +160,7 @@ try {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.
  const at=/server-consume\.mjs:(\d+):(\d+)/.exec(String(error?.stack));
- emit({phase:'failed',checkpoint,kind:error instanceof NodeSdkError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof NodeSdkError?error.certainty:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
+ const knownStates=new Set(['accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown']);
+ emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:knownStates.has(error?.actual)?error.actual:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  throw error;
 } finally {await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

@@ -113,16 +113,27 @@ def run(node_sdk=False):
             {"file": location[0], "line": int(location[1]), "column": int(location[2])}
             for location in re.findall(r"thread '[^']+' panicked at ([^\n]+?):([0-9]+):([0-9]+):", text, re.M)
         ][:16]
+        step["node_completed_phases"] = []
+        for line in text.splitlines():
+            if line.startswith('installed-typed-node-sdk-phase '):
+                phase = json.loads(line.split(' ', 1)[1])
+                assert set(phase) == {'algorithm','phase','passed','seconds','deadline_seconds'}
+                assert phase['algorithm'] in {'EdDSA','ES256'} and phase['passed'] is True
+                assert phase['phase'] in {'controls-ready','native-complete','initial','recovered','completed'}
+                assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
+                step['node_completed_phases'].append(phase)
         step["node_failures"] = []
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
-                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'line', 'column'}
+                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'line', 'column'}
                 assert failure['checkpoint'] in {'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-                    'session-finish', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'current-revocation'}
+                    'session-finish', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'current-revocation'}
                 assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
+                assert failure['command'] is None or failure['command'] in {'conversation.create','message.send','operation.cancel','operation.reconcile','session.invite','session.accept','session.update','session.end','session.reject','session.cancel','connection.offer','connection.update','connection.end','stream.subscribe','stream.unsubscribe','operation.get','conversation.get','message.history','conversation.participant.add','conversation.participant.update','conversation.participant.remove'}
+                assert failure['observedState'] is None or failure['observedState'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
                 step['node_failures'].append(failure)
         if child.returncode != 0:
             diagnostics = []

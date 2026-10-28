@@ -98,7 +98,12 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             .unwrap();
         let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
         let mut stdin = child.stdin.take().unwrap();
-        async fn phase(lines: &mut Lines<BufReader<ChildStdout>>, expected: &str) -> Value {
+        async fn phase(
+            lines: &mut Lines<BufReader<ChildStdout>>,
+            expected: &str,
+            algorithm: &str,
+        ) -> Value {
+            let started = tokio::time::Instant::now();
             let until = tokio::time::Instant::now() + Duration::from_secs(15);
             let mut checkpoint = "create".to_owned();
             loop {
@@ -107,7 +112,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                     Err(_) => {
                         eprintln!(
                             "installed-typed-node-sdk-failure {}",
-                            json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"line":null,"column":null})
+                            json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"command":null,"observedState":null,"line":null,"column":null})
                         );
                         panic!("Original Node phase deadline elapsed");
                     }
@@ -122,6 +127,10 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                     eprintln!("installed-typed-node-sdk-failure {}", value);
                 }
                 assert_eq!(value["phase"], expected);
+                eprintln!(
+                    "installed-typed-node-sdk-phase {}",
+                    json!({"algorithm":algorithm,"phase":expected,"passed":true,"seconds":started.elapsed().as_secs_f64(),"deadline_seconds":15})
+                );
                 return value;
             }
         }
@@ -129,20 +138,20 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         // journey grew beyond the original single Session-only phase; preserve
         // every 4s SDK request and 15s absolute scenario deadline. The source
         // runner independently retains its 90s whole-function limit.
-        let controls = phase(&mut lines, "controls-ready").await;
+        let controls = phase(&mut lines, "controls-ready", algorithm).await;
         assert_eq!(controls["session_participants_accepted"], true);
         stdin.write_all(b"native\n").await.unwrap();
-        let native_phase = phase(&mut lines, "native-complete").await;
+        let native_phase = phase(&mut lines, "native-complete", algorithm).await;
         assert_eq!(native_phase["native_controls_completed"], true);
         stdin.write_all(b"finish\n").await.unwrap();
-        let initial = phase(&mut lines, "initial").await;
+        let initial = phase(&mut lines, "initial", algorithm).await;
         assert_eq!(
             std::fs::metadata(&native).unwrap().permissions().mode() & 0o777,
             0o600
         );
         std::fs::write(&native, toml::to_string(&sdk_config).unwrap()).unwrap();
         stdin.write_all(b"restart\n").await.unwrap();
-        let recovered = phase(&mut lines, "recovered").await;
+        let recovered = phase(&mut lines, "recovered", algorithm).await;
         assert_eq!(initial["record_id"], recovered["record_id"]);
         let principal = f.server.store.authenticate(&f.client.credential).unwrap();
         let admin = f.server.store.authenticate(&f.admin).unwrap();
@@ -152,7 +161,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             .unwrap()
             .unwrap();
         stdin.write_all(b"revoked\n").await.unwrap();
-        let completed = phase(&mut lines, "completed").await;
+        let completed = phase(&mut lines, "completed", algorithm).await;
         drop(stdin);
         assert!(
             tokio::time::timeout(Duration::from_secs(5), lines.next_line())
