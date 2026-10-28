@@ -363,5 +363,35 @@
     "Owned canonical RTP and DTMF writes encapsulate exactly the original output and complete the actual wire send inside the original guarded write. No application packet survives into a later unguarded control poll, including output-capacity refusal. A cancelled/failed TCP write taints the stream so later writes refuse.",
     "Close retains the original driver handle while awaiting bounded authenticated Refresh/lifetime-zero acknowledgements. Unknown allocation/timeout or failed cleanup reports unconfirmed rather than success. Existing direct-only close remains unchanged.",
     "Still-owned relay candidates are emitted on regather; actual ICE restart/recovery qualification remains open."
-  ]
+  ],
+  "post_verification_reference_refresh": {
+    "reason": "Application OpenAPI/catalog check initially refused stale HTTP-source and source-lock provenance. Regeneration/check passes. Only those two SHA fields change in each artifact; API schemas/dispatch samples and every production/dependency/other guarded input remain unchanged. Recorded runtime checks precede this metadata-only reference refresh; original source manifests remain retained.",
+    "changes": [
+      {
+        "file": "contracts/openapi-application-http.json",
+        "changed_fields": [
+          "x-connect-generation-inputs/dependencies/source-lock.json",
+          "x-connect-generation-inputs/crates/connect-server/src/transports/http.rs"
+        ],
+        "before_sha256": "95f2748a4819c18669a0fbb9d289722578f9a805a07d78b28ac25acc566fb0f0",
+        "after_sha256": "aa80eecff4f8cdcd144da91dfd72411343c8757d171508dd1cc4c6e66c6367b1",
+        "semantics_unchanged": true
+      },
+      {
+        "file": "contracts/application-http-dispatch.json",
+        "changed_fields": [
+          "inputs/dependencies/source-lock.json",
+          "inputs/crates/connect-server/src/transports/http.rs"
+        ],
+        "before_sha256": "fcac6370f1e242c64625901fa387332e07e80338ad141aef7d3e44b3092c6dbc",
+        "after_sha256": "875e06fa2f60e2dab6a448d857938e0d67f74aa3098e47f4a62f113e8da8a612",
+        "semantics_unchanged": true
+      }
+    ],
+    "source_guard_changed_after_runtime_verification": [
+      "contracts/application-http-dispatch.json",
+      "contracts/openapi-application-http.json"
+    ],
+    "runtime_note": "The dispatch catalog is embedded by an unrelated MCP test fixture; its samples are unchanged. No production Rust code references either generated filename."
+  }
 }
