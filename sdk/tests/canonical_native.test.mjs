@@ -87,7 +87,7 @@ test('sent cancellation fences this instance without restarting or retrying', as
   });
 });
 test('corrupt, oversized, unsigned, duplicate or foreign helper replies fail closed and are never retried', async () => {
-  for (const mode of ['profile', 'wrong-id', 'wrong-scope', 'wrong-reply', 'utf8', 'duplicate', 'extra', 'oversize', 'signature', 'unsigned']) await fixture({mode}, async (client, dir) => {
+  for (const mode of ['profile', 'wrong-id', 'wrong-scope', 'wrong-reply', 'utf8', 'duplicate', 'extra', 'oversize', 'signature', 'signature-alg-array', 'unsigned']) await fixture({mode}, async (client, dir) => {
     await assert.rejects(client.request('message.send', {}, scope, opts), check('protocol', 'uncertain', key));
     await assert.rejects(client.request('message.send', {}, scope, opts), check('configuration', 'not-submitted', key));
     assert.equal((await requests(dir)).length, 1);

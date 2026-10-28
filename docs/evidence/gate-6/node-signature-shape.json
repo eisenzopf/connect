@@ -1,0 +1,59 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "signature-shape-component-passed",
+  "component_passed": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "problem": "CanonicalNativeClient coerced signature.alg with String(), accepting one-element arrays as EdDSA/ES256 instead of fencing malformed helper framing. Actual signature verification remains owned by Rust.",
+  "reproduction": {
+    "scope": "Synthetic original installed package shape/parser reproduction only; no cryptographic/server claim",
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "malformed_array_accepted": true,
+        "original_helper_joined": true
+      },
+      {
+        "algorithm": "ES256",
+        "malformed_array_accepted": true,
+        "original_helper_joined": true
+      }
+    ]
+  },
+  "old_installed_archive_sha256": "e49d426ece9378e235803b70e5328036ddc1e063f7bc04743939b97930e79eb7",
+  "old_installed_parser_sha256": "84c972e47acd2fff8ec7cb6473e99b82e160c1f6b9b1079f6b2323a11e3493ab",
+  "correction": "Require a string before exact EdDSA/ES256 membership; malformed output retains original operation key/uncertainty, fences and joins the original helper without resubmit. Existing valid EdDSA/ES256 strings remain covered.",
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 8.482685332885012,
+    "source_count": 208,
+    "changed_inputs": [],
+    "source_inputs_sha256": "24c89db7193c18053f9a6ecce7c487c8fd6f9c15de1d07bc50303e5f22f5b8ef",
+    "log_sha256": "910c8a2c52a0f680f06fe9d37232478e33429a0b0da4357f5fe309a0c4345388",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T20:01:30.222761+00:00"
+  },
+  "functions_passed": 71,
+  "package": {
+    "archive_sha256": "d751207a5fe11c1c4a44e08466a07c3b92dedf8e5ce99efa1b31028c74f1124a",
+    "installed_dist_matches": true,
+    "parser_sha256": "064dbeaf8932dbe61b4a6b1103a6d295109fb38c32555d5454b4bc6586ea8196"
+  },
+  "qualification_limit": "Synthetic structural helper protocol/process checks only. No independent JavaScript cryptography, server trust/auth bypass claim, native matrix, full SDK or acceptance qualification.",
+  "source_sha256": {
+    "sdk/typescript/src/canonical_native.ts": "0c5026479e0c2311f7b2f025d514d80e8dfffd540bb46607b51b7c799391f34a",
+    "sdk/typescript/dist/canonical_native.js": "064dbeaf8932dbe61b4a6b1103a6d295109fb38c32555d5454b4bc6586ea8196",
+    "sdk/tests/canonical_native.test.mjs": "1e4758112dcbc152de751ef48a019e5b122330b7e4dc7ebd9cdcfcf228a0e3fd",
+    "sdk/tests/fixtures/canonical_helper.mjs": "acd8b01d0d6133a11025e3b322ce5f23596274390e6b0b7f1d4878e52c4076e3"
+  }
+}

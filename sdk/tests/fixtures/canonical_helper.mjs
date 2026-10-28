@@ -27,6 +27,7 @@ createInterface({input: process.stdin}).on('line', line => {
   if (config.mode === 'reject' && number === 1) result = {Err: {code: config.code ?? 'conflict', message: 'private-provider-key'}};
   if (config.mode === 'wrong-scope') frame.cid = 'foreign';
   if (config.mode === 'wrong-reply') frame.in_reply_to = 'foreign';
+  if (config.mode === 'signature-alg-array') frame.signature.alg = [frame.signature.alg];
   if (config.mode === 'signature') frame.signature.sig = 'A'.repeat(85) + 'B';
   if (config.mode === 'unsigned') delete frame.signature;
   const response = {id: config.mode === 'wrong-id' ? 'foreign' : request.id, response: {profile: config.mode === 'profile' ? 'foreign' : 'connect-control/1', result}};

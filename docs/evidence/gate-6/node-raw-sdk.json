@@ -9,7 +9,7 @@
   "acceptance_qualified": false,
   "publication": false,
   "implementation_parent_commit": "f925a8acc8fffafd34abd14ef2e8a4b33e6d7035",
-  "source_hash_scope": "Exact candidate source hashes; new Rust compilation and actual installed raw execution pending. Synthetic signatures do not establish cryptographic trust.",
+  "source_hash_scope": "Exact implementation02238a30 hashes; later hardening is a separate checkpoint. New Rust compilation and actual installed raw execution pending. Synthetic signatures do not establish cryptographic trust.",
   "implementation": [
     "NodeClient.raw.validate/request, branded captured frozen JSON and immutable full signed reply batches",
     "Local bounded CLI validation uses frozen Rust Envelope::parse and original RawCanonical intent classification, no client/configuration/Store/network",
@@ -139,5 +139,37 @@
     "sdk/typescript/src/uctp_json.ts": "8129f4aa6cc513e99a696e4ed5403fc4fce7914dd6585fc50f7bf460a10cf731",
     "sdk/typescript/dist/node_raw.js": "50b8dedda65d27719fb1d8c0c848cf04407d42825d7a535dbee7e0c51e25f90a",
     "sdk/typescript/dist/node_raw.d.ts": "f77355510a648d8b001b0984c7e6ed359b3386dbc473c23bbedd25d4fce32eff"
+  },
+  "implementation_commit": "02238a301da430a01cae2f6066336aab76a252d2",
+  "ubuntu_node_synthetic": {
+    "commit": "02238a301da430a01cae2f6066336aab76a252d2",
+    "run_id": 40759244615,
+    "passed": true,
+    "results": [
+      {
+        "node_major": 26,
+        "artifact_id": 12847018104,
+        "zip_sha256": "17d27e1eadbb8ef4625b8245490a49b637fdf96f111c4706ec38c45ea3b21341",
+        "node_version": "v26.12.1",
+        "functions_passed": 71,
+        "unchanged_exact_git_inputs": 208,
+        "source_inputs_sha256": "9c7806c1df95174ad37f9f9ee1406ecabdd5a116db894b31de6c945789f37dff",
+        "log_sha256": "270d98d6232657c1442ba5b8bc07370bb3e34509481dc469c84a264e3242da26",
+        "negative_types_passed": true,
+        "scope": "Ubuntu Node synthetic helper/process/local HTTP/type checks only; no Rust frozen validation/crypto/actual native qualification"
+      },
+      {
+        "node_major": 22,
+        "artifact_id": 12846768519,
+        "zip_sha256": "2f71d20465102bc88aaae487020840218dcce7a9f1d9ad36517db94fd42cae14",
+        "node_version": "v22.23.4",
+        "functions_passed": 71,
+        "unchanged_exact_git_inputs": 208,
+        "source_inputs_sha256": "9c7806c1df95174ad37f9f9ee1406ecabdd5a116db894b31de6c945789f37dff",
+        "log_sha256": "06fd41f5f2671547797e1f2fdfe6fc621ceb2551d2e1ab8c5747d5dfbd50ea65",
+        "negative_types_passed": true,
+        "scope": "Ubuntu Node synthetic helper/process/local HTTP/type checks only; no Rust frozen validation/crypto/actual native qualification"
+      }
+    ]
   }
 }

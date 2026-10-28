@@ -387,7 +387,8 @@ export class CanonicalNativeClient {
                         typeof sig.keyid !== "string" ||
                         !sig.keyid ||
                         sig.keyid.length > 512 ||
-                        !["EdDSA", "ES256"].includes(String(sig.alg)) ||
+                        typeof sig.alg !== "string" ||
+                        !["EdDSA", "ES256"].includes(sig.alg) ||
                         typeof sig.sig !== "string" ||
                         unbase64url(sig.sig).length !== 64
                     )
