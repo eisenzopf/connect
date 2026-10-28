@@ -1,4 +1,4 @@
-//! Explicit local canonical WebRTC composition, separate from WSS control.
+//! Explicit canonical WebRTC composition, separate from WSS control.
 use connect_protocol::native_network::NativeNetworkProfile;
 use rvoip_core::capability::CodecInfo;
 use rvoip_webrtc::WebRtcConfig;
@@ -17,6 +17,8 @@ pub enum CanonicalWebRtcProfile {
 pub struct CanonicalWebRtcConfig {
     pub profile: CanonicalWebRtcProfile,
     pub max_peers: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub addressing: Option<super::CanonicalWebRtcAddressing>,
 }
 impl CanonicalWebRtcConfig {
     pub(crate) fn validate(
@@ -29,16 +31,44 @@ impl CanonicalWebRtcConfig {
             websocket_configured,
             "Canonical WebRTC requires configured signed WSS control"
         );
-        anyhow::ensure!(network == NativeNetworkProfile::Local,
-            "Canonical WebRTC currently requires local media addressing; remote ICE/TURN is not installed");
+        anyhow::ensure!(
+            network == NativeNetworkProfile::Local || self.addressing.is_some(),
+            "Remote WebRTC requires explicit media addressing"
+        );
         anyhow::ensure!(
             (1..=512).contains(&self.max_peers) && self.max_peers <= connection_limit,
             "Canonical WebRTC max_peers must be 1..=512 and within the connection limit"
         );
+        if let Some(addressing) = &self.addressing {
+            addressing.validate(network, self.max_peers)?;
+        }
         Ok(())
     }
-    pub(crate) fn host(&self) -> connect_protocol::Result<Arc<super::SignalingHost>> {
-        let mut config = WebRtcConfig::loopback();
+    pub(crate) fn host(
+        &self,
+        network: NativeNetworkProfile,
+    ) -> connect_protocol::Result<Arc<super::SignalingHost>> {
+        self.validate(network, true, self.max_peers).map_err(|_| {
+            connect_protocol::Error::new("invalid-request", "Invalid WebRTC configuration")
+        })?;
+        let mut config = match network {
+            NativeNetworkProfile::Local => WebRtcConfig::loopback(),
+            NativeNetworkProfile::Remote => WebRtcConfig::default(),
+        };
+        // Never inherit the upstream default public STUN service.
+        config.ice_servers.clear();
+        if let Some(addressing) = &self.addressing {
+            addressing
+                .apply(network, self.max_peers, &mut config, |name| {
+                    crate::secrets::resolve(name).map(|value| value.expose().to_owned())
+                })
+                .map_err(|_| {
+                    connect_protocol::Error::new(
+                        "not-configured",
+                        "WebRTC addressing or TURN credentials unavailable",
+                    )
+                })?;
+        }
         config.capabilities.audio_codecs = vec![CodecInfo::from_name_with_defaults("opus")];
         config.capabilities.video_codecs = match self.profile {
             CanonicalWebRtcProfile::Opus => vec![],
@@ -61,11 +91,18 @@ mod tests {
             let config = CanonicalWebRtcConfig {
                 profile,
                 max_peers: 2,
+                addressing: None,
             };
             config
                 .validate(NativeNetworkProfile::Local, true, 8)
                 .unwrap();
-            assert_eq!(config.host().unwrap().available_slots(), 2);
+            assert_eq!(
+                config
+                    .host(NativeNetworkProfile::Local)
+                    .unwrap()
+                    .available_slots(),
+                2
+            );
         }
     }
     #[test]
@@ -73,6 +110,7 @@ mod tests {
         let mut config = CanonicalWebRtcConfig {
             profile: CanonicalWebRtcProfile::OpusVp8,
             max_peers: 2,
+            addressing: None,
         };
         assert!(config
             .validate(NativeNetworkProfile::Remote, true, 8)
@@ -102,5 +140,43 @@ mod tests {
             "profile = 'opus'\nmax_peers = 2\nunknown = true\n"
         )
         .is_err());
+    }
+
+    #[test]
+    fn remote_host_requires_explicit_bounded_addressing_and_roundtrips_without_secrets() {
+        let config = CanonicalWebRtcConfig {
+            profile: CanonicalWebRtcProfile::OpusVp8,
+            max_peers: 2,
+            addressing: Some(super::super::CanonicalWebRtcAddressing {
+                bind_ip: "0.0.0.0".parse().unwrap(),
+                port_start: 41000,
+                port_end: 41001,
+                public_ip: Some("203.0.113.44".parse().unwrap()),
+                ice_policy: super::super::CanonicalIcePolicy::All,
+                ice_services: Vec::new(),
+            }),
+        };
+        config
+            .validate(NativeNetworkProfile::Remote, true, 4)
+            .unwrap();
+        assert_eq!(
+            config
+                .host(NativeNetworkProfile::Remote)
+                .unwrap()
+                .available_slots(),
+            2
+        );
+        assert!(config
+            .validate(NativeNetworkProfile::Local, true, 4)
+            .is_err());
+        assert!(config
+            .validate(NativeNetworkProfile::Remote, false, 4)
+            .is_err());
+        let saved = toml::to_string(&config).unwrap();
+        let restored: CanonicalWebRtcConfig = toml::from_str(&saved).unwrap();
+        restored
+            .validate(NativeNetworkProfile::Remote, true, 4)
+            .unwrap();
+        assert_eq!(restored.addressing.unwrap().port_end, 41001);
     }
 }

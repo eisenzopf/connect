@@ -349,6 +349,7 @@ async fn run_profile(
     f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
         profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
         max_peers: 2,
+        addressing: None,
     });
     f.server = RunningCanonicalServer::start(f.config.clone())
         .await

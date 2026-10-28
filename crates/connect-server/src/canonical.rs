@@ -290,7 +290,7 @@ impl RunningCanonicalServer {
         let webrtc_host = config
             .webrtc
             .as_ref()
-            .map(|profile| profile.host())
+            .map(|profile| profile.host(config.network_profile))
             .transpose()?;
         // All key/TLS validation precedes installation recovery and binding.
         let tls_identity = Arc::new(crate::tls::ReloadableServerTls::load(

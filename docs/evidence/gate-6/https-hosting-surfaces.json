@@ -412,7 +412,7 @@
   },
   "remaining": [
     "G6-054/G6-055 remote media/NAT/ICE/TURN and remote enrollment; G6-056 supported Ubuntu installation/lifecycle and later hosting/matrix work.",
-    "The current Ubuntu amd64 server compilation is still running under local arm64 emulation from an immutable c88bc599 snapshot. Its original1800s observation ended; the same container/compiler continues under a recorded bounded controller. No Linux server build/runtime or native x86 performance pass is inferred.",
+    "The Ubuntu amd64 server build from c88bc599 ended incomplete at its extended local-emulation deadline (compiler exit137); no server binary/runtime pass or native x86 performance is inferred. Its source/inputs stayed unchanged. Native Ubuntu CI is prepared for the narrow fixtures; installation remains G6-056.",
     "Named remote/provider prerequisites and actual browser/media/profile qualification remain G6-093/G6-095/G6-098. No acceptance criterion or publication is promoted."
   ],
   "acceptance_qualified": false,

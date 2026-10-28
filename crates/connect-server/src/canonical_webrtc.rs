@@ -14,6 +14,11 @@ use tokio::{sync::watch, time::Instant};
 use tokio_util::sync::CancellationToken;
 mod config;
 pub use config::{CanonicalWebRtcConfig, CanonicalWebRtcProfile};
+mod addressing;
+pub use addressing::{
+    Addressing as CanonicalWebRtcAddressing, IcePolicy as CanonicalIcePolicy,
+    IceService as CanonicalIceService,
+};
 mod signaling;
 pub use signaling::SignalingHost;
 struct ReadContext {

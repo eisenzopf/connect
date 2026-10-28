@@ -1,0 +1,138 @@
+{
+  "format": 1,
+  "task": "G6-054",
+  "implementation_status": "in-progress",
+  "date": "2026-10-28",
+  "scope": "Explicit canonical WebRTC addressing and secret-reference configuration; local configured-media regressions. Actual remote media, TURN allocation, SIP addressing and complete G6-054 verification remain open.",
+  "implementation": [
+    "Remote canonical WebRTC requires explicit addressing and signed WSS control. Configure one bounded UDP port range (at most4096ports, enough for the declared peer bound), optionally one same-family static port-preserving public IP, All/Relay ICE policy and up to8explicit ICE services/16URLs. Local defaults remain loopback and configure no implicit public STUN service.",
+    "ICE URLs reject unsupported schemes, malformed hosts/ports, userinfo/paths/encoding, ambiguous queries, multicast/unspecified addresses and duplicate/excess entries before secret lookup. Local profiles refuse nonloopback bind/public/ICE addresses.",
+    "TURN uses paired identifier references through the existing server secret resolver; values are read at startup, bounded and retained only in the private runtime configuration. Missing/malformed secrets fail before publishing partial config; serialized server config contains references and debug/errors omit values. Password bytes are preserved.",
+    "The owned UDP driver receives the explicit binding/range, one host-candidate NAT address and All/Relay policy. No new authority, replay identity, negotiated codec or readiness success is inferred from this configuration."
+  ],
+  "verification": {
+    "library_build": {
+      "seconds": 55.8397770000156,
+      "source_count": 5243,
+      "changed_inputs": [],
+      "artifact_sha256": "1fd594b065224954446487bdaf9830ac389e9fac3a14e5f49dad25a1fd9a8817",
+      "build_log_sha256": "7a06ff224c8b0b61d06dac413260324c9ff4a3f9a56cfdd061709a873287b0bf"
+    },
+    "library": {
+      "steps": [
+        {
+          "filter": "canonical_webrtc::addressing::tests::",
+          "exit_code": 0,
+          "seconds": 0.9482219589408487,
+          "log_sha256": "e0b86aefd409eeca7e0034c1115f0069c573d16bfe0924d3bb6290df84b4def7",
+          "results": [
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 92 filtered out; finished in 0.00s"
+          ],
+          "panics": [],
+          "changed_inputs": []
+        },
+        {
+          "filter": "canonical_webrtc::config::tests::",
+          "exit_code": 0,
+          "seconds": 0.01288687507621944,
+          "log_sha256": "79567348f41469464369864f9c424176b7e3ee4491d97d5721b2d41dd15fd804",
+          "results": [
+            "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 92 filtered out; finished in 0.00s"
+          ],
+          "panics": [],
+          "changed_inputs": []
+        },
+        {
+          "filter": "canonical_webrtc::tests::store_bound_peer_completes_actual_dtls_and_original_close_releases_capacity",
+          "exit_code": 0,
+          "seconds": 0.44451287505216897,
+          "log_sha256": "93e299a486777f4c654e8688307dee6c153963658c53b85fda2cc5fb42075c1f",
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 95 filtered out; finished in 0.41s"
+          ],
+          "panics": [],
+          "changed_inputs": []
+        }
+      ],
+      "binary_sha256": "1fd594b065224954446487bdaf9830ac389e9fac3a14e5f49dad25a1fd9a8817",
+      "scope": "Four addressing tests, four strict/local/explicit-remote factory configuration tests, and one actual local ICE/DTLS owned-close regression. No actual remote media/TURN/SIP qualification."
+    },
+    "configured_local_av": {
+      "steps": [
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_eddsa",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 4.171476457966492,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 87 filtered out; finished in 4.11s"
+          ],
+          "panics": [],
+          "log_sha256": "3cae139455a5fc7af1ec484da05866e4471904deeb7228357a403b73a5f123f0",
+          "changed_inputs": []
+        },
+        {
+          "test": "canonical_websocket_control::webrtc::subscriptions::av::configured_signed_av_opus_vp8_decoded_duplex_es256",
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 3.968673709081486,
+          "results": [
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 87 filtered out; finished in 3.93s"
+          ],
+          "panics": [],
+          "log_sha256": "ddbf5ee59a2f38ab4b642bd0c334a5be6583a9dee203a5d1d46f861028e2d6ad",
+          "changed_inputs": []
+        }
+      ],
+      "binary_sha256": "a8639f52271263631781ffc377ecabb456037a34309ec2c6b285e2f4e0f18b24",
+      "ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+      "input_manifest_sha256": "a3a86376c5d7d911d815436f81cb666805d79bd338fb6864eaa1f663478aa2f3",
+      "scope": "Actual configured production Local WSS/WebRTC Opus/VP8 duplex decode regressions for EdDSA and ES256; synthetic fixtures and independent FFmpeg. No remote addressing/relay/SIP or browser profile qualification."
+    },
+    "product_functions_passed": 11,
+    "cache_helper_tests": {
+      "passed": 3,
+      "scope": "Changed same-size source and mode/untracked private paths cannot inherit cached source times; unchanged tracked contents/mode can.",
+      "log_sha256": "5769d5abf8bc0ae87bb5b0b99ad05ecbb887b56238584f4b0c5779d623b7e45f"
+    },
+    "scope_note": "The final library adds only one test in the cfg(test) module after the two configured AV regressions. The production implementation remains unchanged from build159; every recorded execution guards its own exact unchanged source snapshot. These are short local regressions, not remote relay/browser or60second quality qualification."
+  },
+  "unrun_attempts": [
+    {
+      "target": "gate6_canonical_runtime/build158",
+      "outcome": "Successful guarded compilation. AV preflight found zero requested configured-AV tests in that partition and refused execution; no behavior pass is counted. Correct partition gate6_canonical_webtransport/build159 then ran both actual functions successfully."
+    }
+  ],
+  "native_linux_ci": {
+    "status": "prepared-not-run",
+    "workflow": ".github/workflows/gate6-linux-fixtures.yml",
+    "runner": "scripts/check-gate6-linux-hosting.py",
+    "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job."
+  },
+  "linux_emulation_attempt": {
+    "source_revision": "c88bc599a26570448d00cb1c9cdf88b4c5239af6",
+    "same_container_id": "693b329cd4eef5a149a88b1fcc31fb161a33013cbaaa896dcf34dbe46c1dd1fd",
+    "additional_window_seconds": 1800,
+    "seconds_in_continuation": 1810.140704457881,
+    "timed_out": true,
+    "compiler_exit_code": 137,
+    "source_snapshot_unchanged": true,
+    "prepared_inputs_unchanged": true,
+    "summary_sha256": "84e2d329c1c79303cb04bd36ed753a7157bcf5048da62512c9e0f08746fbe29e",
+    "outcome": "One original build continued beyond its initial1800second observation without restart. At the additional1800second deadline the controller stopped its owned container; compiler exit137 is incomplete, not a build/runtime/cleanup pass. Vendor SIP finished; service compilation was still active. No server fixture ran from this attempt."
+  },
+  "remaining": [
+    "Configure canonical SIP signaling/media bind and advertised addresses, bounded remote RTP and deployment templates.",
+    "Actual distinct-network direct/relay browser/native/telephone media, expired TURN credentials, ICE restart, packet loss/unreachable ports, decoded duplex and allocation cleanup. Extend client relay selection and diagnostics as required.",
+    "Execute the native Linux CI lane and retain its actual result; the emulated attempt supplies no Linux server pass. G6-056 installation and G6-093/G6-095/G6-098 named remote/media/performance qualification remain separate."
+  ],
+  "source_sha256": {
+    "crates/connect-server/src/canonical.rs": "5223408f4c23b10de7d031cf69ee89583121fab4df5215c77ba53a64b36ccae7",
+    "crates/connect-server/src/canonical_webrtc.rs": "cac220964fc26b85121842dad522d22fb40310b393d2c2b4729c21e105b05cb7",
+    "crates/connect-server/src/canonical_webrtc/config.rs": "45e10b8b84d9bb400a611c61ad7d504ca9c650f683198617a914bd31d4623c0f",
+    "crates/connect-server/src/canonical_webrtc/addressing.rs": "6e7d6328886016931ec3c6ef51434540e6948d71137134dfa48216833a9a3fde",
+    "crates/connect-server/src/canonical_webrtc/addressing/tests.rs": "5dff7c308f32ce3ebb094983adb93d4239242448e2f761e945da1b1ae6fa267f"
+  },
+  "acceptance_qualified": false,
+  "publication": false
+}

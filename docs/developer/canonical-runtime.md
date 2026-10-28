@@ -312,3 +312,55 @@ This completes the listener/routing implementation audit. The Ubuntu server
 build and installation lifecycle retain their own evidence; no Linux-server,
 native x86 performance or named remote/browser/media qualification is inherited
 from a Linux client running against a Mac host.
+
+Canonical WebRTC now accepts explicit media addressing under the Remote profile,
+alongside its configured signed WSS control. For example, add the following to
+an already configured Remote/WSS installation, replacing the documentation IP
+and relay with owned fixture or designated deployment addresses:
+
+```toml
+[webrtc]
+profile = "opus-vp8"
+max_peers = 2
+
+[webrtc.addressing]
+bind_ip = "0.0.0.0"
+port_start = 50000
+port_end = 50007
+public_ip = "203.0.113.44"
+ice_policy = "all"
+
+[[webrtc.addressing.ice_services]]
+urls = ["turns:relay.fixture.invalid:443?transport=tcp"]
+username_ref = "CONNECT_TURN_USER"
+credential_ref = "CONNECT_TURN_PASSWORD"
+```
+
+The UDP range must cover `max_peers` and contain at most 4096 ports. The optional
+single public IP uses port-preserving one-to-one NAT and the same address family
+as the bind. The backend supports host candidates for this static mapping.
+`ice_policy = "relay"` requires an explicit TURN service. There are at most eight
+services and sixteen distinct URLs; credentials are forbidden in URLs. STUN
+entries omit credential references. Local profiles allow only loopback media and
+ICE addresses; omission of addressing keeps the existing simple local setup.
+Neither profile inherits an implicit public STUN server.
+
+The named TURN username/password references use the existing protected server
+secret-reference or explicit environment workflow. Values resolve at startup,
+are bounded, and remain in private runtime state. Missing values fail startup
+before a partially configured host can be installed. Restart is currently needed
+to load changed TURN values; this component does not provide live credential
+refresh or distribute server secrets to browser clients.
+
+The [addressing checkpoint](../evidence/gate-6/remote-media-addressing.json)
+records nine library checks and two configured local Opus/VP8 duplex regressions.
+Actual remote/SIP/relay traffic, expired credentials, ICE restart, loss, blocked
+ports and allocation cleanup remain G6-054 work. Configuration and HTTPS
+readiness do not establish successful audio or video delivery.
+
+The separate native Ubuntu workflow runs only isolated configuration, ICE/DTLS
+cleanup and HTTPS fixtures. It records toolchain/package/source hashes and
+uploads source-only summaries; raw output and synthetic state stay private.
+Its cache restores source times only when both bytes and permissions match a
+completed build, so changed code cannot inherit an older source timestamp.
+It does not qualify named remote/provider runs, media quality or installation.
