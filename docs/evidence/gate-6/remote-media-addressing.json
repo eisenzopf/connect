@@ -108,10 +108,10 @@
     "workflow": ".github/workflows/gate6-linux-fixtures.yml",
     "runner": "scripts/check-gate6-linux-hosting.py",
     "scope": "A narrow native Ubuntu24.04x86 fixture lane, separate from named remote/provider execution and full installation/media qualification. Captures actual toolchain/package/source hashes, keeps raw logs/synthetic state private, uploads source-only summaries. Registry/prepared sources/compilation cache preserves times only for identical source contents and modes after a completed build; normal future pushes retain the in-flight job.",
-    "run_id": 40663600214,
-    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40663600214",
-    "source_revision": "67fc00aa88e0d545c250d450e90363e28b6c1b25",
-    "result": "23actual native Ubuntu functions pass at67fc00aa; all7988inputs unchanged. This predates the new STUN patch/All fixture and does not qualify actual Linux TURN/media.",
+    "run_id": 40676112325,
+    "run_url": "https://github.com/eisenzopf/connect/actions/runs/40676112325",
+    "source_revision": "56787b914ae3a6119628f69c03caa02383b40580",
+    "result": "23 native Ubuntu functions pass with all8005inputs unchanged at56787b91. Source-only artifact downloaded and independently inspected. Predates negotiated sender-feedback fix; no decoded Linux/browser/TURN/restart qualification.",
     "evidence": "docs/evidence/gate-6/native-linux-fixtures.json"
   },
   "linux_emulation_attempt": {
@@ -324,5 +324,10 @@
     "evidence": "docs/evidence/gate-6/remote-browser-network.json",
     "component_passed": false,
     "scope": "Actual Linux Chromium151 to Mac Remote host: normal TLS, signed offers/subscriptions and ICE/DTLS connect, paced source sends Opus/VP8, but no inbound RTP rows/decoded media. Entire rehearsal remains failed; server routes/capacity drain. Trace ingress/forwarding/egress next."
+  },
+  "negotiated_sender_feedback": {
+    "evidence": "docs/evidence/gate-6/negotiated-sender-feedback.json",
+    "status": "Two causal old-code failures become passes; codec order and RTX associations pass. Full browser runtime pending.",
+    "commit": "71b47ae2e5332534f46eff3498c470bc4b583183"
   }
 }
