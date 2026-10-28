@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "status": "bounded-minimum-flow-diagnostic-implemented-runtime-pending",
+  "native_component_passed": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "observed_failures": [
+    "Exact3c06 Node26 ES256 revoked-endpoint movement fails allowed receiver minimum at groups.rs633:9; exact packet counts not retained.",
+    "Exact972 Node26 ES256 revoked-target-key movement fails same minimum. Distinct prior forbidden receiver failures remain unresolved."
+  ],
+  "diagnostic": "Before the unchanged >10 allowed marked frame assertion, retain only finite probe category, source/receiver/allowed indices, sent/received/marked counts and optional RTP timestamp-step min/max. Existing zero-forbidden assertion,2s source/300ms tail and90s function stay unchanged. No timing/cause or fix inferred.",
+  "public_data": "No connection/identity IDs, raw audio, endpoint, credential, user data or source name enters this structured diagnostic.",
+  "source_parser": {
+    "passed": true,
+    "scope": "Original source parser function only; synthetic input, no actual audio diagnosis or Rust execution",
+    "checks": [
+      "valid-minimum-retained",
+      "bool-source-rejected",
+      "foreign-label-rejected",
+      "extra-field-rejected",
+      "false-array-rejected",
+      "wrong-receiver-rejected",
+      "not-minimum-rejected",
+      "impossible-count-rejected",
+      "timestamp-bool-rejected",
+      "timestamp-order-rejected",
+      "timestamp-overflow-rejected",
+      "timestamp-half-null-rejected",
+      "no-source-timestamps-retained"
+    ],
+    "runner_sha256": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs": "f367bddaa713a4451c398da518f1543c6e0d14bfa4050041f4a96cdb92b576e7",
+    "scripts/check-gate6-linux-hosting.py": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5"
+  }
+}

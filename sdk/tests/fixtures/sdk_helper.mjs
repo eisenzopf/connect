@@ -72,9 +72,10 @@ createInterface({input:process.stdin}).on('line',line=>{
  else if(a.type==='events_poll') {
   eventPolls++;
   let reader=eventReaders.get(a.reader_id);
-  if(!reader&&eventReaders.size<8){reader={after:a.after,cid:a.conversation_id,index:0};eventReaders.set(a.reader_id,reader);}
+  if(!reader&&eventReaders.size<8){reader={after:a.after,cid:a.conversation_id,index:0,failure:[...eventReaders.values()].some(v=>v.cid===a.conversation_id&&!v.failure)?'conflict':null};eventReaders.set(a.reader_id,reader);}
   const fail=kind=>({Err:{kind,certainty:'read-only',operation:null,problem:null,observation:null}});
   if(!reader)result=fail('configuration');
+  else if(reader.failure)result=fail(reader.failure);
   else if(reader.after!==a.after||reader.cid!==a.conversation_id)result=fail('validation');
   else if(config.mode==='events-revoked-after-first'&&eventPolls>1)result=fail('authentication');
   else if(config.mode==='events-protocol')result=fail('protocol');

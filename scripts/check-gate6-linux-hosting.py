@@ -68,6 +68,19 @@ def preflight():
     output("native_key", key)
 
 
+def audio_minimum_diagnostic(value):
+    assert isinstance(value,dict) and set(value)=={'probe','source_index','receiver_index','allowed_indices','sent_packets','received_packets','non_silent_packets','timestamp_step_min','timestamp_step_max'}
+    assert value['probe'] in {'replacement-preparation-remote','replacement-preparation-source','replacement-baseline-remote','replacement-baseline-source','replacement','consultation','other'}
+    assert all(type(value[k]) is int and 0 <= value[k] <= 32 for k in ('source_index','receiver_index'))
+    assert all(type(value[k]) is int and 0 <= value[k] <= 100000 for k in ('sent_packets','received_packets','non_silent_packets'))
+    assert value['non_silent_packets'] <= 10 and value['non_silent_packets'] <= value['received_packets']
+    assert isinstance(value['allowed_indices'],list) and len(value['allowed_indices']) <= 32 and all(type(v) is int and 0 <= v <= 32 for v in value['allowed_indices'])
+    assert value['receiver_index'] in value['allowed_indices']
+    low,high=value['timestamp_step_min'],value['timestamp_step_max']
+    assert (low is None and high is None) or (type(low) is int and type(high) is int and 0 <= low <= high <= 4294967295)
+    return value
+
+
 def run(node_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -138,6 +151,10 @@ def run(node_sdk=False):
                 assert all(type(diagnostic[k]) is int and 0 <= diagnostic[k] <= 100000 for k in ('source_index','receiver_index','sent_packets','received_packets','non_silent_packets'))
                 assert isinstance(diagnostic['allowed_indices'],list) and len(diagnostic['allowed_indices']) <= 32 and all(type(v) is int and 0 <= v <= 32 for v in diagnostic['allowed_indices'])
                 step['native_audio_boundary_failures'].append(diagnostic)
+        step['native_audio_minimum_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('native-audio-minimum-failure '):
+                step['native_audio_minimum_failures'].append(audio_minimum_diagnostic(json.loads(line.split(' ',1)[1])))
         step['sdk_current_read_failures'] = []
         for line in text.splitlines():
             if line.startswith('sdk-current-read-failure '):

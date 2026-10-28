@@ -21,14 +21,14 @@
     "exit_code": 0,
     "timed_out": false,
     "forced_cleanup": false,
-    "seconds": 14.020272792084143,
+    "seconds": 14.167868084041402,
     "source_count": 230,
     "changed_inputs": [],
-    "source_inputs_sha256": "41c3c232bd9ef89594d80bfb04bc2a9cc95b88f0b3d33a3ce4300648c3ffc4d3",
-    "log_sha256": "77c7bc1f5282d8e7c788f83b4f150fbe15cfe7d32e40c7845d2cf4f9ad1c4b10",
+    "source_inputs_sha256": "90fbd06c47f1df7d4bc424fc1c685f69734b5e452b6a271c66387b42e31ad8ab",
+    "log_sha256": "7338370dbc58f1a0325d8ea7db6e31896c4dbbcd9538e48fdf6736631db01eee",
     "node_version": "v26.7.0",
     "typescript_version": "Version 7.0.2",
-    "finished_at": "2026-10-28T23:03:15.986188+00:00"
+    "finished_at": "2026-10-28T23:10:30.722262+00:00"
   },
   "component_scope_clarification": "Helper/fake HTTP route component suite now additionally includes real TLS against synthetic local HTTPS handlers. No original production-server runtime qualification from these109 functions.",
   "functions_passed": 109,
@@ -77,7 +77,7 @@
     "sdk/tests/node_https_server_consumer.mjs": "fe2f91c7cf9ac6fed84ee0a4567c95ae3ed6fbf5b2e8e0bf5b0ca53e9635971f",
     "crates/connect-server/tests/support/canonical_https_hosting.rs": "c146e436264b75b902e5ce5e45fd290403c1c34b7b77fb391b48d62049d1fb4a",
     "crates/connect-server/tests/support/canonical_https_hosting/node.rs": "79ca09907594b63eed6193550e030c833481c3e73a31469512e919a19de1ed33",
-    "scripts/check-gate6-linux-hosting.py": "cdc6bbe8e47ee42b96ef233727a8f3470e2482171b28004d80a619b613ed1d99",
+    "scripts/check-gate6-linux-hosting.py": "1588b90a91720425108cbabc4616a55b25467e908559cf2be3da7e50750b99e5",
     "sdk/tests/prepare_native_consumer.py": "ebb157affc63705db3cc0316a4ca374a98e1166d8320d8b2993ca70c0e310879"
   }
 }

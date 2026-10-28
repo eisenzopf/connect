@@ -516,6 +516,17 @@ async fn restore(f: &Fixture, peers: &mut [Peer], cid: &str, group: &Group) {
 // One marked source at a time. Every live receiver is sampled, with strict
 // zero non-silent frames outside the expected audience and >10 at its partner.
 // The final quiet interval drains only the same authorized source's tail.
+fn audio_probe_category(name: &str) -> &'static str {
+    match name {
+        "replace-real-preparation-retains-remote-audio" => "replacement-preparation-remote",
+        "replace-real-preparation-retains-source-role" => "replacement-preparation-source",
+        "replace-before-prepare-remote" => "replacement-baseline-remote",
+        "replace-before-prepare-source" => "replacement-baseline-source",
+        _ if name.starts_with("replace-") => "replacement",
+        _ if name.contains("private") => "consultation",
+        _ => "other",
+    }
+}
 async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str) {
     use rvoip_uctp::substrate::{
         pack_rtp_datagram, unpack_rtp_datagram, RtpDatagram, RtpMediaPayload,
@@ -598,22 +609,9 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
                     .any(|b| !matches!(*b, 0xff | 0x7f))
                 {
                     if !allowed.contains(&i) {
-                        let category = match name {
-                            "replace-real-preparation-retains-remote-audio" => {
-                                "replacement-preparation-remote"
-                            }
-                            "replace-real-preparation-retains-source-role" => {
-                                "replacement-preparation-source"
-                            }
-                            "replace-before-prepare-remote" => "replacement-baseline-remote",
-                            "replace-before-prepare-source" => "replacement-baseline-source",
-                            _ if name.starts_with("replace-") => "replacement",
-                            _ if name.contains("private") => "consultation",
-                            _ => "other",
-                        };
                         eprintln!(
                             "native-audio-boundary-failure {}",
-                            json!({"probe":category,"source_index":source,"receiver_index":i,"allowed_indices":allowed,"sent_packets":sent_packets,"received_packets":received_packets[i],"non_silent_packets":counts[i]+1})
+                            json!({"probe":audio_probe_category(name),"source_index":source,"receiver_index":i,"allowed_indices":allowed,"sent_packets":sent_packets,"received_packets":received_packets[i],"non_silent_packets":counts[i]+1})
                         );
                     }
                     assert!(
@@ -630,6 +628,12 @@ async fn probe(peers: &mut [Peer], source: usize, allowed: &[usize], name: &str)
     }
     eprintln!("private-group audio {name}: source={source} allowed={allowed:?} frames={counts:?} sent={sent_packets} received={received_packets:?} source_timestamp_steps={timestamp_steps:?}");
     for i in allowed {
+        if counts[*i] <= 10 {
+            eprintln!(
+                "native-audio-minimum-failure {}",
+                json!({"probe":audio_probe_category(name),"source_index":source,"receiver_index":i,"allowed_indices":allowed,"sent_packets":sent_packets,"received_packets":received_packets[*i],"non_silent_packets":counts[*i],"timestamp_step_min":timestamp_steps.map(|v|v.0),"timestamp_step_max":timestamp_steps.map(|v|v.1)})
+            );
+        }
         assert!(counts[*i] > 10, "{name}: too few marked frames: {counts:?}");
     }
 }

@@ -38,7 +38,7 @@ SDK source protocol/resync error retires only that source; malformed helper repl
 still fence the helper. No retry of mutations or replacement helper is performed.
 Participant helper profile 4 is required; administrative profiles are unchanged.
 
-Verification is currently 105 synthetic component functions and negative
+Verification is currently 109 synthetic component functions and negative
 TypeScript declarations, plus 11 event functions through the packed, independently
 installed distribution. Rust ACK units and the original nine signed journal tests
 are included in the Linux lane. Their execution and real-server event qualification
@@ -53,3 +53,9 @@ equality, and no-data observation after current credential revocation. No budget
 helper counts, drain assertions, or audio thresholds are relaxed. The candidate
 also adds one signed helper-specific slow-ACK/exact-delivery test alongside the
 original nine SDK journal regressions. Execution remains pending.
+
+The capacity simulation now matches the original SDK: a second live reader for
+one Conversation conflicts; the eight-reader budget uses distinct Conversations.
+The earlier synthetic same-Conversation capacity scene is superseded. All109
+component functions and11 installed event functions pass with this corrected
+fixture. Native source behavior still requires its signed/Linux evidence.
