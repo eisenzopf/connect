@@ -1,3 +1,4 @@
+import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecision, type SdkSessionSnapshot } from "./node_sessions.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
 import type { CanonicalRequestOptions } from "./canonical_validation.js";
@@ -83,6 +84,8 @@ declare const sendMessage: unique symbol;
 declare const refreshConversation: unique symbol;
 declare const mutateParticipant: unique symbol;
 declare const readParticipant: unique symbol;
+declare const mutateSession: unique symbol;
+declare const readSession: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 /** Typed Conversation/message/decision slice of G6-062. Other control kinds,
  * invitations, administration, events and remote HTTP remain under development.
@@ -90,6 +93,12 @@ export declare function sdkId<K extends string>(value: string): SdkId<K>;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        session_invite: SdkOperationKind<SdkSession>;
+        session_accept: SdkOperationKind<SdkSession>;
+        session_update: SdkOperationKind<SdkSession>;
+        session_end: SdkOperationKind<SdkSession>;
+        session_reject: SdkOperationKind<SdkSessionDecision>;
+        session_cancel: SdkOperationKind<SdkSessionDecision>;
         conversation_participant_add: SdkOperationKind<SdkParticipant>;
         conversation_participant_update: SdkOperationKind<SdkParticipant>;
         conversation_participant_remove: SdkOperationKind<SdkParticipant>;
@@ -129,11 +138,14 @@ export declare class NodeClient {
     [refreshConversation](id: ConversationId, options: CanonicalRequestOptions): Promise<SdkConversationSnapshot>;
     [mutateParticipant](cid: ConversationId, action: JsonObject, kind: SdkOperationKind<SdkParticipant>, options: SdkMutationOptions): Promise<SdkOperation<SdkParticipant>>;
     [readParticipant](cid: ConversationId, pid: ParticipantId, options: CanonicalRequestOptions): Promise<SdkParticipantSnapshot>;
+    [mutateSession]<T>(cid: ConversationId, sid: SessionId, action: JsonObject, kind: SdkOperationKind<T>, options: SdkMutationOptions): Promise<SdkOperation<T>>;
+    [readSession](cid: ConversationId, sid: SessionId, options: CanonicalRequestOptions): Promise<SdkSessionSnapshot>;
     close(options: CanonicalRequestOptions): Promise<void>;
 }
 export declare class SdkConversation {
     private readonly client;
     readonly id: ConversationId;
+    readonly sessions: SdkSessions;
     readonly participants: Readonly<{
         byId: (id: ParticipantId) => SdkParticipant;
         add: (input: {

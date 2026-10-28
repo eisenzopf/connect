@@ -67,7 +67,7 @@ python3 sdk/tests/check_canonical_helper.py \
   --output .local/gate-6/node-helper-FRESH
 ```
 
-The 41 tests and negative TypeScript declaration checks use synthetic raw/typed
+The 44 tests and negative TypeScript declaration checks use synthetic raw/typed
 helpers and a fake HTTP listener. They exercise real
 owned child processes, deadlines, queue cancellation, malformed/unsigned/foreign
 output, redacted refusals and joined cleanup. Fixture signatures are shaped data;

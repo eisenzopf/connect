@@ -26,6 +26,24 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             tenant_id: "tnt_default".parse().unwrap(),
             application: None,
         };
+        let peer_control = crate::canonical_native_connections::party_with_scope(
+            &f,
+            &f.peer.identity_id,
+            72,
+            vec!["audio".into()],
+            connect_store::Scope::collaboration(vec!["*".into()]),
+        );
+        let peer_sdk_config = connect_client::sdk::ClientConfig {
+            control: peer_control.clone(),
+            tenant_id: "tnt_default".parse().unwrap(),
+            application: None,
+        };
+        let peer_native = f.temp.path().join("peer-sdk-client.toml");
+        init::private_write(
+            &peer_native,
+            toml::to_string(&peer_sdk_config).unwrap().as_bytes(),
+        )
+        .unwrap();
         let native = f.temp.path().join("node-native.toml");
         let pid_file = f.temp.path().join("node-helper-pids");
         init::private_write(&native, toml::to_string(&sdk_config).unwrap().as_bytes()).unwrap();
@@ -46,7 +64,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             &input,
             &serde_json::to_vec(&json!({
                 "project":project,"config":native,"executable":wrapper,"pid_file":pid_file,
-                "peer_identity":f.peer.identity_id,"http":format!("http://{}",f.server.http_address.unwrap()),
+                "peer_identity":f.peer.identity_id,"peer_config":peer_native,"http":format!("http://{}",f.server.http_address.unwrap()),
                 "credential":f.client.credential,"algorithm":algorithm
             }))
             .unwrap(),
@@ -114,9 +132,12 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             status.success(),
             "Node worker failed; inspect private stderr"
         );
-        assert!(!std::fs::read_to_string(stderr_path)
+        assert!(!std::fs::read_to_string(&stderr_path)
             .unwrap()
             .contains(&f.client.credential));
+        assert!(!std::fs::read_to_string(&stderr_path)
+            .unwrap()
+            .contains(&peer_control.credential));
         for entry in std::fs::read_dir(project).unwrap() {
             let entry = entry.unwrap();
             if entry
@@ -131,6 +152,9 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 assert!(!std::fs::read_to_string(entry.path())
                     .unwrap()
                     .contains(&f.client.credential));
+                assert!(!std::fs::read_to_string(entry.path())
+                    .unwrap()
+                    .contains(&peer_control.credential));
             }
         }
         f.server.shutdown().await.unwrap();

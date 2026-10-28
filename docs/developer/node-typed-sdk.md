@@ -5,7 +5,9 @@ creation/refresh, typed participant add/update/remove/refresh, text messages, op
 durable cancel/reconcile decisions. Its supported operation kinds are
 `conversation_create`, `message_send`, `operation_cancel` and
 `operation_reconcile`, plus the three `conversation_participant_*` kinds.
-The full Session/Connection/Stream, invitation, event,
+The [Session control component](node-session-sdk.md) also implements invitations,
+accept/reject/cancel, updates, end and original-operation recovery. The full
+Connection/Stream/topology, invitation delivery, event,
 capability, administration and remote HTTP interfaces remain required.
 Programmatic media is G6-064. There is no fallback to the historical generic API.
 
@@ -83,7 +85,7 @@ stderr never become application diagnostics. The older `ConnectError` belongs
 to the historical generic interface; it is not an alternate error path here.
 
 Run `python3 sdk/tests/check_canonical_helper.py --output .local/gate-6/FRESH`.
-The 41 tests and negative declaration checks cover synthetic owned helper/HTTP
+The 44 tests and negative declaration checks cover synthetic owned helper/HTTP
 behavior. They make no cryptographic or full SDK qualification claim.
 
 For the installed real-server component, pack locally into `dist/`, install

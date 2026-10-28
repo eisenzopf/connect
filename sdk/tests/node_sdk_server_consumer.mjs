@@ -18,6 +18,7 @@ const stopped=async()=>{
 };
 const record=frames=>{const p=frames.find(f=>f.type==='operation.updated')?.payload;assert.ok(p);return p;};
 let client=new NodeClient({config:spec.config,executable:spec.executable});
+let peerClient;
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
 try {
  const created=await client.conversations.create({participants:[spec.peer_identity],policy:'persistent'},{...opts,operationId:'typed-node-room'});
@@ -42,6 +43,35 @@ try {
  const beforeReturn=await room.refresh(opts),returned=(await (await room.participants.add({...addInput,expectedRevision:beforeReturn.revision},{...opts,operationId:'typed-node-member-return'})).wait(opts)).value;
  assert.equal(returned.id,peer.id);assert.ok((await returned.refresh(opts)).membershipEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
+ const capabilities={audio:['g.711-mu'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
+ const own=refreshed.participants.find(p=>p.id!==peer.id);assert.ok(own);
+ const solo=(await (await room.sessions.invite({sessionId:'typed-node-solo',to:[],medium:'voice',intent:'typed-control',capabilities},{...opts,operationId:'typed-session-solo'})).wait(opts)).value;
+ let current=await solo.refresh(opts);assert.equal(current.state,'accepted');assert.equal(current.conversationId,room.id);
+ await (await solo.update({action:'role-change',participantId:own.id,role:'observer'},current.topologyRevision,{...opts,operationId:'typed-session-role'})).wait(opts);
+ current=await solo.refresh(opts);
+ await (await solo.update({action:'role-change',participantId:own.id,role:'participant'},current.topologyRevision,{...opts,operationId:'typed-session-role-return'})).wait(opts);
+ current=await solo.refresh(opts);
+ await (await solo.update({action:'medium-upgrade',media:{first:'audio',rest:['video']}},current.topologyRevision,{...opts,operationId:'typed-session-upgrade'})).wait(opts);
+ current=await solo.refresh(opts);assert.ok(current.media.includes('video'));assert.notEqual(current.revision,current.topologyRevision);
+ await assert.rejects(solo.end({reasonCode:1000,reason:'wrong revision family',expectedTopologyRevision:current.revision},{...opts,operationId:'typed-session-stale-topology'}),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
+ await (await solo.update({action:'codec-renegotiate',codecPreferences:{first:'g.711-mu',rest:['vp8']}},current.topologyRevision,{...opts,operationId:'typed-session-codecs'})).wait(opts);
+ current=await solo.refresh(opts);assert.deepEqual(current.codecPreferences,['g.711-mu','vp8']);
+ await (await solo.inviteParticipants({to:{first:peer.id,rest:[]},medium:'voice+video',intent:'typed-control',capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend'})).wait(opts);
+ peerClient=new NodeClient({config:spec.peer_config,executable:spec.executable});
+ const peerRoom=peerClient.conversations.byId(room.id),peerSolo=peerRoom.sessions.byId(solo.id);
+ current=await peerSolo.refresh(opts);
+ await (await peerSolo.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-extend-accept'})).wait(opts);
+ current=await solo.refresh(opts);
+ await (await solo.update({action:'participant-leave',participantId:peer.id},current.topologyRevision,{...opts,operationId:'typed-session-peer-leave'})).wait(opts);
+ current=await solo.refresh(opts);
+ const ending=await solo.end({reasonCode:1000,reason:'complete',expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-session-end'}),endedSaved=ending.referenceJson();
+ const ended=(await ending.wait(opts)).value;assert.equal((await ended.refresh(opts)).state,'ended');
+ const inviteSession=async(id,opid)=>(await (await room.sessions.invite({sessionId:id,to:[peer.id],medium:'voice',intent:id,capabilities},{...opts,operationId:opid})).wait(opts)).value;
+ const rejected=await inviteSession('typed-session-reject','typed-reject-invite'),peerRejected=peerRoom.sessions.byId(rejected.id);current=await peerRejected.refresh(opts);
+ const rejection=(await (await peerRejected.reject({reasonCode:486,reason:'unavailable',expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-reject'})).wait(opts)).value;assert.equal(rejection.state,'rejected');assert.equal(rejection.session.id,rejected.id);
+ const cancelled=await inviteSession('typed-session-cancel','typed-cancel-invite');current=await cancelled.refresh(opts);
+ const cancellation=(await (await cancelled.cancelInvitation({reasonCode:487,reason:'cancelled',expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'typed-cancel'})).wait(opts)).value;assert.equal(cancellation.state,'cancelled');assert.equal(cancellation.session.id,cancelled.id);
+ await peerClient.close(opts);
  const intent={messageId:'typed-node-original-message',to:{first:peer.id,rest:[]},text:'synthetic typed Node journey'};
  const sent=await room.send(intent,mutation),saved=sent.referenceJson();
  assert.throws(()=>sent.reference.scope.conversationId='foreign');assert.throws(()=>client.operations.restore(saved,client.operationKinds.conversation_create));
@@ -57,22 +87,23 @@ try {
  assert.equal((await sent.status(opts)).state,'completed');
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
- await client.close(opts);assert.equal(await stopped(),1);
- emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,first_helper_joined:true});
+ await client.close(opts);assert.equal(await stopped(),2);
+ emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,typed_result:true,same_id_one_message:true,native_http_same_record:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
  const recovered=client.operations.restore(saved,client.operationKinds.message_send),status=await recovered.status(opts);
  assert.equal(status.recordId,original.recordId);assert.equal((await recovered.wait(opts)).value.messageId,intent.messageId);
  assert.equal((await client.operations.recover(recovered.reference).status(opts)).recordId,original.recordId);
  const restoredDecision=await client.operations.restore(cancelSaved,client.operationKinds.operation_cancel).wait(opts);assert.equal(restoredDecision.value.target,mutation.operationId);
+ const restoredEnd=(await client.operations.restore(endedSaved,client.operationKinds.session_end).wait(opts)).value;assert.equal((await restoredEnd.refresh(opts)).state,'ended');
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
- emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true});
+ emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true});
  await resume('revoked');
  let nativeFailure,httpFailure;
  await assert.rejects(client.conversations.byId(room.id).send(intent,mutation),e=>{
   assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','transport-uncertain'].includes(e.kind));assert.ok(['refused','uncertain'].includes(e.certainty));assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
  });
  await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{assert.equal(e.kind,'authentication');httpFailure={kind:e.kind,certainty:e.certainty};return true;});
- await client.close(opts);await http.close(opts);assert.equal(await stopped(),2);
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:2,query_recovery_without_replay:true});
-} finally {await client.close(opts);await http.close(opts);process.stdin.destroy();}
+ await client.close(opts);await http.close(opts);assert.equal(await stopped(),3);
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:3,query_recovery_without_replay:true});
+} finally {await peerClient?.close(opts);await client.close(opts);await http.close(opts);process.stdin.destroy();}

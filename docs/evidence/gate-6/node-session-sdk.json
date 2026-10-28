@@ -1,0 +1,357 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "implementation_status": "in-progress",
+  "component_passed": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scope": "Typed Node Session control through public Rust SDK, local macOS arm64 functional source-bound installed package. No media decoding, provider/model/telephone, remote or full SDK qualification. Earlier initial-create4sdeadline failures remain unresolved and retained.",
+  "implementation": {
+    "owner": "Client-owned sdk::helper::session calls public Rust SDK Session methods; server framing unchanged, no Store/business/media shadow state machine.",
+    "controls": [
+      "Conversation sessions.byId/invite, solo empty targets",
+      "Session refresh, existing nonempty inviteParticipants, accept, reject, cancelInvitation, end",
+      "Typed participant-leave, role-change, medium-upgrade and codec-renegotiate updates",
+      "Session-scoped original operation restore/recover/status/wait/readiness; reject/cancel typed decision result"
+    ],
+    "operation_kinds": [
+      "session_invite",
+      "session_accept",
+      "session_update",
+      "session_end",
+      "session_reject",
+      "session_cancel"
+    ],
+    "revisions": "Separate branded Session state and topology revisions; mutations preserve explicit topology assertion, host independently rejects stale numeric value.",
+    "ownership": "Scoped immutable metadata handles; no native media ownership from construction or receipt. Incoming invitation/step-up original custody not implemented by these controls."
+  },
+  "synthetic_verification": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 2.185482250060886,
+    "functions": [
+      "canonical HTTP uses current path/bearer and captures intent before yielding",
+      "canonical HTTP configuration rejects implicit remote/credential URL destinations",
+      "canonical HTTP refuses invalid/missing mutation intent and live/native paths without writing",
+      "canonical HTTP rejects mismatched profile, correlation, scope, signatures and terminal order",
+      "canonical HTTP enforces duplicate-key, UTF8, MIME and HTTP status boundaries",
+      "canonical HTTP accepts a bounded multi-envelope batch larger than one envelope",
+      "canonical HTTP structured refusals retain current identity and never become transport retries",
+      "canonical HTTP refusal code must agree with HTTP and public diagnostics stay closed",
+      "canonical HTTP never follows redirects with bearer or retries an uncertain mutation",
+      "canonical HTTP one absolute deadline includes a partially delivered body",
+      "canonical HTTP cancellation after admission preserves logical mutation identity",
+      "canonical HTTP finite journal responses bind every nested resource and cursor",
+      "canonical HTTP caps active requests and close joins cancelled work without retry",
+      "current helper captures canonical intent, independent exchange IDs and original Rust signatures",
+      "configuration is explicit and invalid intent/aborted requests never write helper input",
+      "queued deadline removes only the unsent intent and later work uses the same original helper",
+      "queued cancellation keeps the helper and cannot become a submitted mutation",
+      "sent deadline includes partial output, fences helper and retains the saved mutation key",
+      "sent cancellation fences this instance without restarting or retrying",
+      "corrupt, oversized, unsigned, duplicate or foreign helper replies fail closed and are never retried",
+      "late uncorrelated output fences an otherwise idle original helper",
+      "structured refusals are redacted and leave the helper usable",
+      "helper exit leaves sent work uncertain and no replacement helper is created",
+      "missing executable proves no submission and still has an owned close",
+      "queue capacity and close settle every original wait and join the child",
+      "bounded close reports unconfirmed cleanup and kills the original hanging helper",
+      "typed restore and recover are local, immutable and bound to the declared result/scope",
+      "typed mutations capture original intent; handles complete through a separate SDK journal wait",
+      "typed Conversation creation resolves a handle and refresh remains current",
+      "decisions retain their own IDs and scope separately from the target reference",
+      "structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics",
+      "invalid typed inputs and already aborted mutations never write the helper",
+      "queued typed deadline removes only unsent work and passes the remaining deadline to Rust",
+      "submitted typed deadline fences the original helper; saved recovery never resubmits",
+      "corrupt helper framing, cross-operation observations and wrong typed results fail closed",
+      "readiness/completion never accept an arbitrary status as a completed result",
+      "missing executable is not submitted and explicit close joins; hanging close reports incomplete cleanup",
+      "one owned operation rejects a changed host record identity across separate API calls",
+      "typed participants preserve Conversation scope and independent mutation/revision identity",
+      "invalid participant scopes, identity kinds and noninteger revisions never write",
+      "participant results and refresh observations cannot cross Conversation scope",
+      "typed Session controls preserve scoped original operations, topology assertions and decision result types",
+      "invalid Session target/revision/update and restoration shapes never write helper input",
+      "Session results, current snapshots and decision metadata cannot cross their original scope"
+    ],
+    "source_count": 189,
+    "changed_inputs": [],
+    "source_inputs_sha256": "ae016d518362557dcd4e1f279332ee8444a27807d02bb22f234b1bba45d2c213",
+    "log_sha256": "e23711060f37f4b53f3e883a1c6fb33ae0934bed19d85f189f298c9bc6aabd38",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-28T16:03:05.373928+00:00"
+  },
+  "installed_package": {
+    "path": "dist/gate-6/node-sessions330/rudeless-connect-0.1.0.tgz",
+    "sha256": "dfd342cd30a74c5e4f75b59e4724e7e5cab0f224b253d85ece11db232dd21844",
+    "installed_dist_matches": true,
+    "offline_install_ignore_scripts": true,
+    "consumer_sha256": "f0d034c5b80f141654d96cea29f3c1650a14b6fa8cc1b5aadfcba78885ca7524",
+    "publication": false
+  },
+  "build": {
+    "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+    "exit_code": 0,
+    "seconds": 0.36938558402471244,
+    "arguments": [
+      "cargo",
+      "rustc",
+      "--jobs",
+      "1",
+      "--release",
+      "--offline",
+      "--locked",
+      "--config",
+      "profile.release.package.connect-store.opt-level=0",
+      "--config",
+      "profile.release.package.connect-service.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.opt-level=0",
+      "--config",
+      "profile.release.package.connect-server.strip=\"none\"",
+      "-p",
+      "connect-server",
+      "--features",
+      "test-support",
+      "--test",
+      "gate6_canonical_runtime",
+      "--message-format=json",
+      "--",
+      "-C",
+      "strip=none"
+    ],
+    "source_count": 5642,
+    "changed_inputs": [],
+    "artifact": {
+      "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-309286aff1abc6a7",
+      "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/typed-node-sdk-runtime-test-332",
+      "sha256": "55150e5781d2eca4a459a79f2e9699071f6b95997c4f82759c9d00fc35bdc636",
+      "bytes": 268878024
+    },
+    "diagnostic_warnings": [],
+    "cli_artifact": {
+      "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+      "bytes": 252027112,
+      "sha256": "a469a093274416c99d5a7069377cf539c1b09dd0479e7efd7682f0815a864fa7",
+      "sdk_stdio_help_checked": true
+    },
+    "log_sha256": "db7ce6990dfe9b50a2a6b1ec274713550a0035eba0cc61275e05974c0d3a5a79"
+  },
+  "actual_server": {
+    "passed": true,
+    "private_summary": ".local/gate-6/node-sessions-real333/summary.json",
+    "function": "canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority",
+    "seconds": 7.659039875026792,
+    "source_count": 5642,
+    "changed_inputs": [],
+    "binary_sha256": "55150e5781d2eca4a459a79f2e9699071f6b95997c4f82759c9d00fc35bdc636",
+    "cli_sha256": "a469a093274416c99d5a7069377cf539c1b09dd0479e7efd7682f0815a864fa7",
+    "log_sha256": "ee8246239129021e9fccd48afa037ba891a9574475dd5b0c1cb486428fc9f728",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "forced_cleanup": false,
+    "original_helpers_joined": 6,
+    "original_servers_joined": 2,
+    "sampling": false,
+    "request_budget_ms": 4000,
+    "observed": [
+      "Ordinary separately enrolled caller and peer; operator credentials remain in Rust harness.",
+      "Solo Session accepted; role observer/participant changes; audio/video upgrade and codec policy capture; state and topology revisions differ; wrong numeric topology refused.",
+      "Existing Session invitation, peer accept, participant leave, explicit end completed through journal.",
+      "Fresh pending invitations reject through peer or cancel through caller with typed scoped decisions.",
+      "Original end reference restores and waits after helper restart; current refreshed state remains ended.",
+      "Prior typed Participant epoch/revision/refusal and original message/decision/native-HTTP record/replay/revocation assertions still pass;6exec-traced helper PIDs and2servers join."
+    ],
+    "profile": "Root store/service/server opt0, server strip none, upstream/client normal release. Functional only; no performance qualification."
+  },
+  "current_regressions": {
+    "passed": true,
+    "cases": [
+      {
+        "function": "sdk_handles::public_sdk_session_controls_use_topology_revision_and_current_scoped_results",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 4.855403167195618,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 4.84s"
+        ],
+        "log_sha256": "baabe964e30f22197df2ccc40dfd076b4c9fd81e7149e65204b93cae3066de32"
+      },
+      {
+        "function": "sdk_handles::public_sdk_participant_mutations_preserve_revision_epoch_and_receipt_scope",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 2.277720957994461,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 2.25s"
+        ],
+        "log_sha256": "af5e4f2cff628f7f7542efb49f25466dffa2927b31bf0451d91685f14fe93717"
+      },
+      {
+        "function": "canonical_stdio::canonical_stdio_caches_startup_refusal_and_rejects_wrong_mode_unknown_and_oversized_input",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 0.6011898331344128,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 0.57s"
+        ],
+        "log_sha256": "175afa4b23acc992dabbbdda3390f107dd96f87c5af3020c7f77a6ba4a94e5a9"
+      },
+      {
+        "function": "canonical_stdio::canonical_stdio_preserves_original_recovery_finite_events_current_authority_and_fixed_configuration",
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.4536559169646353,
+        "results": [
+          "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 368 filtered out; finished in 1.43s"
+        ],
+        "log_sha256": "bf1b85ccc46991fed2ef779cf154d0135a8ee409d688edf400546cd638fd6a2b"
+      }
+    ],
+    "source_count": 5642,
+    "changed_inputs": [],
+    "binary_sha256": "55150e5781d2eca4a459a79f2e9699071f6b95997c4f82759c9d00fc35bdc636",
+    "cli_sha256": "a469a093274416c99d5a7069377cf539c1b09dd0479e7efd7682f0815a864fa7",
+    "scope_note": "Four Rust-only SDK/stdio functions execute no Node consumer. Tested326executable/CLI are byte-identical to fresh332artifacts; old full5642manifest remains historical. Fresh332binds currentSDK-only noncoercing media validation refinement; current333installed Node consumes the final package."
+  },
+  "retained_failures": [
+    {
+      "path": ".local/gate-6/node-sessions-real324/summary.json",
+      "finding": "Whole fixture fails before create: SDK reports transport-uncertain/uncertain with original ID. Private exec witness proves PermissionError on a malformed2784-byte644mode helper executable; no Session pass inferred."
+    },
+    {
+      "path": ".local/gate-6/rtc-signed-av/build-323-summary.json",
+      "finding": "Cargo returned success with explicit rust-objcopy ENOSPC warning and left malformed root/hashed CLI. Preserved original bytes/modes/SHA in node-sessions321/malformed-cli323.json; compiled test binary archived328."
+    },
+    {
+      "evidence": "docs/evidence/gate-6/node-participant-sdk.json",
+      "finding": "Earlier309/315first-create4sdeadlines remain unresolved. Subsequent318and327uninstrumented positives and the confirmed different324malformedCLI cause do not retroactively resolve those events."
+    }
+  ],
+  "build_recovery": {
+    "change": "Explicit profile.release.package.connect-server.strip=\"none\" for fixture build; no timeout, result or authority assertion changes.",
+    "verified": "Build326has0stripwarnings; CLI252027112bytes, executable mode/native Mach-O and sdk-stdio help checked plus SHA guard before fixture. Fresh test/CLI/source binding recorded.",
+    "custody": "Only exact inactive owned proof executables/cache aliases archived with full zstdSHAroundtrip:322prior314/config270,325SIP252,328compiled323. Preparedv43source unchanged; no broad prune."
+  },
+  "source_sha256": {
+    "crates/connect-client/src/sdk/helper.rs": "7eef49b781f07b2cb56b016456e08c9ba4577c74beb7b35af407392509e6d517",
+    "crates/connect-client/src/sdk/helper/session.rs": "a2c9a89bb10f9f96c0e3ef4bcdfa6a7db4eca2409e52d0e626d8edf0802ff82c",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "cd4c331eea0d5903f2fbd41903e1593deffe3ea0931c9ae417b4c4e994def64f",
+    "sdk/typescript/src/node_sdk.ts": "4ac29d1487a8c2b94637000346f760c424fa8db98107bdaa59e629fcdebd2999",
+    "sdk/typescript/src/node_sessions.ts": "f0f4ba30ffc56eae957ecd8718b363eaa66fda05f29f4e49d30b2fd419f80270",
+    "sdk/typescript/src/index.ts": "941c3c22afdef8d341b46d220ca8c234b7042779f4f79528f09e8446f01d294d",
+    "sdk/tests/node_sessions.test.mjs": "eef2f4c40bed6d8a8bd9ad9eebbd8e1aa15bd1f9991dd5fc0b44edc1ecc66aa7",
+    "sdk/tests/node_sdk_server_consumer.mjs": "f0d034c5b80f141654d96cea29f3c1650a14b6fa8cc1b5aadfcba78885ca7524",
+    "sdk/tests/node_sdk_types.mts": "9a49efd1c23cab27f46d9039cc55757940075b86565edf0f9baabc777f62b5cd",
+    "sdk/tests/fixtures/sdk_helper.mjs": "8c084bc84d59ccf0cd1d4e5ff71bbef7e0e9de5fe2effe5ffb0999e65073b8e0",
+    "sdk/tests/check_canonical_helper.py": "888e2c6285fa4d8f83b79e1a7a51c9ed03b2dd46f3a9de5cb228c86c9f432c9b"
+  },
+  "remaining": [
+    "Full Connection/Stream/topology consultation/handoff and owned event/invitation/step-up/capability APIs.",
+    "Explicit trusted administration/provisioning, supported remote HTTP enrollment/trust and complete native/HTTP facade parity.",
+    "Full installed fixture journey and remaining package/platform qualifications; programmatic media is G6-064.",
+    "Investigate earlier initial-create4sdeadline failures with failing-event evidence; no completed quality/failure/performance/acceptance claim."
+  ],
+  "previous_passed_binding": {
+    "build": {
+      "target_directory": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024",
+      "exit_code": 0,
+      "seconds": 103.09802675014362,
+      "arguments": [
+        "cargo",
+        "rustc",
+        "--jobs",
+        "1",
+        "--release",
+        "--offline",
+        "--locked",
+        "--config",
+        "profile.release.package.connect-store.opt-level=0",
+        "--config",
+        "profile.release.package.connect-service.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.opt-level=0",
+        "--config",
+        "profile.release.package.connect-server.strip=\"none\"",
+        "-p",
+        "connect-server",
+        "--features",
+        "test-support",
+        "--test",
+        "gate6_canonical_runtime",
+        "--message-format=json",
+        "--",
+        "-C",
+        "strip=none"
+      ],
+      "source_count": 5642,
+      "changed_inputs": [],
+      "artifact": {
+        "original": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/deps/gate6_canonical_runtime-309286aff1abc6a7",
+        "sealed": "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/rtc-signed-av/typed-node-sdk-runtime-test-326",
+        "sha256": "55150e5781d2eca4a459a79f2e9699071f6b95997c4f82759c9d00fc35bdc636",
+        "bytes": 268878024
+      },
+      "diagnostic_warnings": [],
+      "cli_artifact": {
+        "path": "/Users/jonathaneisenzopf/.local/share/connect/gate6-native-fifty-optimized-20261024/release/connect",
+        "bytes": 252027112,
+        "sha256": "a469a093274416c99d5a7069377cf539c1b09dd0479e7efd7682f0815a864fa7",
+        "sdk_stdio_help_checked": true
+      },
+      "log_sha256": "9728b40a152011e31f64381a2e0c52c1dbafe4a7b9879f2d7075af0f46d8cafa"
+    },
+    "actual_server": {
+      "passed": true,
+      "private_summary": ".local/gate-6/node-sessions-real333/summary.json",
+      "function": "canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority",
+      "seconds": 7.659039875026792,
+      "source_count": 5642,
+      "changed_inputs": [],
+      "binary_sha256": "55150e5781d2eca4a459a79f2e9699071f6b95997c4f82759c9d00fc35bdc636",
+      "cli_sha256": "a469a093274416c99d5a7069377cf539c1b09dd0479e7efd7682f0815a864fa7",
+      "log_sha256": "ee8246239129021e9fccd48afa037ba891a9574475dd5b0c1cb486428fc9f728",
+      "algorithms": [
+        "EdDSA",
+        "ES256"
+      ],
+      "forced_cleanup": false,
+      "original_helpers_joined": 6,
+      "original_servers_joined": 2,
+      "sampling": false,
+      "request_budget_ms": 4000,
+      "observed": [
+        "Ordinary separately enrolled caller and peer; operator credentials remain in Rust harness.",
+        "Solo Session accepted; role observer/participant changes; audio/video upgrade and codec policy capture; state and topology revisions differ; wrong numeric topology refused.",
+        "Existing Session invitation, peer accept, participant leave, explicit end completed through journal.",
+        "Fresh pending invitations reject through peer or cancel through caller with typed scoped decisions.",
+        "Original end reference restores and waits after helper restart; current refreshed state remains ended.",
+        "Prior typed Participant epoch/revision/refusal and original message/decision/native-HTTP record/replay/revocation assertions still pass;6exec-traced helper PIDs and2servers join."
+      ],
+      "profile": "Root store/service/server opt0, server strip none, upstream/client normal release. Functional only; no performance qualification."
+    },
+    "package": {
+      "path": "dist/gate-6/node-sessions330/rudeless-connect-0.1.0.tgz",
+      "sha256": "dfd342cd30a74c5e4f75b59e4724e7e5cab0f224b253d85ece11db232dd21844",
+      "installed_dist_matches": true,
+      "offline_install_ignore_scripts": true,
+      "consumer_sha256": "f0d034c5b80f141654d96cea29f3c1650a14b6fa8cc1b5aadfcba78885ca7524",
+      "publication": false
+    }
+  }
+}

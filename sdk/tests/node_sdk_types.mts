@@ -24,3 +24,12 @@ const participant=client.conversations.byId(roomId).participants.byId('participa
 participant.remove({expectedConversationRevision:topology},{timeoutMs:1000,operationId});
 // @ts-expect-error A bare number is not a validated branded Conversation revision.
 participant.update({role:'observer',expectedConversationRevision:1},{timeoutMs:1000,operationId});
+
+const session=client.conversations.byId(roomId).sessions.byId('session' as import('../typescript/dist/index.js').SessionId);
+declare const stateRevision:SdkRevision<'session'>;
+// @ts-expect-error Session state revision cannot authorize a topology mutation.
+session.end({reasonCode:1000,reason:'done',expectedTopologyRevision:stateRevision},{timeoutMs:1000,operationId});
+// @ts-expect-error Invitation into an existing Session requires nonempty targets.
+session.inviteParticipants({to:[],medium:'voice',intent:'join',capabilities:{},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+// @ts-expect-error Session completion is not a Conversation result.
+const wrongSessionResult:SdkOperation<SdkConversation>=client.operations.restore(saved,client.operationKinds.session_invite);

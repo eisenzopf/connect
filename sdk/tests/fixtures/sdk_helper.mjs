@@ -23,18 +23,27 @@ createInterface({input:process.stdin}).on('line',line=>{
  else if(a.type==='conversation_send')result={Ok:reference(a.mutation.operation_id,'message.send',{conversation_id:a.conversation_id})};
  else if(a.type.startsWith('participant_')&&a.type!=='participant_refresh')result={Ok:reference(a.mutation.operation_id,'conversation.participant.'+a.type.slice(12),{conversation_id:a.conversation_id})};
  else if(a.type==='participant_refresh')result={Ok:{id:a.participant_id,conversationId:a.conversation_id,identityId:'identity',kind:'human',role:'participant',membershipEpoch:1,active:true,removalReason:null}};
+ else if(a.type==='session') {
+  const act=a.action;
+  if(act.type==='refresh')result={Ok:{id:a.session_id,conversationId:a.conversation_id,state:'accepted',media:['audio'],intent:'synthetic',capabilitiesOffer:{audio:['g.711-mu']},codecPreferences:[],isMain:true,revision:1,topologyRevision:2,createdAt:1,updatedAt:2,endedReason:null}};
+  else result={Ok:reference(act.mutation.operation_id,'session.'+act.type,{conversation_id:a.conversation_id,session_id:a.session_id})};
+ }
  else if(a.type==='conversation_refresh')result={Ok:{id:a.conversation_id,closed:false,revision:1,participants:[]}};
  else {
    const snap={key:key(a.reference),state:config.state??'completed',revision:1,recordId:'record-original',cancelRequested:null,expiresAt:null,problem:null};
    if(a.action.type==='wait') {
      const value=a.kind==='message_send'?{messageId:'message',operation:key(a.reference),boundary:'local-mutation'}:
-       a.kind==='conversation_create'?{id:'room'}:a.kind.startsWith('conversation_participant_')?{id:'participant',conversationId:a.reference.scope.conversation_id}:{decision:key(a.reference),target:'original',observedState:'completed',disposition:'already-terminal',evidenceId:a.kind==='operation_reconcile'?'evidence':null};
+       a.kind==='conversation_create'?{id:'room'}:a.kind.startsWith('conversation_participant_')?{id:'participant',conversationId:a.reference.scope.conversation_id}:
+       a.kind==='session_reject'||a.kind==='session_cancel'?{session:{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id},state:a.kind==='session_reject'?'rejected':'cancelled',topologyRevision:2}:
+       a.kind.startsWith('session_')?{id:a.reference.scope.session_id,conversationId:a.reference.scope.conversation_id}:{decision:key(a.reference),target:'original',observedState:'completed',disposition:'already-terminal',evidenceId:a.kind==='operation_reconcile'?'evidence':null};
      result={Ok:{snapshot:snap,value}};
    } else if(['cancel','reconcile'].includes(a.action.type))result={Ok:reference(a.action.mutation.operation_id,'operation.'+a.action.type,a.reference.scope)};
    else result={Ok:snap};
  }
  if(config.mode==='refuse'&&n===1)result={Err:{kind:config.kind??'receipt-unavailable',certainty:config.certainty??'recorded',operation:null,problem:{code:410,category:'receipt-unavailable',reason:'receipt-expired'},observation:config.observation??null}};
  if(config.mode==='wrong-participant') { const p=result.Ok?.value??result.Ok;if(p?.conversationId)p.conversationId='foreign'; }
+ if(config.mode==='wrong-session') { const v=result.Ok?.value??result.Ok; const h=v?.session??v;if(h?.conversationId)h.conversationId='foreign'; }
+ if(config.mode==='wrong-session-decision'&&result.Ok?.value?.session)result.Ok.value.state='not-the-decision';
  if(config.mode==='wrong-reference')result.Ok.operation_id='foreign';
  if(config.mode==='wrong-scope') { const k=result.Ok?.snapshot?.key??result.Ok?.key; if(k)k.scope.conversationId='foreign'; }
  if(config.mode==='wrong-result'&&result.Ok?.value)result.Ok.value={id:'room'};

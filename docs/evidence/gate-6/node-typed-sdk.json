@@ -249,5 +249,10 @@
   "later_participant_component": {
     "evidence": "docs/evidence/gate-6/node-participant-sdk.json",
     "scope": "Current typed Participant control/epoch/revision component with41synthetic passes and a both-algorithm instrumented server positive. Two uninstrumented startup deadlines unresolved; prior80afb0b6/304 evidence above remains historical exact source scope."
+  },
+  "later_session_component": {
+    "evidence": "docs/evidence/gate-6/node-session-sdk.json",
+    "component_passed": true,
+    "scope": "44synthetic checks/negative declarations; current5642-input installed caller+peer Session/Participant/message/decision function passes both algorithms,6helper2serverjoins;4exact current SDK/stdio regressions pass. Earlier4sdeadlines unresolved; full SDK remains open."
   }
 }

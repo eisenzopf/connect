@@ -37,3 +37,16 @@ export type * from "./types.js";
 
 export type * from "./tasks.js";
 export { TASK_PROFILE } from "./tasks.js";
+
+export type {
+    SessionId,
+    SdkMedium,
+    SdkSessionMedium,
+    SdkNonEmpty,
+    SdkSessionInvite,
+    SdkSessionUpdate,
+    SdkSessionDecision,
+    SdkSessionSnapshot,
+    SdkSession,
+    SdkSessions,
+} from "./node_sessions.js";
