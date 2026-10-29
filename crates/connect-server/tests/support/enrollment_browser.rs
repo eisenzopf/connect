@@ -172,6 +172,9 @@ impl Drop for Chrome {
     }
 }
 pub(super) fn launch(profile: &Path, log: &Path, spki: &str) -> Chrome {
+    launch_capture(profile, log, spki, false)
+}
+pub(super) fn launch_capture(profile: &Path, log: &Path, spki: &str, synthetic: bool) -> Chrome {
     let binary = std::env::var_os("CONNECT_GATE6_CHROME")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into());
@@ -194,6 +197,9 @@ pub(super) fn launch(profile: &Path, log: &Path, spki: &str) -> Chrome {
         .arg("about:blank")
         .stdout(Stdio::null())
         .stderr(std::fs::File::create(log).unwrap());
+    if synthetic {
+        command.arg("--use-fake-device-for-media-stream");
+    }
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -221,7 +227,7 @@ pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase
     let input = h.f.temp.path().join(format!("browser-{phase}.json"));
     std::fs::write(
         &input,
-        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser"})).unwrap(),
+        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser","typed_media_ui":phase=="typed-browser"})).unwrap(),
     )
     .unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))

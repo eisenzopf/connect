@@ -55,3 +55,17 @@ const renderer=await connection.render({audio:false},{timeoutMs:1000});
 // @ts-expect-error Ordinary render handles expose no borrowed RTP/frame callback API.
 renderer.video;
 void [capture,renderer];
+
+// Local UI helpers preserve the original Operation's invariant result type.
+import { BrowserOperationProgress, BrowserSourcePicker, BrowserCaptureControls, browserInputDevices } from "../typescript/dist/browser.js";
+export function browserUiTypes(operation: import("../typescript/dist/browser.js").BrowserOperation<import("../typescript/dist/browser.js").BrowserConnection>, connection: import("../typescript/dist/browser.js").BrowserConnection) {
+    const picker = new BrowserSourcePicker({audio:true,video:["camera","screen"]});
+    const capture = new BrowserCaptureControls(connection,picker.selection(),{timeoutMs:1000});
+    const progress = new BrowserOperationProgress(operation,{timeoutMs:1000});
+    const completion: Promise<import("../typescript/dist/browser.js").BrowserCompletion<import("../typescript/dist/browser.js").BrowserConnection>> = progress.observe();
+    // @ts-expect-error Local source selection cannot grant a Connection or mutation.
+    picker.selection().offer();
+    // @ts-expect-error UI media owner hides RTP and protocol access.
+    capture.start().then(owner => owner.sendRtp({}));
+    return {completion,devices:browserInputDevices({timeoutMs:1000})};
+}

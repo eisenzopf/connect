@@ -142,3 +142,12 @@ export type {
 } from "./browser_sdk.js";
 
 export type { BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
+export {
+    browserInputDevices,
+    BrowserSourcePicker,
+    BrowserCaptureControls,
+    BrowserOperationProgress,
+    type BrowserInputDevice,
+    type BrowserSourceSelection,
+    type BrowserUiState,
+} from "./browser_ui.js";

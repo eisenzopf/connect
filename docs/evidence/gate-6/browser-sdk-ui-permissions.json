@@ -1,0 +1,235 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "9eeafa391829172a3cbce936cf46da68fa48908e",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Basic public browser device/source and capture/original-operation UI primitives, with actual owned Chrome synthetic microphone/camera permission denial/grant and trusted keyboard decisions over WT/WSS. No personal devices, screen capture, complete app/UI/assistive-technology matrix, received decoded quality, Linux/remote or complete G6-061 acceptance claim.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_ui.ts": {
+      "sha256": "74851eec5bace29eea3ee989a6d9ce7b44d8f7f42de7bcb3af88710b5f7454af",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_ui.js": {
+      "sha256": "2c68c1b2fa62b3b2a1dd89833224efcc0283595f815fa75bd1e8e2427ad00522",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_ui.d.ts": {
+      "sha256": "4ee65e2102887d4090b67fba43ce6e1bf559c0095ef84610b7558e7579a84e7c",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "cea80abfa80895133f1d19f748756328db75389370fa9022652f2fcfd953aab8",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "1beab145c896f821ac32a968ef8e8e0e7c11daca0c5762c78485f20ee85afa3b",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "d27aec4feb59a2f634048e5f67f7c1c1a65c3cb86cd33dc5891481e2359c4800",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "b8aa2a8d35245bc39fceecc223fb167fd07588268c048cb4c1c7a8984ac958f3",
+      "mode": 420
+    },
+    "sdk/tests/browser_ui.test.mjs": {
+      "sha256": "9cfdc81c071fff725f7b3c9c12abd3325912e116fcca19a7c46b1d0c6a89d89d",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "8c83b7d552ef00223715bdb8d0b43dec922135f0ef8f3d93fce7c6b9dc81f668",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "41b6ea7df05072a9f440fc0876bab016536d10182d7b074b10403a0662de7c42",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "6ad6421cb7b757c3fb9e290d5962e3c856e12953f7f2bb0735df7eab40df32d0",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "ed3edb70026810380968ff1f58e98b1d0ec90da6f69e1eda56e8557fd4332dec",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "7bbcf3f5b960f5331bae5579b2853a5d6971495e4a2e156a6df8ff12ba71250f",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "0dbae41b80a0a74861d17bd72c86e50d7d77adf245d3612f2ef6fa8f8b3329f9",
+  "source_inputs_guarded": 2476,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          443
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 5.039552874863148,
+        "log_sha256": "45fe3cb85453177b0137bad13f4d6c2068966d9764af01efbcf290c5b1dbef90"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.28565395809710026,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.241701374994591,
+        "log_sha256": "5771220035d4cb7a009935838a55d7207a8e7e66a39dac70a68af38dc53ea6f0"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 35.49715891596861,
+        "log_sha256": "db31738bb15ad63b6da958bb747ed9e1620886b8320bf7892491a70b62916ca0"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 2,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 20
+    },
+    "log_sha256": "8affb75b27af954845fd0d2a6bdcad6ef046016355627c472e613928c6692172",
+    "scope": "Fresh owned headless Chrome explicitly launched with --use-fake-device-for-media-stream. Only its fixed synthetic inputs are accepted by label checks before capture. CDP grants origin-scoped microphone/camera permission for enumeration, then denies it for first explicit capture, then grants it for keyboard retry on the same original Connection. Production SDK getUserMedia obtains exact keyboard-selected device IDs; no supplied synthetic MediaStream bypass. Both WT and bounded350msWTblackhole->WSS use the same typed workflow.",
+    "keyboard": "Trusted CDP ArrowDown/Enter operates native microphone/camera list boxes. Trusted Enter activates initial capture and explicit retry; fixture requires two trusted clicks per path. Native progress button observes original offer; UI asserts announced denied state, ready capture, completed original observation and idle after recorded end. No script-generated click event substitutes for keyboard input.",
+    "durable_intent": "Application fixture stores original offer input/operation ID and selected sources before IO, then original typed reference after acceptance. Following physical reconnect it loads that saved reference and observes completion without local media custody. This is not full durable invitation discovery/app restart qualification.",
+    "mutation_observation": "Read-only production-boundary observers preserve calls unchanged. Twenty distinct original canonical communication mutations; UI retry only performs local capture, progress only reads original records. Four credentials/keys, two Devices, four explicitly verified synthetic Endpoints. No operation re-submission or credential inflation."
+  },
+  "implemented": [
+    "Bounded cancellable input enumeration never prompts for capture. Immutable input choices omit output/group IDs and use safe fallback labels. Device IDs remain local constraints.",
+    "Public BrowserSourcePicker uses labeled input list boxes, native camera/screen source choice, supported-source refusal and explicit source snapshots. It never offers a Connection or grants capture; app must save logical intent before IO. Source choice cannot silently downgrade an unavailable required video source.",
+    "BrowserCaptureControls binds one existing Connection and captured source selection. Explicit starts, permission failure/retry, stop and close retain same Connection; pending duplicate starts share one attempt. Closing aborts local permission/capture, late or already-retired owners cannot publish ready, and normal retirement updates UI.",
+    "BrowserOperationProgress preserves invariant result type while observing one original Operation. Stop waiting cancels only the read; failed recheck never issues a mutation. Captured finite budgets and current SDK authorization remain in effect.",
+    "Native buttons, associated labels, polite atomic status, aria-busy and pending/ready/failed/closed states provide basic keyboard and announcement semantics. Focus moves to stop during pending work and returns if still there. Closing prevents late DOM updates. App owns DOM mounting and persisted intent independently."
+  ],
+  "behavior": [
+    "Ten component functions test bounded/pre-aborted enumeration without permission, immutable/private device shape, duplicate pending capture, close/stop before late ownership, safe permission error/retry with captured selection/deadline, original-only progress retries, cancelled read/late completion, pre-aborted panels, already-retired owner refusal and keyboard focus recovery.",
+    "Actual WT/WSS flows now use real getUserMedia permission checks with owned Chrome fake microphone/camera, explicit keyboard-selected device IDs and denied/granted capture retry. Existing scoped Connection/Stream, duplicate owner, renderer/end/current-authority/reconnect checks remain. Supplied AudioContext/canvas fixture media was replaced by Chrome synthetic devices in this lane.",
+    "Final guarded443SDK/37targeted Node/10real combined enrollment functions pass,0ignored; browser/Node negative type checks and format/HTTP/OpenAPI references pass. Production service/server signaling, dependency source lock and Node runtime JS match base byte-for-byte."
+  ],
+  "visual_review": {
+    "scope": "Owned Chrome screenshots reviewed for source labels, selected synthetic inputs, visible denied message, keyboard focus and active capture controls. Native unstyled primitives; no full app-design/accessibility qualification.",
+    "screenshots": [
+      {
+        "state": "typed-ui-active-0",
+        "sha256": "c8fccabf6eb5d0af3f89e61c9a9a8368efdef767e804f0e17f48ec02351f3363"
+      },
+      {
+        "state": "typed-ui-active-1",
+        "sha256": "c8fccabf6eb5d0af3f89e61c9a9a8368efdef767e804f0e17f48ec02351f3363"
+      },
+      {
+        "state": "typed-ui-denied-0",
+        "sha256": "45385e36b2fe96c3bf23b1a64970a49e70e03d0f27bb787bb06ce4b187a97817"
+      },
+      {
+        "state": "typed-ui-denied-1",
+        "sha256": "45385e36b2fe96c3bf23b1a64970a49e70e03d0f27bb787bb06ce4b187a97817"
+      }
+    ]
+  },
+  "prior_attempts": [
+    {
+      "passed": false,
+      "log_sha256": "7fb41c860bfd997cf946fa4b0eee6fc88de4674e451011a205dc3466102221bd",
+      "observation": "Initial strict build rejected an any index after Array.isArray narrowing; retained explicit validated camera/screen index type before emission."
+    },
+    {
+      "passed": false,
+      "log_sha256": "7506b408c0e87e875b0997af7b7af29ae759814e94753d90add82638e92ec7c7",
+      "observation": "Owned native dropdown did not change selected device under headless macOS keyboard input. No permission or UI flow pass claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "a4193450e978005ea462e11c3c9c716c7c240f3693ef3889af0d7bd27e3d4dc7",
+      "observation": "Adding native dropdown Enter commit still left the default selections. No explicit source-selection pass claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "83dc5a3f7c9e8d82abea02a1eed5c15cc2c6f7c03590aa28c4cd9ac35dc20a1e",
+      "observation": "Sanitized event observation proved trusted ArrowDown/Enter reached dropdowns but indices stayed0. Switched microphone/camera controls to inline native list boxes; retained labeled native semantics."
+    },
+    {
+      "passed": false,
+      "log_sha256": "824b54499ffd61c8ad31e4de7e2b96e67b77556f2261eba2c1f8f678e3f5c4d4",
+      "observation": "List-box keyboard source selection passed, but synthetic driver Enter omitted the character payload needed for the native button activation. Added carriage-return key text; no bypassing component methods or synthetic click dispatch."
+    }
+  ],
+  "remaining": [
+    "Proper pinned RTC backend support for logical WSS Screen and actual owned-tab display capture; complete media parity still pending.",
+    "Typed subscriptions/Connection updates, broader frozen Session/messaging/event/capability API and durable invitation discovery/recovery/deduplication.",
+    "Full reference-app integration, complete accessibility/assistive-technology and persisted state/recovery qualification beyond these basic primitives.",
+    "Received decoded/audio presentation measurement and complete high-level lifecycle/requirement audit before G6-061 closes."
+  ],
+  "open_gate_findings": [
+    "Existing installed positive provisioning CLI15second subprocess timeout unresolved; no CLI fix/full workspace pass.",
+    "Three unchanged full-tree TypeScript format findings protocol.ts/record_context.ts/task_protocol.ts; changed files checked.",
+    "Generic browser Operation result copy currently64KiB; maximal Conversation coverage remains in full SDK audit.",
+    "Cached local test build repeats prior debug-stripping disk warning; executed build/tests pass. No stripped/release package qualification."
+  ],
+  "trust_scope": "Only fresh owned Chrome profile and local synthetic fixture, exact fixture HTTPS/WSS SPKI exception and signed peers. No personal device/screen, system trust, model/account/provider/named remote execution. Earlier bounded host rehearsal is not repeated.",
+  "privacy": "Raw logs, device IDs, browser profiles, credentials, SDP, screenshots and TLS state remain ignored under.local. Public evidence contains digests, aggregate counts and scoped observations."
+}

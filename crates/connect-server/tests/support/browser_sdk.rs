@@ -25,8 +25,12 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
     let blackhole = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
     let profile = h.f.temp.path().join("owned-typed-browser");
     std::fs::create_dir(&profile).unwrap();
-    let mut chrome =
-        enrollment_browser::launch(&profile, &h.f.temp.path().join("typed-chrome.log"), &spki);
+    let mut chrome = enrollment_browser::launch_capture(
+        &profile,
+        &h.f.temp.path().join("typed-chrome.log"),
+        &spki,
+        true,
+    );
     let port = enrollment_browser::debug_port(&mut chrome, &profile).await;
     let c = &h.f.client;
     let config = json!({"actors":[],"suffix":uuid::Uuid::new_v4().simple().to_string(),"identity_id":c.identity_id,"recipient_id":h.f.peer.identity_id,"api_origin":h.url(HttpSurface::Application,""),"wt_url":h.f.server.webtransport_url,"wss_url":h.f.server.websocket_url,"unreachable_wt_url":format!("https://{}/connect",blackhole.local_addr().unwrap()),"certificate_sha256":hash,"server_keyid":c.server_key_id,"server_public_raw":URL_SAFE_NO_PAD.encode(std::fs::read(&c.server_public_key).unwrap()),"server_not_before":c.server_key_not_before.timestamp(),"server_expires_at":c.server_key_expires_at.timestamp()});
@@ -47,6 +51,11 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "cancellations",
         "recovered_original",
         "current_authority_refusal",
+        "owned_device_permission",
+        "permission_denial_ui",
+        "keyboard_capture_retry",
+        "device_source_choice",
+        "operation_progress_ui",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }

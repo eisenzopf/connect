@@ -10,8 +10,8 @@ This checkpoint implements Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
 creation, Session invitation/acceptance/rejection/cancellation/end, and native
 WT/WSS audio/video Connection offer/end. Connection updates and subscriptions,
-complete media parity, broader Session controls and accessible UI remain in
-progress. A successful Session control operation does not establish media.
+complete media parity, broader Session controls and full app integration remain
+in progress. A successful Session control operation does not establish media.
 
 ```ts
 import {
@@ -115,9 +115,9 @@ credentials refuse the round before any fallback attempt.
 
 [Typed browser control evidence](../evidence/gate-6/browser-sdk-control.json)
 records the signed boundary and owned Chrome checks over direct WT and bounded
-WSS fallback. This checkpoint does not qualify camera/microphone permissions,
-source selection, screen capture, keyboard UI, Linux,
-remote hosting or complete G6-061 acceptance.
+WSS fallback. Later checkpoints below add explicit media owners and basic
+source/progress UI. Screen capture, Linux, remote hosting and complete G6-061
+acceptance remain open.
 
 
 ## Current physical media owners
@@ -207,8 +207,9 @@ The owned Chrome fixture exercises the same audio/video offer, explicit
 synthetic capture, original completion, scoped observations, renderer startup,
 exclusive ownership, end and reconnect recovery over WT and WSS. It animates
 its canvas so the RTC host can observe fresh primary video RTP. It does not
-request personal devices. Actual synthetic device permissions, owned-tab
-screen selection, received decoded quality and complete media parity remain
+request personal devices. The UI checkpoint below adds actual browser permission
+checks with synthetic devices. Owned-tab screen selection, received decoded
+quality and complete media parity remain
 required before G6-061 can close. RTC renderer `diagnostics.audio` is currently
 unmeasured (zero); its video counter records presentation callbacks only.
 
@@ -217,3 +218,58 @@ records the current typed WT Connection/Stream and local owner checks.
 
 [WSS composition evidence](../evidence/gate-6/browser-sdk-wss-owners.json)
 records this increment and its remaining qualification work.
+
+## Source and progress controls
+
+`BrowserSourcePicker` provides labeled local microphone/camera list boxes and a
+video-source choice. Construct it with the sources the application can offer;
+unsupported sources are disabled. `refresh()` enumerates input devices under a
+finite read budget and never requests permission. Labels may be unavailable
+until the browser grants permission. The picker retains no group IDs and adds
+no device data to Connect requests. Device IDs are local capture constraints.
+
+```ts
+import {
+    BrowserSourcePicker, BrowserCaptureControls, BrowserOperationProgress,
+} from "@rudeless/connect/browser";
+
+const picker = new BrowserSourcePicker({ audio: true, video: ["camera"] });
+container.append(picker.element);
+await picker.refresh({ timeoutMs: 3000 });
+// On the application's explicit offer action, persist the selected sources,
+// original Connection/Stream IDs and operation ID before submitting the offer.
+const selection = picker.selection();
+await saveMediaIntent({ selection, input: savedOfferInput, mutation: savedMutation });
+const offer = await session.connections.offer(savedOfferInput, savedMutation);
+await saveOriginalReference(offer.referenceJson());
+const connection = session.connections.byId(savedOfferInput.connectionId);
+const captureControls = new BrowserCaptureControls(connection, selection, {
+    timeoutMs: 30000,
+});
+const progress = new BrowserOperationProgress(offer, { timeoutMs: 10000 });
+container.append(captureControls.element, progress.element);
+```
+
+The capture button explicitly starts permission for this Connection. A denied
+permission shows a fixed, announced error and enables retry on the same
+Connection. Pending duplicate actions share the same capture attempt. Closing
+or stopping the controls cancels their local permission/capture work and stops
+late tracks; a retired owner cannot publish a late ready state. Source changes
+that require different negotiated Streams need a separate saved offer intent.
+A logical screen selection still invokes the browser's separate display picker;
+no stored camera device ID selects a screen. WSS screen media remains unsupported.
+
+The progress button observes the original Operation with current authorization.
+It can stop waiting or recheck after a failed read without submitting a new
+mutation. Both controls use native buttons, live status text and `aria-busy`;
+focus moves to the stop button during a pending action and returns after failure
+or completion if it is still there. Closing a panel prevents late UI updates.
+The caller owns mounting/removing elements and persists references independently
+of the panels' lifetime. Call `close()` on the picker and both panels on teardown.
+
+[Source and UI evidence](../evidence/gate-6/browser-sdk-ui-permissions.json)
+records actual owned Chrome permission denial/grant with Chrome's synthetic
+microphone/camera, trusted keyboard source/capture/retry actions and current
+operation progress over WT and WSS. This qualifies these basic interactions;
+it does not qualify a complete reference app, assistive-technology matrix,
+personal devices, owned-tab screen capture or received decoded media quality.

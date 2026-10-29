@@ -1,5 +1,5 @@
 import {BrowserRtcConnection} from '/sdk/browser_sdk_webrtc.js';
-import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId} from '/sdk/browser.js';
+import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId,BrowserSourcePicker,BrowserCaptureControls,BrowserOperationProgress,browserInputDevices} from '/sdk/browser.js';
 const trace=[],rtcOwners=[];
 const originalRtcBegin=BrowserRtcConnection.begin;
 BrowserRtcConnection.begin=function(...args){const begun=originalRtcBegin.apply(this,args);rtcOwners.push(begun.owner);return begun;};
@@ -30,8 +30,12 @@ globalThis.runBrowserFixture=async cfg=>{try{
   }
   profiles.push({device,byPath});
  }
+ const waitUntil=async(test,label)=>{const until=Date.now()+10000;while(!test()){if(Date.now()>until)throw Error(label+' deadline');await new Promise(r=>setTimeout(r,15));}};
+ const ui=async phase=>{globalThis.typedUiPhase=phase;await waitUntil(()=>globalThis.typedUiAcknowledged===phase,'owned UI '+phase);};
+ const captured=[];const originalCapture=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+ navigator.mediaDevices.getUserMedia=async input=>{const stream=await originalCapture(input);captured.push(stream);return stream;};
  const savedCancellations=new Map();let savedNative;
- const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0};
+ const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0,owned_device_permission:0,permission_denial_ui:0,keyboard_capture_retry:0,device_source_choice:0,operation_progress_ui:0};
  for(const path of ['webtransport','wss-webrtc']){
   const resolutions=[[],[]],clients=[];
   try{
@@ -67,41 +71,45 @@ globalThis.runBrowserFixture=async cfg=>{try{
      }else{
       assert(completed.value.id===pending.id,'accept typed result');result.incoming_accepts++;result.explicit_retry++;
       {
-       const native=await pending.connections.offer({connectionId:sdkId('native-'+suffix),streams:[{id:sdkId('audio-'+suffix),kind:'audio',direction:'sendrecv',codecs:['opus']},{id:sdkId('video-'+suffix),kind:'video',direction:'sendrecv',codecs:['vp8']}]},{...mutation('native-offer'),timeoutMs:15000});
-       savedNative=native.referenceJson();
-       // Capture is explicit on this saved pending Connection. WSS readiness
-       // requires observed source media; offer acceptance never invents it.
-       const connection=pending.connections.byId(sdkId('native-'+suffix));
-       const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination(),canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.getContext('2d').fillRect(0,0,640,360);oscillator.frequency.value=500;oscillator.connect(destination);oscillator.start();
-       const stream=new MediaStream([...destination.stream.getAudioTracks(),...canvas.captureStream(30).getVideoTracks()]);
-       let frame=0;const painting=setInterval(()=>{const out=canvas.getContext('2d');out.fillStyle=frame++%2?'rgb(220,20,20)':'rgb(20,20,220)';out.fillRect(0,0,640,360);},33);
+       const cycle=path==='webtransport'?0:1,picker=new BrowserSourcePicker({audio:true,video:['camera']});document.body.append(picker.element);
+       await ui('grant-'+cycle);await picker.refresh(options);
+       const devices=await browserInputDevices(options);assert(devices.microphones.length>0&&devices.cameras.length>0&&devices.microphones.every(v=>/fake/i.test(v.label))&&devices.cameras.every(v=>/fake/i.test(v.label)),'only owned Chrome synthetic devices');
+       const selectors=picker.element.querySelectorAll('select');for(const select of selectors)select.addEventListener('keydown',event=>trace.push({source_key:event.key,trusted:event.isTrusted}));selectors[0].focus();await ui('microphone-'+cycle);selectors[2].focus();await ui('camera-'+cycle);
+       const selection=picker.selection();trace.push({source_selection:[...selectors].map(v=>({index:v.selectedIndex,empty:!v.value,disabled:v.disabled,focus:v===document.activeElement}))});assert(selection.audio&&selection.video==='camera'&&selection.audioDeviceId&&selection.videoDeviceId,'keyboard selects explicit local sources');result.device_source_choice++;
+       await ui('deny-'+cycle);
+       const savedOffer={connectionId:sdkId('native-'+suffix),streams:[{id:sdkId('audio-'+suffix),kind:'audio',direction:'sendrecv',codecs:['opus']},{id:sdkId('video-'+suffix),kind:'video',direction:'sendrecv',codecs:['vp8']}]},savedMutation={...mutation('native-offer'),timeoutMs:25000};
+       sessionStorage.setItem('media-intent-'+suffix,JSON.stringify({input:savedOffer,mutation:savedMutation,selection}));
+       const native=await pending.connections.offer(savedOffer,savedMutation);
+       savedNative=native.referenceJson();sessionStorage.setItem('media-reference-'+suffix,JSON.stringify(savedNative));
+       const connection=pending.connections.byId(sdkId('native-'+suffix)),controls=new BrowserCaptureControls(connection,selection,{timeoutMs:5000}),progress=new BrowserOperationProgress(native,{timeoutMs:10000});document.body.append(controls.element,progress.element);
        let capture,renderer;try{
-        await within(context.resume(),'Owned synthetic audio startup');
-        capture=await connection.capture({audio:true,video:'camera',stream},{timeoutMs:3000});assert(!capture.closed,'explicit owned synthetic capture starts');
-        let completedConnection;try{completedConnection=(await native.wait({...options,timeoutMs:10000})).value;}catch(error){trace.push({live_media:await rtcObservations()});throw error;}
+        let trustedClicks=0;const start=controls.element.querySelector('button');start.addEventListener('click',event=>{if(event.isTrusted)trustedClicks++;trace.push({capture_click:cycle,trusted:event.isTrusted});});start.focus();await ui('capture-'+cycle);await waitUntil(()=>controls.state==='failed','permission denied state');
+        const message=controls.element.querySelector('[role="status"]');assert(message.getAttribute('aria-live')==='polite'&&/permission was denied/.test(message.textContent)&&!start.disabled,'accessible denied permission state');result.permission_denial_ui++;
+        await ui('grant-'+cycle);start.focus();
+        await ui('capture-'+cycle);await waitUntil(()=>controls.state==='ready','actual owned permission capture');capture=await controls.start();assert(trustedClicks===2,'two trusted keyboard capture decisions');assert(!capture.closed&&captured.length===cycle+1,'one granted synthetic capture per path');result.owned_device_permission++;result.keyboard_capture_retry++;
+        progress.element.querySelector('button').focus();await ui('progress-'+cycle);const completedConnection=(await progress.observe()).value;assert(progress.state==='ready'&&/completed/.test(progress.element.querySelector('[role="status"]').textContent),'accessible original operation completion');result.operation_progress_ui++;
         const observed=await completedConnection.refresh(options);assert(observed.id===connection.id&&observed.generation===1&&observed.streamRevision===undefined,'current Connection resource observation');
         const sources=await completedConnection.streams.list(options);assert(sources.length===2,'typed Stream handles');
         for(const source of sources){const view=await source.refresh(options);assert(view.ownership==='observation'&&view.connectionId===connection.id,'observations grant no capture');}
         result[path==='webtransport'?'wt_native_connection':'wss_media_connection']++;
-
-        let duplicateCapture;try{await connection.capture({audio:true,stream},{timeoutMs:1000});}catch(error){duplicateCapture=error;}
+        let duplicateCapture;try{await connection.capture({audio:true},{timeoutMs:1000});}catch(error){duplicateCapture=error;}
         assert(duplicateCapture?.kind==='conflict'&&!capture.closed,'duplicate capture cannot replace an active source');
-        const videoSource=sources.find(v=>v.id===sdkId('video-'+suffix)),output=document.createElement('canvas');
-        renderer=await connection.render({audio:false,video:[{stream:videoSource,canvas:output}]},options);
+        const videoSource=sources.find(v=>v.id===sdkId('video-'+suffix)),output=document.createElement('canvas');renderer=await connection.render({audio:false,video:[{stream:videoSource,canvas:output}]},options);
         assert(output.width===640&&output.height===360,'owned renderer configures its scoped canvas');
         let duplicateRender;try{await connection.render({audio:false},options);}catch(error){duplicateRender=error;}
         assert(duplicateRender?.kind==='conflict','duplicate renderer cannot replace its local owner');
         await new Promise(resolve=>setTimeout(resolve,100));
         const ended=await connection.end({reasonCode:200,reason:'Finished',expectedStreamRevision:completedConnection.receiptStreamRevision},mutation('native-end'));await ended.wait(options);
-        assert(capture.closed&&stream.getTracks().every(t=>t.readyState==='ended'),'recorded end retires owned tracks');result[path==='webtransport'?'wt_owned_capture_retired':'wss_owned_capture_retired']++;
+        assert(capture.closed&&captured[cycle].getTracks().every(t=>t.readyState==='ended')&&controls.state==='idle','recorded end retires owned tracks and UI');result[path==='webtransport'?'wt_owned_capture_retired':'wss_owned_capture_retired']++;
         await within(renderer.finished,'Owned renderer retirement');result[path==='webtransport'?'wt_owned_renderer_retired':'wss_owned_renderer_retired']++;
-       }finally{clearInterval(painting);renderer?.close();capture?.close();for(const track of stream.getTracks())track.stop();oscillator.stop();await within(context.close(),'Owned source graph closure');}
+       }finally{renderer?.close();controls.close();progress.close();picker.close();controls.element.remove();progress.element.remove();picker.element.remove();}
+
       }
       const latest=await pending.refresh(options),end=await pending.end({reasonCode:200,reason:'Finished',expectedTopologyRevision:latest.topologyRevision},mutation('end'));
       const saved=end.referenceJson();sessionStorage.setItem('end-reference-'+suffix,JSON.stringify(saved));await end.wait(options);
       await caller.reconnect({preferredTransport:path});
       {
-       const historical=(await caller.operations.restore(savedNative,browserOperationKinds.connectionOffer).wait(options)).value;
+       const historical=(await caller.operations.restore(JSON.parse(sessionStorage.getItem('media-reference-'+suffix)),browserOperationKinds.connectionOffer).wait(options)).value;
        let refused;try{await historical.capture({audio:true},options);}catch(error){refused=error;}
        assert(refused?.kind==='receipt-unavailable','restored historical offer has no new physical media custody');result.restored_media_observation_only++;
       }

@@ -1,5 +1,6 @@
 // CDP client for an isolated Chrome process owned by the Rust fixture.
-import {readFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
 import {createPrivateKey} from 'node:crypto';
 const config=JSON.parse(await readFile(process.argv[2],'utf8'));
 if(process.env.CONNECT_GATE6_BROWSER_CLEAN60==='1'&&config.run.capture===true)config.run.clean60=true;
@@ -33,6 +34,39 @@ try {
   await send('Runtime.enable',{},session);
   const until=Date.now()+8000;
   for(;;){const ready=await send('Runtime.evaluate',{expression:"typeof globalThis.runBrowserFixture === 'function'",returnByValue:true},session);if(ready.result.value)break;if(Date.now()>until)throw Error('browser fixture page readiness deadline');await new Promise(r=>setTimeout(r,50));}
+  let uiDone=false;
+  const uiTask=config.typed_media_ui===true?(async()=>{
+    let handled;const until=Date.now()+60000;
+    while(!uiDone){
+      if(Date.now()>until)throw Error('typed media UI deadline');
+      const phase=(await send('Runtime.evaluate',{expression:'globalThis.typedUiPhase',returnByValue:true},session)).result.value;
+      if(phase&&phase!==handled){
+        if(!/^(grant|deny|microphone|camera|capture|progress)-[01]$/.test(phase))throw Error('unknown typed media UI phase');
+        const action=phase.split('-')[0];
+        if(process.env.CONNECT_GATE6_ENROLLMENT_ARTIFACTS&&((action==='grant'&&handled==='capture-'+phase.split('-')[1])||action==='progress')){
+          const directory=process.env.CONNECT_GATE6_ENROLLMENT_ARTIFACTS;await mkdir(directory,{recursive:true});
+          const screenshot=await send('Page.captureScreenshot',{format:'png'},session);
+          await writeFile(join(directory,'typed-ui-'+(action==='grant'?'denied':'active')+'-'+phase.split('-')[1]+'.png'),Buffer.from(screenshot.data,'base64'));
+        }
+        if(action==='grant'||action==='deny'){
+          for(const name of ['microphone','camera'])await send('Browser.setPermission',{permission:{name},setting:action==='grant'?'granted':'denied',origin:new URL(config.page_url).origin});
+        }else{
+          await send('Page.bringToFront',{},session);
+          const down=action==='microphone'||action==='camera',key=down?'ArrowDown':'Enter',code=down?40:13;
+          await send('Input.dispatchKeyEvent',{type:'keyDown',key,code:down?'ArrowDown':'Enter',windowsVirtualKeyCode:code,...(!down?{text:'\r',unmodifiedText:'\r'}:{})},session);
+          await send('Input.dispatchKeyEvent',{type:'keyUp',key,code:down?'ArrowDown':'Enter',windowsVirtualKeyCode:code},session);
+          if(down){
+            await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r',unmodifiedText:'\r'},session);
+            await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},session);
+          }
+        }
+        handled=phase;
+        await send('Runtime.evaluate',{expression:'globalThis.typedUiAcknowledged='+JSON.stringify(phase)},session);
+      }
+      await new Promise(r=>setTimeout(r,15));
+    }
+  })():Promise.resolve();
+  void uiTask.catch(()=>{});
   const evaluation=send('Runtime.evaluate',{expression:'globalThis.runBrowserFixture('+JSON.stringify(config.run)+')',awaitPromise:true,returnByValue:true,...(config.user_gesture===true?{userGesture:true}:{})},session);
   void evaluation.catch(()=>{});
   if(config.visibility_probe===true){
@@ -43,7 +77,9 @@ try {
     await phase('hide');cover=(await send('Target.createTarget',{url:'about:blank',background:false})).targetId;
     await send('Target.activateTarget',{targetId:cover});await phase('hidden');await send('Target.activateTarget',{targetId:target});
   }
-  const result=await evaluation;
+  let result;
+  try{result=await Promise.race([evaluation,uiTask.then(()=>new Promise(()=>{}))]);}finally{uiDone=true;}
+  await uiTask;
   if(result.exceptionDetails||!result.result?.value?.passed)throw Error(result.exceptionDetails?.exception?.description||'browser fixture returned no success');
   console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion,user_agent:browser.userAgent,js_version:browser.jsVersion},result:result.result.value}));
 } finally {
