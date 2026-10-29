@@ -162,7 +162,7 @@ test('Session updates and existing invitations reject ambiguous/empty/duplicate/
 }));
 
 for(const path of ['webtransport','wss-webrtc'])test(`typed browser ${path} Conversation creation uses the frozen Identity collection`,()=>scenario(async({client,f})=>{
- const input={policy:'persistent',participants:[id('recipient')]},pending=client.conversations.create(input,{...opts,operationId:id('create')});input.participants[0]=id('changed');const operation=await pending;assert.equal(operation.reference.command,'create');assert.deepEqual(JSON.parse(JSON.stringify(f.sent.find(v=>v.type==='conversation.create').payload)).initial_participants,[{identity_id:'recipient',role:'participant'}]);
+ const input={policy:'persistent',participants:[id('recipient')]},pending=client.conversations.create(input,{...opts,operationId:id('create')});input.participants[0]=id('changed');const operation=await pending;assert.equal(operation.reference.command,'conversation.create');assert.deepEqual(JSON.parse(JSON.stringify(f.sent.find(v=>v.type==='conversation.create').payload)).initial_participants,[{identity_id:'recipient',role:'participant'}]);
  const n=f.sent.length;assert.throws(()=>client.conversations.create({policy:'persistent',participants:[{identityId:'recipient',role:'participant'}]},{...opts,operationId:id('invalid')}),{kind:'validation'});assert.equal(f.sent.length,n);
 },{path}));
 

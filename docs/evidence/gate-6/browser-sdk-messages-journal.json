@@ -1,0 +1,298 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "fba77a08ca4040f1ee0dd7d55776e681b693deb8",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Typed browser private text Message acceptance, canonical original Operation references and durable finite Conversation journal readers. Actual owned macOS Chrome WT/WSS workflows and signed boundary checks. No receipt-query, full SDK parity, remote media or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "745df4aa6af8739c4eaca357bdbfeccef5c89d3e81f3d368d2b32dffb1d319c2",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "15f86688fe8c20312e943bdc3b972efd1551001ce73519e14bf690ed808fa458",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "6bc8d8245d1a614276bfb04575c884e83376ce5e5ba1572b09f04a3b895e9758",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "f57b4a4075ac301f1a465a892fa0838fa2bd07e7452d5ad2f14b26a4f32dcad2",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_conversation.test.mjs": {
+      "sha256": "d121ab70c57ed5f5854ef7f40816dfd98bd942072f9460f431853d71f8c9dda5",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_streams.test.mjs": {
+      "sha256": "e7694c90489257f69135ca305963d93a19ad87fbb94b8bb3d6daf5fc8ad955ff",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "fbe240a261ff65308c87e3765237523ead22050444648701e9564d9b8bef31ee",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "d0ed7035522abb91a1dfd98dde4817307bab314e6a35ce29832326184e5be941",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "4b0b6da14cc399d975c73126703a6c6b70cbb1d1a8cad20428c43b69ec59ab14",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "4f0b0ebb721c841bb6e32cb323405811b21c8fd5dabd81d8a5b5eff7d70834b5",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "0a204abf23f0191cf52b35757c5b0fd4bead949b677a264b3815f5ec8e657dc5",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "00e1c4c642c132cc3e06517d4c8219e8d0841876d7f70e8395aee1d8978303c1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_events.d.ts": {
+      "sha256": "c31d201a19b5b1257a051b49978709d00552467e9c04a0e345ed3736f6ebee2d",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_events.js": {
+      "sha256": "f4e3d77b092b33be82ef9726cbfd5fdb4785c3615764ce2332e511d1850b4b76",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_messages.d.ts": {
+      "sha256": "8d82133b7be10d19ca34384631c99e39cd559ade88c0b89441b47280ae92f450",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_messages.js": {
+      "sha256": "f3a872055741a41ad3ace5f504ec13623cb84ecc781fa8a395c1b375f9ce0663",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "7f53067c47dd43bce50c34036e14ccc374a65028af77b8b61f63c53af085b5da",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "48653d540df93cd213275f9821c1db847680830ccc0d27ea724887d739e63c11",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_events.ts": {
+      "sha256": "8abb9902a128e0630b1ad2f0738d5e4b10624f4cfba67700b63fc655a7d5073d",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_messages.ts": {
+      "sha256": "7093099b8ee9faf604c73504b5cd1f2c95da30be99a8d40f2996b86147dd3eb8",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2740,
+    "source_inputs_manifest_sha256": "e74245e905ced2e87f0d99124d4963ae2eca2e4195c7e82fab0f538a2366c11b",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          550
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.12254837504588,
+        "log_sha256": "3c003825bc119f3461d04bffb2e61769a36c8cb0fb184cac33e53275a3800ffc"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.30222249985672534,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2172827918548137,
+        "log_sha256": "b3f37a9fb7570a73e618ad16220f5e63bad4d6f52c0c8f209d3d3123da764ed0"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.34827208309434354,
+        "log_sha256": "15e352dc9686ea22bcce8f476e7fded14913527a645d536f2d356d16348622ab"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3626981661655009,
+        "log_sha256": "a8510dddb2a78410c75d7d58799daee4bdae7f833723e9aff59fca7ddadc6ca2"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 84.49083170900121,
+        "log_sha256": "1e1a9ec360d314aa791345f191ed0c38ecc41c51f73d51a903cb00fefc293570"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "session_updates": 8,
+      "session_reinvitations": 2,
+      "restored_session_updates": 2,
+      "invitation_read_recovered": 2,
+      "queued_cancellation_refused": 2,
+      "message_acceptances": 4,
+      "journal_received": 6,
+      "journal_resumed": 2,
+      "message_recovered_original": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 65
+    },
+    "log_sha256": "4e3c147fb66038f7180ad7361293cb79184dca101fb8642a6ae5a6303b6cc9fd",
+    "message_journal_witness": "On each transport, two currently enrolled Identities exchange one explicit private message in each direction. Both original Operations complete at local-mutation only. Recipient journal facts carry the exact original Message ID/body. A new reader resumes from a saved delivered cursor and observes the later reply; explicit reconnect restores the original sender acceptance without resubmitting.",
+    "independent_store_checks": {
+      "messages": 4,
+      "send_operation_records": 4,
+      "audience_rows": 8,
+      "recipient_rows_belong_to_other_identity": 4,
+      "sender_rows_match_original_participant": 4
+    },
+    "regressions": "The same workflow retains owned synthetic permission/source/progress UI, actual owned-tab Screen capture, opposite decoded pixels, mute/hold/resume, subscriptions, Session changes/reinvitations, notification read abandonment and cancellation, original-operation recovery and current revocation. There are 65 distinct original communication mutations, four enrolled keys/credentials, two Devices and four separately verified Endpoints."
+  },
+  "implementation": [
+    "Conversation.send captures a nominal Message ID, explicit nonempty Participant targets, valid bounded UTF8 text and original mutation ID before IO. It validates the canonical accepted ACK and current original Store send record. Acceptance remains local-mutation; no inferred delivery, broadcast, sender assertion or retry.",
+    "Public references use conversation.create and message.send with exact root or Conversation scope. Internal record queries validate the Store create/send names. No legacy create alias or command-rebinding allowance.",
+    "Journal wrapper preserves original event/cursor/revision/time, source correlation, resource scope and audience membership epochs. Tagged data remains canonical immutable JSON; its copy shares the already enforced canonical1MiB frame bound, permitting a full512KiB text body plus metadata.",
+    "With no saved cursor, ready establishes a current-authorized snapshot watermark without synthesizing events. Saved cursors remain opaque and scope-bound. Finite live:false limit1 reads deliver current facts. Resync remains explicit and never adopts a replacement cursor automatically.",
+    "Each physical client bounds readers to8; each reader owns at most one2s finite read. Caller timeout/abort/close does not consume a fact, reset that read or retire shared control. A later wait drains abandoned work and freshly reads the unconsumed position under current authorization. Closed readers with pending IO retain their slot; overlapping waits refuse. Idle polls wait25ms inside the caller budget.",
+    "Physical replacement retires old readers and late old work cannot follow a new physical implicitly. No journal read opens media, replays a mutation or releases cached authority."
+  ],
+  "verification_cases": [
+    "Four signed WT/WSS x EdDSA/ES256 private-send workflows capture input before async IO, observe original local acceptance, persist references and restore without resubmission.",
+    "Malformed accepted ACK Conversation/Message/boundary/status-reference/envelope scopes retain the original uncertain key. Rebound ledger command refuses. Invalid frozen shapes, duplicate recipients, invalid Unicode and oversize text refuse before IO. Full512KiB text acceptance is exercised at the signed boundary.",
+    "Signed WT/WSS journal baseline/resume, wrapper/source/audience/nested-scope validation, immutable data, explicit resync, abandoned originally-authorized fact followed by fresh current revocation, reader bound/overlap/close and old physical fencing.",
+    "A signed full512KiB journal message fails the initial512KiB JSON-copy candidate and passes after the copy bound is aligned with the canonical1MiB envelope. This large-body case is a boundary fixture, not an actual Chrome maximum-size throughput claim."
+  ],
+  "checks": "Final unchanged-input cohort:550 SDK functions,37 Node regressions,2 server Screen and2 upstream Screen functions,10 real root integration functions,0ignored; standalone browser/Node type checks. Changed-source TS formatting, repository formatting, plan/navigation and HTTP/OpenAPI references pass.",
+  "prior_attempts": [
+    {
+      "scope": "Initial branded-cursor TypeScript narrowing failed; corrected before verification.",
+      "log_sha256": "5217a661f6568c4433b510dfdaa60aab3c5a715a9bc1b3abd38d08b02dcb1c03"
+    },
+    {
+      "scope": "Initial component run548pass/1fail used an invalid resync mock ACK. Corrected to the actual canonical snapshot plus resync_required ACK; no product policy relaxation.",
+      "log_sha256": "6342390b734639c613f877bf9904c952058dceb6f803206a4fc92197694dfe46"
+    },
+    {
+      "scope": "First real browser journal request403: fixture had events rather than the exact Store conversation.subscribe grant. Replaced that exact fixture grant; production authorization unchanged.",
+      "log_sha256": "d4eb8d2921bc38996298b5d2fee52be0bc6a239ab2148946469f15b0a29f136e"
+    },
+    {
+      "scope": "Preliminary real WT/WSS run passes all65original mutations and independent message-audience SQL checks. Predates the final source guard.",
+      "log_sha256": "9094cfec601e1518b4f2bc6f9aaf2bd966fcf3fc4111c90f21fb059770c2a62f"
+    },
+    {
+      "scope": "Guarded cohort SDK/types/Node/Screen checks pass, root9pass/1fail. Existing WT Screen resume ends failed/conflict: Native stream revision or catalog conflicts. No retry, deadline or assertion relaxation. Cause remains open.",
+      "log_sha256": "95434f16c3841c3fe17dbcbf35337932ff7e17b76b4eb2da4d267c5d05227d51"
+    },
+    {
+      "scope": "Same-input diagnostic typed Chrome rerun passes both paths; transient StorageUnavailable engine planning retries settle. This does not establish the cause of the prior conflict.",
+      "log_sha256": "2c8710115ac350550e22531de562d668d073990c81a93f151b9b3ebbc193daa4"
+    },
+    {
+      "scope": "Same-input full guarded549SDK/37Node/2serverScreen/2upstreamScreen/10root cohort passes; predates the later maximum-body copy correction.",
+      "summary_sha256": "369e2dce37f2daa6117ff7690d9e03a8197ea792ebdc182be273197ed93c4582"
+    },
+    {
+      "scope": "Causal signed full512KiB journal fact is rejected by the initial512KiB clone bound. Corrected to the existing canonical envelope bound; same selected test passes.",
+      "negative_log_sha256": "bd1befb844f34812f4ca1334134cb845fe5d0ddefdf8942d70c1f6e8bf670a57",
+      "positive_log_sha256": "9f2042b2c1e9bb3bf0e3a6a6b0fe1d953eb5f4213a328c62e3c0098b6cd08559"
+    }
+  ],
+  "remaining": [
+    "Separately configured browser application-read receipt service; Participant mutations, consultation/handoff/device movements, capabilities/raw surface and full reference-app integration.",
+    "Application snapshot/journal recovery and required durable invitation discovery; no offline inbox or indefinite deduplication claim.",
+    "Intermittent actual WT Screen resume revision/catalog conflict remains open even though later unchanged-input runs pass. No general media/recovery reliability qualification.",
+    "Complete frozen API, live codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit. G6-054 remote media qualification remains open."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker warnings remain. No release/performance/full Rust workspace qualification."
+  ],
+  "privacy": "Raw candidates, signed traces, state/credentials, browser profiles/screenshots and logs remain ignored. Public evidence includes hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

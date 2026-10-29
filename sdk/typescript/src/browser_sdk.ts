@@ -1,3 +1,23 @@
+import {
+    messageBody,
+    messageResult,
+    type BrowserMessageAcceptance,
+} from "./browser_sdk_messages.js";
+import {
+    createBrowserEvents,
+    isBrowserCursor,
+    type BrowserCursor,
+} from "./browser_sdk_events.js";
+export type { BrowserMessageAcceptance } from "./browser_sdk_messages.js";
+export type {
+    BrowserCursor,
+    BrowserJournalEvent,
+    BrowserEventStream,
+} from "./browser_sdk_events.js";
+export function browserCursor(value: string): BrowserCursor {
+    if (!isBrowserCursor(value)) invalid();
+    return value;
+}
 import { BrowserInvitationInbox } from "./browser_sdk_inbox.js";
 import {
     fields,
@@ -82,6 +102,7 @@ import type {
     SessionId,
     ConnectionId,
     StreamId,
+    MessageId,
 } from "./sdk_identity.js";
 export type {
     SdkId,
@@ -93,6 +114,7 @@ export type {
     SessionId,
     ConnectionId,
     StreamId,
+    MessageId,
 } from "./sdk_identity.js";
 
 export class BrowserSdkError extends CanonicalError {
@@ -202,7 +224,7 @@ export interface BrowserOperationKind<T> {
 }
 interface Kind<T> {
     command: string;
-    scope: "root" | "session" | "connection";
+    scope: "root" | "conversation" | "session" | "connection";
     decode: (
         value: Json,
         client: BrowserSdkClient,
@@ -484,7 +506,7 @@ export const browserOperationKinds = Object.freeze({
     ),
     connectionOffer: kind("connection.offer", "connection", connectionResult),
     connectionEnd: kind("connection.end", "connection", connectionResult),
-    conversationCreate: kind("create", "root", (v, c, k) => {
+    conversationCreate: kind("conversation.create", "root", (v, c, k) => {
         if (
             !object(v) ||
             v.kind !== "conversation" ||
@@ -496,6 +518,9 @@ export const browserOperationKinds = Object.freeze({
             return current(c).malformed(k, "recorded");
         return c.conversations.byId(v.data.id as ConversationId);
     }),
+    messageSend: kind("message.send", "conversation", (v, c, k) =>
+        messageResult(v, k, () => current(c).malformed(k, "recorded")),
+    ),
     sessionInvite: kind("session.invite", "session", sessionResult),
     sessionAccept: kind("session.accept", "session", sessionResult),
     sessionUpdate: kind("session.update", "session", sessionResult),
@@ -532,7 +557,9 @@ function reference<T>(
         d.scope === "root"
             ? Object.keys(s).length !== 0
             : !identifier(s.conversation_id) ||
-              !identifier(s.session_id) ||
+              (d.scope === "conversation"
+                  ? s.session_id !== undefined
+                  : !identifier(s.session_id)) ||
               (d.scope === "connection"
                   ? !identifier(s.connection_id)
                   : s.connection_id !== undefined)
@@ -716,6 +743,7 @@ class State {
             },
         }));
     }
+    readonly eventReaders = new Set<() => void>();
     readonly inbox = new BrowserInvitationInbox();
     invitationRead?: Promise<Snapshot>;
     invitationFailure?: BrowserSdkError;
@@ -764,12 +792,15 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
+        for (const retire of this.eventReaders) retire();
+        this.eventReaders.clear();
         this.inbox.clear();
         this.invitationRead = undefined;
         this.invitationFailure = undefined;
         const peer = this.peer,
             epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
+            for (const retire of this.eventReaders) retire();
             this.inbox.clear();
             this.invitationRead = undefined;
             this.wake?.();
@@ -989,7 +1020,15 @@ export class BrowserOperation<T> {
         let value;
         try {
             value = await s.owner.recoverOperation(
-                this.reference,
+                {
+                    ...this.reference,
+                    command:
+                        this.reference.command === "conversation.create"
+                            ? "create"
+                            : this.reference.command === "message.send"
+                              ? "send"
+                              : this.reference.command,
+                },
                 new Budget(options).options(),
             );
         } catch (e) {
@@ -1291,7 +1330,7 @@ export class BrowserSdkClient {
                 s.observe(peer, epoch);
             } else
                 frames = await s.request(
-                    d.command === "create" ? "conversation.create" : d.command,
+                    d.command,
                     captured,
                     { ...scope, operation_id: key.operationId },
                     budget.options(),
@@ -1300,7 +1339,22 @@ export class BrowserSdkClient {
             const updates = frames.filter(
                 (f) => f.type === "operation.updated",
             );
-            if (d.scope !== "root") {
+            if (d.command === "message.send") {
+                const ack = frames.find((f) => f.type === "ack");
+                if (
+                    !ack ||
+                    ack.cid !== scope.cid ||
+                    ack.sid !== undefined ||
+                    ack.connid !== undefined ||
+                    !object(ack.payload.details)
+                )
+                    current(this).malformed(key, "uncertain");
+                const accepted = messageResult(ack!.payload.details, key, () =>
+                    current(this).malformed(key, "uncertain"),
+                );
+                if (accepted.messageId !== captured.msg_id)
+                    current(this).malformed(key, "uncertain");
+            } else if (d.scope !== "root") {
                 if (
                     updates.length !== 1 ||
                     updates[0].cid !== scope.cid ||
@@ -1417,6 +1471,52 @@ export class BrowserConversation {
         readonly id: ConversationId,
     ) {
         Object.freeze(this);
+    }
+    send(
+        input: {
+            readonly messageId: MessageId;
+            readonly to: BrowserNonEmpty<ParticipantId>;
+            readonly text: string;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserMessageAcceptance>> {
+        return this.client[submit](
+            browserOperationKinds.messageSend,
+            messageBody(input, invalid),
+            { cid: this.id },
+            options,
+        );
+    }
+    events(
+        input: { readonly after?: BrowserCursor },
+        options: BrowserSdkRequestOptions,
+    ) {
+        new Budget(options);
+        const s = current(this.client),
+            peer = s.peer,
+            epoch = s.owner.status.physicalEpoch;
+        return createBrowserEvents(this.id, input, options, {
+            check: () => s.observe(peer, epoch),
+            read: (after) =>
+                s.owner.recoverConversation(
+                    {
+                        conversationId: this.id,
+                        ...(after === undefined ? {} : { cursor: after }),
+                        limit: 1,
+                    },
+                    { timeoutMs: 2000 },
+                ),
+            reserve: (retire) => {
+                s.observe(peer, epoch);
+                if (s.eventReaders.size >= 8)
+                    throw new BrowserSdkError("conflict", "read-only");
+                s.eventReaders.add(retire);
+                return () => s.eventReaders.delete(retire);
+            },
+            error: (kind) => new BrowserSdkError(kind, "read-only"),
+            translated: (error) => translated(error, "read-only"),
+            bad: () => s.malformed(),
+        });
     }
     async refresh(
         options: BrowserSdkRequestOptions,

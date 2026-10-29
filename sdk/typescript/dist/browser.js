@@ -15,5 +15,5 @@ export { BrowserVideoSession } from "./browser_video.js";
 export { CanonicalWebRtcSignaling, } from "./browser_webrtc_signaling.js";
 export { BrowserClientOpenError } from "./browser_client.js";
 export { BrowserTransportClient, } from "./browser_transport_client.js";
-export { BrowserSdkClient, BrowserSdkError, browserOperationKinds, sdkId, sdkRevision, } from "./browser_sdk.js";
+export { BrowserSdkClient, BrowserSdkError, browserOperationKinds, browserCursor, sdkId, sdkRevision, } from "./browser_sdk.js";
 export { browserInputDevices, BrowserSourcePicker, BrowserCaptureControls, BrowserOperationProgress, } from "./browser_ui.js";

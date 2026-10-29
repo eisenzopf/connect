@@ -8,7 +8,8 @@ SDK through a type-only leaf.
 
 This checkpoint implements Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
-creation, Session invitation/acceptance/rejection/cancellation/end, and native
+creation, private text messages, durable journal reads, Session
+invitation/acceptance/rejection/cancellation/end, and native
 WT/WSS audio/video/Screen Connection offer/end, typed Connection updates and
 Stream subscribe/unsubscribe. Session controls include leave, role change,
 additive media upgrade, codec policy and inviting new appearances on an existing
@@ -502,3 +503,83 @@ replacement, malformed correlation and the finite permanent-stall boundary.
 
 [Browser invitation recovery evidence](../evidence/gate-6/browser-sdk-invitation-recovery.json)
 records the causal failures, corrected behavior and remaining G6-061 scope.
+
+
+## Private messages and durable journal recovery
+
+`conversation.send(...)` takes a saved Message ID, a nonempty `{ first, rest }`
+list of Participant IDs and text. Save that intent and the mutation ID before
+calling it. Targets are explicit; a missing target never means broadcast.
+Text is limited to 512 KiB of valid UTF8, with at most 100 distinct targets.
+The signed 1 MiB wire-size limit also applies after JSON escaping.
+
+```ts
+const events = conversation.events({}, wait);
+const baseline = await events.ready();
+await saveBaseline(baseline);
+const send = await conversation.send({
+    messageId: savedMessageId,
+    to: { first: target.id, rest: [] },
+    text: savedText,
+}, { ...wait, operationId: savedSendOperationId });
+await saveOriginalReference(send.referenceJson());
+const acceptance = (await send.wait(wait)).value;
+// acceptance.boundary === "local-mutation": Store acceptance only.
+try {
+    for await (const event of events) {
+        await applyJournalFact(event);
+        // Persist after processing; resume may repeat an unprocessed fact.
+        await saveCursor(event.cursor);
+    }
+} finally {
+    await events.close();
+}
+```
+
+`browserOperationKinds.messageSend` restores the original acceptance without
+sending again. Public operation references name canonical commands:
+`conversation.create` and `message.send`. The SDK validates their existing
+Store records under the recorded `create` and `send` names internally. Old
+pre-alpha `create` references are refused; no legacy alias is inferred.
+A message acceptance does not prove receipt, rendering, reading or provider
+delivery. Delivery receipt queries still require the separate application read
+service and are not implemented by this browser checkpoint.
+
+Enrollment must grant `send` for messages, `conversation.get` for the baseline,
+`conversation.subscribe` for journal reads and `history` for visible message
+content. Current Conversation membership, recipient scope and content visibility
+remain server decisions. The similarly named `events` grant is not the Store
+subscription permission.
+
+`events({ after: browserCursor(savedCursor) }, wait)` resumes after a saved
+cursor. Cursors are opaque, Identity/Conversation/membership scoped values;
+the client validates syntax without interpreting order. `ready()` establishes
+an authorized baseline without consuming an event. With no saved cursor, that
+baseline is the current snapshot watermark; snapshot items are not synthesized
+as new journal facts. With a saved cursor, readiness validates a finite current
+read, and `next()` reads again before delivering a fact. `resync-required` is
+explicit: the application must obtain and reconcile current state, then choose
+its new baseline. The reader never silently adopts a replacement cursor.
+
+Journal facts preserve event/source correlation, original revision and observed
+time, resource scope and audience membership epochs. The camelCase wrapper is
+typed; `data` retains the canonical tagged JSON fact. The returned fact and its
+nested JSON are immutable. Notifications do not replace this durable journal.
+
+Each physical client permits eight event readers. Each reader owns at most one
+finite two-second transport read, asks for one fact with `live: false`, and polls
+an idle journal at 25 ms intervals within the caller's finite wait budget. Local
+timeout, abort or close settles that wait without consuming a fact or closing
+the shared physical connection. Any abandoned read is drained before a fresh
+current-authorized read from the last unconsumed position; its old result is
+never released as cached permission. Closed readers with pending IO retain
+their slot until that finite read settles. Overlapping waits on one reader
+refuse with `conflict`.
+
+Explicit reconnect or physical retirement retires its readers. Create a new
+reader with the last application-processed cursor on the replacement physical;
+old work cannot follow it implicitly. No read resubmits a message or opens media.
+
+[Browser message and journal evidence](../evidence/gate-6/browser-sdk-messages-journal.json)
+records the signed boundary cases and actual WT/WSS workflow. Complete receipts,
+broader frozen APIs and the G6-061 qualification audit remain open.

@@ -102,10 +102,16 @@ export {
     BrowserSdkClient,
     BrowserSdkError,
     browserOperationKinds,
+    browserCursor,
     sdkId,
     sdkRevision,
 } from "./browser_sdk.js";
 export type {
+    BrowserMessageAcceptance,
+    BrowserCursor,
+    BrowserJournalEvent,
+    BrowserEventStream,
+    MessageId,
     BrowserCaptureHandle,
     BrowserRenderHandle,
     BrowserConnection,

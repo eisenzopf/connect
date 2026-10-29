@@ -102,3 +102,16 @@ export function browserSessionControls(session: BrowserSession, participant: imp
 client.conversations.create({policy:'persistent',participants:[sdkId<'identity'>('recipient')]},{timeoutMs:1000,operationId});
 // @ts-expect-error Conversation creation takes Identity IDs, not uncontracted role objects.
 client.conversations.create({policy:'persistent',participants:[{identityId:sdkId<'identity'>('recipient'),role:'participant'}]},{timeoutMs:1000,operationId});
+
+import {browserCursor} from '../typescript/dist/browser.js';
+const textSend:Promise<BrowserOperation<import('../typescript/dist/browser.js').BrowserMessageAcceptance>>=room.send({messageId:sdkId<'message'>('message'),to:{first:sdkId<'participant'>('recipient'),rest:[]},text:'hello'},{timeoutMs:1000,operationId});
+const journal=room.events({after:browserCursor('saved-cursor')},{timeoutMs:1000});
+const item:import('../typescript/dist/browser.js').BrowserJournalEvent|undefined=(await journal.next()).value;
+// @ts-expect-error Acceptance is not a completed recipient delivery.
+const delivered:'delivered'=(await (await textSend).wait({timeoutMs:1000})).value.boundary;
+// @ts-expect-error A Message ID cannot replace a Participant recipient.
+room.send({messageId:sdkId<'message'>('message'),to:{first:sdkId<'message'>('message'),rest:[]},text:'hello'},{timeoutMs:1000,operationId});
+// @ts-expect-error Journal cursors cannot be manufactured by passing an ordinary string.
+room.events({after:'raw-cursor'},{timeoutMs:1000});
+void [item,delivered];
+await journal.close();

@@ -1,3 +1,8 @@
+import { type BrowserMessageAcceptance } from "./browser_sdk_messages.js";
+import { type BrowserCursor } from "./browser_sdk_events.js";
+export type { BrowserMessageAcceptance } from "./browser_sdk_messages.js";
+export type { BrowserCursor, BrowserJournalEvent, BrowserEventStream, } from "./browser_sdk_events.js";
+export declare function browserCursor(value: string): BrowserCursor;
 import { type BrowserSessionMedium, type BrowserSessionUpdate } from "./browser_sdk_sessions.js";
 export type { BrowserSessionMedium, BrowserSessionUpdate, } from "./browser_sdk_sessions.js";
 import { type BrowserNonEmpty, type BrowserMedium, type BrowserStreamSelector, type BrowserConnectionUpdate, type BrowserConnectionUpdateReceipt, type BrowserStreamSelectionReceipt } from "./browser_sdk_streams.js";
@@ -8,8 +13,8 @@ import { CanonicalError, type CanonicalErrorKind, type Certainty } from "./canon
 import { type BrowserMediaCaptureOptions } from "./browser_media_capture.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { type Scope } from "./uctp_wire.js";
-import type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId } from "./sdk_identity.js";
-export type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId, } from "./sdk_identity.js";
+import type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId, MessageId } from "./sdk_identity.js";
+export type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId, MessageId, } from "./sdk_identity.js";
 export declare class BrowserSdkError extends CanonicalError {
     constructor(kind: CanonicalErrorKind, certainty: Certainty, operation?: BrowserOperationReference, problem?: CanonicalError["problem"]);
 }
@@ -96,6 +101,7 @@ export declare const browserOperationKinds: Readonly<{
     connectionOffer: BrowserOperationKind<BrowserConnection>;
     connectionEnd: BrowserOperationKind<BrowserConnection>;
     conversationCreate: BrowserOperationKind<BrowserConversation>;
+    messageSend: BrowserOperationKind<BrowserMessageAcceptance>;
     sessionInvite: BrowserOperationKind<BrowserSession>;
     sessionAccept: BrowserOperationKind<BrowserSession>;
     sessionUpdate: BrowserOperationKind<BrowserSession>;
@@ -126,6 +132,7 @@ export declare class BrowserSdkClient {
         connectionOffer: BrowserOperationKind<BrowserConnection>;
         connectionEnd: BrowserOperationKind<BrowserConnection>;
         conversationCreate: BrowserOperationKind<BrowserConversation>;
+        messageSend: BrowserOperationKind<BrowserMessageAcceptance>;
         sessionInvite: BrowserOperationKind<BrowserSession>;
         sessionAccept: BrowserOperationKind<BrowserSession>;
         sessionUpdate: BrowserOperationKind<BrowserSession>;
@@ -179,6 +186,14 @@ export declare class BrowserConversation {
         }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserSession>>;
     };
     constructor(client: BrowserSdkClient, id: ConversationId);
+    send(input: {
+        readonly messageId: MessageId;
+        readonly to: BrowserNonEmpty<ParticipantId>;
+        readonly text: string;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserMessageAcceptance>>;
+    events(input: {
+        readonly after?: BrowserCursor;
+    }, options: BrowserSdkRequestOptions): import("./browser_sdk_events.js").BrowserEventStream;
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserConversationSnapshot>;
 }
 export declare class BrowserSession {

@@ -1,3 +1,10 @@
+import { messageBody, messageResult, } from "./browser_sdk_messages.js";
+import { createBrowserEvents, isBrowserCursor, } from "./browser_sdk_events.js";
+export function browserCursor(value) {
+    if (!isBrowserCursor(value))
+        invalid();
+    return value;
+}
 import { BrowserInvitationInbox } from "./browser_sdk_inbox.js";
 import { fields, nonEmpty, sessionInviteBody, sessionUpdateBody, sessionCapabilities, offeredStreams, } from "./browser_sdk_sessions.js";
 import { subscribeBody, unsubscribeBody, updateBody, selectionResult, updateResult, } from "./browser_sdk_streams.js";
@@ -213,7 +220,7 @@ export const browserOperationKinds = Object.freeze({
     streamUnsubscribe: kind("stream.unsubscribe", "connection", (v, c, k) => observedControl(selectionResult(v, k, controlConnection(v, c, k), () => current(c).malformed(k, "recorded")), c, k)),
     connectionOffer: kind("connection.offer", "connection", connectionResult),
     connectionEnd: kind("connection.end", "connection", connectionResult),
-    conversationCreate: kind("create", "root", (v, c, k) => {
+    conversationCreate: kind("conversation.create", "root", (v, c, k) => {
         if (!object(v) ||
             v.kind !== "conversation" ||
             !object(v.data) ||
@@ -223,6 +230,7 @@ export const browserOperationKinds = Object.freeze({
             return current(c).malformed(k, "recorded");
         return c.conversations.byId(v.data.id);
     }),
+    messageSend: kind("message.send", "conversation", (v, c, k) => messageResult(v, k, () => current(c).malformed(k, "recorded"))),
     sessionInvite: kind("session.invite", "session", sessionResult),
     sessionAccept: kind("session.accept", "session", sessionResult),
     sessionUpdate: kind("session.update", "session", sessionResult),
@@ -251,7 +259,9 @@ function reference(saved, k) {
     if (d.scope === "root"
         ? Object.keys(s).length !== 0
         : !identifier(s.conversation_id) ||
-            !identifier(s.session_id) ||
+            (d.scope === "conversation"
+                ? s.session_id !== undefined
+                : !identifier(s.session_id)) ||
             (d.scope === "connection"
                 ? !identifier(s.connection_id)
                 : s.connection_id !== undefined))
@@ -402,6 +412,7 @@ class State {
             },
         }));
     }
+    eventReaders = new Set();
     inbox = new BrowserInvitationInbox();
     invitationRead;
     invitationFailure;
@@ -446,11 +457,16 @@ class State {
         this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
+        for (const retire of this.eventReaders)
+            retire();
+        this.eventReaders.clear();
         this.inbox.clear();
         this.invitationRead = undefined;
         this.invitationFailure = undefined;
         const peer = this.peer, epoch = this.owner.status.physicalEpoch;
         this.stopClose = peer.onClose(() => {
+            for (const retire of this.eventReaders)
+                retire();
             this.inbox.clear();
             this.invitationRead = undefined;
             this.wake?.();
@@ -640,7 +656,14 @@ export class BrowserOperation {
         const s = current(this.client);
         let value;
         try {
-            value = await s.owner.recoverOperation(this.reference, new Budget(options).options());
+            value = await s.owner.recoverOperation({
+                ...this.reference,
+                command: this.reference.command === "conversation.create"
+                    ? "create"
+                    : this.reference.command === "message.send"
+                        ? "send"
+                        : this.reference.command,
+            }, new Budget(options).options());
         }
         catch (e) {
             throw translated(e, "read-only", this.reference);
@@ -851,9 +874,21 @@ export class BrowserSdkClient {
                 s.observe(peer, epoch);
             }
             else
-                frames = await s.request(d.command === "create" ? "conversation.create" : d.command, captured, { ...scope, operation_id: key.operationId }, budget.options(), key);
+                frames = await s.request(d.command, captured, { ...scope, operation_id: key.operationId }, budget.options(), key);
             const updates = frames.filter((f) => f.type === "operation.updated");
-            if (d.scope !== "root") {
+            if (d.command === "message.send") {
+                const ack = frames.find((f) => f.type === "ack");
+                if (!ack ||
+                    ack.cid !== scope.cid ||
+                    ack.sid !== undefined ||
+                    ack.connid !== undefined ||
+                    !object(ack.payload.details))
+                    current(this).malformed(key, "uncertain");
+                const accepted = messageResult(ack.payload.details, key, () => current(this).malformed(key, "uncertain"));
+                if (accepted.messageId !== captured.msg_id)
+                    current(this).malformed(key, "uncertain");
+            }
+            else if (d.scope !== "root") {
                 if (updates.length !== 1 ||
                     updates[0].cid !== scope.cid ||
                     updates[0].sid !== scope.sid ||
@@ -936,6 +971,31 @@ export class BrowserConversation {
         this.client = client;
         this.id = id;
         Object.freeze(this);
+    }
+    send(input, options) {
+        return this.client[submit](browserOperationKinds.messageSend, messageBody(input, invalid), { cid: this.id }, options);
+    }
+    events(input, options) {
+        new Budget(options);
+        const s = current(this.client), peer = s.peer, epoch = s.owner.status.physicalEpoch;
+        return createBrowserEvents(this.id, input, options, {
+            check: () => s.observe(peer, epoch),
+            read: (after) => s.owner.recoverConversation({
+                conversationId: this.id,
+                ...(after === undefined ? {} : { cursor: after }),
+                limit: 1,
+            }, { timeoutMs: 2000 }),
+            reserve: (retire) => {
+                s.observe(peer, epoch);
+                if (s.eventReaders.size >= 8)
+                    throw new BrowserSdkError("conflict", "read-only");
+                s.eventReaders.add(retire);
+                return () => s.eventReaders.delete(retire);
+            },
+            error: (kind) => new BrowserSdkError(kind, "read-only"),
+            translated: (error) => translated(error, "read-only"),
+            bad: () => s.malformed(),
+        });
     }
     async refresh(options) {
         return (await current(this.client).snapshot(this.id, options))

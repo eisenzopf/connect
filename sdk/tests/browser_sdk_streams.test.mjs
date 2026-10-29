@@ -58,5 +58,5 @@ test('invalid/ambiguous selector or control input refuses locally without droppi
  assert.equal(f.sent.length,n);
 }));
 test('browser original operation results retain the wire-size budget above the old64KiB copy bound',()=>scenario(async({client})=>{
- const operation=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'large',command:'create',scope:{}},browserOperationKinds.conversationCreate);assert.equal((await operation.wait(opts)).value.id,'room');
+ const operation=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'large',command:'conversation.create',scope:{}},browserOperationKinds.conversationCreate);assert.equal((await operation.wait(opts)).value.id,'room');
 },{large:true}));

@@ -67,6 +67,8 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "restored_session_updates",
         "invitation_read_recovered",
         "queued_cancellation_refused",
+        "journal_resumed",
+        "message_recovered_original",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
@@ -82,7 +84,9 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(result["result"][name], 1, "{name}");
     }
     assert_eq!(result["result"]["restored_media_observation_only"], 4);
-    assert_eq!(result["result"]["original_mutations"], 61);
+    assert_eq!(result["result"]["original_mutations"], 65);
+    assert_eq!(result["result"]["message_acceptances"], 4);
+    assert_eq!(result["result"]["journal_received"], 6);
     assert_eq!(result["result"]["session_updates"], 8);
     assert_eq!(result["result"]["restored_control_observations"], 6);
     assert_eq!(result["result"]["screen_camera_selector_refused"], 1);
@@ -90,6 +94,25 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)
     );
+    {
+        let database = rusqlite::Connection::open(&h.f.config.database).unwrap();
+        let count = |sql: &str| {
+            database
+                .query_row(sql, [], |row| row.get::<_, u64>(0))
+                .unwrap()
+        };
+        assert_eq!(
+            count("SELECT COUNT(*) FROM messages WHERE id LIKE 'typed-message-%'"),
+            4
+        );
+        assert_eq!(
+            count("SELECT COUNT(*) FROM operations WHERE command_type='send'"),
+            4
+        );
+        assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id WHERE m.id LIKE 'typed-message-%'"), 8);
+        assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id JOIN participants p ON p.participant_id=a.participant_id WHERE m.id LIKE 'typed-message-%' AND a.purpose='recipient' AND p.identity_id<>m.sender"), 4);
+        assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id WHERE m.id LIKE 'typed-message-%' AND a.purpose='sender' AND a.participant_id=m.sender_participant_id"), 4);
+    }
     drop(chrome);
     drop(blackhole);
     page.stop.cancel();

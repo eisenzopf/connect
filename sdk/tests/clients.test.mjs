@@ -5,6 +5,7 @@ import './browser_enrollment.test.mjs';
 import './browser_wss.test.mjs';
 import './browser_transport_client.test.mjs';
 import './browser_sdk.test.mjs';
+import './browser_sdk_conversation.test.mjs';
 import './browser_sdk_inbox.test.mjs';
 import './browser_sdk_webrtc.test.mjs';
 import './browser_webrtc_signaling.test.mjs';

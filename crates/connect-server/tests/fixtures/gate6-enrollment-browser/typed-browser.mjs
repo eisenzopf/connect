@@ -1,5 +1,5 @@
 import {BrowserRtcConnection} from '/sdk/browser_sdk_webrtc.js';
-import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId,BrowserSourcePicker,BrowserCaptureControls,BrowserOperationProgress,browserInputDevices} from '/sdk/browser.js';
+import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId,browserCursor,BrowserSourcePicker,BrowserCaptureControls,BrowserOperationProgress,browserInputDevices} from '/sdk/browser.js';
 const trace=[],rtcOwners=[];
 const nonempty=items=>({first:items[0],rest:items.slice(1)}),offered=items=>nonempty(items.map(v=>({...v,codecs:nonempty(v.codecs)})));
 const originalRtcBegin=BrowserRtcConnection.begin;
@@ -20,7 +20,7 @@ async function post(path,value){const r=await fetch(path,{method:'POST',headers:
 globalThis.runBrowserFixture=async cfg=>{try{
  const publicKey=await crypto.subtle.importKey('raw',decode(cfg.server_public_raw),{name:'Ed25519'},true,['verify']),server={key:publicKey,keyId:cfg.server_keyid,algorithm:'EdDSA',notBefore:cfg.server_not_before,expiresAt:cfg.server_expires_at};
  const vault=new BrowserEnrollmentStore('connect-typed-browser'),identities=[cfg.identity_id,cfg.recipient_id],profiles=[],now=Math.floor(Date.now()/1000),pins=[{algorithm:'sha-256',value:decode(cfg.certificate_sha256)}];
- const operations=['connection.end','connection.offer','connection.update','conversation.get','create','operation.get','session.accept','session.cancel','session.end','session.invite','session.reject','session.update','session_get','stream.subscribe','stream.unsubscribe'];
+ const operations=['connection.end','connection.offer','connection.update','conversation.get','conversation.subscribe','create','history','operation.get','send','session.accept','session.cancel','session.end','session.invite','session.reject','session.update','session_get','stream.subscribe','stream.unsubscribe'];
  for(let actor=0;actor<2;actor++){
   const byPath={},device='device-'+cfg.suffix+'-'+actor;
   for(const transport of ['webtransport','wss-webrtc']){
@@ -40,7 +40,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
  const displays=[];const originalDisplay=navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
  navigator.mediaDevices.getDisplayMedia=async input=>{const stream=await originalDisplay(input);if(stream.getVideoTracks().some(t=>t.getSettings().displaySurface!=='browser')){for(const track of stream.getTracks())track.stop();throw Error('owned tab required');}displays.push(stream);return stream;};
  const savedCancellations=new Map();let savedNative;
- const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0,owned_device_permission:0,permission_denial_ui:0,keyboard_capture_retry:0,device_source_choice:0,operation_progress_ui:0,wt_screen_connection:0,wss_screen_connection:0,owned_tab_capture:0,owned_tab_capture_retired:0,screen_kind_observed:0,screen_recovery_without_custody:0,screen_duplex_decoded:0,screen_controls:0,screen_resubscription:0,restored_control_observations:0,screen_camera_selector_refused:0,session_updates:0,session_reinvitations:0,restored_session_updates:0,invitation_read_recovered:0,queued_cancellation_refused:0};
+ const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0,owned_device_permission:0,permission_denial_ui:0,keyboard_capture_retry:0,device_source_choice:0,operation_progress_ui:0,wt_screen_connection:0,wss_screen_connection:0,owned_tab_capture:0,owned_tab_capture_retired:0,screen_kind_observed:0,screen_recovery_without_custody:0,screen_duplex_decoded:0,screen_controls:0,screen_resubscription:0,restored_control_observations:0,screen_camera_selector_refused:0,session_updates:0,session_reinvitations:0,restored_session_updates:0,invitation_read_recovered:0,queued_cancellation_refused:0,message_acceptances:0,journal_received:0,journal_resumed:0,message_recovered_original:0};
  for(const path of ['webtransport','wss-webrtc']){
   const resolutions=[[],[]],clients=[];
   try{
@@ -58,6 +58,14 @@ globalThis.runBrowserFixture=async cfg=>{try{
    sessionStorage.setItem('create-reference-'+suffix,JSON.stringify(create.referenceJson()));
    const room=(await caller.operations.restore(JSON.parse(sessionStorage.getItem('create-reference-'+suffix)),browserOperationKinds.conversationCreate).wait(options)).value;
    const target=await room.participants.byIdentity(sdkId(identities[1]),options);let incoming=callee.incomingInvitations(options);
+   {const other=callee.conversations.byId(room.id),source=await room.participants.byIdentity(sdkId(identities[0]),options),outgoing=room.events({},options),received=other.events({},options);try{
+    await outgoing.ready();await received.ready();
+    const observe=async(reader,messageId,body)=>within((async()=>{for(let i=0;i<16;i++){const event=(await reader.next()).value;if(event.data?.kind==='message'&&event.data.data.id===messageId){assert(event.conversationId===room.id&&event.data.data.body===body,'typed current journal identifies exact private message');result.journal_received++;return event;}}throw Error('expected typed message fact');})(),'typed private message journal');
+    const input={messageId:sdkId('typed-message-caller-'+suffix),to:nonempty([target.id]),text:'owned caller '+path},key=mutation('typed-message-caller');sessionStorage.setItem('typed-message-caller-intent-'+suffix,JSON.stringify({input,mutation:key}));const sent=await room.send(input,key);sessionStorage.setItem('typed-message-caller-reference-'+suffix,JSON.stringify(sent.referenceJson()));const accepted=(await sent.wait(options)).value;assert(accepted.messageId===input.messageId&&accepted.boundary==='local-mutation'&&accepted.operation.operationId===key.operationId,'typed acceptance remains local mutation, not delivery');result.message_acceptances++;const first=await observe(received,input.messageId,input.text);sessionStorage.setItem('typed-journal-cursor-'+suffix,first.cursor);await received.close();
+    const replyInput={messageId:sdkId('typed-message-callee-'+suffix),to:nonempty([source.id]),text:'owned callee '+path},replyKey=mutation('typed-message-callee');sessionStorage.setItem('typed-message-callee-intent-'+suffix,JSON.stringify({input:replyInput,mutation:replyKey}));const reply=await other.send(replyInput,replyKey);assert((await reply.wait(options)).value.messageId===replyInput.messageId,'counterpart typed acceptance');result.message_acceptances++;await observe(outgoing,replyInput.messageId,replyInput.text);
+    const resumed=other.events({after:browserCursor(sessionStorage.getItem('typed-journal-cursor-'+suffix))},options);try{const value=await observe(resumed,replyInput.messageId,replyInput.text);assert(value.cursor!==first.cursor,'explicit saved journal cursor resumes later fact');result.journal_resumed++;}finally{await resumed.close();}
+   }finally{await outgoing.close();await received.close();}}
+
    try{
     for(const action of ['reject','accept']){
      const sessionId=sdkId('session-'+action+'-'+suffix),invitationId=mutation('invite-'+action);
@@ -174,6 +182,8 @@ globalThis.runBrowserFixture=async cfg=>{try{
       const latest=await pending.refresh(options),end=await pending.end({reasonCode:200,reason:'Finished',expectedTopologyRevision:latest.topologyRevision},mutation('end'));
       const saved=end.referenceJson();sessionStorage.setItem('end-reference-'+suffix,JSON.stringify(saved));await end.wait(options);
       await caller.reconnect({preferredTransport:path});
+      {const original=caller.operations.restore(JSON.parse(sessionStorage.getItem('typed-message-caller-reference-'+suffix)),browserOperationKinds.messageSend),value=(await original.wait(options)).value;assert(value.messageId===sdkId('typed-message-caller-'+suffix)&&value.boundary==='local-mutation','original typed message acceptance survives physical replacement');result.message_recovered_original++;}
+
       {
        for(const media of ['media','screen']){
         const historical=(await caller.operations.restore(JSON.parse(sessionStorage.getItem(media+'-reference-'+suffix)),browserOperationKinds.connectionOffer).wait(options)).value;
@@ -212,7 +222,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
    assert(originalClaim?.kind==='authentication'&&originalClaim?.certainty==='refused','revoked original claim cannot restore a new physical');result.current_authority_refusal++;
   }finally{client.close();}
  }
- const mutations=trace.filter(x=>x.operation&&['conversation.create','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','connection.offer','connection.end','connection.update','stream.subscribe','stream.unsubscribe'].includes(x.request));
- assert(mutations.length===61&&new Set(mutations.map(x=>x.operation)).size===61,'sixty-one original mutations, no status/restore resubmission');
+ const mutations=trace.filter(x=>x.operation&&['conversation.create','message.send','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','connection.offer','connection.end','connection.update','stream.subscribe','stream.unsubscribe'].includes(x.request));
+ assert(mutations.length===65&&new Set(mutations.map(x=>x.operation)).size===65,'sixty-five original mutations, no status/restore resubmission');
  return {...result,credentials:4,devices:2,endpoints:4,original_mutations:mutations.length};
 }catch(error){throw Error(String(error.stack??error)+"\n"+JSON.stringify(error.problem??{})+"\n"+JSON.stringify(await rtcObservations())+"\n"+JSON.stringify(trace));}};
