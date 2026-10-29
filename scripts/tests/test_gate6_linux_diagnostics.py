@@ -22,7 +22,16 @@ def failure(checkpoint='events-bootstrap'):
                 observedHttpStatus=None,line=None,column=None)
 
 
+language_av = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['language_av_diagnostic']
+
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_language_av_requires_independent_expected_sources_and_bounded_counts(self):
+        first=dict(identified_audio_hz=660,decoded_audio_samples=4800,audio_rms=2800.0,source_energy_ratio=100.0,identified_video_high_channels=[False,False,True],decoded_video_frames=6,decoded_rgb_bytes=4147200,decoder_children_joined=2)
+        second=dict(first,identified_audio_hz=440,identified_video_high_channels=[True,False,False])
+        self.assertEqual(language_av([first,second],[660,440],[[False,False,True],[True,False,False]]),[first,second])
+        for invalid in [dict(first,decoded_audio_samples=True),dict(first,audio_rms=float('nan')),dict(first,source_energy_ratio=float('inf')),dict(first,source_energy_ratio=1),dict(first,identified_audio_hz=440),dict(first,identified_video_high_channels=[True,False,False]),dict(first,private_payload='secret'),dict(first,decoder_children_joined=1)]:
+            with self.assertRaises(AssertionError):language_av([invalid,second],[660,440],[[False,False,True],[True,False,False]])
+
     def test_python_consultation_failure_schema_keeps_recovery_stage_without_saved_intent(self):
         value=dict(phase='failed',checkpoint='return-wait',kind='deadline',certainty='read-only',line=92,error_type='SdkError')
         self.assertEqual(python_consultation(value),value)

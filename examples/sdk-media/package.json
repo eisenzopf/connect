@@ -1,0 +1,8 @@
+{
+  "name": "connect-owned-codec-example",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rudeless/connect": "file:../../sdk/typescript"
+  }
+}

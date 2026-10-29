@@ -26,7 +26,13 @@ The existing Rust SDK owns bootstrap, subscriptions, renewal, duplicate checks,
 current authority and native journal catch-up. The helper retains one SDK pending
 fact until Node acknowledges its exact event ID and cursor on a later poll. A
 local abandoned wait cannot advance the cursor, acknowledge a fact, or return a
-cached reply without another Rust health check. Its original bounded Rust job
+cached reply without fresh server authorization for the same journal permission
+and cursor. Local capability support and an asynchronously updated health flag
+are insufficient. A finite `conversation.subscribe` read (`live:false`, limit 1)
+checks current authority without acknowledging, advancing or renewing the original
+source. The public Rust iterator also checks before delivery. The
+[retained-fact regression](../evidence/gate-6/language-decoded-media.json) failed
+before this correction and passes under EdDSA/ES256 afterward. Its original bounded Rust job
 survives the helper's short poll intervals, so slow initialization/catch-up is not
 repeatedly cancelled. Eight readers, 256 facts and 2 MiB per SDK source remain the
 original bounds. Replies retain the existing 2 MiB framing limit; ordinary outgoing

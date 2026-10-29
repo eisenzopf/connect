@@ -50,7 +50,7 @@ async fn run(algorithm: &str) {
         &f,
         &f.peer.identity_id,
         72,
-        vec!["audio".into(), "data".into()],
+        vec!["audio".into(), "video".into(), "data".into()],
         peer_scope,
     );
     let peer_config = f.temp.path().join("python-peer.toml");
@@ -125,7 +125,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
 "#).unwrap();
     std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o700)).unwrap();
     let spec = f.temp.path().join("python-native-spec.json");
-    init::private_write(&spec,&serde_json::to_vec(&json!({"project":project,"config":config,
+    init::private_write(&spec,&serde_json::to_vec(&json!({"project":project,"av_fixture_dir":crate::language_media::fixtures(),"config":config,
         "cid":cid,"recipient":recipient,"peer_identity":f.peer.identity_id,"peer_config":peer_config,
         "http":format!("http://{}",f.server.http_address.unwrap()),"credential":f.client.credential,
         "saved":f.temp.path().join("python-native-reference.json")})).unwrap()).unwrap();
@@ -204,6 +204,20 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     assert_eq!(participants["stale_revision_refused"], true);
     let sessions = phase(&mut lines, "sessions-ready").await;
     assert_eq!(sessions["incoming_decision_completed"], true);
+    let av = phase(&mut lines, "av-completed").await;
+    assert_eq!(av["native_av_utility_capture"], true);
+    let av_source = crate::language_media::verify(
+        &f.temp.path().join("python-av-source"),
+        1100.0,
+        [false, true, true],
+    )
+    .await;
+    let av_target = crate::language_media::verify(
+        &f.temp.path().join("python-av-target"),
+        880.0,
+        [true, true, false],
+    )
+    .await;
     let data = phase(&mut lines, "data-completed").await;
     for name in [
         "native_data_typed_round_trip",
@@ -605,7 +619,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-python-native-witness {}",
-        json!({"profile":"python-native/5","algorithm":algorithm,
+        json!({"profile":"python-native/6","decoded_language_av":[av_source,av_target],"algorithm":algorithm,
         "original_reference_recovered":true,"same_id_replay":true,"changed_intent_refused":true,"typed_capability_refusal":true,
         "signed_finite_journal":true,"same_cause_after_restart":true,"current_read_refused":true,
         "current_replay_refused":true,"current_new_mutation_refused":true,"independent_store_original_cause":true,

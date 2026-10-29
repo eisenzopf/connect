@@ -90,6 +90,9 @@ original helper; no automatic reconnect transfers native custody.
 [Scoped evidence](../evidence/gate-6/python-reliable-data.json) records the clean
 installed wheel, real production listener and independent Rust Store byte/effect
 checks for EdDSA/ES256. The local component suite also covers limits, cancelled
-reads and sends, helper death, malformed replies and bounded cleanup. Decoded
-Python audio/video utility evidence, Node decoded audio/video, the complete platform
-matrix and full G6-064 qualification remain open.
+reads and sends, helper death, malformed replies and bounded cleanup. The
+[decoded-language evidence](../evidence/gate-6/language-decoded-media.json) adds
+identified Python/Node audio/video through the documented app-owned utility and
+requalifies native data/current-authority/cleanup with the rebuilt helper.
+G6-064 implementation is complete in that recorded scope. The complete installed
+platform/facade matrix and Gate 6 acceptance remain open.

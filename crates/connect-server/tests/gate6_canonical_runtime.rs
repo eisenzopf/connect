@@ -21,6 +21,9 @@ use std::{path::Path, time::Duration};
 mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
 
+#[path = "support/language_media.rs"]
+mod language_media;
+
 #[path = "support/python_sdk.rs"]
 mod python_sdk;
 

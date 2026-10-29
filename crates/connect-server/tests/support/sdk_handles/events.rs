@@ -554,3 +554,77 @@ async fn public_sdk_durable_event_cursor_survives_restart_without_reusing_the_ol
         eprintln!("SDK durable journal restart {algorithm}: same original cursor/key, fresh source lease, original operation recovery, no message republish");
     }
 }
+
+#[tokio::test]
+async fn managed_retained_journal_fact_rechecks_current_credential_before_reexposure() {
+    for algorithm in ["EdDSA", "ES256"] {
+        let f = Fixture::with_native_end_scope(algorithm, 16).await;
+        let client = client(f.client.clone()).await;
+        let room = create_room(&client, &f.peer.identity_id, "retained-authority-room").await;
+        let recipient = owner(&room, &f.peer.identity_id).await;
+        let managed = sdk::helper::ManagedClient::new(client.clone());
+        let poll = |ready| {
+            serde_json::from_value(json!({"timeout_ms":4000,"action":{
+            "type":"events_poll","reader_id":"retained-authority-reader","conversation_id":room.id(),
+            "after":null,"acknowledged":null,"ready":ready}})).unwrap()
+        };
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                if managed.execute(poll(true)).await.unwrap()["ready"] == true {
+                    break;
+                }
+            }
+        })
+        .await
+        .unwrap();
+        send(
+            &room,
+            NonEmpty {
+                first: recipient,
+                rest: vec![],
+            },
+            9,
+        )
+        .await
+        .wait(options())
+        .await
+        .unwrap();
+        let retained = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let value = managed.execute(poll(false)).await.unwrap();
+                if !value["event"].is_null() {
+                    break value;
+                }
+            }
+        })
+        .await
+        .unwrap();
+        assert!(!retained["event"].is_null());
+        let principal = f.server.store.authenticate(&f.client.credential).unwrap();
+        let admin = f.server.store.authenticate(&f.admin).unwrap();
+        let store = f.server.store.clone();
+        tokio::task::spawn_blocking(move || store.revoke(&admin, &principal.credential_id))
+            .await
+            .unwrap()
+            .unwrap();
+        // No local acknowledgement, source renewal, sleep or fresh owner: the
+        // exact retained fact must not leave this original helper again.
+        let refused = managed.execute(poll(false)).await.unwrap_err();
+        assert!(
+            matches!(
+                refused.kind,
+                sdk::ErrorKind::Authentication
+                    | sdk::ErrorKind::Cancelled
+                    | sdk::ErrorKind::TransportUncertain
+            ),
+            "{refused:?}"
+        );
+        managed.close(options()).await.unwrap();
+        client.close(options()).await.unwrap();
+        f.server.shutdown().await.unwrap();
+        eprintln!(
+            "managed-retained-authority-witness {}",
+            json!({"algorithm":algorithm,"retained_fact_not_reexposed":true,"original_owner_joined":true})
+        );
+    }
+}

@@ -18,6 +18,9 @@ from connect_sdk import (Client, ConversationId, MessageId, MutationOptions,
                         ParticipantStreams, ParticipantLeave, Cancellation,
                         CanonicalHttpClient, HttpCommandScope, SynchronousSdk, RtpPacket, SenderClockReport, StreamTarget, TextData, JsonData, BinaryData)
 
+sys.path.insert(0,str(Path(__file__).parent))
+from packet_codec import load_media, exchange_media
+
 spec=json.loads(Path(sys.argv[1]).read_text())
 assert Path.cwd().resolve()==Path(spec['project']).resolve()
 assert Path(connect_sdk.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
@@ -93,6 +96,32 @@ async def refused(action,kind=None):
             assert error.kind==kind
     else:
         raise AssertionError('Expected current control refusal')
+
+
+async def audio_video(owner,other,session,peer_session):
+    global checkpoint
+    checkpoint='media-av'
+    async def offer(where,side):
+        return await completed(where.connections.offer(ConnectionId('python-av-'+side),NonEmpty(
+            OfferedStream(StreamId('python-av-'+side+'-audio'),'audio','sendrecv',NonEmpty('g.711-mu')),
+            (OfferedStream(StreamId('python-av-'+side+'-video'),'video','sendrecv',NonEmpty('vp8')),)),mutation('python-av-'+side+'-offer')))
+    source=await offer(session,'source');target=await offer(peer_session,'target')
+    for connection,remote in ((source,'target'),(target,'source')):
+        await completed(connection.streams.subscribe(NonEmpty(StreamTarget(StreamId('python-av-'+remote+'-audio')),(StreamTarget(StreamId('python-av-'+remote+'-video')),)),connection.receipt_stream_revision,mutation('python-av-'+str(connection.id)+'-select')))
+    async def capture(connection,side,remote,ssrc):
+        fixture=Path(spec['av_fixture_dir'])/('python-'+side)
+        inputs=load_media(str(fixture)+'.mulaw',str(fixture)+'.ivf')
+        return await exchange_media(connection.streams.by_id(StreamId('python-av-'+side+'-audio')).media,
+            connection.streams.by_id(StreamId('python-av-'+side+'-video')).media,
+            connection.streams.by_id(StreamId('python-av-'+side+'-audio')).media,
+            connection.streams.by_id(StreamId('python-av-'+remote+'-video')).media,
+            inputs,Path(spec['saved']).with_name('python-av-'+side),ssrc)
+    results=await asyncio.gather(capture(source,'source','target',0x50410001),capture(target,'target','source',0x50420001),return_exceptions=True)
+    for result in results:
+        if isinstance(result,BaseException):raise result
+        assert result['audio_bytes']==4800 and result['video_frames']==6
+    for connection in (source,target):await completed(connection.end(1000,'complete',None,mutation(str(connection.id)+'-end')))
+    emit({'phase':'av-completed','native_av_utility_capture':True})
 
 
 async def reliable_data(owner,other,session,peer_session,own,peer):
@@ -282,6 +311,7 @@ async def controls(owner):
                 raise AssertionError('Unnegotiated clock accepted')
         media_stats=await owner.media.stats(options)
         assert media_stats.queued_packets<=256 and media_stats.queued_bytes<=4*1024*1024
+        await audio_video(owner,other,solo,peer_solo)
         await reliable_data(owner,other,solo,peer_solo,own,peer)
         assert (await audio.refresh(options)).ownership=='observation'
         revision=native.receipt_stream_revision

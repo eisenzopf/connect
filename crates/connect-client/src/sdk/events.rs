@@ -467,6 +467,50 @@ impl Conversation {
         }
     }
 }
+impl Client {
+    /// Recheck the same journal permission/cursor under current server authority.
+    /// This finite read cannot advance, acknowledge or renew the original source.
+    pub(in crate::sdk) async fn reauthorize_journal(
+        &self,
+        cid: &ConversationId,
+        cursor: &Cursor,
+        options: RequestOptions,
+    ) -> Result<()> {
+        let batch = self
+            .request(
+                "conversation.subscribe",
+                serde_json::json!({"after":cursor.as_str(),"live":false,"limit":1}),
+                crate::canonical::CommandScope {
+                    conversation_id: Some(cid.as_str().into()),
+                    ..Default::default()
+                },
+                None,
+                options,
+            )
+            .await?;
+        let details = batch
+            .ack()
+            .map_err(|e| Error::transport(e, None))?
+            .details
+            .as_ref()
+            .ok_or_else(bad)?;
+        if details["resync_required"] == true
+            || batch
+                .frames
+                .iter()
+                .any(|f| f.kind() == "conversation.snapshot")
+        {
+            return Err(Error::request(ErrorKind::ResyncRequired, None, false));
+        }
+        if details["live"] != false
+            || details["resync_required"] != false
+            || details["has_more"].as_bool().is_none()
+        {
+            return Err(bad());
+        }
+        Ok(())
+    }
+}
 impl EventStream {
     /// Last returned fact or explicit snapshot/resume boundary. Persist each
     /// event cursor only after your application has actually processed it.
@@ -594,6 +638,25 @@ impl EventStream {
         self.open(until).await?;
         let event = self.inbox.receive(until).await?;
         if let Some(event) = &event {
+            if advance {
+                let remaining = until.saturating_duration_since(tokio::time::Instant::now());
+                if remaining.is_zero() {
+                    return Err(Error::request(ErrorKind::Deadline, None, false));
+                }
+                self.client
+                    .as_ref()
+                    .expect("opened event owner")
+                    .reauthorize_journal(
+                        &self.inbox.cid,
+                        &event.cursor,
+                        RequestOptions {
+                            timeout: remaining,
+                            signal: self.options.signal.clone(),
+                        },
+                    )
+                    .await?;
+                self.inbox.check()?;
+            }
             self.client
                 .as_ref()
                 .expect("opened event owner")

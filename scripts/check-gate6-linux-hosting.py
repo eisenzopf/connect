@@ -14,6 +14,8 @@ from pathlib import Path
 import platform
 import re
 import signal
+import shutil
+import math
 import subprocess
 import sys
 import time
@@ -91,7 +93,7 @@ def audio_quiescence_diagnostic(value):
 
 
 
-NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','media-packets','media-data-setup','media-data-text','media-data-json','media-data-binary','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','media-packets','media-av','media-data-setup','media-data-text','media-data-json','media-data-binary','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
     'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'receipt-read','current-revocation'}
 
 
@@ -144,7 +146,7 @@ def python_native_failure_diagnostic(value):
     assert value['checkpoint'] in {'initial','participants','sessions','connections','session-decisions',
                                    'message-events','operation-decisions','receipts','restart','revocation',
                                    'data-invite','data-accept','data-offer','data-subscribe','data-send','data-receive',
-                                   'data-recovery','data-replay','data-return','data-end'}
+                                   'data-recovery','data-replay','data-return','data-end','media-av'}
     assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
     assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
     assert value['source_line'] is None or type(value['source_line']) is int and 0<value['source_line']<100000
@@ -177,12 +179,36 @@ def python_consultation_failure_diagnostic(value):
     return value
 
 
+def language_av_diagnostic(values, frequencies, channels):
+    assert type(values) is list and len(values)==2
+    fields={'identified_audio_hz','decoded_audio_samples','audio_rms','source_energy_ratio','identified_video_high_channels','decoded_video_frames','decoded_rgb_bytes','decoder_children_joined'}
+    for value,frequency,high in zip(values,frequencies,channels):
+        assert type(value) is dict and set(value)==fields
+        assert type(value['identified_audio_hz']) in (int,float) and value['identified_audio_hz']==frequency
+        assert type(value['identified_video_high_channels']) is list and value['identified_video_high_channels']==high and all(type(v) is bool for v in value['identified_video_high_channels'])
+        for name,expected in [('decoded_audio_samples',4800),('decoded_video_frames',6),('decoded_rgb_bytes',640*360*3*6),('decoder_children_joined',2)]:
+            assert type(value[name]) is int and value[name]==expected
+        assert type(value['audio_rms']) in (int,float) and math.isfinite(value['audio_rms']) and 500<value['audio_rms']<=32768
+        assert type(value['source_energy_ratio']) in (int,float) and math.isfinite(value['source_energy_ratio']) and value['source_energy_ratio']>25
+    return values
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = BASE / "private-tmp"
     temporary.mkdir(exist_ok=True, mode=0o700)
     os.environ["TMPDIR"] = str(temporary)
+    codec_fixtures = None
+    if node_sdk or python_sdk:
+        sys.path.insert(0,str(ROOT/'sdk/tests'))
+        from prepare_codec_fixtures import prepare as prepare_codecs
+        ffmpeg = shutil.which('ffmpeg')
+        assert ffmpeg, 'Explicit SDK media lane requires FFmpeg with libvpx'
+        fixture_dir = PRIVATE/'codec-fixtures'
+        codec_fixtures = prepare_codecs(fixture_dir,Path(ffmpeg))
+        os.environ['CONNECT_GATE6_AV_FIXTURES'] = str(fixture_dir)
+        os.environ['CONNECT_GATE6_FFMPEG'] = codec_fixtures['ffmpeg']
     node_package = None
     if node_sdk:
         sys.path.insert(0, str(ROOT / 'sdk/tests'))
@@ -209,6 +235,8 @@ def run(node_sdk=False, python_sdk=False):
               "steps": [], "runner_sha256": digest(__file__), "source_count": len(before),
               "source_inputs_sha256": digest(EVIDENCE / "source-inputs.json"),
               "scope": "Current snapshot and peer-authority Store regressions, bounded configuration/security, ICE/DTLS owned-close, negotiated RTCP UDP/adjacent allocator, local synthetic SIP readiness/startup/drain and actual HTTPS surface/CLI fixtures. No actual TURN allocation, remote SIP/NAT, browser/performance or installation qualification."}
+    if codec_fixtures is not None:
+        report['codec_fixtures'] = {k:v for k,v in codec_fixtures.items() if k!='ffmpeg'}
     if node_package is not None:
         # Preserve the exact installed bytes/runtime even if a later scene fails.
         report['installed_node_package'] = node_package
@@ -628,7 +656,7 @@ def run(node_sdk=False, python_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/10'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/11'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -637,7 +665,7 @@ def run(node_sdk=False, python_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/10'
+                    assert witness['functional_phase_profile'] == 'node-controls/11'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
@@ -648,8 +676,11 @@ def run(node_sdk=False, python_sdk=False):
                     assert isinstance(witness['recovered']['events_resume_record_id'],str) and witness['recovered']['events_resume_record_id']
                     assert witness['original_and_resumed_causal_store_verified']
                     assert witness['completed']['events_current_authority_no_data'] and witness['completed']['events_close_control_live']
+                    assert witness['completed']['events_authority_outcome'] in {'request-failed','original-source-ended'}
                     assert witness['native']['native_controls_completed']
                     assert witness['native_data_independent_store'] and witness['servers_joined']==2
+                    assert witness['media']['native_av_utility_capture'] is True
+                    language_av_diagnostic(witness['decoded_language_av'],[660,440],[[False,False,True],[True,False,False]])
                     assert all(witness['media'][f] for f in ('native_media_negotiation','native_rtp_local_queue','native_data_typed_round_trip','native_data_full_64k','native_data_original_recovery','native_data_one_effect_replay','native_data_changed_intent_refused','native_data_foreign_custody_refused'))
                     assert type(witness['media']['native_clock_local_queue']) is bool and type(witness['media']['native_clock_unnegotiated_refused']) is bool and witness['media']['native_clock_local_queue']!=witness['media']['native_clock_unnegotiated_refused']
                     assert witness['initial']['movement_current_authority_refused']
@@ -665,13 +696,13 @@ def run(node_sdk=False, python_sdk=False):
                     assert witness['completed']['helpers_joined'] == 5 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/10', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/11', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 10, 'local_validators_joined': 6, 'servers_joined': 4,
                     'causal_store_and_exact_journal_witnesses_per_algorithm': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,
-                    'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
-                report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'
+                    'scope': 'Installed current SDK through actual Rust/native/HTTP control, full typed data and independently decoded identified synthetic PCMU/VP8 in both directions. No named remote/provider/model or full SDK qualification.'}
+                report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers, identified independently decoded synthetic AV and original drains.'
         if python_sdk:
             results = []
             for algorithm, label in (('EdDSA', 'eddsa'), ('ES256', 'es256')):
@@ -684,7 +715,8 @@ def run(node_sdk=False, python_sdk=False):
                 witnesses = [json.loads(line.split('installed-python-native-witness ', 1)[1]) for line in text.splitlines() if 'installed-python-native-witness ' in line]
                 assert len(witnesses) == 1
                 witness = witnesses[0]
-                assert witness['profile'] == 'python-native/5' and witness['algorithm'] == algorithm
+                assert witness['profile'] == 'python-native/6' and witness['algorithm'] == algorithm
+                language_av_diagnostic(witness['decoded_language_av'],[1100,880],[[False,True,True],[True,True,False]])
                 for field in ('original_reference_recovered', 'same_id_replay', 'changed_intent_refused', 'typed_capability_refusal',
                               'signed_finite_journal', 'same_cause_after_restart', 'current_read_refused',
                               'current_replay_refused', 'current_new_mutation_refused', 'independent_store_original_cause',
@@ -706,9 +738,9 @@ def run(node_sdk=False, python_sdk=False):
                 assert witness['native_clock_local_queue'] != witness['native_clock_unnegotiated_refused']
                 results.append(dict(witness, passed=True))
             report['installed_python_native'] = {'passed': all(v['passed'] for v in results),
-                'profile': 'python-native/5', 'results': results, 'request_budget_ms': 4000,
+                'profile': 'python-native/6', 'results': results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
-                'scope': 'Clean installed wheel, original signed native Rust helper/server, participant epochs and stale revisions, Session decisions and incoming hints, native Connection/Stream controls, typed and finite journal agreement, saved reference across actual restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
+                'scope': 'Clean installed wheel, original signed native Rust helper/server, participant epochs and stale revisions, Session decisions and incoming hints, native Connection/Stream controls, typed and finite journal agreement, saved reference across actual restart, current revocation, exact one-effect and joined original processes. Identified synthetic PCMU/VP8 decoded independently in both directions. No named remote/provider/model or full SDK qualification.'}
             administrative_results = []
             for algorithm, label in (('EdDSA','eddsa'),('ES256','es256')):
                 for scenario, suffix in (('commands','covers_all_commands_and_original_recovery'),

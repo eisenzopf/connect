@@ -40,6 +40,7 @@ def main():
              'sdk/tests/node_media.test.mjs', 'sdk/tests/node_sdk.test.mjs', 'sdk/tests/node_sessions.test.mjs', 'sdk/tests/node_connections.test.mjs', 'sdk/tests/node_movements.test.mjs', 'sdk/tests/node_receipts.test.mjs', 'sdk/tests/node_raw.test.mjs', 'sdk/tests/node_administration.test.mjs', 'sdk/tests/node_https.test.mjs', 'sdk/tests/node_events.test.mjs', 'sdk/tests/node_incoming.test.mjs', 'sdk/tests/node_sdk_types.mts',
              'sdk/tests/node_administrative_server_consumer.mjs', 'sdk/tests/node_sdk_server_consumer.mjs', 'sdk/tests/node_consultation_server_consumer.mjs', 'sdk/tests/node_movement_server_consumer.mjs', 'sdk/tests/fixtures/sdk_helper.mjs',
              'sdk/tests/node_https_server_consumer.mjs', 'sdk/tests/fixtures/node_https_consumer.mjs', 'sdk/tests/prepare_native_consumer.py']]
+    paths += [ROOT/'examples/sdk-media/packet-codec.mjs', ROOT/'examples/sdk-media/packet_codec.py']
     paths.append(Path(__file__))
     before = {str(p.relative_to(ROOT)): digest(p) for p in sorted(set(paths)) if p.is_file()}
     (directory / 'source-inputs.json').write_text(json.dumps(before, indent=2) + '\n')

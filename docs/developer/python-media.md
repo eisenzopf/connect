@@ -1,10 +1,12 @@
 # Python native packet interface
 
-G6-064 is in progress. The current Python packet interface implements negotiated
+G6-064 implementation is complete in its recorded local scope. The Python packet
+interface implements negotiated
 native RTP, source-clock reports and local queue gaps through the same Client's
 separate binary helper channel. It does not supply desktop capture/render or a
 decoded frame API. The [reliable typed-data API](python-data.md) is implemented;
-the encoding/decoding utility path remains open. G6-064 is not complete.
+the [app-owned PCMU/VP8 utility](../../examples/sdk-media/README.md) supplies the
+documented encoding/decoding path.
 
 The helper must advertise both native Rust media support and
 `managed-media-ipc-v2`. Python exposes `native-programmatic-media` only for that
@@ -87,3 +89,9 @@ The installed-wheel evidence above records the earlier v1 packet source. Current
 v2 source verification, 217 component functions/43 negative type constraints and
 the installed native5 typed-data journey are recorded in
 [Python reliable-data evidence](../evidence/gate-6/python-reliable-data.json).
+
+The [decoded-language evidence](../evidence/gate-6/language-decoded-media.json)
+records the current native6 journey with the rebuilt original helper: identified
+PCMU audio and six independently decoded VP8 frames in both directions under
+EdDSA/ES256, alongside full-size typed data, current authority and original joins.
+The complete installed platform/facade matrix and acceptance remain open.

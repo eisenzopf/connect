@@ -97,6 +97,9 @@ Unsupported helper media versions refuse before attachment.
 component checks, 48 negative type constraints and a clean installed package
 against the real local EdDSA/ES256 listener. Full 64 KiB text/JSON/binary passed
 both directions, independent Rust Store byte/effect checks, recovery, replay,
-changed intent, foreign custody and cleanup. Identified independently decoded
-Node/Python audio/video through a documented codec utility path and the complete
-platform matrix remain open; G6-064 is still in progress.
+changed intent, foreign custody and cleanup. The
+[decoded-language evidence](../evidence/gate-6/language-decoded-media.json) adds
+identified independently decoded PCMU/VP8 through the documented app-owned
+utility and requalifies data/current-authority/cleanup with the rebuilt helper.
+G6-064 implementation is complete in that recorded scope. The complete installed
+platform/facade matrix and Gate 6 acceptance remain open.

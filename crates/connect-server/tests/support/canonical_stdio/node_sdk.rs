@@ -54,7 +54,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             &f,
             &f.peer.identity_id,
             72,
-            vec!["audio".into(), "data".into()],
+            vec!["audio".into(), "video".into(), "data".into()],
             peer_scope,
         );
         let peer_sdk_config = connect_client::sdk::ClientConfig {
@@ -88,7 +88,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         init::private_write(
             &input,
             &serde_json::to_vec(&json!({
-                "project":project,"config":native,"executable":wrapper,"pid_file":pid_file,
+                "project":project,"av_fixture_dir":crate::language_media::fixtures(),"config":native,"executable":wrapper,"pid_file":pid_file,
                 "peer_identity":f.peer.identity_id,"peer_config":peer_native,"http":format!("http://{}",f.server.http_address.unwrap()),
                 "credential":f.client.credential,"algorithm":algorithm
             }))
@@ -185,6 +185,19 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         drop(database);
         stdin.write_all(b"native\n").await.unwrap();
         let media_phase = phase(&mut lines, "media-complete", algorithm).await;
+        assert_eq!(media_phase["native_av_utility_capture"], true);
+        let av_source = crate::language_media::verify(
+            &PathBuf::from(format!("{}.av-source", pid_file.display())),
+            660.0,
+            [false, false, true],
+        )
+        .await;
+        let av_target = crate::language_media::verify(
+            &PathBuf::from(format!("{}.av-target", pid_file.display())),
+            440.0,
+            [true, false, false],
+        )
+        .await;
         for name in [
             "native_media_negotiation",
             "native_rtp_local_queue",
@@ -446,6 +459,10 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
             assert_eq!(count, 1);
         }
         assert_eq!(completed["events_current_authority_no_data"], true);
+        assert!(matches!(
+            completed["events_authority_outcome"].as_str(),
+            Some("request-failed" | "original-source-ended")
+        ));
         assert_eq!(completed["events_close_control_live"], true);
         for format in ["text", "json", "binary"] {
             let expected = match format {
@@ -556,7 +573,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/10","original_and_resumed_causal_store_verified":true,"controls":controls,"media":media_phase,"native":native_phase,"native_data_independent_store":true,"servers_joined":2,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/11","decoded_language_av":[av_source,av_target],"original_and_resumed_causal_store_verified":true,"controls":controls,"media":media_phase,"native":native_phase,"native_data_independent_store":true,"servers_joined":2,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

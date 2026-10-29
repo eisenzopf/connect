@@ -1,9 +1,11 @@
 # Programmatic Node/Python media
 
-G6-064 is in progress. Binary framing and managed Rust helper routing are
+G6-064 implementation is complete in its recorded local scope. Binary framing
+and managed Rust helper routing are
 implemented; Python [packet](python-media.md) and [reliable-data](python-data.md)
 APIs and the [Node packet/data interface](node-media.md) are implemented.
-The decoded utility path remains open. The
+The [app-owned PCMU/VP8 utility](../../examples/sdk-media/README.md) supplies the
+decoded file path. The
 current control SDK's Stream and Connection observations do not acquire media
 custody by being restored from IDs or operation receipts.
 
@@ -124,9 +126,23 @@ Its [scoped evidence](../evidence/gate-6/node-programmatic-media.json) records 1
 component functions, 48 negative type constraints and a clean installed real
 EdDSA/ES256 native journey: full 64 KiB typed data in both directions, independent
 Rust Store bytes/effects, original recovery/replay/custody and joined resources.
-The app-owned encoding/decoding utility path remains open.
+The app-owned encoding/decoding utility path is documented and verified below.
 
-Completion still requires actual Node/Python identified audio, decoded video
-through the documented utility path and typed data, plus slow consumers, limits,
-helper death and original cleanup. Candidate packaging and the complete
-platform/version/facade matrix remain G6-069/G6-070.
+The [decoded-language evidence](../evidence/gate-6/language-decoded-media.json)
+closes G6-064's implementation verification: both Node and Python exchange
+identified synthetic PCMU audio, independently decoded VP8 video through the
+app-owned utility and full-size typed data under EdDSA/ES256. Slow-reader,
+framing/size, cancellation, helper-death and cleanup checks retain their separate
+component/production scopes. The utility documents supported formats and explicit
+FFmpeg requirements; no desktop capture/render support is implied.
+
+The same run exposed a retained journal fact bypassing credential revocation.
+The original Rust SDK and managed helper now revalidate the same journal
+permission and cursor with a finite server read before release. Original facts,
+acknowledgements and mutation IDs are not replaced. The deterministic regression
+fails before the fix and passes under both algorithms afterward.
+
+Candidate packaging and the complete installed platform/version/facade matrix
+remain G6-069/G6-070. Named remote/provider profiles, physical devices, motion,
+latency and audiovisual synchronization are not qualified by this finite file
+exchange. Gate 6 acceptance remains unqualified.

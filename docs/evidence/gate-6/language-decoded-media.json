@@ -1,0 +1,1341 @@
+{
+  "task": "G6-064",
+  "date": "2026-10-29",
+  "base_commit": "0a6693f1",
+  "status": "done",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Implementation verification on local macOS arm64: original bounded binary helper and clean installed Node/Python, identified synthetic PCMU audio and independently decoded VP8 through app-owned utilities in both directions under EdDSA/ES256, full64KiB text/JSON/binary and original recovery/current-authority/cleanup. Source-bound codec/Node components and prior unchanged Python media/data components cover limits, slow consumers, cancellation and helper death. This does not qualify the complete installed SDK/facade/platform matrix, candidate packages, named remote/provider/model, physical devices, motion, latency, audiovisual synchronization or Gate6 acceptance.",
+  "profiles": {
+    "binary_ipc": "connect-sdk-media/2",
+    "node_native": "node-controls/11",
+    "python_native": "python-native/6"
+  },
+  "tested_inputs": {
+    "crates/connect-client/src/sdk/events.rs": {
+      "sha256": "4bfd26538ddfb5f4651240c4c4a0eb21810a4c1bf59bf67b30f5b365a78f0e4f",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-client/src/sdk/helper/managed/events.rs": {
+      "sha256": "9aaf07700a84a2049866b82098c1d943ed149b6cf69453221a53e8c8848bab21",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-server/tests/gate6_canonical_runtime.rs": {
+      "sha256": "146de4c73eb384ac5251f655153460686b7648979feeced3dedbc16ae4c7e63f",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": {
+      "sha256": "daba46b2eabce72648808aa39ece75afd1d994235c30576d6cc51b3b0edd3b7a",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-server/tests/support/python_sdk.rs": {
+      "sha256": "992865a2680a6ac99ff21d779e084a7c1fbb85b4fd297fce2236887b7a0d0cf3",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-server/tests/support/language_media.rs": {
+      "sha256": "d1df590cb68a9cc4bac8663292b98fc1ae8c352885ec0a41c634e4f3cd8d16ca",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "crates/connect-server/tests/support/sdk_handles/events.rs": {
+      "sha256": "ab727f80ebcfbecc4b27dece68c7b4bd3f169f309ab13340c9915eef2270dead",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "scripts/check-gate6-linux-hosting.py": {
+      "sha256": "91c5e058dc193e354fbf30ef10e8151d6230070b1495adcd55f5a587c7de7a1e",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "scripts/tests/test_gate6_linux_diagnostics.py": {
+      "sha256": "27a1824df40236652e8bd7e0fdd284372ca08af2e4d105abb68b095f8f362ce5",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/node_sdk_server_consumer.mjs": {
+      "sha256": "6c7f591e73955ca087773ffb96bc5abed73e03a7c29e1ccf17349c8163968ddb",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/python_native_server_consumer.py": {
+      "sha256": "684abcd28cf1ce106aeaa6ed73fc475d47d2b869667c095f5c891bd76efc894b",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/prepare_native_consumer.py": {
+      "sha256": "42635f2b7b8671b979d2261b41e2f2c467d080395e9922d5a2965ee25a4923f8",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/prepare_python_native_consumer.py": {
+      "sha256": "e31ab0c1ebe1a6603c4803c330f49341846ea5f4392847c62e9d2919d1319615",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/prepare_codec_fixtures.py": {
+      "sha256": "5495822691f3265de760efa7a90128d773c250803d944ed74112fd733b5d17e7",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "examples/sdk-media/packet-codec.mjs": {
+      "sha256": "eaab11f9e82c8231706e8a9ae764881161a128d7f782dca016abd8c27ab39456",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "examples/sdk-media/packet_codec.py": {
+      "sha256": "4cdcba24a8ba21044706591894f8718a5e66b30cd7dd30e30bbebd7726a07c0d",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "examples/sdk-media/package.json": {
+      "sha256": "0d413219b029c23f018667734ddc80c5254e9971f1d49d534367b91acb2f9a8f",
+      "mode": 420,
+      "verification": "production-runtime"
+    },
+    "sdk/tests/check_packet_codec.py": {
+      "sha256": "2f2d6149cff60f72aabf5077dd698d51312dfa1b412c8631eea2f34a2bacd789",
+      "mode": 420,
+      "verification": "codec-component"
+    },
+    "sdk/tests/packet_codec.test.mjs": {
+      "sha256": "319c0209c436096270855c54b95bcbf1f597c11e9d2fcba993b714fd80ab3642",
+      "mode": 420,
+      "verification": "codec-component"
+    },
+    "sdk/tests/test_packet_codec.py": {
+      "sha256": "a2e1a5e4bfd2fde0dd76c76f6fb5277588bdecf73568f63440dbd3390a3b3976",
+      "mode": 420,
+      "verification": "codec-component"
+    },
+    "sdk/tests/check_canonical_helper.py": {
+      "sha256": "9c0b423d8219bd1b46c13eabec6354b537f8484d146abff80864a04d8c2edeef",
+      "mode": 420,
+      "verification": "node-component"
+    }
+  },
+  "production": {
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "source_count": 8302,
+    "source_inputs_sha256": "2de747c896592179294b6c21cb3909a7cf5c80557201c1fa4c470c847a6db5c5",
+    "test_executable_sha256": "4c40d63ed42a376624f58a4653e46899202091b96fa18cf6d04123a37bf8bd88",
+    "cli_sha256": "ef8a3e4bae08a8419a6aa8490d56442241e412648f267d2d6e8319f8ac62fbda",
+    "node_archive_sha256": "2b4856c3f8fa9309b9b0c720f3dcb1aee999e7a708e2ec04cb997a9ae03e31d3",
+    "python_wheel_sha256": "a3a1f71db86a086d267e0d2dddc3b2716b9609e983ead80ef3c81906ca2fbf16",
+    "fixture_inputs_unchanged": true,
+    "node_version": "v26.7.0",
+    "python_version": "3.14.7",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Local original managed helper/current server, clean installed Node/Python and app-owned PCMU/VP8 utility with independent decoded remote source identities, full64KiB typed data, original recovery/current-authority refusal and original joins. Rust actual live-event/restart/media coexistence plus retained-fact credential-revocation regression. No cross-language-pair, physical devices, motion/latency/A-V synchronization, Linux/remote/provider/model/candidate/fullinstalledmatrix/acceptance qualification.",
+    "results": [
+      {
+        "case": "rust-events",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 57.874251750065014,
+        "log_sha256": "cfc3b20d9a715240025d95f016a3e4325a86c449e8060860376d97363f8375a8",
+        "functions_passed": 4,
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "original_owner_joined": true,
+            "retained_fact_not_reexposed": true
+          },
+          {
+            "algorithm": "ES256",
+            "original_owner_joined": true,
+            "retained_fact_not_reexposed": true
+          }
+        ]
+      },
+      {
+        "case": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 68.33492575003766,
+        "log_sha256": "215839824fc8416fd401c57f4be9ef6fd1656334da9dcc6804ce65cd716d3491",
+        "functions_passed": 1,
+        "witnesses": [
+          {
+            "completed": {
+              "algorithm": "EdDSA",
+              "events_authority_outcome": "request-failed",
+              "events_close_control_live": true,
+              "events_current_authority_no_data": true,
+              "helpers_joined": 5,
+              "http_failure": {
+                "certainty": "read-only",
+                "kind": "authentication"
+              },
+              "http_receipts_current_authority": true,
+              "http_receipts_status": 401,
+              "local_validators_joined": 3,
+              "native_failure": {
+                "certainty": "not-submitted",
+                "kind": "cancelled"
+              },
+              "phase": "completed",
+              "query_recovery_without_replay": true,
+              "raw_current_authority": true,
+              "receipt_failure": {
+                "certainty": "read-only",
+                "kind": "cancelled"
+              },
+              "typed_receipts_current_authority": true
+            },
+            "controls": {
+              "incoming_close_control_live": true,
+              "incoming_original_hint": true,
+              "incoming_session_decision": true,
+              "incoming_source_sha256": "f6b87e8aefcdceb2fcfd35ede163bd7c087fc8a83c40d7eed4e24918a529370c",
+              "phase": "controls-ready",
+              "session_participants_accepted": true
+            },
+            "decoded_language_av": [
+              {
+                "audio_rms": 2855.562987106629,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 660.0,
+                "identified_video_high_channels": [
+                  false,
+                  false,
+                  true
+                ],
+                "source_energy_ratio": 1141555.090498184
+              },
+              {
+                "audio_rms": 2876.0540259181503,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 440.0,
+                "identified_video_high_channels": [
+                  true,
+                  false,
+                  false
+                ],
+                "source_energy_ratio": 1424046.0883948856
+              }
+            ],
+            "functional_phase_profile": "node-controls/11",
+            "initial": {
+              "event_id_sha256": "3f40deba4aab771377255ac3d6c2dc3fdb5346b35aa8e86a5cf7059ab8dfba70",
+              "events_cursor_persisted": true,
+              "events_original_record": true,
+              "first_helper_joined": true,
+              "membership_epoch_advanced": true,
+              "movement_current_authority_refused": true,
+              "native_connection_controls": true,
+              "native_end_journaled": true,
+              "native_http_record": true,
+              "native_http_same_record": true,
+              "native_selection": true,
+              "node_capability_support_only": true,
+              "observation_only_stream": true,
+              "old_membership_operation_refused": true,
+              "participant_stable_id": true,
+              "phase": "initial",
+              "reconciliation_evidence_refused": true,
+              "removed_receipt_unavailable": true,
+              "same_id_one_message": true,
+              "session_control_journey": true,
+              "session_end_journaled": true,
+              "session_reject_cancel": true,
+              "session_topology_revision_refused": true,
+              "stale_revision_refused": true,
+              "state": "completed",
+              "typed_result": true
+            },
+            "media": {
+              "native_av_utility_capture": true,
+              "native_clock_local_queue": true,
+              "native_clock_unnegotiated_refused": false,
+              "native_data_changed_intent_refused": true,
+              "native_data_foreign_custody_refused": true,
+              "native_data_full_64k": true,
+              "native_data_one_effect_replay": true,
+              "native_data_original_recovery": true,
+              "native_data_typed_round_trip": true,
+              "native_media_negotiation": true,
+              "native_rtp_local_queue": true,
+              "phase": "media-complete"
+            },
+            "media_readers_drained": true,
+            "native": {
+              "native_controls_completed": true,
+              "phase": "native-complete"
+            },
+            "native_data_independent_store": true,
+            "original_and_resumed_causal_store_verified": true,
+            "physical_peers_drained": true,
+            "receipts": {
+              "current_delivery_fact": true,
+              "http_same_delivery_fact": true,
+              "phase": "receipts-observed",
+              "raw_local_configuration_independent": true,
+              "raw_same_id_one_message": true,
+              "raw_signed_original_record": true
+            },
+            "recovered": {
+              "events_resume_event_id_sha256": "4f064bf19ddb4380d83b04f5a62f006e63d10bd5a8ccdc26b349ddc72aae8f61",
+              "events_resume_http_record": true,
+              "events_resume_new_fact": true,
+              "events_resume_original_record": true,
+              "phase": "recovered",
+              "resubmitted": false,
+              "state": "completed",
+              "typed_connection_end_recovered": true,
+              "typed_decision_recovered": true,
+              "typed_session_end_recovered": true,
+              "typed_wait": true
+            },
+            "server_shutdown_joined": true,
+            "servers_joined": 2
+          },
+          {
+            "completed": {
+              "algorithm": "ES256",
+              "events_authority_outcome": "request-failed",
+              "events_close_control_live": true,
+              "events_current_authority_no_data": true,
+              "helpers_joined": 5,
+              "http_failure": {
+                "certainty": "read-only",
+                "kind": "authentication"
+              },
+              "http_receipts_current_authority": true,
+              "http_receipts_status": 401,
+              "local_validators_joined": 3,
+              "native_failure": {
+                "certainty": "not-submitted",
+                "kind": "cancelled"
+              },
+              "phase": "completed",
+              "query_recovery_without_replay": true,
+              "raw_current_authority": true,
+              "receipt_failure": {
+                "certainty": "read-only",
+                "kind": "cancelled"
+              },
+              "typed_receipts_current_authority": true
+            },
+            "controls": {
+              "incoming_close_control_live": true,
+              "incoming_original_hint": true,
+              "incoming_session_decision": true,
+              "incoming_source_sha256": "edcb12825f9928f8a9540bb871322f19bf0fe0bdbf6ef571c487144db56e6dd3",
+              "phase": "controls-ready",
+              "session_participants_accepted": true
+            },
+            "decoded_language_av": [
+              {
+                "audio_rms": 2856.3379404405214,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 660.0,
+                "identified_video_high_channels": [
+                  false,
+                  false,
+                  true
+                ],
+                "source_energy_ratio": 577742.1589015287
+              },
+              {
+                "audio_rms": 2876.1235051135527,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 440.0,
+                "identified_video_high_channels": [
+                  true,
+                  false,
+                  false
+                ],
+                "source_energy_ratio": 1849262.6667579832
+              }
+            ],
+            "functional_phase_profile": "node-controls/11",
+            "initial": {
+              "event_id_sha256": "492c2eca50de7e4df9589b9774ca1668fb19adccc6f8f8e382620c6d4e6984ea",
+              "events_cursor_persisted": true,
+              "events_original_record": true,
+              "first_helper_joined": true,
+              "membership_epoch_advanced": true,
+              "movement_current_authority_refused": true,
+              "native_connection_controls": true,
+              "native_end_journaled": true,
+              "native_http_record": true,
+              "native_http_same_record": true,
+              "native_selection": true,
+              "node_capability_support_only": true,
+              "observation_only_stream": true,
+              "old_membership_operation_refused": true,
+              "participant_stable_id": true,
+              "phase": "initial",
+              "reconciliation_evidence_refused": true,
+              "removed_receipt_unavailable": true,
+              "same_id_one_message": true,
+              "session_control_journey": true,
+              "session_end_journaled": true,
+              "session_reject_cancel": true,
+              "session_topology_revision_refused": true,
+              "stale_revision_refused": true,
+              "state": "completed",
+              "typed_result": true
+            },
+            "media": {
+              "native_av_utility_capture": true,
+              "native_clock_local_queue": true,
+              "native_clock_unnegotiated_refused": false,
+              "native_data_changed_intent_refused": true,
+              "native_data_foreign_custody_refused": true,
+              "native_data_full_64k": true,
+              "native_data_one_effect_replay": true,
+              "native_data_original_recovery": true,
+              "native_data_typed_round_trip": true,
+              "native_media_negotiation": true,
+              "native_rtp_local_queue": true,
+              "phase": "media-complete"
+            },
+            "media_readers_drained": true,
+            "native": {
+              "native_controls_completed": true,
+              "phase": "native-complete"
+            },
+            "native_data_independent_store": true,
+            "original_and_resumed_causal_store_verified": true,
+            "physical_peers_drained": true,
+            "receipts": {
+              "current_delivery_fact": true,
+              "http_same_delivery_fact": true,
+              "phase": "receipts-observed",
+              "raw_local_configuration_independent": true,
+              "raw_same_id_one_message": true,
+              "raw_signed_original_record": true
+            },
+            "recovered": {
+              "events_resume_event_id_sha256": "9df67778db99065652ee57c70371dacfb27bf8225120b411f5b32f9d24997fd7",
+              "events_resume_http_record": true,
+              "events_resume_new_fact": true,
+              "events_resume_original_record": true,
+              "phase": "recovered",
+              "resubmitted": false,
+              "state": "completed",
+              "typed_connection_end_recovered": true,
+              "typed_decision_recovered": true,
+              "typed_session_end_recovered": true,
+              "typed_wait": true
+            },
+            "server_shutdown_joined": true,
+            "servers_joined": 2
+          }
+        ]
+      },
+      {
+        "case": "python-eddsa",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 27.868080500047654,
+        "log_sha256": "f02d51036eca4efd5c1ac2746f1c8f4f10d25c0fd83a4d4bbcde0e0708b7eb44",
+        "functions_passed": 1,
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "attributed_delivery": true,
+            "attributed_read": true,
+            "canonical_http_same_original_record": true,
+            "changed_intent_refused": true,
+            "current_new_mutation_refused": true,
+            "current_read_refused": true,
+            "current_receipts_refused": true,
+            "current_replay_refused": true,
+            "decoded_language_av": [
+              {
+                "audio_rms": 2695.6722494892933,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 1100.0,
+                "identified_video_high_channels": [
+                  false,
+                  true,
+                  true
+                ],
+                "source_energy_ratio": 3616661.0430656536
+              },
+              {
+                "audio_rms": 2773.8261745586487,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 880.0,
+                "identified_video_high_channels": [
+                  true,
+                  true,
+                  false
+                ],
+                "source_energy_ratio": 5710972.58151402
+              }
+            ],
+            "default_helper_on_path": true,
+            "durable_cancel_original_preserved": true,
+            "helpers_joined": 10,
+            "http_workers_joined": 2,
+            "incoming_original_hint": true,
+            "independent_control_records": true,
+            "independent_http_receipt_agreement": true,
+            "independent_store_original_cause": true,
+            "local_wait_cancelled_read_only": true,
+            "media_readers_drained": true,
+            "native_clock_local_queue": true,
+            "native_clock_unnegotiated_refused": false,
+            "native_controls_completed": true,
+            "native_data_changed_intent_refused": true,
+            "native_data_foreign_custody_refused": true,
+            "native_data_full_64k": true,
+            "native_data_independent_store": true,
+            "native_data_one_effect_replay": true,
+            "native_data_original_recovery": true,
+            "native_data_typed_round_trip": true,
+            "native_media_negotiation": true,
+            "native_rtp_local_queue": true,
+            "one_original_message_and_operation": true,
+            "original_reference_recovered": true,
+            "participant_epoch_advanced": true,
+            "physical_peers_drained": true,
+            "profile": "python-native/6",
+            "python_process_joined": true,
+            "read_default_withheld_then_opted_in": true,
+            "receipt_queued_without_delivery": true,
+            "same_cause_after_restart": true,
+            "same_id_replay": true,
+            "servers_joined": 3,
+            "session_decisions_completed": true,
+            "signed_finite_journal": true,
+            "stale_revisions_refused": true,
+            "stream_selection_completed": true,
+            "synchronous_original_recovered": true,
+            "typed_capability_refusal": true,
+            "typed_message_event": true,
+            "unattributed_reconciliation_refused": true,
+            "validators_joined": 5,
+            "zero_forbidden_message_and_operation": true
+          }
+        ]
+      },
+      {
+        "case": "python-es256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 27.928227666998282,
+        "log_sha256": "f244b58b0375744034fd64845454569fdfbb8aab4306c23a523ffaf6a08ec506",
+        "functions_passed": 1,
+        "witnesses": [
+          {
+            "algorithm": "ES256",
+            "attributed_delivery": true,
+            "attributed_read": true,
+            "canonical_http_same_original_record": true,
+            "changed_intent_refused": true,
+            "current_new_mutation_refused": true,
+            "current_read_refused": true,
+            "current_receipts_refused": true,
+            "current_replay_refused": true,
+            "decoded_language_av": [
+              {
+                "audio_rms": 2695.6722494892933,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 1100.0,
+                "identified_video_high_channels": [
+                  false,
+                  true,
+                  true
+                ],
+                "source_energy_ratio": 3616661.0430656536
+              },
+              {
+                "audio_rms": 2773.8261745586487,
+                "decoded_audio_samples": 4800,
+                "decoded_rgb_bytes": 4147200,
+                "decoded_video_frames": 6,
+                "decoder_children_joined": 2,
+                "identified_audio_hz": 880.0,
+                "identified_video_high_channels": [
+                  true,
+                  true,
+                  false
+                ],
+                "source_energy_ratio": 5710972.58151402
+              }
+            ],
+            "default_helper_on_path": true,
+            "durable_cancel_original_preserved": true,
+            "helpers_joined": 10,
+            "http_workers_joined": 2,
+            "incoming_original_hint": true,
+            "independent_control_records": true,
+            "independent_http_receipt_agreement": true,
+            "independent_store_original_cause": true,
+            "local_wait_cancelled_read_only": true,
+            "media_readers_drained": true,
+            "native_clock_local_queue": true,
+            "native_clock_unnegotiated_refused": false,
+            "native_controls_completed": true,
+            "native_data_changed_intent_refused": true,
+            "native_data_foreign_custody_refused": true,
+            "native_data_full_64k": true,
+            "native_data_independent_store": true,
+            "native_data_one_effect_replay": true,
+            "native_data_original_recovery": true,
+            "native_data_typed_round_trip": true,
+            "native_media_negotiation": true,
+            "native_rtp_local_queue": true,
+            "one_original_message_and_operation": true,
+            "original_reference_recovered": true,
+            "participant_epoch_advanced": true,
+            "physical_peers_drained": true,
+            "profile": "python-native/6",
+            "python_process_joined": true,
+            "read_default_withheld_then_opted_in": true,
+            "receipt_queued_without_delivery": true,
+            "same_cause_after_restart": true,
+            "same_id_replay": true,
+            "servers_joined": 3,
+            "session_decisions_completed": true,
+            "signed_finite_journal": true,
+            "stale_revisions_refused": true,
+            "stream_selection_completed": true,
+            "synchronous_original_recovered": true,
+            "typed_capability_refusal": true,
+            "typed_message_event": true,
+            "unattributed_reconciliation_refused": true,
+            "validators_joined": 5,
+            "zero_forbidden_message_and_operation": true
+          }
+        ]
+      }
+    ]
+  },
+  "node_component": {
+    "passed": true,
+    "scope": "Synthetic owned raw/typed helper and bounded authenticated media/data lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+    "typecheck_exit_code": 0,
+    "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 14.040521458024159,
+    "functions": [
+      "canonical HTTP uses current path/bearer and captures intent before yielding",
+      "canonical HTTP configuration rejects implicit remote/credential URL destinations",
+      "canonical HTTP refuses invalid/missing mutation intent and live/native paths without writing",
+      "canonical HTTP rejects mismatched profile, correlation, scope, signatures and terminal order",
+      "canonical HTTP enforces duplicate-key, UTF8, MIME and HTTP status boundaries",
+      "canonical HTTP accepts a bounded multi-envelope batch larger than one envelope",
+      "canonical HTTP structured refusals retain current identity and never become transport retries",
+      "canonical HTTP refusal code must agree with HTTP and public diagnostics stay closed",
+      "canonical HTTP never follows redirects with bearer or retries an uncertain mutation",
+      "canonical HTTP one absolute deadline includes a partially delivered body",
+      "canonical HTTP cancellation after admission preserves logical mutation identity",
+      "canonical HTTP finite journal responses bind every nested resource and cursor",
+      "canonical HTTP caps active requests and close joins cancelled work without retry",
+      "named application HTTP receipt errors preserve actual status independently of the error code",
+      "current helper captures canonical intent, independent exchange IDs and original Rust signatures",
+      "configuration is explicit and invalid intent/aborted requests never write helper input",
+      "queued deadline removes only the unsent intent and later work uses the same original helper",
+      "queued cancellation keeps the helper and cannot become a submitted mutation",
+      "sent deadline includes partial output, fences helper and retains the saved mutation key",
+      "sent cancellation fences this instance without restarting or retrying",
+      "corrupt, oversized, unsigned, duplicate or foreign helper replies fail closed and are never retried",
+      "late uncorrelated output fences an otherwise idle original helper",
+      "structured refusals are redacted and leave the helper usable",
+      "helper exit leaves sent work uncertain and no replacement helper is created",
+      "missing executable proves no submission and still has an owned close",
+      "queue capacity and close settle every original wait and join the child",
+      "bounded close reports unconfirmed cleanup and kills the original hanging helper",
+      "trusted backend uses a separate owned profile and local normalized immutable command without participant APIs",
+      "administrative operations preserve original record, metadata-only recovery and separate cancel/reconcile decision types",
+      "forged administrative command, mismatched original ID and extensions refuse locally without submission",
+      "invalid trusted command and foreign/scoped/continued saved references are local and grant no authority",
+      "malformed trusted local validator profile, scope, kind or identity fences the original administrative owner",
+      "administrative response corruption preserves submitted uncertainty and stable record fences",
+      "administrative sent timeout fences original owner, keeps mutation identity and never retries",
+      "trusted local validator input and runtime stay bounded and wrapper accommodates a captured64KiB command",
+      "helper startup failures preserve original intent and distinguish unsent mutations from reads",
+      "trusted sent cancellation gracefully joins its original backend helper without mutation replay",
+      "native control handles preserve full scopes, captured receipt revisions and separate current observations",
+      "receive-selection bindings preserve unavailable versus known empty without granting local ownership",
+      "invalid native scope, stream identity, revisions and selector shapes never write helper input",
+      "foreign native identities, malformed binding captures, generations and clock integers fail closed",
+      "coercible stream gate state cannot become a typed native binding receipt",
+      "events bootstrap captures options, exposes complete immutable scoped facts and acknowledges only returned facts",
+      "events explicit opaque resume survives detach without granting scope or inventing a new cursor",
+      "timed-out event wait keeps the SDK fact unacknowledged and revalidates before returning it",
+      "abandoned event reply cannot bypass current authentication after revocation",
+      "event cancellation and reader close join only the local reader and retain control",
+      "events invalid cursor, input, options and pre-cancellation do not write helper input",
+      "malformed event scopes, opaque cursors, audience, resources and fields fence the original helper",
+      "event source protocol and resync failures preserve unrelated control on the original helper",
+      "event reply budget accepts large facts without widening ordinary outgoing input limits",
+      "event async iteration closes once on break or application failure and rejects concurrent reads",
+      "events enforce the original eight-reader budget and reject duplicate returned facts",
+      "explicit HTTPS uses verified TLS and the existing canonical/application routes with original intent and authority status",
+      "explicit HTTPS rejects untrusted certificates and hostname mismatch before any HTTP credential or mutation reaches the server",
+      "explicit HTTPS refuses redirects and current authentication without resubmitting the logical mutation",
+      "explicit HTTPS whole-body deadlines and cancellation retain uncertainty and join requests without retry",
+      "incoming metadata preserves original source and scoped Session without copied callee IDs or native ownership",
+      "cancelled incoming wait keeps the original in-flight reply unacknowledged and leaves control usable",
+      "timed-out incoming wait consumes no delivery and does not fence or restart the helper",
+      "incoming invalid options and pre-cancellation are local and an unopened reader closes without I/O",
+      "only one incoming reader owns the inbox and detach retains an unread delivery for a new reader",
+      "closing an incoming reader cancels only its local wait and preserves native control",
+      "foreign or malformed invitation correlation, enums, participants and metadata fence the original helper",
+      "an abandoned hint is revalidated and cannot bypass current authentication failure",
+      "approved for-await iteration releases the reader on break and application failure without stopping control",
+      "C6M2 fragmented original boundaries and exact high-bit magic refusal before body allocation",
+      "captured RTP and typed data are immutable copies with bounded safe inspection",
+      "Node packet negotiation exact binary RTP clock and full u64 stats keep control separate",
+      "Node full64KiB text JSON binary and empty typed values preserve original data recovery",
+      "Node cancelled data send preserves uncertain original key without mutation replay or helper restart",
+      "Node cancelled data receive retains one original result across cloned handles and control stays live",
+      "Node media version refusal and pre-cancel retain original intent before attachment",
+      "Node recorded errors retain original snapshot while foreign references errors and observations fence media only",
+      "Node invalid received bytes and foreign bindings fence reads without consuming control",
+      "Node channel window refuses seventeenth mutation and close settles original uncertain keys",
+      "Node helper death wakes a sent original data mutation and owned close joins its process",
+      "Node fragmented packet response preserves original bytes and closes its listener with the socket owner",
+      "Node sent data deadline keeps the captured deadline and no original replay",
+      "Node cancelled data receive slots bound original retained payloads independently of the request window",
+      "Node malformed RTP header and foreign submitted binding fence media with correct uncertainty",
+      "Node close owns an attachment still opening after the caller deadline",
+      "handoff captures original intent, role scope and topology without granting native ownership",
+      "handoff carries the branded original consultation record and rejects injected or foreign continuations before I/O",
+      "device move distinguishes endpoint and candidate targets with original scope and captured binding observations",
+      "invalid movement targets, role assertions, scopes and saved context shapes never write helper input",
+      "changed movement contexts, foreign topology, roles and binding observations fail closed",
+      "raw local validation captures immutable original intent without a helper request or configuration argument",
+      "raw full-schema invalid and local JSON bounds are refused before wire; finite-lifecycle policy comes from Rust descriptor",
+      "raw preserves envelope payload and signed reply beyond typed 64 KiB bound without enlarging typed writes",
+      "malformed local validator profile, duplicate keys and descriptors fence the original owner before raw I/O",
+      "raw malformed signed batch never escapes and preserves read versus submitted mutation certainty",
+      "raw cancellation before submission writes nothing and active uncertainty retains original operation without retry",
+      "local validation subprocess output and time are bounded and original child is joined",
+      "receipt reads preserve independent recipient channel epoch and provenance evidence, including an empty result",
+      "invalid receipt message identity and an already-cancelled read write no helper request",
+      "foreign receipt scope, duplicate evidence, malformed facts and collection overflow fence the original helper",
+      "typed restore and recover are local, immutable and bound to the declared result/scope",
+      "typed mutations capture original intent; handles complete through a separate SDK journal wait",
+      "typed Conversation creation resolves a handle and refresh remains current",
+      "decisions retain their own IDs and scope separately from the target reference",
+      "structured SDK errors retain trust, missing receipts and recorded certainty without raw diagnostics",
+      "invalid typed inputs and already aborted mutations never write the helper",
+      "queued typed deadline removes only unsent work and passes the remaining deadline to Rust",
+      "submitted typed deadline fences the original helper; saved recovery never resubmits",
+      "corrupt helper framing, cross-operation observations and wrong typed results fail closed",
+      "readiness/completion never accept an arbitrary status as a completed result",
+      "missing executable is not submitted and explicit close joins; hanging close reports incomplete cleanup",
+      "one owned operation rejects a changed host record identity across separate API calls",
+      "typed participants preserve Conversation scope and independent mutation/revision identity",
+      "invalid participant scopes, identity kinds and noninteger revisions never write",
+      "participant results and refresh observations cannot cross Conversation scope",
+      "Node capabilities reflect exposed interfaces and immutable feature sets, never helper media ownership",
+      "capability profile, original runtime, transport and duplicate feature violations fence the helper",
+      "typed status, decision and participant observations reject coercible nonstring enum values",
+      "malformed SDK error kind and certainty fence the original helper and preserve submission certainty",
+      "participant helper startup context proves no logical mutation was submitted and keeps read certainty",
+      "sent cancellation requests graceful original helper cleanup and joins before close returns",
+      "a helper ignoring graceful termination is force-killed at the original close deadline with incomplete cleanup",
+      "typed Session controls preserve scoped original operations, topology assertions and decision result types",
+      "invalid Session target/revision/update and restoration shapes never write helper input",
+      "Session results, current snapshots and decision metadata cannot cross their original scope",
+      "consultation retains original host record, full scope and captured intent through typed return recovery",
+      "consultation restoration and invalid return inputs are local and cannot change scope or continuation kind",
+      "consultation rejects changed host records, foreign retained results, duplicate topology and altered return metadata"
+    ],
+    "source_count": 243,
+    "changed_inputs": [],
+    "source_inputs_sha256": "afc77fe36ee3bfe8be35da4ed139161b0e5d6172f0b58952983775c367bf6aa8",
+    "log_sha256": "2d3c2dffacd22e20374a54a3d0537ed73ecc0c45dfa4a8f5c3c91259d8135054",
+    "node_version": "v26.7.0",
+    "typescript_version": "Version 7.0.2",
+    "finished_at": "2026-10-29T12:10:21.790764+00:00"
+  },
+  "node_negative_type_constraints": 48,
+  "codec_component": {
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "source_count": 188,
+    "source_inputs_sha256": "b5bc1aa11406bdb1e6348615c89cf3666969e081cafc741af9e0b1dad5e10560",
+    "results": [
+      {
+        "language": "node",
+        "passed": true,
+        "functions_passed": 4,
+        "exit_code": 0,
+        "log_sha256": "2b9a4a717e68c57248a74198015370c494ecade0a5e38ed83c51b25b16b15bca"
+      },
+      {
+        "language": "python",
+        "passed": true,
+        "functions_passed": 4,
+        "exit_code": 0,
+        "log_sha256": "feabb4add9e2ca3374e538560634d1ec97dc4f4ce89aab12f3d726e36ea9b2f6"
+      }
+    ],
+    "functions_passed": 8,
+    "seconds": 0.23883504187688231,
+    "scope": "Finite app-owned PCMU/VP8 codec example byte/framing/gap/expiry/source/size components. No helper, real listener, independent decoder, installed media or full G6-064 qualification."
+  },
+  "previous_unchanged_python_components": {
+    "evidence": "docs/evidence/gate-6/python-reliable-data.json",
+    "functions_passed": 217,
+    "negative_type_constraints": 43,
+    "repeated_in_this_increment": false,
+    "reason": "Python package runtime files are byte-identical; new codec components and the entire current installed native6 journey were run with the rebuilt helper."
+  },
+  "previous_binary_failure_and_backpressure_evidence": [
+    "docs/evidence/gate-6/sdk-media-ipc-framing.json",
+    "docs/evidence/gate-6/sdk-media-ipc-routing.json",
+    "docs/evidence/gate-6/sdk-media-ipc-data.json",
+    "docs/evidence/gate-6/python-media-packets.json",
+    "docs/evidence/gate-6/python-reliable-data.json",
+    "docs/evidence/gate-6/node-programmatic-media.json"
+  ],
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8302,
+    "source_inputs_sha256": "2de747c896592179294b6c21cb3909a7cf5c80557201c1fa4c470c847a6db5c5",
+    "build_log_sha256": "efcaf06b1f1cece8d6a289fba25e06ef8faa68b11a79ba11cc881fb4fc6eb11d",
+    "seconds": 101.22438545897603,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "artifacts": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "ef8a3e4bae08a8419a6aa8490d56442241e412648f267d2d6e8319f8ac62fbda"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "4c40d63ed42a376624f58a4653e46899202091b96fa18cf6d04123a37bf8bd88"
+    }
+  ],
+  "packages": {
+    "node": {
+      "codec_utility_sha256": "eaab11f9e82c8231706e8a9ae764881161a128d7f782dca016abd8c27ab39456",
+      "https_consumer_sha256": "5ce3bee6333bcb050a089555dd72b6eb256370c867685dc4c98112663a7b0b52",
+      "administrative_consumer_sha256": "364b3435a9935b1a76d7737f7eae80cfd24e2ba2f2b0b0978d2c97ee6023e75a",
+      "movement_consumer_sha256": "6de0a3e7199cfabfaca0d12e9860eb2a3957c80021615860f04210f0061a2f4c",
+      "consultation_consumer_sha256": "60a60c52000243feddc81722f38d2cc62f5bb0f0b254b21e2cb882778b3929bc",
+      "archive_sha256": "2b4856c3f8fa9309b9b0c720f3dcb1aee999e7a708e2ec04cb997a9ae03e31d3",
+      "installed_dist_matches": true,
+      "installed_dist_sha256": {
+        "browser_binding.d.ts": "6c9334e1bea13bab8379f3fcf084c68cca5451d7ab7db00cda68b188fac95f03",
+        "canonical_native.js": "064dbeaf8932dbe61b4a6b1103a6d295109fb38c32555d5454b4bc6586ea8196",
+        "browser_http.d.ts": "7030f7f0d808a4a877c1121c6c526c4c801b37d3ddbd7c339b53b78561640f9b",
+        "sdk_helper.js": "ef9ab82d24a965ee42ba9b869ea17a45f424978b82e53172c5cf01c007cfaeec",
+        "protocol.js": "5f35a3891e8ffe799fba11090fb9293e3392415fdc02bc7e62824d9b385e3904",
+        "control_endpoint.js": "50ebee5d40a892d9c764321d2cb99e8212e66571f5d3fb0f91f289a4390adf3a",
+        "browser_control_transport.js": "6930de9d2b9b103ca248813f84de24a4dcc2ccce419033222f813681882e6c63",
+        "node_administration.js": "4590a43dba6d3b34910ef2240c5a9cee8c38fcafcd4d12b142b0962407d32d33",
+        "browser_video.js": "6e9254ef29b9c83a57b03e5475b28926e9c73e826a2906448703cbc9d2d7ba3f",
+        "browser_video_stats.js": "cd452106181c8b12c9affe711711da9fab9306e1756c0ad4a731a577ed3f219e",
+        "agent_observations.js": "e83264b75f53f69e7d4752144cdbb56759e7be3236f2c42b645c674101c2301c",
+        "node_administration.d.ts": "18b8feb379d49b91affc3ba9778f44da151d62acb154daa27f33e371eed6194c",
+        "events.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "conversations.d.ts": "de03da148033a1b8232277f1938931d21486c165626240d857d7331a30a3a97d",
+        "media_diagnostics.d.ts": "cb4c2a664168556722173247f25518c7638bbc1144b01db1e7d6c2d220c6fc75",
+        "browser_ice.d.ts": "028f798c5917acd8bea3b6279dc8aa0a0711d13b8e39e0439facc6e95af70a30",
+        "membership.d.ts": "358f61a480fe2dce43920037fb6def413a025952bdf20fbf55f84b6c444ecec0",
+        "node_events.js": "0822bc972f542e83767f6e3a1fe99044942988ed4b13762aebcb97a62d10cc44",
+        "types.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "node_sdk.js": "c32cbc0ae4104e5f3ba579d32655c5a09dfdffc8d8a9c690f098e69213e18ebf",
+        "browser_ice.js": "2b094d3e33df549a00a828b01bb44f9a796f8d502b14367e9fe4fbc2e8b2b19f",
+        "events.d.ts": "6c66e646b713b0563610090ee3c2774df3e25cd9c11c6ea0506cbe2c1dc92af4",
+        "browser_video_setup.js": "1d8d4153f6aa61f6d61559038f07c89969eacc32ba9b933ec2e7d92e02f555e9",
+        "control_endpoint.d.ts": "91764dfb35c16fe3ee45c734871f27b10898faa6591abfdac0c3619b563d7673",
+        "canonical_error.d.ts": "ce4a687383a25cd224407b942732c03ac6bf439b0bfb9c361b761ddad1aea756",
+        "browser_codecs.d.ts": "fd185c2e3f68ddbda916e0531dfc91b619c349bf1a092368a139f1c94cad435a",
+        "node_incoming.js": "22d6470caee8639657da3ed2f16a2602507a663bd7a9caab5c90466eb291359c",
+        "native.js": "5364ae8bb52c8acb9ae46821c7cc9cf86aea8407e8b8696a3f0c0d138d79e683",
+        "node_raw.js": "50b8dedda65d27719fb1d8c0c848cf04407d42825d7a535dbee7e0c51e25f90a",
+        "errors.d.ts": "16843e525c53c8fb9d1db15eddeaaf3b34a6f3312924731453bea5f03a48b96f",
+        "browser_webrtc_signaling.js": "4cb08d4291d7d3a19a25aa1bf2715bb16adbe4baf7d14673e135274432525b17",
+        "browser_media_capture.d.ts": "91256fa9f65af438348dd23cfe7144742b984d8867d8152724a2cbf4be991039",
+        "node_movements.d.ts": "69344e0ff6bf587e9c1e554e80c25617f100fc47a4097fcee8afe5a2d20f255b",
+        "browser_receiver.js": "a39bcbc747ff1a8f0bd62ff490f7b39aa427cb85dab97de5181497a584f5e096",
+        "browser_rtcp.d.ts": "0a5fc8f2bf3dfd1c0e68870224e695cb0f02c0bb76d037a378f764484558c1f5",
+        "types.d.ts": "6ffc913330d917d8daa9b19f7d7712332d2ee90459149bff84da0a088af9ad4e",
+        "task_protocol.js": "929c06b33987c967062c50afdde34b5e3422095e1d02bc9c31cfd07a8e7d55fc",
+        "browser_audio_worklet.d.ts": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "browser_capture.d.ts": "615b9b9993ddca700fff132bb4b9473d8a5aa64f1d25aa8bc0f9215138f2c983",
+        "node_readers.js": "b4d66e7d417966b1529191cbb658a204e0c26074f20392013ade6db36e59b9c8",
+        "browser_receiver.d.ts": "863b62fc27269e55fff66d8625f4979a14e30f9ca58d4140ba97535738f7764a",
+        "browser_video_transform.js": "ff0415be3c9fa856007554888c25dcb9ebaa6e46595f1e32616643d98daf5dfc",
+        "canonical_validation.js": "475e7300cbbea41eba4058cf9bad53fa8fa5dfc19573336f9f4f947b3b1bf4f3",
+        "browser_rtp.js": "1efcb0d7d9266d770b90a79c378ecbf8142129210093046c8d49221136e6f0c8",
+        "canonical_http.d.ts": "e47ea284a96d35e52570444d8e9b90e588c25561df4be3a877e5bf3c9ba69a33",
+        "browser_transport_client.js": "5e97aef03c1e28413c3699d5a4b41319e05de0d7f5327b98659dd1deca898a62",
+        "membership_validation.js": "39bb089658843ea83eea415d25bac98abfc8f14fde9b807f1fd61a4e1ee08a2f",
+        "browser_voice.js": "f30238e557a8d2e3f90c035991621cddf1d45bb25fa2b0612a19c888575f9d50",
+        "node_connections.d.ts": "7a44ef30104b5140a27a35b1b5e5d0e1363710eb8356e7451de3012f58f665df",
+        "browser_client.js": "3c4f03060259ff096a9965a2ba3b08030990814299da5c97c0fdac3b807488a8",
+        "browser_webrtc_signaling.d.ts": "965731d82116b69818c1d4df0b5d1c0a3a52e6ed62f0c97f0de54799c731a705",
+        "index.js": "deab44756420ffb36a0ea9ec725a81ece00a7cb6227e85cf439caf9e0164a0d0",
+        "http.d.ts": "d9901d26770f7094a44f04c085952ee998b69dd5ce90648592487aa920b5d609",
+        "membership_validation.d.ts": "023a218f6498609205dd150f474e296351aa7f5252e9ace505fdb0384de8b58b",
+        "browser_video_stats.d.ts": "f4293c347d33461a83ab2505bab0a843bba7812e700dc56b853754f9d89ceffc",
+        "browser_codecs.js": "80ddfb3864a5278fcb1105979b899641605eb3fd8e92408c6a1cf68641103206",
+        "browser_voice_stats.js": "bd93aa728c0131e20a6fa016f27b2508d2d7d5e772434d474c6bbbd8117c25ec",
+        "browser_media_renderer.js": "38caed567e2c5f578a98c7dddfc5afc99cbecfb2d243c2643d62ab9ac8538452",
+        "canonical_validation.d.ts": "62f09cb738ceb0b8407340644130fadd434403d3fd50c74a4795f845bf8b540b",
+        "browser_rtp.d.ts": "b5f938b5d38fa75311859c630461fb9324fc042ee791fe66e853c23506117536",
+        "node_connections.js": "faa7a347dde0ed39eed736a493efde1c776e4a76f64783cfc9dd7a47e886555c",
+        "native.d.ts": "5c206744ff32914e5cab9db5eaf7614a70217cab66e02f22daa616af4c34f95e",
+        "contact_validation.d.ts": "e530fb7a25930e174fabf509211a3af5d064ddfd9b22cb221ce34994e905e387",
+        "browser_video_capture.js": "94f7966d4b8b6ea9e72a7945bd72f9308263dee55e078898e6cc02260c74f891",
+        "browser_video_keyframes.d.ts": "ad5bb07585033efe14ac77fca766f3292ebf743cd6cd2950fc30e1b0b0e11a3c",
+        "record_context.d.ts": "c59e4e50594280766b2b0b8e7f91e2482def57239e0d6406d71dbc47ebe71fed",
+        "tasks.js": "5bba952d286fe6910adbda28be5eabdf63cec46e90e557598cdff7e7a14a56a8",
+        "contacts.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "record_context.js": "a30a0d3f3df8db1ca583173fb3fb8c78cd68fa78bc7209b54f522fbd7d0d690d",
+        "node_receipts.d.ts": "6a1ea60ff6f81bc7f1620cb174efb9395c2c102d95894fd199aaca106a5f7dbe",
+        "sdk_helper.d.ts": "9e90d87637efdfd06c8d49b1cc6cf260e671ef7079c9b370ae2a93a1fdb17711",
+        "uctp_json.d.ts": "9d1e3b07ac98257c908de96cf17fe65e0309365f9b74d20ce1018dc2acf41c2b",
+        "browser_control_transport.d.ts": "ebc916f257503b6165c3791d5342aefb2b6d8b9ee151aabaa375d93334e1f181",
+        "canonical_native.d.ts": "884aef1a422a1d55cc966e3b5910248de9bf577bae1f6871ce63fc97d0681574",
+        "browser_media.d.ts": "1350bea51abbd5d78e29a62e20fa107bfadab79de63e6b38df8674afbd2cd37c",
+        "node_media_channel.d.ts": "9eecb5428c8d0ce6ce626b8e5b7dd292c3031262cfb21210336b0d544030f4a7",
+        "node_media_types.js": "a099a9ae15d484e6669bd64978564fe1b5b9e3336b4c191bc51c27f872d86849",
+        "browser_http.js": "ad7a77e48c405e73086cd726a646608e32958435086a36e4950d1f1814da7e17",
+        "uctp_signing.d.ts": "5c5abfebcb52b09ac2606bc719188df5fb12f148b4e434aefcc1c4389ef10bfa",
+        "browser_video_setup.d.ts": "2990f02427f88700cbfc8dab9e28e0214e6eed76a036bfa17dc49f2977ac13ff",
+        "browser_binding.js": "125e6499364f4725a470682f127d7c1aa33141567ac5787888fc2115014c82ba",
+        "canonical_http.js": "fa87706e698086a8c3cb5c8938d86f3dce8d84e0145bf4a017bf63ec29b51f04",
+        "task_protocol.d.ts": "ea1ff55d2f9b316040a18a6c90e0774813e86be36e55d6ae2eda608ac73e18b4",
+        "browser_client.d.ts": "0bf875422187209f8d58734149debe8de5d0b36df7e5ea33e21a7061528a7909",
+        "contact_validation.js": "4c81b0dcfa5590137b70db87884c3a957bbbd6151a81bee43951070a1079eaa1",
+        "errors.js": "90877123ab7e3358e825d6b5ba268c0772f0c29b2b3225c1a3aed40e32ee1f84",
+        "agent_observations.d.ts": "c230d270fd4a33948e6a66aee27f216f97260ba6fdb1b58f8d4b4eea049c997c",
+        "validation.js": "29d8b2dfd38ced5f481beb91daf70c078a948032cd21b9fc2db82b00738733d9",
+        "node_sdk.d.ts": "f8f3272a13583da197f97e5dc38bd9bfee1c55d578901c213e47261bdecf65ca",
+        "native_audio.d.ts": "9aa25311b2ad2a56a22521f3ee3b50de23300fe8c567d4d7a369684cd63ca182",
+        "validation.d.ts": "6c18a6a8246a0ba6393c22045eb39a0824021c648a40c49b097e17eae548096c",
+        "uctp_json.js": "7327ab50a23d220736d75f22946b0dcc6f19e0e0c6223e6012e445395b40211c",
+        "browser_media_renderer.d.ts": "a9e2eb6beaa17ea6335a439195bb115b41887c5ce12125f10751e190096aa31a",
+        "browser_audio_worklet.js": "e358fcd8a3478112adadb2e5fd7e5e094505b8ac742297da64810458201a0356",
+        "browser_transport_client.d.ts": "abf4f58279e716696072d393a90e2c53b62dd876b50adfc1cda54230d2d05a88",
+        "browser_video.d.ts": "f3349bc5d5cc1f17a3c3b590ddde7f95482e93b4c219d6d8d5a27de8e9312f8c",
+        "node_events.d.ts": "4cb375caf2592911443b25dbc72246fd78bab75b500d555f0611207a5cbfdc8d",
+        "conversations.js": "d5ab14d5a0dc4b75195c747184df5bc7945be644db654f39de7170975c50143d",
+        "protocol.d.ts": "2b8461bdbc961db44f615e892287f5443845ff80e09c62d8c5ec94f65ca2700e",
+        "node_media.d.ts": "72a5ae7b08710e99150a352896ed1ad1eac5270b8520dfd83620c34dad5a8b98",
+        "node_readers.d.ts": "590320b904e0555f6bf7ef331cf64cb4e15708c6fb573a176ecbc70121ed3416",
+        "membership.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "native_audio.js": "fd91c8d3b68bf7963269c184cea4f9a1d1053d45f0517d5e9d74f763c7faca18",
+        "node_media_channel.js": "8235c78171e4c370c08ea47e9578a346d85dc736d6333377b7fb32ebc730f7bd",
+        "browser_deadline.d.ts": "a180f9a3bc404d692a25caefd6ca150bfa5cfa6b934d58a0548b4fc02a169e54",
+        "transitions.d.ts": "5971b6f933cb715ceb8dab155ff5ad6a9f856b41a05877922e173d9627dd1dcc",
+        "uctp_wire.js": "90b0bdcd629900c019f762a449f843813136f53948c19839239ec23d0fffd576",
+        "transitions.js": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "browser_video_capture.d.ts": "07a3456758e41bb0ac445c8540bd6a766f925e39002f313801cde20b7c040a9e",
+        "browser_rtcp.js": "80ee2ae8aa07e291f5525ec715fac08d795cac0f6ac1bdee19dc3cecc267495b",
+        "uctp_wire.d.ts": "f79f790f26b64102d955889cb563d9841dbf28fadd12033850bfc41c0fa46ba0",
+        "media_diagnostics.js": "b7c99561b44fc369d0cdb7110cd8aaa96bd94f63d1d858f75e1d1c046aac70e5",
+        "browser_video_transform.d.ts": "91e45252a2c03501d86a9d260fe14ce9543daeb59886e3b4318d4f0fcea618da",
+        "node_sessions.js": "a6adfa0320221c1ae194ec59ec840cd71f93ed97063230b7fc63a45b3175beb1",
+        "operations.js": "b9ca188abb2664d3ab8c0134235a66f69401ec7ded9bc3e35b14a53bf751b3d7",
+        "node_sessions.d.ts": "0f96dbfe2088e7abadcecaedc693a2a655ef8e4b2210171734cb168d28b521bf",
+        "tasks.d.ts": "d41e991981dd5f9f538d6988e4b0b6734307d90a3209e3b8cb96cf96e157b1bf",
+        "uctp_signing.js": "90fb86fa778f95553378b0082511d0652f0ef92d4bd2cf76c5b474e37004d573",
+        "index.d.ts": "3dc2dd9b5bb8280ae43e1ed1799f409c20b2acf016ed978f5a08524dbccacc4d",
+        "browser_capture.js": "2e57b068d20243c6006e3c76fc8324012dcfa354e341ccc43b6304890785909e",
+        "browser.js": "24a01ef7215fee580aa125fd2171da2c9545b5a8d8d64ea57798d6d35087c41a",
+        "node_movements.js": "47b5451b4df6745a75d7804e8acf44b4fc6345198b911fbf4b9c661d11b3c537",
+        "browser_voice_stats.d.ts": "77200e7531b021bfcee95c809e4ff94162318ef89a858035ab368ed9c2a2cc79",
+        "node_incoming.d.ts": "fde35d376cf35d3ddb01e087be33a54c59650a114d115b5f90d55de36794597e",
+        "canonical_error.js": "c0163dfee7754a87fee594a7fabfd116e17c818a73b263a1aacca7734f992949",
+        "node_media.js": "04b0df62a4f6f2d39f389cf7a9dede6858431347d6642eb5394a02740986fa21",
+        "browser_media_capture.js": "c3b0b51c85867d133fe44fc3bb4faae29e28b23bcde7103759af3fbe13ce7dd2",
+        "browser_deadline.js": "862738ad2e9f7b7085bb0427de3afbc818700a63d9a80fb715c50cb2914b0fc9",
+        "browser_video_keyframes.js": "2391985351d208a18738b34139f0d1f4ca4b8ea0696b1a8459c7f8049fc4e272",
+        "node_raw.d.ts": "f77355510a648d8b001b0984c7e6ed359b3386dbc473c23bbedd25d4fce32eff",
+        "browser.d.ts": "c5cb704a666d08d9e1f28c0da76213e4dd1e7564fd87f5d70383e10c84348b93",
+        "operations.d.ts": "edc84a4011314e532e6a1d47351b0b03fada374e37edfb7013e0c585453de634",
+        "http.js": "f34fa24f5513abcde04d1cf402aeaafa32e37643c99bcd71409b4ebe8be13b16",
+        "browser_media.js": "721cdc15a07bf641cc4f9bf37d4eb2372fd08e3362bc9f5124ace8073ec6f9ad",
+        "event_validation.d.ts": "bbcd9d7bc17e7b0892ac59b4d49428fada621f3825edf1ea60d349e0895850a4",
+        "node_receipts.js": "c01b35670cf60f897fed658e3f4fcf4e8a9f8befabce5157c4d204aea3dbc080",
+        "node_media_types.d.ts": "949255373a4408637a7df49efffa282a45e16155d212676ff121637a22054634",
+        "task_operations.js": "8b844e26bb3a4eb49d54857e1b07bb64b846690705cb900a624a5a8e807d7d9c",
+        "browser_voice.d.ts": "3dd6d627445ca51b4ee1b6e6d7dccb31a8b5a1ef62082ad5e84ce6587ad39c9d",
+        "event_validation.js": "e2a11ad9974aa44cbbec8848d72d6400a6cc713256919b302e765d8ccb7bc5d2",
+        "contacts.d.ts": "ccdca6934872b9150b761aeca1bab1eb0943c7ee710d523b14b888af75a5dc62",
+        "task_operations.d.ts": "87b1e0a7c3f83c4242980661f3c5613b0415044a405838618022659c340a50f6"
+      },
+      "consumer_sha256": "6c7f591e73955ca087773ffb96bc5abed73e03a7c29e1ccf17349c8163968ddb",
+      "node_version": "v26.7.0",
+      "publication": false
+    },
+    "python": {
+      "codec_utility_sha256": "4cdcba24a8ba21044706591894f8718a5e66b30cd7dd30e30bbebd7726a07c0d",
+      "profile": "python-native-package/1",
+      "consumer_sha256": "684abcd28cf1ce106aeaa6ed73fc475d47d2b869667c095f5c891bd76efc894b",
+      "movement_consumer_sha256": "06da29cd6e40e2effe9c37ac83d5f3702f98e4ecdace1fafdd8535007c557a31",
+      "administrative_consumer_sha256": "edc8ecb21a1c377d5c0b87c0622e2610df098c86d37c7ee592344a06c80fc2f0",
+      "consultation_consumer_sha256": "7e0248e76806318af701f171662349eb1fe410b489b02db840ed5f3e865423df",
+      "wheel_sha256": "a3a1f71db86a086d267e0d2dddc3b2716b9609e983ead80ef3c81906ca2fbf16",
+      "installed_dist_matches": true,
+      "installed_dist_sha256": {
+        "membership_validation.py": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+        "task_protocol.py": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+        "sdk_media.py": "66a8e9bc531973f9b6e924cdf2f2e5291e1318fe6a5fdd45124d516c221804a7",
+        "record_context.py": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+        "sdk_http.py": "38a51ab0761daaa143a360a3c8377ec8662b8aca5bd2407894faf2e2dd902aac",
+        "sdk_data_types.py": "9451360d83c143f26fcbce40a0a930dd1858f53cc64c2ba8397635d674dae428",
+        "conversation_validation.py": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+        "_sdk_helper.py": "068ee6cbd9940c2e01d4b3bbcd0fbb49aafc95b402203bf03deea329e99de715",
+        "_sdk_media_channel.py": "ff6fd7a12f151c002ba97edb390ea879ec0f8c7abd9d2ffbc22b7acb50531e2e",
+        "sdk_types.py": "a86a11bb737e95952da05c2764dfafeb111df96687024a6da7a74b09c38d3758",
+        "agent_observations.py": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+        "task_types.py": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+        "protocol.py": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+        "client.py": "c12de5bee7e9f0ed9eda87ad1f2bbde9b53b3e8f6eb85521bdcab89f6ecfb6f3",
+        "sdk_sessions.py": "510a2ab8396227604b45af745b9c13c082148bdbc0cc71e7379d7fd9056c7c23",
+        "sdk_media_types.py": "96b52e487ef37ba0e6cba6fd72f9aed67504721cc5c8758a9685e8b47d142135",
+        "__init__.py": "8d2309ea58ea0b7ca536eab9232ba9af2f0651eecb64b757b8542d7cbfa3c4f1",
+        "native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+        "_sdk_validation.py": "c49304d4543b998a38af75edf387e6c23933a09137d10757bf89b652eff1df2c",
+        "membership_types.py": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+        "sdk_sync.py": "9528a95c538eed90982b19bc7dc5830b075e62586676fed8a15a34a6b1cc2fde",
+        "operations.py": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+        "_sdk_http_worker.py": "de6c7f54cd27feda4c4571962bccc8b79d7d119bbae63406175ef5e0be675b10",
+        "_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+        "sdk_incoming.py": "503135a9b5beeeffcb9d4a9406cf4185457c937244a3f47fb72113fd009da2c6",
+        "task_operations.py": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+        "event_validation.py": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+        "sdk_connections.py": "8c80b5a02d89126a67106028e0a1d216dbfbdf085ca5398b42c228ca2e93baa8",
+        "http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+        "sdk_administration.py": "1a9fc59fe32c056a5d758fb3a54702b4e9c9e694e4b52d6e70241c9addb876b6",
+        "_sdk_http_protocol.py": "d44c6583527cb034dd7f739aa3c715f10bd88fbe394d8a0b6dccd87bbf887b48",
+        "py.typed": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sdk_events.py": "d136d353ec64ade7572f7601aa144249baccd9fc3f86238a3f9c7061cf2c022e",
+        "sdk_raw.py": "4cfb039b4121785da554b91cc1edd605929ed108ab8e4c23d409395c4f774b4e",
+        "_sdk_readers.py": "0d887b2dc13ed8587794182ffeb48bb5faed1a5ac02493b8e22eca9ca405d0f1",
+        "errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+        "contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+        "native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+        "sdk_movements.py": "fe5801a08a4b91661973e59dd061375be0af2227c865d7808ab45349a2bd53ea",
+        "media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d"
+      },
+      "python_version": "3.14.7",
+      "synthetic_http_workers_joined": 6,
+      "native_server_qualified": false,
+      "publication": false
+    }
+  },
+  "fixture_generation": {
+    "profile": "connect-language-codec-fixtures/1",
+    "passed": true,
+    "ffmpeg_version": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "ffmpeg_sha256": "768609fb3f463ff9272bebac61478515f19e43c5343b0c60dde2e6230c40013e",
+    "seconds": 0.4065813331399113,
+    "scenes": [
+      {
+        "name": "node-source",
+        "frequency_hz": 440,
+        "video_color": "red",
+        "audio_sha256": "c0a4cb216db3ea7599113eea09c23a2e84e3b393e52caf717466c503fd8d8568",
+        "video_sha256": "5d086f86199d1ad7aa3a23064bbce94c3845f5247ebfa4a43eaff3770652e934",
+        "video_bytes": 27902
+      },
+      {
+        "name": "node-target",
+        "frequency_hz": 660,
+        "video_color": "blue",
+        "audio_sha256": "c42f83d81ad6b2a33821af3b5ea693e32ad1b0c519e08f13daf1f4d5c38c8b31",
+        "video_sha256": "7d682437d430d2029ec9a861b5e8e7ac27620dff6cb0d5024fce0d0d0d8224ae",
+        "video_bytes": 25134
+      },
+      {
+        "name": "python-source",
+        "frequency_hz": 880,
+        "video_color": "yellow",
+        "audio_sha256": "45f5eb62821e4abe57c7f1415139ff1e9a487f4c14f2a8106760620ceaa8c454",
+        "video_sha256": "1036eb718c907895a2ad8417b21b6671522c9c7ef8242ecadd6bab579e722431",
+        "video_bytes": 22946
+      },
+      {
+        "name": "python-target",
+        "frequency_hz": 1100,
+        "video_color": "cyan",
+        "audio_sha256": "978f9a186f76236c8f99ee3f853205d448ddb211540e33931545c1ca32679d53",
+        "video_sha256": "7f60eef46715472b307d997c30f55d825a61c74bd725bb1b4bd7225ca1f2b236",
+        "video_bytes": 26405
+      }
+    ],
+    "codec_children_joined": 8,
+    "scope": "Synthetic pre-encoded PCMU/VP8 files only. No transport, language API, decoded-media or platform qualification."
+  },
+  "joined_installed_totals": {
+    "language_consumers": 4,
+    "original_helpers": 30,
+    "local_validators": 16,
+    "python_http_workers": 4,
+    "servers": 10,
+    "independent_decoder_children": 16,
+    "synthetic_encoder_children": 8,
+    "physical_peers_drained": true,
+    "media_readers_drained": true
+  },
+  "decoded_totals": {
+    "identified_video_frames": 48,
+    "identified_audio_samples": 38400,
+    "rgb_bytes": 33177600,
+    "observer": "Independent Rust process owner launches bounded FFmpeg decoders; every video frame and each audio capture must identify the expected remote source, rejecting loopback/swaps. No language packet/assembler implementation is reused in this observer."
+  },
+  "journal_authority_fix": {
+    "affected_tasks": [
+      "G6-060",
+      "G6-062",
+      "G6-063"
+    ],
+    "before_fix_regression": {
+      "passed": false,
+      "exit_code": 101,
+      "seconds": 3.4012237498536706,
+      "test_executable_sha256": "c9df4de93959892ed30d7f884c75d7851d59d861c72180f596307df4dd9e9bae",
+      "log_sha256": "a455cf181f46466fc09a55529463fc42f375ab149936f457e34398e0402dd77e"
+    },
+    "before_fix_summary_sha256": "14998093f6bb93e40ce0da146f95aaabfe8d7230ae5576c2e15f69e2c2ddb8cc",
+    "finding": "Local capabilities and asynchronous source health did not prove current credential authority. An already pending journal fact was re-exposed without acknowledgement after revocation. The deterministic original-server managed-helper regression fails before the fix.",
+    "change": "Public Rust delivery and managed helper release now perform a finite, same-permission conversation.subscribe read after the original cursor with live=false and limit1. The result must retain finite/non-resync semantics. This never acknowledges, advances or renews the original source and never changes original mutation IDs. Managed completed work is rechecked before serialization.",
+    "after_fix": "Four actual journal functions pass, including retained-fact revocation under both algorithms, original facts/audience/cursor, restart and renewal alongside decoded native audio. Complete installed Node/Python current-authority journeys pass. A closed original event source is recorded separately from a request error; neither may return a fact."
+  },
+  "retained_failures": [
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 12.830420665908605,
+      "source_inputs_unchanged": true,
+      "log_sha256": "58f2d4dc521a4ef244e2d3b35ea8726a1dd4c9e63069c9344c66c9fd06fd65f2",
+      "failures": [
+        {
+          "certainty": "read-only",
+          "checkpoint": "media-av",
+          "column": null,
+          "command": null,
+          "kind": "unsupported",
+          "line": null,
+          "observedCertainty": null,
+          "observedHttpStatus": null,
+          "observedKind": null,
+          "observedState": null,
+          "phase": "failed"
+        }
+      ],
+      "summary_sha256": "2440f0c9cb32ad417ee8fe8f00299d6aad775ccb060ce59325bffd495f385d84",
+      "finding": "First Node AV fixture read the remote publisher label for native audio. Current negotiated audio is the local mixed sink; video/data use the selected remote label. Corrected the receive handle; no API fallback or deadline change."
+    },
+    {
+      "passed": false,
+      "source_inputs_unchanged": true,
+      "summary_sha256": "8252952190eaed89cb51a139cde75d56405a050009d43a091b438dad6ad7788c",
+      "finding": "Both Python algorithms stopped at the same incorrect audio receive handle before decoded-media qualification. Corrected to the current local mixed-audio sink.",
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 7.121864582877606,
+          "log_sha256": "67586f93ea63b915fc6f1ca16427f98db39050dccec173434a5ce19f7a0eb90d"
+        },
+        {
+          "algorithm": "ES256",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 7.28969300002791,
+          "log_sha256": "6bff246872612f760f3b492c567aa34199361e68e94c1329639c22fbe431b269"
+        }
+      ]
+    },
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 38.71862887497991,
+      "source_inputs_unchanged": true,
+      "log_sha256": "ac325f1bd2aa6f46e5b86e54f5e1b65218f715356baba0dca2ee9a960264a364",
+      "failures": [
+        {
+          "certainty": null,
+          "checkpoint": "events-bootstrap",
+          "column": null,
+          "command": null,
+          "kind": "deadline",
+          "line": null,
+          "observedCertainty": null,
+          "observedHttpStatus": null,
+          "observedKind": null,
+          "observedState": null,
+          "phase": "failed"
+        }
+      ],
+      "summary_sha256": "72c299005ce4e204891284fbb7892c7f217004d499fd7a79880a8e6587178085",
+      "finding": "Concurrent Node/Python rehearsal exceeded the existing 15s initial control phase at events-bootstrap. Retained as failed. Later serial complete runs pass unchanged bounds; scheduler contribution was not separately quantified."
+    },
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 67.06799287488684,
+      "source_inputs_unchanged": true,
+      "log_sha256": "3bc13278155e2bd797f399f45fb08bab8fd195d1fe0934cbc07f22b40e7c9716",
+      "failures": [
+        {
+          "certainty": null,
+          "checkpoint": "events-current-authority",
+          "column": 2,
+          "command": null,
+          "kind": "assertion",
+          "line": 310,
+          "observedCertainty": null,
+          "observedHttpStatus": null,
+          "observedKind": null,
+          "observedState": null,
+          "phase": "failed"
+        }
+      ],
+      "summary_sha256": "ba289c4275c487bf0f2d8f72fe5027a81fc70b0253ab93fffc784cc4ebb56631",
+      "finding": "EdDSA completed including decoded AV; ES256 failed the pre-existing current-authority event assertion. A later deterministic retained-fact regression confirmed a real authorization gap; this aggregate remains failed."
+    },
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 39.5208099167794,
+      "source_inputs_unchanged": true,
+      "log_sha256": "c3c40d5ed6bc3b638d82a86266d66d95b52d24bd42c0334edb540ec0b8a63068",
+      "failures": [
+        {
+          "certainty": null,
+          "checkpoint": "events-current-authority",
+          "column": 36,
+          "command": null,
+          "kind": "assertion",
+          "line": 312,
+          "observedCertainty": null,
+          "observedHttpStatus": null,
+          "observedKind": null,
+          "observedState": null,
+          "phase": "failed"
+        }
+      ],
+      "summary_sha256": "6bf91dfcd0460bf2940e36609524d6301915361bef4dd2837a825f28b283fc9b",
+      "finding": "A stricter EOF-versus-error check also failed at current authority. Returning an event remains forbidden. The shared helper was still capable of exposing a buffered fact after credential revocation; finite server reauthorization now guards release."
+    }
+  ],
+  "initial_codec_failure": {
+    "passed": false,
+    "node_functions_passed": 3,
+    "node_functions_failed": 1,
+    "log_sha256": "ec2caf444e3cb782e0e40fd53e546b40602a304a1f6f41266c1f676602d31011",
+    "finding": "ASCII decoding stripped the high bit of an IVF codec tag. Exact binary comparisons now reject it; all8 component functions pass, also including receive-side assembly overflow independent of the sender limit."
+  },
+  "package_preparation_failures": [
+    {
+      "log_sha256": "7fdd3783ca039c959d97c0199fda3bad88e68b038227e5587da67597869ac283",
+      "finding": "Default Python interpreter lacked the required pinned wheel builder; no native run occurred."
+    },
+    {
+      "log_sha256": "7fdd3783ca039c959d97c0199fda3bad88e68b038227e5587da67597869ac283",
+      "finding": "A stale private builder path was wrong. The existing pinned setuptools80.9.0/wheel0.45.1 builder prepared the final clean wheel successfully."
+    }
+  ],
+  "diagnostics": {
+    "functions_passed": 12,
+    "log_sha256": "0f0149f92c2183ef7246fcaec2decd1c651e8502ce280acaef0e7400e32feec8"
+  },
+  "format": {
+    "repository_script": "scripts/format.sh --check",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "example_prettier_check_exit_code": 0,
+    "example_prettier_log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+  },
+  "prepared_linux_lane": {
+    "executed": false,
+    "workflow": ".github/workflows/gate6-linux-fixtures.yml",
+    "workflow_sha256": "edae252829800beff6e0565388891cae18ae5267bf77ef39b562e749fada91b3",
+    "required_codec_dependency": "ffmpeg with libvpx",
+    "note": "Explicit installed SDK lanes now generate bounded synthetic codec inputs and validate independent source witnesses. Ubuntu x86_64 execution/version qualification remains in the installed matrix."
+  },
+  "limits": {
+    "request_ms": 4000,
+    "host_phase_seconds": 15,
+    "host_function_seconds": 90,
+    "bounds_increased": false,
+    "utility_media_deadline_seconds": 4,
+    "utility_file_bytes": 4194304,
+    "utility_vp8_frame_bytes": 262144,
+    "utility_rtp_bytes": 1180,
+    "utility_vp8_incomplete_ms": 200,
+    "utility_video_frames": 90,
+    "utility_pcmu_bytes": 24000,
+    "sdk_data_payload_bytes": 65536,
+    "default_server_data_bytes": 16384,
+    "rehearsal_server_data_bytes": 65536
+  },
+  "remaining": [
+    "G6-054 supported Linux/remote hosting profiles",
+    "G6-069 candidate packages and G6-070 full installed SDK/facade/version/platform matrix",
+    "Retained earlier original failures remain scoped in their own evidence and quality tasks",
+    "Gate6 acceptance"
+  ],
+  "no_new_model_remote_provider_execution": true,
+  "raw_logs_private_credentials_synthetic_media_and_state_excluded": true
+}

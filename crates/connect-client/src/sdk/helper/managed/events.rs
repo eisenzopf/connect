@@ -6,6 +6,7 @@ enum Observed {
     Fact(Option<JournalEvent>, Option<Cursor>),
 }
 pub(super) struct Reader {
+    client: Client,
     cid: ConversationId,
     after: Option<Cursor>,
     baseline: Option<Cursor>,
@@ -29,6 +30,7 @@ impl Reader {
             .events(after.clone(), RequestOptions::new(Duration::from_secs(30))?);
         let health = stream.helper_inbox();
         Ok(Self {
+            client: client.clone(),
             cid,
             after,
             baseline: None,
@@ -115,6 +117,20 @@ impl Reader {
                 let done = event.is_none();
                 if let Some(event) = &event {
                     if !ready {
+                        let remaining = until.saturating_duration_since(Instant::now());
+                        if remaining.is_zero() {
+                            return Err(failure(ErrorKind::Deadline));
+                        }
+                        // Work may have completed before a cancelled local wait.
+                        // Local capability support/health is not a current grant.
+                        self.client
+                            .reauthorize_journal(
+                                &self.cid,
+                                &event.cursor,
+                                RequestOptions::new(remaining)?,
+                            )
+                            .await?;
+                        self.health.check()?;
                         self.exposed = Some(EventAcknowledgement {
                             event_id: event.event_id.clone(),
                             cursor: event.cursor.clone(),

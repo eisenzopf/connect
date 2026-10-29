@@ -44,6 +44,8 @@ def prepare(output, package_output):
     observed = {str(p.relative_to(installed)): digest(p)
                 for p in installed.rglob('*') if p.is_file()}
     assert observed == files, 'Installed distribution differs from current build'
+    codec = project / 'packet-codec.mjs'
+    shutil.copyfile(ROOT / 'examples/sdk-media/packet-codec.mjs', codec)
     consumer = project / 'server-consume.mjs'
     shutil.copyfile(ROOT / 'sdk/tests/node_sdk_server_consumer.mjs', consumer)
     consultation = project / 'consultation-consume.mjs'
@@ -54,7 +56,7 @@ def prepare(output, package_output):
     shutil.copyfile(ROOT / 'sdk/tests/node_administrative_server_consumer.mjs', administrative)
     https = project / 'https-consume.mjs'
     shutil.copyfile(ROOT / 'sdk/tests/node_https_server_consumer.mjs', https)
-    result = {'https_consumer': str(https.relative_to(ROOT)), 'https_consumer_sha256': digest(https), 'administrative_consumer': str(administrative.relative_to(ROOT)), 'administrative_consumer_sha256': digest(administrative), 'movement_consumer': str(movement.relative_to(ROOT)),
+    result = {'codec_utility_sha256': digest(codec), 'https_consumer': str(https.relative_to(ROOT)), 'https_consumer_sha256': digest(https), 'administrative_consumer': str(administrative.relative_to(ROOT)), 'administrative_consumer_sha256': digest(administrative), 'movement_consumer': str(movement.relative_to(ROOT)),
               'movement_consumer_sha256': digest(movement), 'consultation_consumer': str(consultation.relative_to(ROOT)),
               'consultation_consumer_sha256': digest(consultation), 'archive': str(archive.relative_to(ROOT)), 'archive_sha256': digest(archive),
               'installed_dist_matches': True, 'installed_dist_sha256': observed,

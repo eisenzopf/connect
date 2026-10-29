@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {loadMedia,exchangeMedia} from './packet-codec.mjs';
 // Copy into an installed external Node project. Uses exported SDK API only.
 import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
@@ -27,6 +28,20 @@ const captureFailure=error=>{
  observedHttpStatus=error instanceof ConnectError&&Number.isSafeInteger(error.httpStatus)&&error.httpStatus>=100&&error.httpStatus<=599?error.httpStatus:null;
 };
 const progress=stage=>{checkpoint=stage;observedKind=null;observedCertainty=null;observedHttpStatus=null;emit({phase:'progress',checkpoint:stage});};
+async function audioVideoJourney(owner,other,session){
+ const completed=async promise=>(await (await promise).wait(opts)).value;
+ const peerSession=other.conversations.byId(session.conversationId).sessions.byId(session.id);
+ const offer=(where,side)=>completed(where.connections.offer({connectionId:'node-av-'+side,streams:{first:{id:'node-av-'+side+'-audio',kind:'audio',direction:'sendrecv',codecs:{first:'g.711-mu',rest:[]}},rest:[{id:'node-av-'+side+'-video',kind:'video',direction:'sendrecv',codecs:{first:'vp8',rest:[]}}]}},{...opts,operationId:'node-av-'+side+'-offer'}));
+ const source=await offer(session,'source'),target=await offer(peerSession,'target');
+ for(const [connection,remote]of [[source,'target'],[target,'source']])await completed(connection.streams.subscribe({selectors:{first:{stream:'node-av-'+remote+'-audio'},rest:[{stream:'node-av-'+remote+'-video'}]},expectedStreamRevision:connection.receiptStreamRevision},{...opts,operationId:'node-av-'+connection.id+'-select'}));
+ const capture=async(connection,side,remote,ssrc)=>{
+  const input=await loadMedia(spec.av_fixture_dir+'/node-'+side+'.mulaw',spec.av_fixture_dir+'/node-'+side+'.ivf');
+  return exchangeMedia(connection.streams.byId('node-av-'+side+'-audio').media,connection.streams.byId('node-av-'+side+'-video').media,connection.streams.byId('node-av-'+side+'-audio').media,connection.streams.byId('node-av-'+remote+'-video').media,input,spec.pid_file+'.av-'+side,ssrc);
+ };
+ const results=await Promise.allSettled([capture(source,'source','target',0x4e410001),capture(target,'target','source',0x4e420001)]);
+ for(const result of results){if(result.status==='rejected')throw result.reason;assert.equal(result.value.audioBytes,4800);assert.equal(result.value.videoFrames,6);}
+ for(const connection of [source,target])await completed(connection.end({reasonCode:1000,reason:'complete'},{...opts,operationId:connection.id+'-end'}));
+}
 async function mediaJourney(owner,other,room,native,solo,peer,own){
  const completed=async promise=>(await (await promise).wait(opts)).value;
  progress('media-packets');
@@ -39,6 +54,8 @@ async function mediaJourney(owner,other,room,native,solo,peer,own){
  const clock={ssrc:0x4e4d5031,ntp,rtp:160,packets:1,octets:160,cname:'synthetic-node-media'};
  if(selected.sourceClock)assert.equal((await audio.sendClock(2,clock,opts)).boundary,'local-media-queue');
  else await assert.rejects(audio.sendClock(2,clock,opts),e=>e instanceof NodeSdkError&&e.kind==='unsupported'&&e.certainty==='not-submitted');
+ progress('media-av');
+ await audioVideoJourney(owner,other,solo);
  progress('media-data-setup');
  const capabilities={audio:['g.711-mu'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
  const dataSession=await completed(room.sessions.invite({sessionId:'node-data-session',to:[peer.id],medium:'mixed',intent:'synthetic reliable data',capabilities},{...opts,operationId:'node-data-invite'}));
@@ -75,7 +92,7 @@ async function mediaJourney(owner,other,room,native,solo,peer,own){
   assert.equal((await owner.media.dataStats(opts)).queuedBytes,0);assert.equal((await other.media.dataStats(opts)).queuedBytes,0);
  }finally{await recovery.close(opts);}
  const end=await dataSession.refresh(opts);await completed(dataSession.end({reasonCode:1000,reason:'complete',expectedTopologyRevision:end.topologyRevision},{...opts,operationId:'node-data-session-end'}));
- emit({phase:'media-complete',native_media_negotiation:true,native_rtp_local_queue:true,native_clock_local_queue:selected.sourceClock,native_clock_unnegotiated_refused:!selected.sourceClock,
+ emit({phase:'media-complete',native_av_utility_capture:true,native_media_negotiation:true,native_rtp_local_queue:true,native_clock_local_queue:selected.sourceClock,native_clock_unnegotiated_refused:!selected.sourceClock,
   native_data_typed_round_trip:true,native_data_full_64k:true,native_data_original_recovery:true,native_data_one_effect_replay:true,native_data_changed_intent_refused:true,native_data_foreign_custody_refused:true});
 }
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
@@ -290,7 +307,9 @@ try {
   captureFailure(e);assert.ok(e instanceof ConnectError);assert.ok(['unauthorized','forbidden'].includes(e.code));assert.ok([401,403].includes(e.httpStatus));receiptHttpStatus=e.httpStatus;return true;
  });
  progress('events-current-authority');
- await assert.rejects(authorityEvents.next(),e=>{captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));return true;});
+ let eventsAuthorityOutcome;
+ try{const next=await authorityEvents.next();assert.deepEqual(next,{done:true,value:undefined});eventsAuthorityOutcome='original-source-ended';}
+ catch(e){captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));eventsAuthorityOutcome='request-failed';}
  await authorityEvents.close();
  await assert.rejects(client.conversations.byId(room.id).receipts(intent.messageId,opts),e=>{
   captureFailure(e);assert.ok(e instanceof NodeSdkError);assert.ok(['authentication','cancelled','transport-uncertain'].includes(e.kind));assert.ok(['read-only','refused'].includes(e.certainty));receiptFailure={kind:e.kind,certainty:e.certainty};return true;
@@ -305,7 +324,7 @@ try {
  await client.close(opts);await http.close(opts);assert.equal(await stopped(),5);
  const validators=(await readFile(spec.pid_file+'.validators','utf8')).trim().split('\n').filter(Boolean).map(Number);assert.equal(validators.length,3);assert.equal(new Set(validators).size,3);
  for(const pid of validators)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:5,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true,events_current_authority_no_data:true,events_close_control_live:true});
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:5,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true,events_current_authority_no_data:true,events_authority_outcome:eventsAuthorityOutcome,events_close_control_live:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.

@@ -42,6 +42,8 @@ def prepare(output, build_python=Path(sys.executable)):
     expected={p.name:digest(p) for p in (ROOT/'sdk/python/connect_sdk').iterdir() if p.is_file()}
     actual={p.name:digest(p) for p in installed.iterdir() if p.is_file()}
     assert actual==expected
+    codec=project/'packet_codec.py'
+    shutil.copyfile(ROOT/'examples/sdk-media/packet_codec.py',codec)
     consumer=project/'native-consume.py'
     shutil.copyfile(ROOT/'sdk/tests/python_native_server_consumer.py',consumer)
     movement=project/'movement-consume.py'
@@ -50,7 +52,7 @@ def prepare(output, build_python=Path(sys.executable)):
     shutil.copyfile(ROOT/'sdk/tests/python_administrative_server_consumer.py',administrative)
     consultation=project/'consultation-consume.py'
     shutil.copyfile(ROOT/'sdk/tests/python_consultation_server_consumer.py',consultation)
-    result={'profile':'python-native-package/1','python':str(python.relative_to(ROOT)),
+    result={'codec_utility_sha256':digest(codec),'profile':'python-native-package/1','python':str(python.relative_to(ROOT)),
         'consumer':str(consumer.relative_to(ROOT)),'consumer_sha256':digest(consumer),
         'movement_consumer':str(movement.relative_to(ROOT)),'movement_consumer_sha256':digest(movement),
         'administrative_consumer':str(administrative.relative_to(ROOT)),'administrative_consumer_sha256':digest(administrative),
