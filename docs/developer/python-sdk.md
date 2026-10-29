@@ -7,7 +7,8 @@ execution. The Python layer validates typed observations and original intent.
 The historical `NativeClient` application interface is not a fallback.
 
 The current control slice implements Conversation create/refresh, participant
-add/update/remove/refresh, message send/receipts and typed original-ID operation
+add/update/remove/refresh, Session lifecycle and native Connection/Stream controls,
+message send/receipts and typed original-ID operation
 status, completion, readiness, cancellation, reconciliation and recovery.
 Mutation await returns an `Operation[T]`; `wait()` returns `Completion[T]`.
 `wait_until_ready()` reports readiness without asserting completion. Interrupted,
@@ -67,7 +68,7 @@ The synchronous API remains G6-063 implementation work. Its intended owner is a
 dedicated event-loop thread with the same bounded dispatch, deadlines and single
 process lifetime; calling `asyncio.run()` independently for each method cannot
 share this client safely. Current public APIs are asynchronous. Remaining work
-also includes Session/Connection/Stream controls, movement/consultation,
+also includes movement/consultation,
 incoming/durable events, raw/HTTP parity, administrative provisioning, helper
 packaging and the clean installed-venv real-server/restart qualification.
 Capabilities advertise only Python interfaces currently exposed and supported
@@ -81,3 +82,27 @@ package, actual native transport, remote server, full SDK or Gate 6 acceptance.
 The earlier [Linux foundation matrix](../evidence/gate-6/python-sdk-helper-linux.json)
 qualifies only its recorded source on Python 3.11–3.14; this expanded control
 slice still requires its own Linux run.
+
+Session controls include initial solo or addressed invitation, nonempty extension
+of an existing Session, accept/reject/cancel/end and the four typed update
+variants. Session state revision and Session topology revision remain distinct;
+mutations use `TopologyRevision`. Rejection/cancellation returns a
+`SessionDecision`, while end/update/accept completion returns a Session handle.
+
+Connection control includes offer, quality/gates/codecs, end, Stream selection
+and scoped Connection/Stream refresh. `StreamRevision` authorizes negotiated
+stream controls; `StreamResourceRevision` is a separate resource observation.
+`receipt_stream_revision` is historical and is absent on a by-ID handle. Null
+selection bindings mean unavailable capture; an empty tuple means captured
+empty bindings. Nested codec/format/clock data stays immutable. Source-clock
+units retain the exact unsigned64-bit value. These handles provide control and
+observations; Python programmatic media remains G6-064 work.
+
+[The expanded control evidence](../evidence/gate-6/python-sdk-native-control.json)
+records 88 local runtime functions, including eight Session and eleven
+Connection/Stream functions, all five runtime modules and the public outline
+passing mypy, and twelve unsuppressed negative constraints. The first combined
+attempts failed because the Mac exhausted disk space; they are not passes.
+Only reproducible Python test caches were removed. The successful rerun retains
+raw logs privately. Linux and actual installed native/server qualification for
+this expanded source remain pending.

@@ -4,6 +4,9 @@ from connect_sdk import (
     Client, Conversation, ConversationId, ConversationRevision, DecisionReceipt,
     IdentityId, MessageAcceptance, MessageId, MutationOptions, NonEmpty, Operation,
     OperationId, Participant, ParticipantId, RequestOptions,
+    Connection, ConnectionId, ConnectionUpdateReceipt, OfferedStream,
+    Quality, Session, SessionDecision, SessionId, StreamId, StreamRevision,
+    StreamSelectionReceipt, StreamTarget, TopologyRevision,
 )
 
 
@@ -23,3 +26,16 @@ async def control(client: Client, options: RequestOptions) -> MessageAcceptance:
     assert_type(await sent.cancel(MutationOptions(OperationId('decision'), options)), Operation[DecisionReceipt])
     await recovered.status(options)
     return (await recovered.wait(options)).value
+
+
+async def session_control(client: Client, options: RequestOptions, mutation: MutationOptions) -> None:
+    room = client.conversations.by_id(ConversationId('room'))
+    invited = await room.sessions.invite(SessionId('session'), [], 'voice', 'intent', {'audio':['g.711-mu']}, mutation)
+    assert_type(invited, Operation[Session])
+    session = (await invited.wait(options)).value
+    assert_type(await session.reject(486, 'unavailable', TopologyRevision(2), mutation), Operation[SessionDecision])
+    offered = await session.connections.offer(ConnectionId('connection'), NonEmpty(OfferedStream(StreamId('audio'), 'audio', 'sendrecv', NonEmpty('g.711-mu'))), mutation)
+    assert_type(offered, Operation[Connection])
+    connection = (await offered.wait(options)).value
+    assert_type(await connection.update(Quality(250), StreamRevision(1), mutation), Operation[ConnectionUpdateReceipt])
+    assert_type(await connection.streams.subscribe(NonEmpty(StreamTarget(StreamId('audio'))), StreamRevision(1), mutation), Operation[StreamSelectionReceipt])

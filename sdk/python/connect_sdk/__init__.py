@@ -5,6 +5,8 @@ from .native_audio import NativeAudioClient
 from .http import HttpClient
 from .record_context import ContextRecord
 from .client import Client, Conversation, Participant, Operation, OperationKind, OperationKinds, OperationReference
+from .sdk_sessions import Session, SessionDecision, Sessions
+from .sdk_connections import Connection, Connections, Stream, Streams
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -12,6 +14,13 @@ from .sdk_types import (
     OperationSnapshot, ParticipantId, ParticipantSnapshot, RequestOptions, Scope, SdkError,
     SdkCancelledError, SessionId, SessionRevision, TopologyRevision, StreamRevision,
     ConnectionId, StreamId, EndpointId, Cursor,
+    SessionSnapshot, ParticipantLeave, RoleChange, MediumUpgrade, CodecRenegotiate,
+    Medium, InviteMedium, SessionUpdate,
+    CodecObservation, CodecOutcome, ConnectionCodecRenegotiate, ConnectionSnapshot, ConnectionUpdate,
+    ConnectionUpdateOutcome, ConnectionUpdateReceipt, Direction, GateOutcome, HoldConnection,
+    MediaFormat, Mute, NegotiatedStream, OfferedStream, ParticipantStreams, Quality, QualityOutcome,
+    ResumeConnection, SourceClock, StreamGateObservation, StreamResourceRevision, StreamSelectionReceipt,
+    StreamSelector, StreamSnapshot, StreamTarget,
 )
 
 __all__ = ["ConnectError", "NativeClient", "NativeAudioClient", "HttpClient", "ContextRecord", "TASK_PROFILE", "TaskCommand", "TaskDefinition", "TaskOutcome", "TaskRecord", "TaskScope"]
@@ -27,4 +36,12 @@ __all__ += [
     "MutationOptions", "NonEmpty", "OperationId", "OperationKey", "OperationSnapshot", "ParticipantId",
     "ParticipantSnapshot", "RequestOptions", "Scope", "SdkError", "SdkCancelledError", "SessionId", "SessionRevision",
     "TopologyRevision", "StreamRevision", "ConnectionId", "StreamId", "EndpointId", "Cursor",
+    "Session", "SessionDecision", "Sessions", "SessionSnapshot", "ParticipantLeave", "RoleChange",
+    "MediumUpgrade", "CodecRenegotiate", "Medium", "InviteMedium", "SessionUpdate",
+    "Connection", "Connections", "Stream", "Streams", "CodecObservation", "CodecOutcome",
+    "ConnectionCodecRenegotiate", "ConnectionSnapshot", "ConnectionUpdate", "ConnectionUpdateOutcome",
+    "ConnectionUpdateReceipt", "Direction", "GateOutcome", "HoldConnection", "MediaFormat", "Mute",
+    "NegotiatedStream", "OfferedStream", "ParticipantStreams", "Quality", "QualityOutcome", "ResumeConnection",
+    "SourceClock", "StreamGateObservation", "StreamResourceRevision", "StreamSelectionReceipt", "StreamSelector",
+    "StreamSnapshot", "StreamTarget",
 ]

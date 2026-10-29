@@ -9,7 +9,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 import os
 import re
-from typing import Any, Callable, Generic, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, cast
+
+if TYPE_CHECKING:
+    from .sdk_sessions import Session, SessionDecision, Sessions
+    from .sdk_connections import Connection
 
 from ._sdk_helper import _SdkHelper, _encode
 from .sdk_types import (
@@ -18,6 +22,7 @@ from .sdk_types import (
     IdentityKind, Json, MessageAcceptance, MessageId, MutationOptions, NonEmpty,
     OperationId, OperationKey, OperationSnapshot, OperationState, ParticipantId,
     ParticipantSnapshot, RequestOptions, Scope, SdkError, freeze, identifier,
+    ConnectionUpdateReceipt, StreamSelectionReceipt,
 )
 
 T = TypeVar("T")
@@ -219,6 +224,31 @@ def _participant(value: Any, client: Client, key: OperationKey) -> Participant:
     return client.conversations.by_id(value["conversationId"]).participants.by_id(value["id"])
 
 
+def _session(value: Any, client: Client, key: OperationKey) -> Session:
+    from .sdk_sessions import session_handle
+    return session_handle(value, client, key)
+
+
+def _session_decision(value: Any, client: Client, key: OperationKey) -> SessionDecision:
+    from .sdk_sessions import session_decision
+    return session_decision(value, client, key)
+
+
+def _connection(value: Any, client: Client, key: OperationKey) -> Connection:
+    from .sdk_connections import connection_handle
+    return connection_handle(value, client, key)
+
+
+def _connection_update(value: Any, client: Client, key: OperationKey) -> ConnectionUpdateReceipt:
+    from .sdk_connections import connection_update
+    return connection_update(value, client, key)
+
+
+def _stream_selection(value: Any, client: Client, key: OperationKey) -> StreamSelectionReceipt:
+    from .sdk_connections import stream_selection
+    return stream_selection(value, client, key)
+
+
 @dataclass(frozen=True)
 class OperationKinds:
     conversation_create: OperationKind[Conversation] = field(default_factory=lambda:OperationKind("conversation.create", "conversation_create", _conversation, _PROOF))
@@ -228,6 +258,17 @@ class OperationKinds:
     conversation_participant_remove: OperationKind[Participant] = field(default_factory=lambda:OperationKind("conversation.participant.remove", "conversation_participant_remove", _participant, _PROOF))
     operation_cancel: OperationKind[DecisionReceipt] = field(default_factory=lambda:OperationKind("operation.cancel", "operation_cancel", _decision, _PROOF))
     operation_reconcile: OperationKind[DecisionReceipt] = field(default_factory=lambda:OperationKind("operation.reconcile", "operation_reconcile", _decision, _PROOF))
+    session_invite: OperationKind[Session] = field(default_factory=lambda:OperationKind("session.invite", "session_invite", _session, _PROOF))
+    session_accept: OperationKind[Session] = field(default_factory=lambda:OperationKind("session.accept", "session_accept", _session, _PROOF))
+    session_update: OperationKind[Session] = field(default_factory=lambda:OperationKind("session.update", "session_update", _session, _PROOF))
+    session_end: OperationKind[Session] = field(default_factory=lambda:OperationKind("session.end", "session_end", _session, _PROOF))
+    session_reject: OperationKind[SessionDecision] = field(default_factory=lambda:OperationKind("session.reject", "session_reject", _session_decision, _PROOF))
+    session_cancel: OperationKind[SessionDecision] = field(default_factory=lambda:OperationKind("session.cancel", "session_cancel", _session_decision, _PROOF))
+    connection_offer: OperationKind[Connection] = field(default_factory=lambda:OperationKind("connection.offer", "connection_offer", _connection, _PROOF))
+    connection_update: OperationKind[ConnectionUpdateReceipt] = field(default_factory=lambda:OperationKind("connection.update", "connection_update", _connection_update, _PROOF))
+    connection_end: OperationKind[Connection] = field(default_factory=lambda:OperationKind("connection.end", "connection_end", _connection, _PROOF))
+    stream_subscribe: OperationKind[StreamSelectionReceipt] = field(default_factory=lambda:OperationKind("stream.subscribe", "stream_subscribe", _stream_selection, _PROOF))
+    stream_unsubscribe: OperationKind[StreamSelectionReceipt] = field(default_factory=lambda:OperationKind("stream.unsubscribe", "stream_unsubscribe", _stream_selection, _PROOF))
 
 
 _KINDS = OperationKinds()
@@ -255,6 +296,10 @@ class Operations:
                 if scope.conversation_id is None or scope.session_id is not None:
                     return _invalid()
             if expected.command.startswith("operation.") and scope.connection_id is not None:
+                return _invalid()
+            if expected.command.startswith("session.") and (scope.conversation_id is None or scope.session_id is None or scope.connection_id is not None):
+                return _invalid()
+            if expected.command.startswith(("connection.","stream.")) and scope.connection_id is None:
                 return _invalid()
             key = OperationKey(value["operation_id"], value["command"], scope)
             return Operation(self._client, OperationReference(key, expected, freeze(value), _PROOF))
@@ -349,6 +394,11 @@ class Conversation:
     def participants(self) -> Participants:
         return Participants(self._client, self.id)
 
+    @property
+    def sessions(self) -> Sessions:
+        from .sdk_sessions import Sessions
+        return Sessions(self._client, self.id)
+
     async def refresh(self, options: RequestOptions) -> ConversationSnapshot:
         def decode(value):
             if (not _object(value, ("id", "revision", "closed", "participants")) or value["id"] != self.id
@@ -366,7 +416,7 @@ class Conversation:
         return await self._client._helper.request({"type":"conversation_refresh", "conversation_id":self.id}, options, decode)
 
     async def send(self, message_id: MessageId, to: NonEmpty[ParticipantId], text: str, options: MutationOptions) -> Operation[MessageAcceptance]:
-        if type(to) is not NonEmpty or len(to.rest) >= 4096 or type(text) is not str:
+        if type(to) is not NonEmpty or len(to.rest) >= 65536 or type(text) is not str:
             return _invalid()
         recipients = [_id(to.first), *(_id(id) for id in to.rest)]
         if len(recipients) != len(set(recipients)):
@@ -386,7 +436,7 @@ class Conversations:
         return Conversation(self._client, _id(id))
 
     async def create(self, participants: Sequence[IdentityId], policy: Literal["persistent", "ephemeral"], options: MutationOptions) -> Operation[Conversation]:
-        if type(participants) not in (list, tuple) or len(participants) > 4096 or type(policy) is not str or policy not in ("persistent", "ephemeral"):
+        if type(participants) not in (list, tuple) or len(participants) > 65536 or type(policy) is not str or policy not in ("persistent", "ephemeral"):
             return _invalid()
         return await self._client._submit({"type":"conversation_create", "participants":[_id(id) for id in participants], "policy":policy}, self._client.operation_kinds.conversation_create, Scope(), options)
 

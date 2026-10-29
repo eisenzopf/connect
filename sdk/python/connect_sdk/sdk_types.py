@@ -6,7 +6,10 @@ import asyncio
 import re
 import threading
 from types import MappingProxyType
-from typing import Generic, Literal, Mapping, NewType, Protocol, Sequence, TypeAlias, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, Literal, Mapping, NewType, Protocol, Sequence, TypeAlias, TypeVar, Union
+
+if TYPE_CHECKING:
+    from .sdk_connections import Connection
 
 ConversationId = NewType("ConversationId", str)
 ParticipantId = NewType("ParticipantId", str)
@@ -22,8 +25,12 @@ ConversationRevision = NewType("ConversationRevision", int)
 SessionRevision = NewType("SessionRevision", int)
 TopologyRevision = NewType("TopologyRevision", int)
 StreamRevision = NewType("StreamRevision", int)
+StreamResourceRevision = NewType("StreamResourceRevision", int)
 T = TypeVar("T")
 IdentityKind: TypeAlias = Literal["human", "ai", "system", "external"]
+Medium: TypeAlias = Literal["audio", "video", "screen", "data"]
+InviteMedium: TypeAlias = Literal["voice", "video", "voice+video", "screen-share", "text-chat", "mixed"]
+Direction: TypeAlias = Literal["sendonly", "recvonly", "sendrecv", "inactive"]
 OperationState: TypeAlias = Literal["accepted", "preparing", "ready", "committing", "completed", "cancelled", "failed", "interrupted", "unknown"]
 DeliveryState: TypeAlias = Literal["queued", "accepted", "delivered", "read", "failed", "unknown"]
 DeliveryProvenance: TypeAlias = Literal["journal", "client_reported", "provider_observation", "local_attempt"]
@@ -189,6 +196,202 @@ class ConversationSnapshot:
     revision: ConversationRevision
     participants: Sequence[ParticipantSnapshot]
     closed: bool
+
+
+@dataclass(frozen=True, repr=False)
+class SessionSnapshot:
+    id: SessionId
+    conversation_id: ConversationId
+    state: str
+    media: Sequence[Medium]
+    intent: str | None
+    capabilities_offer: Json
+    codec_preferences: Sequence[str]
+    is_main: bool
+    revision: SessionRevision
+    topology_revision: TopologyRevision
+    created_at: int
+    updated_at: int
+    ended_reason: str | None
+
+
+@dataclass(frozen=True)
+class ParticipantLeave:
+    participant_id: ParticipantId
+
+
+@dataclass(frozen=True)
+class RoleChange:
+    participant_id: ParticipantId
+    role: str
+
+
+@dataclass(frozen=True)
+class MediumUpgrade:
+    media: NonEmpty[Medium]
+
+
+@dataclass(frozen=True)
+class CodecRenegotiate:
+    codec_preferences: NonEmpty[str]
+
+
+SessionUpdate: TypeAlias = ParticipantLeave | RoleChange | MediumUpgrade | CodecRenegotiate
+
+
+@dataclass(frozen=True, repr=False)
+class ConnectionSnapshot:
+    id: ConnectionId
+    conversation_id: ConversationId
+    session_id: SessionId
+    generation: int
+    stream_revision: StreamRevision | None
+    state: str
+
+
+@dataclass(frozen=True, repr=False)
+class NegotiatedStream:
+    id: StreamId
+    medium: Medium
+    direction: Direction
+    codec: Json
+    stream_local_id: int | None
+
+
+@dataclass(frozen=True, repr=False)
+class CodecObservation:
+    parameters: NegotiatedStream
+    stream_generation: int
+    connection_generation: int
+
+
+@dataclass(frozen=True, repr=False)
+class StreamGateObservation(CodecObservation):
+    state: Literal["active", "paused"]
+    source_muted: bool
+    held_direction: Direction | None
+
+
+@dataclass(frozen=True, repr=False)
+class CodecOutcome:
+    resources_changed: bool
+    streams: Sequence[CodecObservation]
+
+
+@dataclass(frozen=True, repr=False)
+class GateOutcome:
+    action: Literal["hold", "resume", "mute", "unmute"]
+    streams: Sequence[StreamGateObservation]
+
+
+@dataclass(frozen=True)
+class QualityOutcome:
+    interval_ms: int
+
+
+ConnectionUpdateOutcome: TypeAlias = CodecOutcome | GateOutcome | QualityOutcome
+
+
+@dataclass(frozen=True, repr=False)
+class ConnectionUpdateReceipt:
+    connection: Connection
+    connection_generation: int
+    stream_revision: StreamRevision
+    outcome: ConnectionUpdateOutcome
+
+
+@dataclass(frozen=True, repr=False)
+class StreamSelectionReceipt:
+    connection: Connection
+    connection_generation: int
+    stream_revision: StreamRevision
+    resources_changed: bool
+    bindings: Sequence[CodecObservation] | None
+
+
+@dataclass(frozen=True)
+class StreamTarget:
+    stream: StreamId
+
+
+@dataclass(frozen=True)
+class ParticipantStreams:
+    participant: ParticipantId
+    kinds: NonEmpty[Medium] | None = None
+
+
+StreamSelector: TypeAlias = StreamTarget | ParticipantStreams
+
+
+@dataclass(frozen=True)
+class OfferedStream:
+    id: StreamId
+    kind: Medium
+    direction: Direction
+    codecs: NonEmpty[str]
+
+
+@dataclass(frozen=True)
+class Mute:
+    action: Literal["mute", "unmute"]
+    streams: NonEmpty[StreamId]
+
+
+@dataclass(frozen=True)
+class HoldConnection:
+    direction: Literal["sendonly", "recvonly", "inactive"]
+    streams: NonEmpty[StreamId] | None = None
+
+
+@dataclass(frozen=True)
+class ResumeConnection:
+    streams: NonEmpty[StreamId] | None = None
+
+
+@dataclass(frozen=True)
+class Quality:
+    interval_ms: int
+
+
+@dataclass(frozen=True)
+class ConnectionCodecRenegotiate:
+    codec_preferences: NonEmpty[str]
+    streams: NonEmpty[StreamId] | None = None
+
+
+ConnectionUpdate: TypeAlias = Mute | HoldConnection | ResumeConnection | Quality | ConnectionCodecRenegotiate
+
+
+@dataclass(frozen=True, repr=False)
+class MediaFormat:
+    codec: str
+    clock_rate: int
+    channels: int | None
+    width: int | None
+    height: int | None
+
+
+@dataclass(frozen=True, repr=False)
+class SourceClock:
+    source_id: str
+    generation: int
+    units_per_second: int
+    synchronized: bool
+
+
+@dataclass(frozen=True, repr=False)
+class StreamSnapshot:
+    id: StreamId
+    conversation_id: ConversationId
+    session_id: SessionId
+    connection_id: ConnectionId
+    medium: Medium
+    state: str
+    resource_revision: StreamResourceRevision
+    direction: Direction | None
+    format: MediaFormat | None
+    clock: SourceClock | None
+    ownership: Literal["observation", "local-source", "local-sink", "local-duplex"]
 
 
 @dataclass(frozen=True)

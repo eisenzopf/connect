@@ -195,7 +195,7 @@ createInterface({input:process.stdin}).on('line',line=>{
       actual={connection:conn(a),connectionGeneration:1,streamRevision:2,outcome};
      }else if(a.kind==='stream_subscribe'||a.kind==='stream_unsubscribe')actual={connection:conn(a),connectionGeneration:1,streamRevision:2,resourcesChanged:true,bindings:config.capture==='unavailable'?null:config.capture==='empty'?[]:[binding()]};
      result={Ok:{snapshot:snap,value:actual}};
-   } else if(['cancel','reconcile'].includes(a.action.type))result={Ok:reference(a.action.mutation.operation_id,'operation.'+a.action.type,a.reference.scope)};
+   } else if(['cancel','reconcile'].includes(a.action.type))result={Ok:reference(a.action.mutation.operation_id,'operation.'+a.action.type,Object.fromEntries(Object.entries(a.reference.scope).filter(([key])=>key!=='connection_id')))};
    else result={Ok:snap};
  }
  if(config.mode==='admin-conflict'&&a.type==='administrative_provision'&&a.command.alias==='changed')result={Err:{kind:'conflict',certainty:'refused',operation:null,problem:null,observation:null}};

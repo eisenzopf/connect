@@ -64,6 +64,8 @@ def main():
     assert all(re.fullmatch(r'[A-Za-z0-9_.]+',name) for name in functions)
     owned=[name for name in functions if '.OwnedSdkHelper.' in name]
     public=[name for name in functions if '.TypedPythonSdk.' in name]
+    sessions=[name for name in functions if '.TypedPythonSessions.' in name]
+    connections=[name for name in functions if '.TypedPythonConnections.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
@@ -71,7 +73,8 @@ def main():
     if args.types_python:
         type_environment=dict(environment,MYPYPATH=str(ROOT/'sdk/python'))
         commands=[('positive', ['sdk/python/connect_sdk/client.py','sdk/python/connect_sdk/sdk_types.py',
-                                'sdk/python/connect_sdk/_sdk_helper.py','sdk/tests/python_sdk_positive.py']),
+                                'sdk/python/connect_sdk/_sdk_helper.py','sdk/python/connect_sdk/sdk_sessions.py',
+                                'sdk/python/connect_sdk/sdk_connections.py','sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
         for label,paths in commands:
@@ -86,20 +89,22 @@ def main():
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type','arg-type','arg-type','arg-type','arg-type','attr-defined'],
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*10+['attr-defined']*2,
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==69 and len(owned)==17 and len(public)==16 and re.search(r'^Ran 69 tests in ',log,re.M)
+                          and len(functions)==88 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11
+                          and re.search(r'^Ran 88 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public typed Conversation/Participant/message/Operation/recovery/capability/receipt control slice through a synthetic child, plus existing fake SDK/HTTP/codec regression tests. No original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public Conversation/Participant/Session/Connection/Stream/message/Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
             'log_sha256':digest(private/'tests.log'),'unexpected_async_diagnostics':unsafe,
             'failed_functions':failed_functions,'raw_logs_and_temporary_state_excluded_from_artifact':True,
             'functions_passed':len(functions),'owned_sdk_helper_functions_passed':len(owned),'typed_public_sdk_functions_passed':len(public),'functions':functions,
+            'typed_session_functions_passed':len(sessions),'typed_connection_functions_passed':len(connections),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),
