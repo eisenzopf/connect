@@ -1,0 +1,112 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "commit": "a50c3e970af2b0a10ebcd78ed3c7501dc6b489d0",
+  "run_id": 40808972676,
+  "aggregate_passed": false,
+  "matrix_complete": true,
+  "scope": "Original a50 Linux artifacts. Both required cleanup lanes fail in the test fixture generation rewind at native_wire.rs897:14, before any installed native/HTTPS scenes execute. Corrected fixture and terminal/restart cleanup followup are in95a91980 with29 local Store functions passing. No result for resumed native profile8, HTTPS profile3 or candidate adoption is inferred from this earlier run.",
+  "matrix": [
+    {
+      "commit": "a50c3e970af2b0a10ebcd78ed3c7501dc6b489d0",
+      "run_id": 40808972676,
+      "artifact_id": 12869814249,
+      "zip_sha256": "0595eeabf7c044c4ccf13b1e489fabda35c898145cb1d56574b29d29318944d8",
+      "node_matrix": 22,
+      "aggregate_passed": false,
+      "guarded_inputs": 8228,
+      "tracked_contents_and_modes_verified": 4136,
+      "source_inputs_sha256": "8d52179d45d24f2998aa02fca2b556e4b5efa26f91995c1cb33b5aece3a646cb",
+      "functions_passed_before_failure": 85,
+      "failed_steps": [
+        {
+          "name": "native-offer-cleanup-generation",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.6653079299999263,
+          "log_sha256": "b848b87c4f6a9d4700d57d22e641a1215534fd9192cd234a33466eba560181c0",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1243 filtered out; finished in 0.66s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-store/src/connection_control/tests/native_wire.rs",
+              "line": 897,
+              "column": 14
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "installed_native_or_https_scenes_executed": false
+    },
+    {
+      "commit": "a50c3e970af2b0a10ebcd78ed3c7501dc6b489d0",
+      "run_id": 40808972676,
+      "artifact_id": 12870078934,
+      "zip_sha256": "ebd45d63363d70b15ac2f75566c69cd45bfc537d9d5a6a8ccb059dee2945f41c",
+      "node_matrix": 26,
+      "aggregate_passed": false,
+      "guarded_inputs": 8228,
+      "tracked_contents_and_modes_verified": 4136,
+      "source_inputs_sha256": "8d52179d45d24f2998aa02fca2b556e4b5efa26f91995c1cb33b5aece3a646cb",
+      "functions_passed_before_failure": 85,
+      "failed_steps": [
+        {
+          "name": "native-offer-cleanup-generation",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 0.5149275630001284,
+          "log_sha256": "b348a0cd1a60a31ba2b4bd9889a62eef022577f1324d93156b8fb440a194ee30",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1243 filtered out; finished in 0.49s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-store/src/connection_control/tests/native_wire.rs",
+              "line": 897,
+              "column": 14
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_progress": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "installed_native_or_https_scenes_executed": false
+    }
+  ],
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false
+}

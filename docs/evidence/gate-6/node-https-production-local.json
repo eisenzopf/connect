@@ -1,0 +1,99 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "commit": "95a919804745cf8ce25de5b04152b347be371055",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "passed": true,
+  "results": [
+    {
+      "algorithm": "EdDSA",
+      "passed": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 3.957783290883526,
+      "log_sha256": "7c3b1e45f29660297b2038ca3059225a9cd78e07107ab5d6d98d19d9135fb1fa",
+      "witness": {
+        "algorithm": "EdDSA",
+        "completed": {
+          "current_https_new_mutation_refused": true,
+          "current_https_read_refused": true,
+          "current_https_receipts_refused": true,
+          "current_https_replay_refused": true,
+          "phase": "completed"
+        },
+        "helper_processes": 0,
+        "independent_native_original_record": true,
+        "independent_store_original_cause": true,
+        "initial": {
+          "application_queued_receipt_current": true,
+          "current_https_journal": true,
+          "event_id_sha256": "af1384ef135472a2dc2f54ff4b07df014dad25e624e835a464e6e046c7cb6519",
+          "original_replay_record": true,
+          "phase": "initial",
+          "record_id": "opr_efecef50-454c-4517-9952-8cecf21a965b"
+        },
+        "media_readers_drained": true,
+        "node_process_joined": true,
+        "one_original_message_and_operation": true,
+        "physical_peers_drained": true,
+        "profile": "node-https/3",
+        "queued_receipt_without_delivery_or_read": true,
+        "servers_joined": 2,
+        "zero_forbidden_message_and_operation": true
+      }
+    },
+    {
+      "algorithm": "ES256",
+      "passed": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 0.9082396668381989,
+      "log_sha256": "c873c7ba617859599fe0e938eb948a2ab353ee960921aafe10d8644e61efe750",
+      "witness": {
+        "algorithm": "ES256",
+        "completed": {
+          "current_https_new_mutation_refused": true,
+          "current_https_read_refused": true,
+          "current_https_receipts_refused": true,
+          "current_https_replay_refused": true,
+          "phase": "completed"
+        },
+        "helper_processes": 0,
+        "independent_native_original_record": true,
+        "independent_store_original_cause": true,
+        "initial": {
+          "application_queued_receipt_current": true,
+          "current_https_journal": true,
+          "event_id_sha256": "253691154e405f16e94972f5c0d2174435ddef82bdc00bc7964ad87019ab832d",
+          "original_replay_record": true,
+          "phase": "initial",
+          "record_id": "opr_c1e5dab5-2729-4600-a00f-15d5a722ee2a"
+        },
+        "media_readers_drained": true,
+        "node_process_joined": true,
+        "one_original_message_and_operation": true,
+        "physical_peers_drained": true,
+        "profile": "node-https/3",
+        "queued_receipt_without_delivery_or_read": true,
+        "servers_joined": 2,
+        "zero_forbidden_message_and_operation": true
+      }
+    }
+  ],
+  "source_count": 8232,
+  "source_inputs_sha256": "9f3154d930ec328e575478123a2fe1f2058c7bedeaaaf6892ce6a06a6c652833",
+  "source_inputs_unchanged": true,
+  "test_executable_sha256": "5021c23da2ea109c76a660de8e0d0cfd9552b91ce0222f5c7a357468e178159f",
+  "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+  "node_version": "v26.7.0",
+  "system": "Darwin",
+  "machine": "arm64",
+  "request_budget_ms": 4000,
+  "phase_deadline_seconds": 15,
+  "whole_function_deadline_seconds": 90,
+  "scope": "Original local installed Node production HTTPS control only; not Linux/remote/media/full SDK/acceptance qualification."
+}

@@ -148,3 +148,14 @@ absence remain required. Initial runs caught an invalid test generation rewind
 and an omitted restart-recovery path; both are corrected with retained failed
 logs.23 extracted SQL vectors also pass. Candidate worker custody/adoption still
 needs implementation; these are Store results, not actual replacement media proof.
+
+The [current local production HTTPS checks](../evidence/gate-6/node-https-production-local.json)
+pass both EdDSA and ES256 with the installed external Node26 consumer. Each
+checks the exact queued journal receipt, zero delivery/read claims, independent
+original native and Store/journal cause, one original mutation, current revocation
+and joined server/process ownership. All8,232 guarded inputs and the executable
+stay unchanged; request4s/phase15s/function90s limits remain. This qualifies the
+recorded macOS arm64 HTTPS subset; Linux and full SDK qualification remain open.
+The [originala50 Linux artifacts](../evidence/gate-6/node-native-a50.json) stop at
+the older cleanup test generation rewind before any installed SDK scene executes,
+so they supply no result for current profiles8 or3.
