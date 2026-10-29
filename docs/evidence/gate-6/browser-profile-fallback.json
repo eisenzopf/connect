@@ -1,0 +1,288 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "a6df9532bcff7d4ff196611ad60fcd224e8a0e2d",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Transport-bound credential selection prerequisite for unified browser SDK. Actual owned Chrome156.0.8078.48 over local HTTPS/WebTransport/WSS and the production TypeScript SDK; current original claim resolution through IndexedDB vault. No typed handle/UI/capture/render, personal devices, media quality, remote/Linux, complete G6-061 or Gate6 acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "sdk/typescript/src/browser_transport_client.ts": {
+      "sha256": "6d0fe9cf3765b9bec3ce8637f1dbfb178bb6407bdacfe9d15642d73e2b3038f5",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment_store.ts": {
+      "sha256": "3d6e7f6a8c579810c35611d2f06d19e52c856887b251488d174ac5a1b037f837",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment.ts": {
+      "sha256": "ddafa100ed8768fd5e3f1fecda7c9656671ea46d32ee01510da50fe4580f03a4",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "ed84ac18b365605ce0c0934b6098485e1532f8e0978685443d6ee69723c982d7",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_transport_client.js": {
+      "sha256": "ef90d68d0e06d7a92231e56dc276a6298ab3864d13bb018670c77670dd7ff029",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_transport_client.d.ts": {
+      "sha256": "758044d5395225e56f04ba1f836fc629800eaac6855fc2e536f4f3a406146a15",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.js": {
+      "sha256": "46681de22e4c9a3b9f34680d53f845d0b388d78cca52241dc1591fe3228d7f10",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.d.ts": {
+      "sha256": "7873867869d96e0d629b5ab91dfbe68aa8ded215aed4b124484f05c511940f0b",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment.js": {
+      "sha256": "4e795847269f060c1e81eef144c8baa39828187f41f90ce3b4d685f5b7a6aa63",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "7d975a7bf926a486c5aef96c45643556e35b3a52fa8ad68a91a352c459c39827",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "7628cd53effae69e10216be20bead3be20ecf63213cf7c0d5567ec36c75727d7",
+      "mode": 420
+    },
+    "sdk/tests/browser_transport_client.test.mjs": {
+      "sha256": "715dfe868e70c1bfc27c1adbd33443ab60967bdb2e109be7a5960ff76b71ef16",
+      "mode": 420
+    },
+    "sdk/tests/browser_enrollment.test.mjs": {
+      "sha256": "ff4e96fcee0fc55f20dbec3051210e9e5a2d2a6d51929333aef7b8cfcecbf6df",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "a9779a13ca3cff57dcc127b8609bd7f1c76d8f7fc2c18326ef215b9f0b5b6d90",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "e1f311957cf3aa47080dc3def2cfff64680737e623bc17ad9fc7aa195e5031ee",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_profile_fallback.rs": {
+      "sha256": "ea891d5db931e037dae3ef9aa8b72c4193e89247588fcf47ef22daae63735918",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/profile-fallback.mjs": {
+      "sha256": "37cc6964278fe976dbb5b86d9d0440bc43f9407ca2dabcaf296225e1bb827191",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "77d7278893271eab1dc4de8a76413823a67862e509052a658601fee5000a41de",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "b1bea111192faa33d16d4f7ecc9f78013eb173e58cd9be9a93a798a802781281",
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          394
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 4.344452874967828,
+        "log_sha256": "125e7d425b711b4ecb5883886aabe8dfb0d32f7550624dcf6620d2d909f706c3"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          9
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 32.176999625051394,
+        "log_sha256": "32b40e2743c3c329d8a437e34f177a4b505de5c7c52bb25a29a0f185f88c4d0f"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "explicit_wss_reconnect": 1,
+      "reused_preferred_credential_refusal": 1,
+      "wrong_profile_authentication_refusal": 1,
+      "revoked_profile_refusal": 1,
+      "revoked_cached_peer_refusal": 1,
+      "credentials": 2,
+      "device": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "3268baddfc6404caab021265de9259a3b57cc1c30b98ce9dc73368ed66383961",
+    "scope": "Control/claim/authentication only. Communication mutation commands are not dispatched by this fixture; no independent wire mutation counter is claimed."
+  },
+  "implemented": [
+    "BrowserTransportClient.resolveEnrollment receives explicit target transport and resolves once per usable physical contact, including fallback. Unavailable/unconfigured contacts skip resolution. Every resolver and physical attempt shares one original deadline and cancellation owner.",
+    "Each result is captured for that attempt and must keep the same configured Identity/Device. Network-opening failure can choose the other explicit contact; metadata failure, grant uncertainty, authentication refusal and authentication-stage timeout stop the round.",
+    "BrowserEnrollmentStore.resolveProfiles captures saved profile names, trusted contact/server verification metadata and bounded certificate pins. It loads and checks exactly the requested saved transport profile, then claims its original completion ID under current authority with the round signal. It never approves new intent or generates replacement IDs.",
+    "Profiles may have separate approved credentials/keys and endpoints for the same Device. An enrollment cannot authorize another physical transport. Explicit reconnect re-resolves the selected profile and preserves its original grant intent.",
+    "Malformed secret-bearing URLs fail with fixed enrollment errors; no raw URI is exposed by these installation/profile configuration errors."
+  ],
+  "behavior": [
+    "Unit boundary:54browser transport functions pass, including new foreign Actor/Device fallback refusal before WSS opening, per-contact captured metadata, one budget covering both resolvers, no late result adoption, and existing original-operation/no-resubmission recovery cases.",
+    "Actual Chrome: two separately approved Ed25519 profiles share one Device but have distinct WT/WSS credential/key/Endpoint bindings. Direct preferred WT connects through the public saved-profile resolver.",
+    "Owned loopback UDP blackhole forces bounded350ms WT opening timeout. The same round independently resolves original WSS profile and authenticates WSS. Explicit WSS reconnect rechecks the saved original profile with a new physical epoch.",
+    "A resolver deliberately reusing preferred WT credential for WSS fallback fails actual WSS authentication. Deliberate WSS credential on live trusted WT also fails authentication and does not fall back.",
+    "After WSS revoke, public vault resolver refuses the original claim with forbidden before physical authentication. A separate deliberate cached revoked bearer fails actual WSS authentication. Both refuse another transport/resolution round.",
+    "Trusted profile names/contacts are captured before mutable app draft edits. Final grant effects remain exactly2credentials/2keys/1Device/2Endpoints through repeated original claim resolution and reconnect.",
+    "Final full TypeScript suite394pass; actual combined root9pass with explicit installed Chrome cases included,0ignored. Previous native/browser enrollment, stolen/expired challenge, rotation/current replay/admin isolation and16physical-origin handshake fixtures remain green."
+  ],
+  "trust_scope": "Owned fresh Chrome profile and one synthetic leaf SPKI exception for HTTPS/WSS plus explicit short-lived WT hash. No system trust or personal browser state changes. Local synthetic fixtures only; no model/account/provider/named remote execution.",
+  "prior_attempts": [
+    {
+      "passed": true,
+      "scope": "Initial manual-selector browser checkpoint before vault resolver helper",
+      "summary": {
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 9.07580745802261,
+        "log_sha256": "a02d12130c2588fde6336db146b19a39f83469cc3adf536d49728f7b8deba57f"
+      }
+    },
+    {
+      "passed": false,
+      "scope": "First helper combined run",
+      "summary": {
+        "passed": false,
+        "results": [
+          {
+            "phase": "sdk",
+            "passed": true,
+            "exit_code": 0,
+            "timed_out": false,
+            "functions_passed": [
+              394
+            ],
+            "source_inputs_unchanged": true,
+            "seconds": 4.388608000008389,
+            "log_sha256": "555403fc580bb45733a14edb62601532f75cf3939d2d5e9a50ec01ebfeed1a1c"
+          },
+          {
+            "phase": "enrollment",
+            "passed": false,
+            "exit_code": 101,
+            "timed_out": false,
+            "functions_passed": [],
+            "source_inputs_unchanged": true,
+            "seconds": 25.31792658311315,
+            "log_sha256": "1f0d875dcfe3bd78a47eb1509d9becf06adc56394fd9a49a8681e0ba5ad1fbdc"
+          }
+        ]
+      },
+      "observation": "SDK394and8old enrollment functions passed. New fixture expected revoked saved profile to fail physical authentication, but vault recovery correctly refused earlier at the original claim. Corrected assertion requires exact forbidden before peer opening and added separate actual cached-bearer peer refusal; no production authorization weakened."
+    }
+  ],
+  "remaining": [
+    "Unified transport-independent typed Client/Conversation/Participant/Session/Connection/Stream/Operation handles matching frozen contract, with bounded operation progress/recovery and original references.",
+    "Incoming invitation handles/UI and rejection/retry flow without manually copied Conversation/Session IDs; authoritative refresh/journal before decisions.",
+    "Device/source selection, capture/render handles, permission denial, keyboard-accessible pending/ready/failed UI and explicit persisted user intent.",
+    "Same complete typed workflow over WT and fallback with actual permission and owned synthetic screen-capture qualification; no personal device/screen capture inferred from this control fixture."
+  ],
+  "open_gate_findings": [
+    "Existing installed positive provisioning CLI15second subprocess timeout remains unresolved; no production CLI change.",
+    "Three unmodified full-tree TSformat findings remain protocol.ts/record_context.ts/task_protocol.ts; changed files format separately."
+  ],
+  "privacy": "Raw logs, local credentials/challenges, browser profiles and TLS material remain ignored under.local. Public record contains hashes/counts/scoped observations only.",
+  "final_checks": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "prepare",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.14443341689184308,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "phase": "rust-format",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 2.65458504203707,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "changed-typescript-format",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.19191524991765618,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      {
+        "phase": "plan",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.09020187496207654,
+        "log_sha256": "9021b366c56098d27e7694008ab172c62cfc73011448652a02ca0770222d51bf"
+      },
+      {
+        "phase": "navigation",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08844795799814165,
+        "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+      },
+      {
+        "phase": "inventory",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.07372979121282697,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "application",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.7684688749723136,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      },
+      {
+        "phase": "canonical",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04550350015051663,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04817770794034004,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "diff",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.023642791900783777,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  }
+}

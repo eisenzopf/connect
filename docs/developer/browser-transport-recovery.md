@@ -20,28 +20,33 @@ const connection = await BrowserTransportClient.connect({
     allowFallback: true,
     timeoutMs: 10000,
     attemptTimeoutMs: 3000,
-    resolveEnrollment: async ({ signal }) => {
+    resolveEnrollment: async ({ signal, transport }) => {
         // Trusted application enrollment flow: scoped bearer, enrolled Device,
         // private signing CryptoKey and current server verification trust.
-        return await loadCurrentBrowserEnrollment({ signal });
+        return await loadCurrentBrowserEnrollment({ signal, transport });
     },
 });
 console.log(connection.status.selectedTransport);
 ```
 
 Enrollment resolution and both possible physical attempts share one original
-deadline. Each round resolves enrollment once and captures its values before
-contacting either endpoint. A missing preferred endpoint/API or a physical
+deadline. Each usable contact resolves its own current enrollment with an explicit
+`transport` (`webtransport` or `wss-webrtc`) before opening. Unsupported or absent
+contacts are skipped before resolving. Each result is captured for that physical
+attempt. A fallback must keep the same Identity/Device; its approved credential
+and key may be different. A missing preferred endpoint/API or a physical
 opening failure can select the other configured secure contact. Authentication
 refusal, signature failure, invalid configuration and authentication-stage
 timeout terminate the round. Browsers can hide the cause of a physical network
 failure; the SDK cannot classify every opaque browser TLS/network rejection.
-The alternate contact still requires platform TLS and the captured enrolled
-server signing trust. Development certificate hashes apply only to WT.
+The alternate contact requires its independently configured TLS and enrolled
+server signing trust. Resolver failure or uncertainty ends the round; it cannot
+trigger another credential or extend the deadline. Development certificate hashes apply only to WT.
 
 There is no automatic reconnection, mutation queue or mutation replay. A lost
 physical connection clears the selected path. Explicit `reconnect()` first
-closes the old peer, resolves fresh enrollment and authenticates again. Actor
+closes the old peer, resolves fresh enrollment for each usable contact and
+authenticates again. Actor
 and Device IDs must match the owner. A concurrent reconnect is refused; closing
 the owner cancels pending enrollment/opening and prevents late adoption.
 
@@ -163,3 +168,34 @@ one handoff effect per scene. All owned cleanup joins pass. This completes the
 local implementation contract while preserving the failed initial baseline and
 its unresolved cause. Linux/remote deployment, frozen media quality profiles,
 independent Gate 6 acceptance and publication remain separately unqualified.
+
+## Saved enrollment profiles
+
+Use the vault's profile resolver to select already approved original enrollments
+without exposing bearers in application resolver code:
+
+```ts
+resolveEnrollment: vault.resolveProfiles({
+    webtransport: { name: "saved-wt-enrollment", contact: trustedWtContact },
+    "wss-webrtc": { name: "saved-wss-enrollment", contact: trustedWssContact },
+})
+```
+
+Configure the corresponding `endpoints` from those trusted contacts. Each saved
+profile must belong to the same Identity/Device and its own selected transport.
+The resolver captures names, contacts, server signing trust and certificate pins,
+loads the original state, checks the profile, and claims the original completion
+ID with the round's cancellation signal. It never approves another enrollment or
+generates replacement IDs. Current revocation or uncertain claim observation
+stops selection. This also permits the first completion of an already approved
+saved profile; its original intent must have been persisted before approval.
+
+The resolver's per-contact behavior replaces the earlier one-capture-per-round
+behavior, which could reuse a WT-only credential on WSS. Existing ordinary
+credentials usable on both transports may be returned for both explicit contacts;
+an enrolled credential cannot cross its immutable transport binding.
+
+[Profile fallback evidence](../evidence/gate-6/browser-profile-fallback.json)
+records the actual owned-Chrome positive and refusal cases. This is a G6-061
+transport prerequisite. Unified typed handles, invitation UI, device selection,
+capture/render and keyboard-accessible UI qualification remain G6-061 work.

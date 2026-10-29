@@ -311,7 +311,12 @@ export class BrowserEnrollmentSession {
             )
                 invalid();
         }
-        const url = new URL(contact.url);
+        let url: URL;
+        try {
+            url = new URL(contact.url);
+        } catch {
+            return invalid();
+        }
         if (
             url.href !== contact.url ||
             url.protocol !==

@@ -197,7 +197,13 @@ export class BrowserEnrollmentSession {
                 pin.value.byteLength !== 32)
                 invalid();
         }
-        const url = new URL(contact.url);
+        let url;
+        try {
+            url = new URL(contact.url);
+        }
+        catch {
+            return invalid();
+        }
         if (url.href !== contact.url ||
             url.protocol !==
                 (r.transport === "webtransport" ? "https:" : "wss:") ||

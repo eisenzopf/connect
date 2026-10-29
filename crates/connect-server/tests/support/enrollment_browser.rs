@@ -11,9 +11,9 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-struct Page {
-    stop: CancellationToken,
-    task: tokio::task::JoinHandle<()>,
+pub(super) struct Page {
+    pub(super) stop: CancellationToken,
+    pub(super) task: tokio::task::JoinHandle<()>,
 }
 #[derive(Clone)]
 struct Backend {
@@ -24,7 +24,7 @@ struct Backend {
     http: reqwest::Client,
     files: Arc<HashMap<String, Vec<u8>>>,
 }
-async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> Page {
+pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> Page {
     let mut files = HashMap::new();
     let sdk = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk/typescript/dist");
     for entry in std::fs::read_dir(sdk).unwrap() {
@@ -42,6 +42,15 @@ async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> 
         std::fs::read(
             Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("tests/fixtures/gate6-enrollment-browser/client.mjs"),
+        )
+        .unwrap(),
+    );
+    files.insert("/profile-fallback".into(), b"<!doctype html><meta charset=utf-8><title>Isolated profile fallback</title><script type=module src=/browser-profile-fallback.mjs></script>".to_vec());
+    files.insert(
+        "/browser-profile-fallback.mjs".into(),
+        std::fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-enrollment-browser/profile-fallback.mjs"),
         )
         .unwrap(),
     );
@@ -100,7 +109,7 @@ async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> 
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
-                        let mime=if path=="/" {"text/html"}else{mime};
+                        let mime=if path=="/" || path=="/profile-fallback" {"text/html"}else{mime};
                         let header=format!("HTTP/1.1 {status} Fixture\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len());
                         let _=stream.write_all(header.as_bytes()).await;let _=stream.write_all(&body).await;let _=stream.shutdown().await;
                     }).await;});
@@ -112,7 +121,7 @@ async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> 
     });
     Page { stop, task }
 }
-struct Chrome(Child);
+pub(super) struct Chrome(Child);
 impl Drop for Chrome {
     fn drop(&mut self) {
         let id = self.0.id();
@@ -128,7 +137,7 @@ impl Drop for Chrome {
         let _ = self.0.wait();
     }
 }
-fn launch(profile: &Path, log: &Path, spki: &str) -> Chrome {
+pub(super) fn launch(profile: &Path, log: &Path, spki: &str) -> Chrome {
     let binary = std::env::var_os("CONNECT_GATE6_CHROME")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".into());
@@ -158,7 +167,7 @@ fn launch(profile: &Path, log: &Path, spki: &str) -> Chrome {
     }
     Chrome(command.spawn().unwrap())
 }
-async fn debug_port(chrome: &mut Chrome, profile: &Path) -> u16 {
+pub(super) async fn debug_port(chrome: &mut Chrome, profile: &Path) -> u16 {
     let until = tokio::time::Instant::now() + Duration::from_secs(12);
     loop {
         if let Ok(text) = std::fs::read_to_string(profile.join("DevToolsActivePort")) {
@@ -174,7 +183,7 @@ async fn debug_port(chrome: &mut Chrome, profile: &Path) -> u16 {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 }
-async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase: &str) -> Value {
+pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase: &str) -> Value {
     let input = h.f.temp.path().join(format!("browser-{phase}.json"));
     std::fs::write(
         &input,

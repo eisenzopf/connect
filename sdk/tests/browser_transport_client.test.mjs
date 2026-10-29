@@ -72,14 +72,14 @@ test('insecure browser context refuses before resolving fresh credentials',()=>f
   assert.equal(resolved,false);assert.equal(f.sockets.length,0);
 }));
 
-test('one original deadline covers resolver work and both physical attempts',()=>fixture(async f=>{
+test('one original deadline includes both contact resolvers and refuses a late fallback before opening',()=>fixture(async f=>{
   const start=performance.now();
   await assert.rejects(()=>BrowserTransportClient.connect(config(f,{timeoutMs:90,attemptTimeoutMs:45,resolveEnrollment:async()=>{
     await wait(25);return f.options;
   }})),{code:'timeout'});
   const elapsed=performance.now()-start;assert.ok(elapsed>=70&&elapsed<250,`bounded elapsed ${elapsed}`);
-  assert.equal(f.wtCalls.length,1);assert.equal(f.sockets.length,1);assert.ok(f.transports.every(t=>t.didClose));assert.equal(f.sockets[0].readyState,3);
-  // An attempt's timeout closes that physical; no extra round or resolver runs.
+  assert.equal(f.wtCalls.length,1);assert.equal(f.sockets.length,0);assert.ok(f.transports.every(t=>t.didClose));
+  // The fallback resolver cannot adopt a late result or extend the original round.
 },{wtMode:'timeout',wsMode:'timeout'}));
 
 test('expired or cancelled enrollment cannot adopt a late resolver result',()=>fixture(async f=>{
@@ -145,12 +145,18 @@ test('one reconnect round owns enrollment and close prevents late adoption',()=>
   late.resolve(f.options);await wait(5);assert.equal(owner.status.state,'closed');assert.equal(f.sockets.length,1);
 }));
 
-test('fallback captures one enrollment even when the caller edits its draft during the failed attempt',()=>fixture(async f=>{
-  let calls=0;const ownerPromise=BrowserTransportClient.connect(config(f,{attemptTimeoutMs:30,resolveEnrollment:async()=>{calls++;return f.options;}}));
+test('each physical contact captures its separately resolved credential before opening',()=>fixture(async f=>{
+  const contexts=[],original={...f.options,device:{...f.options.device},signing:{...f.options.signing},server:{...f.options.server}};
+  const ownerPromise=BrowserTransportClient.connect(config(f,{attemptTimeoutMs:30,resolveEnrollment:async context=>{contexts.push(context);return contexts.length===1?f.options:original;}}));
   while(f.wtCalls.length===0)await wait(1);
   f.options.identityId='different';f.options.device.id='different';f.options.server.keyId='different';f.options.signing.keyId='different';f.options.credential='different';
-  const owner=await ownerPromise;assert.equal(calls,1);assert.equal(owner.status.selectedTransport,'wss-webrtc');
+  const owner=await ownerPromise;assert.deepEqual(contexts.map(c=>c.transport),['webtransport','wss-webrtc']);assert.deepEqual(contexts.map(c=>[c.reason,c.physicalEpoch]),[['initial',1],['initial',1]]);assert.equal(owner.status.selectedTransport,'wss-webrtc');
   assert.equal(f.sent.find(f=>f.type==='auth.hello').payload.device.id,'wss_device');owner.close();
+},{wtMode:'timeout'}));
+
+for(const changed of ['actor','device'])test(`fallback refuses a separately resolved foreign ${changed} before WSS opens`,()=>fixture(async f=>{
+ const contexts=[];await assert.rejects(()=>BrowserTransportClient.connect(config(f,{attemptTimeoutMs:10,resolveEnrollment:async context=>{contexts.push(context);return context.transport==='webtransport'?f.options:{...f.options,...(changed==='actor'?{identityId:'other'}:{device:{...f.options.device,id:'other'}})};}})),{code:'authentication'});
+ assert.deepEqual(contexts.map(c=>c.transport),['webtransport','wss-webrtc']);assert.equal(f.sockets.length,0);assert.equal(f.transports[0].didClose,true);
 },{wtMode:'timeout'}));
 
 test('explicit development certificate pins are captured before the next fallback attempt',()=>fixture(async f=>{

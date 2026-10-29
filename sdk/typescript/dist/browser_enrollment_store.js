@@ -1,6 +1,7 @@
 import { ConnectError } from "./errors.js";
 import { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
 import { BrowserEnrollmentSession, } from "./browser_enrollment.js";
+import { validateSigningIdentity } from "./uctp_signing.js";
 import { browserOrigin, id, invalid, json, normalizeOffer, normalizeRequest, origin, snapshot, } from "./browser_enrollment_contract.js";
 /** Origin-local IndexedDB vault. Saves a nonextractable client key and complete
  * original intent before approval; it never persists an issued bearer. Each
@@ -163,6 +164,85 @@ export class BrowserEnrollmentStore {
     }
     async load(name) {
         return BrowserEnrollmentSession.restore(await this.#read(name));
+    }
+    /** Capture trusted contacts and saved profile names. Each physical attempt
+     * recovers only its original approved profile under current authorization;
+     * this never approves a grant or invents replacement intent after failure. */
+    resolveProfiles(profiles) {
+        if (!profiles ||
+            typeof profiles !== "object" ||
+            Array.isArray(profiles) ||
+            !Object.keys(profiles).length ||
+            Object.keys(profiles).some((p) => p !== "webtransport" && p !== "wss-webrtc"))
+            invalid();
+        const captured = new Map();
+        for (const path of ["webtransport", "wss-webrtc"]) {
+            const profile = profiles[path];
+            if (profile === undefined)
+                continue;
+            id(profile.name);
+            const contact = profile.contact;
+            if (!contact ||
+                typeof contact.url !== "string" ||
+                contact.url.length > 2048)
+                invalid();
+            let url;
+            try {
+                url = new URL(contact.url);
+            }
+            catch {
+                return invalid();
+            }
+            if (url.href !== contact.url ||
+                url.protocol !==
+                    (path === "webtransport" ? "https:" : "wss:") ||
+                url.username ||
+                url.password ||
+                url.search ||
+                url.hash ||
+                url.port === "0")
+                invalid();
+            validateSigningIdentity(contact.server, "verify");
+            const pins = contact.serverCertificateHashes;
+            if (pins !== undefined &&
+                (path !== "webtransport" ||
+                    !Array.isArray(pins) ||
+                    pins.length > 8))
+                invalid();
+            const copied = pins?.map((pin) => {
+                if (pin.algorithm !== "sha-256" ||
+                    !(pin.value instanceof ArrayBuffer ||
+                        ArrayBuffer.isView(pin.value)) ||
+                    pin.value.byteLength !== 32)
+                    invalid();
+                return {
+                    algorithm: "sha-256",
+                    value: ArrayBuffer.isView(pin.value)
+                        ? Uint8Array.from(new Uint8Array(pin.value.buffer, pin.value.byteOffset, pin.value.byteLength)).buffer
+                        : pin.value.slice(0),
+                };
+            });
+            captured.set(path, {
+                name: profile.name,
+                contact: {
+                    url: url.href,
+                    server: { ...contact.server },
+                    serverCertificateHashes: copied,
+                },
+            });
+        }
+        return async ({ transport, signal }) => {
+            if (signal.aborted)
+                throw new ConnectError("cancelled", "Enrollment resolution cancelled; retain original state");
+            const profile = captured.get(transport);
+            if (!profile)
+                throw new ConnectError("unsupported-transport", "No saved enrollment for this transport");
+            const saved = await this.load(profile.name);
+            if (saved.offer.request.transport !== transport)
+                invalid();
+            const credential = await saved.claim({ signal });
+            return saved.clientOptions(credential, profile.contact);
+        };
     }
     /** Explicit local forgetting only; does not revoke any server credential. */
     async forget(name) {

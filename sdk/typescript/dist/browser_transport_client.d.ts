@@ -11,12 +11,15 @@ export interface BrowserTransportClientOptions {
     endpoints: Partial<Record<BrowserTransportPath, string>>;
     preferredTransport?: BrowserTransportPath;
     allowFallback?: boolean;
-    /** Resolve fresh enrollment for each initial/reconnect round. The same
-     * captured enrollment applies to both secure contacts in that round. */
+    /** Resolve current enrollment separately for each usable physical contact.
+     * A credential approved for WT cannot authorize a WSS fallback. Persist
+     * original enrollment intent; resolution must never invent a replacement
+     * mutation after uncertainty. All resolutions share the round deadline. */
     resolveEnrollment(context: {
         signal: AbortSignal;
         reason: "initial" | "reconnect";
         physicalEpoch: number;
+        transport: BrowserTransportPath;
     }): Promise<BrowserEnrollment>;
     timeoutMs?: number;
     attemptTimeoutMs?: number;

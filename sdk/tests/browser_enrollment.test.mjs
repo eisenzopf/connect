@@ -79,6 +79,15 @@ test('browser installed options pin the approved physical transport and current 
 test('browser vault refuses denied IndexedDB before approval and sanitizes its native exception',()=>browser(async()=>{
  const {state,key}=await session(),saved=Object.getOwnPropertyDescriptor(globalThis,'indexedDB');
  Object.defineProperty(globalThis,'indexedDB',{value:{open(){throw new DOMException('private-storage-canary','SecurityError');}},configurable:true});
- try{const vault=new BrowserEnrollmentStore();await assert.rejects(()=>vault.prepare('original-name',state.origin,state.request,key),e=>e.code==='storage-unavailable'&&!e.message.includes('private-storage-canary'));}
+ try{const vault=new BrowserEnrollmentStore();await assert.rejects(()=>vault.prepare('original-name',state.origin,state.request,key),e=>e.code==='storage-unavailable'&&!e.message.includes('private-storage-canary'));
+ const server={key:key.snapshot().publicKey,keyId:'trusted-server',algorithm:'EdDSA',notBefore:0,expiresAt:Date.now()/1000+300};
+ assert.throws(()=>vault.resolveProfiles({other:{name:'original-name',contact:{url:state.origin+'/connect',server}}}),{code:'invalid-request'});
+ assert.throws(()=>vault.resolveProfiles({webtransport:{name:'original-name',contact:{url:'https://private-canary@',server}}}),e=>e.code==='invalid-request'&&!e.message.includes('private-canary'));
+ assert.throws(()=>vault.resolveProfiles({webtransport:{name:'original-name',contact:{url:'wss://fixture.invalid/connect',server}}}),{code:'invalid-request'});
+ const resolve=vault.resolveProfiles({webtransport:{name:'original-name',contact:{url:state.origin+'/connect',server}}}),abort=new AbortController();abort.abort();
+ await assert.rejects(()=>resolve({signal:abort.signal,transport:'webtransport',reason:'initial',physicalEpoch:1}),{code:'cancelled'});
+ await assert.rejects(()=>resolve({signal:new AbortController().signal,transport:'wss-webrtc',reason:'initial',physicalEpoch:1}),{code:'unsupported-transport'});
+ await assert.rejects(()=>resolve({signal:new AbortController().signal,transport:'webtransport',reason:'initial',physicalEpoch:1}),e=>e.code==='storage-unavailable'&&!e.message.includes('private-storage-canary'));
+ }
  finally{saved?Object.defineProperty(globalThis,'indexedDB',saved):delete globalThis.indexedDB;}
 }));

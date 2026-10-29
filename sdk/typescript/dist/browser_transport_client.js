@@ -239,14 +239,6 @@ export class BrowserTransportClient {
         this.fallback = undefined;
         const epoch = ++this.epoch;
         try {
-            const captured = enrollment(await budget.run(() => this.resolveEnrollment({
-                signal: round.signal,
-                reason,
-                physicalEpoch: epoch,
-            }), round.signal, () => round.abort()));
-            if (captured.identityId !== this.identityId ||
-                captured.device.id !== this.deviceId)
-                throw new ConnectError("authentication", "Reconnect must retain the enrolled actor/device; replacement is a separate intent");
             const choices = this.allowFallback
                 ? [preferred, ...paths.filter((p) => p !== preferred)]
                 : [preferred];
@@ -267,6 +259,15 @@ export class BrowserTransportClient {
                             : "preferred-unsupported";
                     continue;
                 }
+                const captured = enrollment(await budget.run(() => this.resolveEnrollment({
+                    signal: round.signal,
+                    reason,
+                    physicalEpoch: epoch,
+                    transport: path,
+                }), round.signal, () => round.abort()));
+                if (captured.identityId !== this.identityId ||
+                    captured.device.id !== this.deviceId)
+                    throw new ConnectError("authentication", "Each transport must retain the enrolled actor/device; replacement is a separate intent");
                 try {
                     const physical = await BrowserClient.open({
                         ...captured,

@@ -1,5 +1,10 @@
 import { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
-import { BrowserEnrollmentSession } from "./browser_enrollment.js";
+import { BrowserEnrollmentSession, type BrowserEnrollmentContact } from "./browser_enrollment.js";
+import type { BrowserTransportClientOptions, BrowserTransportPath } from "./browser_transport_client.js";
+export interface BrowserEnrollmentProfile {
+    readonly name: string;
+    readonly contact: BrowserEnrollmentContact;
+}
 import { type BrowserEnrollmentOffer, type BrowserEnrollmentRequest } from "./browser_enrollment_contract.js";
 /** Origin-local IndexedDB vault. Saves a nonextractable client key and complete
  * original intent before approval; it never persists an issued bearer. Each
@@ -15,6 +20,10 @@ export declare class BrowserEnrollmentStore {
      * different offer cannot replace an approved challenge, even after expiry. */
     acceptOffer(name: string, input: BrowserEnrollmentOffer): Promise<BrowserEnrollmentSession>;
     load(name: string): Promise<BrowserEnrollmentSession>;
+    /** Capture trusted contacts and saved profile names. Each physical attempt
+     * recovers only its original approved profile under current authorization;
+     * this never approves a grant or invents replacement intent after failure. */
+    resolveProfiles(profiles: Partial<Record<BrowserTransportPath, BrowserEnrollmentProfile>>): BrowserTransportClientOptions["resolveEnrollment"];
     /** Explicit local forgetting only; does not revoke any server credential. */
     forget(name: string): Promise<void>;
 }

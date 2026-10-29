@@ -52,6 +52,7 @@ export {
 export { BrowserHttpClient } from "./browser_http.js";
 export { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
 export { BrowserEnrollmentStore } from "./browser_enrollment_store.js";
+export type { BrowserEnrollmentProfile } from "./browser_enrollment_store.js";
 export type {
     BrowserEnrollmentSession,
     BrowserEnrollmentContact,

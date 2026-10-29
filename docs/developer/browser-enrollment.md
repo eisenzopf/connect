@@ -68,8 +68,10 @@ server-provided messages/details are not exposed by SDK errors.
 Installation keeps the child bearer in memory and fixes the control transport to
 the approved WebTransport or WSS profile. A credential approved for one cannot
 be used for the other's fallback. A transport change requires a fresh explicitly
-approved enrollment/key. Existing generic `BrowserTransportClient` fallback
-behavior does not authorize changing an enrollment's immutable binding.
+approved enrollment/key. Use `vault.resolveProfiles(...)` with separately saved WT/WSS profiles to resolve
+the correct original credential for each attempted contact; see
+[transport selection](browser-transport-recovery.md). This does not change either
+enrollment's immutable binding.
 
 Rotation uses a fresh vault name, approval/completion IDs and client key. The
 backend may approve the exact existing Device/Endpoint for the replacement,
