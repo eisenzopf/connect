@@ -110,7 +110,7 @@ try {
  const movementSnapshot=await solo.refresh(opts);
  for(const [command,operationId,submit] of [
   ['session.handoff','typed-handoff-without-grant',()=>solo.handoff({via:native.id,retain:remote.id,from:own.id,to:peer.id,outgoing:'observe',role:{scope:'session'},expectedTopologyRevision:movementSnapshot.topologyRevision},{...opts,operationId:'typed-handoff-without-grant'})],
-  ['connection.replace','typed-move-without-grant',()=>native.move({retain:remote.id,target:{endpoint:'typed-ungranted-endpoint'},expectedTopologyRevision:movementSnapshot.topologyRevision},{...opts,operationId:'typed-move-without-grant'})],
+  ['connection.replace','typed-move-without-grant',()=>native.replaceDevice({retain:remote.id,target:{endpoint:'typed-ungranted-endpoint'},expectedTopologyRevision:movementSnapshot.topologyRevision},{...opts,operationId:'typed-move-without-grant'})],
  ])await assert.rejects(submit(),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');assert.equal(e.problem?.code,403);assert.equal(e.operation.command,command);assert.equal(e.operation.operationId,operationId);assert.equal(e.operation.scope.connectionId,native.id);return true;});
  progress('native-end');
  const nativeEnd=await native.end({reasonCode:1000,reason:'control complete',expectedStreamRevision:streamRevision},{...opts,operationId:'typed-native-end'}),nativeEndSaved=nativeEnd.referenceJson();const nativeEndCompleted=await nativeEnd.wait(opts);assert.equal(nativeEndCompleted.value.id,native.id);const nativeEndRecord=nativeEndCompleted.snapshot.recordId;assert.equal(typeof nativeEndRecord,'string');

@@ -58,11 +58,11 @@ await session.handoff({via:connection.id,retain:connection.id,from:participant.i
 session.handoff({via:connection.id,retain:connection.id,from:participant.id,to:participant.id,outgoing:'leave',role:{scope:'conversation',expectedConversationRevision:topology},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
 // @ts-expect-error A message operation cannot supply a consultation continuation.
 session.handoff({via:connection.id,retain:connection.id,from:participant.id,to:participant.id,outgoing:'leave',role:{scope:'session'},expectedTopologyRevision:topology,consultation:message},{timeoutMs:1000,operationId});
-await connection.move({retain:connection.id,target:{endpoint:'endpoint' as import('../typescript/dist/index.js').EndpointId},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+await connection.replaceDevice({retain:connection.id,target:{endpoint:'endpoint' as import('../typescript/dist/index.js').EndpointId},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
 // @ts-expect-error A Connection ID cannot substitute for an Endpoint ID.
-connection.move({retain:connection.id,target:{endpoint:connection.id},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+connection.replaceDevice({retain:connection.id,target:{endpoint:connection.id},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
 // @ts-expect-error Movement target is exactly one endpoint or candidate.
-connection.move({retain:connection.id,target:{endpoint:'endpoint' as import('../typescript/dist/index.js').EndpointId,candidate:connection.id},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
+connection.replaceDevice({retain:connection.id,target:{endpoint:'endpoint' as import('../typescript/dist/index.js').EndpointId,candidate:connection.id},expectedTopologyRevision:topology},{timeoutMs:1000,operationId});
 
 const moveOperation=client.operations.restore(saved,client.operationKinds.connection_replace);
 // @ts-expect-error Distinct invariant movement results cannot be relabeled as a handoff.

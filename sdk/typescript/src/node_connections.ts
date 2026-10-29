@@ -353,7 +353,7 @@ export class SdkConnection {
             });
         });
     }
-    move(
+    replaceDevice(
         input: SdkMoveInput,
         options: SdkMutationOptions,
     ): Promise<SdkOperation<SdkMoveResult>> {

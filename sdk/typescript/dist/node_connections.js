@@ -143,7 +143,7 @@ export class SdkConnection {
             });
         });
     }
-    move(input, options) {
+    replaceDevice(input, options) {
         return this.ctx.move(this.id, input, options);
     }
     update(input, expectedStreamRevision, options) {

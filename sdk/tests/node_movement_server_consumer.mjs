@@ -69,7 +69,7 @@ try {
         assert.equal(spec.mode, 'move');assert.equal(i.type, 'connection.replace');
         assert.notEqual(i.endpoint_id != null, i.candidate_connid != null);
         kind = client.operationKinds.connection_replace;
-        operation = await session.connections.byId(c.connection_id).move({retain: i.retained_connid,
+        operation = await session.connections.byId(c.connection_id).replaceDevice({retain: i.retained_connid,
           target: i.endpoint_id == null ? {candidate: i.candidate_connid} : {endpoint: i.endpoint_id},
           expectedTopologyRevision: c.expected_revision}, mutation);
         assert.notEqual((await operation.status(opts)).state, 'completed');

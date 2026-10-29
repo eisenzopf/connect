@@ -18,6 +18,14 @@ records exact source/executable/package hashes and scope. This is macOS arm64
 with Node 26; the complete current Node 22/26 Linux matrix and frozen-contract
 closure audit remain required for G6-062. Programmatic media remains G6-064.
 
+The frozen public replacement method is `Connection.replaceDevice()`. The current
+installed package passes both candidate/Endpoint replacement cases and native
+control profile 8 through this API; all 109 component checks pass. A preceding
+full local matrix passes 34 movement, administration and consultation functions
+with all 78 helpers and 38 servers joined. See the exact source and scope in
+[node API evidence](../evidence/gate-6/node-frozen-name-local.json). Linux failures
+remain open; these local results do not close G6-062.
+
 Earlier Linux source evidence in `docs/evidence/gate-6/node-native-972.json` qualifies
 the recorded native control/invitation/raw/receipt and administration scenes on
 Node22/26 with both signing algorithms. Node22's full recorded lane passes;

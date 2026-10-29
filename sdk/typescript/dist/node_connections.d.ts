@@ -153,7 +153,7 @@ export declare class SdkConnection {
     }>;
     constructor(ctx: ConnectionContext, id: ConnectionId, receiptStreamRevision?: SdkRevision<"stream"> | undefined);
     refresh(options: CanonicalRequestOptions): Promise<SdkConnectionSnapshot>;
-    move(input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
+    replaceDevice(input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
     update(input: SdkConnectionUpdate, expectedStreamRevision: SdkRevision<"stream">, options: SdkMutationOptions): Promise<SdkOperation<SdkConnectionUpdateReceipt>>;
     end(input: {
         readonly reasonCode: number;

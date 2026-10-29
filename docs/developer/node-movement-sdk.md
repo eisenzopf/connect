@@ -1,7 +1,7 @@
 # Typed Node handoff and device movement
 
 G6-062 remains in progress. `session.handoff(input, options)` and
-`connection.move(input, options)` delegate to the original public Rust SDK
+`connection.replaceDevice(input, options)` delegate to the original public Rust SDK
 Client. The helper owns no alternate transition, role, journal or native-binding
 state machine. New operation kinds are `session_handoff` and
 `connection_replace` (wire command `connection.replace`).
@@ -35,7 +35,7 @@ const saved = handingOff.referenceJson();
 await handingOff.wait({ timeoutMs: 3000 });
 
 // A separate movement uses a fresh current topology assertion and saved ID.
-const moving = await connection.move({
+const moving = await connection.replaceDevice({
   retain: retainedConnectionId,
   target: { endpoint: targetEndpointId },
   expectedTopologyRevision: later.topologyRevision,

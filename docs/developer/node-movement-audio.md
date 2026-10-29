@@ -2,7 +2,7 @@
 
 The existing actual native handoff/replacement fixtures now accept an explicit
 installed Node controller. The Node consumer uses only public Session.handoff,
-Connection.move, original-reference restoration, operation observations and
+Connection.replaceDevice, original-reference restoration, operation observations and
 client cleanup. Independent native peers keep physical media custody. Rust
 compares Node's captured topology, role and binding metadata with the host
 journal result; a fresh helper must recover the same record and metadata.

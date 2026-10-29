@@ -2,7 +2,7 @@
   "gate": 6,
   "title": "VoIP 3 through Connect",
   "revision": 2,
-  "updated": "2026-10-28",
+  "updated": "2026-10-29",
   "status": "implementation-in-progress",
   "implementation_authorized": true,
   "plan": "connect-gate-6-plan.html",

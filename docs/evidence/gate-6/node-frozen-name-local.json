@@ -1,0 +1,158 @@
+{
+  "schema": "connect-gate6-node-frozen-name-local/1",
+  "task": "G6-062",
+  "date": "2026-10-29",
+  "base_commit": "64f62fe1ae277838645d5f59f0a73ee00e342360",
+  "passed": true,
+  "scope": "macOS arm64 Node26.7.0 installed SDK: frozen Connection.replaceDevice spelling, actual pending candidate and subsequent Endpoint replacement with decoded media, native control/restart/current authority. Prior full local matrix retained at its exact source. No Linux/Node22/full SDK/acceptance/publication qualification.",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "contract": {
+    "file": "contracts/sdk-gate-6-api.json",
+    "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+    "method_id": "connection.replace",
+    "target_typescript": "Connection.replaceDevice",
+    "legacy_move_alias": false
+  },
+  "component": {
+    "passed": true,
+    "seconds": 14.08806520793587,
+    "source_count": 230,
+    "source_inputs_sha256": "23cd1c98ac3173516da020f49681bc10a4e6d6b07fc2b8f04462f5619d217fef",
+    "node_version": "v26.7.0",
+    "log_sha256": "9be265405acc6017b7ada9beea7342da84298f506eb5228645f24c0f6a10fccf",
+    "functions": 109,
+    "typecheck_exit_code": 0
+  },
+  "build": {
+    "passed": true,
+    "seconds": 1.942658708896488,
+    "source_count": 8247,
+    "source_inputs_sha256": "ec15a2cdc8b800a4fa0eca747b9f3f90760a68cc1aac5fae6cfd5264ca8ddf93",
+    "source_inputs_unchanged": true,
+    "artifacts": [
+      {
+        "target": "connect",
+        "test": false,
+        "sha256": "a6428a60ac0c14ecb7e7c52ebf48923aba6f335c3d11a6548d88a481c95205e5"
+      },
+      {
+        "target": "gate6_canonical_runtime",
+        "test": true,
+        "sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92"
+      }
+    ]
+  },
+  "installed_package": {
+    "sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "dist_matches": true,
+    "dist_files": 136,
+    "movement_consumer_sha256": "6de0a3e7199cfabfaca0d12e9860eb2a3957c80021615860f04210f0061a2f4c",
+    "native_consumer_sha256": "bd0184b918746209e67fd4da90396c0cd6a701b8e851c2327d66c94551455b9d"
+  },
+  "current_replacement": {
+    "passed": true,
+    "seconds": 87.91419758298434,
+    "source_count": 8247,
+    "source_inputs_sha256": "ec15a2cdc8b800a4fa0eca747b9f3f90760a68cc1aac5fae6cfd5264ca8ddf93",
+    "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+    "installed_package_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "node_version": "v26.7.0",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "source_inputs_unchanged": true,
+    "cases": [
+      {
+        "algorithm": "EdDSA",
+        "scenario": "installed_node_eddsa_move_candidate",
+        "passed": true,
+        "seconds": 44.47867604205385,
+        "log_sha256": "82d3a627da89d24b98994d01147b9c5e6f4ff623dd7cbe5960bdc1f5a972aa2c",
+        "witnesses": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_candidate",
+            "servers_joined": 1
+          }
+        ]
+      },
+      {
+        "algorithm": "ES256",
+        "scenario": "installed_node_es256_move_candidate",
+        "passed": true,
+        "seconds": 42.735581333050504,
+        "log_sha256": "83945e4b3a17d6d6001dc9480249ad966cd45d30d3fa7a14097aeb28d3a128a4",
+        "witnesses": [
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_candidate",
+            "servers_joined": 1
+          }
+        ]
+      }
+    ]
+  },
+  "current_native": {
+    "passed": true,
+    "seconds": 31.578943958040327,
+    "source_count": 8247,
+    "source_inputs_sha256": "ec15a2cdc8b800a4fa0eca747b9f3f90760a68cc1aac5fae6cfd5264ca8ddf93",
+    "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+    "installed_package_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "node_version": "v26.7.0",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "source_inputs_unchanged": true,
+    "log_sha256": "d6ac84aafa43919cf004397ebfa258ae6695869c9a0e318128d8156268ca40eb",
+    "functional_profile": "node-controls/8",
+    "algorithms": [
+      "EdDSA",
+      "ES256"
+    ],
+    "witness_count": 2,
+    "failures": []
+  },
+  "prior_full_matrix": {
+    "passed": true,
+    "seconds": 744.6855295831338,
+    "source_count": 8247,
+    "source_inputs_sha256": "379afab888e8d5e2de9232d5a20d91d741772a2caae56b14ede39ac9c0e4ca3d",
+    "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+    "node_version": "v26.7.0",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "source_inputs_unchanged": true,
+    "source_revision": "64f62fe1ae277838645d5f59f0a73ee00e342360",
+    "package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "functions": 34,
+    "movement_functions": 26,
+    "administration_functions": 6,
+    "consultation_functions": 2,
+    "joined": {
+      "helpers_joined": 78,
+      "servers_joined": 38,
+      "validators_joined": 80
+    },
+    "summary_sha256": "9bfdfa08f840fd48c0999582bfb305258a57b10db5c4562e42e879286b7b93b1",
+    "all_functions_passed": true,
+    "scope": "Before public spelling correction; backend executables identical. Does not claim this matrix used replaceDevice."
+  }
+}

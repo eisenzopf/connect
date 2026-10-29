@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-28",
+  "updated": "2026-10-29",
   "product": "Connect",
   "identity": "Communication for people, apps, and agents",
   "priority": "Server and SDK first",
@@ -482,7 +482,7 @@
       ],
       "authorization": "evidence/gate-6/authorization.json",
       "completed_task_count": 61,
-      "in_progress_task_count": 2
+      "in_progress_task_count": 3
     }
   ],
   "source_of_truth": {
