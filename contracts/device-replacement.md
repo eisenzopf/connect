@@ -882,8 +882,14 @@ no operator assertion can manufacture replacement completion. No new wire route
 is added: the existing connection.replace and native offer continuations retain
 their public authority and result rules.
 
+Candidate reservation couples immediate SQL mutex and complete authority
+admission, then resolves current scopes and facts again in the transaction.
+It never waits for an authority file while holding SQL. Contention records no
+preparation and releases both resources before the original metadata retry.
+
 Store checks qualify admission, retirement metadata, cancellation/revocation,
-crash recovery and the final public-slot CAS. Current installed runtime tests
-reach confirmed original retirement but fail to settle fresh preparation.
-Actual candidate media, complete SDK and Gate 6 acceptance remain unqualified;
-see docs/evidence/gate-6/native-candidate-adoption.json.
+crash recovery and the final public-slot CAS. The pre-fix installed runtime
+reaches confirmed original retirement but fails fresh reservation at the shared
+SQL mutex. The immediate admission fix passes the current controlled Store
+checks; production candidate media, complete SDK and Gate 6 acceptance remain
+unqualified. See docs/evidence/gate-6/native-candidate-adoption.json.

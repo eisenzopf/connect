@@ -100,7 +100,7 @@
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
-  "implementation_status": "Immutable Store attribution/retirement/adoption and Service worker join implemented. Actual installed pending-candidate runtime reaches confirmed original retirement but fresh preparation does not settle; candidate media remains unqualified.",
+  "implementation_status": "Store/Service candidate custody implemented. Actual pre-fix runtime proves original retirement but fails fresh reservation at main SQL mutex contention. Candidate-only joint immediate admission fix passes current39 Store checks; fresh production hosting/installed native media qualification pending.",
   "store_implementation_commit": "d3ec1194",
   "service_implementation_commit": "915c9665",
   "hosting_build": {
@@ -230,7 +230,7 @@
       "diagnosis": "One EdDSA diagnostic run confirms same boundary; metadata retry returns authority-busy. No additional model/account/provider call. Failure site requires further diagnosis."
     }
   ],
-  "next_required": "Resolve current metadata contention before fresh Core ticket, then rerun both installed signing algorithms and affected native/HTTPS/Python regressions. Preserve 4s requests,15s phase,90s function, >10 marked allowed frames and zero forbidden audio.",
+  "next_required": "Build and seal current production hosting, run both installed Node candidate signing algorithms, then current native8/HTTPS3/Python1 regressions and original Linux matrix. Retain request4s/phase15s/function90s and all decoded audio/current authorization predicates.",
   "current_store_diagnostics_check": {
     "passed": true,
     "results": [
@@ -328,5 +328,148 @@
     "test_executable_sha256": "c4c5cb8e228bccb3aa159c1a8854d72611c60d033d86395e15940224ea1d77ad",
     "scope": "Actual local controlled Store admission/claim/retirement/CAS/history/recovery and existing native-wire regressions. No real Core ticket, signed host media, Linux/remote/provider or full SDK qualification."
   },
-  "diagnostics": "Fixed reservation-authority/reservation-sql/reservation-transaction labels distinguish the contended stage. Raw metadata error detail stays in private tracing output; no identity, credential or wire payload is logged by these new sites."
+  "diagnostics": "Fixed reservation-authority/reservation-sql/reservation-transaction labels distinguish the contended stage. Raw metadata error detail stays in private tracing output; no identity, credential or wire payload is logged by these new sites.",
+  "current_store_post_sql_admission_fix": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "candidate",
+        "passed": true,
+        "expected_functions": 8,
+        "functions": [
+          "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+          "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+          "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+          "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+          "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 5.191517167026177,
+        "log_sha256": "32038638581846bd637575316fcd4baa8736f92abffa9ad3ed9f67c94ea8ec84"
+      },
+      {
+        "phase": "transfer",
+        "passed": true,
+        "expected_functions": 1,
+        "functions": [
+          "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.016298749949783,
+        "log_sha256": "dc513be3e4bded8da7b79d463d76343674f556689a68ff850ac20559e5836db2"
+      },
+      {
+        "phase": "recovery",
+        "passed": true,
+        "expected_functions": 1,
+        "functions": [
+          "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 0.9665539579000324,
+        "log_sha256": "d0b9968d929c9caa82b41ec893558f81be4ae4ccba81641be254e38b8e3d5f52"
+      },
+      {
+        "phase": "native-wire",
+        "passed": true,
+        "expected_functions": 29,
+        "functions": [
+          "connection_control::tests::native_wire::controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_failed_facts",
+          "connection_control::tests::native_wire::direct_preparation_cannot_pair_a_native_offer_with_a_verified_web_rtc_endpoint",
+          "connection_control::tests::native_wire::native_cleanup_finishes_original_route_after_actual_session_retirement",
+          "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata",
+          "connection_control::tests::native_wire::native_dormant_retirement_fanout_and_decision_are_atomic_and_replay_exactly",
+          "connection_control::tests::native_wire::native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_ids",
+          "connection_control::tests::native_wire::native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_another_profile",
+          "connection_control::tests::native_wire::native_endpoint_selection_refuses_missing_and_ambiguous_profiles_without_creating_slots",
+          "connection_control::tests::native_wire::native_split_budgets_admit_one_cancel_receipt_and_preserve_unknown_cleanup_fanout",
+          "connection_control::tests::native_wire::native_transport_selection_preserves_verified_endpoint_and_refuses_cross_transport_replay",
+          "connection_control::tests::native_wire::native_wire_accept_and_begin_storage_failures_roll_back_before_issuing_an_attempt",
+          "connection_control::tests::native_wire::native_wire_acceptance_is_separate_from_private_completion_and_can_be_read_under_held_invocation",
+          "connection_control::tests::native_wire::native_wire_cancel_before_effect_retires_only_dormant_slot_but_attempted_cancel_remains_unknown",
+          "connection_control::tests::native_wire::native_wire_concurrent_claims_issue_one_attempt_and_one_stable_effect",
+          "connection_control::tests::native_wire::native_wire_replay_conflict_and_binding_proof_cannot_start_or_replace_an_attempt",
+          "connection_control::tests::native_wire::native_wire_restart_after_attempt_marks_unknown_and_never_issues_another_attempt",
+          "connection_control::tests::native_wire::native_wire_source_expiry_before_effect_fails_without_extending_replay_or_allocating_media",
+          "connection_control::tests::native_wire::web_rtc_original_sdp_replay_cannot_select_new_intent_or_revoked_endpoint",
+          "connection_control::tests::native_wire::web_rtc_preparation_requires_verified_exact_device_transport_and_never_reports_media",
+          "connection_control::tests::native_wire::webrtc_continuation::native_quic_cannot_enter_the_webrtc_continuation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_complete_a_cancelled_original_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_substitute_a_credential_origin_or_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_does_not_extend_the_original_source_expiry",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_preserves_caller_cancellation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_reacquires_exact_original_authority_without_another_effect_or_idle_reader",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_rechecks_current_credential_key_device_and_endpoint",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_a_current_writer_and_preserves_original_uncertainty",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_departed_session_membership",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_wait_does_not_outlive_original_source_budget"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 18.516457499936223,
+        "log_sha256": "9df05e77e826cbf1876bc39f5591b16880da144a45d70a7a5cc40c3dd54c4e39"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "307a7880963ee5865f6d9caeab813f9b5cbbcc54736a56c9e75454de4da03092",
+    "test_executable_sha256": "c099f9a23015037b59180dd84035f859ec906f6abcfaf25fb67d1725577eb257",
+    "scope": "Actual local controlled Store admission/claim/retirement/CAS/history/recovery and existing native-wire regressions. No real Core ticket, signed host media, Linux/remote/provider or full SDK qualification."
+  },
+  "metadata_diagnostic": {
+    "passed": false,
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "scenario": "installed_node_eddsa_move_candidate",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 21.625651749782264,
+        "log_sha256": "5deaf6c9c268887d9961e5069694eb6a2efcbf32069687feb0b9923c6a8613de",
+        "witnesses": []
+      }
+    ],
+    "seconds": 22.183514999924228,
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "5fc9534c2335362cfcc390f6aaac700b272ccafae989abbec76d6ce3c2139abe",
+    "test_executable_sha256": "2a4d19de67205c9c1f4d280ba98602155d65b1d7a0ec9516708b101dfc76fb47",
+    "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "node_version": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Failed original local installed EdDSA diagnostic after confirmed original candidate retirement; no completed replacement/media/recovery/drain qualification."
+  },
+  "proven_metadata_boundary": {
+    "stage": "reservation-authority",
+    "error_code": "authority-busy",
+    "message": "Current state is busy",
+    "attempts": 99,
+    "interpretation": "The shared main SQL mutex was unavailable while deriving reservation authority scopes; no new Core preparation was recorded."
+  },
+  "fresh_reservation_fix": {
+    "candidate_only": true,
+    "description": "Couple immediate main SQL mutex and immediate complete authority acquisition for explicit candidates. Re-resolve and validate all current scopes and facts in the immediate transaction before reservation. No authority-file wait under SQL, no widened deadlines or repeated physical effect.",
+    "source_sha256": {
+      "crates/connect-store/src/transitions/native_replacements.rs": "6d59630ce548373cd9bc019b0bb2bdeaf831621e1d4882618851bb72370e8eac",
+      "crates/connect-store/src/connection_control/tests/replacement_sources/candidate.rs": "990974134a95e203cfb66007b66ed6366264fd3e0b53ee4107453496a7ba9c2c"
+    },
+    "regression": "Current39 controlled Store checks pass. The strengthened contention function refuses a held authority reader within500ms, releases SQL, preserves the exact snapshot/no preparation, then succeeds after release. Existing external SQL-writer contention, original attempt, transfer and restart regressions remain passing.",
+    "actual_installed_post_fix_executed": false
+  }
 }

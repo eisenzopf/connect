@@ -370,6 +370,36 @@ fn fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql() {
     drop(grant);
     writer.execute_batch("ROLLBACK").unwrap();
     assert_eq!(Store::inspect_snapshot(p.f.store.path()).unwrap(), before);
+    // An active current reader must also refuse immediately, without waiting
+    // for that reader while holding the SQL mutex or recording a preparation.
+    let grant =
+        p.f.store
+            .try_acquire_authority(&[crate::AuthorityScope::identity(
+                &identity,
+                crate::AuthorityMode::Read,
+            )
+            .unwrap()])
+            .unwrap();
+    let read =
+        p.f.store
+            .try_native_replacement_preparation_read(
+                &p.origin,
+                &crate::NativeReplacementSourceOrigin::Native(p.sources[0].clone()),
+                &p.sources[1],
+            )
+            .unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        p.f.store
+            .prepare_native_replacement(read, custody::request())
+            .unwrap_err()
+            .code,
+        "authority-busy"
+    );
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    drop(p.f.store.try_connection().unwrap());
+    assert_eq!(Store::inspect_snapshot(p.f.store.path()).unwrap(), before);
+    drop(grant);
     let lease = custody::prepare(&p.f, &p.origin, &p.sources);
     assert_ne!(
         lease.plan().unwrap()["candidate_runtime_id"],
