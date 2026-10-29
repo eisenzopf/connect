@@ -7,7 +7,7 @@ decoded frame API. Reliable typed data and the encoding/decoding utility path
 are still being implemented; G6-064 is not complete.
 
 The helper must advertise both native Rust media support and
-`managed-media-ipc-v1`. Python exposes `native-programmatic-media` only for that
+`managed-media-ipc-v2`. Python exposes `native-programmatic-media` only for that
 combination. Unsupported helpers refuse before media attachment; there is no
 HTTP or historical PCMU fallback. Deploy the compatible helper on PATH as
 described in [the control guide](python-sdk.md).
@@ -79,3 +79,10 @@ installed journey proves negotiation and RTP/clock local queue admission,
 original control/restart/current authorization and original process/server joins.
 It does not qualify decoded language media, reliable typed data, Node media,
 Linux/remote profiles or the full platform/package/parity matrix.
+
+The packet facade now requires `connect-sdk-media/2` (`C6M2`). The helper also
+supports full 64 KiB reliable-data records, but Python's typed data methods are
+still being implemented. RTP's complete-packet maximum remains 16396 bytes.
+The installed-wheel evidence above records the earlier v1 source; the v2 Python
+component regression and Rust production-channel evidence are recorded in
+[the data increment](../evidence/gate-6/sdk-media-ipc-data.json).

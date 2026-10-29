@@ -503,7 +503,7 @@ class Capabilities:
                 return _bad()
             # Expose only interfaces actually implemented by this Python facade.
             features={f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations", "raw-canonical")}
-            if 'managed-media-ipc-v1' in value['features'] and 'native-programmatic-media' in value['features']:
+            if 'managed-media-ipc-v2' in value['features'] and 'native-programmatic-media' in value['features']:
                 features.add('native-programmatic-media')
             return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(features))
         return await self._client._helper.request({"type":"capabilities_refresh"}, options, decode)

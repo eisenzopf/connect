@@ -1,0 +1,340 @@
+{
+  "task": "G6-064",
+  "date": "2026-10-29",
+  "base_commit": "2776659f",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "profile": "connect-sdk-media/2",
+  "framing": "C6M2",
+  "capability": "managed-media-ipc-v2",
+  "scope": "Actual local macOS arm64 original managed Rust owners and production listener: full64KiB text/json/binary both binary IPC directions, independent Rust comparison, original control recovery, replay one effect, changed intent/current authorization/foreign custody refusals and joined owners/drainage. Original bounded attachment/media routing regression. No language typed-data API, decoded language media, Linux/remote/provider/model/package/acceptance qualification.",
+  "tested_inputs": {
+    "crates/connect-client/src/sdk/helper.rs": {
+      "sha256": "bd4d0afaa5332d5c1a60b5433c463ea0062097d16bd6f0e3c10c4872f115636b",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/media.rs": {
+      "sha256": "cf1e3c4a991d6200d140f57943df82473b7ef15775261936ebe36e2ebc6c2463",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/media_ipc.rs": {
+      "sha256": "586b042f650947b7ebe45d79172336e4822c0140bb328c1a721d420ca7394cf6",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles/media_ipc.rs": {
+      "sha256": "9fea4873ebd50b85edc63512e27db32226d3fdeec522b602a84be9059b157fe7",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles/media_ipc/data.rs": {
+      "sha256": "3ee596ad6b41402d293bc599c91df7874e183171ce3bbd421cb253d8a78f8322",
+      "mode": 420
+    },
+    "scripts/check-gate6-linux-hosting.py": {
+      "sha256": "95a457ce902dd4c50e43ca25c7419bfbee3130b5458d928d7f72648fdc6a7b16",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/_sdk_media_channel.py": {
+      "sha256": "fc6a08f88c83ff62d58a0dbe6771f9f4c269dcfc950c4830ce95c1374aea122e",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/sdk_media.py": {
+      "sha256": "b14a3c69eba84cbba2dde0d9e3d5d6822c3cbffa6d3e249d47b8d5a752e8d711",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/client.py": {
+      "sha256": "89dd8dcf8703e5584688152d5d6fe2a34a0a3982b08335f037f050618a29d137",
+      "mode": 420
+    },
+    "sdk/tests/fixtures/sdk_media_helper.py": {
+      "sha256": "a8f7cdca683c4d326589d822921c0d454936b74d65aeacabafeef76632aef2e6",
+      "mode": 493
+    }
+  },
+  "limits": {
+    "payload_max_bytes": 65536,
+    "rtp_max_bytes": 16396,
+    "metadata_max_bytes": 16384,
+    "active_requests": 16,
+    "queued_responses": 16,
+    "rehearsal_host_message_bytes": 65536,
+    "default_host_message_bytes": 16384
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8277,
+    "source_inputs_sha256": "e4113b6d67a4c1ab775473bc0bb6ce791a51f5c89a2c3802f336f47eee6a7ab2",
+    "build_log_sha256": "79dd89442e503bcaec2e40c96c10dabee0dc3444969333c4533efe0e578ee9f0",
+    "seconds": 20.403408375103027,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "build_artifacts": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "441bb29185311eebe9c6c2d11d99e288f026addcea02cf58b463be442afe786d"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "deea7d399b198289d12bd4ce3e94dbe7280e7f4e658f74b4b12a94eef5d6965d"
+    }
+  ],
+  "runtime": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 19.762091208947822,
+    "source_inputs_unchanged": true,
+    "source_count": 8277,
+    "source_inputs_sha256": "e4113b6d67a4c1ab775473bc0bb6ce791a51f5c89a2c3802f336f47eee6a7ab2",
+    "test_executable_sha256": "deea7d399b198289d12bd4ce3e94dbe7280e7f4e658f74b4b12a94eef5d6965d",
+    "log_sha256": "398008d9340051c6930238da41ec326adcc064528104f99716f1dfcbbbd83d96",
+    "routing_witnesses": [
+      {
+        "algorithm": "EdDSA",
+        "control_live_while_media_reads_blocked": true,
+        "detach_cancelled_and_joined_reads": true,
+        "inflight_bounded": 16,
+        "invalid_packet_and_metadata_refused": true,
+        "managed_media_version_declared": true,
+        "media_readers_drained": true,
+        "original_binding_observed": true,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2",
+        "remote_attachment_refused": true,
+        "restored_foreign_custody_refused": true,
+        "server_joined": true,
+        "wrong_attachment_refused": true
+      },
+      {
+        "algorithm": "ES256",
+        "control_live_while_media_reads_blocked": true,
+        "detach_cancelled_and_joined_reads": true,
+        "inflight_bounded": 16,
+        "invalid_packet_and_metadata_refused": true,
+        "managed_media_version_declared": true,
+        "media_readers_drained": true,
+        "original_binding_observed": true,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2",
+        "remote_attachment_refused": true,
+        "restored_foreign_custody_refused": true,
+        "server_joined": true,
+        "wrong_attachment_refused": true
+      }
+    ],
+    "data_witnesses": [
+      {
+        "algorithm": "EdDSA",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "text",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      },
+      {
+        "algorithm": "EdDSA",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "json",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      },
+      {
+        "algorithm": "EdDSA",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "binary",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      },
+      {
+        "algorithm": "ES256",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "text",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      },
+      {
+        "algorithm": "ES256",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "json",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      },
+      {
+        "algorithm": "ES256",
+        "binary_both_directions": true,
+        "changed_intent_refused": true,
+        "current_revocation_refused": true,
+        "foreign_custody_refused": true,
+        "format": "binary",
+        "invalid_audience_original_id": true,
+        "live_revocation_outcome": "authentication",
+        "media_readers_drained": true,
+        "one_effect_replay": true,
+        "original_control_recovery": true,
+        "original_owners_joined": true,
+        "payload_bytes": 65536,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/2"
+      }
+    ],
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 original managed Rust owners and production listener: full64KiB text/json/binary both binary IPC directions, independent Rust comparison, original control recovery, replay one effect, changed intent/current authorization/foreign custody refusals and joined owners/drainage. Original bounded attachment/media routing regression. No language typed-data API, decoded language media, Linux/remote/provider/model/package/acceptance qualification."
+  },
+  "client_component": {
+    "passed": true,
+    "functions_passed": 12,
+    "functions": [
+      "sdk::helper::media::tests::clock_metadata_preserves_exact_u64_and_refuses_lossy_or_noncanonical_values",
+      "sdk::helper::media::tests::typed_data_formats_validate_utf8_json_and_allow_empty_binary_without_echo",
+      "sdk::helper::media::tests::attachment_refuses_remote_zero_port_and_noncanonical_tokens_before_connect",
+      "sdk::helper::media_ipc::tests::invalid_outbound_records_write_no_prefix",
+      "sdk::helper::media::channel::tests::handshake_requires_exact_profile_token_correlation_and_direction",
+      "sdk::helper::media_ipc::tests::untrusted_header_bounds_refuse_before_body_allocation_and_fence",
+      "sdk::helper::media_ipc::tests::truncated_original_record_never_becomes_clean_eof_or_resynchronizes",
+      "sdk::helper::media_ipc::tests::revised_profile_keeps_full_data_bound_and_refuses_previous_magic",
+      "sdk::helper::media::tests::packet_commands_refuse_unknown_fields_deadlines_and_unexpected_binary_bodies",
+      "sdk::helper::media::channel::tests::stopped_channel_joins_blocked_read_and_blocked_writer_without_detached_tasks",
+      "sdk::helper::media_ipc::tests::cancelled_header_and_body_waits_preserve_the_original_two_boundaries",
+      "sdk::helper::media_ipc::tests::slow_consumer_backpressures_the_owned_writer_until_the_exact_record_drains"
+    ],
+    "log_sha256": "d3d6a9409059cbace4965c62deb6369514bf77ae46e3dae4ea9c70fe6daa9efd",
+    "scope": "Six binary framing and six typed routing/authentication/lifetime functions; client sources identical to guarded final production build."
+  },
+  "python_packet_regression": {
+    "passed": true,
+    "scope": "Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.",
+    "functions_passed": 206,
+    "typed_programmatic_media_functions_passed": 12,
+    "phases": {
+      "core": {
+        "exit_code": 0,
+        "budget_seconds": 60,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 44.85278283315711,
+        "log_sha256": "36f8f0d64c54184386415a33ca0a88c8e618bbc0eb978b052fb4a55316d173bf"
+      },
+      "http": {
+        "exit_code": 0,
+        "budget_seconds": 30,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 15.122950708027929,
+        "log_sha256": "6d8cd45415e7217cde5bae1b98949d5c779264b2ca757f02776605d14c2066d3"
+      },
+      "http-lifetime": {
+        "exit_code": 0,
+        "budget_seconds": 10,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 4.7063196250237525,
+        "log_sha256": "529e6feffe62570d9f0ed6924679173e41f21251378c7dffefb49eb4c7e84b75"
+      }
+    },
+    "source_inputs_unchanged": true,
+    "source_count": 94,
+    "source_inputs_sha256": "3040f601bab242cf53a2fbca2ed70209659f868fa14af13b8d786b37c497d88f",
+    "log_sha256": "0a23bb1633ddf5f1f334c5218888c4292986642655c5a3b46d7fb2a55544b0ed",
+    "unexpected_async_diagnostics": false,
+    "failed_functions": [],
+    "seconds": 64.72037108289078,
+    "public_type_checks": null
+  },
+  "python_scope": "Framing/profile migration only;206existing component functions including12media pass. Types, installed wheel and actual Python typed-data not requalified by this increment. Prior installed v1 evidence remains source-specific.",
+  "retained_failures": [
+    {
+      "result_sha256": "11886959526341fe02533a20872044a24a16d9a01863009037650ed2e73915a0",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "80b1c579557e95ae4fb10b483711d2d2b8764e34f9776cc432cabe6cdf3f8c48",
+      "finding": "Test module path selected the earlier data source. Explicit relative module path fixed. New untracked test was outside this tracked-file guard; no complete source-seal qualification inferred."
+    },
+    {
+      "result_sha256": "b3dd1fc0e5df6384e9b272ae5f8d9e01074563c448f2e88df80cc573d1c02ac0",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "79925a6ef46823541bb5726c1ba8998672266b5b0d3cb2ba5f2144246c93d36e",
+      "finding": "Full64KiB request correctly refused by fixture default16KiB host message limit. Rehearsal host now explicitly configured64KiB; production defaults unchanged. New test not yet staged/outside this tracked guard."
+    },
+    {
+      "result_sha256": "cf9a08770647abee01769c5183ec359bedb63d34f07cf0ca1dea4d6fb1e9e787",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "23e77429edca60ad325efe20d8987894d85d7d938ab4f76e20318c69769040da",
+      "finding": "All three EdDSA formats passed; ES256 live revocation returned transport-uncertain rather than a signed authentication refusal. The test now preserves exact uncertainty/intent, independently proves fresh authentication refusal and checks one original effect."
+    },
+    {
+      "result_sha256": "7d1462593da37c11ec7ac960c9dbbd526b026ed772b81aced29149461c395256",
+      "passed": false,
+      "exit_code": 101,
+      "log_sha256": "0474f7a232ce6ccae15c060f5dca392bea1e2a1e7876a28e1fcad3d0ae475986",
+      "finding": "Status signed refusal has Refused certainty; read-only applies to transport failure. Corrected exact kind/certainty pairs to the existing Rust SDK contract; fresh authentication is a read-only action."
+    }
+  ],
+  "remaining": [
+    "Python reliable typed-data API and original-ID/error/restoration handling",
+    "Node packet and typed-data API",
+    "Documented encoding/decoding utility and real independently identified audio/decoded video/data for both languages",
+    "Full slow-consumer/frame-limits/helper-death/cleanup and required platform matrix",
+    "Candidate bundles/full parity/quality and Gate6 acceptance"
+  ],
+  "raw_logs_and_private_state_excluded": true,
+  "no_additional_model_remote_or_provider_execution": true
+}

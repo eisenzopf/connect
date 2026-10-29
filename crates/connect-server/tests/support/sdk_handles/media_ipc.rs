@@ -1,5 +1,7 @@
 //! Actual managed Client attachment, media custody and control under backpressure.
 use super::*;
+#[path = "media_ipc/data.rs"]
+mod data;
 use connect_client::sdk::helper::{self, media, media_ipc as wire};
 use tokio::{
     net::tcp::{OwnedReadHalf, OwnedWriteHalf},

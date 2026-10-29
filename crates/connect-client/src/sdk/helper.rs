@@ -188,6 +188,7 @@ pub struct EventAcknowledgement {
 pub enum Kind {
     ConversationCreate,
     MessageSend,
+    DataSend,
     OperationCancel,
     OperationReconcile,
     ConversationParticipantAdd,
@@ -429,6 +430,8 @@ pub async fn execute(client: &Client, request: Request) -> Result<Value> {
                     |room| json!({"id":room.id()})).await,
                 Kind::MessageSend => run(client.restore(reference, kinds.message_send)?, action, options,
                     |message| json!({"messageId":message.message_id,"operation":key_json(&message.operation),"boundary":message.boundary})).await,
+                Kind::DataSend => run(client.restore(reference, kinds.data_send)?, action, options,
+                    |data| json!({"messageId":data.message_id,"connectionId":data.connection_id,"boundary":"core-queue-admission"})).await,
                 Kind::OperationCancel => run(client.restore(reference, kinds.operation_cancel)?, action, options, decision_json).await,
                 Kind::OperationReconcile => run(client.restore(reference, kinds.operation_reconcile)?, action, options, decision_json).await,
                 Kind::ConversationParticipantAdd => run(client.restore(reference, kinds.conversation_participant_add)?, action, options, participant_json).await,

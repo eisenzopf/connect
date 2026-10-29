@@ -1,14 +1,14 @@
 //! Bounded binary records for the managed helper's separate media channel.
 //!
 //! This is local helper IPC, not a UCTP envelope or a media ownership grant.
-//! The future adapter must validate metadata and the original Client's binding.
+//! The typed adapter validates metadata and the original Client's binding.
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 pub const HEADER_BYTES: usize = 17;
 pub const MAX_METADATA_BYTES: usize = 16 * 1024;
-/// The public Rust SDK's maximum complete RTP packet, including its header.
-pub const MAX_PAYLOAD_BYTES: usize = 16 * 1024 + 12;
-const MAGIC: &[u8; 4] = b"C6M1";
+/// Full reliable data payload. RTP retains its separate, smaller packet bound.
+pub const MAX_PAYLOAD_BYTES: usize = 64 * 1024;
+const MAGIC: &[u8; 4] = b"C6M2";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -255,6 +255,21 @@ mod tests {
         assert_eq!(reader.next().await.unwrap(), Some(expected));
         writer.await.unwrap().unwrap();
         assert_eq!(reader.next().await.unwrap(), None);
+    }
+    #[tokio::test]
+    async fn revised_profile_keeps_full_data_bound_and_refuses_previous_magic() {
+        let mut frame = packet(4);
+        frame.payload.resize(64 * 1024, 0x95);
+        let mut raw = bytes(&frame).await;
+        assert_eq!(&raw[..4], b"C6M2");
+        assert_eq!(
+            Reader::new(raw.as_slice()).next().await.unwrap(),
+            Some(frame)
+        );
+        raw[..4].copy_from_slice(b"C6M1");
+        let mut reader = Reader::new(raw.as_slice());
+        assert!(reader.next().await.is_err());
+        assert!(reader.body.is_empty());
     }
     #[tokio::test]
     async fn invalid_outbound_records_write_no_prefix() {

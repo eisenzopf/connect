@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 mod channel;
 pub(super) use channel::Channel;
-pub const PROFILE: &str = "connect-sdk-media/1";
-pub const CAPABILITY: &str = "managed-media-ipc-v1";
+pub const PROFILE: &str = "connect-sdk-media/2";
+pub const CAPABILITY: &str = "managed-media-ipc-v2";
 pub const WINDOW: usize = 16;
 
 /// Private SDK-owned listener and one-use attachment token. Never Debug its token.
@@ -78,7 +78,41 @@ pub enum Command {
         binding: Binding,
         stream_id: StreamId,
     },
+    SendData {
+        binding: Binding,
+        stream_id: StreamId,
+        message_id: MessageId,
+        to: Vec<ParticipantId>,
+        format: DataFormat,
+        mutation: Mutation,
+    },
+    ReceiveData {
+        binding: Binding,
+        stream_id: StreamId,
+    },
+    DataStats {},
     Stats {},
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DataFormat {
+    Text,
+    Json,
+    Binary,
+}
+impl DataFormat {
+    fn payload(self, bytes: Vec<u8>) -> Result<DataPayload> {
+        let bad = || Error::local(ErrorKind::Validation);
+        match self {
+            Self::Text => Ok(DataPayload::Text(
+                String::from_utf8(bytes).map_err(|_| bad())?,
+            )),
+            Self::Json => Ok(DataPayload::Json(
+                serde_json::from_slice(&bytes).map_err(|_| bad())?,
+            )),
+            Self::Binary => Ok(DataPayload::Binary(bytes)),
+        }
+    }
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -145,7 +179,10 @@ fn decode(frame: &media_ipc::Frame) -> Result<Request> {
     let request: Request =
         serde_json::from_slice(&frame.metadata).map_err(|_| Error::local(ErrorKind::Validation))?;
     if !(1..=60_000).contains(&request.timeout_ms)
-        || (!matches!(request.command, Command::SendRtp { .. }) && !frame.payload.is_empty())
+        || (!matches!(
+            request.command,
+            Command::SendRtp { .. } | Command::SendData { .. }
+        ) && !frame.payload.is_empty())
         || (matches!(request.command, Command::SendRtp { .. }) && frame.payload.is_empty())
     {
         return Err(Error::local(ErrorKind::Validation));
@@ -202,6 +239,47 @@ pub(super) async fn execute(
                 };
                 json!({"type":"packet","binding":binding,"stream_id":stream_id,"packet":packet})
             }
+            Command::SendData { binding, stream_id, message_id, to, format, mutation } => {
+                let key = OperationKey {
+                    operation_id: mutation.operation_id.clone(),
+                    command: client.operation_kinds().data_send.command().into(),
+                    scope: OperationScope {
+                        conversation_id: Some(binding.conversation_id.clone()),
+                        session_id: Some(binding.session_id.clone()),
+                        connection_id: Some(binding.connection_id.clone()),
+                    },
+                };
+                let bad = |kind| Error::request(kind, Some(&key), false);
+                binding.negotiation(&client).map_err(|e| bad(e.kind))?;
+                let mut recipients = to.into_iter();
+                let first = recipients.next().ok_or_else(|| bad(ErrorKind::Validation))?;
+                let data = format.payload(frame.payload).map_err(|e| bad(e.kind))?;
+                let operation = binding.connection(&client).stream_by_id(stream_id.clone())
+                    .send_data(message_id, NonEmpty { first, rest: recipients.collect() }, data,
+                        mutation.options(options)).await?;
+                json!({"type":"data_submitted","binding":binding,"stream_id":stream_id,
+                    "reference":operation.reference_json()})
+            }
+            Command::ReceiveData { binding, stream_id } => {
+                binding.negotiation(&client)?;
+                let received = binding.connection(&client).stream_by_id(stream_id.clone()).receive_data(options).await?;
+                let format = match received.payload {
+                    DataPayload::Text(text) => { payload = text.into_bytes(); "text" }
+                    DataPayload::Json(value) => { payload = serde_json::to_vec(&value).map_err(|_| Error::local(ErrorKind::Protocol))?; "json" }
+                    DataPayload::Binary(bytes) => { payload = bytes; "binary" }
+                };
+                kind = media_ipc::Kind::Packet;
+                json!({"type":"data","binding":binding,"stream_id":stream_id,
+                    "message_id":received.message_id,"operation_id":received.operation_id,
+                    "from":received.from,"format":format})
+            }
+            Command::DataStats {} => {
+                let s = client.data_stats()?;
+                json!({"type":"data_stats","received_frames":s.received_frames.to_string(),
+                    "accepted_messages":s.accepted_messages.to_string(),"malformed_frames":s.malformed_frames.to_string(),
+                    "unowned_frames":s.unowned_frames.to_string(),"overflow_drops":s.overflow_drops.to_string(),
+                    "binding_change_drops":s.binding_change_drops.to_string(),"queued_messages":s.queued_messages,"queued_bytes":s.queued_bytes})
+            }
             Command::Stats {} => {
                 let s = client.media_stats()?;
                 json!({"type":"stats","received_datagrams":s.received_datagrams.to_string(),
@@ -219,6 +297,29 @@ pub(super) async fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn typed_data_formats_validate_utf8_json_and_allow_empty_binary_without_echo() {
+        assert!(
+            matches!(DataFormat::Text.payload(vec![0xff]), Err(e) if e.kind == ErrorKind::Validation)
+        );
+        assert!(DataFormat::Json.payload(b"{bad}".to_vec()).is_err());
+        assert_eq!(
+            DataFormat::Binary.payload(Vec::new()).unwrap(),
+            DataPayload::Binary(vec![])
+        );
+        assert_eq!(
+            DataFormat::Text
+                .payload("native 🦀".as_bytes().to_vec())
+                .unwrap(),
+            DataPayload::Text("native 🦀".into())
+        );
+        assert_eq!(
+            DataFormat::Json
+                .payload(br#"{"native":true}"#.to_vec())
+                .unwrap(),
+            DataPayload::Json(json!({"native":true}))
+        );
+    }
     #[test]
     fn attachment_refuses_remote_zero_port_and_noncanonical_tokens_before_connect() {
         for endpoint in ["192.0.2.1:443", "127.0.0.1:0", "[::]:9000"] {

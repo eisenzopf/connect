@@ -13,9 +13,9 @@ from ._sdk_helper import _SdkHelper, _encode, _parse
 from .sdk_types import (CanonicalProblem, CERTAINTIES, ERROR_KINDS, ErrorKind, RequestOptions,
                         SdkError, SdkCancelledError, cancelled)
 
-PROFILE = 'connect-sdk-media/1'
+PROFILE = 'connect-sdk-media/2'
 MAX_METADATA = 16384
-MAX_PAYLOAD = 16396
+MAX_PAYLOAD = 65536
 WINDOW = 16
 HEADER = struct.Struct('!4sBIII')
 
@@ -27,7 +27,7 @@ def error(kind: ErrorKind, mutating: bool = False, sent: bool = False) -> SdkErr
 async def frame(reader: asyncio.StreamReader) -> tuple[int, int, dict, bytes]:
     header = await reader.readexactly(HEADER.size)
     magic, kind, id, metadata_size, payload_size = HEADER.unpack(header)
-    if (magic != b'C6M1' or kind not in (1, 0x81, 0x82, 0x83, 0xff) or id == 0
+    if (magic != b'C6M2' or kind not in (1, 0x81, 0x82, 0x83, 0xff) or id == 0
             or metadata_size > MAX_METADATA or payload_size > MAX_PAYLOAD):
         raise ValueError()
     metadata = _parse(await reader.readexactly(metadata_size), maximum_bytes=MAX_METADATA)
@@ -40,7 +40,7 @@ def encoded(kind: int, id: int, metadata: dict, payload: bytes = b'') -> bytes:
     _, raw = _encode(metadata, MAX_METADATA)
     if not 0 < id < 2**32 or len(payload) > MAX_PAYLOAD:
         raise ValueError()
-    return HEADER.pack(b'C6M1', kind, id, len(raw), len(payload)) + raw + payload
+    return HEADER.pack(b'C6M2', kind, id, len(raw), len(payload)) + raw + payload
 
 
 def owned(task: asyncio.Future):
@@ -222,7 +222,7 @@ async def open_channel(helper: _SdkHelper) -> Channel:
                 or any(type(v) is not str or not re.fullmatch(r'[a-z0-9-]{1,128}',v) for v in value['features'])
                 or len(set(value['features']))!=len(value['features'])):
             raise ValueError()
-        return 'native-programmatic-media' in value['features'] and 'managed-media-ipc-v1' in value['features']
+        return 'native-programmatic-media' in value['features'] and 'managed-media-ipc-v2' in value['features']
     if not await helper.request({'type':'capabilities_refresh'},options(),supports):
         raise error('unsupported')
     token = secrets.token_hex(32)

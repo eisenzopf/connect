@@ -214,7 +214,7 @@ class _Owner:
                 channel.mark_closing()
                 try:
                     def closed(value):
-                        if value != {'profile':'connect-sdk-media/1','closed':True}:
+                        if value != {'profile':'connect-sdk-media/2','closed':True}:
                             raise error('protocol')
                     if not self.helper._closed:
                         await self.helper.request({'type':'media_detach'},RequestOptions(4000),closed)

@@ -11,7 +11,7 @@ import sys
 config=json.loads(Path(sys.argv[sys.argv.index('--config')+1]).read_text())
 with open(config['pids'],'a') as out:out.write(str(os.getpid())+'\n')
 HEADER=struct.Struct('!4sBIII')
-PROFILE='connect-sdk-media/1'
+PROFILE='connect-sdk-media/2'
 writer=None
 actor=None
 jobs=set()
@@ -26,14 +26,14 @@ def capture(value):
 
 async def read_frame(reader):
     magic,kind,id,size,body=HEADER.unpack(await reader.readexactly(17))
-    assert magic==b'C6M1' and 0<id<2**32 and size<=16384 and body<=16396
+    assert magic==b'C6M2' and 0<id<2**32 and size<=16384 and body<=65536
     return kind,id,json.loads(await reader.readexactly(size)),await reader.readexactly(body)
 
 
 async def write_frame(kind,id,value,payload=b''):
     raw=json.dumps(value,separators=(',',':')).encode()
     async with lock:
-        data=HEADER.pack(b'C6M1',kind,id,len(raw),len(payload))+raw+payload
+        data=HEADER.pack(b'C6M2',kind,id,len(raw),len(payload))+raw+payload
         if config.get('mode')=='fragmented':
             for start in range(0,len(data),7):
                 writer.write(data[start:start+7]);await writer.drain();await asyncio.sleep(.001)
@@ -115,13 +115,13 @@ async def main():
                 reply=await read_frame(peer)
                 assert reply==(0x81,1,{'profile':PROFILE,'token':token},b'')
                 actor=asyncio.create_task(serve_media(peer))
-                result={'profile':PROFILE,'attached':True,'window':16,'header_bytes':17,'metadata_max_bytes':16384,'payload_max_bytes':16396}
+                result={'profile':PROFILE,'attached':True,'window':16,'header_bytes':17,'metadata_max_bytes':16384,'payload_max_bytes':65536}
             elif kind=='media_detach':
                 await detach();result={'profile':PROFILE,'closed':True}
             elif kind=='capabilities_refresh':
                 result={'profile':'connect/2','runtime_role':'rust','selected_transport':'quic','fallback_reason':None,
                     'features':['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']
-                        +([] if config.get('mode')=='old-helper' else ['managed-media-ipc-v1'])}
+                        +([] if config.get('mode')=='old-helper' else ['managed-media-ipc-v2'])}
             else:raise AssertionError('Unsupported control action')
             print(json.dumps({'profile':'connect-sdk-helper/4','id':value['id'],'phase':'request','result':{'Ok':result}}),flush=True)
     finally:
