@@ -519,3 +519,25 @@ without timeout, forced cleanup or unexpected async diagnostics. This resolves
 the earlier Linux component failures for this source. The original native Rust
 helper/server, restart/current-authorization and complete installed control
 journey remain unqualified; G6-063 is still in progress.
+
+The [installed native control checks](../evidence/gate-6/python-installed-native-local.json)
+now pass EdDSA and ES256 locally on macOS arm64/Python 3.14.7. The clean wheel
+consumer uses the default `connect` executable on PATH from an isolated external
+venv with no repository import path. It checks typed capability/conflict errors,
+exact-ID send/replay, signed finite journal/cursor exclusion, saved-reference and
+same-cause recovery after an actual production-server restart, and fresh current
+revocation refusals. Independent full Store and exact journal reads prove one
+original message/operation and zero forbidden mutations. Each algorithm joins
+five original helpers, five schema validators, the Python consumer and both server
+instances. All 8,237 guarded inputs and the test executable stay unchanged, with
+request 4s/phase 15s/function 90s limits. The initial protected-config overwrite
+fixture failure is retained; the fixture now stages a 0600 file and atomically
+replaces its owned configuration after restart.
+
+`prepare_python_native_consumer.py` reuses the pinned wheel/clean-install checker
+and verifies every installed runtime file before copying the public consumer.
+The Linux hosting runner now has an explicit `--python-sdk` lane alongside Node;
+its native Python execution is pending. This closes the recorded local message,
+restart and current-authority subset. The complete installed control journey,
+including sessions, movements, administration and decoded media, remains
+unqualified; G6-063 stays in progress.

@@ -140,6 +140,8 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund --prefix sdk/typescript
           npm run build --prefix sdk/typescript
           git diff --exit-code -- sdk/typescript/dist
+      - name: Install hash-pinned Python wheel builder
+        run: python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
       - name: Record exact host and native ABI
         id: native
         run: python3 scripts/check-gate6-linux-hosting.py --preflight
@@ -164,7 +166,7 @@ jobs:
         run: python3 -m unittest discover -s scripts/tests -p test_source_build_cache.py
       - name: Run isolated source-bound fixtures
         id: fixtures
-        run: python3 scripts/check-gate6-linux-hosting.py --node-sdk
+        run: python3 scripts/check-gate6-linux-hosting.py --node-sdk --python-sdk
       - name: Upload source-only fixture evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

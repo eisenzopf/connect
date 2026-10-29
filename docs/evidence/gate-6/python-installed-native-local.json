@@ -1,0 +1,210 @@
+{
+  "task": "G6-063",
+  "date": "2026-10-28",
+  "base_commit": "a0bc544a",
+  "tested_changes": {
+    "sdk/tests/python_native_server_consumer.py": {
+      "sha256": "a4e5452ba7c52cd397cd84d690d07b48abe852cec6880de3fab55a9070812a43",
+      "mode": 420
+    },
+    "sdk/tests/prepare_python_native_consumer.py": {
+      "sha256": "96354aec1f87b2428b1946cb446de99ee1e0a3ffab247b165a48b43f697c77c4",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/python_sdk.rs": {
+      "sha256": "b35b040bb6248304fcf68d95fb20513ae2a44cdc2f51479b86fe014753a29cda",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_canonical_runtime.rs": {
+      "sha256": "96b4721e3aad2fdba291b0c20dffac02cae89f825cbacb8ba594a8f360f23b76",
+      "mode": 420
+    },
+    "scripts/check-gate6-linux-hosting.py": {
+      "sha256": "8032af30cfc7298fb6e5c63a88248730d95a3f476c7e8871306ed1f721e925f0",
+      "mode": 420
+    },
+    ".github/workflows/gate6-linux-fixtures.yml": {
+      "sha256": "619a341ad1fd11ec257f4d49f62f6abf14003dc3ec4050b72d7cb97082bad38c",
+      "mode": 420
+    }
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8237,
+    "source_inputs_sha256": "6ab8a533d5492f4d174ca38cf2de2d141202b798cd7980fc9042587f34df6a6c",
+    "build_log_sha256": "4742cf877ad3ba61249ca63459f5c64e942ef36873d1b49bc6f77ed7113c43eb",
+    "seconds": 20.943882582942024,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "cli_sha256": [
+    "d437d2d7ae55f53dfa4682ab67f1920d6ec9f565640d63d6597bb0bddac4b89d"
+  ],
+  "package": {
+    "profile": "python-native-package/1",
+    "consumer_sha256": "a4e5452ba7c52cd397cd84d690d07b48abe852cec6880de3fab55a9070812a43",
+    "wheel_sha256": "d9857fece3f8f40bc10363e40277d455780b9954adc2552d69d35e1594439190",
+    "installed_dist_matches": true,
+    "installed_dist_sha256": {
+      "membership_validation.py": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+      "task_protocol.py": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+      "record_context.py": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+      "sdk_http.py": "38a51ab0761daaa143a360a3c8377ec8662b8aca5bd2407894faf2e2dd902aac",
+      "conversation_validation.py": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+      "_sdk_helper.py": "068ee6cbd9940c2e01d4b3bbcd0fbb49aafc95b402203bf03deea329e99de715",
+      "sdk_types.py": "a86a11bb737e95952da05c2764dfafeb111df96687024a6da7a74b09c38d3758",
+      "agent_observations.py": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+      "task_types.py": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+      "protocol.py": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+      "client.py": "bae17d3d644ef0f74712ccbb9437e240d45e478b8954c1c83d2b36bef6e33f62",
+      "sdk_sessions.py": "510a2ab8396227604b45af745b9c13c082148bdbc0cc71e7379d7fd9056c7c23",
+      "__init__.py": "62c0626564b965640c29aabfff052ec84dab13329463e97dff6477ccfb306498",
+      "native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+      "_sdk_validation.py": "c49304d4543b998a38af75edf387e6c23933a09137d10757bf89b652eff1df2c",
+      "membership_types.py": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+      "sdk_sync.py": "a17107799ed9e988e6d89f5487e51b667f08134c8eca46d95dbd6be779a6464e",
+      "operations.py": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+      "_sdk_http_worker.py": "de6c7f54cd27feda4c4571962bccc8b79d7d119bbae63406175ef5e0be675b10",
+      "_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+      "sdk_incoming.py": "503135a9b5beeeffcb9d4a9406cf4185457c937244a3f47fb72113fd009da2c6",
+      "task_operations.py": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+      "event_validation.py": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+      "sdk_connections.py": "def19ff13bf6e3134b53d37a48f93868ca78f1434298b25063a8e7ab4eea095e",
+      "http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+      "sdk_administration.py": "1a9fc59fe32c056a5d758fb3a54702b4e9c9e694e4b52d6e70241c9addb876b6",
+      "_sdk_http_protocol.py": "d44c6583527cb034dd7f739aa3c715f10bd88fbe394d8a0b6dccd87bbf887b48",
+      "py.typed": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sdk_events.py": "d136d353ec64ade7572f7601aa144249baccd9fc3f86238a3f9c7061cf2c022e",
+      "sdk_raw.py": "4cfb039b4121785da554b91cc1edd605929ed108ab8e4c23d409395c4f774b4e",
+      "_sdk_readers.py": "0d887b2dc13ed8587794182ffeb48bb5faed1a5ac02493b8e22eca9ca405d0f1",
+      "errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+      "contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+      "native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+      "sdk_movements.py": "fe5801a08a4b91661973e59dd061375be0af2227c865d7808ab45349a2bd53ea",
+      "media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d"
+    },
+    "python_version": "3.14.7",
+    "synthetic_http_workers_joined": 6,
+    "native_server_qualified": false,
+    "publication": false
+  },
+  "behavior": {
+    "passed": true,
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 7.023645624984056,
+        "log_sha256": "2ed5812c867c44614852d1d6fab480c19ab8d8225b5038520fbab7c6d126ed52",
+        "witness": {
+          "algorithm": "EdDSA",
+          "changed_intent_refused": true,
+          "current_new_mutation_refused": true,
+          "current_read_refused": true,
+          "current_replay_refused": true,
+          "default_helper_on_path": true,
+          "helpers_joined": 5,
+          "independent_store_original_cause": true,
+          "media_readers_drained": true,
+          "one_original_message_and_operation": true,
+          "original_reference_recovered": true,
+          "physical_peers_drained": true,
+          "profile": "python-native/1",
+          "python_process_joined": true,
+          "same_cause_after_restart": true,
+          "same_id_replay": true,
+          "servers_joined": 2,
+          "signed_finite_journal": true,
+          "typed_capability_refusal": true,
+          "validators_joined": 5,
+          "zero_forbidden_message_and_operation": true
+        }
+      },
+      {
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.8431450841017067,
+        "log_sha256": "937ae0e805274f11561fb2e089039d59b1b063a3223c0ecb2a6b9362ab767922",
+        "witness": {
+          "algorithm": "ES256",
+          "changed_intent_refused": true,
+          "current_new_mutation_refused": true,
+          "current_read_refused": true,
+          "current_replay_refused": true,
+          "default_helper_on_path": true,
+          "helpers_joined": 5,
+          "independent_store_original_cause": true,
+          "media_readers_drained": true,
+          "one_original_message_and_operation": true,
+          "original_reference_recovered": true,
+          "physical_peers_drained": true,
+          "profile": "python-native/1",
+          "python_process_joined": true,
+          "same_cause_after_restart": true,
+          "same_id_replay": true,
+          "servers_joined": 2,
+          "signed_finite_journal": true,
+          "typed_capability_refusal": true,
+          "validators_joined": 5,
+          "zero_forbidden_message_and_operation": true
+        }
+      }
+    ],
+    "source_count": 8237,
+    "source_inputs_sha256": "6ab8a533d5492f4d174ca38cf2de2d141202b798cd7980fc9042587f34df6a6c",
+    "source_inputs_unchanged": true,
+    "test_executable_sha256": "0cbfdbfe18b469f379e467f3cd6140e23005f8d0c978ab293b9d1dee9ef6ff31",
+    "installed_package_sha256": "d9857fece3f8f40bc10363e40277d455780b9954adc2552d69d35e1594439190",
+    "python_version": "3.14.7",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Original local installed Python wheel/native helper/server control, restart, current authority and process ownership only; not Linux/remote/media/full SDK/acceptance qualification."
+  },
+  "initial_fixture_failure": {
+    "resolved": true,
+    "reason": "Protected config writer refused overwrite after server restart. Fixture now stages a fresh0600config and atomically renames its owned path; product authorization/limits unchanged.",
+    "source_inputs_unchanged": true,
+    "test_executable_sha256": "c53ac53e76f9b1910185becc2a0385c1338181637ddde347ab8f8637783f9977",
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 6.817405790789053,
+        "log_sha256": "b068ca5d138421b4f62804e1bafc8a9cf40e15024cf8182aa93288779e5ce146",
+        "witness": null
+      },
+      {
+        "algorithm": "ES256",
+        "passed": false,
+        "exit_code": 101,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.4150921248365194,
+        "log_sha256": "be47ed1dd7fa243e79a4840a18b944e4f5cb1b1fc0d17a8b0fcfce44c9806d73",
+        "witness": null
+      }
+    ]
+  },
+  "formatting_passed": true,
+  "diagnostic_privacy_functions_passed": 6,
+  "linux_native_execution_pending": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false
+}

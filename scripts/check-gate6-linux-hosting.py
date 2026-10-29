@@ -118,7 +118,7 @@ def node_failure_diagnostic(failure):
     assert failure['observedHttpStatus'] is None or type(failure['observedHttpStatus']) is int and 100 <= failure['observedHttpStatus'] <= 599
     return failure
 
-def run(node_sdk=False):
+def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = BASE / "private-tmp"
@@ -134,6 +134,13 @@ def run(node_sdk=False):
         os.environ['CONNECT_GATE6_NODE_CONSUMER'] = str(ROOT / node_package['consumer'])
         os.environ['CONNECT_GATE6_NODE_CONSULT_CONSUMER'] = str(ROOT / node_package['consultation_consumer'])
         os.environ['CONNECT_GATE6_NODE_MOVEMENT_CONSUMER'] = str(ROOT / node_package['movement_consumer'])
+    python_package = None
+    if python_sdk:
+        sys.path.insert(0, str(ROOT / 'sdk/tests'))
+        from prepare_python_native_consumer import prepare as prepare_python
+        python_package = prepare_python(PRIVATE / 'python-native')
+        os.environ['CONNECT_GATE6_PYTHON'] = str(ROOT / python_package['python'])
+        os.environ['CONNECT_GATE6_PYTHON_CONSUMER'] = str(ROOT / python_package['consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -143,6 +150,8 @@ def run(node_sdk=False):
     if node_package is not None:
         # Preserve the exact installed bytes/runtime even if a later scene fails.
         report['installed_node_package'] = node_package
+    if python_package is not None:
+        report['installed_python_package'] = python_package
 
     def execute(name, command, timeout, *, defer_failure=False, environment=None):
         log = PRIVATE / (name + ".log")
@@ -325,11 +334,11 @@ def run(node_sdk=False):
                           and row["target"]["name"] == wanted and row["profile"]["test"] and row.get("executable")]
             assert len(executable) == 1
             artifacts[name] = executable[0]
-            if node_sdk and name == 'hosting':
+            if (node_sdk or python_sdk) and name == 'hosting':
                 cli = {row['executable'] for row in rows if row.get('reason') == 'compiler-artifact'
                        and row['target']['name'] == 'connect' and row.get('executable')
                        and not row['profile']['test']}
-                assert len(cli) == 1, 'Missing exact compiled CLI for installed Node fixture'
+                assert len(cli) == 1, 'Missing exact compiled CLI for installed SDK fixture'
                 cli = Path(cli.pop())
                 assert cli.stat().st_size > 1_000_000 and os.access(cli, os.X_OK)
                 with cli.open('rb') as stream:
@@ -554,6 +563,31 @@ def run(node_sdk=False):
                     'physical_peers_drained': True, 'media_readers_drained': True,
                     'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
                 report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'
+        if python_sdk:
+            results = []
+            for algorithm, label in (('EdDSA', 'eddsa'), ('ES256', 'es256')):
+                case = 'python_sdk::installed_python_' + label + '_native_recovers_after_restart_and_enforces_current_authority'
+                text = sdk_case('installed-python-native-' + label, case)
+                if text is None:
+                    results.append({'algorithm': algorithm, 'passed': False})
+                    continue
+                assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text) == [('1', '0', '0')]
+                witnesses = [json.loads(line.split('installed-python-native-witness ', 1)[1]) for line in text.splitlines() if 'installed-python-native-witness ' in line]
+                assert len(witnesses) == 1
+                witness = witnesses[0]
+                assert witness['profile'] == 'python-native/1' and witness['algorithm'] == algorithm
+                for field in ('original_reference_recovered', 'same_id_replay', 'changed_intent_refused', 'typed_capability_refusal',
+                              'signed_finite_journal', 'same_cause_after_restart', 'current_read_refused',
+                              'current_replay_refused', 'current_new_mutation_refused', 'independent_store_original_cause',
+                              'one_original_message_and_operation', 'zero_forbidden_message_and_operation',
+                              'default_helper_on_path', 'python_process_joined', 'physical_peers_drained', 'media_readers_drained'):
+                    assert witness[field] is True
+                assert (witness['helpers_joined'], witness['validators_joined'], witness['servers_joined']) == (5, 5, 2)
+                results.append(dict(witness, passed=True))
+            report['installed_python_native'] = {'passed': all(v['passed'] for v in results),
+                'profile': 'python-native/1', 'results': results, 'request_budget_ms': 4000,
+                'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
+                'scope': 'Clean installed wheel, original signed native Rust helper/server, saved reference and finite journal across actual server restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
         report['sdk_failures'] = sdk_failures
         assert not sdk_failures, 'Required installed SDK behavior failed; all independent scenes retained'
         report["behavior_passed"] = True
@@ -570,8 +604,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--node-sdk", action="store_true", help="Include installed synthetic caller/peer Node native control journey")
+    parser.add_argument("--python-sdk", action="store_true", help="Include installed Python native restart/current-authority journey")
     args = parser.parse_args()
-    preflight() if args.preflight else run(args.node_sdk)
+    preflight() if args.preflight else run(args.node_sdk, args.python_sdk)
 
 
 if __name__ == "__main__":
