@@ -222,11 +222,18 @@ impl Store {
                 let c = self.try_connection()?;
                 selection.scopes(self, &c, true)
             },
-        )?;
-        let mut c = self.try_connection()?;
+        ).map_err(|error| {
+            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-authority",code=%error.code,detail=%error.message,"Replacement metadata deferred");
+            error
+        })?;
+        let mut c = self.try_connection().map_err(|error| {
+            tracing::debug!(target:"connect_store::native_candidate",stage="reservation-sql",code=%error.code,detail=%error.message,"Replacement metadata deferred");
+            error
+        })?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| {
+            .map_err(|error| {
+                tracing::debug!(target:"connect_store::native_candidate",stage="reservation-transaction",sqlite_code=?error.sqlite_error_code(),"Replacement metadata deferred");
                 Error::new("authority-busy", "Replacement reservation metadata is busy")
             })?;
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {

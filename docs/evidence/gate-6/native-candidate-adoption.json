@@ -1,0 +1,332 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "phase": "candidate",
+      "passed": true,
+      "expected_functions": 8,
+      "functions": [
+        "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+        "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+        "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+        "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+        "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+        "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+        "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+        "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 4.418935042107478,
+      "log_sha256": "0306f8eca31b635e66002f49fa354b68eafe74948860c1caeb9826183b4cbf7c"
+    },
+    {
+      "phase": "transfer",
+      "passed": true,
+      "expected_functions": 1,
+      "functions": [
+        "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 1.0232670831028372,
+      "log_sha256": "dc513be3e4bded8da7b79d463d76343674f556689a68ff850ac20559e5836db2"
+    },
+    {
+      "phase": "recovery",
+      "passed": true,
+      "expected_functions": 1,
+      "functions": [
+        "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 0.9632420830894262,
+      "log_sha256": "6dc3833089e99a257d33325ad9b48a2961f7cdd88853a586e4d5cc24ddad4f9e"
+    },
+    {
+      "phase": "native-wire",
+      "passed": true,
+      "expected_functions": 29,
+      "functions": [
+        "connection_control::tests::native_wire::controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_failed_facts",
+        "connection_control::tests::native_wire::direct_preparation_cannot_pair_a_native_offer_with_a_verified_web_rtc_endpoint",
+        "connection_control::tests::native_wire::native_cleanup_finishes_original_route_after_actual_session_retirement",
+        "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata",
+        "connection_control::tests::native_wire::native_dormant_retirement_fanout_and_decision_are_atomic_and_replay_exactly",
+        "connection_control::tests::native_wire::native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_ids",
+        "connection_control::tests::native_wire::native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_another_profile",
+        "connection_control::tests::native_wire::native_endpoint_selection_refuses_missing_and_ambiguous_profiles_without_creating_slots",
+        "connection_control::tests::native_wire::native_split_budgets_admit_one_cancel_receipt_and_preserve_unknown_cleanup_fanout",
+        "connection_control::tests::native_wire::native_transport_selection_preserves_verified_endpoint_and_refuses_cross_transport_replay",
+        "connection_control::tests::native_wire::native_wire_accept_and_begin_storage_failures_roll_back_before_issuing_an_attempt",
+        "connection_control::tests::native_wire::native_wire_acceptance_is_separate_from_private_completion_and_can_be_read_under_held_invocation",
+        "connection_control::tests::native_wire::native_wire_cancel_before_effect_retires_only_dormant_slot_but_attempted_cancel_remains_unknown",
+        "connection_control::tests::native_wire::native_wire_concurrent_claims_issue_one_attempt_and_one_stable_effect",
+        "connection_control::tests::native_wire::native_wire_replay_conflict_and_binding_proof_cannot_start_or_replace_an_attempt",
+        "connection_control::tests::native_wire::native_wire_restart_after_attempt_marks_unknown_and_never_issues_another_attempt",
+        "connection_control::tests::native_wire::native_wire_source_expiry_before_effect_fails_without_extending_replay_or_allocating_media",
+        "connection_control::tests::native_wire::web_rtc_original_sdp_replay_cannot_select_new_intent_or_revoked_endpoint",
+        "connection_control::tests::native_wire::web_rtc_preparation_requires_verified_exact_device_transport_and_never_reports_media",
+        "connection_control::tests::native_wire::webrtc_continuation::native_quic_cannot_enter_the_webrtc_continuation",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_complete_a_cancelled_original_attempt",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_substitute_a_credential_origin_or_attempt",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_does_not_extend_the_original_source_expiry",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_preserves_caller_cancellation",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_reacquires_exact_original_authority_without_another_effect_or_idle_reader",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_rechecks_current_credential_key_device_and_endpoint",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_a_current_writer_and_preserves_original_uncertainty",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_departed_session_membership",
+        "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_wait_does_not_outlive_original_source_budget"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 18.557442707940936,
+      "log_sha256": "ffb3d08b7f3ac9a925fc582cd07f3694f37a78cff75e34093687e3163775d470"
+    }
+  ],
+  "source_inputs_unchanged": true,
+  "source_count": 8244,
+  "source_inputs_sha256": "e6a2006f79a97f68f4130b83f73ba5c3ad6b97136a1538601283b9aabe75dfd7",
+  "test_executable_sha256": "58e240408f92e1e5bb3920f6b312f998dcaf021cfb5b4695e3790dd6660e9417",
+  "scope": "Actual local controlled Store admission/claim/retirement/CAS/history/recovery and existing native-wire regressions. No real Core ticket, signed host media, Linux/remote/provider or full SDK qualification.",
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "qualified": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "implementation_status": "Immutable Store attribution/retirement/adoption and Service worker join implemented. Actual installed pending-candidate runtime reaches confirmed original retirement but fresh preparation does not settle; candidate media remains unqualified.",
+  "store_implementation_commit": "d3ec1194",
+  "service_implementation_commit": "915c9665",
+  "hosting_build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8244,
+    "source_inputs_sha256": "894655c43ec1c3ddab4f2cd3a94b4b3f6f2cad4d65c6d139cf59bb3c774651ac",
+    "build_log_sha256": "c38e1afe239a7cff90d53476240b39b78971ba4765beef9b9c9278c82ac7f526",
+    "seconds": 674.4883002089337,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "installed_runtime_failures": [
+    {
+      "passed": false,
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "scenario": "installed_node_eddsa_move_candidate",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 7.638589167036116,
+          "log_sha256": "fc342d795c56167f8c01441dfd0aa6d1396c62098a50ab36df2b00598d8153ea",
+          "witnesses": []
+        },
+        {
+          "algorithm": "ES256",
+          "scenario": "installed_node_es256_move_candidate",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 7.653733208077028,
+          "log_sha256": "e886487e87791caa9ad117227fe7ae6d73f13efe05a91ada427192752aaf8738",
+          "witnesses": []
+        }
+      ],
+      "seconds": 15.873976541217417,
+      "source_inputs_unchanged": true,
+      "source_count": 8244,
+      "source_inputs_sha256": "894655c43ec1c3ddab4f2cd3a94b4b3f6f2cad4d65c6d139cf59bb3c774651ac",
+      "test_executable_sha256": "02ca78d36c34b1c98400eff7c70c8c2e0c1e65caf883da413c76c0ab8326eba4",
+      "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+      "node_version": "v26.7.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Failed original local installed Node candidate run; no completed replacement/media/recovery/drain qualification.",
+      "diagnosis": "Fixture attempted controller credential provisioning under pending original native reader. Moved credential, SDK endpoint and signing-key setup before pending offer; no authority predicate changed."
+    },
+    {
+      "passed": false,
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "scenario": "installed_node_eddsa_move_candidate",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 21.776991416001692,
+          "log_sha256": "614fd53a15c5ff9d3afd3539d4b73f7a117f8bf0213f7ee6280c7522cc2c5662",
+          "witnesses": []
+        },
+        {
+          "algorithm": "ES256",
+          "scenario": "installed_node_es256_move_candidate",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 16.248811250086874,
+          "log_sha256": "f6876087372f2f40de99c6936a66f4e07730d957b52c8d082ac20352d844a0ce",
+          "witnesses": []
+        }
+      ],
+      "seconds": 38.573300749994814,
+      "source_inputs_unchanged": true,
+      "source_count": 8244,
+      "source_inputs_sha256": "af2e246f257dd0e32ccd4b2b3125740a5ebc6a45be197d244af7a02048c35740",
+      "test_executable_sha256": "a2e0ae352c61f70f98b1d659e004cb7b11a33fe7907861e02583b9fcff02d68c",
+      "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+      "node_version": "v26.7.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Failed original local installed Node candidate run; no completed replacement/media/recovery/drain qualification.",
+      "diagnosis": "Both algorithms submit original replacement and record confirmed retirement attempt1, then fresh preparation fails to settle within original10s. Actual replacement media remains unqualified."
+    },
+    {
+      "passed": false,
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "scenario": "installed_node_eddsa_move_candidate",
+          "passed": false,
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 16.287501791957766,
+          "log_sha256": "7b11033c6da4611f744cce6d21b0b8515458711a99e9594d2025d09c3e88d029",
+          "witnesses": []
+        }
+      ],
+      "seconds": 16.837479667039588,
+      "source_inputs_unchanged": true,
+      "source_count": 8244,
+      "source_inputs_sha256": "af2e246f257dd0e32ccd4b2b3125740a5ebc6a45be197d244af7a02048c35740",
+      "test_executable_sha256": "a2e0ae352c61f70f98b1d659e004cb7b11a33fe7907861e02583b9fcff02d68c",
+      "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+      "node_version": "v26.7.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Failed original local installed Node candidate run; no completed replacement/media/recovery/drain qualification.",
+      "diagnosis": "One EdDSA diagnostic run confirms same boundary; metadata retry returns authority-busy. No additional model/account/provider call. Failure site requires further diagnosis."
+    }
+  ],
+  "next_required": "Resolve current metadata contention before fresh Core ticket, then rerun both installed signing algorithms and affected native/HTTPS/Python regressions. Preserve 4s requests,15s phase,90s function, >10 marked allowed frames and zero forbidden audio.",
+  "current_store_diagnostics_check": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "candidate",
+        "passed": true,
+        "expected_functions": 8,
+        "functions": [
+          "connection_control::tests::replacement_sources::candidate::candidate_claim_crash_recovery_settles_only_original_absence_and_never_prepares_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_cancel_finishes_only_after_known_original_cleanup_without_a_ticket",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_sql_contention_preserves_original_attempt_and_allows_metadata_only_retry",
+          "connection_control::tests::replacement_sources::candidate::candidate_retirement_uncertainty_cannot_accept_operator_asserted_replacement_completion",
+          "connection_control::tests::replacement_sources::candidate::fresh_candidate_reservation_never_holds_authority_writers_waiting_for_sql",
+          "connection_control::tests::replacement_sources::candidate::known_candidate_retirement_metadata_survives_revocation_without_granting_fresh_preparation",
+          "connection_control::tests::replacement_sources::candidate::ordinary_ready_binding_cannot_be_claimed_as_private_replacement_preparation",
+          "connection_control::tests::replacement_sources::candidate::pending_candidate_claim_preserves_original_receipt_and_requires_attributed_retirement_before_fresh_ticket"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 5.13484387495555,
+        "log_sha256": "fd4e5219c6a67745177d8c55a45e527550ccd1257d63ddd11f0578d494317e20"
+      },
+      {
+        "phase": "transfer",
+        "passed": true,
+        "expected_functions": 1,
+        "functions": [
+          "connection_control::tests::replacement_sources::commit::pending_candidate_commit_transfers_exact_public_slot_and_old_cleanup_cannot_retire_successor"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 1.0094736248720437,
+        "log_sha256": "dc513be3e4bded8da7b79d463d76343674f556689a68ff850ac20559e5836db2"
+      },
+      {
+        "phase": "recovery",
+        "passed": true,
+        "expected_functions": 1,
+        "functions": [
+          "connection_control::tests::replacement_sources::commit::candidate_adoption_successor_recovery_never_reconstructs_old_offer_from_new_mapping"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 0.9667517079506069,
+        "log_sha256": "6dc3833089e99a257d33325ad9b48a2961f7cdd88853a586e4d5cc24ddad4f9e"
+      },
+      {
+        "phase": "native-wire",
+        "passed": true,
+        "expected_functions": 29,
+        "functions": [
+          "connection_control::tests::native_wire::controlled_native_successor_cleanup_rejects_wrong_observation_and_rolls_back_failed_facts",
+          "connection_control::tests::native_wire::direct_preparation_cannot_pair_a_native_offer_with_a_verified_web_rtc_endpoint",
+          "connection_control::tests::native_wire::native_cleanup_finishes_original_route_after_actual_session_retirement",
+          "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata",
+          "connection_control::tests::native_wire::native_dormant_retirement_fanout_and_decision_are_atomic_and_replay_exactly",
+          "connection_control::tests::native_wire::native_effect_correlations_preserve_owner_scoped_offer_and_stream_operation_ids",
+          "connection_control::tests::native_wire::native_endpoint_replay_preserves_saved_selection_instead_of_switching_to_another_profile",
+          "connection_control::tests::native_wire::native_endpoint_selection_refuses_missing_and_ambiguous_profiles_without_creating_slots",
+          "connection_control::tests::native_wire::native_split_budgets_admit_one_cancel_receipt_and_preserve_unknown_cleanup_fanout",
+          "connection_control::tests::native_wire::native_transport_selection_preserves_verified_endpoint_and_refuses_cross_transport_replay",
+          "connection_control::tests::native_wire::native_wire_accept_and_begin_storage_failures_roll_back_before_issuing_an_attempt",
+          "connection_control::tests::native_wire::native_wire_acceptance_is_separate_from_private_completion_and_can_be_read_under_held_invocation",
+          "connection_control::tests::native_wire::native_wire_cancel_before_effect_retires_only_dormant_slot_but_attempted_cancel_remains_unknown",
+          "connection_control::tests::native_wire::native_wire_concurrent_claims_issue_one_attempt_and_one_stable_effect",
+          "connection_control::tests::native_wire::native_wire_replay_conflict_and_binding_proof_cannot_start_or_replace_an_attempt",
+          "connection_control::tests::native_wire::native_wire_restart_after_attempt_marks_unknown_and_never_issues_another_attempt",
+          "connection_control::tests::native_wire::native_wire_source_expiry_before_effect_fails_without_extending_replay_or_allocating_media",
+          "connection_control::tests::native_wire::web_rtc_original_sdp_replay_cannot_select_new_intent_or_revoked_endpoint",
+          "connection_control::tests::native_wire::web_rtc_preparation_requires_verified_exact_device_transport_and_never_reports_media",
+          "connection_control::tests::native_wire::webrtc_continuation::native_quic_cannot_enter_the_webrtc_continuation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_complete_a_cancelled_original_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_cannot_substitute_a_credential_origin_or_attempt",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_does_not_extend_the_original_source_expiry",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_preserves_caller_cancellation",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_reacquires_exact_original_authority_without_another_effect_or_idle_reader",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_rechecks_current_credential_key_device_and_endpoint",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_a_current_writer_and_preserves_original_uncertainty",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_refuses_departed_session_membership",
+          "connection_control::tests::native_wire::webrtc_continuation::webrtc_continuation_wait_does_not_outlive_original_source_budget"
+        ],
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 18.585630791960284,
+        "log_sha256": "bf030c1eb445461e014b9b92bc307a9dafcabee586e1d27db18bb309af51b0b0"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "b88249706a3200343c398c893271e0ff4733834fc772ee9557b25369005b631a",
+    "test_executable_sha256": "c4c5cb8e228bccb3aa159c1a8854d72611c60d033d86395e15940224ea1d77ad",
+    "scope": "Actual local controlled Store admission/claim/retirement/CAS/history/recovery and existing native-wire regressions. No real Core ticket, signed host media, Linux/remote/provider or full SDK qualification."
+  },
+  "diagnostics": "Fixed reservation-authority/reservation-sql/reservation-transaction labels distinguish the contended stage. Raw metadata error detail stays in private tracing output; no identity, credential or wire payload is logged by these new sites."
+}

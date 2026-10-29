@@ -847,3 +847,43 @@ native duplex readiness. Until commit, the telephone remains the speaking route.
 After commit, current native credentials govern the new route. The old telephone
 cleanup flag is settled only after actual SIP absence; historical operation
 results do not restore that route or permit redial.
+
+
+## Ordinary pending native candidates (G6-062)
+
+An explicit public candidate is not a private replacement ticket. The current
+Connect continuation admits only the exact ordinary native offer that is still
+preparing at generation one, has started its original current-runtime attempt,
+and has neither observed runtime nor readiness. Ordinary ready bindings cannot
+be claimed through this continuation. The original offer receipt and logical
+mutation ID remain reserved.
+
+Before fresh preparation, an immutable Store claim freezes the original offer,
+credential/key/device/Endpoint, attempt, effect, runtime epoch, Core Connection
+and generation. One attributed retirement effect owns cancellation and cleanup.
+The host closes the exact ordinary worker lane and joins its cleanup before
+taking the role projection mutex. It records actual absence through both native
+adapters and exact original cleanup metadata; that observation grants no media
+readiness. A revoked initiator can finish known negative cleanup metadata but
+cannot obtain a new ticket.
+
+Only afterwards does the host reacquire current source, retained route and
+target authority, freeze the current Participant revision and request a fresh
+managed Core preparation with a distinct never-reused Core Connection ID. The
+public candidate slot remains retired until the actual managed commit has been
+recorded. Its projection atomically transfers the exact claimed slot and offer
+mapping to the fresh incarnation. Historical original cleanup uses the frozen
+claim rather than the newer mapping; it cannot retire the replacement.
+
+A successor settles a pre-ticket claim only after actual original absence and
+exclusive installation ownership. A durable full reservation excludes this
+negative-only path. Started uncertainty stays unknown until known cleanup, and
+no operator assertion can manufacture replacement completion. No new wire route
+is added: the existing connection.replace and native offer continuations retain
+their public authority and result rules.
+
+Store checks qualify admission, retirement metadata, cancellation/revocation,
+crash recovery and the final public-slot CAS. Current installed runtime tests
+reach confirmed original retirement but fail to settle fresh preparation.
+Actual candidate media, complete SDK and Gate 6 acceptance remain unqualified;
+see docs/evidence/gate-6/native-candidate-adoption.json.

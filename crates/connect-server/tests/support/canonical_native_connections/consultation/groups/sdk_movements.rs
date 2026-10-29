@@ -223,9 +223,8 @@ pub(super) async fn handoff_completed(
 pub(super) async fn replacement(
     f: &Fixture,
     command: &TransitionCommand,
-    token: &str,
+    config: CanonicalClientConfig,
 ) -> ReplacementProbe {
-    let config = super::super::sdk_controls::controller_config(f, token, 921);
     let original = f.server.service.canonical_runtime_snapshot().unwrap();
     if super::super::sdk_controls::NodeMovementProbe::enabled() {
         let mut probe = super::super::sdk_controls::NodeMovementProbe::register(

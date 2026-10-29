@@ -4,11 +4,9 @@ async fn wait_prepared(f: &Fixture, key: &str, operation: &str) -> OperationReco
     let until = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
         let record = status(f, key, operation).await;
-        if record
-            .effects
-            .first()
-            .is_some_and(|e| e.state == EffectState::Confirmed)
-        {
+        if record.effects.iter().any(|e| {
+            e.provider == "native-replacement-prepare" && e.state == EffectState::Confirmed
+        }) {
             return record;
         }
         assert!(
@@ -322,31 +320,8 @@ async fn exercise_replacement_with_control(
             "replace-before-prepare-source",
         )
         .await;
-        // Only the real signed target's pending offer supplies candidate metadata.
-        // Keep its parameter callback unanswered: it proves neither media nor an
-        // owned replacement ticket. The new operation must acquire both itself.
-        let candidate_id = "node-explicit-preparing-candidate";
-        let mut preparing_target = if candidate_target {
-            let mut client = CanonicalClient::open(target.clone()).await.unwrap();
-            let request_id = client.send_value("connection.offer",json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"candidate-provisional-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]}),CommandScope {conversation_id:Some(cid.clone()),session_id:Some("native-session".into()),connection_id:Some(candidate_id.into()),operation_id:Some("node-candidate-initial-offer".into()),expected_revision:Some(0)}).await.unwrap();
-            let answer = client.receive_control().await.unwrap();
-            assert_eq!(answer.kind(), "connection.answer");
-            assert_eq!(answer.original()["in_reply_to"], request_id);
-            let parameters = client.receive_control().await.unwrap();
-            assert_eq!(parameters.kind(), "connection.offer");
-            assert_eq!(
-                parameters.scope(connect_client::canonical::Scope::Connection),
-                Some(candidate_id)
-            );
-            let database = rusqlite::Connection::open(&f.config.database).unwrap();
-            let exact:bool=database.query_row("SELECT EXISTS(SELECT 1 FROM connections c JOIN connection_offers o ON o.connection_id=c.id WHERE c.id=?1 AND c.session_id='native-session' AND c.participant_id=?2 AND c.endpoint_id=?3 AND c.state='preparing' AND c.generation=1 AND c.observed_runtime_id IS NOT NULL)",rusqlite::params![candidate_id,owner,endpoint],|row|row.get(0)).unwrap();
-            assert!(exact);
-            drop(database);
-            Some(client)
-        } else {
-            None
-        };
-        let baseline = f.server.service.canonical_runtime_snapshot().unwrap();
+        // Provision the controller before the unanswered native invocation holds
+        // its current identity/conversation readers.
         let mut scope = Scope::collaboration(vec!["*".into()]);
         scope
             .operations
@@ -363,6 +338,34 @@ async fn exercise_replacement_with_control(
         let mut cfg = canonical_http_config(&f);
         cfg.credential = key.token.clone();
         let mut controller = CanonicalHttpClient::open(cfg).await.unwrap();
+        let sdk_config = (sdk_algorithm.is_some() && !mcp)
+            .then(|| super::super::sdk_controls::controller_config(&f, &key.token, 921));
+        // Only the real signed target's pending offer supplies candidate metadata.
+        // Keep its parameter callback unanswered: it proves neither media nor an
+        // owned replacement ticket. The new operation must acquire both itself.
+        let candidate_id = "node-explicit-preparing-candidate";
+        let mut original_candidate = None;
+        let mut preparing_target = if candidate_target {
+            let mut client = CanonicalClient::open(target.clone()).await.unwrap();
+            let request_id = client.send_value("connection.offer",json!({"substrate":"quic","capabilities":capabilities(),"streams_offered":[{"id":"candidate-provisional-voice","kind":"audio","direction":"sendrecv","codec_preferences":["g.711-mu"]}]}),CommandScope {conversation_id:Some(cid.clone()),session_id:Some("native-session".into()),connection_id:Some(candidate_id.into()),operation_id:Some("node-candidate-initial-offer".into()),expected_revision:Some(0)}).await.unwrap();
+            let answer = client.receive_control().await.unwrap();
+            assert_eq!(answer.kind(), "connection.answer");
+            assert_eq!(answer.original()["in_reply_to"], request_id);
+            let parameters = client.receive_control().await.unwrap();
+            assert_eq!(parameters.kind(), "connection.offer");
+            assert_eq!(
+                parameters.scope(connect_client::canonical::Scope::Connection),
+                Some(candidate_id)
+            );
+            let database = rusqlite::Connection::open(&f.config.database).unwrap();
+            let original:(String,String)=database.query_row("SELECT root.record_id,mapping.runtime_connection_id FROM connections c JOIN connection_offers mapping ON mapping.connection_id=c.id JOIN operations root ON root.connection_id=c.id AND root.operation_id=mapping.operation_id JOIN native_offer_operations original ON original.operation_record_id=root.record_id JOIN operation_effects effect ON effect.id=original.effect_id WHERE c.id=?1 AND c.session_id='native-session' AND c.participant_id=?2 AND c.endpoint_id=?3 AND c.state='preparing' AND c.generation=1 AND c.observed_runtime_id IS NULL AND c.readiness_json IS NULL AND original.effect_started=1 AND original.generation=c.generation AND original.attempt_runtime=?4 AND root.state='preparing' AND root.lease_owner=original.attempt_id AND effect.state='submitting' AND effect.attempt=1",rusqlite::params![candidate_id,owner,endpoint,f.server.store.runtime_epoch()],|row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+            original_candidate = Some(original);
+            drop(database);
+            Some(client)
+        } else {
+            None
+        };
+        let baseline = f.server.service.canonical_runtime_snapshot().unwrap();
         let command = TransitionCommand {
             operation_id: "actual-managed-replacement".into(),
             conversation_id: cid.clone(),
@@ -381,8 +384,8 @@ async fn exercise_replacement_with_control(
         } else {
             None
         };
-        let sdk_probe = if sdk_algorithm.is_some() && !mcp {
-            Some(super::sdk_movements::replacement(&f, &command, &key.token).await)
+        let sdk_probe = if let Some(config) = sdk_config {
+            Some(super::sdk_movements::replacement(&f, &command, config).await)
         } else {
             None
         };
@@ -405,7 +408,7 @@ async fn exercise_replacement_with_control(
         let prepared = wait_prepared(&f, &key.id, &command.operation_id).await;
         assert_eq!(prepared.state, OperationState::Preparing);
         assert!(prepared.result.is_none());
-        assert_eq!(prepared.effects.len(), 1);
+        assert_eq!(prepared.effects.len(), 1 + usize::from(candidate_target));
         assert_eq!(prepared.effects[0].attempt, 1);
         if let Some(probe) = &mcp_probe {
             probe.replay().await;
@@ -423,7 +426,10 @@ async fn exercise_replacement_with_control(
             baseline.physical_peers,
             baseline.live_sessions,
         ));
-        assert_eq!(current.connections, before.0);
+        assert_eq!(
+            current.connections,
+            before.0 - usize::from(candidate_target)
+        );
         assert_eq!(current.physical_peers, before.1);
         assert_eq!(current.live_sessions, before.2);
         let c = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -443,6 +449,10 @@ async fn exercise_replacement_with_control(
         assert_eq!(exists, candidate_target);
         if candidate_target {
             assert_eq!(candidate, candidate_id);
+            let (original_record, old_runtime) = original_candidate.as_ref().unwrap();
+            assert_ne!(plan["candidate_runtime_id"], old_runtime.as_str());
+            let retired:bool=c.query_row("SELECT EXISTS(SELECT 1 FROM native_replacement_candidates q JOIN operation_effects e ON e.id=q.retirement_effect_id JOIN connections v ON v.id=q.candidate_connection_id JOIN connection_offers mapping ON mapping.connection_id=v.id JOIN operations original ON original.record_id=q.original_record_id WHERE q.operation_record_id=?1 AND q.original_record_id=?2 AND json_extract(q.claim_json,'$.core')=?3 AND e.provider='native-candidate-retire' AND e.state='confirmed' AND e.attempt=1 AND json_extract(e.observation_json,'$.core')=?3 AND json_extract(e.observation_json,'$.retired_generation')=2 AND v.state='retired' AND v.generation=2 AND v.observed_runtime_id IS NULL AND v.readiness_json IS NULL AND mapping.runtime_connection_id=?3 AND original.state='failed')",rusqlite::params![prepared.record_id,original_record,old_runtime],|row|row.get(0)).unwrap();
+            assert!(retired);
         }
         drop(c);
         // Real ticket ownership retains no idle Store grant. A bounded writer
@@ -499,7 +509,7 @@ async fn exercise_replacement_with_control(
                 .unwrap();
             let allocated = status(&f, &key.id, &command.operation_id).await;
             assert_eq!(allocated.state, OperationState::Preparing);
-            assert_eq!(allocated.effects.len(), 2);
+            assert_eq!(allocated.effects.len(), 2 + usize::from(candidate_target));
             assert!(allocated
                 .effects
                 .iter()
@@ -532,7 +542,10 @@ async fn exercise_replacement_with_control(
                 .is_err());
             other.shutdown().await.unwrap();
             let snapshot = f.server.service.canonical_runtime_snapshot().unwrap();
-            assert_eq!(snapshot.connections, baseline.connections + 1);
+            assert_eq!(
+                snapshot.connections,
+                baseline.connections + 1 - usize::from(candidate_target)
+            );
             assert_eq!(snapshot.live_sessions, baseline.live_sessions);
             assert_eq!(snapshot.replacement_preparations, 1);
             let c = rusqlite::Connection::open(&f.config.database).unwrap();
@@ -604,7 +617,7 @@ async fn exercise_replacement_with_control(
                     let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
                     let started = loop {
                         let current = status(&f, &key.id, &command.operation_id).await;
-                        if current.effects.len() == 5
+                        if current.effects.len() == 5 + usize::from(candidate_target)
                             && current
                                 .effects
                                 .iter()
@@ -620,7 +633,7 @@ async fn exercise_replacement_with_control(
                     };
                     assert_eq!(started.state, OperationState::Preparing);
                     assert!(started.result.is_none());
-                    assert_eq!(started.effects.len(), 5);
+                    assert_eq!(started.effects.len(), 5 + usize::from(candidate_target));
                     assert!(started
                         .effects
                         .iter()
@@ -730,7 +743,7 @@ async fn exercise_replacement_with_control(
                 loop {
                     let r = status(&f, &key.id, &command.operation_id).await;
                     if r.state == OperationState::Completed {
-                        assert_eq!(r.effects.len(), 7);
+                        assert_eq!(r.effects.len(), 7 + usize::from(candidate_target));
                         assert!(r
                             .effects
                             .iter()
@@ -827,7 +840,7 @@ async fn exercise_replacement_with_control(
                 probe.completed(&done).await;
                 probe.replay().await;
             }
-            assert_eq!(done.effects.len(), 7);
+            assert_eq!(done.effects.len(), 7 + usize::from(candidate_target));
             assert!(done
                 .effects
                 .iter()
