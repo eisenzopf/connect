@@ -9,6 +9,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 pub mod administrative;
 mod connection;
+pub mod media_ipc;
 mod movement;
 pub use movement::{HandoffRequest, MoveRequest};
 mod managed;

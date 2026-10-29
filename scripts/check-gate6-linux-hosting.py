@@ -457,6 +457,7 @@ def run(node_sdk=False, python_sdk=False):
             ("sdk-event-delivery", "client", "sdk::events::helper_delivery_tests::", 3),
             ("sdk-events", "client", "canonical::tests::sdk_events::", 10),
             ("sdk-managed-delivery", "client", "sdk::helper::managed::tests::", 3),
+            ("sdk-media-ipc-framing", "client", "sdk::helper::media_ipc::tests::", 5),
             ("sdk-startup-context", "library", "cli::sdk_stdio::tests::", 3),
             ("admin-local-validation", "hosting", "sdk_handles::administration::local_administrative_validator_", 3),
             ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),

@@ -1,0 +1,84 @@
+{
+  "task": "G6-064",
+  "date": "2026-10-29",
+  "base_commit": "e338fc0e",
+  "status": "in-progress",
+  "profile": "C6M1",
+  "scope": "Local macOS arm64 Rust helper binary framing component only. The helper has no media attachment/routing or language API yet. No Node/Python media, native decoded-media, Linux/remote/provider/model/package/publication or acceptance qualification.",
+  "passed": true,
+  "functions": 5,
+  "test_names": [
+    "sdk::helper::media_ipc::tests::invalid_outbound_records_write_no_prefix",
+    "sdk::helper::media_ipc::tests::untrusted_header_bounds_refuse_before_body_allocation_and_fence",
+    "sdk::helper::media_ipc::tests::truncated_original_record_never_becomes_clean_eof_or_resynchronizes",
+    "sdk::helper::media_ipc::tests::cancelled_header_and_body_waits_preserve_the_original_two_boundaries",
+    "sdk::helper::media_ipc::tests::slow_consumer_backpressures_the_owned_writer_until_the_exact_record_drains"
+  ],
+  "test_log_sha256": "7801f4e982f39410a818b06dd448c2ebc911776b4f7e9793f0ee0ccc83ef9975",
+  "test_executable_sha256": "34070f78b4030cfa0e02ec2a3df1bbf65aed89dd067b7135657cb3058629c63f",
+  "tested_inputs": {
+    "crates/connect-client/src/sdk/helper.rs": {
+      "sha256": "f220fdff1b8281d774bdebc077d89fa1f4cf477ee8a70c6cb6deb6eb04caeeb9",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/media_ipc.rs": {
+      "sha256": "9433734a156d08aec761fa83edd37c9291f988a49edcb66483e4da044420e934",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "418d50c4103cef3d90060a838df2d26b384e51034c4132f6faf79cc96b1368a2",
+      "mode": 420
+    }
+  },
+  "recorded_component_and_lock_inputs_unchanged_through_completion": true,
+  "complete_tree_build_guard_collected": false,
+  "command": [
+    "cargo",
+    "test",
+    "--offline",
+    "--locked",
+    "-p",
+    "connect-client",
+    "--lib",
+    "sdk::helper::media_ipc::tests",
+    "--",
+    "--nocapture"
+  ],
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "wire": {
+    "header_bytes": 17,
+    "metadata_max_bytes": 16384,
+    "payload_max_bytes": 16396,
+    "correlation_id": "nonzero u32",
+    "unknown_profile_or_kind": "fence",
+    "truncated_record": "UnexpectedEof and fence",
+    "clean_eof": "no partial header/body",
+    "debug": "lengths only"
+  },
+  "behavior": [
+    "Cancelled header/body waits retain original bytes and two subsequent boundaries",
+    "Untrusted lengths/profile/kind/zero IDs refuse before body allocation and fence without resync",
+    "Partial record EOF refuses rather than becoming clean close",
+    "Actual 16-byte duplex buffer backpressures the owned writer until a maximum-size record drains",
+    "Invalid outbound limits/ID write no prefix"
+  ],
+  "prepared_dependencies_log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa",
+  "linux_selection": {
+    "prepared": true,
+    "executed": false,
+    "runner": "scripts/check-gate6-linux-hosting.py",
+    "case": "sdk-media-ipc-framing",
+    "expected_functions": 5
+  },
+  "remaining": [
+    "Authenticated separate-channel attachment to the same managed Rust Client",
+    "Typed negotiated binding/format/clock/packet/lifecycle actions",
+    "Node and Python bounded media interfaces and current capability advertisement",
+    "Documented encoding/decoding utility path and actual identified audio/decoded video/typed data",
+    "Slow consumers, frame limits, helper death, original shutdown and platform qualification"
+  ]
+}
