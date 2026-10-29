@@ -53,6 +53,7 @@ pub struct ManagedClient {
     client: Client,
     incoming: tokio::sync::Mutex<Incoming>,
     events: tokio::sync::Mutex<BTreeMap<OperationId, events::Reader>>,
+    media: tokio::sync::Mutex<Option<media::Channel>>,
 }
 impl ManagedClient {
     pub fn new(client: Client) -> Self {
@@ -60,12 +61,37 @@ impl ManagedClient {
             client,
             incoming: Default::default(),
             events: Default::default(),
+            media: Default::default(),
         }
     }
     pub async fn execute(&self, request: Request) -> Result<Value> {
         let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
         let until = tokio::time::Instant::now() + options.timeout;
         match request.action {
+            Action::MediaAttach { attachment } => {
+                let mut media = tokio::time::timeout_at(until, self.media.lock())
+                    .await
+                    .map_err(|_| failure(ErrorKind::Deadline))?;
+                if media.is_some() {
+                    return Err(failure(ErrorKind::Conflict));
+                }
+                *media =
+                    Some(media::Channel::attach(self.client.clone(), attachment, options).await?);
+                Ok(
+                    json!({"profile":media::PROFILE,"attached":true,"window":media::WINDOW,
+                    "header_bytes":media_ipc::HEADER_BYTES,"metadata_max_bytes":media_ipc::MAX_METADATA_BYTES,
+                    "payload_max_bytes":media_ipc::MAX_PAYLOAD_BYTES}),
+                )
+            }
+            Action::MediaDetach {} => {
+                let mut media = tokio::time::timeout_at(until, self.media.lock())
+                    .await
+                    .map_err(|_| failure(ErrorKind::Deadline))?;
+                if let Some(channel) = media.take() {
+                    channel.close(options).await?;
+                }
+                Ok(json!({"profile":media::PROFILE,"closed":true}))
+            }
             Action::EventsPoll {
                 reader_id,
                 conversation_id,
@@ -213,6 +239,13 @@ impl ManagedClient {
         let until = tokio::time::Instant::now() + options.timeout;
         let mut incoming = self.incoming.into_inner();
         let readers = self.events.into_inner();
+        let media = self.media.into_inner();
+        let close_media = async {
+            if let Some(channel) = media {
+                channel.close(options.clone()).await?;
+            }
+            Ok::<_, Error>(())
+        };
         let detach = async {
             if let Some(mut stream) = incoming.stream.take() {
                 stream.close().await?;
@@ -222,8 +255,10 @@ impl ManagedClient {
             }
             Ok::<_, Error>(())
         };
-        let (client, readers) = tokio::join!(self.client.close(options), detach);
+        let (client, readers, media) =
+            tokio::join!(self.client.close(options.clone()), detach, close_media);
         client?;
+        media?;
         readers
     }
 }

@@ -1,7 +1,7 @@
 # Programmatic Node/Python media
 
-G6-064 is in progress. The binary framing foundation below is implemented;
-helper routing and Node/Python media APIs are still being implemented. The
+G6-064 is in progress. Binary framing and managed Rust helper routing are
+implemented; Node/Python media APIs are still being implemented. The
 current control SDK's Stream and Connection observations do not acquire media
 custody by being restored from IDs or operation receipts.
 
@@ -44,13 +44,42 @@ The writer validates bounds before writing a prefix. A writer actor must finish
 the original frame or retire its channel if an application cancels its wait;
 restarting a partial write would corrupt the next boundary.
 
-Remaining implementation includes authenticated private channel attachment to
-the same managed Rust Client, typed negotiation/packet/lifecycle actions,
-bounded language queues and cancellation, and the app-owned encoding/decoding
-utility path. The workspace forbids unsafe code, so raw inherited-FD ownership
-must not be implemented with unchecked descriptor conversion. An explicitly
-authenticated loopback attachment is under consideration. None of these
-remaining paths is qualified by the framing component tests.
+The managed helper now accepts `media_attach` with an explicit loopback TCP
+endpoint and a private one-use 64-character lowercase hex token. It rejects
+remote/wildcard addresses, port zero and malformed tokens before connecting.
+The helper sends a request with correlation ID 1 and metadata
+`{"profile":"connect-sdk-media/1","token":"..."}`. The private listener must
+verify it and reply with the same metadata in a response with ID 1 and no payload.
+The helper verifies that response before starting the media actor. Tokens are
+private IPC state; no account credential is sent on this channel. No unsafe raw
+descriptor conversion or platform-specific socket filename is needed.
+
+Following requests have strictly increasing IDs beginning at 2. Their metadata
+is `{"timeout_ms":4000,"command":{...}}`. Typed commands are `describe`,
+`send_rtp`, `send_clock`, `receive` and `stats`. Connection commands include a
+`binding` object containing `conversation_id`, `session_id` and `connection_id`;
+stream commands additionally name `stream_id`. `send_rtp` includes
+`datagram_sequence` and carries the complete RTP packet as its binary payload.
+Other commands refuse binary bodies. Clock reports preserve 64-bit NTP as a
+canonical decimal string. Received RTP, clock and local queue-gap results stay
+distinct; counters that can exceed JavaScript's exact integer range are decimal
+strings. A successful send means `local-media-queue`, not delivery or playback.
+
+The actor routes through the same Client that owns the JSON control helper.
+Binding lookup and packet operations retain the public Rust SDK's ownership,
+direction, retirement and current-peer checks. A fresh Client restoring the
+same saved operation does not acquire another Client's native negotiation.
+There are at most 16 active media requests and 16 queued responses. Slow media
+I/O has a separate path from control. `media_detach` on the JSON control channel
+cancels and joins the actor, requests and socket writer; closing the managed
+Client also owns that cleanup. An invalid record fences its channel.
+
+The [routing evidence](../evidence/gate-6/sdk-media-ipc-routing.json) covers real
+EdDSA/ES256 listener attachment, authentication/custody refusals, 16 blocked
+receives with live control, bounded detach and server/runtime drainage. It does
+not qualify language media interfaces or decoded media on this IPC path. Those
+interfaces, bounded language queues, cancellation and the app-owned
+encoding/decoding utility path remain to be implemented and verified.
 
 Completion still requires actual Node/Python identified audio, decoded video
 through the documented utility path and typed data, plus slow consumers, limits,

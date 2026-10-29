@@ -1,0 +1,132 @@
+{
+  "task": "G6-064",
+  "date": "2026-10-29",
+  "base_commit": "4cbed268",
+  "status": "in-progress",
+  "profile": "connect-sdk-media/1",
+  "scope": "Actual local macOS arm64 public managed Rust Client and binary loopback channel against original production listener: attachment authentication, original physical binding versus restored observer, validation, sixteen blocked media receives, independent control liveness, detach and original resource drainage. No Node/Python packet API or full media/G6-064/Linux/remote/provider/model/package/acceptance qualification.",
+  "passed": true,
+  "tested_inputs": {
+    "crates/connect-client/src/sdk/helper.rs": {
+      "sha256": "817d32f163a24f8b6776e95be0f56cfa6e2faa043f1b6eda7c48a6f74e2c7843",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/managed.rs": {
+      "sha256": "fac5f41ba0e50c2a57f8554649b45636d1b220c6825545c39fc514fe2190b94d",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/media.rs": {
+      "sha256": "948058e0ee586c9d1d5f3355951cb44732eb0c2c908d370beb79a4d9c5504420",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/helper/media/channel.rs": {
+      "sha256": "ff2e8ecf6f50028e77d9106dc948fade14dd95b3cf441a68262a3c9b5ad1fa1e",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles.rs": {
+      "sha256": "20db62ad1657d195a575b8361129749d854b3686edb17d43a4b572df48506a00",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/sdk_handles/media_ipc.rs": {
+      "sha256": "a14c269729be2e7596ffdafbfe7858b85110cd1f6778b8587db0192141f77a69",
+      "mode": 420
+    }
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8265,
+    "source_inputs_sha256": "e28212e5415701fe6419e607fbc686c624a49799b79875dd23c0bc361a16de45",
+    "build_log_sha256": "d1ac87f0d5bae0fec96295196e55d6248a3359300217125a14698ec58defcf6f",
+    "seconds": 100.558674500091,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "executables": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "58449906a41c16e9929c57657a8ce47ae53a2c546730e623cd1a783199eff3eb"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "a47a8a2210086469012852adb8be1801c0b766fe362ab3d256167e11ad11c92e"
+    }
+  ],
+  "verification": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "seconds": 5.395065999822691,
+    "source_inputs_unchanged": true,
+    "source_count": 8265,
+    "source_inputs_sha256": "e28212e5415701fe6419e607fbc686c624a49799b79875dd23c0bc361a16de45",
+    "test_executable_sha256": "a47a8a2210086469012852adb8be1801c0b766fe362ab3d256167e11ad11c92e",
+    "log_sha256": "e78419082da004538391d5bea9f5234e76f5856661453f0db35971181be55d50",
+    "witnesses": [
+      {
+        "algorithm": "EdDSA",
+        "control_live_while_media_reads_blocked": true,
+        "detach_cancelled_and_joined_reads": true,
+        "inflight_bounded": 16,
+        "invalid_packet_and_metadata_refused": true,
+        "media_readers_drained": true,
+        "original_binding_observed": true,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/1",
+        "remote_attachment_refused": true,
+        "restored_foreign_custody_refused": true,
+        "server_joined": true,
+        "wrong_attachment_refused": true
+      },
+      {
+        "algorithm": "ES256",
+        "control_live_while_media_reads_blocked": true,
+        "detach_cancelled_and_joined_reads": true,
+        "inflight_bounded": 16,
+        "invalid_packet_and_metadata_refused": true,
+        "media_readers_drained": true,
+        "original_binding_observed": true,
+        "physical_peers_drained": true,
+        "profile": "connect-sdk-media/1",
+        "remote_attachment_refused": true,
+        "restored_foreign_custody_refused": true,
+        "server_joined": true,
+        "wrong_attachment_refused": true
+      }
+    ],
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 public managed Rust Client and binary loopback channel against original production listener: attachment authentication, original physical binding versus restored observer, validation, sixteen blocked media receives, independent control liveness, detach and original resource drainage. No Node/Python packet API or full media/G6-064/Linux/remote/provider/model/package/acceptance qualification."
+  },
+  "components": {
+    "passed": true,
+    "functions": 10,
+    "framing": 5,
+    "routing_auth_lifecycle": 5,
+    "log_sha256": "bc9567c0c507d70dba458e7fbbe0e95123790c6bf74ec1b4525260aa884a0865"
+  },
+  "retained_negative": {
+    "passed": false,
+    "functions_passed": 9,
+    "functions_failed": 1,
+    "log_sha256": "ddb02640b866eb5271dec4fbd02204f521de75ea7b3e546c73f27443b68a988c",
+    "reason": "New strict-parser test caught serde ignoring extra fields on the unit Stats variant despite deny_unknown_fields. Changed Stats and new MediaDetach into empty struct variants so unknown fields refuse. No compatibility fallback or deadline increase."
+  },
+  "linux_selection": {
+    "prepared": true,
+    "executed": false,
+    "component_functions": 5,
+    "runtime_functions": 1,
+    "runtime_algorithms": 2
+  },
+  "remaining": [
+    "Node and Python owned binary channels and typed packet interfaces",
+    "Actual language audio/video/data with utility decode, backpressure/cancellation/limits/helper-death cleanup",
+    "Candidate packages/platform matrix/full Gate6 acceptance"
+  ]
+}

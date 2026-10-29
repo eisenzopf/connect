@@ -11,6 +11,8 @@ mod events;
 mod invitations;
 #[path = "sdk_handles/media.rs"]
 mod media;
+#[path = "sdk_handles/media_ipc.rs"]
+mod media_ipc;
 #[path = "sdk_handles/raw.rs"]
 mod raw;
 #[path = "sdk_handles/receipts.rs"]

@@ -9,6 +9,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 pub mod administrative;
 mod connection;
+pub mod media;
 pub mod media_ipc;
 mod movement;
 pub use movement::{HandoffRequest, MoveRequest};
@@ -72,6 +73,10 @@ impl Mutation {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
+    MediaAttach {
+        attachment: media::Attachment,
+    },
+    MediaDetach {},
     EventsPoll {
         reader_id: OperationId,
         conversation_id: ConversationId,
@@ -225,7 +230,9 @@ pub enum OperationAction {
 pub async fn execute(client: &Client, request: Request) -> Result<Value> {
     let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
     match request.action {
-        Action::IncomingPoll { .. }
+        Action::MediaAttach { .. }
+        | Action::MediaDetach {}
+        | Action::IncomingPoll { .. }
         | Action::IncomingClose { .. }
         | Action::EventsPoll { .. }
         | Action::EventsClose { .. } => Err(Error::request(ErrorKind::Unsupported, None, false)),
