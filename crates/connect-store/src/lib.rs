@@ -24,6 +24,8 @@ mod cursor;
 mod events;
 pub use events::{SessionObservationActivity, SessionObservationSource};
 mod credential_issuance;
+mod enrollment;
+pub use enrollment::{EnrollmentCredentialBinding, OwnedEnrollment};
 mod identity;
 pub use credential_issuance::IssuedScopedCredential;
 mod installation_ownership;
@@ -187,7 +189,7 @@ pub use tasks::{
     TaskObservationBinding, VapiSessionContext,
 };
 pub(crate) mod native_stream_projection;
-pub const SCHEMA_VERSION: u32 = 114;
+pub const SCHEMA_VERSION: u32 = 115;
 const STARTUP_BLOB_CLEANUP_LIMIT: usize = 100;
 
 mod session_gateways;
@@ -555,6 +557,8 @@ impl Store {
             "../migrations/114_native_candidate_adoption.sql"
         ))
         .map_err(|_| Error::storage())?;
+        tx.execute_batch(include_str!("../migrations/115_client_enrollment.sql"))
+            .map_err(|_| Error::storage())?;
         tx.commit().map_err(|_| Error::storage())?;
         let blob_directory = Self::create_blob_directory(path)?;
         let authority = Self::authority_manager(path, &connection)?;

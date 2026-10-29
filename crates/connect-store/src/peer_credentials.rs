@@ -164,23 +164,7 @@ pub(crate) fn apply(
                     "Signing key expiry must be within one year",
                 ));
             }
-            let bytes = URL_SAFE_NO_PAD
-                .decode(public_key)
-                .map_err(|_| Error::new("invalid-request", "Invalid public key"))?;
-            let valid = match algorithm {
-                SigningAlgorithm::EdDSA => bytes
-                    .as_slice()
-                    .try_into()
-                    .ok()
-                    .and_then(|bytes| ed25519_dalek::VerifyingKey::from_bytes(bytes).ok())
-                    .is_some_and(|key| !key.is_weak()),
-                SigningAlgorithm::ES256 => {
-                    bytes.first() == Some(&4) && p256::PublicKey::from_sec1_bytes(&bytes).is_ok()
-                }
-            };
-            if !valid {
-                return Err(Error::new("invalid-request", "Invalid public key"));
-            }
+            let bytes = key_material(*algorithm, public_key)?;
             let existing:Option<(String,String,String,String,Vec<u8>,i64,i64,u64,bool)>=c.query_row("SELECT identity_id,tenant_id,device_id,algorithm,public_key,not_before,expires_at,revision,revoked FROM peer_signing_keys WHERE key_id=?1",[key_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?,r.get(7)?,r.get(8)?))).optional().map_err(|_|Error::storage())?;
             if let Some(row) = existing {
                 if row.0 != *identity_id
@@ -284,4 +268,27 @@ fn decode_algorithm(value: String) -> rusqlite::Result<SigningAlgorithm> {
         "ES256" => Ok(SigningAlgorithm::ES256),
         _ => Err(rusqlite::Error::InvalidQuery),
     }
+}
+
+pub(crate) fn key_material(algorithm: SigningAlgorithm, public_key: &str) -> Result<Vec<u8>> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(public_key)
+        .map_err(|_| Error::new("invalid-request", "Invalid public key"))?;
+    let valid = match algorithm {
+        SigningAlgorithm::EdDSA => bytes
+            .as_slice()
+            .try_into()
+            .ok()
+            .and_then(|bytes| ed25519_dalek::VerifyingKey::from_bytes(bytes).ok())
+            .is_some_and(|key| !key.is_weak()),
+        SigningAlgorithm::ES256 => {
+            bytes.len() == 65
+                && bytes.first() == Some(&4)
+                && p256::PublicKey::from_sec1_bytes(&bytes).is_ok()
+        }
+    };
+    if !valid {
+        return Err(Error::new("invalid-request", "Invalid public key"));
+    }
+    Ok(bytes)
 }

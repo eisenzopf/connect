@@ -53,7 +53,13 @@ fn conflict() -> Error {
         "Credential issuance has different original authority or intent",
     )
 }
-fn token(c: &Connection, id: &str, issuer: &str, operation: &str, intent: &str) -> Result<String> {
+pub(crate) fn token(
+    c: &Connection,
+    id: &str,
+    issuer: &str,
+    operation: &str,
+    intent: &str,
+) -> Result<String> {
     let secret: String = c
         .query_row(
             "SELECT cursor_key FROM installation WHERE singleton=1",
@@ -70,7 +76,7 @@ fn token(c: &Connection, id: &str, issuer: &str, operation: &str, intent: &str) 
     }
     Ok(hex::encode(mac.finalize().into_bytes()))
 }
-fn require(
+pub(crate) fn require(
     c: &Connection,
     issuer: &str,
     request: &CredentialIssueRequest,
@@ -101,6 +107,17 @@ fn require(
         return Err(Error::forbidden());
     }
     Ok((actor, tenant, scopes))
+}
+/// Shared insertion after the caller rechecks current issuer and held scopes.
+pub(crate) fn insert(
+    c: &Connection,
+    id: &str,
+    request: &CredentialIssueRequest,
+    credential: &str,
+    now: i64,
+) -> Result<()> {
+    c.execute("INSERT INTO credentials(id,identity_id,verifier,operations,recipients,expires_at,issued_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![id,request.identity_id,crate::verifier(credential),serde_json::to_string(&request.operations).map_err(|_|Error::storage())?,serde_json::to_string(&request.recipients).map_err(|_|Error::storage())?,request.expires_at,now]).map_err(|_|Error::storage())?;
+    Ok(())
 }
 impl Store {
     /// Current administrator only. Scope/expiry/issuer bind the original journal
@@ -182,7 +199,7 @@ impl Store {
                 &request.operation_id,
                 &intent,
             )?;
-            tx.execute("INSERT INTO credentials(id,identity_id,verifier,operations,recipients,expires_at,issued_at) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![receipt.credential_id,request.identity_id,crate::verifier(&credential),serde_json::to_string(&request.operations).map_err(|_|Error::storage())?,serde_json::to_string(&request.recipients).map_err(|_|Error::storage())?,request.expires_at,now]).map_err(|_|Error::storage())?;
+            insert(&tx, &receipt.credential_id, &request, &credential, now)?;
             tx.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,intent_json,state,result_json,created_at,updated_at,expires_at) VALUES(?1,?2,?3,?4,?5,'credential.issue',?6,'completed',?7,?8,?8,?9)",params![format!("opr_{}",uuid::Uuid::new_v4()),tenant,actor.identity_id,request.operation_id,digest,intent,serde_json::to_string(&receipt).map_err(|_|Error::storage())?,now,request.expires_at]).map_err(|_|Error::storage())?;
             receipt
         };

@@ -1,0 +1,208 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "84af899a",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Isolated local Store component: actual Ed25519/ES256 proof admission, original approval/completion IDs, atomic scoped credential/Device/key/Endpoint binding, restart/current-authority recovery, bounded challenge attempts/capacity, revocation/rotation and owned in-process delivery. No HTTP physical delivery, trusted transport admission or native/browser client qualification.",
+  "schema": 115,
+  "tested_inputs": {
+    "crates/connect-store/src/enrollment/mod.rs": {
+      "sha256": "c4a764c89200c573d0c567ba4574ad9454176146405e5640a99882bef50105e5",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/tests.rs": {
+      "sha256": "2dac3c9fd449492f67770f0692e42995d338614bfacb4486e8886cbbd98fa374",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/approval.rs": {
+      "sha256": "47ed52797f87cf8d22006c33bc7e199dcc46ea04c91a6bad7150084172c783f0",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/revoke.rs": {
+      "sha256": "b56b786813a5a13482aa3b99246a74c391065e918de2fd3981edf77758352392",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/claim.rs": {
+      "sha256": "be38e060488a6cffa01103a03f414c5911f2236df3a7cd525ff2118bc03762d7",
+      "mode": 420
+    },
+    "crates/connect-store/src/lib.rs": {
+      "sha256": "e3cd9ddb9d4222dcf6f746b5ce054cfb5cb711e8c2dff041fd0f4c236d0e1cf6",
+      "mode": 420
+    },
+    "crates/connect-store/src/recovery.rs": {
+      "sha256": "7b0b204d175becbaf4c7a7b3fb7cee9488cf12044bbb147c4399db149513a6a0",
+      "mode": 420
+    },
+    "crates/connect-store/src/credential_issuance.rs": {
+      "sha256": "aef043b853e0becffda605f7984813ae80937c732f0a4bd0d1f54f8ebd58a0a7",
+      "mode": 420
+    },
+    "crates/connect-store/src/provisioning.rs": {
+      "sha256": "3b24407b788950af419afb88a7ce7932cd5fd8a91c0b68eb078edb6ebbda743e",
+      "mode": 420
+    },
+    "crates/connect-store/src/peer_credentials.rs": {
+      "sha256": "d39f73e5c908df748e29a23ba64d143b049f47ae7156b700504c41a5defe3e2f",
+      "mode": 420
+    },
+    "crates/connect-store/Cargo.toml": {
+      "sha256": "4416fbfa3d62887bb8c76817af07edd9fdaaa7792708503a51c520db6fa5b9b7",
+      "mode": 420
+    },
+    "crates/connect-store/migrations/115_client_enrollment.sql": {
+      "sha256": "ea4ebfc6b89866c0e69d105945e916541a2f2d3a920656a5cf7d06a6cc9f42d4",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/enrollment.rs": {
+      "sha256": "3324d8b939671bc7c26b384c73a69195b25606a8b17180c5fb196adf3bb690f2",
+      "mode": 420
+    },
+    "Cargo.toml": {
+      "sha256": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5",
+      "mode": 420
+    }
+  },
+  "store": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "source_inputs_unchanged": true,
+    "functions_passed": 13,
+    "expected_functions": 13,
+    "pattern": "enrollment::tests::",
+    "source_inputs_sha256": "e495dc4bd3e3a6fb901d4da004027bac959cf0c2e4b35831cbc4c47ce2d286fc",
+    "log_sha256": "d690ef4dbb5a835bd01d27b6adc0a5d01d120790b78ad2cd5cc77fc76a544efc",
+    "seconds": 28.90135491709225,
+    "scope": "Store enrollment behavior on isolated local SQLite: actual Ed25519/ES256 proofs, reserved original IDs, atomic endpoint/credential/key binding, replay/restart, authority/Origin/refusal/capacity/revocation/rotation, protected in-process delivery fences and snapshot/schema boundary. No HTTP physical delivery, transport-bound admission, native/browser client or fullG6-055 qualification."
+  },
+  "regressions": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "issuance",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": 7,
+        "function_counts": [
+          7
+        ],
+        "seconds": 2.9529885000083596,
+        "log_sha256": "f9222f5972bd27c5e7341e0274d5ed80b0d154d175b032f66111251ec3a3d60f"
+      },
+      {
+        "phase": "provisioning-peer-recovery",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": 21,
+        "function_counts": [
+          3,
+          16,
+          2
+        ],
+        "seconds": 20.59981037513353,
+        "log_sha256": "0faa39c077da0439c1c33129aeea3b66d5285dcb4abd0d8963a4865164b2c798"
+      }
+    ],
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "b6375e0a9078ae01b9f9d7ca2211d897b37a2e7866909aebb9e13674ce61c12a",
+    "scope": "Original Store administrative issuance, provisioning, key binding and backup/schema regressions against schema115/shared helpers. No server HTTP, physical transport delivery or fullG6-055 qualification."
+  },
+  "regression_source_difference": "Only enrollment/tests.rs changed: foreign-tenant fixture now copies required Identity capabilities; shared production helpers and implementation byte-identical.",
+  "protocol_schema": {
+    "passed": true,
+    "exit_code": 0,
+    "seconds": 4.648118749959394,
+    "source_inputs_unchanged": true,
+    "functions_passed": 6,
+    "source_inputs_sha256": "693f4e897722966203534d76a966837508e27cf6c2703677b5e2c03992374d85",
+    "log_sha256": "eed57d5df42be827f1a041edfe7341d07ac578e36f4f62e01fb74c23c3d2c667"
+  },
+  "unique_store_functions": 13,
+  "algorithm_transport_scenes": [
+    "EdDSA/quic",
+    "EdDSA/webtransport",
+    "EdDSA/wss-webrtc",
+    "ES256/quic",
+    "ES256/webtransport",
+    "ES256/wss-webrtc"
+  ],
+  "behavior": [
+    "Approval/replay creates no authority until verified claim; two original receipt slots reserved",
+    "Real signatures and immutable Identity/Device/key/Endpoint/transport/Origin/issuer/scopes/expiry context",
+    "Stolen challenge fails crypto; five matching invalid proofs exhaust pending approval",
+    "Wrong IDs/transport/Origin/challenge make no effects",
+    "Expired pending claim terminal; completed recovery preserves bearer and absolute expiry after challenge expiry",
+    "Cross-tenant/scope/admin and original issuer namespace refusals",
+    "Late foreign Device and late key conflict roll back credential and Endpoint changes",
+    "Restart retains exact bearer, key binding and absolute expiry",
+    "Current issuer/child/key/Endpoint and original tombstone checks on recovery",
+    "Pending/completed revocation terminal; replacement shares exact Device/Endpoint with fresh credential/key",
+    "Owned delivery blocks supported revocation until guard drops",
+    "Snapshot includes enrollment; immutable SQL guards; schema114 refused unchanged",
+    "32 pending cap and two-slot receipt capacity refusal"
+  ],
+  "prior_attempts": [
+    {
+      "run": "enrollment945-store",
+      "passed": false,
+      "phase": "compile",
+      "reason": "Missing p256 ecdsa feature and ambiguous profile/signing imports; no behavior executed",
+      "log_sha256": "442c27eabbfe1b7cef37de147b945e2669fd9c5c8cf594d52c740f76ce05a4a1"
+    },
+    {
+      "run": "enrollment946-store",
+      "passed": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "source_inputs_unchanged": true,
+      "functions_passed": 12,
+      "expected_functions": 12,
+      "pattern": "enrollment::tests::",
+      "source_inputs_sha256": "a78cf28e2c908c289e17898d95647aaa4e5261cf2ec9153a30df6e312c80510f",
+      "log_sha256": "3c5edab7db71c4a0e271cbd3dd08df81b121dc0d66528547d995970851b6770e",
+      "seconds": 31.97320087510161,
+      "scope": "Store enrollment behavior on isolated local SQLite: actual Ed25519/ES256 proofs, reserved original IDs, atomic endpoint/credential/key binding, replay/restart, authority/Origin/refusal/capacity/revocation/rotation, protected in-process delivery fences and snapshot/schema boundary. No HTTP physical delivery, transport-bound admission, native/browser client or fullG6-055 qualification."
+    },
+    {
+      "run": "enrollment947-store",
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "source_inputs_unchanged": true,
+      "functions_passed": null,
+      "expected_functions": 13,
+      "pattern": "enrollment::tests::",
+      "source_inputs_sha256": "eca875c0071c62355ecc3330397526d61b712c2a10c7e6b2375d20f64f043fa2",
+      "log_sha256": "e665c7f732f3b8b440f50f1d7233bac0719a08a77511c20c91842462d852b8aa",
+      "seconds": 29.22935704095289,
+      "scope": "Store enrollment behavior on isolated local SQLite: actual Ed25519/ES256 proofs, reserved original IDs, atomic endpoint/credential/key binding, replay/restart, authority/Origin/refusal/capacity/revocation/rotation, protected in-process delivery fences and snapshot/schema boundary. No HTTP physical delivery, transport-bound admission, native/browser client or fullG6-055 qualification.",
+      "reason": "12/13 functions passed; cross-tenant fixture lacked required capabilities before its authorization assertion; fixed fixture, then all13 passed"
+    }
+  ],
+  "remaining": [
+    "Protected HTTP approval/claim/revocation with physical socket custody and complete OpenAPI reference",
+    "Trusted transport/Origin/Device/key-bound credential admission",
+    "Native/browser public client key generation, approved offer and installation flows",
+    "Actual browser/native failure/recovery/admin isolation scenes",
+    "Complete G6-055 and Gate6 acceptance"
+  ],
+  "dependency_preparation": {
+    "command": "bash scripts/prepare-dependencies.sh",
+    "exit_code": 0,
+    "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+  },
+  "no_accounts_remote_provider_model_or_secret_execution": true,
+  "raw_logs_private_state_and_credentials_excluded": true,
+  "format": {
+    "command": "bash scripts/format.sh --check",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

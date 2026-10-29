@@ -241,6 +241,35 @@ impl EnrollmentClaim {
     }
 }
 
+/// Protected client response after verified admission; never a public journal receipt.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EnrollmentCredential {
+    pub enrollment_id: String,
+    pub endpoint_id: String,
+    pub device_id: String,
+    pub key_id: String,
+    pub transport: EnrollmentTransport,
+    pub browser_origin: Option<String>,
+    pub credential: crate::credential_issuance::CredentialIssueOutcome,
+}
+impl std::fmt::Debug for EnrollmentCredential {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("EnrollmentCredential(redacted)")
+    }
+}
+
+/// Non-secret current revocation projection for a trusted backend.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EnrollmentRevocation {
+    pub enrollment_id: String,
+    pub credential_id: Option<String>,
+    pub revoked: bool,
+}
+
 fn canonical_bytes(value: &str, expected: usize) -> Result<Vec<u8>> {
     if value.len() > 128 {
         return Err(invalid());

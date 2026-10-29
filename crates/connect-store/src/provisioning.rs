@@ -338,39 +338,13 @@ fn apply(
                 membership_epoch: 1,
             })
         }
-        ProvisioningCommand::Endpoint {
-            identity_id,
-            device,
-            transport,
-            address,
-            capabilities,
-            secret_ref,
-            ..
-        } => {
-            require_identity(c, actor, tenant, identity_id, true)?;
-            let previous: Option<(String, String, String, bool)> = c
-                .query_row(
-                    "SELECT identity_id,kind,platform,revoked FROM devices WHERE id=?1",
-                    [&device.id],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
-                )
-                .optional()
-                .map_err(|_| Error::storage())?;
-            if let Some((owner, kind, platform, revoked)) = previous {
-                if owner != *identity_id
-                    || kind != device.kind
-                    || platform != device.platform
-                    || revoked
-                {
-                    return Err(conflict());
-                }
-            } else {
-                c.execute("INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES(?1,?2,?3,?4,?5)",params![device.id,identity_id,tenant,device.kind,device.platform]).map_err(storage)?;
-            }
-            let id = format!("ep_{}", uuid::Uuid::new_v4());
-            c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,secret_ref,route_owner_id) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![id,identity_id,tenant,device.id,transport.as_str(),address,serde_json::to_string(capabilities).map_err(|_|Error::storage())?,secret_ref,actor.identity_id]).map_err(storage)?;
-            endpoint(c, &id)
-        }
+        ProvisioningCommand::Endpoint { .. } => insert_endpoint(
+            c,
+            actor,
+            tenant,
+            command,
+            &format!("ep_{}", uuid::Uuid::new_v4()),
+        ),
         ProvisioningCommand::VerifyEndpoint {
             endpoint_id,
             expected_revision,
@@ -481,4 +455,50 @@ pub(crate) fn ledger_result(
     actor.require("admin")?;
     let value = serde_json::from_value(value).map_err(|_| Error::storage())?;
     serde_json::to_value(authorize_outcome(c, actor, tenant, value)?).map_err(|_| Error::storage())
+}
+
+/// Insert a new Endpoint with a server-reserved ID, sharing ordinary validation.
+/// Caller must normalize the command and own the target's authority fence.
+pub(crate) fn insert_endpoint(
+    c: &Connection,
+    actor: &Actor,
+    tenant: &str,
+    command: &ProvisioningCommand,
+    id: &str,
+) -> Result<ProvisioningOutcome> {
+    connect_protocol::transitions::id(id)?;
+    let ProvisioningCommand::Endpoint {
+        identity_id,
+        device,
+        transport,
+        address,
+        capabilities,
+        secret_ref,
+        ..
+    } = command
+    else {
+        return Err(Error::forbidden());
+    };
+    require_identity(c, actor, tenant, identity_id, true)?;
+    let previous: Option<(String, String, String, bool)> = c
+        .query_row(
+            "SELECT identity_id,kind,platform,revoked FROM devices WHERE id=?1",
+            [&device.id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    if let Some((owner, kind, platform, revoked)) = previous {
+        if owner != *identity_id || kind != device.kind || platform != device.platform || revoked {
+            return Err(conflict());
+        }
+    } else {
+        c.execute(
+            "INSERT INTO devices(id,identity_id,tenant_id,kind,platform) VALUES(?1,?2,?3,?4,?5)",
+            params![device.id, identity_id, tenant, device.kind, device.platform],
+        )
+        .map_err(storage)?;
+    }
+    c.execute("INSERT INTO endpoints(id,identity_id,tenant_id,device_id,transport,address,capabilities_json,secret_ref,route_owner_id) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",params![id,identity_id,tenant,device.id,transport.as_str(),address,serde_json::to_string(capabilities).map_err(|_|Error::storage())?,secret_ref,actor.identity_id]).map_err(storage)?;
+    endpoint(c, id)
 }

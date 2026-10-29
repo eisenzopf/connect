@@ -261,3 +261,20 @@ The canonical subscription continuation keeps schema 34. It adds no stored field
 opaque in-process continuation facts, exact read proofs and common-writer custody
 operate over the existing journal, snapshot and audience model. See
 [canonical subscriptions](../developer/canonical-subscriptions.md).
+
+### Remote enrollment, schema 115
+
+Fresh state now includes immutable backend-approved enrollment intents, reserved
+approval/completion operation IDs, hashed challenges, bounded attempts and terminal
+credential/key/Endpoint bindings. Challenges and client bearers are derived with
+installation secrets and never stored raw in enrollment rows or operation receipts.
+Snapshot digests include enrollment state. Completed recovery preserves the
+original credential and absolute expiry under current authority; revocation cannot
+revive a pending or completed grant. Rotation can retain an exact shared Endpoint
+and Device while retiring the previous credential and key.
+
+Schema 114 and earlier candidates are refused unchanged. Retain verified backups
+with their matching binary and explicitly initialize a new state path. There is no
+automatic migration, downgrade or compatibility path. The local Store evidence
+does not qualify HTTP delivery, transport admission or browser/native enrollment.
+See [remote enrollment](../developer/remote-enrollment.md) and its scoped evidence.

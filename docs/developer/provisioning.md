@@ -89,7 +89,8 @@ whole admitted request to five seconds. Capacity exhaustion returns 503. A timeo
 or shutdown may leave a committed mutation: recover with its original operation
 ID. HTTP success here proves local provisioning, not a working provider route.
 
-Current state uses schema 80, which adds explicit tenant record-reader roles.
+Current state uses schema 115, which adds durable client enrollment. Schema 80
+introduced the explicit tenant record-reader roles described below.
 Earlier candidate databases require a verified backup with their matching binary
 and explicit initialization of a new state path. Opening incompatible state never automatically converts or resets it.
 See [backup and reset instructions](../decisions/014-gate-6-contract-version.md).
