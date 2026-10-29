@@ -93,7 +93,7 @@ export function browserSessionControls(session: BrowserSession, participant: imp
  session.update(update,sdkRevision<'session'>(1),options);
  // @ts-expect-error Existing Session invitations require a nonempty target set.
  session.inviteParticipants({to:[],medium,intent:'join',capabilities:{},expectedTopologyRevision:revision},options);
- session.connections.offer({connectionId:sdkId<'connection'>('new'),streams:{first:{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},rest:[]}},options);
+ session.connections.offer({connectionId:sdkId<'connection'>('new'),purpose:'handoff-preparation',streams:{first:{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},rest:[]}},options);
  // @ts-expect-error Offered streams use the frozen NonEmpty shape, not an array.
  session.connections.offer({connectionId:sdkId<'connection'>('new'),streams:[{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:['opus']}]},options);
  return mutation;
@@ -168,7 +168,7 @@ consultation.admitted.push(consultation.retained[0]);
 const falseRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId=operationId;
 void [hostRecord,falseRecord];
 
-const transfer=await room.sessions.byId(sdkId<'session'>('s')).handoff({via:sdkId<'connection'>('primary'),from:sdkId<'participant'>('from'),to:sdkId<'participant'>('to'),retain:sdkId<'connection'>('remote'),outgoing:'leave',role:{scope:'conversation',expectedConversationRevision:sdkRevision<'conversation'>(7)},expectedTopologyRevision:sdkRevision<'topology'>(3),consultation:consulting},{timeoutMs:1000,operationId});
+const transfer=await room.sessions.byId(sdkId<'session'>('s')).handoff({via:sdkId<'connection'>('primary'),from:sdkId<'participant'>('from'),to:sdkId<'participant'>('to'),retain:sdkId<'connection'>('remote'),outgoing:'leave',role:{scope:'conversation',expectedConversationRevision:sdkRevision<'conversation'>(7)},expectedTopologyRevision:sdkRevision<'topology'>(3),consultation:consulting,policyRef:'target-offer-record'},{timeoutMs:1000,operationId});
 const transferred:import('../typescript/dist/browser.js').BrowserHandoffResult=(await transfer.wait({timeoutMs:1000})).value;
 const moved:import('../typescript/dist/browser.js').BrowserMoveResult=(await(await connection.replaceDevice({retain:sdkId<'connection'>('remote'),target:{endpoint:sdkId<'endpoint'>('new-endpoint')},expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId})).wait({timeoutMs:1000})).value;
 const endpoint:import('../typescript/dist/browser.js').EndpointId=moved.binding.endpointId;
@@ -208,3 +208,6 @@ const boundedClose: (options: BrowserSdkRequestOptions) => Promise<void> = clien
 void boundedClose;
 // @ts-expect-error Shutdown requires a bounded wait.
 await client.close();
+
+// @ts-expect-error Preparation selects a supported purpose, never an injected ready claim.
+room.sessions.byId(sdkId<'session'>('session')).connections.offer({connectionId:sdkId<'connection'>('prepared'),purpose:'ready',streams:{first:{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},rest:[]}},{timeoutMs:1000,operationId});

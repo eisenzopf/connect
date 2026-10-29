@@ -109,7 +109,12 @@ try {
   let result;
   try{result=await Promise.race([evaluation,uiTask.then(()=>new Promise(()=>{}))]);}finally{uiDone=true;}
   await uiTask;
-  if(result.exceptionDetails||!result.result?.value?.passed)throw Error(result.exceptionDetails?.exception?.description||'browser fixture returned no success');
+  if(result.exceptionDetails||!result.result?.value?.passed){
+    // Retain failed observations in the same ignored output as successful runs.
+    // A generic CDP failure must not discard the scene's bounded error/trace.
+    console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion},result:result.result?.value,exception:result.exceptionDetails}));
+    throw Error(result.exceptionDetails?.exception?.description||'browser fixture returned no success');
+  }
   const ui=config.typed_media_ui===true?{completed:(await send('Runtime.evaluate',{expression:'globalThis.typedUiComplete===true',returnByValue:true},session,'ui-complete')).result.value,final_phase:lastUiPhase}:undefined;
   console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion,user_agent:browser.userAgent,js_version:browser.jsVersion},result:result.result.value,...(ui?{ui}:{})}));
 } finally {

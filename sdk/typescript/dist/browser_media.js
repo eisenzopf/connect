@@ -570,6 +570,12 @@ export class BrowserMediaPeer {
             throw new ConnectError("invalid-request", "Invalid media deadline");
         const budget = new BrowserDeadline(timeout);
         if (!input ||
+            (input.purpose !== undefined &&
+                (input.purpose !== "handoff-preparation" ||
+                    !input.audio ||
+                    input.video ||
+                    input.screen ||
+                    input.data?.length)) ||
             (input.data !== undefined &&
                 (!Array.isArray(input.data) ||
                     input.data.length > 8 ||
@@ -581,6 +587,7 @@ export class BrowserMediaPeer {
             sessionId: input.sessionId,
             connectionId: input.connectionId,
             operationId: input.operationId,
+            purpose: input.purpose,
             audio: input.audio,
             video: input.video,
             screen: input.screen,
@@ -669,6 +676,13 @@ export class BrowserMediaPeer {
         try {
             await this.transition(state, input.operationId, "connection.offer", {
                 substrate: "webtransport",
+                ...(input.purpose === "handoff-preparation"
+                    ? {
+                        handoff_preparation: {
+                            profile: "connect-handoff-preparation-v1",
+                        },
+                    }
+                    : {}),
                 capabilities: caps,
                 streams_offered: streams,
             }, { ...options, timeoutMs: budget.remaining() }, accepted, attempted);

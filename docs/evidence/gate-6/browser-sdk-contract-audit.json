@@ -482,6 +482,12 @@
       "supported_cases_verified": true,
       "historical_cause": "undetermined",
       "meaning": "Native busy versus captured revision conflict now explicit; signed native adapter refusal/recovery and actual Chrome Store-admission stale Screen refusal/no-effect/original-status/new-resume evidence. The old ambiguous trace is preserved, not retrospectively assigned a cause."
+    },
+    "live-browser-webtransport-handoff": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-live-handoff.json",
+      "supported_case_verified": true,
+      "full_task_complete": false,
+      "remaining": "Consultation/return, device movement, successful WSS handoff and earlier zero-output WSS audio probe remain open."
     }
   }
 }

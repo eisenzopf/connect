@@ -251,3 +251,15 @@ test('typed WT stale control revision refuses before submission and leaves the c
  const client=new TypedControl(),peer=new BrowserMediaPeer(client);
  try{const connection=await peer.offerConnection(input);const stale=peer.beginControl(connection.id,'stale','connection.update',{action:'mute',streams:['data']},0,{timeoutMs:100});await assert.rejects(stale.response,{code:'conflict'});await assert.rejects(stale.ready,{code:'conflict'});assert.equal(stale.submissionAttempted,false);assert.equal(client.begun.length,1);assert.equal(client.closed,false);assert.equal(connection.revision,1);}finally{peer.close();}
 });
+
+test('target-owned native handoff preparation is captured once and mixed media refuses before IO',async()=>{
+ const names=['AudioEncoder','AudioDecoder','AudioData','EncodedAudioChunk'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
+ class Codec {static async isConfigSupported(){return {supported:true};}state='unconfigured';configure(){this.state='configured';}close(){this.state='closed';}}
+ for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:Codec});
+ const client=new Control('audio'),peer=new BrowserMediaPeer(client),offer={conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'prepare',audio:'audio',purpose:'handoff-preparation'};
+ let original;const begin=client.begin;client.begin=function(type,payload,...args){if(type==='connection.offer'&&payload.substrate==='webtransport')original=structuredClone(payload);return begin.call(this,type,payload,...args);};
+ try{const pending=peer.offerConnection(offer);offer.purpose='forged';await pending;
+ assert.deepEqual(original.handoff_preparation,{profile:'connect-handoff-preparation-v1'});
+ }finally{peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+ for(const patch of [{purpose:'forged'},{video:'video'},{screen:'screen'},{data:[{id:'data',protocol:'binary'}]},{audio:undefined}]){const client=new Control('audio'),peer=new BrowserMediaPeer(client);try{await assert.rejects(()=>peer.offerConnection({...offer,purpose:'handoff-preparation',...patch}),{code:'invalid-request'});assert.equal(client.sent.length,0);}finally{peer.close();}}
+});

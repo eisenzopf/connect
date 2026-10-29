@@ -22,12 +22,21 @@ struct Backend {
     admin: String,
     identity: String,
     peer_identity: String,
+    handoff_identity: Option<String>,
     receipt_reporter: connect_client::application::ApplicationClientConfig,
     http: reqwest::Client,
     files: Arc<HashMap<String, Vec<u8>>>,
     typed_endpoints: Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
 }
 pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> Page {
+    page_with_handoff(listener, h, origin, None).await
+}
+pub(super) async fn page_with_handoff(
+    listener: tokio::net::TcpListener,
+    h: &Hosted,
+    origin: String,
+    handoff_identity: Option<String>,
+) -> Page {
     let mut files = HashMap::new();
     let sdk = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../sdk/typescript/dist");
     for entry in std::fs::read_dir(sdk).unwrap() {
@@ -84,12 +93,22 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
         )
         .unwrap(),
     );
+    files.insert("/handoff-browser".into(), b"<!doctype html><meta charset=utf-8><title>Owned browser handoff</title><script type=module src=/handoff-browser.mjs></script>".to_vec());
+    files.insert(
+        "/handoff-browser.mjs".into(),
+        std::fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-enrollment-browser/handoff-browser.mjs"),
+        )
+        .unwrap(),
+    );
     let backend = Backend {
         origin,
         admin_origin: h.url(HttpSurface::Administration, ""),
         admin: h.f.admin.clone(),
         identity: h.f.client.identity_id.clone(),
         peer_identity: h.f.peer.identity_id.clone(),
+        handoff_identity,
         receipt_reporter: connect_client::application::ApplicationClientConfig {
             endpoint: h.f.server.http_address.unwrap(),
             credential: h.f.peer.credential.clone(),
@@ -156,6 +175,15 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     assert_eq!(request.recipients,recipients);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
                                 },
+                                "/handoff-approve"=>{
+                                    let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
+                                    let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone(),backend.handoff_identity.clone().expect("explicit handoff fixture")];recipients.sort();
+                                    assert!(recipients.contains(&request.identity_id));assert_eq!(request.recipients,recipients);
+                                    assert!([EnrollmentTransport::Webtransport,EnrollmentTransport::WssWebrtc].contains(&request.transport));
+                                    assert_eq!(request.capabilities,vec!["audio","control"]);
+                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","conversation.get","create","operation.get","session.accept","session.end","session.handoff","session.invite","session_get","stream.subscribe"]);
+                                    Some((format!("{}/v2/enrollments",backend.admin_origin),body))
+                                },
                                 "/decisions-approve"=>{
                                     let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();assert_eq!(request.identity_id,backend.identity);
                                     assert!([EnrollmentTransport::Webtransport,EnrollmentTransport::WssWebrtc].contains(&request.transport));assert_eq!(request.capabilities,vec!["control","data"]);assert_eq!(request.operations,vec!["conversation.get","create","history","operation.cancel","operation.get","operation.reconcile","send"]);
@@ -183,7 +211,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                             };
                             if let Some((url,body))=target {
                                 let response=backend.http.post(url).bearer_auth(&backend.admin).header("Content-Type","application/json").body(body).send().await.unwrap();let status=response.status().as_u16();let bytes=response.bytes().await.unwrap();assert!(bytes.len()<=65536);
-                                if path=="/typed-approve" && status==200 {
+                                if (path=="/typed-approve" || path=="/handoff-approve") && status==200 {
                                     let value:Value=serde_json::from_slice(&bytes).unwrap();let id=value["result"]["Ok"]["endpoint_id"].as_str().unwrap();
                                     backend.typed_endpoints.lock().unwrap().insert(id.into());
                                 }
@@ -191,7 +219,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
-                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" || path=="/receipts-browser" || path=="/decisions-browser" {"text/html"}else{mime};
+                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" || path=="/receipts-browser" || path=="/decisions-browser" || path=="/handoff-browser" {"text/html"}else{mime};
                         let header=format!("HTTP/1.1 {status} Fixture\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len());
                         let _=stream.write_all(header.as_bytes()).await;let _=stream.write_all(&body).await;let _=stream.shutdown().await;
                     }).await;});
@@ -276,7 +304,7 @@ pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase
     let input = h.f.temp.path().join(format!("browser-{phase}.json"));
     std::fs::write(
         &input,
-        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser","typed_media_ui":phase=="typed-browser"})).unwrap(),
+        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser" || phase=="handoff-browser","typed_media_ui":phase=="typed-browser"})).unwrap(),
     )
     .unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))

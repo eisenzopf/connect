@@ -79,3 +79,12 @@ test('handoff, target and saved continuation validation reject changed intents b
 test('consultation parent from a retired owner is resolved through the current handoff owner',()=>scenario(async({client,session,f})=>{
  const previous=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{'wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:'wss-webrtc',resolveEnrollment:async()=>f.options,timeoutMs:500}),consultation=previous.operations.restore(parent(),browserOperationKinds.sessionConsult);await previous.close({timeoutMs:500});const original=await session.handoff({...handoffInput(),consultation},{...opts,operationId:id('handoff-original')});assert.equal((await original.wait(opts)).value.roleChange.targetParticipant,'p_to');assert.equal(f.sent.filter(v=>v.type==='operation.get'&&v.payload.operation_id==='consult-original').length,1);assert.equal(client.transport.state,'connected');
 }));
+
+test('target policy reference is an exact bounded signed intent and cannot manufacture a grant',()=>scenario(async({session,f})=>{
+ const input={...handoffInput(),policyRef:'target-original-offer-record'};
+ const operation=await session.handoff(input,{...opts,operationId:id('handoff-policy')});input.policyRef='later-mutation';
+ assert.equal(f.sent.find(v=>v.type==='session.handoff').payload.policy_ref,'target-original-offer-record');
+ await operation.wait(opts);
+ const before=f.sent.length;for(const policyRef of ['',{},'bad\nreference','x'.repeat(129)])await assert.rejects(()=>session.handoff({...handoffInput(),policyRef},{...opts,operationId:id('handoff-invalid-policy')}),{kind:'validation',certainty:'not-submitted'});
+ assert.equal(f.sent.length,before);
+}));

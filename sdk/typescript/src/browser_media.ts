@@ -44,6 +44,8 @@ export interface BrowserConnectionOptions {
     sessionId: string;
     connectionId: string;
     operationId: string;
+    /** Target-owned audio stays isolated until an attributed handoff commits. */
+    purpose?: "handoff-preparation";
     audio?: string;
     video?: string;
     screen?: string;
@@ -853,6 +855,12 @@ export class BrowserMediaPeer {
         const budget = new BrowserDeadline(timeout);
         if (
             !input ||
+            (input.purpose !== undefined &&
+                (input.purpose !== "handoff-preparation" ||
+                    !input.audio ||
+                    input.video ||
+                    input.screen ||
+                    input.data?.length)) ||
             (input.data !== undefined &&
                 (!Array.isArray(input.data) ||
                     input.data.length > 8 ||
@@ -871,6 +879,7 @@ export class BrowserMediaPeer {
             sessionId: input.sessionId,
             connectionId: input.connectionId,
             operationId: input.operationId,
+            purpose: input.purpose,
             audio: input.audio,
             video: input.video,
             screen: input.screen,
@@ -978,6 +987,13 @@ export class BrowserMediaPeer {
                 "connection.offer",
                 {
                     substrate: "webtransport",
+                    ...(input.purpose === "handoff-preparation"
+                        ? {
+                              handoff_preparation: {
+                                  profile: "connect-handoff-preparation-v1",
+                              },
+                          }
+                        : {}),
                     capabilities: caps,
                     streams_offered: streams,
                 },

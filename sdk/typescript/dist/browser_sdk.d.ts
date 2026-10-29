@@ -285,6 +285,7 @@ export declare class BrowserSession {
         offer: (input: {
             connectionId: ConnectionId;
             streams: BrowserNonEmpty<BrowserOfferedStream>;
+            purpose?: "handoff-preparation";
         }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserConnection>>;
     };
     constructor(client: BrowserSdkClient, conversationId: ConversationId, id: SessionId, receiptSnapshot?: BrowserSessionSnapshot | undefined, receiptConsultationReturn?: BrowserConsultationReturnReceipt | undefined);

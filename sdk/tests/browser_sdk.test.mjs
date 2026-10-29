@@ -227,3 +227,15 @@ for(const path of ['webtransport','wss-webrtc']) {
   const source=await deliverInvitation(peer());await peer().emit('session.cancel',{by:42,reason_code:487,reason:'Cancelled'},source.id,{cid:'room',sid:'session',operation_id:'source-original'});await waitForIncoming(()=>client.transport.state==='disconnected');const reader=client.incomingInvitations(opts);await assert.rejects(()=>reader.next(),{kind:'protocol'});await reader.close();
  },{path}));
 }
+
+for(const path of ['webtransport','wss-webrtc'])test(`typed ${path} handoff preparation rejects unknown purposes and mixed streams before IO`,()=>scenario(async({client,f})=>{
+ const session=client.conversations.byId(id('room')).sessions.byId(id('session')),audio={id:id('audio'),kind:'audio',direction:'sendrecv',codecs:one('opus')},video={id:id('video'),kind:'video',direction:'sendrecv',codecs:one('vp8')},before=f.sent.length;
+ for(const patch of [{purpose:'forged'},{streams:one(video)},{streams:{first:audio,rest:[video]}},{streams:one({...audio,direction:'recvonly'})}])await assert.rejects(()=>session.connections.offer({connectionId:id('prepared'),purpose:'handoff-preparation',streams:one(audio),...patch},{...opts,operationId:id('prepare-original')}),{kind:'validation',certainty:'not-submitted'});
+ assert.equal(f.sent.length,before);
+},{path}));
+
+test('known unsupported RTC handoff preparation refuses with its own ID before snapshot, allocation or mutation',()=>scenario(async({client,f})=>{
+ const session=client.conversations.byId(id('room')).sessions.byId(id('session')),before=f.sent.length;
+ for(let attempt=0;attempt<2;attempt++)await assert.rejects(()=>session.connections.offer({connectionId:id('prepared'),purpose:'handoff-preparation',streams:one({id:id('audio'),kind:'audio',direction:'sendrecv',codecs:one('opus')})},{...opts,operationId:id('prepare-original')}),{kind:'unsupported',certainty:'not-submitted',operation:{operationId:'prepare-original',command:'connection.offer',scope:{conversationId:'room',sessionId:'session',connectionId:'prepared'}}});
+ assert.equal(f.sent.length,before,'refusal releases the local reservation and performs no control IO');
+}));

@@ -1,0 +1,80 @@
+import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId} from '/sdk/browser.js';
+import {BrowserMediaRenderer} from '/sdk/browser_media_renderer.js';
+import {BrowserRtcConnection} from '/sdk/browser_sdk_webrtc.js';
+const assert=(v,m)=>{if(!v)throw Error(m);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const decode=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),v=>v.charCodeAt(0));
+const one=first=>({first,rest:[]}),trace=[],decoded=new Map(),rtc=new Map();
+const originalBegin=BrowserClient.prototype.begin;
+BrowserClient.prototype.begin=function(...args){trace.push({request:args[0],operation:args[2]?.operation_id});return originalBegin.apply(this,args);};
+// Test observers inspect actual decoded PCM / the owned RTC receiver. They do
+// not supply frames, mark readiness, alter routing, or complete any operation.
+const originalAudio=BrowserMediaRenderer.prototype.audio;
+BrowserMediaRenderer.prototype.audio=function(binding,frame){const values=new Float32Array(frame.numberOfFrames);frame.copyTo(values,{planeIndex:0,format:'f32-planar'});const list=decoded.get(binding.connectionId)??[];list.push({at:performance.now(),rms:Math.sqrt(values.reduce((n,v)=>n+v*v,0)/values.length)});if(list.length>400)list.shift();decoded.set(binding.connectionId,list);return originalAudio.call(this,binding,frame);};
+const originalRtc=BrowserRtcConnection.begin;
+BrowserRtcConnection.begin=function(peer,input,...args){const begun=originalRtc.call(this,peer,input,...args);rtc.set(input.connectionId,begun.owner);return begun;};
+async function post(path,value){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify(value)});assert(response.ok,'bounded fixture approval');return response.json();}
+globalThis.runBrowserFixture=async cfg=>{const reports=[],clients=[];try{
+ const key=await crypto.subtle.importKey('raw',decode(cfg.server_public_raw),{name:'Ed25519'},true,['verify']),server={key,keyId:cfg.server_keyid,algorithm:'EdDSA',notBefore:cfg.server_not_before,expiresAt:cfg.server_expires_at};
+ const identities=[cfg.identity_id,cfg.recipient_id,cfg.handoff_identity],vault=new BrowserEnrollmentStore('connect-handoff-browser'),profiles=[];
+ const operations=['connection.end','connection.offer','conversation.get','create','operation.get','session.accept','session.end','session.handoff','session.invite','session_get','stream.subscribe'];
+ for(let actor=0;actor<3;actor++){
+  const device='handoff-device-'+cfg.suffix+'-'+actor,byPath={};
+  for(const transport of ['webtransport','wss-webrtc']){
+   const name=cfg.suffix+'-'+actor+'-'+transport,key=await BrowserEnrollmentKey.generate('EdDSA'),now=Math.floor(Date.now()/1000);
+   await vault.prepare(name,cfg.api_origin,{operation_id:'handoff-approve-'+name,completion_operation_id:'handoff-claim-'+name,identity_id:identities[actor],device:{id:device,kind:'browser',platform:'owned-Chrome'},key_id:'handoff-key-'+name,algorithm:key.algorithm,public_key:key.publicKey,transport,endpoint_address:location.origin+'/handoff-device/'+name,capabilities:['audio','control'],browser_origin:location.origin,operations,recipients:identities,credential_expires_at:now+300,challenge_expires_at:now+120},key);
+   const offer=(await post('/handoff-approve',await vault.request(name))).result.Ok,session=await vault.acceptOffer(name,offer);await session.claim();await post('/typed-verify',{endpoint_id:offer.endpoint_id,operation_id:'handoff-verify-'+name});
+   byPath[transport]={name,contact:{url:transport==='webtransport'?cfg.wt_url:cfg.wss_url,server,...(transport==='webtransport'?{serverCertificateHashes:[{algorithm:'sha-256',value:decode(cfg.certificate_sha256)}]}:{})}};
+  }
+  profiles.push({device,byPath});
+ }
+ for(const path of ['webtransport','wss-webrtc']){
+  const current=[],resolutions=[],resources=[],observations=[];const suffix=cfg.suffix+'-'+path,options={timeoutMs:10000},mutation=name=>({...options,operationId:sdkId('handoff-'+name+'-'+suffix)});
+  try{
+   for(let actor=0;actor<3;actor++){const resolved=[],resolve=vault.resolveProfiles(profiles[actor].byPath);resolutions.push(resolved);const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:identities[actor],deviceId:profiles[actor].device,endpoints:{webtransport:path==='webtransport'?cfg.wt_url:cfg.unreachable_wt_url,'wss-webrtc':cfg.wss_url},timeoutMs:5000,attemptTimeoutMs:350,resolveEnrollment:context=>{resolved.push(context.transport);return resolve(context);}});current.push(client);clients.push(client);}
+   assert(current.every(c=>c.transport.selectedTransport===path),'actual selected transport');assert(resolutions.every(v=>JSON.stringify(v)===JSON.stringify(path==='webtransport'?['webtransport']:['webtransport','wss-webrtc'])),'bounded transport-bound fallback');
+   const [owner,remote,target]=current,create=await owner.conversations.create({policy:'persistent',participants:identities.slice(1).map(sdkId)},mutation('room')),room=(await create.wait(options)).value;
+   const participants=await Promise.all(identities.map(value=>room.participants.byIdentity(sdkId(value),options)));
+   const readers=[remote.incomingInvitations(options),target.incomingInvitations(options)];
+   const invitation=await room.sessions.invite({sessionId:sdkId('handoff-session-'+suffix),to:participants.slice(1).map(p=>p.id),medium:'voice',intent:'synthetic',capabilities:{audio:['opus']}},mutation('invite')),session=(await invitation.wait(options)).value,sessions=[session];
+   for(let i=0;i<2;i++){const hint=(await readers[i].next()).value;assert(hint.session.id===session.id,'incoming handles resolve original invitation');const view=await hint.session.refresh(options),accepted=await hint.session.accept({capabilities:hint.capabilities,expectedTopologyRevision:view.topologyRevision},mutation('accept-'+i));await accepted.wait(options);sessions.push(hint.session);await readers[i].close();}
+   const media=[];
+   for(let actor=0;actor<3;actor++){
+    if(path==='wss-webrtc'&&actor!==2)continue;
+    const input={connectionId:sdkId('handoff-connection-'+actor+'-'+suffix),streams:one({id:sdkId('handoff-audio-'+actor+'-'+suffix),kind:'audio',direction:'sendrecv',codecs:one('opus')}),...(actor===2?{purpose:'handoff-preparation'}:{})};
+    let offer;try{offer=await sessions[actor].connections.offer(input,mutation('offer-'+actor));}catch(error){assert(path==='wss-webrtc'&&actor===2&&error.kind==='unsupported'&&error.certainty==='not-submitted'&&error.operation.operationId===mutation('offer-'+actor).operationId,'explicit independent preparation refusal with own original ID');trace.push({preparation_refused:path,kind:error.kind,certainty:error.certainty,operationId:error.operation.operationId});break;}
+    const connection=sessions[actor].connections.byId(input.connectionId),context=new AudioContext(),tone=context.createOscillator(),gain=context.createGain(),sink=context.createMediaStreamDestination();tone.frequency.value=[440,660,880][actor];gain.gain.value=0;tone.connect(gain);gain.connect(sink);tone.start();await context.resume();
+    const capture=await connection.capture({audio:true,stream:sink.stream},options),completion=await offer.wait(options),renderer=await connection.render({audio:true},options);
+    const item={connection,offer,completion,capture,renderer,context,tone,gain,stream:sink.stream};media.push(item);resources.push(item);
+   }
+   for(let actor=0;path==='webtransport'&&actor<2;actor++){
+    const connection=media[actor].connection,operation=await connection.streams.subscribe({selectors:one({participant:participants[1-actor].id,kinds:one('audio')}),expectedStreamRevision:(await connection.refresh(options)).streamRevision},mutation('subscribe-'+actor));
+    await operation.wait(options);
+   }
+   const probe=async(source,allowed,label)=>{
+    media.forEach((v,i)=>v.gain.gain.value=i===source?0.2:0);await sleep(700);const since=performance.now(),max=[0,0,0],counts=[0,0,0];
+    await sleep(500);
+    media.forEach((v,i)=>{const frames=(decoded.get(v.connection.id)??[]).filter(v=>v.at>=since);max[i]=Math.max(0,...frames.map(v=>v.rms));counts[i]=frames.length;});
+    const observation={label,source,allowed,max,counts};observations.push(observation);trace.push({media_probe:observation,path});for(let i=0;i<3;i++){if(allowed.includes(i))assert(max[i]>0.01&&counts[i]>=10,label+' decoded receiver '+i+' '+JSON.stringify(observation));else assert(max[i]<0.003,label+' forbidden receiver '+i+' '+JSON.stringify(observation));}
+    media[source].gain.gain.value=0;
+   };
+   if(path==='wss-webrtc'){
+    assert(media.length===0&&!rtc.has('handoff-connection-2-'+suffix),'unsupported preparation allocates no RTC owner');
+    const end=await session.end({reasonCode:200,reason:'Owned fallback complete',expectedTopologyRevision:(await session.refresh(options)).topologyRevision},mutation('end'));await end.wait(options);
+    reports.push({path,resolutions,observations,independentPreparation:'unsupported-before-io'});continue;
+   }
+   await probe(0,[1],'public-owner');await probe(1,[0],'public-remote');await probe(2,[],'prepared-target-isolated');
+   const input={via:media[0].connection.id,from:participants[0].id,to:participants[2].id,retain:media[1].connection.id,candidate:media[2].connection.id,outgoing:'leave',role:{scope:'session'},expectedTopologyRevision:(await session.refresh(options)).topologyRevision,policyRef:media[2].completion.snapshot.recordId};
+   assert(typeof input.policyRef==='string','consenting target supplies actual original offer receipt');
+   {const wrong={...input,policyRef:media[0].completion.snapshot.recordId},badKey=mutation('wrong-policy');sessionStorage.setItem('handoff-wrong-policy-intent',JSON.stringify({input:wrong,mutation:badKey}));const operation=await session.handoff(wrong,badKey);sessionStorage.setItem('handoff-wrong-policy-reference',JSON.stringify(operation.referenceJson()));let refused;try{await operation.wait(options);}catch(error){refused=error;}const failed=await operation.status(options);assert(refused?.kind==='application'&&refused.certainty==='recorded'&&failed.state==='failed'&&failed.problem?.code==='forbidden'&&failed.problem?.source==='native-handoff','copied source offer cannot authorize the target');const original=await owner.operations.restore(JSON.parse(sessionStorage.getItem('handoff-wrong-policy-reference')),browserOperationKinds.sessionHandoff).status(options);assert(original.recordId===failed.recordId&&original.state==='failed','failed original is recovered without resubmission');assert((await session.refresh(options)).topologyRevision===input.expectedTopologyRevision,'refused policy never switches topology');await probe(0,[1],'refused-policy-preserves-public-audio');}
+   const key=mutation('switch');sessionStorage.setItem('handoff-intent-'+path,JSON.stringify({input,mutation:key}));const handoff=await session.handoff(input,key);sessionStorage.setItem('handoff-reference-'+path,JSON.stringify(handoff.referenceJson()));const completed=await handoff.wait(options);
+   assert(completed.value.admitted.some(v=>v.id===media[2].connection.id)&&completed.value.retained.some(v=>v.id===media[1].connection.id)&&completed.value.retired.includes(media[0].connection.id),'captured handoff topology');
+   {const until=Date.now()+10000;while(!media[0].capture.closed&&Date.now()<until)await sleep(20);}
+   assert(media[0].capture.closed&&media[0].stream.getTracks().every(t=>t.readyState==='ended'),'outgoing physical capture retired');await media[0].renderer.finished;
+   await probe(2,[1],'handoff-target-to-remote');await probe(1,[2],'handoff-remote-to-target');
+   const restored=owner.operations.restore(JSON.parse(sessionStorage.getItem('handoff-reference-'+path)),browserOperationKinds.sessionHandoff),recovered=await restored.wait(options);assert(recovered.snapshot.recordId===completed.snapshot.recordId&&recovered.value.topologyRevision===completed.value.topologyRevision,'original handoff status recovery');let refused;try{await recovered.value.admitted[0].capture({audio:true},options);}catch(error){refused=error;}assert(refused?.kind==='receipt-unavailable','historical handoff result cannot mint capture');
+   const end=await sessions[1].end({reasonCode:200,reason:'Owned rehearsal complete',expectedTopologyRevision:(await sessions[1].refresh(options)).topologyRevision},mutation('end'));await end.wait(options);
+   reports.push({path,resolutions,observations,recordId:completed.snapshot.recordId,operationId:key.operationId,topologyRevision:completed.value.topologyRevision,recoveredOriginal:true,outgoingCaptureRetired:true});
+  }finally{for(const item of resources){item.renderer.close();item.capture.close();item.tone.stop();await item.context.close();}for(const client of current)await client.close({timeoutMs:5000});}
+ }
+ const mutations=trace.filter(v=>v.operation&&['conversation.create','session.invite','session.accept','connection.offer','stream.subscribe','session.handoff','session.end'].includes(v.request));assert(mutations.length===17&&new Set(mutations.map(v=>v.operation)).size===17,'exactly one original per mutation, status recovery submits none');return {passed:true,reports,original_mutations:mutations.length,trace};
+}catch(error){return {passed:false,error:{name:error.name,kind:error.kind,certainty:error.certainty,message:error.message,stack:error.stack,problem:error.problem},reports,trace};}finally{for(const client of clients)await client.close({timeoutMs:5000}).catch(()=>{});}};

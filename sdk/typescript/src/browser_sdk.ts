@@ -1257,6 +1257,7 @@ function current(client: BrowserSdkClient): State {
     if (!s) invalid();
     return s;
 }
+const operationRetirements = new WeakMap<object, (result: Json) => void>();
 export class BrowserOperation<T> {
     readonly reference: BrowserSdkOperationReference<T>;
     #record?: string;
@@ -1328,6 +1329,13 @@ export class BrowserOperation<T> {
             );
         this.#record = value.record_id as string;
         this.#revision = Number(value.revision);
+        if (value.state === "completed" && value.result !== undefined) {
+            const completed = operationRetirements.get(this);
+            operationRetirements.delete(this);
+            completed?.(value.result as Json);
+        } else if (["failed", "cancelled"].includes(value.state as string)) {
+            operationRetirements.delete(this);
+        }
         return {
             snapshot: freeze({
                 key: this.reference,
@@ -2073,7 +2081,32 @@ export class BrowserSdkClient {
                     bad();
             }
             budget.options();
-            return new BrowserOperation(this, key, k);
+            // Only the submitting Operation can retire its captured local owner.
+            // Restored references retain observations without physical custody.
+            const completed =
+                local &&
+                scope.connid &&
+                ["session.handoff", "connection.replace"].includes(d.command)
+                    ? (result: Json) => {
+                          if (
+                              !object(result) ||
+                              !Array.isArray(result.retired_connection_ids) ||
+                              !result.retired_connection_ids.includes(
+                                  scope.connid!,
+                              ) ||
+                              s.peer !== peer ||
+                              s.owner.status.physicalEpoch !== epoch ||
+                              s.local.get(scope.connid!) !== local
+                          )
+                              return;
+                          s.mediaPeer?.retireLocalConnection(scope.connid!);
+                          local.rtc?.close();
+                          s.local.delete(scope.connid!);
+                      }
+                    : undefined;
+            const operation = new BrowserOperation(this, key, k);
+            if (completed) operationRetirements.set(operation, completed);
+            return operation;
         } catch (error) {
             throw translated(
                 error,
@@ -2333,6 +2366,7 @@ export class BrowserSession {
             input: {
                 connectionId: ConnectionId;
                 streams: BrowserNonEmpty<BrowserOfferedStream>;
+                purpose?: "handoff-preparation";
             },
             options: BrowserSdkMutationOptions,
         ): Promise<BrowserOperation<BrowserConnection>> => {
@@ -2343,13 +2377,22 @@ export class BrowserSession {
                 !identifier(options.operationId)
             )
                 invalid();
-            fields(input, ["connectionId", "streams"], invalid);
+            fields(input, ["connectionId", "streams", "purpose"], invalid);
             const streams = offeredStreams(input.streams, invalid);
+            if (
+                input.purpose !== undefined &&
+                (input.purpose !== "handoff-preparation" ||
+                    streams.length !== 1 ||
+                    streams[0].kind !== "audio" ||
+                    streams[0].direction !== "sendrecv")
+            )
+                invalid();
             const low: BrowserConnectionOptions = {
                 conversationId: this.conversationId,
                 sessionId: this.id,
                 connectionId: input.connectionId,
                 operationId: options.operationId,
+                purpose: input.purpose,
             };
             const seen = new Set<string>();
             for (const stream of streams) {
@@ -2429,6 +2472,12 @@ export class BrowserSession {
                 | undefined;
             try {
                 if (peer.controlTransport === "websocket") {
+                    if (input.purpose !== undefined)
+                        throw new BrowserSdkError(
+                            "unsupported",
+                            "not-submitted",
+                            key,
+                        );
                     if (
                         !low.audio ||
                         low.data?.length ||

@@ -20,6 +20,8 @@ export interface BrowserConnectionOptions {
     sessionId: string;
     connectionId: string;
     operationId: string;
+    /** Target-owned audio stays isolated until an attributed handoff commits. */
+    purpose?: "handoff-preparation";
     audio?: string;
     video?: string;
     screen?: string;

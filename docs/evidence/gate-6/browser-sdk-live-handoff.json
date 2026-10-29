@@ -1,0 +1,362 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "cb81332a829c18d51e734db60ecc78f033cc1c02",
+  "status": "Local owned Chrome WebTransport prepared handoff qualified; explicit WSS before-IO refusal qualified; task incomplete",
+  "passed": true,
+  "full_task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Local macOS arm64 owned Chrome 156.0.8078.48; synthetic three-Identity, audio-only Opus scene over real TLS WebTransport. Separately, actual bounded WSS fallback and independent-preparation refusal before allocation. No model/account, provider, PSTN, named remote, Linux, package or publication execution.",
+  "implementation": [
+    "Typed connections.offer accepts purpose:'handoff-preparation' only with one duplex audio Stream. Native browser media snapshots the exact fixed handoff_preparation profile before IO. The target retains its own named connection.offer/session.handoff grants; the marker grants no caller authority or readiness.",
+    "Typed handoff accepts optional policyRef, the consenting target original completed offer record. The bounded original intent is signed once; malformed values refuse before IO. The existing server checks the exact target current authority and consent. No Store, protocol, service, upstream source or HTTP route was changed.",
+    "A submitting handoff/replacement Operation retains a module-private weak retirement callback tied to the original peer, physical epoch and exact local entry. Only its validated completed observation with the original Connection in retired_connection_ids retires that owner. Failed/cancelled observations drop the callback. Restored references receive no callback and cannot acquire physical custody.",
+    "Independent preparation on selected WSS/WebRTC reports unsupported/not-submitted with its own logical operation reference before snapshot IO, RTC allocation, capture or mutation submission. There is no public-offer substitution.",
+    "The shared owned Chrome driver now retains bounded failed scene output in its existing ignored stdout artifacts before reporting failure."
+  ],
+  "behavior": [
+    "Both public directions decode actual synthetic tones while the prepared target receives none. Target tone before handoff reaches no receiver.",
+    "Copying the source offer record as target policy produces a durable forbidden/native-handoff original. Status restoration returns the same failed record; topology stays unchanged and decoded public audio continues.",
+    "The correctly attributed target offer completes one handoff. Actual target-to-remote and remote-to-target decoded PCM pass the fixed thresholds; the retired source receives no frames. Original outgoing capture tracks are ended and its renderer cleanup settles.",
+    "Restoring the completed handoff returns the same record and topology. Admitted historical handles refuse capture; status/restore dispatch no mutations.",
+    "Exactly17 distinct logical scene mutations:12 WT (including the refused copied-policy handoff) plus5 WSS invitation/end controls. SQL finds2 handoff records:1 completed with exactly1 confirmed attempt/native row,1 failed with no effect/native row. Exactly3 connection.offer rows and1 independent preparation; no WSS media offer, private consultation row or duplicated mutation.",
+    "All829 SDK tests, browser/Node type witnesses,37 Node tests and13 Root enrollment integration functions pass with2794 unchanged source inputs across the frozen four-phase cohort. No selected Root function was ignored."
+  ],
+  "thresholds": {
+    "allowed_receiver_minimum_peak_rms": 0.01,
+    "allowed_receiver_minimum_decoded_frames": 10,
+    "forbidden_receiver_maximum_peak_rms": 0.003,
+    "tone_amplitude": 0.2,
+    "settling_ms": 700,
+    "observation_ms": 500
+  },
+  "browser": {
+    "product": "Chrome/156.0.8078.48",
+    "protocol_version": "1.3",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "js_version": "15.6.75.19"
+  },
+  "actual_reports": [
+    {
+      "path": "webtransport",
+      "resolutions": [
+        [
+          "webtransport"
+        ],
+        [
+          "webtransport"
+        ],
+        [
+          "webtransport"
+        ]
+      ],
+      "observations": [
+        {
+          "label": "public-owner",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "max": [
+            2.0345869483764863e-34,
+            0.20998979514029645,
+            0
+          ],
+          "counts": [
+            25,
+            25,
+            0
+          ]
+        },
+        {
+          "label": "public-remote",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "max": [
+            0.1435179539235259,
+            2.0345887850864095e-34,
+            0
+          ],
+          "counts": [
+            25,
+            25,
+            0
+          ]
+        },
+        {
+          "label": "prepared-target-isolated",
+          "source": 2,
+          "allowed": [],
+          "max": [
+            2.0345887850864095e-34,
+            2.0345887850864095e-34,
+            0
+          ],
+          "counts": [
+            25,
+            25,
+            0
+          ]
+        },
+        {
+          "label": "refused-policy-preserves-public-audio",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "max": [
+            2.0345887850864095e-34,
+            0.1432003830175967,
+            0
+          ],
+          "counts": [
+            24,
+            25,
+            0
+          ]
+        },
+        {
+          "label": "handoff-target-to-remote",
+          "source": 2,
+          "allowed": [
+            1
+          ],
+          "max": [
+            0,
+            0.14229102082653067,
+            2.0345869483764863e-34
+          ],
+          "counts": [
+            0,
+            25,
+            25
+          ]
+        },
+        {
+          "label": "handoff-remote-to-target",
+          "source": 1,
+          "allowed": [
+            2
+          ],
+          "max": [
+            0,
+            2.0345887850864095e-34,
+            0.14316660322203137
+          ],
+          "counts": [
+            0,
+            26,
+            25
+          ]
+        }
+      ],
+      "recordId": "opr_d5959254-af92-4ff1-ac2c-d19ba71f6e6f",
+      "operationId": "handoff-switch-3bfbd55bd99a4fc98acd2833130d7a5b-webtransport",
+      "topologyRevision": 3,
+      "recoveredOriginal": true,
+      "outgoingCaptureRetired": true
+    },
+    {
+      "path": "wss-webrtc",
+      "resolutions": [
+        [
+          "webtransport",
+          "wss-webrtc"
+        ],
+        [
+          "webtransport",
+          "wss-webrtc"
+        ],
+        [
+          "webtransport",
+          "wss-webrtc"
+        ]
+      ],
+      "observations": [],
+      "independentPreparation": "unsupported-before-io"
+    }
+  ],
+  "original_mutations": 17,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          829
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.350785332964733,
+        "log_sha256": "14ba40c7c6e667e5134ae95e6a3b40911b09884aa6d72162a7e5e9eda20de737"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.35700520779937506,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3916800001170486,
+        "log_sha256": "5e4a5961eb6312bcc81255520bca7928167a6401eda005b78058b6be52f03ff2"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          13
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 110.43451658287086,
+        "log_sha256": "f5659955a3fa11eb932696069d930d69edb3ceb31d7e9ed8e6a141e4ac2c59af"
+      }
+    ]
+  },
+  "source_input_count": 2794,
+  "source_manifest_sha256": "e566ae70654641c5a53d05ded73c0c0f8ef9ebef718e940921af9658c314d848",
+  "tested_sources": {
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/handoff-browser.mjs": {
+      "sha256": "51789d53ba5a02be3f5fc4eb6a1251be30a5a4d910c4cce17284540cbcd4ad4c",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "f8484999f279f6ebe9109cd0ea50d7c421ea70c1c12b30fa2f24d7478aac73ce",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "800a5c16794a73d753b6e9162f6ab2f7a639f93001c007395095de4bca1f0a43",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_handoff.rs": {
+      "sha256": "6b2d93618aa041890ee16d67c3914204d3d7402ffbb13f47b0afaca9ff98273f",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "e899b0366b2bd920ea12dbba198ecd38213ee2f17ef1074f319e2526f0858bb8",
+      "mode": 420
+    },
+    "sdk/tests/browser_media.test.mjs": {
+      "sha256": "7f96ba7746fd68decf51e01dee478ea92d809e477994823707a7327251553eef",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "1a1d7b8cd98683ed7cc52b8c835a20c8db1126e409ae65083b03c34fa3b637b2",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_movements.test.mjs": {
+      "sha256": "7c824b082f1bad298dc273c3713f8ec493adddc070bb9b915c785d5fc566e580",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "2a43b03970f4fb610a8f4b166440fa806e7c29b641822456c93971a513572f77",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.d.ts": {
+      "sha256": "e0bdf4bc373ef9027c7429d14ec863c43503af546c732e2fe09d4b926e778429",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.js": {
+      "sha256": "79aaacdfeea834f5f1cb177b6d31fac01b3367da884b9630ff4ee87c9e2a0875",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "c3f5e02ceaf75201497fd0e744108211d88281a4c1922ed6c464865798cf100e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "f1146b9482e75284da5b7e4684f73dfc79164ac1185aac7e2089a9ae6b593289",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_movements.d.ts": {
+      "sha256": "422ea85c547eb5eaaf1014ccee47b9c0fafea68a9f52f6b54f864049d683a529",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_movements.js": {
+      "sha256": "e5aa322fac7239d4f38bd92019d550a62fc7da2695c34cd988e41d8a054967b0",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media.ts": {
+      "sha256": "3ebff57c12117b3d77f7ec44880e2ce3cf127367306de28a59e3a2d15d830c78",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "6d1df9da419114ad3d0fa9850f2f7133ac38ec32f184ff1b818284ed4122a445",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_movements.ts": {
+      "sha256": "b34ab96ac4e99f9a986becb4a9147f2002b233bb754091273b1e3d67fb3a0c31",
+      "mode": 420
+    }
+  },
+  "failed_iterations": {
+    "browser1224-first": {
+      "handoff-browser.stderr": "678d7308c5f3fa09a0dc14bd307652c031489aee3f4add2ec5b6bd448f553f97",
+      "test.log": "a53eb7c15aaaea3aee956c1d61537af1392570fc23c38b5e85108b01248c8938",
+      "handoff-browser.json": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "browser1224-diagnostic": {
+      "handoff-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34",
+      "test.log": "fdc5245cbde3e92b01f3ded1cad48ea84a6af402b20a3f3f5718b92522533d66",
+      "handoff-browser.json": "5dbd34e6bfed09cd673eb551021fd3ab150fcc7cf78eedc03c2539ba8eb282a6"
+    },
+    "browser1224-subscribe": {
+      "handoff-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34",
+      "test.log": "ea2ccfc80b583e224ad612e45d5941cb3078ce1ddceb7b2d6f844af3946a3143",
+      "handoff-browser.json": "d58db83d6c571392496c4a77fce542b6df9cef75fcb4f7d6774c5747c426b3af"
+    },
+    "browser1224-topology": {
+      "handoff-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34",
+      "test.log": "7a761a30665b44d5d25e1d83622b77695b37a49b758efa173c3625d856161ebc",
+      "handoff-browser.json": "a50176bfb122444aa25e1efe0640e240d9d5f4446ba95945c9c8d0ca539d6f68"
+    },
+    "browser1224-retirement": {
+      "handoff-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34",
+      "test.log": "e2af8397d84ebb57ad5b95ba764c83f083597127460924a29f1e7e191bfb2683",
+      "handoff-browser.json": "e1606e81251e4884a17ffd3c18b26c5898f81bb57883cd806190e6c133b1e4a9"
+    },
+    "browser1224-fallback": {
+      "handoff-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34",
+      "test.log": "4e48ce342668dae025a06145ecb074e28206c3d1b75edc716d2ad6144ac75675",
+      "handoff-browser.json": "18b5a0b9e57792738583d3cc57caf149f0d03ea73d225af57d73fdd5547e9f91"
+    }
+  },
+  "failed_iteration_findings": [
+    "Initial scene omitted explicit public audio subscriptions and failed zero-PCM assertions. After adding subscriptions the public/isolation checks passed. No RMS/frame threshold was lowered.",
+    "The next scene incorrectly treated retired Connection IDs as handles. Corrected to the frozen ConnectionId[] contract; actual completion topology checks then passed.",
+    "The actual outgoing capture remained live after a completed leave handoff. Fixed submitting-Operation retirement, verified ended owned tracks/renderer and post-handoff decoded duplex audio.",
+    "An actual WSS independent preparation was refused by the existing backend. The SDK now refuses this known unsupported profile before IO rather than allocating a doomed RTC owner.",
+    "A separate earlier WSS public-audio probe produced zero RMS. Its cause remains undetermined and its artifacts are retained; this component does not qualify WebRTC public audio or handoff. The final WSS scene only verifies before-allocation refusal and control setup/end.",
+    "Initial added unit tests had a null-prototype comparison mismatch, absent mocked WebCodecs and inspected send rather than begin telemetry; corrected harness assertions pass.",
+    "The inherited cached CLI debug-strip ENOSPC warning recurred. The linked production-library integration test binary ran successfully. The damaged CLI and installed daemon were not used as runtime oracles."
+  ],
+  "remaining": [
+    "Successful browser consultation/return and device movement",
+    "Successful WebRTC independent preparation/handoff and unresolved earlier public-audio probe",
+    "G6-061 full parity/reference-application audit and G6-054",
+    "Linux, named remote/browser profiles and independent acceptance"
+  ],
+  "task_progress": {
+    "done": 65,
+    "in_progress": 2,
+    "not_started": 38,
+    "acceptance_qualified": 0
+  }
+}

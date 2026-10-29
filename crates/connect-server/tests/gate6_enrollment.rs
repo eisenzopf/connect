@@ -23,6 +23,8 @@ mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
 #[path = "support/browser_decisions.rs"]
 mod browser_decisions;
+#[path = "support/browser_handoff.rs"]
+mod browser_handoff;
 #[path = "support/browser_profile_fallback.rs"]
 mod browser_profile_fallback;
 #[path = "support/browser_receipts.rs"]
@@ -46,6 +48,22 @@ impl Hosted {
         Self::with_media_origins(additional, false).await
     }
     async fn with_media_origins(additional: &[String], media: bool) -> Self {
+        Self::with_rtc_origins(
+            additional,
+            media.then_some((
+                connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
+                2,
+            )),
+        )
+        .await
+    }
+    async fn with_rtc_origins(
+        additional: &[String],
+        media: Option<(
+            connect_server::canonical_webrtc::CanonicalWebRtcProfile,
+            usize,
+        )>,
+    ) -> Self {
         use chrono::Datelike;
         let mut origins = vec![
             "https://ui.fixture.invalid".into(),
@@ -111,10 +129,10 @@ impl Hosted {
                 advertised_url: None,
             },
         );
-        if media {
+        if let Some((profile, max_peers)) = media {
             f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
-                profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
-                max_peers: 2,
+                profile,
+                max_peers,
                 addressing: None,
             });
         }

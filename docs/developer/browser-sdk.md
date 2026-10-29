@@ -920,6 +920,20 @@ a separate integration and qualification requirement.
 
 ## Handoff and device movement
 
+An incoming target can offer one duplex Opus audio Stream with
+`purpose: 'handoff-preparation'`. It must independently hold `connection.offer`
+and `session.handoff`, accept the Session, start its own capture, and wait for
+its original offer. The host isolates this source until an attributed handoff
+commits. The target supplies that completed offer's `snapshot.recordId` as
+`policyRef`; the caller saves it with the complete handoff intent before IO.
+The host revalidates the target's current physical grant, membership and readiness.
+A copied source offer record is refused before a handoff effect starts.
+
+This independent preparation currently supports WebTransport. The selected
+WSS/WebRTC path returns `unsupported` / `not-submitted` with the caller's original
+operation ID before snapshot IO, RTC allocation or mutation submission. Successful
+WebRTC preparation and handoff remain open implementation work.
+
 ```ts
 const handingOff = await session.handoff({
     via: primaryConnectionId,
@@ -927,6 +941,7 @@ const handingOff = await session.handoff({
     to: incomingParticipantId,
     retain: remoteConnectionId,
     candidate: preparedCandidateId, // optional; otherwise the host selects admission
+    policyRef: targetCompletedOffer.snapshot.recordId,
     outgoing: 'leave', // or 'observe'
     role: { scope: 'conversation', expectedConversationRevision },
     expectedTopologyRevision,
@@ -987,8 +1002,14 @@ returned handles cannot borrow capture/render custody from another Connection.
 
 [Movement evidence](../evidence/gate-6/browser-sdk-movements.json) separates
 controlled signed successful receipts/recovery from actual Chrome refusal of
-ungranted actions. Successful live browser media handoff and device-movement
-qualification remain outstanding.
+ungranted actions. [Live WebTransport handoff evidence](../evidence/gate-6/browser-sdk-live-handoff.json)
+adds independently prepared synthetic audio, isolation before handoff, copied-policy
+refusal preserving public audio, decoded duplex audio after handoff, and recovery
+without resubmission. Only the submitting Operation's validated completion retires
+its captured outgoing local owner; it checks the same physical peer, epoch and
+local entry. Restored references carry no retirement callback. Device movement,
+consultation/return and successful WebRTC handoff remain outstanding. An earlier
+WebRTC public-audio probe also produced zero output and remains unqualified.
 
 ## Advanced finite raw canonical exchanges
 
@@ -1092,8 +1113,9 @@ Screen-resume branch cannot be recovered from the old trace.
 [Explicit gate refusal and recovery evidence](../evidence/gate-6/browser-sdk-gate-refusals.json)
 now distinguishes busy negotiation from captured revision conflicts and verifies
 original-receipt recovery followed by a new decoded Screen resume. G6-061 stays in
-progress; method presence and these fixes do not qualify full runtime parity
-or successful browser private movement media.
+progress; the verified WebTransport handoff covers one live movement workflow.
+Full runtime parity, browser consultation/return, device movement and successful
+WebRTC handoff require additional implementation and evidence.
 
 ## Bounded owned shutdown
 

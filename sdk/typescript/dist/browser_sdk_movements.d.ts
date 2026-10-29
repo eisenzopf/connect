@@ -21,6 +21,8 @@ export interface BrowserHandoffInput {
     readonly role: BrowserHandoffRole;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
     readonly consultation?: BrowserOperation<BrowserConsultationResult>;
+    /** Original completed offer record supplied by the consenting target. */
+    readonly policyRef?: string;
 }
 export type BrowserMoveTarget = {
     readonly endpoint: EndpointId;

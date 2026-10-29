@@ -75,6 +75,7 @@ export function handoffIntent(input, bad) {
         "role",
         "expectedTopologyRevision",
         "consultation",
+        "policyRef",
     ], bad);
     if (!identifier(input.via) ||
         !identifier(input.retain) ||
@@ -84,6 +85,7 @@ export function handoffIntent(input, bad) {
         input.from === input.to ||
         !["leave", "observe"].includes(input.outgoing) ||
         !revision(input.expectedTopologyRevision) ||
+        (input.policyRef !== undefined && !identifier(input.policyRef)) ||
         (input.candidate !== undefined &&
             (!identifier(input.candidate) ||
                 input.candidate === input.via ||
@@ -107,6 +109,9 @@ export function handoffIntent(input, bad) {
         retained_connid: input.retain,
         outgoing: input.outgoing,
         role_scope: role.scope,
+        ...(input.policyRef === undefined
+            ? {}
+            : { policy_ref: input.policyRef }),
         ...(input.candidate === undefined
             ? {}
             : { candidate_connid: input.candidate }),

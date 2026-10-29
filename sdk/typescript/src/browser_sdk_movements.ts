@@ -38,6 +38,8 @@ export interface BrowserHandoffInput {
     readonly role: BrowserHandoffRole;
     readonly expectedTopologyRevision: SdkRevision<"topology">;
     readonly consultation?: BrowserOperation<BrowserConsultationResult>;
+    /** Original completed offer record supplied by the consenting target. */
+    readonly policyRef?: string;
 }
 export type BrowserMoveTarget =
     | { readonly endpoint: EndpointId; readonly candidate?: never }
@@ -186,6 +188,7 @@ export function handoffIntent(input: BrowserHandoffInput, bad: () => never) {
             "role",
             "expectedTopologyRevision",
             "consultation",
+            "policyRef",
         ],
         bad,
     );
@@ -198,6 +201,7 @@ export function handoffIntent(input: BrowserHandoffInput, bad: () => never) {
         input.from === input.to ||
         !["leave", "observe"].includes(input.outgoing) ||
         !revision(input.expectedTopologyRevision) ||
+        (input.policyRef !== undefined && !identifier(input.policyRef)) ||
         (input.candidate !== undefined &&
             (!identifier(input.candidate) ||
                 input.candidate === input.via ||
@@ -228,6 +232,9 @@ export function handoffIntent(input: BrowserHandoffInput, bad: () => never) {
         retained_connid: input.retain,
         outgoing: input.outgoing,
         role_scope: role.scope,
+        ...(input.policyRef === undefined
+            ? {}
+            : { policy_ref: input.policyRef }),
         ...(input.candidate === undefined
             ? {}
             : { candidate_connid: input.candidate }),
