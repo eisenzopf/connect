@@ -139,3 +139,10 @@ The [exact6d Linux component](../evidence/gate-6/python-sdk-public-linux-6d.json
 passes69 functions and six negative constraints on Python3.11–3.14 with58 tracked
 file contents/modes verified per artifact. It qualifies that older control slice;
 the expanded88/100-function sources require their own Linux evidence.
+
+The expanded [exactca3 Linux component](../evidence/gate-6/python-sdk-linux-ca3.json)
+passes100 runtime functions and18 negative constraints on Python3.11–3.14.
+All65 tracked file contents/modes match each retained artifact and current guarded
+Python source. This qualifies the synthetic participant-control/helper/type
+component, including all22 mapped kinds; it does not qualify the original
+server/installed package, actual candidate movement or remaining SDK interfaces.
