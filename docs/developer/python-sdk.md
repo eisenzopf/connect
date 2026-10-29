@@ -303,7 +303,17 @@ full64-KiB carrier test because the synthetic Node validator exited before
 flushing its65757-byte reply. Its writer now awaits completion; the exact same
 65536-byte input produces a complete reply. This fixes a fixture, without
 relaxing the input limit. All109 Node component/type regressions pass afterward.
-These checks simulate the validator and backend. Linux, actual administrative
+These checks simulate the validator and backend. Actual administrative
 server/current-authority and installed-package execution still need evidence;
 HTTP parity, synchronous ownership, deployment and the complete clean-venv
 restart journey remain required for G6-063.
+
+The latest [exact6c Linux component](../evidence/gate-6/python-sdk-administration-linux-6c.json)
+passes all156 functions and30 negative type constraints on
+Python3.11.17/3.12.15/3.13.17/3.14.9. Each artifact matches74 tracked file contents
+and modes, and those guarded files match the current Python source. This covers
+the control, reader, raw and administrative component, including the corrected
+64-KiB validator carrier and original child cleanup. It resolves the earlier
+pending Linux component check for this source. The original Rust/server,
+installed-package/restart/current-authority and complete G6-063 scopes remain
+unqualified.
