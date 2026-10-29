@@ -548,3 +548,17 @@ its native Python execution is pending. This closes the recorded local message,
 restart and current-authority subset. The complete installed control journey,
 including sessions, movements, administration and decoded media, remains
 unqualified; G6-063 stays in progress.
+
+The expanded [installed control fixture](../evidence/gate-6/python-installed-controls-local.json)
+passes both signing algorithms locally with the same clean Python 3.14.7 wheel.
+It adds stable participant IDs and advancing membership epochs, stale-revision
+refusals, incoming invitation source attribution, Session role/media/codec updates
+and accept/reject/cancel/end decisions, native Connection quality/mute/hold/resume/codec
+controls and Stream subscribe/unsubscribe. Typed message events agree with the
+signed finite journal and independent Store causal fact across restart. The host
+checks twelve completed control records independently and joins six helpers, five
+validators and two server instances per algorithm. Each SDK request remains 4s,
+each named phase 15s, and each whole function 90s. This is control evidence; handles
+remain observations without Python media custody. Administration, durable operation
+decisions and receipt coverage are still being completed for G6-063; package and
+full parity qualification remain G6-069/G6-070.

@@ -138,6 +138,19 @@ def python_movement_failure_diagnostic(value):
     return value
 
 
+def python_native_failure_diagnostic(value):
+    assert set(value)=={'phase','checkpoint','kind','certainty','source_line','error_type'}
+    assert value['phase']=='failed'
+    assert value['checkpoint'] in {'initial','participants','sessions','connections','session-decisions',
+                                   'message-events','restart','revocation'}
+    assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
+    assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
+    assert value['source_line'] is None or type(value['source_line']) is int and 0<value['source_line']<100000
+    assert value['error_type'] in {'SdkError','AssertionError','AttributeError','KeyError','TypeError',
+                                   'ValueError','RuntimeError','OSError','TimeoutError'}
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -292,11 +305,14 @@ def run(node_sdk=False, python_sdk=False):
                 step['node_movement_failures'].append(failure)
         step['python_movement_phases'] = []
         step['python_movement_failures'] = []
+        step['python_native_failures'] = []
         for line in text.splitlines():
             if line.startswith('installed-python-movement-phase '):
                 step['python_movement_phases'].append(python_movement_phase_diagnostic(json.loads(line.split(' ',1)[1])))
             if line.startswith('installed-python-movement-failure '):
                 step['python_movement_failures'].append(python_movement_failure_diagnostic(json.loads(line.split(' ',1)[1])))
+            if line.startswith('installed-python-native-failure '):
+                step['python_native_failures'].append(python_native_failure_diagnostic(json.loads(line.split(' ',1)[1])))
         step['node_administrative_phases'] = []
         step['node_administrative_failures'] = []
         step['node_administrative_drain_failures'] = []
@@ -608,19 +624,22 @@ def run(node_sdk=False, python_sdk=False):
                 witnesses = [json.loads(line.split('installed-python-native-witness ', 1)[1]) for line in text.splitlines() if 'installed-python-native-witness ' in line]
                 assert len(witnesses) == 1
                 witness = witnesses[0]
-                assert witness['profile'] == 'python-native/1' and witness['algorithm'] == algorithm
+                assert witness['profile'] == 'python-native/2' and witness['algorithm'] == algorithm
                 for field in ('original_reference_recovered', 'same_id_replay', 'changed_intent_refused', 'typed_capability_refusal',
                               'signed_finite_journal', 'same_cause_after_restart', 'current_read_refused',
                               'current_replay_refused', 'current_new_mutation_refused', 'independent_store_original_cause',
                               'one_original_message_and_operation', 'zero_forbidden_message_and_operation',
-                              'default_helper_on_path', 'python_process_joined', 'physical_peers_drained', 'media_readers_drained'):
+                              'default_helper_on_path', 'python_process_joined', 'physical_peers_drained', 'media_readers_drained',
+                              'participant_epoch_advanced', 'stale_revisions_refused', 'incoming_original_hint',
+                              'session_decisions_completed', 'native_controls_completed', 'stream_selection_completed',
+                              'independent_control_records', 'typed_message_event'):
                     assert witness[field] is True
-                assert (witness['helpers_joined'], witness['validators_joined'], witness['servers_joined']) == (5, 5, 2)
+                assert (witness['helpers_joined'], witness['validators_joined'], witness['servers_joined']) == (6, 5, 2)
                 results.append(dict(witness, passed=True))
             report['installed_python_native'] = {'passed': all(v['passed'] for v in results),
-                'profile': 'python-native/1', 'results': results, 'request_budget_ms': 4000,
+                'profile': 'python-native/2', 'results': results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
-                'scope': 'Clean installed wheel, original signed native Rust helper/server, saved reference and finite journal across actual server restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
+                'scope': 'Clean installed wheel, original signed native Rust helper/server, participant epochs and stale revisions, Session decisions and incoming hints, native Connection/Stream controls, typed and finite journal agreement, saved reference across actual restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
             movements=[]
             for algorithm,label in (('EdDSA','eddsa'),('ES256','es256')):
                 for suffix in ('session_handoff_observe','move_speaker'):

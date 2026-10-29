@@ -20,6 +20,36 @@ async fn run(algorithm: &str) {
     assert!(python.is_absolute() && python.is_file());
     let project = script.parent().unwrap();
     let mut f = Fixture::with_native_end_scope(algorithm, 8).await;
+    crate::canonical_native_connections::ready_endpoint_with_capabilities(
+        &f,
+        vec!["audio".into(), "video".into(), "data".into()],
+    )
+    .await;
+    let mut peer_scope = connect_store::Scope::collaboration(vec!["*".into()]);
+    peer_scope.operations.extend([
+        "stream.subscribe".into(),
+        "stream.unsubscribe".into(),
+        "connection.end".into(),
+    ]);
+    let peer_control = crate::canonical_native_connections::party_with_scope(
+        &f,
+        &f.peer.identity_id,
+        72,
+        vec!["audio".into()],
+        peer_scope,
+    );
+    let peer_config = f.temp.path().join("python-peer.toml");
+    init::private_write(
+        &peer_config,
+        toml::to_string(&sdk::ClientConfig {
+            control: peer_control,
+            tenant_id: "tnt_default".parse().unwrap(),
+            application: None,
+        })
+        .unwrap()
+        .as_bytes(),
+    )
+    .unwrap();
     let options = || sdk::RequestOptions::new(Duration::from_secs(4)).unwrap();
     let native = sdk::Client::connect(f.client.clone(), "tnt_default".parse().unwrap())
         .await
@@ -76,7 +106,8 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o700)).unwrap();
     let spec = f.temp.path().join("python-native-spec.json");
     init::private_write(&spec,&serde_json::to_vec(&json!({"project":project,"config":config,
-        "cid":cid,"recipient":recipient,"saved":f.temp.path().join("python-native-reference.json")})).unwrap()).unwrap();
+        "cid":cid,"recipient":recipient,"peer_identity":f.peer.identity_id,"peer_config":peer_config,
+        "saved":f.temp.path().join("python-native-reference.json")})).unwrap()).unwrap();
     let mut path = vec![bin];
     path.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
     let mut child = tokio::process::Command::new(&python)
@@ -94,7 +125,8 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::from(
-            std::fs::File::create(f.temp.path().join("python-native.stderr")).unwrap(),
+            std::fs::File::create(project.join(format!("python-native-{algorithm}.stderr")))
+                .unwrap(),
         ))
         .kill_on_drop(true)
         .spawn()
@@ -146,12 +178,73 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
                     == hex::encode(sha2::Sha256::digest(id.as_bytes())))
         );
     }
+    let participants = phase(&mut lines, "participants-completed").await;
+    assert_eq!(participants["participant_epoch_advanced"], true);
+    assert_eq!(participants["stale_revision_refused"], true);
+    let sessions = phase(&mut lines, "sessions-ready").await;
+    assert_eq!(sessions["incoming_decision_completed"], true);
+    let native = phase(&mut lines, "native-completed").await;
+    assert_eq!(native["native_controls_completed"], true);
+    assert_eq!(native["stream_selection_completed"], true);
+    let controls = phase(&mut lines, "controls-completed").await;
+    for field in [
+        "participant_epoch_advanced",
+        "stale_revisions_refused",
+        "incoming_original_hint",
+        "session_decisions_completed",
+        "native_controls_completed",
+        "stream_selection_completed",
+    ] {
+        assert_eq!(controls[field], true);
+    }
+    let database = rusqlite::Connection::open_with_flags(
+        &f.config.database,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .unwrap();
+    let source: String = database.query_row(
+        "SELECT id FROM session_invitation_sources WHERE session_id='python-control-solo' AND operation_id='python-control-extend'", [], |row| row.get(0),
+    ).unwrap();
+    assert_ne!(source, "python-control-extend");
+    assert_eq!(
+        controls["incoming_source_sha256"],
+        hex::encode(sha2::Sha256::digest(source.as_bytes()))
+    );
+    for (id, command) in [
+        ("python-control-create", "create"),
+        (
+            "python-control-member-return",
+            "conversation.participant.add",
+        ),
+        ("python-control-accept", "session.accept"),
+        ("python-control-offer", "connection.offer"),
+        ("python-control-quality", "connection.update"),
+        ("python-control-codecs", "connection.update"),
+        ("python-control-subscribe", "stream.subscribe"),
+        ("python-control-unsubscribe", "stream.unsubscribe"),
+        ("python-control-native-end", "connection.end"),
+        ("python-control-session-end", "session.end"),
+        ("python-control-reject", "session.reject"),
+        ("python-control-cancel", "session.cancel"),
+    ] {
+        let (count, stored_command, state): (u64, String, String) = database.query_row(
+            "SELECT COUNT(*), MIN(command_type), MIN(state) FROM operations WHERE operation_id=?1 AND conversation_id=?2",
+            rusqlite::params![id, controls["conversation_id"].as_str().unwrap()],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).unwrap();
+        assert_eq!(
+            (count, stored_command.as_str(), state.as_str()),
+            (1, command, "completed")
+        );
+    }
+    drop(database);
     let stopped = phase(&mut lines, "stopped").await;
     for field in [
         "same_id_replay",
         "changed_intent_refused",
         "signed_finite_journal",
         "typed_capability_refusal",
+        "typed_message_event",
     ] {
         assert_eq!(stopped[field], true);
     }
@@ -192,7 +285,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         .unwrap()
         .unwrap()
         .success());
-    for (path, expected) in [(&pids, 5), (&pids.with_extension("validators"), 5)] {
+    for (path, expected) in [(&pids, 6), (&pids.with_extension("validators"), 5)] {
         let recorded = std::fs::read_to_string(path).unwrap();
         let values: Vec<u32> = recorded.lines().map(|line| line.parse().unwrap()).collect();
         assert_eq!(values.len(), expected);
@@ -257,12 +350,15 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-python-native-witness {}",
-        json!({"profile":"python-native/1","algorithm":algorithm,
+        json!({"profile":"python-native/2","algorithm":algorithm,
         "original_reference_recovered":true,"same_id_replay":true,"changed_intent_refused":true,"typed_capability_refusal":true,
         "signed_finite_journal":true,"same_cause_after_restart":true,"current_read_refused":true,
         "current_replay_refused":true,"current_new_mutation_refused":true,"independent_store_original_cause":true,
         "one_original_message_and_operation":true,"zero_forbidden_message_and_operation":true,
-        "default_helper_on_path":true,"helpers_joined":5,"validators_joined":5,"servers_joined":2,"python_process_joined":true,
+        "participant_epoch_advanced":true,"stale_revisions_refused":true,"incoming_original_hint":true,
+        "session_decisions_completed":true,"native_controls_completed":true,"stream_selection_completed":true,
+        "independent_control_records":true,"typed_message_event":true,
+        "default_helper_on_path":true,"helpers_joined":6,"validators_joined":5,"servers_joined":2,"python_process_joined":true,
         "physical_peers_drained":true,"media_readers_drained":true})
     );
 }
