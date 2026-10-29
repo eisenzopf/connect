@@ -1,3 +1,5 @@
+import { type BrowserDecisionReceipt } from "./browser_sdk_decisions.js";
+export type { BrowserDecisionReceipt } from "./browser_sdk_decisions.js";
 import { type BrowserApplicationReadResolver, type BrowserDeliveryObservation } from "./browser_application_reads.js";
 export type { BrowserApplicationReadOptions, BrowserApplicationReadContext, BrowserApplicationReadResolver, BrowserDeliveryObservation, } from "./browser_application_reads.js";
 import { type BrowserIdentityKind } from "./browser_sdk_membership.js";
@@ -100,6 +102,8 @@ export interface BrowserSessionDecision {
     readonly topologyRevision: SdkRevision<"topology">;
 }
 export declare const browserOperationKinds: Readonly<{
+    operationCancel: BrowserOperationKind<BrowserDecisionReceipt>;
+    operationReconcile: BrowserOperationKind<BrowserDecisionReceipt>;
     connectionUpdate: BrowserOperationKind<BrowserConnectionUpdateReceipt>;
     streamSubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
     streamUnsubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
@@ -129,11 +133,19 @@ export declare class BrowserOperation<T> {
     status(options: BrowserSdkRequestOptions): Promise<BrowserOperationSnapshot>;
     wait(options: BrowserSdkRequestOptions): Promise<BrowserCompletion<T>>;
     waitUntilReady(options: BrowserSdkRequestOptions): Promise<BrowserOperationSnapshot>;
+    cancel(options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserDecisionReceipt>>;
+    reconcile(input: {
+        readonly outcome: "completed" | "cancelled" | "failed";
+        readonly evidenceId: string;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserDecisionReceipt>>;
+    private decide;
 }
 declare const submit: unique symbol;
 export declare class BrowserSdkClient {
     readonly role: "browser";
     readonly operationKinds: Readonly<{
+        operationCancel: BrowserOperationKind<BrowserDecisionReceipt>;
+        operationReconcile: BrowserOperationKind<BrowserDecisionReceipt>;
         connectionUpdate: BrowserOperationKind<BrowserConnectionUpdateReceipt>;
         streamSubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
         streamUnsubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
@@ -169,7 +181,7 @@ export declare class BrowserSdkClient {
     get transport(): import("./browser_transport_client.js").BrowserTransportState;
     reconnect(options?: Parameters<BrowserTransportClient["reconnect"]>[0]): Promise<void>;
     close(): void;
-    [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions): Promise<BrowserOperation<T>>;
+    [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope): Promise<BrowserOperation<T>>;
     incomingInvitations(options: BrowserSdkRequestOptions): BrowserIncomingInvitations;
 }
 export declare class BrowserParticipant {

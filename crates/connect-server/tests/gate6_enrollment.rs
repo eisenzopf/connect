@@ -21,6 +21,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[path = "support/canonical_listener_fixture.rs"]
 mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
+#[path = "support/browser_decisions.rs"]
+mod browser_decisions;
 #[path = "support/browser_profile_fallback.rs"]
 mod browser_profile_fallback;
 #[path = "support/browser_receipts.rs"]

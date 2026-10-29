@@ -1,4 +1,9 @@
 import {
+    operationDecisionResult,
+    type BrowserDecisionReceipt,
+} from "./browser_sdk_decisions.js";
+export type { BrowserDecisionReceipt } from "./browser_sdk_decisions.js";
+import {
     BrowserApplicationReads,
     type BrowserApplicationReadResolver,
     type BrowserDeliveryObservation,
@@ -245,7 +250,7 @@ export interface BrowserOperationKind<T> {
 }
 interface Kind<T> {
     command: string;
-    scope: "root" | "conversation" | "session" | "connection";
+    scope: "root" | "conversation" | "session" | "connection" | "decision";
     decode: (
         value: Json,
         client: BrowserSdkClient,
@@ -514,6 +519,16 @@ function participantResult(
     );
 }
 export const browserOperationKinds = Object.freeze({
+    operationCancel: kind("operation.cancel", "decision", (v, c, key) =>
+        operationDecisionResult(v, key, () =>
+            current(c).malformed(key, "recorded"),
+        ),
+    ),
+    operationReconcile: kind("operation.reconcile", "decision", (v, c, key) =>
+        operationDecisionResult(v, key, () =>
+            current(c).malformed(key, "recorded"),
+        ),
+    ),
     connectionUpdate: kind("connection.update", "connection", (v, c, k) =>
         observedControl(
             updateResult(v, k, controlConnection(v, c, k), () =>
@@ -606,15 +621,22 @@ function reference<T>(
         invalid();
     const s = saved.scope;
     if (
-        d.scope === "root"
-            ? Object.keys(s).length !== 0
-            : !identifier(s.conversation_id) ||
-              (d.scope === "conversation"
-                  ? s.session_id !== undefined
-                  : !identifier(s.session_id)) ||
-              (d.scope === "connection"
-                  ? !identifier(s.connection_id)
-                  : s.connection_id !== undefined)
+        d.scope === "decision"
+            ? s.connection_id !== undefined ||
+              (s.conversation_id !== undefined &&
+                  !identifier(s.conversation_id)) ||
+              (s.session_id !== undefined &&
+                  (!identifier(s.session_id) ||
+                      s.conversation_id === undefined))
+            : d.scope === "root"
+              ? Object.keys(s).length !== 0
+              : !identifier(s.conversation_id) ||
+                (d.scope === "conversation"
+                    ? s.session_id !== undefined
+                    : !identifier(s.session_id)) ||
+                (d.scope === "connection"
+                    ? !identifier(s.connection_id)
+                    : s.connection_id !== undefined)
     )
         invalid();
     return freeze({
@@ -743,7 +765,11 @@ function translated(
                 : (kinds[error.code] ?? "transport-uncertain");
         return new BrowserSdkError(
             kind,
-            ["refused", "forbidden", "unauthorized"].includes(error.code)
+            ["forbidden", "unauthorized"].includes(error.code) ||
+                (error.code === "refused" &&
+                    error.problem !== undefined &&
+                    error.problem.code >= 400 &&
+                    error.problem.code < 500)
                 ? "refused"
                 : certainty,
             key,
@@ -1142,6 +1168,54 @@ export class BrowserOperation<T> {
             await budget.delay();
         }
     }
+    cancel(
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserDecisionReceipt>> {
+        return this.decide(
+            browserOperationKinds.operationCancel,
+            undefined,
+            options,
+        );
+    }
+    reconcile(
+        input: {
+            readonly outcome: "completed" | "cancelled" | "failed";
+            readonly evidenceId: string;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserDecisionReceipt>> {
+        fields(input, ["outcome", "evidenceId"], invalid);
+        if (
+            !["completed", "cancelled", "failed"].includes(input.outcome) ||
+            !identifier(input.evidenceId)
+        )
+            invalid();
+        return this.decide(
+            browserOperationKinds.operationReconcile,
+            { outcome: input.outcome, evidence_id: input.evidenceId },
+            options,
+        );
+    }
+    private decide(
+        kind: BrowserOperationKind<BrowserDecisionReceipt>,
+        reconciliation: JsonObject | undefined,
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserDecisionReceipt>> {
+        fields(options, ["timeoutMs", "signal", "operationId"], invalid);
+        const target = this.reference,
+            body = { operation_id: target.operationId, ...reconciliation };
+        return this.client[submit](
+            kind,
+            body,
+            {
+                cid: target.scope.conversationId,
+                sid: target.scope.sessionId,
+                connid: target.scope.connectionId,
+            },
+            options,
+            { cid: target.scope.conversationId, sid: target.scope.sessionId },
+        );
+    }
 }
 const submit = Symbol("submit");
 export class BrowserSdkClient {
@@ -1285,6 +1359,7 @@ export class BrowserSdkClient {
         body: JsonObject,
         scope: Scope,
         options: BrowserSdkMutationOptions,
+        recordScope: Scope = scope,
     ): Promise<BrowserOperation<T>> {
         const d = descriptor(k);
         if (!options || !identifier(options.operationId)) invalid();
@@ -1293,21 +1368,28 @@ export class BrowserSdkClient {
                 operationId: options.operationId,
                 command: d.command,
                 scope: {
-                    ...(scope.cid === undefined
+                    ...(recordScope.cid === undefined
                         ? {}
-                        : { conversationId: scope.cid }),
-                    ...(scope.sid === undefined
+                        : { conversationId: recordScope.cid }),
+                    ...(recordScope.sid === undefined
                         ? {}
-                        : { sessionId: scope.sid }),
-                    ...(scope.connid === undefined
+                        : { sessionId: recordScope.sid }),
+                    ...(recordScope.connid === undefined
                         ? {}
-                        : { connectionId: scope.connid }),
+                        : { connectionId: recordScope.connid }),
                 },
             }),
             k,
         );
-        const budget = new Budget(options);
+        let budget: Budget;
+        try {
+            budget = new Budget(options);
+        } catch (error) {
+            throw translated(error, "not-submitted", key);
+        }
         const captured = copy(body);
+        if (d.scope === "decision" && key.operationId === captured.operation_id)
+            throw new BrowserSdkError("validation", "not-submitted", key);
         let control: ReturnType<BrowserMediaPeer["beginControl"]> | undefined;
         try {
             const s = current(this),
@@ -1417,6 +1499,30 @@ export class BrowserSdkClient {
                         key.operationId
                 )
                     current(this).malformed(key, "uncertain");
+            }
+            if (d.scope === "decision") {
+                const bad = () => current(this).malformed(key, "uncertain"),
+                    update = updates[0];
+                if (
+                    frames.length !== 2 ||
+                    !update ||
+                    update.payload.state !== "completed" ||
+                    update.payload.problem !== undefined ||
+                    (update.operation_id !== undefined &&
+                        update.operation_id !== key.operationId) ||
+                    update.expected_revision !== undefined
+                )
+                    bad();
+                const result = operationDecisionResult(
+                    update.payload.result,
+                    key,
+                    bad,
+                );
+                if (
+                    result.target !== captured.operation_id ||
+                    result.evidenceId !== captured.evidence_id
+                )
+                    bad();
             }
             if (d.command.startsWith("conversation.participant.")) {
                 const bad = () => current(this).malformed(key, "uncertain");

@@ -719,3 +719,88 @@ the signed control-boundary/HTTP fixtures and actual HTTPS/Chrome workflow. Its
 synthetic delivery reports come from a separate fixture recipient through the
 public application client; they are not evidence of human reading or a provider
 outcome. Full G6-061 qualification remains open.
+
+
+## Durable operation decisions
+
+`original.cancel(...)` and `original.reconcile(...)` return separate observable
+Operations. Each decision needs its own saved logical mutation ID. Persist the
+decision intent, original target reference and decision ID before calling it.
+Stopping a local `wait()` with an AbortSignal sends no durable cancellation;
+`Session.cancelInvitation(...)` remains a separate Session decision.
+
+```ts
+await saveDecisionIntent({
+    operationId: savedCancelDecisionId,
+    target: original.referenceJson(),
+    action: "operation.cancel",
+});
+const cancellation = await original.cancel({
+    ...wait,
+    operationId: savedCancelDecisionId,
+});
+await saveOriginalReference(cancellation.referenceJson());
+const receipt = (await cancellation.wait(wait)).value;
+// receipt.decision identifies this decision; receipt.target identifies original.
+// receipt.observedState may still be "unknown" even though the decision completed.
+const currentTarget = await original.status(wait);
+```
+
+The receipt preserves the target state observed at the decision and the host's
+bounded disposition. It does not turn a cancellation request into proof of a
+cancelled target, undo a completed message, establish media readiness or grant
+capture/render custody. An already-terminal target can produce an
+`already_terminal` decision while its original result remains unchanged.
+
+Reconciliation takes one terminal outcome and an attributed evidence reference:
+
+```ts
+const reconciliation = await original.reconcile({
+    outcome: savedTerminalOutcome, // "completed", "cancelled" or "failed"
+    evidenceId: savedAttributedEvidenceId,
+}, { ...wait, operationId: savedReconcileDecisionId });
+const observed = (await reconciliation.wait(wait)).value;
+```
+
+The host independently verifies current authority, target state, worker revision
+and the evidence it recognizes. Caller text or an outcome assertion supplies no
+authority. The real Chrome fixture explicitly refuses an invented evidence ID;
+signed boundary fixtures cover accepted reconciliation receipts. This checkpoint
+does not add a browser evidence-issuance API or claim a new live provider/native
+reconciliation qualification.
+
+The request asserts the original target's Conversation/Session/Connection scope.
+The decision's saved reference and status queries preserve Conversation/Session
+scope and omit Connection ID, matching the durable decision ledger. A root
+operation produces a root reference. Use `browserOperationKinds.operationCancel`
+or `operationReconcile` with the frozen saved-reference JSON contract to restore
+the decision itself. Recovery reads its original record without resubmission.
+If submission is uncertain before a reference is returned, reconstruct that
+contract from the saved decision ID/command and its Conversation/Session scope,
+or retain the key on the SDK error. Never mint another decision ID to hide an
+uncertain result.
+
+Malformed target/evidence/state/result/scope or correlated acknowledgements
+retain the separate decision key with uncertain submission. Command-only
+operation scope may be absent from a correlated observation; if supplied it must
+match. A 5xx problem after mutation submission also remains uncertain, since a
+decision may already have committed. Explicit 4xx refusals remain refusals.
+An already-aborted submission is `not-submitted` with its decision key. Same-ID
+self-targeting, unsupported input/option fields and invalid evidence/outcomes
+refuse before IO. Current revocation is checked again on every status/recovery
+read; cached receipts do not supply permission.
+
+The actual fixture exercises root and Conversation decisions on both WT and
+bounded WSS fallback, original decision recovery after reconnect, unchanged
+completed source operations, unattributed evidence refusal and current enrollment
+retirement. Independent SQL verifies four cancel records and four decision-link
+rows, with no accepted reconciliation record for the two refusals.
+
+The full media/UI regression fixture now explicitly signals completion after its
+last trusted keyboard step. Its UI coordinator stops at that boundary while API
+and media recovery checks continue under their existing budgets. The final phase
+and completion flag are asserted; the 60-second UI watchdog, 70-second evaluation
+cap, per-call deadlines and media thresholds are unchanged.
+
+[Browser decision evidence](../evidence/gate-6/browser-sdk-decisions.json) records
+the exact scope, causal error-classification checks and remaining G6-061 work.

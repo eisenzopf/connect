@@ -42,6 +42,8 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "typed-browser",
     )
     .await;
+    assert_eq!(result["ui"]["completed"], true);
+    assert_eq!(result["ui"]["final_phase"], "screen-progress-1");
     assert_eq!(result["result"]["direct_wt"], 1);
     assert_eq!(result["result"]["bounded_wss_fallback"], 1);
     for name in [

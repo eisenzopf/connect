@@ -132,3 +132,12 @@ const delivery:readonly import('../typescript/dist/browser.js').BrowserDeliveryO
 room.receipts(sdkId<'participant'>('recipient'),{timeoutMs:1000});
 // @ts-expect-error Delivery evidence is immutable.
 delivery[0].state='read';
+
+const cancelled:BrowserOperation<import('../typescript/dist/browser.js').BrowserDecisionReceipt>=await (await textSend).cancel({timeoutMs:1000,operationId:sdkId<'operation'>('decision')});
+const reconciled:BrowserOperation<import('../typescript/dist/browser.js').BrowserDecisionReceipt>=await (await textSend).reconcile({outcome:'completed',evidenceId:'attributed-observation'},{timeoutMs:1000,operationId:sdkId<'operation'>('reconcile')});
+const target:import('../typescript/dist/browser.js').OperationId=(await cancelled.wait({timeoutMs:1000})).value.target;
+// @ts-expect-error Cancellation returns a decision receipt, not a message acceptance.
+const acceptance:import('../typescript/dist/browser.js').BrowserMessageAcceptance=(await cancelled.wait({timeoutMs:1000})).value;
+// @ts-expect-error Reconciliation admits only terminal outcomes and an evidence reference.
+(await textSend).reconcile({outcome:'ready',evidenceId:'e'},{timeoutMs:1000,operationId});
+void [reconciled,target,acceptance];

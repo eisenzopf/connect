@@ -61,12 +61,14 @@ try {
     await send('Page.bringToFront',{},session);
   }
   await pageReady("typeof globalThis.runBrowserFixture === 'function'",session,'fixture-load');
-  let uiDone=false;
+  let uiDone=false,lastUiPhase;
   const uiTask=config.typed_media_ui===true?(async()=>{
     let handled;const until=Date.now()+60000;
     while(!uiDone){
-      if(Date.now()>until)throw Error('typed media UI deadline');
-      const phase=(await send('Runtime.evaluate',{expression:'globalThis.typedUiPhase',returnByValue:true},session,'ui-phase')).result.value;
+      const state=(await send('Runtime.evaluate',{expression:'({phase:globalThis.typedUiPhase,complete:globalThis.typedUiComplete===true})',returnByValue:true},session,'ui-phase')).result.value;
+      if(state.complete)break;
+      if(Date.now()>until)throw Error('typed media UI deadline at '+state.phase);
+      const phase=state.phase;
       if(phase&&phase!==handled){
         if(!/^(grant|deny|microphone|camera|capture|progress|screen-capture|screen-progress|screen-resume)-[01]$/.test(phase))throw Error('unknown typed media UI phase');
         const action=phase.replace(/-[01]$/,'');
@@ -87,7 +89,7 @@ try {
             await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},session);
           }
         }
-        handled=phase;
+        handled=phase;lastUiPhase=phase;
         await send('Runtime.evaluate',{expression:'globalThis.typedUiAcknowledged='+JSON.stringify(phase)},session,'ui-ack');
       }
       await new Promise(r=>setTimeout(r,15));
@@ -108,7 +110,8 @@ try {
   try{result=await Promise.race([evaluation,uiTask.then(()=>new Promise(()=>{}))]);}finally{uiDone=true;}
   await uiTask;
   if(result.exceptionDetails||!result.result?.value?.passed)throw Error(result.exceptionDetails?.exception?.description||'browser fixture returned no success');
-  console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion,user_agent:browser.userAgent,js_version:browser.jsVersion},result:result.result.value}));
+  const ui=config.typed_media_ui===true?{completed:(await send('Runtime.evaluate',{expression:'globalThis.typedUiComplete===true',returnByValue:true},session,'ui-complete')).result.value,final_phase:lastUiPhase}:undefined;
+  console.log(JSON.stringify({browser:{product:browser.product,protocol_version:browser.protocolVersion,user_agent:browser.userAgent,js_version:browser.jsVersion},result:result.result.value,...(ui?{ui}:{})}));
 } finally {
   if(screenTarget)await send('Target.closeTarget',{targetId:screenTarget}).catch(()=>{});
   if(cover)await send('Target.closeTarget',{targetId:cover}).catch(()=>{});

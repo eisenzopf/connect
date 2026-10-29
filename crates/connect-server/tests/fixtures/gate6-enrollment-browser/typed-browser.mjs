@@ -17,7 +17,7 @@ const within=async(work,label)=>{let timer;try{return await Promise.race([work,n
 const assert=(v,m)=>{if(!v)throw Error(m);};
 const decode=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),v=>v.charCodeAt(0));
 async function post(path,value){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify(value)});assert(r.ok,'fixture backend response');return r.json();}
-globalThis.runBrowserFixture=async cfg=>{try{
+globalThis.runBrowserFixture=async cfg=>{try{globalThis.typedUiComplete=false;
  const publicKey=await crypto.subtle.importKey('raw',decode(cfg.server_public_raw),{name:'Ed25519'},true,['verify']),server={key:publicKey,keyId:cfg.server_keyid,algorithm:'EdDSA',notBefore:cfg.server_not_before,expiresAt:cfg.server_expires_at};
  const vault=new BrowserEnrollmentStore('connect-typed-browser'),identities=[cfg.identity_id,cfg.recipient_id],profiles=[],now=Math.floor(Date.now()/1000),pins=[{algorithm:'sha-256',value:decode(cfg.certificate_sha256)}];
  const operations=['connection.end','connection.offer','connection.update','conversation.get','conversation.participant.add','conversation.participant.remove','conversation.participant.update','conversation.subscribe','create','history','operation.get','send','session.accept','session.cancel','session.end','session.invite','session.reject','session.update','session_get','stream.subscribe','stream.unsubscribe'];
@@ -151,7 +151,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
         // Witness the owned source tab itself. This is local capture evidence,
         // not a decoded receive-quality observation.
         preview=document.createElement('video');preview.muted=true;preview.srcObject=display;await within(preview.play(),'owned tab preview');assert(preview.readyState>=2,'owned tab has a current video frame');const witness=document.createElement('canvas');witness.width=16;witness.height=16;witness.getContext('2d').drawImage(preview,0,0,16,16);const color=witness.getContext('2d').getImageData(8,8,1,1).data;trace.push({owned_tab_pixel:[...color],width:preview.videoWidth,height:preview.videoHeight,ready:preview.readyState});assert(Math.abs(color[0]-12)<20&&Math.abs(color[1]-145)<20&&Math.abs(color[2]-210)<20,'captured pixels identify only owned source tab');result.owned_tab_capture++;
-        progress.element.querySelector('button').focus();await ui('screen-progress-'+cycle);const completed=(await progress.observe()).value,sources=await completed.streams.list(options);const logical=sources.find(v=>v.id===input.streams.rest[0].id),view=await logical.refresh(options);assert(view.medium==='screen'&&view.ownership==='observation','logical Screen survives physical video SDP');result.screen_kind_observed++;
+        progress.element.querySelector('button').focus();await ui('screen-progress-'+cycle);if(cycle===1)globalThis.typedUiComplete=true;const completed=(await progress.observe()).value,sources=await completed.streams.list(options);const logical=sources.find(v=>v.id===input.streams.rest[0].id),view=await logical.refresh(options);assert(view.medium==='screen'&&view.ownership==='observation','logical Screen survives physical video SDP');result.screen_kind_observed++;
         result[path==='webtransport'?'wt_screen_connection':'wss_screen_connection']++;
         // A second original Connection uses an explicitly supplied synthetic
         // moving red canvas. Only the first sender captures the owned blue tab.

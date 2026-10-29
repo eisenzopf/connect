@@ -107,6 +107,7 @@ export {
     sdkRevision,
 } from "./browser_sdk.js";
 export type {
+    BrowserDecisionReceipt,
     BrowserApplicationReadOptions,
     BrowserApplicationReadContext,
     BrowserApplicationReadResolver,

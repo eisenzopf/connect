@@ -75,6 +75,15 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
         )
         .unwrap(),
     );
+    files.insert("/decisions-browser".into(), b"<!doctype html><meta charset=utf-8><title>Owned durable decision workflow</title><script type=module src=/decisions-browser.mjs></script>".to_vec());
+    files.insert(
+        "/decisions-browser.mjs".into(),
+        std::fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs"),
+        )
+        .unwrap(),
+    );
     let backend = Backend {
         origin,
         admin_origin: h.url(HttpSurface::Administration, ""),
@@ -147,6 +156,12 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     assert_eq!(request.recipients,recipients);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
                                 },
+                                "/decisions-approve"=>{
+                                    let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();assert_eq!(request.identity_id,backend.identity);
+                                    assert!([EnrollmentTransport::Webtransport,EnrollmentTransport::WssWebrtc].contains(&request.transport));assert_eq!(request.capabilities,vec!["control","data"]);assert_eq!(request.operations,vec!["conversation.get","create","history","operation.cancel","operation.get","operation.reconcile","send"]);
+                                    let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();assert_eq!(request.recipients,recipients);
+                                    Some((format!("{}/v2/enrollments",backend.admin_origin),body))
+                                },
                                 "/receipts-approve"=>{
                                     let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
                                     assert!([&backend.identity,&backend.peer_identity].contains(&&request.identity_id));
@@ -176,7 +191,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
-                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" || path=="/receipts-browser" {"text/html"}else{mime};
+                        let mime=if path=="/" || path=="/profile-fallback" || path=="/typed-browser" || path=="/receipts-browser" || path=="/decisions-browser" {"text/html"}else{mime};
                         let header=format!("HTTP/1.1 {status} Fixture\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",body.len());
                         let _=stream.write_all(header.as_bytes()).await;let _=stream.write_all(&body).await;let _=stream.shutdown().await;
                     }).await;});

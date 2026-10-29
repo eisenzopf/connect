@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {BrowserSdkClient,browserOperationKinds,sdkId} from '../typescript/dist/browser.js';
+import {fixture} from './fixtures/browser_control_peer.mjs';
+const opts={timeoutMs:300},id=sdkId;
+const cases={root:{command:'conversation.create',kind:'conversationCreate',scope:{}},conversation:{command:'message.send',kind:'messageSend',scope:{conversation_id:'room'}},session:{command:'session.invite',kind:'sessionInvite',scope:{conversation_id:'room',session_id:'session'}},connection:{command:'connection.end',kind:'connectionEnd',scope:{conversation_id:'room',session_id:'session',connection_id:'connection'}}};
+async function scenario(run,{path='wss-webrtc',algorithm='EdDSA',scope='conversation',fault}={}){
+ let mode=fault;const target=cases[scope],records=new Map([['original',{operation_id:'original',command_type:target.command==='conversation.create'?'create':target.command==='message.send'?'send':target.command,record_id:'record-original',state:'unknown',revision:1}]]);
+ return fixture(async f=>{
+  const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500}),original=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'original',command:target.command,scope:target.scope},browserOperationKinds[target.kind]);
+  try{return await run({client,original,f,records,setMode:v=>mode=v});}finally{client.close();}
+ },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
+  const scope={cid:frame.cid,sid:frame.sid,connid:frame.connid,operation_id:frame.operation_id};const emit=async(type,payload,own=scope)=>peer.emit(type,payload,frame.id,own);
+  if(frame.type==='operation.get'){
+   if(mode==='revoked')return emit('error',{code:403,category:'auth',reason:'forbidden'}).then(()=>true);
+   let record=structuredClone(records.get(frame.payload.operation_id));if(mode==='pending-decision'&&frame.payload.operation_id!=='original')record={...record,state:'unknown'};if(mode==='pending-decision'&&frame.payload.operation_id!=='original')delete record.result;if(mode==='record-command'&&frame.payload.operation_id!=='original')record.command_type='operation.get';if(mode==='record-self'&&frame.payload.operation_id!=='original')record.result.target_operation_id=frame.payload.operation_id;
+   await emit('operation.updated',record);await emit('ack',{});return true;
+  }
+  if(!['operation.cancel','operation.reconcile'].includes(frame.type))return false;
+  if(frame.type==='operation.reconcile'){const source=records.get('original');source.state=frame.payload.outcome;source.revision++;}
+  const result={target_operation_id:frame.payload.operation_id,state_at_decision:frame.type==='operation.cancel'?'unknown':frame.payload.outcome,disposition:frame.type==='operation.cancel'?'reconciliation_required':'reconciled',evidence_id:frame.payload.evidence_id??null};
+  const record={operation_id:frame.operation_id,record_id:'record-'+frame.operation_id,command_type:frame.type,state:'completed',revision:1,result:structuredClone(result)};records.set(frame.operation_id,record);
+  if(mode==='lost-ack')return true;if(mode==='unavailable')return emit('error',{code:503,category:'server',reason:'temporarily_unavailable'}).then(()=>true);
+  if(mode==='target')result.target_operation_id='foreign';if(mode==='self')result.target_operation_id=frame.operation_id;if(mode==='evidence')result.evidence_id='foreign';if(mode==='state')result.state_at_decision='success';if(mode==='disposition')result.disposition='x'.repeat(257);if(mode==='extra')result.authority='fake';if(mode==='pending')record.state='accepted';if(mode==='problem')record.problem={code:'conflict',message:'private-canary'};
+  await emit('operation.updated',{...record,result},mode==='scope'?{...scope,connid:'foreign'}:mode==='omit-operation-scope'?{...scope,operation_id:undefined}:scope);
+  if(mode==='extra-frame')await emit('operation.updated',{...record,result});await emit('ack',{});return true;
+ }});
+}
+for(const path of ['webtransport','wss-webrtc'])for(const algorithm of ['EdDSA','ES256'])for(const command of ['cancel','reconcile'])test(`durable ${command} ${path}/${algorithm} returns an independently observable original decision`,()=>scenario(async({client,original,f})=>{
+ const input={outcome:'completed',evidenceId:'verified-evidence'},options={...opts,operationId:id('decision')},pending=command==='cancel'?original.cancel(options):original.reconcile(input,options);input.evidenceId='changed';input.outcome='failed';options.operationId=id('changed');const decision=await pending;assert.equal(f.sent.filter(v=>v.type==='operation.get').length,0);assert.equal(decision.reference.operationId,'decision');assert.equal(decision.reference.command,'operation.'+command);const value=(await client.operations.restore(decision.referenceJson(),browserOperationKinds[command==='cancel'?'operationCancel':'operationReconcile']).wait(opts)).value;assert.equal(value.decision.operationId,'decision');assert.equal(value.target,'original');assert.equal(value.observedState,command==='cancel'?'unknown':'completed');assert.equal(value.evidenceId,command==='cancel'?undefined:'verified-evidence');assert(Object.isFrozen(value)&&Object.isFrozen(value.decision.scope));const sent=f.sent.find(v=>v.type==='operation.'+command);assert.equal(sent.operation_id,'decision');assert.deepEqual(JSON.parse(JSON.stringify(sent.payload)),{operation_id:'original',...(command==='reconcile'?{outcome:'completed',evidence_id:'verified-evidence'}:{})});assert.equal((await original.status(opts)).state,command==='cancel'?'unknown':'completed','the target remains a separate current authorized observation');assert.equal(f.sent.filter(v=>['operation.cancel','operation.reconcile'].includes(v.type)).length,1);
+},{path,algorithm}));
+for(const scope of Object.keys(cases))test('decision '+scope+' asserts the target wire scope and restores only the ledger scope',()=>scenario(async({client,original,f})=>{
+ const decision=await original.cancel({...opts,operationId:id('decision')}),own={...original.reference.scope};delete own.connectionId;assert.deepEqual(decision.reference.scope,own);await client.operations.recover(decision.reference).wait(opts);const write=f.sent.find(v=>v.type==='operation.cancel'),read=f.sent.find(v=>v.type==='operation.get');assert.equal(write.cid,original.reference.scope.conversationId);assert.equal(write.sid,original.reference.scope.sessionId);assert.equal(write.connid,original.reference.scope.connectionId);assert.equal(write.expected_revision,undefined);assert.equal(read.connid,undefined);assert.equal(read.cid,own.conversationId);assert.equal(read.sid,own.sessionId);
+},{scope}));
+for(const fault of ['target','self','evidence','state','disposition','extra','pending','problem','scope','extra-frame'])test('decision refuses '+fault+' correlated acknowledgement with its own uncertain key',()=>scenario(async({original,f})=>{
+ await assert.rejects(()=>original.reconcile({outcome:'completed',evidenceId:'verified-evidence'},{...opts,operationId:id('decision')}),{kind:'protocol',certainty:'uncertain',operation:{operationId:'decision',command:'operation.reconcile',scope:{conversationId:'room'}}});assert.equal(f.sent.filter(v=>v.type==='operation.reconcile').length,1);
+},{fault}));
+for(const fault of ['lost-ack','unavailable'])test('decision '+fault+' retains its ID across uncertainty and recovers status without replay',()=>scenario(async({client,original,f,setMode})=>{
+ let error;try{await original.cancel({timeoutMs:25,operationId:id('decision')});}catch(value){error=value;}assert.equal(error.certainty,'uncertain');assert.equal(error.operation.operationId,'decision');assert.equal(error.kind,fault==='lost-ack'?'deadline':'application');setMode(undefined);await client.reconnect({preferredTransport:'wss-webrtc',timeoutMs:500});const restored=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'decision',command:'operation.cancel',scope:{conversation_id:'room'}},browserOperationKinds.operationCancel);assert.equal((await restored.wait(opts)).value.target,'original');assert.equal(f.sent.filter(v=>v.type==='operation.cancel').length,1);
+},{fault}));
+for(const fault of ['record-command','record-self','revoked'])test('decision original status refuses '+fault+' rather than using cached permission or receipt',()=>scenario(async({original,setMode,f})=>{
+ const decision=await original.cancel({...opts,operationId:id('decision')});setMode(fault);await assert.rejects(()=>decision.wait(opts),{kind:fault==='revoked'?'authentication':'protocol'});assert.equal(f.sent.filter(v=>v.type==='operation.cancel').length,1);
+}));
+test('local decision wait cancellation does not send a second durable cancellation',()=>scenario(async({original,setMode,f})=>{
+ const decision=await original.cancel({...opts,operationId:id('decision')});setMode('pending-decision');const stop=new AbortController(),pending=decision.wait({timeoutMs:300,signal:stop.signal});setTimeout(()=>stop.abort(),10);await assert.rejects(()=>pending,{kind:'cancelled'});assert.equal(f.sent.filter(v=>v.type==='operation.cancel').length,1);
+}));
+test('decision ID, evidence, extension and saved scope validation happen before IO',()=>scenario(async({client,original,f})=>{
+ const before=f.sent.length;await assert.rejects(()=>original.cancel({...opts,operationId:id('original')}),{kind:'validation',certainty:'not-submitted',operation:{operationId:'original',command:'operation.cancel',scope:{conversationId:'room'}}});for(const input of [{outcome:'success',evidenceId:'e'},{outcome:'completed',evidenceId:''},{outcome:'failed',evidenceId:'e',authority:'fake'}])assert.throws(()=>original.reconcile(input,{...opts,operationId:id('decision')}),{kind:'validation'});assert.throws(()=>original.cancel({...opts,operationId:id('decision'),extensions:{extra:true}}),{kind:'validation'});for(const scope of [{connection_id:'c'},{conversation_id:'room',connection_id:'c'},{session_id:'s'}])assert.throws(()=>client.operations.restore({schema:'connect-operation-reference/1',operation_id:'decision',command:'operation.cancel',scope},browserOperationKinds.operationCancel),{kind:'validation'});assert.equal(f.sent.length,before);
+}));
+test('already-aborted decision submission is not submitted and retains its separate key',()=>scenario(async({original,f})=>{
+ const before=f.sent.length,stop=new AbortController();stop.abort();await assert.rejects(()=>original.cancel({...opts,signal:stop.signal,operationId:id('decision')}),{kind:'cancelled',certainty:'not-submitted',operation:{operationId:'decision',command:'operation.cancel',scope:{conversationId:'room'}}});assert.equal(f.sent.length,before);
+}));
+
+test('correlated decision observations may omit the command-only operation scope',()=>scenario(async({original})=>{
+ const decision=await original.cancel({...opts,operationId:id('decision')});assert.equal((await decision.wait(opts)).value.target,'original');
+},{fault:'omit-operation-scope'}));

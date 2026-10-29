@@ -1,0 +1,277 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "21e3cc26f34874c01f26855a579314ccf4f32446",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Durable browser Operation cancellation/reconciliation decision API, separate logical decision IDs and original recovery. Owned local macOS Chrome WT/WSS verifies already-terminal cancellation and unattributed reconciliation refusal; accepted reconciliation and unknown-target decisions use controlled signed fixtures. No remote/provider/full SDK acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical/tests/sdk_decisions.rs": {
+      "sha256": "52c20c8777d9e941b95b5b26f82144b923ee6ccb902dc97203353bf8a9eb628e",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/decisions.rs": {
+      "sha256": "cf5ac87c415d7cdf10cba81c885b11a36e1c8e10963583aaa611a6814a6c84f1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "236dc5e2d5f7bb4fd79273215a982a1b2b6c7ad7de29340563053c05b13cbd8e",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "cbe7fa3986e6f7ce7dd1404e3b35c23ab9a0fc00ac21cecb2a288f94ebe857e5",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "711fc45d6dfd68de078752764f371bb4eee78fb75fd93c470f7040185e6bc0ca",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "87376b2722fb3e04f1959d347f11a62fd9812f29d1a8cf92b098a600c8aced6e",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_decisions.rs": {
+      "sha256": "cca69b1d8e53fdb5206d3dcd2b976de9e208a1970b7c2c83a03394aa5ed4e6b7",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "4df9aff1be18a886496e993deaed547fbd7cfad6bc0fb858bb289d1126d29473",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "b12cf1bd0fecc5f6d81dbf69e3ed64e212cba7801987425ec04c94bd1349ea08",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_operations.rs": {
+      "sha256": "9db350397e1c93ad9a53d1aff5d0c300c1a1ffc9eaf745fe5b828784b269572e",
+      "mode": 420
+    },
+    "crates/connect-store/migrations/025_transition_ledger.sql": {
+      "sha256": "2c75181512f69752f28c0d8dcd6c84f56ff41f340c69f18821d37a6544d78417",
+      "mode": 420
+    },
+    "crates/connect-store/src/transitions/actions.rs": {
+      "sha256": "c5abb9b476a6c5918c0a50ff3b9109d4b536afda2b000beb2d4e91e03ff167cd",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_decisions.test.mjs": {
+      "sha256": "54582d13319778ac8959eb97a0bd54b30cec1b13ce33623a35d86b0594430c0e",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "24c309e2161a5ec7fa97d322b85a5922e10ed7ac4e02670b2a4ff673175a238e",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "6a788ff301e0005a371eabb3d49c53443fa5180c5eb441f7d2988bc32fa7db6c",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "555964d3ed26427b5932c16382a447267fe0594cfb413067ab5b753ba556840e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "039a8b8afd17dcc78d7a94658e4f01cffbba3e57e15f6e7243dc5d790a32104f",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "e47c9963bf09e0500ca12b2972927ddc12a4ece20db5746236a773c23cdac6d2",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_decisions.d.ts": {
+      "sha256": "f439e5546fbbb56925f2635c13b0aedcec4bd55e851278cfdc1016d20d5d6b6a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_decisions.js": {
+      "sha256": "4c4613be2a1f63c8d80cc56b5581510b3adaf87a6e28ea64a61a6715d4e02424",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "6c5ea6625ff9305214fdb79175a19f12507066b751dbd1da1b2ae5b0c2a9d78b",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "38bfe81948fa64d9f5bffc77aff6639a64e0aec71c53142de36e652a8546a061",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_decisions.ts": {
+      "sha256": "53e6a29d41f9428a9e2b8b9753eaa2150d9070e2334429f279976cf9ef246587",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2756,
+    "source_inputs_manifest_sha256": "4843f3174e10755aef177511f53c2d54b071904eaae4abcb69574ef50818fea6",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          642
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.393433124991134,
+        "log_sha256": "dace7ba0d946e3dd4ef8f7ebd93308f9422dbbf2113051649f236cde6ff2a598"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.29493458406068385,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2493245829828084,
+        "log_sha256": "a742e37e31a458645b0b1a123f028df67056da3f7ed43f9ef6fe45c2e82eba60"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3660220829769969,
+        "log_sha256": "7acec522773e39c492cc1115edf525f55489861a0ab58076610958c389680a7d"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3686265000142157,
+        "log_sha256": "363c222c4d1b32945f6aba07dc5124ad24098d7630023aef637babf0d1e61d46"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 99.60497791692615,
+        "log_sha256": "79654d49ff54733396c5edc9431880c70ca11866cda97b7ef5f05a7d98f80207"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "root_decisions": 2,
+      "message_decisions": 2,
+      "original_sources_unchanged": 2,
+      "recovered_originals": 2,
+      "unattributed_evidence_refused": 2,
+      "revoked_decision_refused": 1,
+      "source_mutations": 4,
+      "decision_mutations": 4,
+      "reconcile_attempts": 2,
+      "credentials": 2,
+      "devices": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "cd034bd91e67469f1bfcdd0304a9ab639741f903bcb93f90cb9ec6c1e53d382f",
+    "witness": "On each direct WT and bounded WT-to-WSS fallback path, create one Conversation and send one private Message. Cancel each already-completed source with a distinct decision ID; observedState remains completed and disposition already_terminal. Invented evidence reconciliation refuses. Explicit reconnect restores root and Conversation decisions by their original references without resubmission; source operations and MessageAcceptance remain unchanged. Revoked enrollment refuses subsequent decision recovery and original-claim reconnect.",
+    "independent_store_checks": {
+      "messages": 2,
+      "original_send_records": 2,
+      "completed_cancel_records_with_null_connection_and_already_terminal_disposition": 4,
+      "decision_link_rows_with_cancel_action": 4,
+      "accepted_reconcile_records": 0
+    },
+    "limits": "Four decision-link rows are counted under Store foreign keys; browser independently checks each receipt target. No claim that SQL checks each exact link correspondence. Two transport-bound enrollments share one Device and two unverified non-media Endpoints. No new transport, schema, upstream or verification authority."
+  },
+  "implementation": [
+    "BrowserOperation.cancel and reconcile submit their own durable mutation IDs and return BrowserOperation<BrowserDecisionReceipt>. Receipts freeze the decision reference, target, observed target state, bounded disposition and optional attributed evidence. Completed decisions do not infer completed/cancelled targets or media custody.",
+    "Wire submission asserts the original target Conversation/Session/Connection scope. Saved decision references and status queries preserve Conversation/Session but omit Connection, matching the durable decision ledger. Root decisions remain root; Session requires Conversation. Self-targeting, changed input/options, invalid evidence/outcomes and unsupported fields refuse before IO.",
+    "Exact two-frame correlated completed acknowledgement validates target, evidence, result fields, state and scopes. Command-only top-level operation_id may be absent from observations; when present it must match. Malformed receipts preserve the own uncertain decision key. Status/recovery enforce current authorization and never replay writes.",
+    "Canonical 5xx after write submission retains uncertain certainty, allowing original-ID recovery of a committed decision. Explicit 4xx/unauthorized/forbidden remain refused. Initial caller abort is translated as not-submitted with its own key. Local wait abort submits no durable cancel.",
+    "Reconciliation accepts only completed/cancelled/failed plus an evidence ID. Host verifies attributed evidence, current authority and worker/target revision. No evidence-issuance API or caller-outcome authority is introduced."
+  ],
+  "verification_cases": [
+    "31 added signed component functions cover WT/WSS x EdDSA/ES256 cancellation/reconciliation, unknown targets, all supported reference scopes, immutable snapshots, malformed/self/foreign targets and evidence, lost acknowledgement, postcommit 503, exact original-ID recovery, current revocation and no replay. Positive accepted reconciliation is controlled signed-receipt evidence only.",
+    "The exact postcommit503 test fails against the private old-certainty mapping and passes with uncertainty preserved; the selected test is unchanged. The contemporaneous whole fixture copy predates one subsequently appended optional-scope test.",
+    "The optional command-only operation scope test fails against over-strict decoding and passes after matching the existing wire contract. No deadline or assertion was relaxed.",
+    "Real owned Chrome independently verifies four terminal cancel decisions, two invented evidence refusals, explicit recovery and current revocation. Store checks confirm four source mutations/four accepted decisions/two refused reconcile attempts and no accepted reconciliation record."
+  ],
+  "ui_coordinator": {
+    "result": {
+      "completed": true,
+      "final_phase": "screen-progress-1"
+    },
+    "original_mutations": 75,
+    "log_sha256": "7d7b6d672e01a361c2579b2503a7ba23965bb821ad6ed7efe50faea7ade41ad6",
+    "change": "The existing heavy media fixture signals completion after its final trusted keyboard action at screen-progress-1. CDP stops the UI coordinator at that boundary and records/asserts completion while later API/media checks continue. UI60second watchdog, evaluation70second cap, SDK5second budgets and all pixel/media/hold/mute assertions remain unchanged. This does not resolve the separately recorded native WT Screen-resume revision/catalog conflict."
+  },
+  "checks": "Unchanged-source final cohort:642SDK functions, standalone browser/Node types,37Node regressions,2serverScreen,2upstreamScreen and12real root integration functions;0ignored. Repository Rust and changed-source TypeScript format, plan/navigation and server HTTP/OpenAPI checks recorded separately before commit.",
+  "prior_attempts": [
+    {
+      "scope": "Initial expanded signed fixture640/641: pending decision result was serialized as undefined, invalid canonical JSON. Fixture now omits the absent property; production policy unchanged.",
+      "log_sha256": "795380c8895c68a683e2042b200907fdd8b4f55f7de8c0f33f6238f503500201"
+    },
+    {
+      "scope": "First focused actual Chrome workflow passes, but independent SQL selected nonexistent decision column. Corrected to authoritative action column; no production migration change.",
+      "log_sha256": "945baeaa5dfa4dcc8d3596b721f1abe7f52952147d4e1d5006eeca0a67925a2f"
+    },
+    {
+      "scope": "First full cohort641SDK/types/37Node/2server/2upstream passes; root11pass/1fail from the heavy UI coordinator polling after its last trusted keyboard action and reaching the60second UI watchdog. Final completion boundary fixes coordination without raising deadlines.",
+      "summary_sha256": "33c7e0c79e30cbb8c7fe8f9167e552eaa587c499df8cc1617cf0a41a1a73c24f"
+    },
+    {
+      "scope": "Postcommit503 exact selected negative0pass/1fail with old classification; positive1pass.",
+      "negative_log_sha256": "b8b93170c12901823e8d63e31547c52bd02d67552d3f61d8ea2a41a630302d33",
+      "positive_log_sha256": "542feb48440d6665a1f5e39a5165d0622be6921ef39ceff5b453f3c0fa3c5290",
+      "private_causal_manifest_sha256": "441aad034c08b1aa984fec2ac52c91f4e128ff9ce538cd8ac3a2768ff7538592"
+    },
+    {
+      "scope": "Optional command-only operation scope exact negative1fail; corrected positive1pass.",
+      "negative_log_sha256": "354566b1657454b1eb8d7d8a408327a538b6b406e407bc37fd9b38489b445f14",
+      "positive_log_sha256": "abac660e888bc8ec9afc7b71878f7b3f220febb916d18e2a31ac40bbda769030"
+    }
+  ],
+  "remaining": [
+    "Consultation/handoff/device movement, capabilities/raw surface, reference app and full browser SDK integration/audit.",
+    "Application snapshot/journal recovery and durable invitation discovery; no offline inbox or indefinite deduplication claim.",
+    "Earlier intermittent native WT Screen-resume revision/catalog conflict remains open. Full live codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit and G6-054 remote qualification remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker unwind warning remain. No full Rust workspace, release or performance qualification."
+  ],
+  "privacy": "Raw logs, state, operation IDs, credentials and owned browser profiles remain ignored. Public evidence contains only hashes and synthetic aggregate facts. No new model/account/provider/named remote execution or agents."
+}
