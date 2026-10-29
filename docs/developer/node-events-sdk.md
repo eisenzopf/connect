@@ -83,3 +83,15 @@ emit. This expectation is corrected; no new Store/journal event or authority
 behavior is invented. Eight isolated SQL selection vectors, Rust formatting and
 both consumer syntax checks pass. Actual native/HTTPS correction remains pending
 in the source CI lane; see [the witness evidence](../evidence/gate-6/node-message-journal-witness.json).
+
+The exactca3 Linux run now receives the original Message fact on both Node22/26.
+It then fails the new causal-link assertion: canonical `operation.updated` is a
+compact projection and deliberately omits `causal_event_ids`. The consumer now
+reads the full record through the existing public
+`HttpClient.operationAction({action: 'get', operation_id})`, after observing the
+fact. It requires the same original logical ID, record ID, command, Conversation,
+completed state and exact causal event ID. Both native and HTTPS journeys keep
+their canonical reads, journal checks, current-authority checks and deadlines.
+No wire/schema extension or mutation behavior changed. Corrected production
+execution remains pending; [record-witness evidence](../evidence/gate-6/node-operation-record-witness.json)
+preserves the failed source-bound result separately.

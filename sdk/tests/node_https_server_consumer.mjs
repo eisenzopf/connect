@@ -19,7 +19,9 @@ try {
  await client.request('message.send',payload,scope,options);
  const same=record(await client.request('operation.get',{operation_id:scope.operation_id},{cid:spec.cid},options));assert.equal(same.record_id,original.record_id);
  progress('https-journal');const journal=await client.request('conversation.subscribe',{after:cursor,live:false,limit:63},{cid:spec.cid},options);
- const fact=journal.filter(v=>v.type==='conversation.event').map(v=>v.payload.data).find(v=>v.operation_id===scope.operation_id&&v.data?.kind==='message'&&v.data.data.id===payload.msg_id);assert.ok(fact);assert.equal(fact.conversation_id,spec.cid);assert.equal(fact.data.data.conversation_id,spec.cid);assert.ok(Array.isArray(original.causal_event_ids)&&original.causal_event_ids.includes(fact.event_id));
+ const fact=journal.filter(v=>v.type==='conversation.event').map(v=>v.payload.data).find(v=>v.operation_id===scope.operation_id&&v.data?.kind==='message'&&v.data.data.id===payload.msg_id);assert.ok(fact);assert.equal(fact.conversation_id,spec.cid);assert.equal(fact.data.data.conversation_id,spec.cid);
+ const fullRecord=await application.operationAction({action:'get',operation_id:scope.operation_id});
+ assert.equal(fullRecord.operation_id,scope.operation_id);assert.equal(fullRecord.record_id,original.record_id);assert.equal(fullRecord.command_type,'send');assert.equal(fullRecord.conversation_id,spec.cid);assert.equal(fullRecord.state,'completed');assert.ok(fullRecord.causal_event_ids.includes(fact.event_id));
  progress('https-receipts');const receipts=await application.messageReceipts(spec.cid,payload.msg_id);assert.equal(receipts.conversation_id,spec.cid);assert.equal(receipts.message_id,payload.msg_id);assert.equal(receipts.receipts.length,0);
  emit({phase:'initial',record_id:original.record_id,current_https_journal:true,original_replay_record:true,application_receipts_empty:true});
  let timer;try{const next=await Promise.race([lines.next(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('bounded host phase missing')),15000);})]);assert.equal(next.value,'revoked');}finally{clearTimeout(timer);}

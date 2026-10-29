@@ -147,7 +147,12 @@ try {
  const original=completion.snapshot,viaHttp=record(await http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts));
  assert.equal(original.recordId,viaHttp.record_id);assert.equal(viaHttp.state,'completed');
  progress('events-original');
- const originalFact=await messageFact(journal,mutation.operationId,intent.messageId);assert.ok(Array.isArray(viaHttp.causal_event_ids)&&viaHttp.causal_event_ids.includes(originalFact.eventId));assert.equal(originalFact.sessionId,undefined);assert.equal(originalFact.connectionId,undefined);assert.ok(originalFact.audience.some(v=>v.participantId===own.id&&v.membershipEpoch>0));
+ const originalFact=await messageFact(journal,mutation.operationId,intent.messageId);
+ // Canonical operation.updated is a compact projection. The application API
+ // exposes the full current OperationRecord, including causal journal IDs.
+ const fullRecord=await application.operationAction({action:'get',operation_id:mutation.operationId});
+ assert.equal(fullRecord.operation_id,mutation.operationId);assert.equal(fullRecord.record_id,original.recordId);assert.equal(fullRecord.command_type,'send');assert.equal(fullRecord.conversation_id,room.id);assert.equal(fullRecord.state,'completed');assert.ok(fullRecord.causal_event_ids.includes(originalFact.eventId));
+ assert.equal(originalFact.sessionId,undefined);assert.equal(originalFact.connectionId,undefined);assert.ok(originalFact.audience.some(v=>v.participantId===own.id&&v.membershipEpoch>0));
  await writeFile(spec.pid_file+'.event-cursor',originalFact.cursor,{mode:0o600});await journal.close();
  const originalFactDigest=createHash('sha256').update(originalFact.eventId).digest('hex');
 
