@@ -69,6 +69,14 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "queued_cancellation_refused",
         "journal_resumed",
         "message_recovered_original",
+        "membership_adds",
+        "membership_updates",
+        "membership_removals",
+        "membership_rejoins",
+        "membership_refusals",
+        "membership_old_cursor_refusals",
+        "membership_old_receipt_refusals",
+        "membership_recovered",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
@@ -84,7 +92,7 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(result["result"][name], 1, "{name}");
     }
     assert_eq!(result["result"]["restored_media_observation_only"], 4);
-    assert_eq!(result["result"]["original_mutations"], 65);
+    assert_eq!(result["result"]["original_mutations"], 75);
     assert_eq!(result["result"]["message_acceptances"], 4);
     assert_eq!(result["result"]["journal_received"], 6);
     assert_eq!(result["result"]["session_updates"], 8);
@@ -112,6 +120,11 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id WHERE m.id LIKE 'typed-message-%'"), 8);
         assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id JOIN participants p ON p.participant_id=a.participant_id WHERE m.id LIKE 'typed-message-%' AND a.purpose='recipient' AND p.identity_id<>m.sender"), 4);
         assert_eq!(count("SELECT COUNT(*) FROM message_audiences a JOIN messages m ON m.id=a.message_id WHERE m.id LIKE 'typed-message-%' AND a.purpose='sender' AND a.participant_id=m.sender_participant_id"), 4);
+        assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type LIKE 'conversation.participant.%'"), 8);
+        assert_eq!(
+            count("SELECT COUNT(*) FROM participants WHERE membership_epoch=2 AND active=1"),
+            2
+        );
     }
     drop(chrome);
     drop(blackhole);

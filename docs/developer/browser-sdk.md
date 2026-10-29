@@ -8,7 +8,8 @@ SDK through a type-only leaf.
 
 This checkpoint implements Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
-creation, private text messages, durable journal reads, Session
+creation, private text messages, durable journal reads, Participant
+admission/role updates/removal, Session
 invitation/acceptance/rejection/cancellation/end, and native
 WT/WSS audio/video/Screen Connection offer/end, typed Connection updates and
 Stream subscribe/unsubscribe. Session controls include leave, role change,
@@ -583,3 +584,63 @@ old work cannot follow it implicitly. No read resubmits a message or opens media
 [Browser message and journal evidence](../evidence/gate-6/browser-sdk-messages-journal.json)
 records the signed boundary cases and actual WT/WSS workflow. Complete receipts,
 broader frozen APIs and the G6-061 qualification audit remain open.
+
+
+## Participant controls and membership epochs
+
+`conversation.participants.add(...)` admits an existing Identity with its actual
+`human`, `ai`, `system` or `external` kind and an explicit role. Identity
+provisioning remains a separate trusted administrative capability. The browser
+client does not create an Identity or infer its kind from contact metadata.
+
+```ts
+const current = await conversation.refresh(wait);
+// Persist the complete input and its separate mutation ID before IO.
+const admitted = await conversation.participants.add({
+    identityId: savedRecipientIdentity,
+    kind: savedRecipientKind,
+    role: "reviewer",
+    expectedRevision: current.revision,
+}, { ...wait, operationId: savedAddOperationId });
+const participant = (await admitted.wait(wait)).value;
+const changed = await participant.update({
+    role: "observer",
+    expectedConversationRevision: (await conversation.refresh(wait)).revision,
+}, { ...wait, operationId: savedRoleOperationId });
+await changed.wait(wait);
+const removed = await participant.remove({
+    expectedConversationRevision: (await conversation.refresh(wait)).revision,
+}, { ...wait, operationId: savedRemoveOperationId });
+await removed.wait(wait);
+```
+
+Every control returns an original observable Operation. Use
+`browserOperationKinds.participantAdd`, `participantUpdate` or
+`participantRemove` with a saved reference for read-only recovery. No status
+read repeats admission/removal, refreshes a stale mutation's asserted revision
+or assigns a replacement operation ID. A revision conflict is an application
+planning decision; uncertainty requires observing the original operation first.
+
+The `receiptSnapshot` and `receiptConversationRevision` on a returned handle
+are immutable views from the authorized receipt read. `refresh()` performs a
+separate current authorized snapshot. Cached role, active state, epoch and
+receipt metadata carry no authority. Recovery may refuse after membership
+changes; an old receipt cannot borrow a successor membership epoch.
+
+Enrollment must explicitly grant `conversation.participant.add`,
+`conversation.participant.update` or `conversation.participant.remove` and its
+required read operations and recipients. Roles contain 1–64 UTF8 bytes with no
+control characters. The expected revision is a Conversation revision; Session,
+topology and Stream revisions are distinct types. Unsupported fields and invalid
+kinds, roles or revisions refuse before IO. A malformed correlated result or
+Participant-change notice retains the original key with uncertain submission.
+
+Removal stops current membership access. A separately authorized explicit
+readmission preserves the stable Participant ID and increments its membership
+epoch. Old epoch cursors and membership receipts remain subject to current
+server authorization; possession of either cannot reopen old history. This
+browser control API does not introduce history sharing.
+
+[Browser Participant evidence](../evidence/gate-6/browser-sdk-participants.json)
+records the signed control boundaries and actual two-transport membership
+lifecycle. Full G6-061 and remote media qualification remain open.

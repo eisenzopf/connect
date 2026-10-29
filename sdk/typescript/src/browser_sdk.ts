@@ -1,4 +1,13 @@
 import {
+    identityKind,
+    membershipRole,
+    membershipRevision,
+    participantView,
+    membershipResult,
+    type BrowserIdentityKind,
+} from "./browser_sdk_membership.js";
+export type { BrowserIdentityKind } from "./browser_sdk_membership.js";
+import {
     messageBody,
     messageResult,
     type BrowserMessageAcceptance,
@@ -245,7 +254,7 @@ export interface BrowserParticipantSnapshot {
     readonly id: ParticipantId;
     readonly conversationId: ConversationId;
     readonly identityId: IdentityId;
-    readonly kind: string;
+    readonly kind: BrowserIdentityKind;
     readonly role: string;
     readonly membershipEpoch: number;
     readonly active: boolean;
@@ -476,6 +485,22 @@ function observedControl<
         local.revision = Math.max(local.revision ?? 0, value.streamRevision);
     return value;
 }
+function participantResult(
+    v: Json,
+    c: BrowserSdkClient,
+    key: BrowserOperationReference,
+): BrowserParticipant {
+    const result = membershipResult(v, key, () =>
+        current(c).malformed(key, "recorded"),
+    );
+    return new BrowserParticipant(
+        c,
+        key.scope.conversationId as ConversationId,
+        result.snapshot.id,
+        result.snapshot,
+        result.revision,
+    );
+}
 export const browserOperationKinds = Object.freeze({
     connectionUpdate: kind("connection.update", "connection", (v, c, k) =>
         observedControl(
@@ -518,6 +543,21 @@ export const browserOperationKinds = Object.freeze({
             return current(c).malformed(k, "recorded");
         return c.conversations.byId(v.data.id as ConversationId);
     }),
+    participantAdd: kind(
+        "conversation.participant.add",
+        "conversation",
+        participantResult,
+    ),
+    participantUpdate: kind(
+        "conversation.participant.update",
+        "conversation",
+        participantResult,
+    ),
+    participantRemove: kind(
+        "conversation.participant.remove",
+        "conversation",
+        participantResult,
+    ),
     messageSend: kind("message.send", "conversation", (v, c, k) =>
         messageResult(v, k, () => current(c).malformed(k, "recorded")),
     ),
@@ -905,37 +945,10 @@ class State {
                     this.malformed();
                 conversation = d;
             } else if (item.kind === "participant") {
-                if (
-                    d.conversation_id !== cid ||
-                    !identifier(d.participant_id) ||
-                    !identifier(d.identity_id) ||
-                    memberIds.has(d.participant_id) ||
-                    !["human", "ai", "system", "external"].includes(
-                        String(d.kind),
-                    ) ||
-                    !boundedText(d.role, 128) ||
-                    !numeric(d.membership_epoch) ||
-                    d.membership_epoch < 1 ||
-                    typeof d.active !== "boolean" ||
-                    !(
-                        d.removal_reason === null ||
-                        boundedText(d.removal_reason)
-                    )
-                )
-                    this.malformed();
-                memberIds.add(d.participant_id);
-                participants.push(
-                    freeze({
-                        id: d.participant_id as ParticipantId,
-                        conversationId: cid,
-                        identityId: d.identity_id as IdentityId,
-                        kind: d.kind as string,
-                        role: d.role,
-                        membershipEpoch: d.membership_epoch,
-                        active: d.active,
-                        removalReason: d.removal_reason as string | null,
-                    }),
-                );
+                const view = participantView(d, cid, () => this.malformed());
+                if (memberIds.has(view.id)) this.malformed();
+                memberIds.add(view.id);
+                participants.push(view);
             } else if (item.kind === "session") {
                 const s = sessionView(d, cid, () => this.malformed());
                 if (sessions.has(s.id)) this.malformed();
@@ -1378,6 +1391,41 @@ export class BrowserSdkClient {
                 )
                     current(this).malformed(key, "uncertain");
             }
+            if (d.command.startsWith("conversation.participant.")) {
+                const bad = () => current(this).malformed(key, "uncertain");
+                if (updates[0]?.payload.state !== "completed") bad();
+                const result = membershipResult(
+                    updates[0].payload.result,
+                    key,
+                    bad,
+                );
+                const notices = frames.filter(
+                    (f) => f.type === "conversation.participant.changed",
+                );
+                const action =
+                    d.command === "conversation.participant.add"
+                        ? "added"
+                        : d.command === "conversation.participant.update"
+                          ? "updated"
+                          : "removed";
+                if (
+                    (captured.participant_id !== undefined &&
+                        result.snapshot.id !== captured.participant_id) ||
+                    (captured.identity_id !== undefined &&
+                        result.snapshot.identityId !== captured.identity_id) ||
+                    notices.length !== 1 ||
+                    notices[0].cid !== scope.cid ||
+                    notices[0].sid !== undefined ||
+                    notices[0].connid !== undefined ||
+                    notices[0].operation_id !== key.operationId ||
+                    notices[0].expected_revision !== undefined ||
+                    notices[0].payload.kind !== action ||
+                    notices[0].payload.participant_id !== result.snapshot.id ||
+                    notices[0].payload.membership_epoch !==
+                        result.snapshot.membershipEpoch
+                )
+                    bad();
+            }
             budget.options();
             return new BrowserOperation(this, key, k);
         } catch (error) {
@@ -1401,8 +1449,54 @@ export class BrowserParticipant {
         private readonly client: BrowserSdkClient,
         readonly conversationId: ConversationId,
         readonly id: ParticipantId,
+        readonly receiptSnapshot?: BrowserParticipantSnapshot,
+        readonly receiptConversationRevision?: SdkRevision<"conversation">,
     ) {
         Object.freeze(this);
+    }
+    update(
+        input: {
+            readonly role: string;
+            readonly expectedConversationRevision: SdkRevision<"conversation">;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserParticipant>> {
+        fields(input, ["role", "expectedConversationRevision"], invalid);
+        return this.client[submit](
+            browserOperationKinds.participantUpdate,
+            {
+                participant_id: this.id,
+                role: membershipRole(input.role, invalid),
+            },
+            {
+                cid: this.conversationId,
+                expected_revision: membershipRevision(
+                    input.expectedConversationRevision,
+                    invalid,
+                ),
+            },
+            options,
+        );
+    }
+    remove(
+        input: {
+            readonly expectedConversationRevision: SdkRevision<"conversation">;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserParticipant>> {
+        fields(input, ["expectedConversationRevision"], invalid);
+        return this.client[submit](
+            browserOperationKinds.participantRemove,
+            { participant_id: this.id },
+            {
+                cid: this.conversationId,
+                expected_revision: membershipRevision(
+                    input.expectedConversationRevision,
+                    invalid,
+                ),
+            },
+            options,
+        );
     }
     async refresh(
         options: BrowserSdkRequestOptions,
@@ -1420,6 +1514,39 @@ export class BrowserParticipant {
 }
 export class BrowserConversation {
     readonly participants = {
+        add: (
+            input: {
+                readonly identityId: IdentityId;
+                readonly kind: BrowserIdentityKind;
+                readonly role: string;
+                readonly expectedRevision: SdkRevision<"conversation">;
+            },
+            options: BrowserSdkMutationOptions,
+        ): Promise<BrowserOperation<BrowserParticipant>> => {
+            fields(
+                input,
+                ["identityId", "kind", "role", "expectedRevision"],
+                invalid,
+            );
+            if (!identifier(input.identityId) || !identityKind(input.kind))
+                invalid();
+            return this.client[submit](
+                browserOperationKinds.participantAdd,
+                {
+                    identity_id: input.identityId,
+                    kind: input.kind,
+                    role: membershipRole(input.role, invalid),
+                },
+                {
+                    cid: this.id,
+                    expected_revision: membershipRevision(
+                        input.expectedRevision,
+                        invalid,
+                    ),
+                },
+                options,
+            );
+        },
         byId: (id: ParticipantId) => {
             sdkId(id);
             return new BrowserParticipant(this.client, this.id, id);

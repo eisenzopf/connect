@@ -1,3 +1,5 @@
+import { type BrowserIdentityKind } from "./browser_sdk_membership.js";
+export type { BrowserIdentityKind } from "./browser_sdk_membership.js";
 import { type BrowserMessageAcceptance } from "./browser_sdk_messages.js";
 import { type BrowserCursor } from "./browser_sdk_events.js";
 export type { BrowserMessageAcceptance } from "./browser_sdk_messages.js";
@@ -61,7 +63,7 @@ export interface BrowserParticipantSnapshot {
     readonly id: ParticipantId;
     readonly conversationId: ConversationId;
     readonly identityId: IdentityId;
-    readonly kind: string;
+    readonly kind: BrowserIdentityKind;
     readonly role: string;
     readonly membershipEpoch: number;
     readonly active: boolean;
@@ -101,6 +103,9 @@ export declare const browserOperationKinds: Readonly<{
     connectionOffer: BrowserOperationKind<BrowserConnection>;
     connectionEnd: BrowserOperationKind<BrowserConnection>;
     conversationCreate: BrowserOperationKind<BrowserConversation>;
+    participantAdd: BrowserOperationKind<BrowserParticipant>;
+    participantUpdate: BrowserOperationKind<BrowserParticipant>;
+    participantRemove: BrowserOperationKind<BrowserParticipant>;
     messageSend: BrowserOperationKind<BrowserMessageAcceptance>;
     sessionInvite: BrowserOperationKind<BrowserSession>;
     sessionAccept: BrowserOperationKind<BrowserSession>;
@@ -132,6 +137,9 @@ export declare class BrowserSdkClient {
         connectionOffer: BrowserOperationKind<BrowserConnection>;
         connectionEnd: BrowserOperationKind<BrowserConnection>;
         conversationCreate: BrowserOperationKind<BrowserConversation>;
+        participantAdd: BrowserOperationKind<BrowserParticipant>;
+        participantUpdate: BrowserOperationKind<BrowserParticipant>;
+        participantRemove: BrowserOperationKind<BrowserParticipant>;
         messageSend: BrowserOperationKind<BrowserMessageAcceptance>;
         sessionInvite: BrowserOperationKind<BrowserSession>;
         sessionAccept: BrowserOperationKind<BrowserSession>;
@@ -165,13 +173,28 @@ export declare class BrowserParticipant {
     private readonly client;
     readonly conversationId: ConversationId;
     readonly id: ParticipantId;
-    constructor(client: BrowserSdkClient, conversationId: ConversationId, id: ParticipantId);
+    readonly receiptSnapshot?: BrowserParticipantSnapshot | undefined;
+    readonly receiptConversationRevision?: SdkRevision<"conversation"> | undefined;
+    constructor(client: BrowserSdkClient, conversationId: ConversationId, id: ParticipantId, receiptSnapshot?: BrowserParticipantSnapshot | undefined, receiptConversationRevision?: SdkRevision<"conversation"> | undefined);
+    update(input: {
+        readonly role: string;
+        readonly expectedConversationRevision: SdkRevision<"conversation">;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserParticipant>>;
+    remove(input: {
+        readonly expectedConversationRevision: SdkRevision<"conversation">;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserParticipant>>;
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserParticipantSnapshot>;
 }
 export declare class BrowserConversation {
     private readonly client;
     readonly id: ConversationId;
     readonly participants: {
+        add: (input: {
+            readonly identityId: IdentityId;
+            readonly kind: BrowserIdentityKind;
+            readonly role: string;
+            readonly expectedRevision: SdkRevision<"conversation">;
+        }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserParticipant>>;
         byId: (id: ParticipantId) => BrowserParticipant;
         byIdentity: (id: IdentityId, options: BrowserSdkRequestOptions) => Promise<BrowserParticipant>;
     };

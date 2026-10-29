@@ -1,0 +1,256 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "e7a2ea4fb4e1f77a84c340df3ea8553c573705cb",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Typed browser Participant admission, role update and removal with Conversation revisions, original Operation recovery, validated correlated Participant-change notices and immutable receipt views. Actual owned macOS Chrome WT/WSS add/update/remove/readmission and current epoch refusal. No full SDK, remote media or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "d16da860a078d2c90180144eb490b44ea0afed96eabc89c706e79b3b59b69bc6",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "7e7de058aa85d22c65e0e5542eaa86de8b5a5fe70b25a6eff6c185d5bd278971",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "36c411896fe10f99d79af02b4b11527457775cb3b6ae87bc2af894da3fd91a69",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_membership.test.mjs": {
+      "sha256": "1df702c5afd9b78feed358c9f6b81c4b9f7f9a0ab907ffdfb6053f2154f49ae3",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "fe33b7de57f8fd4fc4fe4b1e7f12a9f4fafcb52dcfd470c4a58a7bd8eccf3cc0",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "106ccd71b89e3f569b8702acf57969785315279b3b2918e1c505e5edae0cf11a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "427c44d41b5ca877b713ad7b8f40b27ca2bf0fd12fc537e8081e24908d1cb325",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "a22473a74e5b2149d0c9f93a04340f77cc72a8c1b7a88a72ec756400d5d3cf64",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "d706e17ed6efa24acdc3f77bf8e08253de53ea5266107cff9d624c59372fe66a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_membership.d.ts": {
+      "sha256": "f6274eb5371ac5c3ac6a3e82c6d87330ecca39cadc6147b9893950846c3b63a1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_membership.js": {
+      "sha256": "6c542e4dbade649d30d9e3af8b9301f2e4e4c2a2916eef9196b0e3fad1821388",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "ffa7ce98099728424d50a2c4c14879cd24dcb4371c4a0dcc6d4711fd53a85ecd",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "594dd7e7984d5fe0febaed1c6e6c4a3034e73b77a5618b46129bed3d12805a70",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_membership.ts": {
+      "sha256": "7308eb4836c3487f60303590cc08718fa247049548fa4bfb70b079178f06df2d",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2744,
+    "source_inputs_manifest_sha256": "a718a7778647f196cc7dfcb22d653095b2eaee57f64282d34201ccab120a5325",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          569
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.157429415965453,
+        "log_sha256": "cffd0339a8e0266cfb897bf68ca83410b36d6b42492f7deadd152f669d830fbf"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3621172499842942,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2275900840759277,
+        "log_sha256": "2b038133dace589d9fe3917afdebf9f04a50bea0530cac48e4f25a985f44c0cd"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4272013329900801,
+        "log_sha256": "d9dc3d3271ea5cac02f9545cf9e52d5a096dfd28e2daf719435d0079a5273104"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3543410839047283,
+        "log_sha256": "363c222c4d1b32945f6aba07dc5124ad24098d7630023aef637babf0d1e61d46"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 84.68919541710056,
+        "log_sha256": "b053684cf07438d19490fbf8a3f3e11f7a4e00cae4e7a7f59f071aa3ba2df7f7"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "session_updates": 8,
+      "session_reinvitations": 2,
+      "restored_session_updates": 2,
+      "invitation_read_recovered": 2,
+      "queued_cancellation_refused": 2,
+      "message_acceptances": 4,
+      "journal_received": 6,
+      "journal_resumed": 2,
+      "message_recovered_original": 2,
+      "membership_adds": 2,
+      "membership_updates": 2,
+      "membership_removals": 2,
+      "membership_rejoins": 2,
+      "membership_refusals": 2,
+      "membership_old_cursor_refusals": 2,
+      "membership_old_receipt_refusals": 2,
+      "membership_recovered": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 75
+    },
+    "log_sha256": "f938a95151330eb1fa4e1c40c28c1ecc94644ea90ea4756bb8632e37deee6de2",
+    "membership_witness": "A separate Conversation on each transport admits the already provisioned recipient Identity, updates its role, recovers the original update, removes it and explicitly readmits it. The prior receipt snapshot remains immutable while fresh refresh observes the new role. Removal refuses the recipient Conversation snapshot. Readmission preserves the stable Participant ID and increments the membership epoch. Fresh current reads succeed; both the old recipient journal cursor and original target-epoch membership receipt refuse under current authorization. No stale-revision or uncertain mutation is automatically retried.",
+    "independent_store_checks": {
+      "membership_operation_records": 8,
+      "active_successor_membership_epoch_rows": 2,
+      "messages": 4,
+      "send_operation_records": 4,
+      "message_audience_rows": 8
+    },
+    "regressions": "Both paths retain the existing private-message/journal/cursor/reconnect workflow, owned source/progress/permission UI, actual owned-tab Screen capture, opposite decoded Screen pixels, mute/hold/resume, subscriptions, Session changes/reinvitations, invitation read abandonment/cancellation and current revoked credential refusal.75 distinct original communication mutations;4credentials,2Devices and4explicitly verified Endpoints."
+  },
+  "implementation": [
+    "Conversation.participants.add takes an existing nominal Identity ID, closed Identity kind, explicit bounded role and Conversation revision. Participant.update/remove take a Conversation revision. Inputs capture before IO; invalid shapes, kinds, roles, Unicode, revision numbers or MAX_SAFE_INTEGER cutoff refuse locally. Nominal declaration checks reject mixed revision families. No Identity provisioning is exposed.",
+    "Original reference kinds conversation.participant.add/update/remove have Conversation scope and exact Store ledger names. Status/recovery query the original record; no mutation, revision refresh, downgrade or replacement operation ID is inferred.",
+    "Immediate completed ACK validation binds the typed local-mutation receipt, Conversation, intended Participant or Identity, original operation and one exact added/updated/removed notice with matching Participant/epoch. Invalid correlated metadata retires the physical with the original key and uncertain submission.",
+    "Snapshot and receipt reads share the validated MemberView decoder. Stable Participant/Identity IDs, closed kind, role, membership epoch, active flag and nullable removal reason produce an immutable typed receipt view. The returned handle retains its observed Conversation revision; refresh is a separate currently authorized read.",
+    "Receipt views grant no current authority and cannot cross a successor target membership epoch. Readmission preserves stable IDs while creating a new epoch. Old journal cursors remain unusable; no history sharing is implied."
+  ],
+  "verification_cases": [
+    "Four signed WT/WSS x EdDSA/ES256 workflows exercise add/update/remove, captured mutable input, distinct receipt/current views, original reference restore/recover and exactly one mutation per logical ID.",
+    "Wrong Conversation/target/Identity/receipt/epoch/boundary, missing or changed notice kind/epoch/scope preserve the original uncertain key and refuse. Changed original ledger command, malformed recorded epoch and current authorization refusal prevent result delivery without another mutation.",
+    "Frozen input shape, Identity kind, UTF8 role64byte/control/surrogate bounds, Conversation revision cutoff and unwanted fields refuse before IO. A stale expected Conversation revision produces no fixture effect and one attempted mutation only. Negative declaration cases prevent mixed Identity/Participant IDs, topology revisions and unsupported kinds.",
+    "Actual Chrome executes the public SDK against the real Store and server on both transports. Independent SQL confirms8membership operations and exactly2active successor-epoch rows in addition to the retained message/audience checks."
+  ],
+  "checks": "Final unchanged-input cohort:569SDK functions,37Node regressions,2serverScreen and2upstreamScreen functions,10realroot integration functions,0ignored; browser/Node type checks. Changed-source TS and repository Rust formatting, plan/navigation and server HTTP/OpenAPI reference checks pass.",
+  "prior_attempts": [
+    {
+      "scope": "Initial TypeScript build and569SDK component functions pass.19new signed membership functions are included in the final cohort.",
+      "log_sha256": "e91b679f6a99f93be2f496b398d438bb16288af90c6811d12642c32ab67f0da3"
+    },
+    {
+      "scope": "Preliminary real typed Chrome WT/WSS workflow passes75original mutations and independent SQL membership/message checks before the final guard.",
+      "log_sha256": "5bcf2fcfbbc145d41fb33b5f5d5d010c99c0e96e64fb19fb181e6885c1a40a94"
+    }
+  ],
+  "remaining": [
+    "Separately configured browser application-read receipt service, consultation/handoff/device movement, capabilities/raw surface and full reference-app integration.",
+    "Application snapshot/journal recovery and durable invitation discovery; no offline inbox or indefinite deduplication claim.",
+    "Prior message/journal increment retained an intermittent actual WT Screen resume revision/catalog conflict. Later unchanged-input runs pass; cause remains open, with no general media/recovery reliability qualification.",
+    "Complete frozen API, live codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit. G6-054 remote media qualification remains open."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker warnings remain. No release/performance/full Rust workspace qualification."
+  ],
+  "privacy": "Raw traces, candidates, credentials/state, browser profiles/screenshots and logs remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

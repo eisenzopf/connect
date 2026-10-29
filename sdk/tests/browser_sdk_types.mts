@@ -115,3 +115,14 @@ room.send({messageId:sdkId<'message'>('message'),to:{first:sdkId<'message'>('mes
 room.events({after:'raw-cursor'},{timeoutMs:1000});
 void [item,delivered];
 await journal.close();
+
+const added=room.participants.add({identityId:sdkId<'identity'>('recipient'),kind:'human',role:'reviewer',expectedRevision:sdkRevision<'conversation'>(1)},{timeoutMs:1000,operationId});
+const participant=(await (await added).wait({timeoutMs:1000})).value;
+participant.update({role:'observer',expectedConversationRevision:sdkRevision<'conversation'>(2)},{timeoutMs:1000,operationId});
+participant.remove({expectedConversationRevision:sdkRevision<'conversation'>(3)},{timeoutMs:1000,operationId});
+// @ts-expect-error Topology revisions cannot assert Conversation membership state.
+participant.remove({expectedConversationRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId});
+// @ts-expect-error Participant admission requires an Identity, not a Participant ID.
+room.participants.add({identityId:sdkId<'participant'>('recipient'),kind:'human',role:'reviewer',expectedRevision:sdkRevision<'conversation'>(1)},{timeoutMs:1000,operationId});
+// @ts-expect-error Identity kinds are the frozen closed union.
+room.participants.add({identityId:sdkId<'identity'>('recipient'),kind:'robot',role:'reviewer',expectedRevision:sdkRevision<'conversation'>(1)},{timeoutMs:1000,operationId});

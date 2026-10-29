@@ -116,7 +116,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
                                     assert!([&backend.identity,&backend.peer_identity].contains(&&request.identity_id));
                                     assert!(request.transport!=EnrollmentTransport::Quic);
-                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","connection.update","conversation.get","conversation.subscribe","create","history","operation.get","send","session.accept","session.cancel","session.end","session.invite","session.reject","session.update","session_get","stream.subscribe","stream.unsubscribe"]);
+                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","connection.update","conversation.get","conversation.participant.add","conversation.participant.remove","conversation.participant.update","conversation.subscribe","create","history","operation.get","send","session.accept","session.cancel","session.end","session.invite","session.reject","session.update","session_get","stream.subscribe","stream.unsubscribe"]);
                                     let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();
                                     assert_eq!(request.recipients,recipients);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
