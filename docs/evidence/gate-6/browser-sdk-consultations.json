@@ -1,0 +1,233 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "f734dfde898ac66c06fe3c3f0af848fa472ea274",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Browser Session.consult and original-operation returnToRetained with host-issued durable continuation. Successful topology/return receipts and uncertainty/recovery are controlled signed-boundary cases. Real owned Chrome WT/WSS verifies current enrollment refuses an ungranted consultation. No successful live browser private-media/return, handoff, device-move or full SDK qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical/tests/sdk_consultations.rs": {
+      "sha256": "2fcfcb88e4ea6f7fb2ef0f696f6260641744ec84b326af863adc43fc73423f7e",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/consultations.rs": {
+      "sha256": "a543eeecc7b153152dc4cfa350c2877a14a077ad7f74278fd1ae6f91659e1601",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/operation.rs": {
+      "sha256": "0822006329a668093d3f7736c3bd863b6a8f9071f39576f532b5a10015f40b97",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/transitions.rs": {
+      "sha256": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "391440e8718abed2a932efdd61149bf757652abc96b60c6b5d60729fefb5cbe4",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_decisions.rs": {
+      "sha256": "34005117f08c11adcf9dcbca35a2cb51ccd793db0aaa438a571ed3fee91cbf08",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_consultations.test.mjs": {
+      "sha256": "a1f0ecd599e8d58a0c2539bcf8134d245bc43042cd8c897c304f0d071588bee6",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "0561184ac5c12bff1b525318e7342d2fe233c34e1753eef3c7ad642bcd704aab",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "e12694c132c91547dacd89177c461dbaa42f4867eb9b0c4c61a3bef29eb766ab",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "66f171a1abb1162411ee267bb680a727ca38eb4e0a7b547568b5e91c17cc06cf",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "d6f5604e547208cd27b42712605fa6971947ccb5db764b768c4e1d9a1529223e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "acd8e52b9453fc452053960d68967d6d0ca4b1f64c2e84c768807cf58ca76645",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_consultations.d.ts": {
+      "sha256": "404cc0bdb12f60f3fdd36f157b1f6b31a4ced0e1a853eaf678cc6dc6b761ccd6",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_consultations.js": {
+      "sha256": "d322247d30614a8b759dda841604b9ec5bce5da190963622eadbe6359bf09abd",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "ff4687a9cc39b17764d2624a22c1dee8e2387857a0a7178d1b851b5ff8f3b2b1",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "9e02f44568048d19af65956dc451cfb985e5522e9f52bead56f66eec77932c10",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_consultations.ts": {
+      "sha256": "67f28693e0c8f896014bfa1cd2e37c0b901ac887ad6ece398068c35c30f6e16c",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2761,
+    "source_inputs_manifest_sha256": "5d8c46a653a08759999842fc83f349bd0c4fcd5d12beb9dde8bda4452364e0de",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          688
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.380895290989429,
+        "log_sha256": "683b8c50d33840f3984b4a34b816b9c6764f69204592a053ed25e65d6e2ca346"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.30905329203233123,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3590535840485245,
+        "log_sha256": "cf921a27e4827c5e1cae8878073e5d1dbd3146428f2e12f07c0d5fb264882c2d"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43097887514159083,
+        "log_sha256": "ff86c3f9e22e22c557a6a3dac6000facfa43d32b62ac134366445faf8afd1e8b"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43404395901598036,
+        "log_sha256": "998b0afeb2de22613cf63703eed32ddc25a26b1140eee4596118f424efbcf538"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 99.81735862488858,
+        "log_sha256": "06a58a0b0aa146f82972a8fd3d558a0b77294665b223d0409bc5edfc332399fe"
+      }
+    ]
+  },
+  "implementation": [
+    "Session.consult captures distinct primary/retained Connection IDs,2..100distinct Participant IDs, sorted canonical private_participants, explicit silence/configured-media hold and original topology revision. Closed input/options refuse before IO. The canonical request uses retained_connid/private_participants/hold_treatment, its own saved operation_id and exact Connection scope.",
+    "Saved connect-operation-reference/1 now preserves a strict command-specific consultation continuation with original retained Connection and optional host-issued record_id. Other kinds reject that context. Initial correlated ACK binds stable host record/command/expected topology; recovery checks current authority, stable record and monotonic revision. referenceJson adds an original host record discovered by later status.",
+    "BrowserOperation<BrowserConsultationResult>.returnToRetained uses a distinct saved logical ID. A known original host record avoids needing parent-read permission. Otherwise one current authorized original status read shares the same monotonic caller budget with return submission. Parent lookup refusal/abort/deadline retains the new own ID as not-submitted. Captured IDs/options cannot change during awaits; no automatic mutation replay.",
+    "Bounded32KiB completed topology receipts enforce1..100total unique retained/admitted/retired IDs, a nonempty retained set, positive safe topology revision, null/absent Conversation revision and exact original retained/host-return record. Consult admits private Connections and retires none; return admits none. Explicit remote EOF preserves false continuation and retired retained-remote ID. Maximum safe completed topology revision is accepted without incrementing it.",
+    "Return yields a BrowserSession with frozen receiptConsultationReturn and typed host record/continuation/topology. Result handles are observations; they do not allocate capture/render/native owners or turn accepted/unknown state into readiness. Original wait abort sends no durable cancellation.",
+    "Malformed completed observations retain recorded certainty. Malformed submitted ACKs preserve own uncertain IDs/context. Invalid non-JSON saved-reference input now translates to the SDK validation error before IO rather than leaking the low JSON parser error."
+  ],
+  "verification_cases": [
+    "31 added signed component functions include WT/WSS x EdDSA/ES256 x both hold treatments, immutable captured input, original references and receipt topology, no media custody and no duplicate consult/return. All signatures/correlation use the existing controlled peer, not actual TLS or private-media proof.",
+    "Malformed duplicate/foreign/empty/retired topology, Conversation/topology revisions, extension fields, command, record, expected revision, extra ACK frames, foreign parent and false continuing-call claims refuse. Original host record rebinding/current revocation and invalid saved contexts refuse.",
+    "Lost consultation ACK reconnects then obtains the original host record before one new return; lost return ACK recovers its own record without replay. Known host record bypasses a refused parent read while current return authority remains required. Unknown observations and local wait abort do not dispatch return or cancellation. Parent lookup refusal/deadline/abort retain own not-submitted intent under one caller budget.",
+    "Real owned Chrome WT and bounded WT-to-WSS fallback each attempt one synthetically scoped consultation absent from the current enrollment operation grant. Actual host refuses authentication/refused with the own original key; independent SQL confirms no accepted consult/return record. This is refusal evidence only; successful private media integration remains outstanding."
+  ],
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "root_decisions": 2,
+      "message_decisions": 2,
+      "original_sources_unchanged": 2,
+      "recovered_originals": 2,
+      "unattributed_evidence_refused": 2,
+      "revoked_decision_refused": 1,
+      "local_capability_snapshots": 4,
+      "local_capability_refusals": 8,
+      "ungranted_consults_refused": 2,
+      "source_mutations": 4,
+      "decision_mutations": 4,
+      "reconcile_attempts": 2,
+      "credentials": 2,
+      "devices": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "57fc165cf45274e8c7e2b012e5939f2a8f55eb8792a1f7c1acb79f21dc19625c",
+    "independent_store_checks": {
+      "accepted_consult_or_return_records": 0
+    },
+    "limits": "Existing focused workflow retains4source mutations/4accepted cancel decisions/2refused reconciliations plus2refused consultation attempts,12distinct explicit IDs;2credentials/1Device/2non-media Endpoints. Local capability snapshot/refusal checks and decision recovery/revocation assertions remain. No successful real browser consultation/return claim."
+  },
+  "checks": "Final unchanged-input688SDK functions, standalone browser/Node types,37Node regressions,2serverScreen,2upstreamScreen and12realroot integration functions;0ignored. Rust/changed-source TS formatting, plan/navigation and HTTP/OpenAPI references checked before commit.",
+  "prior_attempts": [
+    {
+      "scope": "Initial671/686 pass. Seven malformed completed-observation cases expose read-only versus recorded certainty; production now preserves recorded certainty for those host-record observations. Seven nested expected-key assertions omitted scope/context, and one non-JSON saved-reference input leaked the low parser error; tests now assert exact key fields and restore translates parser rejection to SDK validation.",
+      "log_sha256": "653c4708d68a67591e76066054246ddf5aabaabb28133b1c60aec86ca7334109"
+    },
+    {
+      "scope": "Next682/688 pass: six exact continuation comparisons differ only because canonical parsed JSON has a null prototype. Assertions now compare all enumerable continuation fields while retaining exact key/scope/kind/record checks; no production behavior or deadline relaxed.",
+      "log_sha256": "a95c9b15716ebc3480b1ffad0ce1325876a46f908fe470f555b4a1d50d6f1c8c"
+    },
+    {
+      "scope": "Focused final31consultation functions and standalone browser/Node types pass before full source guard.",
+      "log_sha256": "0ceb276117807bcd69c6d69d8891fd7899feef62c9444495967f2817dce9f966",
+      "types_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remaining": [
+    "G6-061 handoff/device movement, raw canonical surface, reference-app/journal recovery/invitation discovery and full browser SDK audit.",
+    "Successful browser private consultation/return media integration remains, including actual owned capture, private decoded audio, EOF and recovery; signed positive receipts and real refusal do not qualify that lane.",
+    "Earlier intermittent native WT Screen-resume revision/catalog conflict remains unresolved. Full codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit and G6-054 remote qualification remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker unwind warning remain. No full Rust workspace, release or performance qualification."
+  ],
+  "privacy": "Raw logs, signed traces, record/operation IDs, state, credentials and owned browser profiles remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

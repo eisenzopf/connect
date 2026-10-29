@@ -146,3 +146,5 @@ import './browser_ui.test.mjs';
 import './browser_sdk_streams.test.mjs';
 
 import './browser_sdk_capabilities.test.mjs';
+
+import './browser_sdk_consultations.test.mjs';

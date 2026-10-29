@@ -50,6 +50,7 @@ async fn installed_chrome_durable_decisions_recover_originals_on_wt_and_wss() {
     assert_eq!(result["result"]["revoked_decision_refused"], 1);
     assert_eq!(result["result"]["local_capability_snapshots"], 4);
     assert_eq!(result["result"]["local_capability_refusals"], 8);
+    assert_eq!(result["result"]["ungranted_consults_refused"], 2);
     assert_eq!(result["result"]["source_mutations"], 4);
     assert_eq!(result["result"]["decision_mutations"], 4);
     assert_eq!(result["result"]["reconcile_attempts"], 2);
@@ -77,6 +78,7 @@ async fn installed_chrome_durable_decisions_recover_originals_on_wt_and_wss() {
             count("SELECT COUNT(*) FROM operations WHERE command_type='operation.reconcile'"),
             0
         );
+        assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type IN ('session.consult','session.consult.return')"),0);
     }
     drop(chrome);
     drop(blackhole);

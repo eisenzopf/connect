@@ -844,3 +844,67 @@ remain on the Connection workflow.
 [Capability evidence](../evidence/gate-6/browser-sdk-capabilities.json) includes
 signed boundary cases, fully occupied control slots, expiry and retirement,
 and actual Chrome WT/fallback selection with zero capability-query IO.
+
+## Consultation and returning to the retained engagement
+
+```ts
+const original = await session.consult({
+    via: primaryConnectionId,
+    retain: remoteConnectionId,
+    with: { first: organizerParticipantId, rest: [expertParticipantId] },
+    hold: 'silence', // or 'configured-media', subject to host configuration
+    expectedTopologyRevision,
+}, { timeoutMs: 5000, operationId: savedConsultationId });
+await saveOriginalReference(original.referenceJson());
+const observed = (await original.wait({ timeoutMs: 5000 })).value;
+// observed.topology contains retained/admitted observations, with no new capture owner.
+
+const returning = await original.returnToRetained(nextTopologyRevision, {
+    timeoutMs: 5000, operationId: savedReturnId,
+});
+await saveOriginalReference(returning.referenceJson());
+const returned = (await returning.wait({ timeoutMs: 5000 })).value;
+const receipt = returned.receiptConsultationReturn;
+if (receipt?.remoteContinuing === false) {
+    // Present the observed remote end; do not display a continuing call.
+}
+```
+
+Save the full original intent and both distinct logical IDs before their
+respective submissions. Consultation requires two to one hundred distinct
+Participants, sorted canonically for submission, distinct primary/retained
+Connections and an explicit topology revision below the maximum safe integer.
+Unsupported input/option fields refuse before IO. Hold treatment remains an
+explicit host policy; the SDK does not synthesize configured media.
+
+The original saved reference uses `connect-operation-reference/1` with the same
+Conversation/Session/primary-Connection scope and a `consultation` continuation
+containing `retained_connection_id`. The correlated host observation adds
+`record_id`, which identifies the host execution record, separately from the
+logical operation ID. Save the opaque reference through `referenceJson()`; a
+subsequent original status observation can add a previously unknown host record.
+Restoration checks the command, scope, continuation shape, stable record and
+monotonic operation revision. Unrelated operation kinds reject this context.
+
+`returnToRetained` uses an already observed original host record without needing
+parent-read permission. If the record remains unknown after a lost reply, one
+current-authorized original status read obtains it under the same caller budget
+as the new return. Failed/aborted/expired parent lookup leaves the new return
+`not-submitted` with its own ID. A lost return reply remains uncertain and is
+recovered by its original return reference; neither mutation is replayed.
+Caller text or a guessed record ID cannot supply host return authority.
+
+Accepted, ready and unknown observations remain separate from completion.
+Bounded completed receipts validate distinct retained/admitted/retired IDs,
+positive safe topology revision, exact original retained Connection, return
+record and explicit continuation boolean. The original consultation admits
+private Connections without retiring the retained engagement; return admits no
+new Connections. Remote EOF may retire the original remote Connection and must
+retain `remoteContinuing: false`. Receipts grant no capture/render custody or
+proof of actual private audio. Refresh current resources and negotiate local
+media through their separate owners.
+
+[Consultation evidence](../evidence/gate-6/browser-sdk-consultations.json) records
+signed controlled receipt/recovery cases and real Chrome current-enrollment
+refusal. Successful private consultation/return over live browser media remains
+a separate integration and qualification requirement.

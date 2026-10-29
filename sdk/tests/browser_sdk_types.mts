@@ -152,3 +152,18 @@ localSupport.features.add('decoded-media-ready');
 // @ts-expect-error Selected transport is an immutable observation.
 localSupport.selectedTransport='webtransport';
 void [browserRole,nativeRole];
+
+const consulting=await room.sessions.byId(sdkId<'session'>('s')).consult({via:sdkId<'connection'>('primary'),retain:sdkId<'connection'>('remote'),with:{first:sdkId<'participant'>('one'),rest:[sdkId<'participant'>('two')]},hold:'configured-media',expectedTopologyRevision:sdkRevision<'topology'>(2)},{timeoutMs:1000,operationId});
+const consultation:import('../typescript/dist/browser.js').BrowserConsultationResult=(await consulting.wait({timeoutMs:1000})).value;
+const returning=await consulting.returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId:sdkId<'operation'>('return')});
+const returned:BrowserSession=(await returning.wait({timeoutMs:1000})).value;
+const hostRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId|undefined=returned.receiptConsultationReturn?.consultationRecordId;
+// @ts-expect-error Returning requires a consultation result, not a Message operation.
+(await textSend).returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId});
+// @ts-expect-error A resource revision cannot assert the consultation topology.
+consulting.returnToRetained(sdkRevision<'session'>(3),{timeoutMs:1000,operationId});
+// @ts-expect-error Receipt topology does not expose a mutable admitted list.
+consultation.topology.admitted.push(consultation.topology.retained[0]);
+// @ts-expect-error A logical mutation ID is not a host operation-record identity.
+const falseRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId=operationId;
+void [hostRecord,falseRecord];

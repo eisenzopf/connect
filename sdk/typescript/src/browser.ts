@@ -109,6 +109,11 @@ export {
 } from "./browser_sdk.js";
 export type {
     BrowserDecisionReceipt,
+    BrowserOperationRecordId,
+    BrowserConsultInput,
+    BrowserConsultationResult,
+    BrowserConsultationReturnReceipt,
+    BrowserTopologyChange,
     BrowserSdkCapabilities,
     BrowserSdkCapabilitySnapshot,
     BrowserApplicationReadOptions,
