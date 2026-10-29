@@ -1008,8 +1008,12 @@ refusal preserving public audio, decoded duplex audio after handoff, and recover
 without resubmission. Only the submitting Operation's validated completion retires
 its captured outgoing local owner; it checks the same physical peer, epoch and
 local entry. Restored references carry no retirement callback. Device movement,
-consultation/return and successful WebRTC handoff remain outstanding. An earlier
-WebRTC public-audio probe also produced zero output and remains unqualified.
+consultation/return and successful WebRTC handoff remain outstanding. [Fallback audio evidence](../evidence/gate-6/browser-sdk-fallback-audio.json)
+resolves the earlier zero-output probe: the SDK owns a muted audio element that
+starts Chrome RTC decoding while its Web Audio graph controls audible volume.
+Actual duplex PCM and playback after renderer pause/resume now pass. Startup
+and resume share bounded graph/playback budgets; rejection, deadline, abort,
+retirement and close clear the exact owned sink and join graph cleanup.
 
 ## Advanced finite raw canonical exchanges
 

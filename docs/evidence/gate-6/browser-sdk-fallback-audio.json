@@ -1,0 +1,589 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "69a7f6e5ceef328cfacbdfa4ffba96db28c16569",
+  "passed": true,
+  "full_task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Local macOS arm64 owned Chrome156.0.8078.48. Actual TLS WSS selected after bounded unreachable WT contact, two synthetic Opus microphone streams through the public typed browser SDK. No model/account/provider, PSTN, named remote, Linux, package or publication execution.",
+  "finding": "The earlier zero-output WSS probe is resolved: Chrome received RTP but emitted no decoded samples when its remote receiver was connected only to Web Audio. An owned muted HTML audio element starts RTC decoding; the Web Audio graph retains audible volume and presentation control.",
+  "implementation": [
+    "BrowserRtcConnection.render owns the muted audio element with the original received track, starts play under the same bounded startup budget, and pauses/resumes it with its Web Audio graph. Resume shares one deadline across graph resume and element play.",
+    "Startup/resume playback rejection reports media failure and closes the exact sink/graph. Deadline, abort, retirement and explicit close pause it and clear srcObject. Late play completion cannot reacquire a retired sink. Graph-close tasks remain joined by bounded SDK shutdown.",
+    "The new owned Chrome audio test uses current invitation handles, two actual offers and explicit subscriptions; ordinary media control flows through the public SDK. Test observers only inspect decoded PCM/receiver sample counters. No fixture audio element supplies decoder startup."
+  ],
+  "behavior": [
+    "Actual duplex audio passes the fixed RMS limits: allowed receiver peak>.01, other receiver peak<.003. Each allowed receiver emits at least9600samples during the500ms observation, equivalent to10mono48kHz/20msframes; counts use jitterBufferEmittedCount deltas rather than sampling-loop iterations.",
+    "After explicit renderer pause/resume, the same original Connection again receives decoded audio without a media renegotiation or mutation.",
+    "Exactly9 unique logical mutations in the audio-only fallback scene; SQL confirms2 completed media offers and0handoffs. The existing WT handoff/explicit WSS preparation-refusal scene still passes unchanged scope.",
+    "Six added SDK cases verify muted-sink ownership/volume, pause/visibility/resume/close, startup and resume policy failures with explicit renderer retry, and deadline/abort/retirement during a pending play followed by late completion. Existing joined renderer-cleanup success/failure tests also pass.",
+    "Frozen final cohort:835SDK tests, browser/Node type checks,37Node tests and14Root integration functions,0ignored;2794source inputs unchanged."
+  ],
+  "browser": {
+    "product": "Chrome/156.0.8078.48",
+    "protocol_version": "1.3",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "js_version": "15.6.75.19"
+  },
+  "actual_reports": [
+    {
+      "path": "wss-webrtc",
+      "resolutions": [
+        [
+          "webtransport",
+          "wss-webrtc"
+        ],
+        [
+          "webtransport",
+          "wss-webrtc"
+        ],
+        [
+          "webtransport",
+          "wss-webrtc"
+        ]
+      ],
+      "observations": [
+        {
+          "label": "fallback-owner",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "max": [
+            2.9394499830474427e-06,
+            0.1432148581876202,
+            0
+          ],
+          "counts": [
+            29,
+            29,
+            0
+          ],
+          "rtc": [
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 86,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 83040,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 3866,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 1890,
+                  "jitterBufferEmittedCount": 79680,
+                  "jitter": 0.004,
+                  "totalSamplesDuration": 2.7299999999999858
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 145,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0.05079379882813071,
+                  "audioLevel": 0.1999877925962096,
+                  "totalSamplesDuration": 2.909999999999982
+                }
+              ]
+            },
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 65,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 61920,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 5402,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 1308,
+                  "jitterBufferEmittedCount": 58560,
+                  "jitter": 0.004,
+                  "totalSamplesDuration": 2.4699999999999913
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 113,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesDuration": 2.2699999999999956
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "fallback-remote",
+          "source": 1,
+          "allowed": [
+            0
+          ],
+          "max": [
+            0.14235666865112928,
+            0,
+            0
+          ],
+          "counts": [
+            30,
+            30,
+            0
+          ],
+          "rtc": [
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 151,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 145920,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 9723,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 1890,
+                  "jitterBufferEmittedCount": 142080,
+                  "jitter": 0.003,
+                  "totalSamplesDuration": 4.039999999999958
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 210,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0.05748617205422884,
+                  "audioLevel": 0,
+                  "totalSamplesDuration": 4.209999999999955
+                }
+              ]
+            },
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 130,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 124800,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 6620,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 1308,
+                  "jitterBufferEmittedCount": 121920,
+                  "jitter": 0.003,
+                  "totalSamplesDuration": 3.7799999999999634
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 178,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0.05079379882813071,
+                  "audioLevel": 0.1999877925962096,
+                  "totalSamplesDuration": 3.569999999999968
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "fallback-after-renderer-resume",
+          "source": 0,
+          "allowed": [
+            1
+          ],
+          "max": [
+            0,
+            0.16527733889836674,
+            0
+          ],
+          "counts": [
+            30,
+            26,
+            0
+          ],
+          "rtc": [
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 215,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 208320,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 10812,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 1890,
+                  "jitterBufferEmittedCount": 204480,
+                  "jitter": 0.003,
+                  "totalSamplesDuration": 5.339999999999931
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 278,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0.10668016619486008,
+                  "audioLevel": 0.1999877925962096,
+                  "totalSamplesDuration": 5.509999999999927
+                }
+              ]
+            },
+            {
+              "context": "running",
+              "captureClosed": false,
+              "render": {
+                "closed": false,
+                "paused": false,
+                "audio": 0,
+                "video": 0
+              },
+              "negotiated": [
+                "a=rtpmap:111 opus/48000/2",
+                "a=fmtp:111 maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+              ],
+              "tracks": [
+                {
+                  "sent": "live",
+                  "received": "live",
+                  "muted": false
+                }
+              ],
+              "stats": [
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "codec",
+                  "payloadType": 111,
+                  "mimeType": "audio/opus",
+                  "clockRate": 48000
+                },
+                {
+                  "type": "inbound-rtp",
+                  "kind": "audio",
+                  "packetsReceived": 190,
+                  "totalAudioEnergy": 0,
+                  "audioLevel": 0,
+                  "totalSamplesReceived": 187200,
+                  "codecId": "CIT01_111_minptime=10;useinbandfec=1",
+                  "bytesReceived": 12063,
+                  "packetsDiscarded": 0,
+                  "concealedSamples": 4790,
+                  "jitterBufferEmittedCount": 180480,
+                  "jitter": 0.003,
+                  "totalSamplesDuration": 5.079999999999936
+                },
+                {
+                  "type": "outbound-rtp",
+                  "kind": "audio",
+                  "packetsSent": 243,
+                  "codecId": "COT01_111_maxaveragebitrate=32000;minptime=10;useinbandfec=1"
+                },
+                {
+                  "type": "media-source",
+                  "kind": "audio",
+                  "totalAudioEnergy": 0.05748617205422884,
+                  "audioLevel": 0,
+                  "totalSamplesDuration": 4.869999999999941
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "decodedPublicAudio": true
+    }
+  ],
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          835
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.43656920781359,
+        "log_sha256": "0ebeb1e77d899266adf6376d28f549bcbb7a2c12c1ade9aed4b7979faef94e34"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.29481570795178413,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2186728748492897,
+        "log_sha256": "245ddfcad6e7568b0905ee3225e27a597bb41ed7998dc46c16b93965f27e9f43"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          14
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 118.3658844998572,
+        "log_sha256": "348a48643808172a3a5320511fa7b3a0cf2c160c292fae5c577d7bf56d98f71b"
+      }
+    ]
+  },
+  "source_input_count": 2794,
+  "source_manifest_sha256": "417ed52f9cbfd8a6817cd71e403f16866a2aa80c258fe2cc2eac6acb8d3bfe12",
+  "tested_sources": {
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/handoff-browser.mjs": "830636a8a8ca9fd9effd138d1b4077fafc82635a55def12c66241e3dc3852f79",
+    "crates/connect-server/tests/support/browser_handoff.rs": "4763f8d1229a981890f115d14a725966c08491dfef3525c2730d824eda8720bc",
+    "crates/connect-server/tests/support/enrollment_browser.rs": "e0c611ca9aaa2d8429d124ce8c40d1cb008588687ce9c72c29b0cac38a7ee9c7",
+    "sdk/tests/browser_sdk_webrtc.test.mjs": "be9ae9405beb56751745d82fa1b8bac3b34869095b5046e9e358182acd9c9812",
+    "sdk/typescript/dist/browser_sdk_webrtc.js": "899c4fd1e2edb5a8c5def35a8930eb7f2fe18affbf240a104a6e6416adbc4d87",
+    "sdk/typescript/src/browser_sdk_webrtc.ts": "2632bd76a9cc51bbf6452cfc38b63f996f9f4a8f697318e07bc03dd56d300b75"
+  },
+  "failed_iteration_artifacts": {
+    "browser1226-audio-initial": {
+      "audio-browser.json": "83d8338e2328ef194ca9e0218b94da4249797d4eea7ace7b8b8f6c46b4cc3597",
+      "test.log": "35a06ec0c8abd10f1d55c514a083cff096da3bef3e632caa00b87866d982b29e",
+      "audio-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34"
+    },
+    "browser1226-audio-trace": {
+      "audio-browser.json": "24909a2a55603595e6d8d1e2f96c960202a6f62f402a363822fa11867330dca6",
+      "test.log": "2482150872576d005b7cfc3c1ad10f6be1edab4a1977df3aa68ddff4872d53bc",
+      "audio-browser.stderr": "c7ab313b3d1ea40db5e8353fb79c73db361c6c998c2ef888448c321e79136b34"
+    }
+  },
+  "diagnostic_only": {
+    "directory": ".local/gate-6/browser1226-audio-element",
+    "meaning": "An observer-side muted element experimentally started decoding. It was removed; final qualification uses the production SDK-owned element.",
+    "artifact_sha256": "07fcaa483e1818bb192a6493c1e4ba40f125c7ab28cd7499ed38774d38c807b1"
+  },
+  "prior_failure": {
+    "rms": [
+      0,
+      0,
+      0
+    ],
+    "receiver_samples": [
+      0,
+      0
+    ],
+    "rtp_packets": [
+      81,
+      67
+    ]
+  },
+  "limitations": [
+    "WebRTC independent handoff preparation remains unsupported; no successful WSS handoff is claimed.",
+    "Browser consultation/return, device movement and full G6-061 parity/reference-application audit remain open.",
+    "The inherited cached CLI strip ENOSPC warning remains; verification uses the successfully linked production-library integration test binary, never the damaged/installed CLI."
+  ],
+  "task_progress": {
+    "done": 65,
+    "in_progress": 2,
+    "not_started": 38,
+    "acceptance_qualified": 0
+  }
+}

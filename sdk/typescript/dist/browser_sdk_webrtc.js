@@ -451,7 +451,7 @@ export class BrowserRtcConnection {
             this.stop.signal,
             ...(options.signal ? [options.signal] : []),
         ]);
-        let stopped = false, paused = false, count = 0, context, source, gain, detach = () => { };
+        let stopped = false, paused = false, count = 0, context, source, gain, playout, detach = () => { };
         const outputs = [];
         let finish, fail;
         const finished = new Promise((yes, no) => {
@@ -466,6 +466,10 @@ export class BrowserRtcConnection {
             detach();
             stop.abort();
             document.removeEventListener("visibilitychange", visibility);
+            if (playout) {
+                playout.pause();
+                playout.srcObject = null;
+            }
             for (const output of outputs) {
                 if (output.callback !== undefined)
                     output.element.cancelVideoFrameCallback(output.callback);
@@ -489,6 +493,7 @@ export class BrowserRtcConnection {
                 return;
             paused = true;
             void context?.suspend().catch(() => { });
+            playout?.pause();
             for (const output of outputs)
                 output.element.pause();
         };
@@ -513,8 +518,17 @@ export class BrowserRtcConnection {
                     throw closed();
                 if (document.visibilityState === "hidden")
                     return;
-                if (context)
-                    await new BrowserDeadline(timeout(options)).run(() => context.resume(), signal);
+                const resuming = new BrowserDeadline(timeout(options));
+                try {
+                    if (context)
+                        await resuming.run(() => context.resume(), signal);
+                    await playAudio(resuming);
+                }
+                catch (error) {
+                    const failure = error instanceof Error ? error : closed();
+                    close(failure);
+                    throw failure;
+                }
                 for (const output of outputs)
                     void output.element.play().catch(() => {
                         if (!stopped)
@@ -525,6 +539,16 @@ export class BrowserRtcConnection {
             close: () => close(),
         });
         const cancelled = () => close(new ConnectError("cancelled", "Playback cancelled"));
+        const playAudio = (deadline) => playout
+            ? deadline.run(async () => {
+                try {
+                    await playout.play();
+                }
+                catch {
+                    throw new ConnectError("media", "Audio playback failed");
+                }
+            }, signal)
+            : Promise.resolve();
         signal.addEventListener("abort", cancelled, { once: true });
         try {
             detach = this.onRetire(close);
@@ -546,7 +570,13 @@ export class BrowserRtcConnection {
                 gain.gain.value = volume;
                 source.connect(gain);
                 gain.connect(context.destination);
+                // Chrome starts the RTC decoder through this owned muted sink.
+                // The Web Audio graph controls audible playback and volume.
+                playout = document.createElement("audio");
+                playout.muted = true;
+                playout.srcObject = new MediaStream([track]);
                 await budget.run(() => context.resume(), signal);
+                await playAudio(budget);
             }
             for (const [id, canvas] of Object.entries(video)) {
                 if (id !== (this.input.video ?? this.input.screen))

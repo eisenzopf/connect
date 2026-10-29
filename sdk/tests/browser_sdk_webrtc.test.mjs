@@ -10,7 +10,8 @@ class Stream {constructor(tracks){this.tracks=tracks;}getTracks(){return this.tr
 function deferred(){let resolve,reject;return{promise:new Promise((yes,no)=>{resolve=yes;reject=no;}),get resolve(){return resolve;},get reject(){return reject;}};}
 async function scenario(run,{pending=false,gathering=false}={}){
  const originals=new Map(),names=['RTCPeerConnection','RTCRtpSender','MediaStream','document','navigator'];let peer,permissions=0,permission=()=>Promise.reject(new DOMException('denied','NotAllowedError'));
- const document=Object.assign(new EventTarget(),{visibilityState:'visible'});
+ const elements=[];let playback=()=>Promise.resolve();
+ const document=Object.assign(new EventTarget(),{visibilityState:'visible',createElement(kind){assert.equal(kind,'audio');const element={muted:false,srcObject:null,plays:0,pauses:0,play(){this.plays++;return playback(this);},pause(){this.pauses++;}};elements.push(element);return element;}});
  class Peer extends EventTarget {
   connectionState='new';iceConnectionState='new';iceGatheringState=gathering?'gathering':'complete';transceivers=[];closeCount=0;
   constructor(configuration){super();peer=this;this.configuration=configuration;}
@@ -25,7 +26,7 @@ async function scenario(run,{pending=false,gathering=false}={}){
  }
  const values={RTCPeerConnection:Peer,RTCRtpSender:{getCapabilities:()=>({codecs:[{mimeType:'audio/opus',clockRate:48000,channels:2}]})},MediaStream:Stream,document,navigator:{mediaDevices:{getUserMedia(){permissions++;return permission();}}}};
  for(const name of names){originals.set(name,Object.getOwnPropertyDescriptor(globalThis,name));Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:values[name]});}
- try{return await fixture(async f=>{const client=await BrowserClient.open(f.options);let begun;try{begun=BrowserRtcConnection.begin(client,{...input},'recipient',{}, {timeoutMs:300});return await run({client,f,begun,peer:()=>peer,permissions:()=>permissions,setPermission:fn=>permission=fn});}finally{begun?.owner.close();client.close();}},{handler:async({peer,frame})=>{
+ try{return await fixture(async f=>{const client=await BrowserClient.open(f.options);let begun;try{begun=BrowserRtcConnection.begin(client,{...input},'recipient',{}, {timeoutMs:300});return await run({client,f,begun,elements,setPlayback:fn=>playback=fn,peer:()=>peer,permissions:()=>permissions,setPermission:fn=>permission=fn});}finally{begun?.owner.close();client.close();}},{handler:async({peer,frame})=>{
   if(frame.type!=='connection.offer')return false;
   await peer.emit('connection.answer',{substrate:'websocket+webrtc',substrate_setup:{kind:'websocket+webrtc',sdp},capabilities:{audio_codecs:[{name:'opus',params:{sample_rate:48000,channels:1}}]},streams_answered:[{id:'audio',kind:'audio',direction:'sendrecv',codec:{name:'opus',params:{sample_rate:48000,channels:1}}}]},frame.id,frame);return true;
  }});}finally{for(const name of names){const d=originals.get(name);if(d)Object.defineProperty(globalThis,name,d);else delete globalThis[name];}}
@@ -89,3 +90,33 @@ for(const failure of [false,true])test(`WSS shutdown joins renderer audio cleanu
   if(failure){reject(Error('synthetic RTC cleanup failure'));await assert.rejects(closing,/synthetic RTC cleanup failure/);await assert.rejects(renderer.finished,{code:'media'});}else{late.resolve();await closing;await renderer.finished;}
  }finally{late.resolve();if(original)Object.defineProperty(globalThis,'AudioContext',original);else delete globalThis.AudioContext;}
 }));
+
+async function audioGraph(run){
+ const original=Object.getOwnPropertyDescriptor(globalThis,'AudioContext'),contexts=[];
+ class Node{gain={value:1};connected=[];disconnects=0;connect(v){this.connected.push(v);}disconnect(){this.disconnects++;}}
+ class Context{destination={};state='suspended';closes=0;sources=[];gains=[];constructor(){contexts.push(this);}createMediaStreamSource(stream){const node=new Node();node.stream=stream;this.sources.push(node);return node;}createGain(){const node=new Node();this.gains.push(node);return node;}async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.closes++;this.state='closed';}}
+ Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:Context});
+ try{return await run(contexts);}finally{if(original)Object.defineProperty(globalThis,'AudioContext',original);else delete globalThis.AudioContext;}
+}
+test('WSS renderer owns the muted decoder sink and its graph across pause, visibility, resume and close',()=>scenario(async({begun,peer,client,elements,f})=>audioGraph(async contexts=>{
+ const owner=await begun.ready,renderer=await owner.render({audio:true,volume:.25},{timeoutMs:100}),element=elements[0],context=contexts[0],track=peer().getTransceivers()[0].receiver.track,requests=f.sent.length;
+ assert.equal(element.muted,true);assert.deepEqual(element.srcObject.getAudioTracks(),[track]);assert.equal(context.gains[0].gain.value,.25);assert.equal(element.plays,1);
+ renderer.pause();assert.equal(element.pauses,1);assert.equal(context.state,'suspended');await renderer.resume();assert.equal(element.plays,2);
+ document.visibilityState='hidden';document.dispatchEvent(new Event('visibilitychange'));assert.equal(renderer.diagnostics.paused,true);await renderer.resume();assert.equal(element.plays,2);document.visibilityState='visible';await renderer.resume();assert.equal(element.plays,3);
+ renderer.close();await renderer.finished;assert.equal(element.srcObject,null);assert.equal(context.closes,1);assert.equal(context.sources[0].disconnects,1);assert.equal(track.readyState,'live');assert.equal(client.closed,false);assert.equal(f.sent.length,requests);assert.equal(peer().connectionState,'connected');
+})));
+for(const phase of ['startup','resume'])test(`WSS audio ${phase} policy failure settles the owned sink/graph and permits explicit renderer retry`,()=>scenario(async({begun,elements,setPlayback,peer,f})=>audioGraph(async contexts=>{
+ const owner=await begun.ready,requests=f.sent.length;let renderer;
+ if(phase==='resume')renderer=await owner.render({audio:true},{timeoutMs:100});
+ setPlayback(()=>Promise.reject(new DOMException('synthetic playback policy','NotAllowedError')));
+ if(renderer){renderer.pause();await assert.rejects(()=>renderer.resume(),{code:'media'});await assert.rejects(renderer.finished,{code:'media'});assert.equal(renderer.diagnostics.closed,true);}
+ else await assert.rejects(()=>owner.render({audio:true},{timeoutMs:100}),{code:'media'});
+ assert.equal(elements[0].srcObject,null);assert.equal(contexts[0].closes,1);assert.equal(peer().connectionState,'connected');
+ setPlayback(()=>Promise.resolve());const next=await owner.render({audio:true},{timeoutMs:100});assert.equal(elements[1].plays,1);next.close();await next.finished;assert.equal(elements[1].srcObject,null);assert.equal(f.sent.length,requests);
+})));
+for(const phase of ['deadline','abort','retire'])test(`WSS pending audio play ${phase} clears its owned sink before late completion`,()=>scenario(async({begun,elements,setPlayback,f})=>audioGraph(async contexts=>{
+ const owner=await begun.ready,late=deferred(),entered=deferred(),abort=new AbortController(),requests=f.sent.length;
+ setPlayback(()=>{entered.resolve();return late.promise;});const work=owner.render({audio:true},{timeoutMs:phase==='deadline'?15:200,signal:abort.signal});void work.catch(()=>{});await entered.promise;
+ if(phase==='abort')abort.abort();if(phase==='retire')owner.close();await assert.rejects(work,phase==='retire'?undefined:{code:phase==='deadline'?'timeout':'cancelled'});await new Promise(setImmediate);
+ assert.equal(elements[0].srcObject,null);assert.equal(contexts[0].closes,1);late.resolve();await new Promise(setImmediate);assert.equal(elements[0].srcObject,null);assert.equal(f.sent.length,requests);
+})));

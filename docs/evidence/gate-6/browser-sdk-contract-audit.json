@@ -488,6 +488,11 @@
       "supported_case_verified": true,
       "full_task_complete": false,
       "remaining": "Consultation/return, device movement, successful WSS handoff and earlier zero-output WSS audio probe remain open."
+    },
+    "fallback-audio-playout": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-fallback-audio.json",
+      "supported_case_verified": true,
+      "full_task_complete": false
     }
   }
 }

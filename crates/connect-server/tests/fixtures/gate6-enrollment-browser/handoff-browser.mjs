@@ -27,7 +27,7 @@ globalThis.runBrowserFixture=async cfg=>{const reports=[],clients=[];try{
   }
   profiles.push({device,byPath});
  }
- for(const path of ['webtransport','wss-webrtc']){
+ for(const path of (cfg.wss_audio_probe?['wss-webrtc']:['webtransport','wss-webrtc'])){
   const current=[],resolutions=[],resources=[],observations=[];const suffix=cfg.suffix+'-'+path,options={timeoutMs:10000},mutation=name=>({...options,operationId:sdkId('handoff-'+name+'-'+suffix)});
   try{
    for(let actor=0;actor<3;actor++){const resolved=[],resolve=vault.resolveProfiles(profiles[actor].byPath);resolutions.push(resolved);const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:identities[actor],deviceId:profiles[actor].device,endpoints:{webtransport:path==='webtransport'?cfg.wt_url:cfg.unreachable_wt_url,'wss-webrtc':cfg.wss_url},timeoutMs:5000,attemptTimeoutMs:350,resolveEnrollment:context=>{resolved.push(context.transport);return resolve(context);}});current.push(client);clients.push(client);}
@@ -39,28 +39,31 @@ globalThis.runBrowserFixture=async cfg=>{const reports=[],clients=[];try{
    for(let i=0;i<2;i++){const hint=(await readers[i].next()).value;assert(hint.session.id===session.id,'incoming handles resolve original invitation');const view=await hint.session.refresh(options),accepted=await hint.session.accept({capabilities:hint.capabilities,expectedTopologyRevision:view.topologyRevision},mutation('accept-'+i));await accepted.wait(options);sessions.push(hint.session);await readers[i].close();}
    const media=[];
    for(let actor=0;actor<3;actor++){
-    if(path==='wss-webrtc'&&actor!==2)continue;
+    if(path==='wss-webrtc'&&(cfg.wss_audio_probe?actor===2:actor!==2))continue;
     const input={connectionId:sdkId('handoff-connection-'+actor+'-'+suffix),streams:one({id:sdkId('handoff-audio-'+actor+'-'+suffix),kind:'audio',direction:'sendrecv',codecs:one('opus')}),...(actor===2?{purpose:'handoff-preparation'}:{})};
     let offer;try{offer=await sessions[actor].connections.offer(input,mutation('offer-'+actor));}catch(error){assert(path==='wss-webrtc'&&actor===2&&error.kind==='unsupported'&&error.certainty==='not-submitted'&&error.operation.operationId===mutation('offer-'+actor).operationId,'explicit independent preparation refusal with own original ID');trace.push({preparation_refused:path,kind:error.kind,certainty:error.certainty,operationId:error.operation.operationId});break;}
     const connection=sessions[actor].connections.byId(input.connectionId),context=new AudioContext(),tone=context.createOscillator(),gain=context.createGain(),sink=context.createMediaStreamDestination();tone.frequency.value=[440,660,880][actor];gain.gain.value=0;tone.connect(gain);gain.connect(sink);tone.start();await context.resume();
     const capture=await connection.capture({audio:true,stream:sink.stream},options),completion=await offer.wait(options),renderer=await connection.render({audio:true},options);
     const item={connection,offer,completion,capture,renderer,context,tone,gain,stream:sink.stream};media.push(item);resources.push(item);
+    if(path==='wss-webrtc'){const receiver=rtc.get(connection.id).peer.getReceivers().find(v=>v.track.kind==='audio'),source=context.createMediaStreamSource(new MediaStream([receiver.track])),analyser=context.createAnalyser(),mute=context.createGain();mute.gain.value=0;source.connect(analyser);analyser.connect(mute);mute.connect(context.destination);item.analyser=analyser;}
    }
-   for(let actor=0;path==='webtransport'&&actor<2;actor++){
+   for(let actor=0;(path==='webtransport'||cfg.wss_audio_probe)&&actor<2;actor++){
     const connection=media[actor].connection,operation=await connection.streams.subscribe({selectors:one({participant:participants[1-actor].id,kinds:one('audio')}),expectedStreamRevision:(await connection.refresh(options)).streamRevision},mutation('subscribe-'+actor));
     await operation.wait(options);
    }
    const probe=async(source,allowed,label)=>{
-    media.forEach((v,i)=>v.gain.gain.value=i===source?0.2:0);await sleep(700);const since=performance.now(),max=[0,0,0],counts=[0,0,0];
-    await sleep(500);
-    media.forEach((v,i)=>{const frames=(decoded.get(v.connection.id)??[]).filter(v=>v.at>=since);max[i]=Math.max(0,...frames.map(v=>v.rms));counts[i]=frames.length;});
-    const observation={label,source,allowed,max,counts};observations.push(observation);trace.push({media_probe:observation,path});for(let i=0;i<3;i++){if(allowed.includes(i))assert(max[i]>0.01&&counts[i]>=10,label+' decoded receiver '+i+' '+JSON.stringify(observation));else assert(max[i]<0.003,label+' forbidden receiver '+i+' '+JSON.stringify(observation));}
+    media.forEach((v,i)=>v.gain.gain.value=i===source?0.2:0);await sleep(700);const since=performance.now(),max=[0,0,0],counts=[0,0,0],emittedBefore=path==='wss-webrtc'?await Promise.all(media.map(async v=>[...(await rtc.get(v.connection.id).peer.getStats()).values()].find(v=>v.type==='inbound-rtp'&&v.kind==='audio')?.jitterBufferEmittedCount??0)):undefined;
+    if(path==='wss-webrtc'){for(let n=0;n<50;n++){await sleep(10);media.forEach((v,i)=>{const data=new Float32Array(2048);v.analyser.getFloatTimeDomainData(data);max[i]=Math.max(max[i],Math.sqrt(data.reduce((sum,v)=>sum+v*v,0)/data.length));counts[i]++;});}}else await sleep(500);
+    if(path==='webtransport')media.forEach((v,i)=>{const frames=(decoded.get(v.connection.id)??[]).filter(v=>v.at>=since);max[i]=Math.max(0,...frames.map(v=>v.rms));counts[i]=frames.length;});
+    if(path==='wss-webrtc')for(let i=0;i<media.length;i++){const after=[...(await rtc.get(media[i].connection.id).peer.getStats()).values()].find(v=>v.type==='inbound-rtp'&&v.kind==='audio')?.jitterBufferEmittedCount??0;counts[i]=Math.floor((after-emittedBefore[i])/960);}
+    const observation={label,source,allowed,max,counts,...(path==='wss-webrtc'?{rtc:await Promise.all(media.map(async v=>({context:v.context.state,captureClosed:v.capture.closed,render:v.renderer.diagnostics,negotiated:rtc.get(v.connection.id).peer.remoteDescription.sdp.split('\r\n').filter(line=>/^a=(rtpmap|fmtp):/.test(line)),tracks:rtc.get(v.connection.id).peer.getTransceivers().map(t=>({sent:t.sender.track?.readyState,received:t.receiver.track.readyState,muted:t.receiver.track.muted})),stats:[...(await rtc.get(v.connection.id).peer.getStats()).values()].filter(x=>['inbound-rtp','outbound-rtp','media-source','codec'].includes(x.type)).map(x=>({type:x.type,kind:x.kind,packetsSent:x.packetsSent,packetsReceived:x.packetsReceived,totalAudioEnergy:x.totalAudioEnergy,audioLevel:x.audioLevel,totalSamplesReceived:x.totalSamplesReceived,codecId:x.codecId,payloadType:x.payloadType,mimeType:x.mimeType,clockRate:x.clockRate,bytesReceived:x.bytesReceived,packetsDiscarded:x.packetsDiscarded,concealedSamples:x.concealedSamples,jitterBufferEmittedCount:x.jitterBufferEmittedCount,jitter:x.jitter,totalSamplesDuration:x.totalSamplesDuration,decoderImplementation:x.decoderImplementation}))}))) }:{})};observations.push(observation);trace.push({media_probe:observation,path});for(let i=0;i<3;i++){if(allowed.includes(i))assert(max[i]>0.01&&counts[i]>=10,label+' decoded receiver '+i+' '+JSON.stringify(observation));else assert(max[i]<0.003,label+' forbidden receiver '+i+' '+JSON.stringify(observation));}
     media[source].gain.gain.value=0;
    };
    if(path==='wss-webrtc'){
+    if(cfg.wss_audio_probe){await probe(0,[1],'fallback-owner');await probe(1,[0],'fallback-remote');media[1].renderer.pause();assert(media[1].renderer.diagnostics.paused,'fallback renderer pauses');await media[1].renderer.resume();assert(!media[1].renderer.diagnostics.paused,'fallback renderer resumes');await probe(0,[1],'fallback-after-renderer-resume');}else
     assert(media.length===0&&!rtc.has('handoff-connection-2-'+suffix),'unsupported preparation allocates no RTC owner');
     const end=await session.end({reasonCode:200,reason:'Owned fallback complete',expectedTopologyRevision:(await session.refresh(options)).topologyRevision},mutation('end'));await end.wait(options);
-    reports.push({path,resolutions,observations,independentPreparation:'unsupported-before-io'});continue;
+    reports.push({path,resolutions,observations,...(cfg.wss_audio_probe?{decodedPublicAudio:true}:{independentPreparation:'unsupported-before-io'})});continue;
    }
    await probe(0,[1],'public-owner');await probe(1,[0],'public-remote');await probe(2,[],'prepared-target-isolated');
    const input={via:media[0].connection.id,from:participants[0].id,to:participants[2].id,retain:media[1].connection.id,candidate:media[2].connection.id,outgoing:'leave',role:{scope:'session'},expectedTopologyRevision:(await session.refresh(options)).topologyRevision,policyRef:media[2].completion.snapshot.recordId};
@@ -76,5 +79,5 @@ globalThis.runBrowserFixture=async cfg=>{const reports=[],clients=[];try{
    reports.push({path,resolutions,observations,recordId:completed.snapshot.recordId,operationId:key.operationId,topologyRevision:completed.value.topologyRevision,recoveredOriginal:true,outgoingCaptureRetired:true});
   }finally{for(const item of resources){item.renderer.close();item.capture.close();item.tone.stop();await item.context.close();}for(const client of current)await client.close({timeoutMs:5000});}
  }
- const mutations=trace.filter(v=>v.operation&&['conversation.create','session.invite','session.accept','connection.offer','stream.subscribe','session.handoff','session.end'].includes(v.request));assert(mutations.length===17&&new Set(mutations.map(v=>v.operation)).size===17,'exactly one original per mutation, status recovery submits none');return {passed:true,reports,original_mutations:mutations.length,trace};
+ const mutations=trace.filter(v=>v.operation&&['conversation.create','session.invite','session.accept','connection.offer','stream.subscribe','session.handoff','session.end'].includes(v.request));assert(mutations.length===(cfg.wss_audio_probe?9:17)&&new Set(mutations.map(v=>v.operation)).size===mutations.length,'exactly one original per mutation, status recovery submits none');return {passed:true,reports,original_mutations:mutations.length,trace};
 }catch(error){return {passed:false,error:{name:error.name,kind:error.kind,certainty:error.certainty,message:error.message,stack:error.stack,problem:error.problem},reports,trace};}finally{for(const client of clients)await client.close({timeoutMs:5000}).catch(()=>{});}};

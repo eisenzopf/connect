@@ -7,6 +7,14 @@ use sha2::{Digest, Sha256};
 #[ignore = "Explicit owned Chrome and built production browser SDK"]
 async fn installed_chrome_prepared_handoff_switches_wt_audio_and_refuses_unsupported_wss_preparation(
 ) {
+    run_handoff(false).await;
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "Explicit owned Chrome and built production browser SDK"]
+async fn installed_chrome_fallback_decodes_public_audio() {
+    run_handoff(true).await;
+}
+async fn run_handoff(audio_probe: bool) {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
@@ -46,39 +54,55 @@ async fn installed_chrome_prepared_handoff_switches_wt_audio_and_refuses_unsuppo
         enrollment_browser::launch(&profile, &h.f.temp.path().join("handoff-chrome.log"), &spki);
     let port = enrollment_browser::debug_port(&mut chrome, &profile).await;
     let c = &h.f.client;
-    let config = json!({"actors":[],"suffix":uuid::Uuid::new_v4().simple().to_string(),"identity_id":c.identity_id,"recipient_id":h.f.peer.identity_id,"handoff_identity":target,"api_origin":h.url(HttpSurface::Application,""),"wt_url":h.f.server.webtransport_url,"wss_url":h.f.server.websocket_url,"unreachable_wt_url":format!("https://{}/connect",blackhole.local_addr().unwrap()),"certificate_sha256":hash,"server_keyid":c.server_key_id,"server_public_raw":URL_SAFE_NO_PAD.encode(std::fs::read(&c.server_public_key).unwrap()),"server_not_before":c.server_key_not_before.timestamp(),"server_expires_at":c.server_key_expires_at.timestamp()});
+    let config = json!({"wss_audio_probe":audio_probe,"actors":[],"suffix":uuid::Uuid::new_v4().simple().to_string(),"identity_id":c.identity_id,"recipient_id":h.f.peer.identity_id,"handoff_identity":target,"api_origin":h.url(HttpSurface::Application,""),"wt_url":h.f.server.webtransport_url,"wss_url":h.f.server.websocket_url,"unreachable_wt_url":format!("https://{}/connect",blackhole.local_addr().unwrap()),"certificate_sha256":hash,"server_keyid":c.server_key_id,"server_public_raw":URL_SAFE_NO_PAD.encode(std::fs::read(&c.server_public_key).unwrap()),"server_not_before":c.server_key_not_before.timestamp(),"server_expires_at":c.server_key_expires_at.timestamp()});
     let result = enrollment_browser::run(
         &h,
         port,
         &format!("{origin}/handoff-browser"),
         config,
-        "handoff-browser",
+        if audio_probe {
+            "audio-browser"
+        } else {
+            "handoff-browser"
+        },
     )
     .await;
-    assert_eq!(result["result"]["reports"].as_array().unwrap().len(), 2);
-    assert_eq!(result["result"]["original_mutations"], 17);
-    {
+    if audio_probe {
+        assert_eq!(result["result"]["reports"].as_array().unwrap().len(), 1);
+        assert_eq!(result["result"]["original_mutations"], 9);
         let db = rusqlite::Connection::open(&h.f.config.database).unwrap();
         let count = |sql| db.query_row(sql, [], |r| r.get::<_, u64>(0)).unwrap();
         assert_eq!(
             count("SELECT COUNT(*) FROM operations WHERE command_type='session.handoff'"),
-            2
+            0
         );
-        assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type='session.handoff' AND state='completed'"), 1);
-        assert_eq!(
+        assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type='connection.offer' AND state='completed'"),2);
+    } else {
+        assert_eq!(result["result"]["reports"].as_array().unwrap().len(), 2);
+        assert_eq!(result["result"]["original_mutations"], 17);
+        {
+            let db = rusqlite::Connection::open(&h.f.config.database).unwrap();
+            let count = |sql| db.query_row(sql, [], |r| r.get::<_, u64>(0)).unwrap();
+            assert_eq!(
+                count("SELECT COUNT(*) FROM operations WHERE command_type='session.handoff'"),
+                2
+            );
+            assert_eq!(count("SELECT COUNT(*) FROM operations WHERE command_type='session.handoff' AND state='completed'"), 1);
+            assert_eq!(
             count(
                 "SELECT COUNT(*) FROM native_handoffs WHERE started=1 AND applied_json IS NOT NULL"
             ),
             1
         );
-        assert_eq!(count("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.command_type='session.handoff' AND e.state='confirmed' AND e.attempt=1"), 1);
-        assert_eq!(count("SELECT COUNT(*) FROM connection_offers WHERE json_extract(offer_json,'$.handoff_preparation.profile')='connect-handoff-preparation-v1'"), 1);
-        assert_eq!(count("SELECT COUNT(*) FROM native_consultation_legs"), 0);
-        assert_eq!(
-            count("SELECT COUNT(*) FROM operations WHERE command_type='connection.offer'"),
-            3
-        );
-        assert_eq!(count("SELECT COUNT(*) FROM operations o WHERE o.command_type='session.handoff' AND o.state='failed' AND json_extract(o.problem_json,'$.code')='forbidden' AND NOT EXISTS(SELECT 1 FROM operation_effects e WHERE e.operation_record_id=o.record_id) AND NOT EXISTS(SELECT 1 FROM native_handoffs n WHERE n.operation_record_id=o.record_id)"),1);
+            assert_eq!(count("SELECT COUNT(*) FROM operation_effects e JOIN operations o ON o.record_id=e.operation_record_id WHERE o.command_type='session.handoff' AND e.state='confirmed' AND e.attempt=1"), 1);
+            assert_eq!(count("SELECT COUNT(*) FROM connection_offers WHERE json_extract(offer_json,'$.handoff_preparation.profile')='connect-handoff-preparation-v1'"), 1);
+            assert_eq!(count("SELECT COUNT(*) FROM native_consultation_legs"), 0);
+            assert_eq!(
+                count("SELECT COUNT(*) FROM operations WHERE command_type='connection.offer'"),
+                3
+            );
+            assert_eq!(count("SELECT COUNT(*) FROM operations o WHERE o.command_type='session.handoff' AND o.state='failed' AND json_extract(o.problem_json,'$.code')='forbidden' AND NOT EXISTS(SELECT 1 FROM operation_effects e WHERE e.operation_record_id=o.record_id) AND NOT EXISTS(SELECT 1 FROM native_handoffs n WHERE n.operation_record_id=o.record_id)"),1);
+        }
     }
     drop(chrome);
     drop(blackhole);
