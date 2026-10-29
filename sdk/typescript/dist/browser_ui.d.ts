@@ -33,7 +33,7 @@ export declare class BrowserSourcePicker {
     refresh(options: BrowserSdkRequestOptions): Promise<void>;
     close(): void;
 }
-export type BrowserUiState = "idle" | "pending" | "ready" | "failed" | "closed";
+export type BrowserUiState = "idle" | "pending" | "ready" | "paused" | "failed" | "closed";
 /** Capture-only UI. A retry requests permission for the same Connection, never a new offer. */
 export declare class BrowserCaptureControls {
     private readonly connection;
@@ -43,6 +43,8 @@ export declare class BrowserCaptureControls {
     private readonly message;
     private readonly startButton;
     private readonly stopButton;
+    private readonly toggleButton;
+    private toggling?;
     private readonly events;
     private pending?;
     private abort?;
@@ -51,6 +53,8 @@ export declare class BrowserCaptureControls {
     get state(): BrowserUiState;
     constructor(connection: BrowserConnection, selection: BrowserSourceSelection, options: BrowserSdkRequestOptions);
     start(): Promise<BrowserCaptureHandle>;
+    private active;
+    toggle(): Promise<void>;
     private off;
     stop(): void;
     close(): void;

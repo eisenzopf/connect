@@ -56,3 +56,11 @@ test('capture UI cannot publish ready for an owner already retired before startu
 test('capture UI preserves keyboard focus through pending and denied states without moving unrelated focus',()=>dom(async()=>{
  const late=deferred();const controls=new BrowserCaptureControls({capture:()=>late.promise},{audio:true},{timeoutMs:100});const [message,start,stop]=controls.element.children;start.focus();const pending=controls.start();assert.equal(document.activeElement,stop);late.reject(new BrowserSdkError('unsupported','read-only'));await assert.rejects(pending);assert.equal(document.activeElement,start);controls.close();
 }));
+test('capture panel retains a paused startup and resumes or pauses only the existing capture owner',()=>dom(async()=>{
+ let callback,starts=0,resumes=0,pauses=0;const owner={closed:false,close(){this.closed=true;callback('closed');},pause(){pauses++;callback('paused');},async resume(){resumes++;callback('active');}};
+ const controls=new BrowserCaptureControls({async capture(input){starts++;callback=input.state;callback('paused');return owner;}},{audio:true},{timeoutMs:100});await controls.start();assert.equal(controls.state,'paused');assert.equal(controls.element.children[3].textContent,'Resume capture');await controls.toggle();assert.equal(controls.state,'ready');await controls.toggle();assert.equal(controls.state,'paused');assert.equal(starts,1);assert.equal(resumes,1);assert.equal(pauses,1);controls.close();
+}));
+test('late capture resume cannot reopen a closed panel or start another capture',()=>dom(async()=>{
+ const late=deferred();let callback,resumes=0;const owner={closed:false,close(){this.closed=true;callback('closed');},async resume(){resumes++;await late.promise;callback('active');}};
+ const controls=new BrowserCaptureControls({async capture(input){callback=input.state;callback('paused');return owner;}},{audio:true},{timeoutMs:100});await controls.start();const pending=controls.toggle();assert.equal(controls.toggle(),pending);await tick();controls.close();late.resolve();await assert.rejects(pending,{kind:'cancelled'});assert.equal(controls.state,'closed');assert.equal(resumes,1);assert.equal(controls.element.children[3].disabled,true);
+}));

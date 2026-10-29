@@ -182,6 +182,8 @@ export class BrowserCaptureControls {
     message = status(this.element);
     startButton = button(this.element, "Start capture");
     stopButton = button(this.element, "Stop capture");
+    toggleButton = button(this.element, "Pause capture");
+    toggling;
     events = new AbortController();
     pending;
     abort;
@@ -200,12 +202,16 @@ export class BrowserCaptureControls {
         this.element.setAttribute("aria-label", "Capture controls");
         this.message.textContent = "Capture is off.";
         this.stopButton.disabled = true;
+        this.toggleButton.disabled = true;
         this.startButton.addEventListener("click", () => {
             void this.start().catch(() => { });
         }, { signal: this.events.signal });
         this.stopButton.addEventListener("click", () => this.stop(), {
             signal: this.events.signal,
         });
+        this.toggleButton.addEventListener("click", () => {
+            void this.toggle().catch(() => { });
+        }, { signal: this.events.signal });
         options.signal?.addEventListener("abort", () => this.close(), {
             once: true,
             signal: this.events.signal,
@@ -221,6 +227,7 @@ export class BrowserCaptureControls {
         if (this.owner && !this.owner.closed)
             return Promise.resolve(this.owner);
         const abort = new AbortController();
+        let paused = false;
         this.abort = abort;
         this.phase = "pending";
         const focused = document.activeElement === this.startButton;
@@ -234,10 +241,15 @@ export class BrowserCaptureControls {
             .then(() => this.connection.capture({
             ...this.selection,
             state: (state) => {
-                if (state === "closed" &&
-                    this.abort === abort &&
-                    this.phase !== "closed")
+                if (this.abort !== abort || this.phase === "closed")
+                    return;
+                if (state === "closed")
                     this.off();
+                else {
+                    paused = state === "paused";
+                    if (this.owner && !this.owner.closed)
+                        this.active(paused);
+                }
             },
         }, { timeoutMs: this.options.timeoutMs, signal: abort.signal }))
             .then((owner) => {
@@ -248,8 +260,7 @@ export class BrowserCaptureControls {
                 throw new BrowserSdkError("cancelled", "read-only");
             }
             this.owner = owner;
-            this.phase = "ready";
-            this.message.textContent = "Capture is active.";
+            this.active(paused);
             return owner;
         })
             .catch((error) => {
@@ -280,7 +291,66 @@ export class BrowserCaptureControls {
         this.pending = work;
         return work;
     }
+    active(paused) {
+        this.phase = paused ? "paused" : "ready";
+        this.message.textContent = paused
+            ? "Capture is paused. Return to this page and resume when ready."
+            : "Capture is active.";
+        this.startButton.disabled = true;
+        this.stopButton.disabled = false;
+        this.toggleButton.disabled = false;
+        this.toggleButton.textContent = paused
+            ? "Resume capture"
+            : "Pause capture";
+    }
+    toggle() {
+        if (this.toggling)
+            return this.toggling;
+        const owner = this.owner;
+        if (!owner ||
+            owner.closed ||
+            (this.phase !== "ready" && this.phase !== "paused"))
+            return Promise.reject(new BrowserSdkError("cancelled", "read-only"));
+        const paused = this.phase === "paused";
+        this.toggleButton.disabled = true;
+        const work = Promise.resolve()
+            .then(async () => {
+            if (this.phase === "closed" || owner.closed)
+                throw new BrowserSdkError("cancelled", "read-only");
+            if (paused)
+                await owner.resume();
+            else {
+                owner.pause();
+                if (!owner.closed && this.state !== "closed")
+                    this.active(true);
+            }
+            if (owner.closed || this.state === "closed")
+                throw new BrowserSdkError("cancelled", "read-only");
+        })
+            .catch((error) => {
+            if (this.owner === owner && this.phase !== "closed") {
+                owner.close();
+                this.phase = "failed";
+                this.message.textContent =
+                    "Capture could not resume. Check the selected sources, then retry.";
+                this.startButton.disabled = false;
+                this.stopButton.disabled = true;
+                this.toggleButton.disabled = true;
+            }
+            throw error;
+        })
+            .finally(() => {
+            this.toggling = undefined;
+            if (this.owner === owner &&
+                !owner.closed &&
+                this.phase !== "closed")
+                this.toggleButton.disabled = false;
+        });
+        this.toggling = work;
+        return work;
+    }
     off() {
+        this.toggleButton.disabled = true;
         const focused = document.activeElement === this.stopButton;
         this.phase = "idle";
         this.message.textContent = "Capture is off.";
@@ -308,6 +378,7 @@ export class BrowserCaptureControls {
         this.startButton.disabled = true;
         this.stopButton.disabled = true;
         this.element.setAttribute("aria-busy", "false");
+        this.toggleButton.disabled = true;
         this.message.textContent = "Capture controls closed.";
     }
 }

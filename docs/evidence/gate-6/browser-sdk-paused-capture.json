@@ -1,0 +1,56 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "base_commit": "3efcde2351ddd2a90b68a7d3313027b8f3075000",
+  "scope": "Paused capture state and explicit same-owner pause/resume UI, including stale completion guards. This is independent of the separately uncommitted RTC Screen backend work.",
+  "tested_inputs": {
+    "sdk/typescript/src/browser_ui.ts": "c47c11b8f09383c37e8d9389462eba0fbd190d754673dae3c680eb1d8dbc932a",
+    "sdk/typescript/dist/browser_ui.js": "ba3604882b491132e40a25d4869d518a77cd7dcc1855d5441efedd799036fbe8",
+    "sdk/typescript/dist/browser_ui.d.ts": "a3ebff354e16a0b6acbf9558336c057a4a8bfec53370c0caa96700b59df89b99",
+    "sdk/tests/browser_ui.test.mjs": "73a7e7f857f2bba81af7c4527c99dc97b51c13bab7cace3d043c68f229df4116"
+  },
+  "verification": {
+    "component_functions": 12,
+    "component_log_sha256": "7e6caddfd3be5abb64af8098526a794678c4476e93993e1316e9e58338145a65",
+    "browser_node_types_passed": true,
+    "types_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "changed_typescript_format": "passed",
+    "diff_check": "passed"
+  },
+  "implemented": [
+    "Capture startup preserves the lower owner's paused state instead of announcing active while tracks are disabled.",
+    "Pause/Resume acts on the existing owner without another capture request, offer or operation. Repeated pending toggles share one local call.",
+    "Normal resume updates from the lower owner state callback; late resume after closure cannot reopen a panel and reports cancelled. Paused/failed/closed states retain native buttons and live status."
+  ],
+  "actual_wt_observation": {
+    "scope": "An incomplete owned-screen matrix fixture on the prior cached integration binary discovered real focus-induced pause. This is a partial WT observation, not a full scenario pass or a WSS Screen claim.",
+    "observed_before_resume": {
+      "document_visibility": "hidden",
+      "capture_state": "paused",
+      "owned_track_enabled": false
+    },
+    "after_trusted_keyboard_resume": {
+      "owned_tab_pixel_rgba": [
+        12,
+        145,
+        210,
+        255
+      ],
+      "width": 640,
+      "height": 350
+    },
+    "scenario_passed": false,
+    "scenario_terminal": "Prior server refused later WSS logical Screen offer with501unsupported before display capture.",
+    "log_sha256": "d6de76fc335298d53c14a6f942172605610f567c7009b955efcd34f677ee54f5",
+    "cached_binary": "e5dbc3668a45f61ba22e1c84220e6db66316b623e77f8d0728b773b9fb667776"
+  },
+  "remaining": [
+    "Pinned RTC Screen backend and full WT/WSS owned-tab screen matrix remain under verification.",
+    "Broader frozen browser APIs, subscriptions/updates and durable invitation recovery.",
+    "Complete decoded/media/app/accessibility/lifecycle qualification before G6-061 closes."
+  ],
+  "privacy": "Raw logs, synthetic device IDs and owned Chrome state stay ignored. No personal source, model/account/provider/named remote execution or agents."
+}
