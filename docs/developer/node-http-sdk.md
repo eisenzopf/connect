@@ -81,3 +81,15 @@ same owner's full Store causal link and an exact journal-row digest. The HTTPS
 witness is now `node-https/2`, with its original4s/15s/90s budgets and all
 current-authority/one-effect/drain requirements. Exact38 failures remain retained;
 no whole native or HTTPS pass is inferred from component checks.
+
+
+The exact2d Linux run on Node22 and26 is retained in
+[node-native-2d.json](../evidence/gate-6/node-native-2d.json). Both HTTPS algorithms
+reach send, original status/replay and the journal before a fixture assertion
+fails at25:110. The application `ReceiptPage` has `receipts` and `next`; only
+individual recipient facts carry Conversation/message IDs. The consumer now
+asserts the actual empty page `{receipts: [], next: null}` instead of nonexistent
+page-level resource fields. This source correction passes JavaScript syntax;
+its original-server Linux result remains pending. Current authorization checks,
+causal witness, singleton effect, request/phase deadlines and cleanup assertions
+remain in the fixture. The five exact2d failures stay recorded as failures.
