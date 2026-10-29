@@ -1311,6 +1311,11 @@
       "path": "patches/rvoip/gate6-current-operation-envelope-schema.patch",
       "source": "G6-062 frozen local validation exposed stale embedded operation.updated schema: synchronize exact current Connect transition identity, reconciliation and routing hint constraints plus254vectors. Preserve original frozen parser/duplicate guards; no validation weakening or lifecycle compatibility. Prepared source gets a fresh verified root.",
       "sha256": "58f1bd4c75f12e77c20ebb59d31ce38287257846f4e6402bb7b4e5048c83679b"
+    },
+    {
+      "path": "patches/rvoip/gate6-enrollment-physical-origin-admission.patch",
+      "source": "G6-055 preserve the exact accepted WSS/WebTransport HTTP Origin in trusted physical context; additional application enrollment admission runs under the verified credential/Device/signature lease before initial auth.accept and refresh/step-up successor installation. Reliable data wrapper forwards the same hook; no new authorization from transport metadata.",
+      "sha256": "ba60967de7fb89492ce9cef4b7839460c28e151e6ba0015fc55c46ff26d183e5"
     }
   ]
 }

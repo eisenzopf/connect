@@ -993,10 +993,12 @@
     }
   ],
   "inputs": {
-    "Cargo.lock": "2611ba9475b8d1867b7f0b69a500a58e317041874c2ab0e0598eb922e8d05bb5",
+    "Cargo.lock": "713ba9daf575438ff12ec4895ded61d37e0c3540e254f750a3040044cbb58e11",
     "Cargo.toml": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+    "contracts/openapi-canonical-http.json": "4df8d1464aa1a131d2744aeafe97afbf29e04d16c2e00dea94d69f4d7c748cbe",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
     "crates/connect-protocol/examples/application_http_schema.rs": "8d75682cc96f62ee45f3caec605cdce7e97db3e1b819102a1bdf974e05d946ab",
+    "crates/connect-protocol/examples/enrollment_schema.rs": "a7538cdfa8560bb67582a571f70ee6a2796e1e3765b2fb99b27e6217d815ca3f",
     "crates/connect-protocol/src/application_api.rs": "92f9ceebc43320e807845d7b47db6a3495134444ed21f3735da0d838a57efec7",
     "crates/connect-protocol/src/attachments.rs": "77ab58a48700c9950f936314c097dd2c20a82c32b74e8468e5891b759412b7cb",
     "crates/connect-protocol/src/canonical_discovery.rs": "1fc644fa5e2cf6b0ab6011e60bb65a2e1b2d521c91477927fcaf3665ad824366",
@@ -1006,11 +1008,12 @@
     "crates/connect-protocol/src/conversations.rs": "adf5371467e0f392a4079ec73a45089793b30801e2734234f172b3bea475c99b",
     "crates/connect-protocol/src/credential_issuance.rs": "5698195e40bb155b8c948bd62791037ad6bce8347faf734624d372a09bc787c5",
     "crates/connect-protocol/src/discovery.rs": "1013efaa4a1932fc61ee5b9219199f899094f0314bd71229a8c2bcba175856e1",
+    "crates/connect-protocol/src/enrollment.rs": "944e17240d03b49400f28d8c42f6a947fc69ab753506b4e7d4a8b78cbbe336c5",
     "crates/connect-protocol/src/events/agent.rs": "5edabb2228bd2ad88e6e4e3648ef8c163f45c01ab07e9e807e043c77334a5d86",
     "crates/connect-protocol/src/events/provider_call.rs": "f16ef81dc64621dc05a5cedf49112ea9f0a71bf6cbd10273e6ab8c091ca6a9bd",
     "crates/connect-protocol/src/events.rs": "894e5f211449f729045aa69f904c3fffe3a7c0a7c604c0297097ba69956a422c",
     "crates/connect-protocol/src/incoming_contacts.rs": "f46b4702132ea27213a09c66a9e2ebf91fce2607090e0f006456812cdca3485d",
-    "crates/connect-protocol/src/lib.rs": "e46ef9d9b9ab1bf355f5e2023fe746dcffcbd746e9e218d50f1b4a50025dc033",
+    "crates/connect-protocol/src/lib.rs": "6eee92b5f6bd9f944958333db0dd2ed2e988b5d97b06318e9f0bf730e36b1ce6",
     "crates/connect-protocol/src/media_diagnostics.rs": "5dc1e277f7d606b3b14a559421d257456ff8a531c35d33aa8f000e457ed3a553",
     "crates/connect-protocol/src/media_profile.rs": "76f11be195ae22cb3b1e4fed25804af14e73ff2f6a8512664cafb024dd7efc54",
     "crates/connect-protocol/src/membership.rs": "269cc2ddfa61382c7744f96436800ac3ca91aa818c77150ec2a74627a4eb2352",
@@ -1047,9 +1050,10 @@
     "crates/connect-protocol/tests/contact_debug.rs": "d9dbf2f6e645b4f9077d4a4d83da5d94478d5e0ab5d5ba5921ed4a4902093265",
     "crates/connect-protocol/tests/contact_response.rs": "9fa647ae3d0efa1a47b597f64a6fd87fc2e3d1288b981070447b6865bf7ec94d",
     "crates/connect-protocol/tests/conversation_control.rs": "7d3c41934d97499a567f35e4576b6782c1d366eb8c9104e09895514f7b391546",
+    "crates/connect-protocol/tests/enrollment.rs": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
-    "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
-    "dependencies/source-lock.json": "418d50c4103cef3d90060a838df2d26b384e51034c4132f6faf79cc96b1368a2",
-    "scripts/generate-application-http-openapi.py": "414241edb9ea1515ab762df5a752c18044d924f8c5e4439fee3ba5269169b135"
+    "crates/connect-server/src/transports/http.rs": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
+    "dependencies/source-lock.json": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+    "scripts/generate-application-http-openapi.py": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f"
   }
 }

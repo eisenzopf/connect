@@ -2,7 +2,10 @@
 #![recursion_limit = "256"]
 #![allow(clippy::unwrap_used)]
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use connect_client::{canonical::CanonicalClientConfig, ClientConfig};
+use connect_client::{
+    canonical::{CanonicalClient, CanonicalClientConfig},
+    ClientConfig,
+};
 use connect_protocol::{enrollment::*, provisioning::*};
 use connect_server::{
     canonical::{CanonicalServerConfig, RunningCanonicalServer},
@@ -18,6 +21,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[path = "support/canonical_listener_fixture.rs"]
 mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
+#[path = "support/enrollment_transport.rs"]
+mod enrollment_transport;
 
 struct Hosted {
     f: Fixture,
@@ -66,9 +71,33 @@ impl Hosted {
             telnyx_callbacks: None,
         })
         .collect();
+        f.config.webtransport = Some(
+            connect_server::canonical_webtransport::CanonicalWebTransportConfig {
+                mount_path: "/connect".into(),
+                allowed_origins: vec![
+                    "https://ui.fixture.invalid".into(),
+                    "https://other.fixture.invalid".into(),
+                ],
+                advertised_url: None,
+            },
+        );
+        f.config.websocket = Some(
+            connect_server::canonical_websocket::CanonicalWebSocketConfig {
+                bind: "127.0.0.1:0".parse().unwrap(),
+                mount_path: "/connect".into(),
+                allowed_origins: vec![
+                    "https://ui.fixture.invalid".into(),
+                    "https://other.fixture.invalid".into(),
+                ],
+                advertised_url: None,
+            },
+        );
         f.server = RunningCanonicalServer::start(f.config.clone())
             .await
             .unwrap();
+        let root = f.temp.path().join("enrollment-root.pem");
+        std::fs::write(&root, issuer.pem()).unwrap();
+        f.client.trust_certificate = root;
         let http = reqwest::Client::builder()
             .no_proxy()
             .timeout(Duration::from_secs(7))
@@ -121,9 +150,171 @@ impl Hosted {
         r.send().await.unwrap()
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn enrolled_browser_credential_cannot_open_a_native_quic_peer() {
+    let h = Hosted::new().await;
+    let mut control = h.f.client.clone();
+    control.endpoint = h.f.server.address;
+    CanonicalClient::open(control)
+        .await
+        .unwrap()
+        .shutdown()
+        .await
+        .unwrap();
+    let key = Key::new(SigningAlgorithm::EdDSA);
+    let positive = request(
+        &h,
+        &key,
+        SigningAlgorithm::EdDSA,
+        EnrollmentTransport::Quic,
+        "native-positive",
+    );
+    let offer = h.approve(&positive).await;
+    let issued = h
+        .claim(&key.claim(&offer), None)
+        .await
+        .json::<EnrollmentResponse<EnrollmentCredential>>()
+        .await
+        .unwrap()
+        .result
+        .unwrap();
+    CanonicalClient::open(native_config(&h, &positive, &issued))
+        .await
+        .unwrap()
+        .shutdown()
+        .await
+        .unwrap();
+    let request = request(
+        &h,
+        &key,
+        SigningAlgorithm::EdDSA,
+        EnrollmentTransport::Webtransport,
+        "native-refusal",
+    );
+    let offer = h.approve(&request).await;
+    let issued = h
+        .claim(&key.claim(&offer), request.browser_origin.as_deref())
+        .await
+        .json::<EnrollmentResponse<EnrollmentCredential>>()
+        .await
+        .unwrap()
+        .result
+        .unwrap();
+    let native = native_config(&h, &request, &issued);
+    let opened = CanonicalClient::open(native).await;
+    if let Ok(peer) = opened {
+        peer.shutdown().await.unwrap();
+        h.f.server.shutdown().await.unwrap();
+        panic!("browser enrollment admitted a QUIC peer");
+    } else if let Err(error) = opened {
+        assert!(!matches!(error, connect_client::ClientError::Configuration));
+    }
+    h.f.server.shutdown().await.unwrap();
+}
+fn native_config(
+    h: &Hosted,
+    request: &EnrollmentRequest,
+    issued: &EnrollmentCredential,
+) -> CanonicalClientConfig {
+    let mut native = h.f.client.clone();
+    native.endpoint = h.f.server.address;
+    native.credential = issued.credential.credential.clone();
+    native.device_id = request.device.id.clone();
+    native.device_kind = request.device.kind.clone();
+    native.device_platform = request.device.platform.clone();
+    native.signing_key_id = request.key_id.clone();
+    native.signing_algorithm = request.algorithm.as_str().into();
+    native.signing_private_key = h.f.temp.path().join(format!("{}.der", request.key_id));
+    // Synthetic standard PKCS#8 fixtures; never an account or provider key.
+    let pkcs8 = match request.algorithm {
+        SigningAlgorithm::EdDSA => {
+            let mut pkcs8 = vec![
+                0x30, 0x53, 0x02, 0x01, 0x01, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22,
+                0x04, 0x20,
+            ];
+            pkcs8.extend_from_slice(&[42; 32]);
+            pkcs8.extend_from_slice(&[0xa1, 0x23, 0x03, 0x21, 0x00]);
+            pkcs8.extend_from_slice(&SigningKey::from_bytes(&[42; 32]).verifying_key().to_bytes());
+            rvoip_auth_core::sig9421::Sig9421Signer::ed25519(&native.signing_key_id, &pkcs8)
+                .unwrap();
+            pkcs8
+        }
+        SigningAlgorithm::ES256 => {
+            let mut pkcs8 = vec![
+                0x30, 0x81, 0x87, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce,
+                0x3d, 0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x04,
+                0x6d, 0x30, 0x6b, 0x02, 0x01, 0x01, 0x04, 0x20,
+            ];
+            pkcs8.extend_from_slice(&[43; 32]);
+            pkcs8.extend_from_slice(&[0xa1, 0x44, 0x03, 0x42, 0x00]);
+            pkcs8.extend(URL_SAFE_NO_PAD.decode(&request.public_key).unwrap());
+            rvoip_auth_core::sig9421::Sig9421Signer::es256(&native.signing_key_id, &pkcs8).unwrap();
+            pkcs8
+        }
+    };
+    std::fs::write(&native.signing_private_key, pkcs8).unwrap();
+    native
+}
 enum Key {
     Ed(SigningKey),
     P256(p256::ecdsa::SigningKey),
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn enrolled_browser_http_requires_its_exact_origin_on_later_requests() {
+    let h = Hosted::new().await;
+    // The extra ceiling cannot replace a named route's body/authentication
+    // policy for an invalid token that cannot identify any enrolled authority.
+    assert_eq!(
+        h.http
+            .post(h.url(HttpSurface::Application, "/v1/operations"))
+            .bearer_auth("invalid")
+            .header("Content-Type", "application/json")
+            .body("{")
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        400
+    );
+    let key = Key::new(SigningAlgorithm::EdDSA);
+    let request = request(
+        &h,
+        &key,
+        SigningAlgorithm::EdDSA,
+        EnrollmentTransport::Webtransport,
+        "http-origin",
+    );
+    let offer = h.approve(&request).await;
+    let issued = h
+        .claim(&key.claim(&offer), request.browser_origin.as_deref())
+        .await
+        .json::<EnrollmentResponse<EnrollmentCredential>>()
+        .await
+        .unwrap()
+        .result
+        .unwrap();
+    let url = h.url(HttpSurface::Application, "/v2/discovery");
+    for origin in [None, Some("https://other.fixture.invalid")] {
+        let mut call = h.http.get(&url).bearer_auth(&issued.credential.credential);
+        if let Some(origin) = origin {
+            call = call.header("Origin", origin);
+        }
+        assert_eq!(call.send().await.unwrap().status(), 403);
+    }
+    assert_eq!(
+        h.http
+            .get(&url)
+            .bearer_auth(&issued.credential.credential)
+            .header("Origin", request.browser_origin.as_ref().unwrap())
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        200
+    );
+    h.f.server.shutdown().await.unwrap();
 }
 impl Key {
     fn new(algorithm: SigningAlgorithm) -> Self {

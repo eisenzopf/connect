@@ -323,6 +323,12 @@ def render():
                'Invalid/expired/mismatched/oversized/narrower identity retains last-good material. '
                'SIGTERM/SIGINT drain owned listeners/peers/workers. Signing keys and client trust '
                'retain independent enrollment.'}
+    document['x-connect-enrolled-credentials'] = {
+        'reference':'contracts/openapi-enrollment.json',
+        'physical':'The actual accepting QUIC/WT/WSS driver supplies transport and exact Origin. The protected application handler checks enrolled Device/key/transport/Origin under the verified current lease before initial auth.session and refresh/step-up successor installation. A wire Origin or another listener-allowed Origin cannot substitute.',
+        'finite_http':'Finite HTTP controls retain their own APIs and current authority. Enrolled ordinary and explicit Task bearers additionally require their exact enrollment Origin; native enrollment requires no Origin. Discovery uses the same ceiling.',
+        'current':'Current child credential/key/Device/Endpoint and immutable receipt are rechecked by Store metadata and peer proofs. Alternate attached signing key IDs cannot replace the approved key.',
+        'scope':'Public native/browser enrollment installers and full G6-055 qualification remain separate; these descriptions do not qualify a browser engine, media, Linux/remote host or provider.'}
     return json.dumps(document,indent=2)+'\n'
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args()

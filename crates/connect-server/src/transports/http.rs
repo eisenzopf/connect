@@ -382,7 +382,11 @@ fn routes(
         .route(
             "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
             put(super::artifact_http::put_link_chunk).get(super::artifact_http::get_link_chunk),
-        );
+        )
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            super::enrollment_admission::admit,
+        ));
     let callbacks = Router::new().route("/webhooks/telnyx", post(super::telnyx_http::webhook));
     match surface {
         Some(HttpSurface::Application) => application,

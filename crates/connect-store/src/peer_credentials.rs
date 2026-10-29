@@ -72,6 +72,16 @@ pub(crate) fn peer_signing_key(
     key_id: &str,
     algorithm: &str,
 ) -> Result<PeerSigningKey> {
+    let different: bool = c
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM client_enrollments WHERE credential_id=?1 AND key_id!=?2)",
+            params![credential_id, key_id],
+            |r| r.get(0),
+        )
+        .map_err(|_| Error::storage())?;
+    if different {
+        return Err(Error::forbidden());
+    }
     c.query_row("SELECT k.identity_id,k.device_id,k.algorithm,k.public_key,k.not_before,k.expires_at FROM peer_signing_keys k JOIN credential_signing_keys b ON b.key_id=k.key_id JOIN credentials cr ON cr.id=b.credential_id AND cr.identity_id=k.identity_id JOIN identities i ON i.id=k.identity_id AND i.tenant_id=k.tenant_id JOIN devices d ON d.id=k.device_id AND d.identity_id=k.identity_id AND d.tenant_id=k.tenant_id WHERE b.credential_id=?1 AND k.tenant_id=?2 AND k.key_id=?3 AND k.algorithm=?4 AND i.revoked=0 AND d.revoked=0 AND k.revoked=0 AND k.not_before<=?5 AND k.expires_at>?5 AND cr.revoked=0 AND cr.expires_at>?5 AND cr.issued_at>0 AND cr.issued_at<=?5",params![credential_id,tenant,key_id,algorithm,now()],|r|Ok(PeerSigningKey {
             identity_id:r.get(0)?,device_id:r.get(1)?,algorithm:decode_algorithm(r.get(2)?)?,public_key:r.get(3)?,not_before:r.get(4)?,expires_at:r.get(5)?,
         })).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)
@@ -82,6 +92,7 @@ pub(crate) fn credential_metadata(
     credential_id: &str,
 ) -> Result<CredentialMetadata> {
     let actor = actor_from_connection(c, credential_id)?;
+    crate::enrollment::credential_binding(c, credential_id)?;
     let (issued_at,tenant_id,installation_id):(i64,String,String)=c.prepare_cached("SELECT c.issued_at,i.tenant_id,n.id FROM credentials c JOIN identities i ON i.id=c.identity_id CROSS JOIN installation n WHERE c.id=?1 AND n.singleton=1").map_err(|_|Error::storage())?.query_row([credential_id],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).map_err(|_|Error::storage())?;
     if issued_at <= 0 || issued_at > now() || issued_at >= actor.expires_at {
         return Err(Error::unauthorized());

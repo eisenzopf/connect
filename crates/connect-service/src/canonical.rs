@@ -72,6 +72,12 @@ impl CanonicalHandler {
         if let Some(physical) = &self.physical {
             physical.validate(authorized, authority)?;
         }
+        crate::canonical_enrollment::admit(
+            self.service.store.clone(),
+            self.physical.as_ref(),
+            authority,
+        )
+        .await?;
         if crate::canonical_sessions::correlated_cancel(request) {
             let runtime = self
                 .service
@@ -387,6 +393,37 @@ impl CanonicalHandler {
 
 #[async_trait]
 impl AuthenticatedHandler for CanonicalHandler {
+    async fn admit_peer(
+        &self,
+        credential: &rvoip_auth_core::bearer::ValidatedBearer,
+        device: &rvoip_uctp::v2::payloads::Device,
+        _envelope: &Envelope,
+        held: &rvoip_uctp::v2::auth_dispatch::AuthorityLease,
+    ) -> Result<(), DispatchError> {
+        if !held.current() {
+            return Err(DispatchError::Authority);
+        }
+        let authority = held
+            .authority::<crate::StoreInvocationAuthority>()
+            .ok_or(DispatchError::Authority)?;
+        let proof = authority
+            .peer_guard()
+            .filter(|p| p.current())
+            .ok_or(DispatchError::Authority)?;
+        if credential.token_id.as_deref() != Some(authority.binding().credential_id())
+            || credential.principal.subject != proof.key.identity_id
+            || device.id.as_str() != proof.key.device_id
+        {
+            return Err(DispatchError::Authority);
+        }
+        crate::canonical_enrollment::admit(
+            self.service.store.clone(),
+            self.physical.as_ref(),
+            authority,
+        )
+        .await
+        .map_err(|_| DispatchError::Authority)
+    }
     async fn next_delivery(
         &self,
     ) -> Result<rvoip_uctp::v2::auth_dispatch::HandlerDelivery, DispatchError> {

@@ -1,8 +1,9 @@
 # Remote client enrollment (G6-055 in progress)
 
-The enrollment protocol, Store transactions and bounded HTTP endpoints are
-implemented. Transport-bound use of the resulting credential and native/browser
-public enrollment clients remain pending. Existing trusted backend issuance remains described in
+The enrollment protocol, Store transactions, bounded HTTP endpoints and
+credential-specific admission are implemented. Public native/browser enrollment
+installers and their complete end-to-end qualification remain pending. Existing
+trusted backend issuance remains described in
 [credential installation](credential-installation.md).
 
 `connect_protocol::enrollment` defines a backend-approved `EnrollmentRequest`,
@@ -108,6 +109,35 @@ A transaction can commit after response observation ends: preserve the original
 offer, request, logical IDs and client private key, then explicitly reconcile.
 Neither a timeout nor a lost response authorizes a replacement grant.
 
+The actual accepting QUIC, WebTransport or WSS driver now supplies the physical
+transport and, for browser transports, its exact accepted HTTP Origin to the
+handler. The Origin survives the upgrade in a trusted Rust context. It is not
+read from a signed envelope or inferred from an allowlist. Under the original
+verified credential/Device/key lease, the handler checks this context against
+the enrollment before producing `auth.session`, and before installing a refresh
+or step-up successor. The reliable-data wrapper forwards this admission hook.
+A separately listener-allowed Origin still fails the credential's exact binding.
+
+Current metadata and peer proofs recheck the enrolled child, key, Device,
+Endpoint and immutable receipt. A second active key attached to the credential
+cannot replace its approved key ID. Endpoint revocation therefore refuses fresh
+current admission. This does not change the earlier distinction between network
+readiness, provider consent and a signed enrollment proof.
+
+Finite application HTTP keeps its own operation and current-authority admission
+and additionally checks the enrollment's exact Origin, including native absence.
+Explicit Task bearers retain the enrolled backing credential's Origin ceiling;
+they cannot bypass it by presenting their separate narrow token. Local MCP
+admission applies the same check. Ingress with no trusted physical enrollment
+context refuses enrolled credentials; the dedicated Origin-free record HTTPS
+listener also refuses browser-enrolled credentials. These checks add no scope.
+
+Key rotation uses a fresh approved enrollment and a fresh correctly bound peer.
+Retiring the old enrollment leaves the shared Device/Endpoint available to the
+replacement. A fresh key is not silently substituted through an old signed
+credential-refresh envelope. Ordinary independently issued credentials retain
+their existing refresh and assurance behavior.
+
 Debug output for request/offer/claim is redacted. Intentional JSON encoding carries
 the protected challenge and must stay private. Neither Device-key possession nor
 an Endpoint declaration establishes provider consent, route readiness or media.
@@ -121,7 +151,9 @@ stolen/expired challenges, current-authority recovery, revocation, rotation,
 atomic rollback and protected in-process delivery. These are isolated SQLite
 fixtures. [HTTP evidence](../evidence/gate-6/enrollment-http.json) records three
 local behavior functions, six algorithm/transport-intent scenes and 36 captured
-bodies checked against the generated reference. Actual
-browser/native setup and transport/Origin-bound use of enrolled credentials
-remain G6-055 implementation work; an HTTP claim test does not qualify those
-later connections.
+bodies checked against the generated reference.
+[Physical-admission evidence](../evidence/gate-6/enrollment-admission.json) records
+the corrected regressions and actual local signed QUIC/WT/WSS admission; these
+earlier HTTP claims do not qualify later connections.
+Public browser/native enrollment setup and complete G6-055 qualification remain
+implementation work.

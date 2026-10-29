@@ -1,0 +1,257 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/server.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/server.rs
+@@ -30,6 +30,7 @@
+     pub lifetime: CancellationToken,
+     native: Arc<dyn std::any::Any + Send + Sync>,
+     media: Option<Arc<super::native_media::NativePeerMedia>>,
++    browser_origin: Option<String>,
+ }
+ impl NativeTransportContext {
+     pub fn new<T: std::any::Any + Send + Sync>(
+@@ -42,7 +43,27 @@
+             lifetime,
+             native: Arc::new(native),
+             media: None,
+-        }
++            browser_origin: None,
++        }
++    }
++    /// Exact HTTP Origin captured by the accepting driver, never a payload field.
++    pub fn browser_origin(&self) -> Option<&str> {
++        self.browser_origin.as_deref()
++    }
++    pub fn with_browser_origin(mut self, origin: Option<String>) -> Result<Self, DispatchError> {
++        if origin.as_ref().is_some_and(|value| {
++            self.transport == PeerTransport::Quic
++                || value.is_empty()
++                || value.len() > 2048
++                || !value.is_ascii()
++                || value
++                    .bytes()
++                    .any(|b| b.is_ascii_control() || b.is_ascii_whitespace())
++        }) {
++            return Err(DispatchError::Authority);
++        }
++        self.browser_origin = origin;
++        Ok(self)
+     }
+     pub fn native<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
+         self.native.downcast_ref()
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -55,6 +55,9 @@
+             PeerTransport::WebTransport => Transport::WebTransport,
+             PeerTransport::WebSocket => Transport::WebSocket,
+         }
++    }
++    pub fn browser_origin(&self) -> Option<&str> {
++        self.context.browser_origin()
+     }
+     pub fn native<T: std::any::Any + Send + Sync>(&self) -> Option<&T> {
+         self.context.native()
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_dispatch.rs
+@@ -407,6 +407,20 @@
+ 
+ #[async_trait]
+ pub trait AuthenticatedHandler: Send + Sync {
++    /// Additional connection-specific admission under the verified credential,
++    /// Device, signed envelope and owned current lease. Runs before auth.accept
++    /// and before installing any refresh/step-up successor. The default adds no
++    /// application constraint; it never replaces the peer's required authority.
++    async fn admit_peer(
++        &self,
++        _credential: &ValidatedBearer,
++        _device: &super::payloads::Device,
++        _envelope: &Envelope,
++        _held: &AuthorityLease,
++    ) -> Result<(), DispatchError> {
++        Ok(())
++    }
++
+     /// One fresh guarded subscription page. The physical actor owns and polls
+     /// this future through signaling, EOF and retirement. No detached writer.
+     /// Implementations keep no authority guard while waiting for journal hints.
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer.rs
+@@ -550,6 +550,12 @@
+                     .acquire(&credential, &device, &identity, &envelope)
+                     .await?;
+                 self.verify(&credential.principal, &envelope).await?;
++                if !lease.current() {
++                    return Err(DispatchError::Authority);
++                }
++                handler
++                    .admit_peer(&credential, &device, &envelope, &lease)
++                    .await?;
+                 if !lease.current() {
+                     return Err(DispatchError::Authority);
+                 }
+@@ -623,6 +629,12 @@
+                     // media effects. A host retires this physical peer if its
+                     // original media rotation becomes uncertain. Old invocations
+                     // never borrow the successor's credential authority.
++                    handler
++                        .admit_peer(&credential, &binding.device, &envelope, &lease)
++                        .await?;
++                    if !lease.current() {
++                        return Err(DispatchError::Authority);
++                    }
+                     let next = self.binding(
+                         credential.clone(),
+                         binding.device.clone(),
+--- a/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/auth_peer/step_up.rs
+@@ -307,6 +307,12 @@
+         }
+         // Definitive scope denial must precede the execution/unknown marker.
+         super::super::scope_policy::require(&credential.principal, blocked.payload())?;
++        handler
++            .admit_peer(&credential, &binding.device, &response, &lease)
++            .await?;
++        if !lease.current() {
++            return Err(DispatchError::Authority);
++        }
+         let next = self.binding(
+             credential.clone(),
+             binding.device.clone(),
+--- a/crates/uctp/rvoip-uctp/src/staged_data.rs
++++ b/crates/uctp/rvoip-uctp/src/staged_data.rs
+@@ -99,6 +99,18 @@
+ }
+ #[async_trait]
+ impl AuthenticatedHandler for DataHandler {
++    async fn admit_peer(
++        &self,
++        credential: &rvoip_auth_core::bearer::ValidatedBearer,
++        device: &crate::v2::payloads::Device,
++        envelope: &Envelope,
++        held: &AuthorityLease,
++    ) -> Result<(), DispatchError> {
++        self.app
++            .admit_peer(credential, device, envelope, held)
++            .await
++    }
++
+     async fn handle(&self, e: AuthorizedEnvelope) -> Result<Envelope, DispatchError> {
+         self.app.handle(e).await
+     }
+--- a/crates/uctp/rvoip-websocket/src/canonical.rs
++++ b/crates/uctp/rvoip-websocket/src/canonical.rs
+@@ -47,6 +47,8 @@
+                 let deadline = tokio::time::Instant::now() + AUTHENTICATION_TIMEOUT;
+                 let peer = profile.peer(PeerTransport::WebSocket, &contact, cancel.clone())?;
+                 let upgrade = async move {
++                    let accepted_origin = Arc::new(std::sync::OnceLock::new());
++                    let captured = accepted_origin.clone();
+                     let socket = tokio_rustls::TlsAcceptor::from(tls)
+                         .accept(socket)
+                         .await
+@@ -62,6 +64,10 @@
+                                 .map(|value| value.to_str().unwrap_or("")),
+                             origins.as_ref().as_ref(),
+                         );
++                        let all_origins = request.headers().get_all("origin");
++                        let valid_origin = valid_origin
++                            && all_origins.iter().count() <= 1
++                            && all_origins.iter().all(|v| v.to_str().is_ok());
+                         if request.uri().path() != mount || !valid_origin {
+                             let status = if !valid_origin { 403 } else { 404 };
+                             return Err(Response::builder()
+@@ -69,9 +75,20 @@
+                                 .body(Some("upgrade denied".into()))
+                                 .expect("static HTTP response"));
+                         }
++                        let origin = request
++                            .headers()
++                            .get("origin")
++                            .and_then(|v| v.to_str().ok())
++                            .map(str::to_owned);
++                        captured.set(origin).map_err(|_| {
++                            Response::builder()
++                                .status(403)
++                                .body(Some("upgrade denied".into()))
++                                .expect("static HTTP response")
++                        })?;
+                         Ok(response)
+                     };
+-                    accept_hdr_async_with_config(
++                    let websocket = accept_hdr_async_with_config(
+                         socket,
+                         callback,
+                         Some(
+@@ -81,18 +98,22 @@
+                         ),
+                     )
+                     .await
+-                    .map_err(|_| DispatchError::Closed)
++                    .map_err(|_| DispatchError::Closed)?;
++                    let origin = accepted_origin
++                        .get()
++                        .cloned()
++                        .ok_or(DispatchError::Authority)?;
++                    Ok::<_, DispatchError>((websocket, origin))
+                 };
+-                let websocket = tokio::select! {
++                let (websocket, origin) = tokio::select! {
+                     biased;
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
+                 };
+-                let handler = profile.physical_handler(NativeTransportContext::new(
+-                    PeerTransport::WebSocket,
+-                    cancel.clone(),
+-                    (),
+-                ))?;
++                let context =
++                    NativeTransportContext::new(PeerTransport::WebSocket, cancel.clone(), ())
++                        .with_browser_origin(origin)?;
++                let handler = profile.physical_handler(context)?;
+                 let (writer, reader) = websocket.split();
+                 let reader = futures::stream::unfold(reader, |mut reader| async move {
+                     loop {
+--- a/crates/uctp/rvoip-webtransport/src/canonical.rs
++++ b/crates/uctp/rvoip-webtransport/src/canonical.rs
+@@ -64,6 +64,10 @@
+                             .map(|value| value.to_str().unwrap_or("")),
+                         origins.as_ref().as_ref(),
+                     );
++                    let all_origins = request.headers.get_all(http::header::ORIGIN);
++                    let valid_origin = valid_origin
++                        && all_origins.iter().count() <= 1
++                        && all_origins.iter().all(|v| v.to_str().is_ok());
+                     if request.url.path() != mount || !valid_origin {
+                         let status = if !valid_origin {
+                             http::StatusCode::FORBIDDEN
+@@ -73,14 +77,19 @@
+                         let _ = request.reject(status).await;
+                         return Err(DispatchError::Authority);
+                     }
++                    let origin = request
++                        .headers
++                        .get(http::header::ORIGIN)
++                        .and_then(|v| v.to_str().ok())
++                        .map(str::to_owned);
+                     let session = request.ok().await.map_err(|_| DispatchError::Closed)?;
+                     let (writer, reader) = session
+                         .accept_bi()
+                         .await
+                         .map_err(|_| DispatchError::Closed)?;
+-                    Ok((session, writer, reader))
++                    Ok((session, writer, reader, origin))
+                 };
+-                let (_session, mut transport_writer, reader) = tokio::select! {
++                let (_session, mut transport_writer, reader, origin) = tokio::select! {
+                     biased;
+                     _=cancel.cancelled()=>return Err(DispatchError::Closed),
+                     result=tokio::time::timeout_at(deadline,upgrade)=>result.map_err(|_|DispatchError::Closed)??,
+@@ -89,7 +98,8 @@
+                     PeerTransport::WebTransport,
+                     cancel.clone(),
+                     _session.clone(),
+-                );
++                )
++                .with_browser_origin(origin)?;
+                 let mut media_reader = if _session.max_datagram_size() >= 20 {
+                     let media = NativePeerMedia::new(
+                         PeerTransport::WebTransport,

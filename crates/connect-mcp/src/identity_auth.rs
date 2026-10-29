@@ -31,6 +31,7 @@ impl McpAuthenticator for LocalAuth {
 
     async fn authenticate_access(&self, headers: &HeaderMap) -> Result<McpAccess, Error> {
         let token = bearer(headers)?;
+        crate::auth::enrollment_origin(&self.service, token, headers).await?;
         if token.starts_with("ctg1.") {
             return self.authenticate(headers).await.map(McpAccess::Task);
         }

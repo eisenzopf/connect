@@ -1,0 +1,585 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "1ece2be6",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Local macOS arm64 enrollment admission component only. Actual signed WSS/WebTransport and native QUIC fixtures, Store and finite HTTP/MCP regressions. No actual browser engine, public enrollment installer, Linux hosting, remote provider, model host/account or full G6-055 qualification. passed applies to this bounded component, not the unresolved SDK suite.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "crates/connect-mcp/src/auth.rs": {
+      "sha256": "1e9b1dcb4da41d87c2e2029e9d15314eec90a2ebe78e82448810a5dfab2e8d16",
+      "mode": 420
+    },
+    "crates/connect-mcp/src/identity_auth.rs": {
+      "sha256": "48da19bbe568c3180c51c05165439bbe6cac98c5dc7410797c4d6da2f4abb872",
+      "mode": 420
+    },
+    "crates/connect-server/src/media_transports.rs": {
+      "sha256": "a65584cc0e1d976539e62dd5f049182b90eecaef3f3d5b31e8f5190ad824c88d",
+      "mode": 420
+    },
+    "crates/connect-server/src/runtime.rs": {
+      "sha256": "99760c300d82d35766cc9e82d20162dcb484aef462cf5c32c807b2ce4a953ff8",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/http.rs": {
+      "sha256": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/mod.rs": {
+      "sha256": "32eb6ddc2769b74ec81cd9cd0fafe2f86afa18de923053693651a47b48920b26",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/record_https.rs": {
+      "sha256": "7e1c0fa496f140ba30ab5b2c6ad6e4fba88b52037f7be1615711ea850ba66dfb",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "eb02a79353f24cd115191ae814f0fa672bc1581aa7c55134359d12c5a5e0190e",
+      "mode": 420
+    },
+    "crates/connect-service/src/authentication.rs": {
+      "sha256": "9325e003a95d1fc3dcbb4b472910bba3e2d689f4a8f6e715f5aa5954dd95b0d5",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical.rs": {
+      "sha256": "aff5491468580a49336ca60216f4e82e823cc5549e35c59a1c2ad05e76d40bc5",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_runtime.rs": {
+      "sha256": "a207b8c0ba6e950e9ff8ff8c08cd14bd72c53130200046ede00e675780907275",
+      "mode": 420
+    },
+    "crates/connect-service/src/lib.rs": {
+      "sha256": "674923a165de09b2fec4c200e2e3137b2e9db33772f0644a5c3fd3b8fe53585b",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/mod.rs": {
+      "sha256": "f143c2db083cd84dc74df041ee217e77b39ee038ffd5d17df1b223205b48c4ff",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/tests.rs": {
+      "sha256": "e21feb53aec3ea5e5eb7068854a858436649b3ecf42c3972c375e2d54203d6de",
+      "mode": 420
+    },
+    "crates/connect-store/src/peer_authority.rs": {
+      "sha256": "3931888d18ef6e3e9793fc1ab48909c17a627967f139222a06aabd87b1ab6a5c",
+      "mode": 420
+    },
+    "crates/connect-store/src/peer_credentials.rs": {
+      "sha256": "ff814996c130c00aa7851d0d222dab5ff02b0219807fac5f32f1578757b7dec9",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/enrollment_admission.rs": {
+      "sha256": "ccf927ac515ef3906013b2924372d6ce82a0feeb20fd67f9d0e7d38df5e3aae9",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_enrollment.rs": {
+      "sha256": "4ac41d5685e908ccbd403640c248ef519133f5407f98dfe4805ecba881c02c09",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_transport.rs": {
+      "sha256": "b24da31a798c494c9f64365c32d0f448bc4bd2ed3d08c366a2f0f70db2df0b76",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "patches/rvoip/gate6-enrollment-physical-origin-admission.patch": {
+      "sha256": "ba60967de7fb89492ce9cef4b7839460c28e151e6ba0015fc55c46ff26d183e5",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "713ba9daf575438ff12ec4895ded61d37e0c3540e254f750a3040044cbb58e11",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/approval.rs": {
+      "sha256": "47ed52797f87cf8d22006c33bc7e199dcc46ea04c91a6bad7150084172c783f0",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/revoke.rs": {
+      "sha256": "b56b786813a5a13482aa3b99246a74c391065e918de2fd3981edf77758352392",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/claim.rs": {
+      "sha256": "be38e060488a6cffa01103a03f414c5911f2236df3a7cd525ff2118bc03762d7",
+      "mode": 420
+    },
+    "crates/connect-store/src/lib.rs": {
+      "sha256": "e3cd9ddb9d4222dcf6f746b5ce054cfb5cb711e8c2dff041fd0f4c236d0e1cf6",
+      "mode": 420
+    },
+    "crates/connect-store/src/recovery.rs": {
+      "sha256": "7b0b204d175becbaf4c7a7b3fb7cee9488cf12044bbb147c4399db149513a6a0",
+      "mode": 420
+    },
+    "crates/connect-store/src/credential_issuance.rs": {
+      "sha256": "aef043b853e0becffda605f7984813ae80937c732f0a4bd0d1f54f8ebd58a0a7",
+      "mode": 420
+    },
+    "crates/connect-store/src/provisioning.rs": {
+      "sha256": "3b24407b788950af419afb88a7ce7932cd5fd8a91c0b68eb078edb6ebbda743e",
+      "mode": 420
+    },
+    "crates/connect-store/Cargo.toml": {
+      "sha256": "4416fbfa3d62887bb8c76817af07edd9fdaaa7792708503a51c520db6fa5b9b7",
+      "mode": 420
+    },
+    "crates/connect-store/migrations/115_client_enrollment.sql": {
+      "sha256": "ea4ebfc6b89866c0e69d105945e916541a2f2d3a920656a5cf7d06a6cc9f42d4",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/enrollment.rs": {
+      "sha256": "944e17240d03b49400f28d8c42f6a947fc69ab753506b4e7d4a8b78cbbe336c5",
+      "mode": 420
+    },
+    "Cargo.toml": {
+      "sha256": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment_mcp.rs": {
+      "sha256": "694c07439c1cf022467a53783cbd523a0a7f8aae9d60f27a90bdd359361da7c9",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/canonical_mcp.rs": {
+      "sha256": "7f751e91e976bd7b22a4f131b2d769dc9aedae6169ee176393d68b9b2beb7263",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/canonical_mcp/application_dispatch.rs": {
+      "sha256": "0e43b92fba4d5efe82ea615373c8b89fec1447341ae383abc07354c3cafc2318",
+      "mode": 420
+    },
+    "scripts/generate-application-http-openapi.py": {
+      "sha256": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f",
+      "mode": 420
+    },
+    "scripts/generate-canonical-http-openapi.py": {
+      "sha256": "584edc935c9b27ca35ecfb6a9bb191aaac2a30976743434d9880cd7cdd4579df",
+      "mode": 420
+    },
+    "scripts/generate-enrollment-openapi.py": {
+      "sha256": "a1d2d8d9b3903defc07e2efb9956a5c10f19101f156da09b49a50eba77b21384",
+      "mode": 420
+    },
+    "contracts/openapi-application-http.json": {
+      "sha256": "c4b85b5e08d98e4c6a4c7ea76d02d312d2400b0c63bdeb8cd013906d066f51fa",
+      "mode": 420
+    },
+    "contracts/application-http-dispatch.json": {
+      "sha256": "4ad2d894b78de5794cf2c93686f0215988b4133500af858bf85c5072529f3d9a",
+      "mode": 420
+    },
+    "contracts/openapi-canonical-http.json": {
+      "sha256": "4df8d1464aa1a131d2744aeafe97afbf29e04d16c2e00dea94d69f4d7c748cbe",
+      "mode": 420
+    },
+    "contracts/openapi-enrollment.json": {
+      "sha256": "ad188b86f94575a6f3d9d5b087e645abe7332717604d63c25ac120d35609b268",
+      "mode": 420
+    },
+    "contracts/http-endpoints.json": {
+      "sha256": "0c6ad3c3370c959fb84d3272d2e5b23e8c54b3c9651c3ea1bed2902dc610c42c",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_application_sdk.rs": {
+      "sha256": "8b84aaacebdfb418dac7f22d7f90e6abd361cbeb3b81b27dfd5b87772be74024",
+      "mode": 420
+    }
+  },
+  "physical_admission": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "seconds": 99.40510308300145,
+    "source_inputs_unchanged": true,
+    "functions_passed": 6,
+    "source_inputs_sha256": "073b0f83b52b77e4613a2b7d8c93fd9c30eb17974ce86c425de0f935508c8427",
+    "log_sha256": "2149d6c7eb1f29f5f48e3c091baa2b8994a50da2e6f808ede951cd5a3a85f897"
+  },
+  "store_enrollment": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "source_inputs_unchanged": true,
+    "functions_passed": 15,
+    "expected_functions": 15,
+    "pattern": "enrollment::tests::",
+    "source_inputs_sha256": "42a83b236caccca581d8af855d0d669944b825012a2d683e74d92a4605c0799d",
+    "log_sha256": "03d8a7c2d77060788c7b71f7973875958d45467b88c234489386f785c2575391",
+    "seconds": 30.718144999817014,
+    "scope": "Store enrollment behavior on isolated local SQLite: actual Ed25519/ES256 proofs, reserved original IDs, atomic endpoint/credential/key binding, replay/restart, authority/Origin/refusal/capacity/revocation/rotation, protected in-process delivery fences and snapshot/schema boundary. No HTTP physical delivery, transport-bound admission, native/browser client or fullG6-055 qualification."
+  },
+  "regressions": {
+    "passed": true,
+    "functions_passed": 81,
+    "store": [
+      {
+        "phase": "store-peer",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "function_counts": [
+          38
+        ],
+        "expected_function_counts": [
+          38
+        ],
+        "functions_passed": 38,
+        "seconds": 34.87752195796929,
+        "log_sha256": "8ff2da4a9e4e4423f4862e7e159c2629994c9c3c54f6535a515d8ff9a67f3dc4",
+        "recovered_from": "enrollment983: all38 behavior functions already passed with stable source; corrected verifier expected20 versus observed38 including nested tests"
+      },
+      {
+        "phase": "store-issuance",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "function_counts": [
+          7
+        ],
+        "expected_function_counts": [
+          7
+        ],
+        "functions_passed": 7,
+        "seconds": 2.9315618330147117,
+        "log_sha256": "274b66e72fdccd51897851b39b7f995c23620f87e9e3f192af1fa07d60ee7470"
+      },
+      {
+        "phase": "store-provisioning",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "function_counts": [
+          3,
+          16,
+          2
+        ],
+        "expected_function_counts": [
+          3,
+          16,
+          2
+        ],
+        "functions_passed": 21,
+        "seconds": 20.72640308411792,
+        "log_sha256": "15b27cc5702dbbc77eb910f717f38fed41fae1802905ef34c38c0649b345e56a"
+      }
+    ],
+    "service_current_peer": {
+      "passed": true,
+      "exit_code": 0,
+      "functions_passed": 10,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "073b0f83b52b77e4613a2b7d8c93fd9c30eb17974ce86c425de0f935508c8427",
+      "log_sha256": "5750b9594ac61d1200bc5deda2fc592940c8339602fc177b878991e2aea4b597",
+      "seconds": 37.20088024996221
+    },
+    "current_canonical_mcp": {
+      "passed": true,
+      "exit_code": 0,
+      "functions_passed": 5,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "3064343776eed2e9392cc1597940cff58e5e7882130ad4ffc8b143eaf3f501de",
+      "log_sha256": "41e1fd84e59b54ab850dc583dd8a463b119cc6b01289756232e0147577cc7724",
+      "seconds": 11.655658249976113,
+      "scope": "Current canonical MCP5 isolated target; no model execution, accounts, provider or named remote use."
+    }
+  },
+  "behavior": [
+    "16 actual signed handshakes: Ed25519/ES256 x approved WSS/WebTransport x actual WSS/WebTransport x exact/other listener-allowed Origin. Both Origins pass physical upgrade; only matching transport and exact Origin reach auth.session.",
+    "Positive enrolled native QUIC and trusted ordinary control connect; browser WebTransport enrollment with same correct Device/key cannot connect over native QUIC.",
+    "Application HTTP discovery refuses missing and other globally allowed Origin403; exact Origin200. Invalid bearer plus malformed named application JSON retains existing400 decoding contract.",
+    "Enrolled metadata and authenticated peer admission enforce original exact key even when another active key is attached; approved key succeeds. Endpoint revocation invalidates metadata and HTTP use.",
+    "Explicit native local Task bearer inherits current enrolled parent exact Origin; no Origin, foreign Origin and unbound ingress refuse.",
+    "Original enrollment HTTP claim, lost-response recovery, restart, admin isolation, signature exhaustion and revocation fixtures continue passing.",
+    "Existing Store peer/issuance/provisioning66, service current physical proof/refresh10 and current canonical MCP5 regressions pass. MCP configuration export uses local offline configuration; no model invocation."
+  ],
+  "implementation": [
+    "Pinned upstream patch captures singular valid accepted HTTP Origin in WSS/WT physical context. Hook executes under current verified lease before initial auth, refresh and step-up successor binding; staged reliable-data wrapper forwards it.",
+    "Canonical service compares immutable transport, actual physical Origin, Identity, Device and exact key with current completed enrollment under retained peer proof; later commands recheck.",
+    "Finite application HTTP and MCP enforce enrolled parent Origin including explicit Task grants; routes retain their own authorization/effect checks. Unbound legacy ingress refuses enrolled credentials. Origin-free record HTTPS requires native OriginNone.",
+    "Store peer authority shares the enrolled exact-key lookup and rechecks current receipt, issuer, child credential, key, Device and Endpoint. Rotation requires a fresh approved key/peer; no old-key substitution."
+  ],
+  "references": {
+    "passed": true,
+    "phases": [
+      {
+        "phase": "application-generate",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 40.51722195814364,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      },
+      {
+        "phase": "application-current",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.6624476669821888,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      },
+      {
+        "phase": "application-codec",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 1.7169961670879275,
+        "log_sha256": "e3cbb3d1f51cb670d687513c618c4cc585cabb213dd52e733788069c046bd42a"
+      },
+      {
+        "phase": "enrollment-samples",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08298937510699034,
+        "log_sha256": "ad872be11e81adddc568f331d6a711212fb70b95aeb3bfb2159cbcb8cd200137"
+      },
+      {
+        "phase": "canonical-current",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.047739499947056174,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "enrollment-current",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04772179201245308,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "inventory",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08824158296920359,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "inventory-current",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08212666609324515,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "navigation",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08992366585880518,
+        "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+      }
+    ],
+    "actual_enrollment_bodies": {
+      "passed": true,
+      "scenes": 6,
+      "actual_http_bodies": 36,
+      "schema_sha256": "ad188b86f94575a6f3d9d5b087e645abe7332717604d63c25ac120d35609b268",
+      "scope": "Real isolated HTTPS fixture bodies match derived DTO/OpenAPI shapes; no browser/native transport or full G6-055 qualification."
+    },
+    "application_codec": {
+      "scope": "Synthetic real serde/schema/dispatch agreement only; no service authorization/media/profile qualification",
+      "source_unchanged": true,
+      "schemas": 227,
+      "dispatch_cases": 69,
+      "task_cases": 16,
+      "openapi_sha256": "c4b85b5e08d98e4c6a4c7ea76d02d312d2400b0c63bdeb8cd013906d066f51fa",
+      "catalog_sha256": "4ad2d894b78de5794cf2c93686f0215988b4133500af858bf85c5072529f3d9a"
+    },
+    "application_codec_checks": 98,
+    "inventory": {
+      "declarations": 28,
+      "explicit_http_operations": 29,
+      "uncovered": 0,
+      "scope": "Reference coverage only"
+    }
+  },
+  "unresolved_sdk_regression": {
+    "passed": false,
+    "suite": "gate6_application_sdk",
+    "functions_passed": 9,
+    "functions_failed": 1,
+    "ignored": 0,
+    "function": "installed_provision_command_uses_application_authority_and_never_echoes_invalid_input",
+    "observation": "Original15second installed positive provisioning subprocess wait expires. Explicit stdin EOF and multi-thread test runtime did not resolve it; experiments reverted and original bound retained. Sampled child showed dyld_start only; cause is unresolved. Direct installed CLI help and invalid piped input controls complete promptly. No production CLI fix claimed.",
+    "log_sha256": "493dc6c3e953a8ed80be1a25e8a5136b9dc0d5ec4eeb1690bec4eda0b7755301"
+  },
+  "prior_attempts": [
+    {
+      "attempt": "inadequate initial refusal fixtures",
+      "observation": "Refusal passed from invalid local PKCS8v1 configuration; no causal network proof. Corrected to PKCS8v2, real signer preflight and trusted positive connection.",
+      "logs": [
+        {
+          "log_sha256": "f55041a00bf6d7a21f26f0168f6cf68ca2bfe61fa420622db9a5f81b4a613a56"
+        },
+        {
+          "log_sha256": "f2f237cec15aac0080396e627fe85d07a07ad01e17669a1776b92c8379efa166"
+        }
+      ]
+    },
+    {
+      "attempt": "causal pre-fix wrong transport",
+      "observation": "Expected refusal failed: browser WebTransport credential actually opened native QUIC after trusted positive control.",
+      "logs": [
+        {
+          "log_sha256": "776a6a8d368b750d3203f6312abcc9c42894aa4c3457d391359af04a27a2e1d7"
+        }
+      ]
+    },
+    {
+      "attempt": "causal pre-fix absent Origin",
+      "observation": "Expected403 failed: browser enrolled credential received HTTP200 discovery without Origin.",
+      "logs": [
+        {
+          "log_sha256": "35e7af90720d81618d677f26b63e9ddb3b40f4a0dbeb059202468eb074ad08e3"
+        }
+      ]
+    },
+    {
+      "attempt": "Store compile attempt",
+      "observation": "ConnectionGuard coercion compile error; corrected local connection binding. No behavior qualified.",
+      "logs": [
+        {
+          "log_sha256": "44e4877721df2bba68b465529af8fc778a227557cc4697e253f6394b6fd5c367"
+        }
+      ]
+    },
+    {
+      "attempt": "upstream compile attempt",
+      "observation": "WSS tuple Result type inference failed; Cargo interrupted after confirmed compiler failure. Corrected explicit DispatchError in new pinned root.",
+      "logs": [
+        {
+          "log_sha256": "bf224adb0cfd63e4fd96e53e2146429d2dc6f1cb6a634c1325f26a5c7785ba16"
+        }
+      ]
+    },
+    {
+      "attempt": "integration compile attempt",
+      "observation": "Server compiled; test-only boxed Sink close argument failed. Corrected close() and final six tests pass.",
+      "logs": [
+        {
+          "log_sha256": "4d64f8ff1e3513f99bfc0c61765b31e20441326283a07bf3554d5bfb39569bbf"
+        }
+      ]
+    },
+    {
+      "attempt": "retired Gate4 MCP fixture",
+      "observation": "Three fixture setups use retired create API and fail unsupported-command before MCP admission. No legacy fallback added; five existing current canonical MCP tests pass in isolated root.",
+      "logs": [
+        {
+          "log_sha256": "ba3abe7c1e71589f749a5a27874cbbda75466ef5671c3c4e94830d7255d5f461"
+        }
+      ]
+    },
+    {
+      "attempt": "canonical monolithic test root",
+      "observation": "Default root references unrelated feature-gated media fault fixture. Isolated test root reuses current canonical MCP tests; no media qualification claimed.",
+      "logs": [
+        {
+          "log_sha256": "95427b585d3d5405a35b9be6027f954dce33ef6fa4d4d61b458fd294459eb241"
+        }
+      ]
+    },
+    {
+      "attempt": "regression verifier expected count",
+      "observation": "Store peer tests actually passed38 with stable source; verifier expected20 and marked initial run false. Recovered frozen log with corrected38; no rerun represented as new behavior."
+    },
+    {
+      "attempt": "SDK compile recursion limit",
+      "observation": "Recursive upstream SIP types exceeded default128 in existing SDK test root. Added256, matching existing canonical roots. Final SDK execution still has one timeout."
+    },
+    {
+      "attempt": "first isolated canonical MCP result guard",
+      "observation": "Five behavior tests passed, but new test root was formatted during source guard. Final formatted/stable rerun passes5; earlier run not used for source-stable qualification."
+    }
+  ],
+  "format": {
+    "command": "bash scripts/format.sh --check",
+    "phase": "format",
+    "exit_code": 0,
+    "passed": true,
+    "seconds": 2.6544828328769654,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remaining": [
+    "Public native/browser approved-offer, private-key/proof and credential installation workflows.",
+    "Fresh actual browser/native enrollment workflow and complete stolen/expired challenge, wrong Endpoint/cross-Origin, current replay, rotation/revocation and admin isolation qualification.",
+    "Resolve installed positive provisioning CLI subprocess timeout before full SDK qualification;9/10 is not a passed suite.",
+    "Initial/refresh/step-up hooks are implemented; this component matrix directly qualifies initial physical admission only. No new live refresh/step-up enrollment rotation race or large stalled HTTP response delivery qualification.",
+    "Linux x86_64, actual browser engine/media, named remote/provider and account execution lanes remain separate. No new execution authorization consumed."
+  ],
+  "prior_components": [
+    "docs/evidence/gate-6/enrollment-contract.json",
+    "docs/evidence/gate-6/enrollment-store.json",
+    "docs/evidence/gate-6/enrollment-http.json"
+  ],
+  "privacy": "Raw logs, temporary TLS material, synthetic issued bearers and private state remain ignored under .local; public evidence contains digests and bounded observations only.",
+  "final_checks": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "prepare",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.14978799992240965,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "phase": "format",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 2.6544828328769654,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "diff",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.02393908309750259,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "plan",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.08583241701126099,
+        "log_sha256": "1c4f0d88fdd950f9f61632c2672152abf364af2c15e6c506c09f8867e1f9efc6"
+      },
+      {
+        "phase": "navigation",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.08997645904310048,
+        "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+      },
+      {
+        "phase": "inventory",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.08300400013104081,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "canonical",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.042639208026230335,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "enrollment",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.048359249951317906,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "application",
+        "exit_code": 0,
+        "passed": true,
+        "seconds": 0.8257825409527868,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      }
+    ]
+  }
+}

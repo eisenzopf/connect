@@ -368,7 +368,7 @@ impl RunningServer {
         } else {
             None
         };
-        let validator = StoreValidator::new(store.clone());
+        let validator = StoreValidator::unbound_transport(store.clone());
         let websocket = if let Some(address) = config.websocket_bind {
             Some(
                 crate::transports::websocket::Listener::bind(

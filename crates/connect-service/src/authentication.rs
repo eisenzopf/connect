@@ -15,6 +15,7 @@ pub struct StoreValidator {
     store: Arc<Store>,
     route_credential: Option<String>,
     canonical: bool,
+    reject_enrolled: bool,
 }
 impl StoreValidator {
     /// Compose the generic native/application validator.
@@ -23,6 +24,17 @@ impl StoreValidator {
             store,
             route_credential: None,
             canonical: false,
+            reject_enrolled: false,
+        })
+    }
+    /// Legacy/route ingress lacks a trusted canonical physical enrollment
+    /// context. Enrolled identities must use their approved current transport.
+    pub fn unbound_transport(store: Arc<Store>) -> Arc<Self> {
+        Arc::new(Self {
+            store,
+            route_credential: None,
+            canonical: false,
+            reject_enrolled: true,
         })
     }
     /// Accept only the credential selected for an administrator-configured
@@ -32,6 +44,7 @@ impl StoreValidator {
             store,
             route_credential: Some(credential_id),
             canonical: false,
+            reject_enrolled: true,
         })
     }
     /// Canonical command authentication binds an ordinary local bearer to an
@@ -41,6 +54,7 @@ impl StoreValidator {
             store,
             route_credential: None,
             canonical: true,
+            reject_enrolled: false,
         })
     }
     pub(crate) fn principal(
@@ -177,6 +191,16 @@ impl BearerValidator for StoreValidator {
     ) -> std::result::Result<AuthenticatedPrincipal, BearerAuthError> {
         let store = self.store.clone();
         let token = token.to_owned();
+        if self.reject_enrolled {
+            let checked_store = store.clone();
+            let checked_token = token.clone();
+            tokio::task::spawn_blocking(move || {
+                checked_store.check_unbound_enrollment_bearer(&checked_token)
+            })
+            .await
+            .map_err(|_| BearerAuthError::Unavailable("storage".into()))?
+            .map_err(auth_error)?;
+        }
         if token.starts_with("ctg1.") {
             if self.route_credential.is_some() || self.canonical {
                 return Err(BearerAuthError::Invalid("route credential".into()));

@@ -506,7 +506,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 386,
+      "line": 390,
       "registration": "route",
       "path": "/webhooks/telnyx",
       "operations": [
@@ -525,7 +525,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 391,
+      "line": 395,
       "registration": "route",
       "path": "/healthz",
       "operations": [
@@ -623,12 +623,12 @@
     }
   ],
   "inputs": {
-    "contracts/openapi-application-http.json": "fcd55fa5e2d68c8e05efb8fac5c318c9489cbf7e4796bfa7a0309d78c4ecbe8d",
+    "contracts/openapi-application-http.json": "c4b85b5e08d98e4c6a4c7ea76d02d312d2400b0c63bdeb8cd013906d066f51fa",
     "contracts/openapi-attachments.json": "d991d68e0b50456928a110ac6dc7b58e9210e9c9d09b657b3be40b969f35c685",
-    "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
+    "contracts/openapi-canonical-http.json": "4df8d1464aa1a131d2744aeafe97afbf29e04d16c2e00dea94d69f4d7c748cbe",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
     "contracts/openapi-conversations.json": "91c85900303ff4dca6cc41941dc7366fc06284af8f134057dba4b93fcb032d0c",
-    "contracts/openapi-enrollment.json": "7793f704b0e5552b5593f27873823c35db9b6390a9b2d0a7b78328d1132cb955",
+    "contracts/openapi-enrollment.json": "ad188b86f94575a6f3d9d5b087e645abe7332717604d63c25ac120d35609b268",
     "contracts/openapi-events.json": "7e1c48e8541a86b9bbb2b55117672bf94c08e5928011a5f16bd291ef613ff404",
     "contracts/openapi-incoming-contacts.json": "a741e7059fca8a00803a10e8f3b09a77d4361dff7a9ee56c840a4fcde773eb64",
     "contracts/openapi-membership.json": "e1666be68b0043bd57b83dda1d7034f2c96d9e78e5eee36f060cf0f54c5d38e8",
@@ -647,8 +647,8 @@
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
     "crates/connect-server/src/transports/credential_issuance.rs": "fb16b6a66e3324e03057f22be479ee4afd720d675c5e86a7b000504321833a96",
     "crates/connect-server/src/transports/enrollment.rs": "daf5be01ccb1d8d6a631d1df3689cece82510c25df04d6136cd14e775df3c63b",
-    "crates/connect-server/src/transports/http.rs": "83ee5f56a37007fd7953b73682105e7bc7ad7c635be17010b69b2db8fde995bf",
-    "crates/connect-server/src/transports/record_https.rs": "bd35ff993c355e61442b30d10021b33acd8c8bad8f1abc50783f1db44808cdd3",
+    "crates/connect-server/src/transports/http.rs": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
+    "crates/connect-server/src/transports/record_https.rs": "7e1c0fa496f140ba30ab5b2c6ad6e4fba88b52037f7be1615711ea850ba66dfb",
     "crates/connect-server/src/transports/record_mutations.rs": "49a9ccc35833669aa405ea105d2c0126173c5937055f5bb849f25ee416cc1113",
     "crates/connect-server/src/transports/user_delegation.rs": "de833cdafbb9dbed59c21a5d0f8d482b991eeade37b56b55fe516259be957a66"
   }

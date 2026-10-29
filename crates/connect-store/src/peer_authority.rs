@@ -263,7 +263,16 @@ pub(crate) fn checked(
             meta.installation_id.clone(),
         ));
         device(c, &meta, &req.device)?;
-        let key=c.prepare_cached("SELECT k.identity_id,k.device_id,k.algorithm,k.public_key,k.not_before,k.expires_at FROM peer_signing_keys k JOIN credential_signing_keys b ON b.key_id=k.key_id WHERE b.credential_id=?1 AND k.tenant_id=?2 AND k.identity_id=?3 AND k.device_id=?4 AND k.key_id=?5 AND k.algorithm=?6 AND k.revoked=0 AND k.not_before<=?7 AND k.expires_at>?7").map_err(|_|Error::storage())?.query_row(params![credential,meta.tenant_id,meta.actor.identity_id,req.device.id,req.key_id,req.algorithm,crate::now()],|r|Ok(PeerSigningKey {identity_id:r.get(0)?,device_id:r.get(1)?,algorithm:match req.algorithm.as_str(){"EdDSA"=>connect_protocol::provisioning::SigningAlgorithm::EdDSA,_=>connect_protocol::provisioning::SigningAlgorithm::ES256},public_key:r.get(3)?,not_before:r.get(4)?,expires_at:r.get(5)?})).optional().map_err(|_|Error::storage())?.ok_or_else(Error::forbidden)?;
+        let key = crate::peer_credentials::peer_signing_key(
+            c,
+            credential,
+            &meta.tenant_id,
+            &req.key_id,
+            &req.algorithm,
+        )?;
+        if key.identity_id != meta.actor.identity_id || key.device_id != req.device.id {
+            return Err(Error::forbidden());
+        }
         if !["EdDSA", "ES256"].contains(&req.algorithm.as_str()) {
             return Err(Error::forbidden());
         }

@@ -61,6 +61,7 @@ impl FixedBindingAuth {
 impl McpAuthenticator for FixedBindingAuth {
     async fn authenticate(&self, headers: &HeaderMap) -> Result<TaskInvocation, Error> {
         let token = bearer(headers)?;
+        enrollment_origin(&self.service, token, headers).await?;
         let invocation = self
             .service
             .authenticate_task_grant(token.to_owned(), self.binding.clone())
@@ -89,6 +90,7 @@ impl LocalGrantAuth {
 impl McpAuthenticator for LocalGrantAuth {
     async fn authenticate(&self, headers: &HeaderMap) -> Result<TaskInvocation, Error> {
         let token = bearer(headers)?;
+        enrollment_origin(&self.service, token, headers).await?;
         if headers.contains_key("x-call-id") || headers.contains_key("x-chat-id") {
             return Err(Error::forbidden());
         }
@@ -152,4 +154,28 @@ pub(crate) async fn admit(
         _ = tokio::time::sleep_until(budget.http_deadline) => StatusCode::GATEWAY_TIMEOUT.into_response(),
         response = next.run(request) => response,
     }
+}
+
+/// Immutable Origin ceiling only; each authenticator retains its actual Task or
+/// Identity admission. No model/provider header becomes authority here.
+pub(crate) async fn enrollment_origin(
+    service: &Service,
+    token: &str,
+    headers: &HeaderMap,
+) -> Result<(), Error> {
+    let mut values = headers.get_all(axum::http::header::ORIGIN).iter();
+    let origin = match values.next() {
+        None => None,
+        Some(v) => match v.to_str() {
+            Ok(v) if values.next().is_none() && v.len() <= 2048 => Some(v.to_owned()),
+            _ => return Err(Error::forbidden()),
+        },
+    };
+    let store = service.store.clone();
+    let token = token.to_owned();
+    tokio::task::spawn_blocking(move || {
+        store.check_enrollment_http_bearer(&token, origin.as_deref())
+    })
+    .await
+    .map_err(|_| Error::storage())?
 }

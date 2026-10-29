@@ -14,6 +14,7 @@ pub(crate) mod record_https;
 
 mod credential_issuance;
 mod enrollment;
+mod enrollment_admission;
 mod hosting_policy;
 mod record_mutations;
 mod user_delegation;

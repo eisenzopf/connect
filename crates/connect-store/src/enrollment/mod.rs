@@ -303,34 +303,91 @@ fn journal(
     c.execute("INSERT INTO operations(record_id,tenant_id,owner_id,operation_id,digest,command_type,intent_json,state,result_json,created_at,updated_at,expires_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?10,?11)",params![format!("opr_{}",uuid::Uuid::new_v4()),tenant,actor.identity_id,id,digest(intent),kind,intent,state,result,crate::now(),expires]).map_err(|_|conflict())?;
     Ok(())
 }
+pub(crate) fn credential_binding(
+    c: &Connection,
+    credential: &str,
+) -> Result<Option<EnrollmentCredentialBinding>> {
+    let id: Option<String> = c
+        .query_row(
+            "SELECT id FROM client_enrollments WHERE credential_id=?1",
+            [credential],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(|_| Error::storage())?;
+    let Some(id) = id else {
+        return Ok(None);
+    };
+    let row = load(c, &id)?;
+    current_credential(c, &row)?;
+    Ok(Some(EnrollmentCredentialBinding {
+        enrollment_id: id,
+        identity_id: row.request.identity_id,
+        device_id: row.request.device.id,
+        key_id: row.request.key_id,
+        endpoint_id: row.endpoint,
+        transport: row.request.transport,
+        browser_origin: row.request.browser_origin,
+    }))
+}
 impl Store {
-    /// Binding facts for a currently active enrolled credential, not an IO grant.
+    /// Current enrollment facts, not a future IO grant. Callers retain their
+    /// normal current-authority guards through effects and protected delivery.
     pub fn enrollment_credential_binding(
         &self,
         credential: &str,
     ) -> Result<Option<EnrollmentCredentialBinding>> {
         let c = self.connection()?;
-        let id: Option<String> = c
-            .query_row(
-                "SELECT id FROM client_enrollments WHERE credential_id=?1",
-                [credential],
-                |r| r.get(0),
-            )
-            .optional()
-            .map_err(|_| Error::storage())?;
-        let Some(id) = id else {
-            return Ok(None);
+        credential_binding(&c, credential)
+    }
+    /// Check only the immutable enrollment Origin ceiling of an authenticated
+    /// ordinary or explicit Task bearer. The caller still admits its own API,
+    /// Task binding, scopes and current owned authority before any effect.
+    pub fn check_enrollment_http_bearer(
+        &self,
+        token: &str,
+        actual_origin: Option<&str>,
+    ) -> Result<()> {
+        let credential = self.enrollment_bearer_credential(token)?;
+        self.check_enrollment_http_origin(&credential, actual_origin)
+    }
+    /// An enrollment cannot be adopted by an ingress with no trusted physical
+    /// transport/Origin context. Explicit Task scope never bypasses this ceiling.
+    pub fn check_unbound_enrollment_bearer(&self, token: &str) -> Result<()> {
+        let credential = self.enrollment_bearer_credential(token)?;
+        if self.enrollment_credential_binding(&credential)?.is_some() {
+            return Err(Error::forbidden());
+        }
+        Ok(())
+    }
+    fn enrollment_bearer_credential(&self, token: &str) -> Result<String> {
+        let credential = if token.starts_with("ctg1.") {
+            let invocation = self.authenticate_local_task_grant(token)?;
+            self.connection()?
+                .query_row(
+                    "SELECT credential_id FROM task_grants WHERE id=?1",
+                    [invocation.grant_id()],
+                    |r| r.get::<_, String>(0),
+                )
+                .map_err(|_| Error::unauthorized())?
+        } else {
+            self.authenticate(token)?.credential_id
         };
-        let row = load(&c, &id)?;
-        current_credential(&c, &row)?;
-        Ok(Some(EnrollmentCredentialBinding {
-            enrollment_id: id,
-            identity_id: row.request.identity_id,
-            device_id: row.request.device.id,
-            key_id: row.request.key_id,
-            endpoint_id: row.endpoint,
-            transport: row.request.transport,
-            browser_origin: row.request.browser_origin,
-        }))
+        Ok(credential)
+    }
+    /// Finite HTTP control is independent of the approved signaling transport,
+    /// but must preserve the exact enrollment Origin (including native absence).
+    /// Enrollment intent is immutable; this check never grants an operation.
+    pub fn check_enrollment_http_origin(
+        &self,
+        credential: &str,
+        actual_origin: Option<&str>,
+    ) -> Result<()> {
+        if let Some(binding) = self.enrollment_credential_binding(credential)? {
+            if binding.browser_origin.as_deref() != actual_origin {
+                return Err(Error::forbidden());
+            }
+        }
+        Ok(())
     }
 }

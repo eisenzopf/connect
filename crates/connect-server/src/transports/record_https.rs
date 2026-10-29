@@ -218,7 +218,10 @@ async fn download(
     };
     let store = state.service.store.clone();
     let binding = match tokio::task::spawn_blocking(move || {
-        StoreCredentialBinding::from_validated(&store, &credential)
+        let binding = StoreCredentialBinding::from_validated(&store, &credential)?;
+        // This dedicated metadata listener refuses every browser Origin.
+        store.check_enrollment_http_origin(binding.credential_id(), None)?;
+        Ok::<_, Error>(binding)
     })
     .await
     {

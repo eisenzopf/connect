@@ -1,4 +1,5 @@
 //! Current installed CLI and explicit application SDK against the canonical runtime.
+#![recursion_limit = "256"]
 #![cfg(unix)]
 #![allow(clippy::unwrap_used)]
 use connect_client::{

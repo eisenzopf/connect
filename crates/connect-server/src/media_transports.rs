@@ -165,7 +165,7 @@ async fn start_webrtc(
         crate::media_ingress::configured_video_session(&store, &webrtc.route).is_some();
     let selected_store = Arc::clone(&store);
     let selected_route = crate::media_ingress::browser_route(&webrtc.route);
-    let validator = StoreValidator::new(store);
+    let validator = StoreValidator::unbound_transport(store);
     let auth = rvoip_webrtc::signaling::auth::AuthCoreHook::new(validator).with_realm("connect");
     let mut profile = crate::media_profile::webrtc_config();
     profile.require_vp8_audio_video_profile = video_route;

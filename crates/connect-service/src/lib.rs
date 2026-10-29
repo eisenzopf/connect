@@ -23,6 +23,7 @@ mod canonical;
 mod canonical_assurance;
 mod canonical_capability_delivery;
 mod canonical_conversations;
+mod canonical_enrollment;
 mod canonical_http;
 mod canonical_media;
 mod canonical_membership;

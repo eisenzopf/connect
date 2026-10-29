@@ -3,7 +3,7 @@
   "info": {
     "title": "Connect remote enrollment HTTP",
     "version": "connect-enrollment/1",
-    "description": "Implemented HTTP component and Store contract. The legacy loopback HTTP listener exposes the same bounded routes for local use. Remote use requires explicit HTTPS hosting and trusted certificates. Actual browser/native client setup and transport-bound use of issued credentials remain separate G6-055 work; schema generation alone is not runtime qualification."
+    "description": "Implemented HTTP component and Store contract. The legacy loopback HTTP listener exposes the same bounded routes for local use. Remote use requires explicit HTTPS hosting and trusted certificates. Physical transport, exact accepted Origin, Device and key constraints apply before canonical peer acceptance and successor installation; finite HTTP and explicit Task bearers retain the enrolled Origin ceiling. Browser/native public enrollment installers and complete end-to-end qualification remain separate G6-055 work; schema generation alone is not runtime qualification."
   },
   "paths": {
     "/v2/enrollments": {
@@ -861,6 +861,13 @@
         ]
       }
     }
+  },
+  "x-connect-enrolled-credential-admission": {
+    "physical": "Approved QUIC, WebTransport or WSS transport, exact driver-captured browser Origin (absent for QUIC), approved Device and exact signing key under the verified current Store lease before auth.session and credential refresh/step-up successor installation.",
+    "http": "Finite application HTTP checks the exact enrolled Origin, including native absence. Explicit Task bearers retain their enrolled backing credential ceiling. This is an additional constraint, never operation authorization.",
+    "current": "Current metadata/peer proofs require active original enrolled child/key/Device/Endpoint and receipt. Another active key attached to the same credential cannot replace the approved key ID.",
+    "unbound": "Ingress without a trusted canonical physical context refuses enrolled credentials and their explicit Task bearers. Dedicated Origin-free record HTTPS cannot serve browser-enrolled credentials.",
+    "rotation": "Use a fresh approval/key and fresh correctly bound peer; retiring the previous enrollment retains shared Device/Endpoint resources. No automatic renewal, transport migration or key substitution."
   },
   "components": {
     "securitySchemes": {

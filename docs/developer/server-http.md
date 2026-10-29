@@ -26,6 +26,17 @@ Other named API families are linked per route in the inventory. Repeated
 `/v1/operations` references describe different families; they are not a blanket
 claim that retired ordinary communication variants remain supported.
 
+Enrolled credentials add an admission ceiling across finite application HTTP:
+the actual Origin must equal the enrollment's exact browser Origin, including
+the absence required by native enrollment. Explicit Task bearers retain their
+enrolled backing credential's ceiling. This check grants no operation or Task
+binding. Invalid bearer syntax/authentication remains with each route's own
+decoding and authentication order; enrollment/Origin, capacity and storage
+refusals can return the canonical `profile: "connect/2"` problem shape before
+body decoding. The named application OpenAPI includes both rejection shapes.
+See [remote enrollment](remote-enrollment.md) for physical QUIC/WT/WSS admission,
+rotation and the pending public enrollment installers.
+
 ## Current application body schemas
 
 `openapi-application-http.json` is generated from the real protocol DTOs with the

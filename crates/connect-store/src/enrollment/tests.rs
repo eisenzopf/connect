@@ -766,3 +766,192 @@ fn late_key_collision_rolls_back_the_new_credential_after_endpoint_reuse() {
         .unwrap();
     assert!(credential.is_none());
 }
+
+#[test]
+fn enrolled_metadata_origin_and_exact_key_remain_current_after_endpoint_revocation() {
+    for algorithm in [SigningAlgorithm::EdDSA, SigningAlgorithm::ES256] {
+        let f = Fixture::new(algorithm, EnrollmentTransport::Webtransport);
+        let issued = f.complete(&f.offer());
+        let id = &issued.credential.credential_id;
+        let origin = f.request.browser_origin.as_deref();
+        f.store.credential_metadata(id).unwrap();
+        f.store
+            .check_enrollment_http_bearer(&issued.credential.credential, origin)
+            .unwrap();
+        for wrong in [None, Some("https://other.fixture.invalid")] {
+            assert!(f
+                .store
+                .check_enrollment_http_bearer(&issued.credential.credential, wrong)
+                .is_err());
+        }
+        assert!(f
+            .store
+            .check_unbound_enrollment_bearer(&issued.credential.credential)
+            .is_err());
+        let control = f
+            .store
+            .issue(&f.admin.identity_id, Scope::operator(), crate::now() + 600)
+            .unwrap();
+        f.store
+            .check_unbound_enrollment_bearer(&control.token)
+            .unwrap();
+        f.store
+            .execute_provisioning(
+                &f.admin.credential_id,
+                ProvisioningCommand::SigningKey {
+                    operation_id: "attach-other-key".into(),
+                    identity_id: f.request.identity_id.clone(),
+                    credential_id: id.clone(),
+                    device_id: f.request.device.id.clone(),
+                    key_id: "other-active-key".into(),
+                    algorithm,
+                    public_key: f.key.public(),
+                    not_before: crate::now() - 1,
+                    expires_at: issued.credential.expires_at,
+                    expected_revision: None,
+                },
+            )
+            .unwrap();
+        let tenant = f.store.credential_metadata(id).unwrap().tenant_id;
+        f.store
+            .resolve_peer_signing_key(id, &tenant, &f.request.key_id, algorithm.as_str())
+            .unwrap();
+        assert!(f
+            .store
+            .resolve_peer_signing_key(id, &tenant, "other-active-key", algorithm.as_str())
+            .is_err());
+        let mut peer = crate::PeerAuthorityRequest {
+            credentials: vec![id.clone()],
+            device: crate::PeerDeviceClaim {
+                id: f.request.device.id.clone(),
+                kind: f.request.device.kind.clone(),
+                platform: f.request.device.platform.clone(),
+            },
+            key_id: f.request.key_id.clone(),
+            algorithm: algorithm.as_str().into(),
+            command: crate::PeerCommand::Binding,
+        };
+        drop(
+            f.store
+                .admit_peer_authority(&peer, &crate::AuthorityWait::new(Duration::from_secs(2)))
+                .unwrap(),
+        );
+        peer.key_id = "other-active-key".into();
+        assert!(f
+            .store
+            .admit_peer_authority(&peer, &crate::AuthorityWait::new(Duration::from_secs(2)))
+            .is_err());
+        f.store.credential_metadata(id).unwrap();
+        f.store
+            .execute_provisioning(
+                &f.admin.credential_id,
+                ProvisioningCommand::RevokeEndpoint {
+                    operation_id: "revoke-enrolled-endpoint".into(),
+                    endpoint_id: issued.endpoint_id,
+                    expected_revision: 0,
+                },
+            )
+            .unwrap();
+        assert!(f.store.credential_metadata(id).is_err());
+        assert!(f
+            .store
+            .check_enrollment_http_bearer(&issued.credential.credential, origin)
+            .is_err());
+    }
+    let f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Quic);
+    let issued = f.complete(&f.offer());
+    f.store
+        .check_enrollment_http_bearer(&issued.credential.credential, None)
+        .unwrap();
+    assert!(f
+        .store
+        .check_enrollment_http_bearer(
+            &issued.credential.credential,
+            Some("https://app.fixture.invalid")
+        )
+        .is_err());
+}
+
+#[test]
+fn native_task_bearer_cannot_bypass_the_enrolled_parent_origin_ceiling() {
+    use connect_protocol::{tasks::*, Operation, Outcome};
+    let mut f = Fixture::new(SigningAlgorithm::EdDSA, EnrollmentTransport::Webtransport);
+    f.request.operations = vec![
+        "create".into(),
+        "send".into(),
+        "task_create".into(),
+        "task_grant".into(),
+    ];
+    let issued = f.complete(&f.offer());
+    let id = &issued.credential.credential_id;
+    let peer = f.request.recipients[0].clone();
+    let Outcome::Conversation(room) = f
+        .store
+        .execute(
+            id,
+            &Operation::Create {
+                request_id: "task-room".into(),
+                request: connect_protocol::conversations::CreateRequest::persistent(vec![
+                    peer.clone()
+                ]),
+            },
+        )
+        .unwrap()
+    else {
+        panic!("room");
+    };
+    let task = f
+        .store
+        .execute_task(
+            id,
+            &TaskRequest::new(TaskCommand::Create {
+                request_id: "origin-task".into(),
+                definition: TaskDefinition {
+                    conversation_id: room.id,
+                    scope: TaskScope {
+                        sms_enrollments: vec![],
+                        operations: vec![TaskPermission::Send],
+                        recipients: vec![peer],
+                    },
+                    expires_at: crate::now() + 120,
+                    initiating_event_id: None,
+                },
+            }),
+        )
+        .unwrap();
+    let TaskOutcome::Record(task) = task else {
+        panic!("task");
+    };
+    let grant = f
+        .store
+        .issue_local_task_grant(
+            id,
+            "origin-grant",
+            &GrantDefinition {
+                task_id: task.id,
+                binding: InvocationBinding {
+                    kind: InvocationKind::Native,
+                    adapter: "fixture".into(),
+                    external_id: "origin".into(),
+                },
+                operations: vec![TaskPermission::Send],
+                expires_at: crate::now() + 60,
+            },
+        )
+        .unwrap();
+    f.store
+        .check_enrollment_http_bearer(grant.expose_secret(), f.request.browser_origin.as_deref())
+        .unwrap();
+    assert!(f
+        .store
+        .check_enrollment_http_bearer(grant.expose_secret(), None)
+        .is_err());
+    assert!(f
+        .store
+        .check_enrollment_http_bearer(grant.expose_secret(), Some("https://other.fixture.invalid"))
+        .is_err());
+    assert!(f
+        .store
+        .check_unbound_enrollment_bearer(grant.expose_secret())
+        .is_err());
+}

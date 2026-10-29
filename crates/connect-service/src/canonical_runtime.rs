@@ -242,6 +242,7 @@ impl Runtime {
     }
 }
 pub(crate) struct Physical {
+    pub(crate) browser_origin: Option<String>,
     pub(crate) lifecycle: rvoip_uctp::v2::native_lifecycle::NativeLifecycleMux,
     pub(crate) capabilities: Arc<crate::canonical_capability_delivery::Queue>,
     pub(crate) reconciliations: Arc<crate::canonical_reconciliation_delivery::Queue>,
@@ -255,6 +256,7 @@ pub(crate) struct Physical {
 impl Physical {
     pub(crate) fn new(context: NativeTransportContext) -> Arc<Self> {
         Arc::new(Self {
+            browser_origin: context.browser_origin().map(str::to_owned),
             lifetime: context.lifetime.clone(),
             binding: NativePhysicalBinding::new(context),
             peer: Mutex::new(None),

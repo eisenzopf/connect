@@ -26,7 +26,8 @@ def inputs():
     paths = list((ROOT / "crates/connect-protocol").rglob("*.rs")) + [
         ROOT / "crates/connect-protocol/Cargo.toml", ROOT / "Cargo.toml", ROOT / "Cargo.lock",
         ROOT / "dependencies/source-lock.json", Path(__file__).resolve(),
-        ROOT / "crates/connect-server/src/transports/http.rs"]
+        ROOT / "crates/connect-server/src/transports/http.rs",
+        ROOT / "contracts/openapi-canonical-http.json"]
     return {str(p.relative_to(ROOT)): sha(p) for p in sorted(paths)}
 
 
@@ -151,8 +152,15 @@ def render(derived, source):
         415: "Framework JSON content type required before authentication.",
         422: "Framework closed serde shape/type/enum/duplicate-field rejection before authentication.",
     }.items()})
+    canonical = json.loads((ROOT / "contracts/openapi-canonical-http.json").read_text())
+    schemas["AdmissionProblem"] = copy.deepcopy(canonical["components"]["schemas"]["Problem"])
+    schemas["AdmissionRejection"] = copy.deepcopy(canonical["components"]["schemas"]["Rejection"])
+    schemas["AdmissionRejection"]["properties"]["problem"] = ref("AdmissionProblem")
+    responses["429"] = json_response("Additional enrollment-Origin admission capacity refused; no operation authority is granted.")
+    for code in ("401", "403", "429", "503"):
+        responses[code]["content"]["application/json"]["schema"] = {"oneOf": [ref("ApplicationResponse"), ref("AdmissionRejection")]}
     operation = dict(operationId="executeNamedApplicationOperation", security=[dict(bearerAuth=[])],
-        description="Explicit local application route. Framework JSON body parsing precedes bounded shared admission and bearer authentication. Canonical communication/control is deliberately excluded here. Current ordinary actors and verified narrow Task principals keep their own ceilings; X-Call-ID/X-Chat-ID do not create provider authority and are refused with Task principals. CORS only permits configured loopback browser origins; it is not authentication and does not make arbitrary headers trusted. Service/Store reauthorize current scope, membership, resource audience, expiry and immutable intent on replay. Administrator status is not private content access. Task request/step/reply attribution and original IDs remain distinct. Pairing proves Identity possession without SMS consent. Provider status/readiness are observations, not successful external effects or decoded media. The route adds no no-store header and has no route-wide absolute transaction deadline; named service waits and explicit SDK bounds retain their separate contracts.",
+        description="Explicit application route. The additional enrollment ceiling checks exact browser Origin (including native absence) for authenticated ordinary and explicit Task bearers before decoding; it never grants an operation. Invalid bearer syntax/authentication remains with this route. Framework JSON body parsing precedes the route own bounded shared admission and bearer authentication. Host/Origin/enrollment/capacity policy can reject earlier with a canonical problem response. Canonical communication/control is deliberately excluded here. Current ordinary actors and verified narrow Task principals keep their own ceilings; X-Call-ID/X-Chat-ID do not create provider authority and are refused with Task principals. CORS only permits configured loopback browser origins; it is not authentication and does not make arbitrary headers trusted. Service/Store reauthorize current scope, membership, resource audience, expiry and immutable intent on replay. Administrator status is not private content access. Task request/step/reply attribution and original IDs remain distinct. Pairing proves Identity possession without SMS consent. Provider status/readiness are observations, not successful external effects or decoded media. The route adds no no-store header and has no route-wide absolute transaction deadline; named service waits and explicit SDK bounds retain their separate contracts.",
         requestBody=dict(required=True, content={"application/json":dict(schema=ref("ApplicationOperation"))}),
         responses=responses,
         **{"x-body-limit":"max(limits.artifact_chunk_bytes,65536); default65536", "x-automatic-retries":0,
