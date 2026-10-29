@@ -3,8 +3,8 @@
 G6-064 is in progress. The current Python packet interface implements negotiated
 native RTP, source-clock reports and local queue gaps through the same Client's
 separate binary helper channel. It does not supply desktop capture/render or a
-decoded frame API. Reliable typed data and the encoding/decoding utility path
-are still being implemented; G6-064 is not complete.
+decoded frame API. The [reliable typed-data API](python-data.md) is implemented;
+the encoding/decoding utility path remains open. G6-064 is not complete.
 
 The helper must advertise both native Rust media support and
 `managed-media-ipc-v2`. Python exposes `native-programmatic-media` only for that
@@ -80,9 +80,10 @@ original control/restart/current authorization and original process/server joins
 It does not qualify decoded language media, reliable typed data, Node media,
 Linux/remote profiles or the full platform/package/parity matrix.
 
-The packet facade now requires `connect-sdk-media/2` (`C6M2`). The helper also
-supports full 64 KiB reliable-data records, but Python's typed data methods are
-still being implemented. RTP's complete-packet maximum remains 16396 bytes.
-The installed-wheel evidence above records the earlier v1 source; the v2 Python
-component regression and Rust production-channel evidence are recorded in
-[the data increment](../evidence/gate-6/sdk-media-ipc-data.json).
+The packet and [typed-data facade](python-data.md) require
+`connect-sdk-media/2` (`C6M2`). RTP's complete-packet maximum remains 16396 bytes;
+reliable data supports the full 64 KiB contract when the host permits it.
+The installed-wheel evidence above records the earlier v1 packet source. Current
+v2 source verification, 217 component functions/43 negative type constraints and
+the installed native5 typed-data journey are recorded in
+[Python reliable-data evidence](../evidence/gate-6/python-reliable-data.json).

@@ -3,15 +3,19 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Callable, TypeVar
+from typing import Callable, TypeVar, TYPE_CHECKING
 
-from ._sdk_helper import _SdkHelper
-from ._sdk_media_channel import Channel, error, open_channel, owned, wait
+if TYPE_CHECKING:
+    from .client import Client, Operation
+
+from .sdk_data_types import (BinaryData, DataAcceptance, DataPayload, DataStats, JsonData, ReceivedData, TextData, received_payload)
+from ._sdk_helper import _encode
+from ._sdk_media_channel import Channel, MAX_METADATA, encoded, error, open_channel, owned, wait
 from .sdk_media_types import (ClockPacket, LocalMediaSubmission, MediaBinding, MediaGap,
     MediaNegotiation, MediaPacket, MediaStats, NegotiatedMediaStream, RtpPacket, SenderClockReport,
     invalid, unsigned)
 from .sdk_types import (ConnectionId, ConversationId, RequestOptions, SessionId, StreamId,
-                        StreamRevision, SdkError, SdkCancelledError, cancelled, identifier)
+                        StreamRevision, MessageId, MutationOptions, NonEmpty, OperationKey, ParticipantId, Scope, SdkError, SdkCancelledError, cancelled, identifier)
 
 T = TypeVar('T')
 
@@ -106,6 +110,28 @@ def stats(kind,value,payload):
     return MediaStats(*(decimal(value[k]) for k in counters),value['queued_packets'],value['queued_bytes'])
 
 
+def data_packet(binding,stream,kind,value,payload) -> ReceivedData:
+    if kind!=0x82:
+        raise ValueError()
+    shape(value,('type','binding','stream_id','message_id','operation_id','from','format'))
+    if (value['type']!='data' or value['binding']!=binding._wire() or value['stream_id']!=stream
+            or type(value['format']) is not str):
+        raise ValueError()
+    return ReceivedData(value['message_id'],value['operation_id'],value['from'],received_payload(value['format'],payload))
+
+
+def data_stats(kind,value,payload) -> DataStats:
+    ordinary(kind,payload)
+    counters=('received_frames','accepted_messages','malformed_frames','unowned_frames','overflow_drops','binding_change_drops')
+    shape(value,('type',*counters,'queued_messages','queued_bytes'))
+    if (value['type']!='data_stats' or type(value['queued_messages']) is not int or not 0 <= value['queued_messages'] <= 256
+            or type(value['queued_bytes']) is not int or not 0 <= value['queued_bytes'] <= 1024*1024):
+        raise ValueError()
+    return DataStats(decimal(value['received_frames']),decimal(value['accepted_messages']),decimal(value['malformed_frames']),
+        decimal(value['unowned_frames']),decimal(value['overflow_drops']),decimal(value['binding_change_drops']),
+        value['queued_messages'],value['queued_bytes'])
+
+
 @dataclass
 class _Slot:
     flight: asyncio.Task | None = None
@@ -113,8 +139,9 @@ class _Slot:
 
 
 class _Owner:
-    def __init__(self,helper:_SdkHelper):
-        self.helper=helper
+    def __init__(self,client:Client):
+        self.client=client
+        self.helper=client._helper
         self.loop=None
         self.opening:asyncio.Task[Channel] | None=None
         self.detaching:asyncio.Task | None=None
@@ -138,38 +165,43 @@ class _Owner:
             self.opening=owned(asyncio.create_task(open_channel(self.helper)))
         return await wait(self.opening,options)
 
-    async def request(self,command:dict,payload:bytes,options:RequestOptions,decode:Callable[...,T],mutating=False) -> T:
+    async def request(self,command:dict,payload:bytes,options:RequestOptions,decode:Callable[...,T],mutating=False,key:OperationKey | None=None) -> T:
         if type(options) is not RequestOptions:
-            raise error('validation',mutating)
+            raise error('validation',mutating,key=key)
+        try:
+            command,_=_encode(command,MAX_METADATA)
+            encoded(1,2,{'timeout_ms':options.timeout_ms,'command':command},payload)
+        except (ValueError,TypeError,UnicodeError,RecursionError):
+            raise error('validation',mutating,key=key) from None
         started=asyncio.get_running_loop().time()
         try:
             channel=await self.channel(options)
         except SdkCancelledError:
-            raise SdkCancelledError(error('cancelled',mutating)) from None
+            raise SdkCancelledError(error('cancelled',mutating,key=key)) from None
         except SdkError as failure:
             if mutating:
-                raise SdkError(failure.kind,'not-submitted',problem=failure.problem) from None
+                raise SdkError(failure.kind,'not-submitted',key,problem=failure.problem) from None
             raise
         remaining=int(options.timeout_ms-(asyncio.get_running_loop().time()-started)*1000)
         if remaining <= 0:
-            raise error('deadline',mutating)
-        response=await channel.exchange(command,payload,RequestOptions(remaining,options.signal),mutating)
+            raise error('deadline',mutating,key=key)
+        response=await channel.exchange(command,payload,RequestOptions(remaining,options.signal),mutating,key)
         try:
             return decode(*response)
         except (SdkError,ValueError,TypeError,KeyError,UnicodeError,RecursionError):
             channel.fence('protocol')
-            raise error('protocol',mutating,mutating) from None
+            raise error('protocol',mutating,mutating,key) from None
 
-    async def receive(self,binding:MediaBinding,stream:StreamId,options:RequestOptions) -> MediaPacket:
+    async def receive(self,binding:MediaBinding,stream:StreamId,options:RequestOptions,action:str,decode:Callable[...,T]) -> T:
         if type(options) is not RequestOptions:
             raise error('validation')
         self.bind()
         if self.closed or cancelled(options.signal):
             raise error('configuration' if self.closed else 'cancelled')
-        key=(binding.conversation_id,binding.session_id,binding.connection_id,stream)
+        key=(action,binding.conversation_id,binding.session_id,binding.connection_id,stream)
         slot=self.slots.get(key)
         if slot is None:
-            if len(self.slots)>=256:
+            if len(self.slots)>=256 or action=='receive_data' and sum(k[0]=='receive_data' for k in self.slots)>=16:
                 raise error('application')
             slot=_Slot();self.slots[key]=slot
         if slot.busy:
@@ -180,8 +212,8 @@ class _Owner:
                 self.slots.pop(key,None)
         try:
             if slot.flight is None:
-                slot.flight=owned(asyncio.create_task(self.request({'action':'receive','binding':binding._wire(),
-                    'stream_id':stream},b'',RequestOptions(options.timeout_ms),lambda *v:packet(binding,stream,*v))))
+                slot.flight=owned(asyncio.create_task(self.request({'action':action,'binding':binding._wire(),
+                    'stream_id':stream},b'',RequestOptions(options.timeout_ms),decode)))
                 def failed(done):
                     if (done.cancelled() or done.exception() is not None) and slot.flight is done:
                         slot.flight=None;forget()
@@ -232,14 +264,17 @@ class _Owner:
 class Media:
     _owner:_Owner
 
-    def __init__(self,helper:_SdkHelper):
-        object.__setattr__(self,'_owner',_Owner(helper))
+    def __init__(self,client:Client):
+        object.__setattr__(self,'_owner',_Owner(client))
 
     def connection(self,conversation_id:ConversationId,session_id:SessionId,connection_id:ConnectionId) -> MediaConnection:
         return MediaConnection(self._owner,MediaBinding(conversation_id,session_id,connection_id))
 
     async def stats(self,options:RequestOptions) -> MediaStats:
         return await self._owner.request({'action':'stats'},b'',options,stats)
+
+    async def data_stats(self,options:RequestOptions) -> DataStats:
+        return await self._owner.request({'action':'data_stats'},b'',options,data_stats)
 
     async def close(self,options:RequestOptions) -> None:
         await self._owner.close(options)
@@ -282,4 +317,34 @@ class MediaStream:
             lambda *v:submitted(self.binding,self.id,sequence,*v),True)
 
     async def receive_packet(self,options:RequestOptions) -> MediaPacket:
-        return await self._owner.receive(self.binding,self.id,options)
+        return await self._owner.receive(self.binding,self.id,options,'receive',lambda *v:packet(self.binding,self.id,*v))
+
+    async def send_data(self,message_id:MessageId,to:NonEmpty[ParticipantId],payload:DataPayload,
+                        options:MutationOptions) -> Operation[DataAcceptance]:
+        # Build the original key before local payload/queue validation. This key
+        # survives every later deadline, cancellation, protocol or helper failure.
+        if type(options) is not MutationOptions:
+            invalid()
+        key=OperationKey(options.operation_id,'message.send',Scope(self.binding.conversation_id,
+            self.binding.session_id,self.binding.connection_id))
+        if (not identifier(message_id) or type(to) is not NonEmpty
+                or type(payload) not in (TextData,JsonData,BinaryData)):
+            raise error('validation',True,key=key)
+        recipients=(to.first,*to.rest)
+        if (not 1 <= len(recipients) <= 256 or any(not identifier(p) for p in recipients)
+                or len(set(recipients)) != len(recipients)):
+            raise error('validation',True,key=key)
+        def decode(kind,value,body):
+            ordinary(kind,body)
+            shape(value,('type','binding','stream_id','reference'))
+            if value['type']!='data_submitted' or value['binding']!=self.binding._wire() or value['stream_id']!=self.id:
+                raise ValueError()
+            return self._owner.client._from_reply(value['reference'],self._owner.client.operation_kinds.data_send,key)
+        return await self._owner.request({'action':'send_data','binding':self.binding._wire(),'stream_id':self.id,
+            'message_id':message_id,'to':list(recipients),'format':payload.kind,
+            'mutation':{'operation_id':options.operation_id,'extensions':options.extensions}},
+            payload._bytes,options.request,decode,True,key)
+
+    async def receive_data(self,options:RequestOptions) -> ReceivedData:
+        return await self._owner.receive(self.binding,self.id,options,'receive_data',
+            lambda *v:data_packet(self.binding,self.id,*v))

@@ -1,5 +1,6 @@
 //! Installed Python wheel uses the original Rust helper and signed listener.
 use super::*;
+use base64::Engine;
 use connect_client::sdk;
 use sha2::Digest;
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Stdio};
@@ -28,6 +29,12 @@ async fn run(algorithm: &str) {
         &["operation.cancel", "operation.reconcile"],
     )
     .await;
+    f.server.shutdown().await.unwrap();
+    f.config.limits.message_bytes = 65536;
+    f.server = RunningCanonicalServer::start(f.config.clone())
+        .await
+        .unwrap();
+    f.client.endpoint = f.server.address;
     crate::canonical_native_connections::ready_endpoint_with_capabilities(
         &f,
         vec!["audio".into(), "video".into(), "data".into()],
@@ -43,7 +50,7 @@ async fn run(algorithm: &str) {
         &f,
         &f.peer.identity_id,
         72,
-        vec!["audio".into()],
+        vec!["audio".into(), "data".into()],
         peer_scope,
     );
     let peer_config = f.temp.path().join("python-peer.toml");
@@ -197,6 +204,17 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     assert_eq!(participants["stale_revision_refused"], true);
     let sessions = phase(&mut lines, "sessions-ready").await;
     assert_eq!(sessions["incoming_decision_completed"], true);
+    let data = phase(&mut lines, "data-completed").await;
+    for name in [
+        "native_data_typed_round_trip",
+        "native_data_full_64k",
+        "native_data_original_recovery",
+        "native_data_one_effect_replay",
+        "native_data_changed_intent_refused",
+        "native_data_foreign_custody_refused",
+    ] {
+        assert_eq!(data[name], true);
+    }
     let native = phase(&mut lines, "native-completed").await;
     assert_eq!(native["native_controls_completed"], true);
     assert_eq!(native["stream_selection_completed"], true);
@@ -259,6 +277,58 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         assert_eq!(
             (count, stored_command.as_str(), state.as_str()),
             (1, command, "completed")
+        );
+    }
+    for format in ["text", "json", "binary"] {
+        let expected = match format {
+            "text" => format!("🦀{}", "x".repeat(65532)).into_bytes(),
+            "json" => serde_json::to_vec(&json!({"data":"x".repeat(65536-11)})).unwrap(),
+            _ => (0..65536).map(|i| i as u8).collect::<Vec<_>>(),
+        };
+        assert_eq!(expected.len(), 65536);
+        for (suffix, side) in [("message", "source"), ("return-message", "target")] {
+            let message = format!("python-data-{format}-{suffix}");
+            let (body, encoding): (String, String) = database
+                .query_row(
+                    "SELECT body,body_encoding FROM messages WHERE id=?1 AND conversation_id=?2",
+                    rusqlite::params![message, controls["conversation_id"].as_str().unwrap()],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            let bytes = if format == "binary" {
+                assert_eq!(encoding, "base64");
+                base64::engine::general_purpose::STANDARD
+                    .decode(body)
+                    .unwrap()
+            } else {
+                assert_eq!(encoding, "utf8");
+                body.into_bytes()
+            };
+            assert_eq!(bytes, expected);
+            let operation = format!(
+                "python-data-{format}-{}",
+                if side == "source" { "send" } else { "return" }
+            );
+            let connection = format!("python-data-{format}-{side}");
+            let (count,state,record):(u64,String,String)=database.query_row("SELECT COUNT(*),MIN(o.state),MIN(o.record_id) FROM operations o WHERE o.operation_id=?1 AND o.connection_id=?2 AND o.command_type='message.send'",rusqlite::params![operation,connection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+            let effects: u64 = database
+                .query_row(
+                    "SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=?1",
+                    [record],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!((count, state.as_str(), effects), (1, "completed", 1));
+        }
+        assert_eq!(
+            database
+                .query_row(
+                    "SELECT COUNT(*) FROM messages WHERE id=?1",
+                    [format!("python-data-{format}-changed")],
+                    |r| r.get::<_, u64>(0)
+                )
+                .unwrap(),
+            0
         );
     }
     drop(database);
@@ -463,7 +533,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         .unwrap()
         .unwrap()
         .success());
-    for (path, expected) in [(&pids, 9), (&pids.with_extension("validators"), 5)] {
+    for (path, expected) in [(&pids, 10), (&pids.with_extension("validators"), 5)] {
         let recorded = std::fs::read_to_string(path).unwrap();
         let values: Vec<u32> = recorded.lines().map(|line| line.parse().unwrap()).collect();
         assert_eq!(values.len(), expected);
@@ -535,7 +605,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-python-native-witness {}",
-        json!({"profile":"python-native/4","algorithm":algorithm,
+        json!({"profile":"python-native/5","algorithm":algorithm,
         "original_reference_recovered":true,"same_id_replay":true,"changed_intent_refused":true,"typed_capability_refusal":true,
         "signed_finite_journal":true,"same_cause_after_restart":true,"current_read_refused":true,
         "current_replay_refused":true,"current_new_mutation_refused":true,"independent_store_original_cause":true,
@@ -544,12 +614,15 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         "session_decisions_completed":true,"native_controls_completed":true,"stream_selection_completed":true,
         "independent_control_records":true,"typed_message_event":true,
         "native_media_negotiation":true,"native_rtp_local_queue":true,
+        "native_data_typed_round_trip":true,"native_data_full_64k":true,"native_data_original_recovery":true,
+        "native_data_one_effect_replay":true,"native_data_changed_intent_refused":true,"native_data_foreign_custody_refused":true,
+        "native_data_independent_store":true,
         "native_clock_local_queue":controls["native_clock_local_queue"],"native_clock_unnegotiated_refused":controls["native_clock_unnegotiated_refused"],
         "local_wait_cancelled_read_only":true,"durable_cancel_original_preserved":true,"unattributed_reconciliation_refused":true,
         "canonical_http_same_original_record":true,"independent_http_receipt_agreement":true,
         "receipt_queued_without_delivery":true,"attributed_delivery":true,"read_default_withheld_then_opted_in":true,
         "attributed_read":true,"current_receipts_refused":true,"synchronous_original_recovered":true,
-        "default_helper_on_path":true,"helpers_joined":9,"validators_joined":5,"http_workers_joined":2,"servers_joined":2,"python_process_joined":true,
+        "default_helper_on_path":true,"helpers_joined":10,"validators_joined":5,"http_workers_joined":2,"servers_joined":3,"python_process_joined":true,
         "physical_peers_drained":true,"media_readers_drained":true})
     );
 }

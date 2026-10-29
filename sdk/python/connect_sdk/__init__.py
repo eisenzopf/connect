@@ -69,3 +69,6 @@ __all__ += [
     "CanonicalHttpClient", "HttpCommandScope", "HttpControlTransport", "HttpEnvelope",
     "SynchronousSdk",
 ]
+
+from .sdk_data_types import TextData, JsonData, BinaryData, DataPayload, ReceivedData, DataAcceptance, DataStats
+__all__ += ['TextData','JsonData','BinaryData','DataPayload','ReceivedData','DataAcceptance','DataStats']

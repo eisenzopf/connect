@@ -16,7 +16,7 @@ from connect_sdk import (Client, ConversationId, MessageId, MutationOptions,
                         MediumUpgrade, CodecRenegotiate, OfferedStream, Quality,
                         Mute, HoldConnection, ResumeConnection, ConnectionCodecRenegotiate,
                         ParticipantStreams, ParticipantLeave, Cancellation,
-                        CanonicalHttpClient, HttpCommandScope, SynchronousSdk, RtpPacket, SenderClockReport)
+                        CanonicalHttpClient, HttpCommandScope, SynchronousSdk, RtpPacket, SenderClockReport, StreamTarget, TextData, JsonData, BinaryData)
 
 spec=json.loads(Path(sys.argv[1]).read_text())
 assert Path.cwd().resolve()==Path(spec['project']).resolve()
@@ -93,6 +93,88 @@ async def refused(action,kind=None):
             assert error.kind==kind
     else:
         raise AssertionError('Expected current control refusal')
+
+
+async def reliable_data(owner,other,session,peer_session,own,peer):
+    global checkpoint
+    # Caller-owned intent is saved before each publication. This is synthetic
+    # media/private fixture state, never a reusable grant or a delivery receipt.
+    capabilities={'audio':['g.711-mu'],'video':['vp8'],'screen':['vp8'],'data':['reliable-ordered']}
+    checkpoint='data-invite'
+    session=await completed(owner.conversations.by_id(session.conversation_id).sessions.invite(
+        SessionId('python-data-session'),[peer.id],'mixed','synthetic reliable data',capabilities,mutation('python-data-invite')))
+    peer_session=other.conversations.by_id(session.conversation_id).sessions.by_id(session.id)
+    current=await peer_session.refresh(options)
+    checkpoint='data-accept'
+    await completed(peer_session.accept(capabilities,current.topology_revision,mutation('python-data-accept')))
+    async with Client(spec['config']) as recovery:
+        for format in ('text','json','binary'):
+            if format=='text':payload=TextData('🦀'+'x'*65532);raw=payload.value.encode('utf-8')
+            elif format=='json':
+                payload=JsonData({'data':'x'*(65536-11)})
+                raw=json.dumps({'data':'x'*(65536-11)},separators=(',',':')).encode()
+            else:payload=BinaryData(bytes(range(256))*256);raw=payload.value
+            assert len(raw)==65536
+            source_id=StreamId('python-data-'+format+'-source-stream')
+            target_id=StreamId('python-data-'+format+'-target-stream')
+            async def offer(where,side):
+                return await completed(where.connections.offer(ConnectionId('python-data-'+format+'-'+side),
+                    NonEmpty(OfferedStream(source_id if side=='source' else target_id,'data','sendrecv',NonEmpty(format))),mutation('python-data-'+format+'-'+side+'-offer')))
+            checkpoint='data-offer'
+            source=await offer(session,'source');target=await offer(peer_session,'target')
+            checkpoint='data-subscribe'
+            for connection,remote_id in ((source,target_id),(target,source_id)):
+                await completed(connection.streams.subscribe(NonEmpty(StreamTarget(remote_id)),
+                    connection.receipt_stream_revision,mutation('python-data-'+format+'-'+str(connection.id)+'-select')))
+            sending=source.streams.by_id(source_id).media;receiving=target.streams.by_id(source_id).media
+            return_sender=target.streams.by_id(target_id).media;return_receiver=source.streams.by_id(target_id).media
+            intent=Path(spec['saved']).with_name('python-data-'+format+'-intent.json')
+            intent.with_suffix('.bin').write_bytes(raw)
+            intent.write_text(json.dumps({'format':format,'message_id':'python-data-'+format+'-message',
+                'operation_id':'python-data-'+format+'-send','recipient':peer.id,'connection_id':source.id}))
+            message=MessageId('python-data-'+format+'-message');original=mutation('python-data-'+format+'-send')
+            checkpoint='data-send'
+            operation=await sending.send_data(message,NonEmpty(peer.id),payload,original)
+            completion=await operation.wait(options)
+            assert completion.value.boundary=='core-queue-admission' and completion.value.message_id==message
+            saved=operation.reference_json()
+            intent.with_suffix('.reference.json').write_text(json.dumps(saved))
+            checkpoint='data-receive'
+            delivered=await receiving.receive_data(options)
+            assert (delivered.message_id,delivered.operation_id,delivered.from_participant,delivered.payload)==(message,original.operation_id,own.id,payload)
+            checkpoint='data-recovery'
+            observed=await recovery.operations.restore(saved,recovery.operation_kinds.data_send).wait(options)
+            assert observed.snapshot.record_id==completion.snapshot.record_id and observed.value==completion.value
+            try:await recovery.media.connection(session.conversation_id,session.id,source.id).refresh(options)
+            except SdkError as error:assert (error.kind,error.certainty)==('unsupported','read-only')
+            else:raise AssertionError('Saved metadata acquired foreign native custody')
+            checkpoint='data-replay'
+            replay=await completed(sending.send_data(message,NonEmpty(peer.id),payload,original))
+            assert replay==completion.value
+            try:await receiving.receive_data(RequestOptions(80))
+            except SdkError as error:assert (error.kind,error.certainty)==('deadline','read-only')
+            else:raise AssertionError('Original replay published a duplicate')
+            try:await sending.send_data(MessageId('python-data-'+format+'-changed'),NonEmpty(peer.id),payload,original)
+            except SdkError as error:
+                assert (error.kind,error.certainty,error.operation.operation_id)==('authentication','refused',original.operation_id)
+            else:raise AssertionError('Changed original intent accepted')
+            checkpoint='data-return'
+            reverse=mutation('python-data-'+format+'-return')
+            intent.with_suffix('.return.json').write_text(json.dumps({'message_id':'python-data-'+format+'-return-message',
+                'operation_id':reverse.operation_id,'recipient':own.id,'connection_id':target.id}))
+            await completed(return_sender.send_data(MessageId('python-data-'+format+'-return-message'),NonEmpty(own.id),payload,reverse))
+            returned=await return_receiver.receive_data(options)
+            assert (returned.operation_id,returned.from_participant,returned.payload)==(reverse.operation_id,peer.id,payload)
+            checkpoint='data-end'
+            for connection in (source,target):
+                await completed(connection.end(1000,'complete',None,mutation('python-data-'+str(connection.id)+'-end')))
+        assert (await owner.media.data_stats(options)).queued_bytes==0
+        assert (await other.media.data_stats(options)).queued_bytes==0
+    current=await session.refresh(options)
+    await completed(session.end(1000,'complete',current.topology_revision,mutation('python-data-session-end')))
+    emit({'phase':'data-completed','native_data_typed_round_trip':True,'native_data_full_64k':True,
+          'native_data_original_recovery':True,'native_data_one_effect_replay':True,
+          'native_data_changed_intent_refused':True,'native_data_foreign_custody_refused':True})
 
 
 async def controls(owner):
@@ -200,6 +282,7 @@ async def controls(owner):
                 raise AssertionError('Unnegotiated clock accepted')
         media_stats=await owner.media.stats(options)
         assert media_stats.queued_packets<=256 and media_stats.queued_bytes<=4*1024*1024
+        await reliable_data(owner,other,solo,peer_solo,own,peer)
         assert (await audio.refresh(options)).ownership=='observation'
         revision=native.receipt_stream_revision
         async def update_connection(value,id):

@@ -1,5 +1,6 @@
-"""Forty unsuppressed public-type constraints; compilation must fail exactly forty."""
+"""Forty-three unsuppressed public-type constraints; compilation must fail exactly forty-three."""
 from connect_sdk import (
+    BinaryData, TextData, OperationId, NonEmpty,
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
     ConnectionId, Quality, Session, SessionId, SessionRevision, StreamId, StreamResourceRevision, StreamRevision,
@@ -75,3 +76,10 @@ async def invalid_media(client: Client, options: RequestOptions) -> None:
     await connection.media.stream_by_id(StreamId('audio')).send_rtp(b'not-a-packet', options)
     connection.media.stream_by_id(ParticipantId('wrong-family'))
     RtpPacket('not-a-sequence', b'not-a-packet')
+
+
+async def invalid_data(client: Client, options: RequestOptions, mutation: MutationOptions) -> None:
+    stream=client.media.connection(ConversationId('room'),SessionId('session'),ConnectionId('connection')).stream_by_id(StreamId('data'))
+    await stream.send_data(OperationId('wrong-id'),NonEmpty(ParticipantId('recipient')),BinaryData(b'bytes'),mutation)
+    await stream.send_data(MessageId('message'),NonEmpty(ParticipantId('recipient')),b'untyped',mutation)
+    await stream.send_data(MessageId('message'),NonEmpty(ParticipantId('recipient')),TextData('text'),options)

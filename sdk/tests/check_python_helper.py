@@ -114,6 +114,7 @@ raise SystemExit(not result.wasSuccessful())
     https=[name for name in functions if '.TypedPythonHttps.' in name]
     synchronous=[name for name in functions if '.TypedPythonSync.' in name]
     media=[name for name in functions if '.PythonMedia.' in name]
+    data=[name for name in functions if '.PythonData.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     failed_functions=sorted(set(failed_functions) | {
@@ -136,7 +137,7 @@ raise SystemExit(not result.wasSuccessful())
                                 'sdk/python/connect_sdk/_sdk_http_protocol.py','sdk/python/connect_sdk/_sdk_http_worker.py',
                                 'sdk/python/connect_sdk/sdk_http.py','sdk/python/connect_sdk/sdk_sync.py',
                                 'sdk/python/connect_sdk/_sdk_media_channel.py','sdk/python/connect_sdk/sdk_media_types.py',
-                                'sdk/python/connect_sdk/sdk_media.py',
+                                'sdk/python/connect_sdk/sdk_media.py','sdk/python/connect_sdk/sdk_data_types.py',
                                 'sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
@@ -152,15 +153,15 @@ raise SystemExit(not result.wasSuccessful())
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*25+['attr-defined']*9+['misc']*6,
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*28+['attr-defined']*9+['misc']*6,
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(inventories and all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==206 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12
-                          and re.search(r'^Ran 181 tests in ',log,re.M) and re.search(r'^Ran 23 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
+                          and len(functions)==217 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==4 and len(synchronous)==13 and len(media)==12 and len(data)==11
+                          and re.search(r'^Ran 192 tests in ',log,re.M) and re.search(r'^Ran 23 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, bounded binary media and full64KiB typed-data channels through a synthetic owned child, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':next((phase['exit_code'] for phase in phases.values() if phase['exit_code']),0),'timed_out':timed,'forced_cleanup':forced,'phases':phases,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
@@ -173,7 +174,7 @@ raise SystemExit(not result.wasSuccessful())
             'typed_reader_functions_passed':len(readers),
             'typed_raw_functions_passed':len(raw),
             'typed_administrative_functions_passed':len(administrative),
-            'synchronous_functions_passed':len(synchronous),'typed_programmatic_media_functions_passed':len(media),
+            'synchronous_functions_passed':len(synchronous),'typed_programmatic_media_functions_passed':len(media),'typed_reliable_data_functions_passed':len(data),
             'typed_http_functions_passed':len(http),'typed_https_functions_passed':len(https),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],

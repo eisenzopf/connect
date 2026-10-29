@@ -10,7 +10,7 @@ import struct
 from typing import Any
 
 from ._sdk_helper import _SdkHelper, _encode, _parse
-from .sdk_types import (CanonicalProblem, CERTAINTIES, ERROR_KINDS, ErrorKind, RequestOptions,
+from .sdk_types import (CanonicalProblem, CERTAINTIES, ERROR_KINDS, ErrorKind, OperationKey, RequestOptions,
                         SdkError, SdkCancelledError, cancelled)
 
 PROFILE = 'connect-sdk-media/2'
@@ -20,8 +20,8 @@ WINDOW = 16
 HEADER = struct.Struct('!4sBIII')
 
 
-def error(kind: ErrorKind, mutating: bool = False, sent: bool = False) -> SdkError:
-    return SdkError(kind, 'uncertain' if mutating and sent else 'not-submitted' if mutating else 'read-only')
+def error(kind: ErrorKind, mutating: bool = False, sent: bool = False, key: OperationKey | None = None) -> SdkError:
+    return SdkError(kind, 'uncertain' if mutating and sent else 'not-submitted' if mutating else 'read-only',key)
 
 
 async def frame(reader: asyncio.StreamReader) -> tuple[int, int, dict, bytes]:
@@ -49,23 +49,23 @@ def owned(task: asyncio.Future):
 
 
 async def wait(task: asyncio.Future, options: RequestOptions, *, mutating=False,
-               sent=lambda: False, closing=False):
+               sent=lambda: False, closing=False, key: OperationKey | None = None):
     if type(options) is not RequestOptions:
-        raise error('validation', mutating)
+        raise error('validation', mutating, key=key)
     until = asyncio.get_running_loop().time() + options.timeout_ms / 1000
     try:
         while True:
             if cancelled(options.signal):
-                raise error('cleanup-incomplete' if closing else 'cancelled', mutating, sent())
+                raise error('cleanup-incomplete' if closing else 'cancelled', mutating, sent(),key)
             if task.done():
                 return task.result()
             remaining = until - asyncio.get_running_loop().time()
             if remaining <= 0:
-                raise error('cleanup-incomplete' if closing else 'deadline', mutating, sent())
+                raise error('cleanup-incomplete' if closing else 'deadline', mutating, sent(),key)
             # Caller cancellation never cancels an original socket read/write.
             await asyncio.wait({task}, timeout=min(.01, remaining))
     except asyncio.CancelledError:
-        raise SdkCancelledError(error('cleanup-incomplete' if closing else 'cancelled', mutating, sent())) from None
+        raise SdkCancelledError(error('cleanup-incomplete' if closing else 'cancelled', mutating, sent(),key)) from None
 
 
 @dataclass(eq=False, repr=False)
@@ -77,6 +77,7 @@ class Job:
     deadline: float
     mutating: bool
     future: asyncio.Future
+    key: OperationKey | None
     sent: bool = False
 
 
@@ -91,33 +92,33 @@ class Channel:
         self.outbound: asyncio.Queue[Job] = asyncio.Queue(WINDOW)
         self.tasks = [owned(asyncio.create_task(self._read())), owned(asyncio.create_task(self._write()))]
 
-    async def exchange(self, command: dict, payload: bytes, options: RequestOptions, mutating=False):
+    async def exchange(self, command: dict, payload: bytes, options: RequestOptions, mutating=False, key: OperationKey | None = None):
         if type(options) is not RequestOptions or type(payload) is not bytes:
-            raise error('validation', mutating)
+            raise error('validation', mutating, key=key)
         if cancelled(options.signal):
-            raise error('cancelled', mutating)
+            raise error('cancelled', mutating, key=key)
         if self.closed or self.closing:
-            raise error('configuration', mutating)
+            raise error('configuration', mutating, key=key)
         if len(self.pending) >= WINDOW or self.outbound.full() or self.sequence >= 2**32 - 1:
-            raise error('application', mutating)
+            raise error('application', mutating, key=key)
         try:
             captured, _ = _encode(command, MAX_METADATA)
             encoded(1, 2, {'timeout_ms': options.timeout_ms, 'command': captured}, payload)
         except (ValueError, TypeError, UnicodeError, RecursionError):
-            raise error('validation', mutating) from None
+            raise error('validation', mutating, key=key) from None
         self.sequence += 1
         future = owned(asyncio.get_running_loop().create_future())
         job = Job(self.sequence, captured, payload, options,
-                  asyncio.get_running_loop().time() + options.timeout_ms / 1000, mutating, future)
+                  asyncio.get_running_loop().time() + options.timeout_ms / 1000, mutating, future, key)
         self.pending[job.id] = job
         self.outbound.put_nowait(job)
         try:
-            return await wait(future, options, mutating=mutating, sent=lambda: job.sent)
+            return await wait(future, options, mutating=mutating, sent=lambda: job.sent,key=key)
         except (SdkError, asyncio.CancelledError):
             if not job.sent:
                 self.pending.pop(job.id, None)
                 if not future.done():
-                    future.set_exception(error('cancelled', mutating))
+                    future.set_exception(error('cancelled', mutating,key=key))
             raise
 
     async def _write(self):
@@ -129,7 +130,7 @@ class Channel:
                 remaining = int((job.deadline - asyncio.get_running_loop().time()) * 1000)
                 if cancelled(job.options.signal) or remaining <= 0 or self.closing:
                     self.pending.pop(job.id, None)
-                    job.future.set_exception(error('cancelled' if cancelled(job.options.signal) or self.closing else 'deadline', job.mutating))
+                    job.future.set_exception(error('cancelled' if cancelled(job.options.signal) or self.closing else 'deadline', job.mutating,key=job.key))
                     continue
                 data = encoded(1, job.id, {'timeout_ms': remaining, 'command': job.command}, job.payload)
                 job.sent = True
@@ -152,8 +153,17 @@ class Channel:
                 if kind == 0xff:
                     if (payload or set(metadata) != {'kind', 'certainty', 'operation', 'problem', 'observation'}
                             or metadata['kind'] not in ERROR_KINDS or metadata['certainty'] not in CERTAINTIES
-                            or metadata['certainty'] == 'recorded'
-                            or metadata['operation'] is not None or metadata['observation'] is not None):
+                            or job.key is not None and metadata['certainty']=='read-only'
+                            or metadata['operation'] is not None and (job.key is None or metadata['operation'] != job.key._wire())
+                            or job.key is None and (metadata['certainty'] == 'recorded' or metadata['observation'] is not None)):
+                        raise ValueError()
+                    observation = metadata['observation']
+                    if observation is not None:
+                        from .client import _snapshot
+                        if job.key is None:
+                            raise ValueError()
+                        _snapshot(observation,job.key)
+                    elif metadata['certainty'] == 'recorded':
                         raise ValueError()
                     problem = metadata['problem']
                     if problem is not None and (type(problem) is not dict or set(problem) != {'code', 'category', 'reason'}
@@ -161,7 +171,7 @@ class Channel:
                             or any(type(problem[k]) is not str for k in ('category', 'reason'))):
                         raise ValueError()
                     job.future.set_exception(SdkError(metadata['kind'], metadata['certainty'] if job.mutating else 'read-only',
-                        problem=CanonicalProblem(**problem) if problem is not None else None))
+                        job.key,problem=CanonicalProblem(**problem) if problem is not None else None,observation=observation))
                 else:
                     job.future.set_result((kind, metadata, payload))
         except asyncio.CancelledError:
@@ -173,20 +183,20 @@ class Channel:
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
             # Include the popped request when a malformed response is fenced.
             if 'job' in locals() and job is not None and not job.future.done():
-                job.future.set_exception(error('protocol', job.mutating, job.sent))
+                job.future.set_exception(error('protocol', job.mutating, job.sent,job.key))
             self.fence('protocol')
 
     def mark_closing(self):
         self.closing = True
         for job in self.pending.values():
             if not job.future.done():
-                job.future.set_exception(error('cancelled', job.mutating, job.sent))
+                job.future.set_exception(error('cancelled', job.mutating, job.sent,job.key))
 
     def fence(self, kind: ErrorKind):
         self.closed = True
         for job in self.pending.values():
             if not job.future.done():
-                job.future.set_exception(error(kind, job.mutating, job.sent))
+                job.future.set_exception(error(kind, job.mutating, job.sent,job.key))
         self.pending.clear()
         self.writer.close()
         for task in self.tasks:

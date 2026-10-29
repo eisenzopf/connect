@@ -18,6 +18,9 @@ jobs=set()
 last_rtp=struct.pack('!BBHII',0x80,0,7,1120,0x1234)+b'synthetic-packet'
 last_sequence=7
 lock=asyncio.Lock()
+data_saved=None
+data_body=b''
+data_command=None
 
 
 def capture(value):
@@ -46,7 +49,7 @@ async def released():
 
 
 async def media(id,value,payload):
-    global last_rtp,last_sequence
+    global last_rtp,last_sequence,data_saved,data_body,data_command
     command=value['command'];action=command['action']
     capture({'channel':'media','id':id,'request':value,'payload':base64.b64encode(payload).decode()})
     mode=config.get('mode','normal')
@@ -73,6 +76,39 @@ async def media(id,value,payload):
         elif mode=='bad-header':item['header']['ssrc']+=1
         result={'type':'packet','binding':command['binding'],'stream_id':command['stream_id'],'packet':item}
         await write_frame(0x82,id,result,body)
+    elif action=='send_data':
+        data_body=payload;data_command=command
+        binding=command['binding'];key={'operationId':command['mutation']['operation_id'],'command':'message.send',
+            'scope':{'conversationId':binding['conversation_id'],'sessionId':binding['session_id'],'connectionId':binding['connection_id']}}
+        data_saved={'schema':'connect-operation-reference/1','operation_id':key['operationId'],'command':'message.send','scope':binding}
+        if mode in ('data-send-held','data-send-deadline'):await released()
+        if mode in ('data-refused','data-recorded','data-foreign-error','data-foreign-observation'):
+            observation=None
+            if mode in ('data-recorded','data-foreign-observation'):
+                observation={'key':key,'state':'failed','revision':1,'recordId':'original-record','cancelRequested':False,'expiresAt':None,'problem':{'recorded':True}}
+                if mode=='data-foreign-observation':observation={**observation,'key':{**key,'operationId':'foreign'}}
+            if mode=='data-foreign-error':key={**key,'operationId':'foreign'}
+            await write_frame(0xff,id,{'kind':'application' if observation is not None else 'authentication',
+                'certainty':'recorded' if observation is not None else 'refused','operation':key,
+                'problem':{'code':403,'category':'authorization','reason':'synthetic_refusal'},'observation':observation})
+        else:
+            reference={**data_saved,'operation_id':'foreign'} if mode=='data-foreign-reference' else data_saved
+            await write_frame(0x81,id,{'type':'data_submitted','binding':binding,'stream_id':command['stream_id'],'reference':reference})
+    elif action=='receive_data':
+        if mode=='data-receive-held':await released()
+        body=data_body
+        metadata={'type':'data','binding':command['binding'],'stream_id':command['stream_id'],
+            'message_id':data_command['message_id'] if data_command else 'original-message',
+            'operation_id':data_command['mutation']['operation_id'] if data_command else 'original-operation',
+            'from':'sender','format':data_command['format'] if data_command else 'binary'}
+        if mode=='data-json-representation':metadata['format']='json';body=b'{ \"key\": 0.00001 }'
+        if mode=='data-bad-utf8':metadata['format']='text';body=b'\xff'
+        if mode=='data-bad-json':metadata['format']='json';body=b'{broken}'
+        if mode=='data-foreign-binding':metadata['binding']={**command['binding'],'connection_id':'foreign'}
+        await write_frame(0x82,id,metadata,body)
+    elif action=='data_stats':
+        counters=('received_frames','accepted_messages','malformed_frames','unowned_frames','overflow_drops','binding_change_drops')
+        await write_frame(0x81,id,{'type':'data_stats',**{k:str(2**64-1) for k in counters},'queued_messages':0,'queued_bytes':0})
     elif action=='stats':
         counters=('received_datagrams','rtp_packets','clock_reports','malformed_datagrams','unknown_handles','overflow_drops','control_drops','binding_change_drops')
         await write_frame(0x81,id,{'type':'stats',**{k:str(2**64-1) for k in counters},'queued_packets':0,'queued_bytes':0})
@@ -118,6 +154,14 @@ async def main():
                 result={'profile':PROFILE,'attached':True,'window':16,'header_bytes':17,'metadata_max_bytes':16384,'payload_max_bytes':65536}
             elif kind=='media_detach':
                 await detach();result={'profile':PROFILE,'closed':True}
+            elif kind=='operation':
+                assert action['kind']=='data_send' and action['reference']==data_saved
+                saved=action['reference'];binding=saved['scope']
+                key={'operationId':saved['operation_id'],'command':'message.send',
+                    'scope':{'conversationId':binding['conversation_id'],'sessionId':binding['session_id'],'connectionId':binding['connection_id']}}
+                snapshot={'key':key,'state':'completed','revision':2,'recordId':'original-record','cancelRequested':False,'expiresAt':None,'problem':None}
+                result=snapshot if action['action']['type']=='status' else {'snapshot':snapshot,'value':{
+                    'messageId':data_command['message_id'],'connectionId':binding['connection_id'],'boundary':'core-queue-admission'}}
             elif kind=='capabilities_refresh':
                 result={'profile':'connect/2','runtime_role':'rust','selected_transport':'quic','fallback_reason':None,
                     'features':['original-id-operations','native-programmatic-media','durable-events','incoming-invitations','raw-canonical','message-receipts']

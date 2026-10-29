@@ -15,10 +15,12 @@ remain unresolved; successful targeted observations do not erase those failures.
 The historical component sections below retain the scope of their recorded
 checkpoint; the implementation audit above gives the current status.
 
-The G6-064 [Python packet interface](python-media.md) is now available for
-negotiated RTP/clock/gap I/O on the original Client. Its scoped evidence includes
-206 component checks and installed local RTP/clock queue admission. Reliable
-typed data, decoded media utilities and Node media remain open in G6-064.
+The G6-064 [Python packet interface](python-media.md) and
+[reliable typed-data API](python-data.md) are available on the original Client.
+Current scoped evidence records 217 component checks, 43 negative type constraints
+and installed EdDSA/ES256 native5 journeys with exact 64 KiB text/JSON/binary
+round trips, independent Rust Store bytes/effects and original recovery/cleanup.
+Decoded media utilities and Node media/data remain open in G6-064.
 
 `connect_sdk.Client` is the asynchronous participant SDK. It owns one lazily
 started `connect sdk-stdio` process using `connect-sdk-helper/4`. The public Rust

@@ -2,6 +2,7 @@
 from typing import assert_type
 from collections.abc import Sequence
 from connect_sdk import (
+    DataAcceptance, ReceivedData, DataStats, TextData, JsonData, BinaryData,
     Client, Conversation, ConversationId, ConversationRevision, DecisionReceipt,
     IdentityId, MessageAcceptance, MessageId, MutationOptions, NonEmpty, Operation,
     OperationId, Participant, ParticipantId, RequestOptions,
@@ -122,3 +123,15 @@ async def media_packets(client: Client, options: RequestOptions) -> None:
     assert_type(await stream.send_rtp(RtpPacket(1, bytes.fromhex('80000001000000a000000001') + bytes([127])*160), options), LocalMediaSubmission)
     assert_type(await stream.receive_packet(options), MediaPacket)
     assert_type(await stream.send_clock(2, SenderClockReport(1, 2**64-1, 160, 1, 160, 'source'), options), LocalMediaSubmission)
+
+
+async def reliable_data(client: Client, options: RequestOptions, mutation: MutationOptions) -> None:
+    stream=client.media.connection(ConversationId('room'),SessionId('session'),ConnectionId('connection')).stream_by_id(StreamId('data'))
+    operation=await stream.send_data(MessageId('message'),NonEmpty(ParticipantId('recipient')),JsonData({'typed':True}),mutation)
+    assert_type(operation,Operation[DataAcceptance])
+    assert_type(client.operations.restore(operation.reference_json(),client.operation_kinds.data_send),Operation[DataAcceptance])
+    assert_type((await operation.wait(options)).value,DataAcceptance)
+    assert_type(await stream.receive_data(options),ReceivedData)
+    assert_type(await client.media.data_stats(options),DataStats)
+    await stream.send_data(MessageId('text'),NonEmpty(ParticipantId('recipient')),TextData('text'),mutation)
+    await stream.send_data(MessageId('bytes'),NonEmpty(ParticipantId('recipient')),BinaryData(b'bytes'),mutation)

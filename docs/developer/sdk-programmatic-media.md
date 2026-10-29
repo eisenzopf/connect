@@ -1,8 +1,8 @@
 # Programmatic Node/Python media
 
 G6-064 is in progress. Binary framing and managed Rust helper routing are
-implemented; the [Python packet API](python-media.md) is implemented and Node
-media and reliable typed data remain in progress. The
+implemented; Python [packet](python-media.md) and [reliable-data](python-data.md)
+APIs are implemented. Node media/data and the decoded utility path remain open. The
 current control SDK's Stream and Connection observations do not acquire media
 custody by being restored from IDs or operation receipts.
 
@@ -109,9 +109,17 @@ one-effect replay, changed intent/current revocation/foreign custody refusals
 and joined original owners. The existing attachment, 16 blocked receives,
 independent control and drainage checks also pass on v2. The earlier
 [routing evidence](../evidence/gate-6/sdk-media-ipc-routing.json) remains scoped
-to its v1 source. Python's packet implementation has migrated to v2 and its 206
-component regressions pass. Python/Node reliable-data methods, Node packet
-interfaces and the app-owned encoding/decoding utility path remain open.
+to its v1 source. Current Python v2 packet/data interfaces pass 217 component
+functions and 43 negative type constraints. The installed native5 journey proves
+full 64 KiB typed data in both directions, original operation recovery/replay,
+independent Rust Store bytes/effects and original cleanup under EdDSA/ES256;
+[Python evidence](../evidence/gate-6/python-reliable-data.json) records its scope.
+Reliable data has a separate Rust inbox of 32 messages per Stream, 256 messages/
+1 MiB overall. Python retains at most 16 data receive flights/results (another
+1 MiB) and refuses overflow instead of draining into an unbounded secondary queue.
+Publisher labels must be unique in the selection catalog; receive on the matched
+negotiated remote Stream ID. Node interfaces and the app-owned encoding/decoding
+utility path remain open.
 
 Completion still requires actual Node/Python identified audio, decoded video
 through the documented utility path and typed data, plus slow consumers, limits,

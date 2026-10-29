@@ -30,6 +30,8 @@ from .sdk_types import (
     ConnectionUpdateReceipt, StreamSelectionReceipt, ConsultationResult, HandoffResult, MoveResult, TopologyRevision, Cursor,
 )
 
+from .sdk_data_types import DataAcceptance
+
 T = TypeVar("T")
 R = TypeVar("R")
 _PROOF = object()
@@ -230,6 +232,14 @@ def _message(value: Any, client: Client, key: OperationKey, saved: Json) -> Mess
     return MessageAcceptance(value["messageId"], key)
 
 
+def _data(value: Any, client: Client, key: OperationKey, saved: Json) -> DataAcceptance:
+    if (not _object(value,("messageId","connectionId","boundary")) or not identifier(value["messageId"])
+            or key.command != "message.send" or key.scope.connection_id is None
+            or value["connectionId"] != key.scope.connection_id or value["boundary"] != "core-queue-admission"):
+        return _bad()
+    return DataAcceptance(value["messageId"],value["connectionId"])
+
+
 def _conversation(value: Any, client: Client, key: OperationKey, saved: Json) -> Conversation:
     if not _object(value, ("id",)) or not identifier(value["id"]):
         return _bad()
@@ -285,6 +295,7 @@ def _move(value: Any, client: Client, key: OperationKey, saved: Json) -> MoveRes
 @dataclass(frozen=True)
 class OperationKinds:
     conversation_create: OperationKind[Conversation] = field(default_factory=lambda:OperationKind("conversation.create", "conversation_create", _conversation, _PROOF))
+    data_send: OperationKind[DataAcceptance] = field(default_factory=lambda:OperationKind("message.send", "data_send", _data, _PROOF))
     message_send: OperationKind[MessageAcceptance] = field(default_factory=lambda:OperationKind("message.send", "message_send", _message, _PROOF))
     conversation_participant_add: OperationKind[Participant] = field(default_factory=lambda:OperationKind("conversation.participant.add", "conversation_participant_add", _participant, _PROOF))
     conversation_participant_update: OperationKind[Participant] = field(default_factory=lambda:OperationKind("conversation.participant.update", "conversation_participant_update", _participant, _PROOF))
@@ -332,7 +343,9 @@ class Operations:
             scope = Scope(**value["scope"])
             if expected.command == "conversation.create" and value["scope"]:
                 return _invalid()
-            if expected.command == "message.send" or expected.command.startswith("conversation.participant."):
+            if expected is _KINDS.data_send and scope.connection_id is None:
+                return _invalid()
+            if expected is _KINDS.message_send or expected.command.startswith("conversation.participant."):
                 if scope.conversation_id is None or scope.session_id is not None:
                     return _invalid()
             if expected.command.startswith("operation.") and scope.connection_id is not None:
@@ -535,7 +548,7 @@ class Client:
         object.__setattr__(self, "conversations", Conversations(self))
         object.__setattr__(self, "capabilities", Capabilities(self))
         object.__setattr__(self, "raw", RawCanonical(self._helper))
-        object.__setattr__(self, "media", Media(self._helper))
+        object.__setattr__(self, "media", Media(self))
 
     def _from_reply(self, value: Any, kind: OperationKind[T], key: OperationKey) -> Operation[T]:
         try:
