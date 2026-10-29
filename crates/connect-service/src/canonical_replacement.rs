@@ -154,7 +154,6 @@ impl Runtime {
         command: TransitionCommand,
         record: String,
     ) -> Result<()> {
-        let _roles = self.role_projection.lock().await;
         let saved = {
             self.replacements
                 .lock()
@@ -163,6 +162,7 @@ impl Runtime {
                 .cloned()
         };
         if let Some(saved) = saved {
+            let _roles = self.role_projection.lock().await;
             return self.record_replacement(&saved).await;
         }
         let origin = retry_metadata(&self.stop, || {
@@ -195,6 +195,73 @@ impl Runtime {
                 ))
             }
         };
+        if ctx.candidate_connection_id.is_some() {
+            let claim = Arc::new(
+                retry_metadata(&self.stop, || async {
+                    let read = self.replacement_read(&origin)?;
+                    let store = self.media.store.clone();
+                    store_call(move || store.claim_native_replacement_candidate(read)).await
+                })
+                .await?,
+            );
+            let attempt = retry_metadata(&self.stop, || {
+                let store = self.media.store.clone();
+                let claim = claim.clone();
+                store_call(move || store.begin_native_candidate_retirement(&claim))
+            })
+            .await?;
+            if let Some(attempt) = attempt {
+                let attempt = Arc::new(attempt);
+                let deadline = tokio::time::Instant::now()
+                    + Duration::from_secs(
+                        (claim.expires_at() - chrono::Utc::now().timestamp()).clamp(0, 30) as u64,
+                    );
+                let joined = self
+                    .native_workers
+                    .retire(
+                        claim.connection_id(),
+                        self.media.store.limits().connections.saturating_mul(2),
+                        &self.stop,
+                        deadline,
+                    )
+                    .await;
+                let lane = match joined {
+                    Ok(lane) => lane,
+                    Err(error) => {
+                        let _ = retry_metadata(&self.stop, || {
+                            let store = self.media.store.clone();
+                            let attempt = attempt.clone();
+                            store_call(move || {
+                                store.native_candidate_retirement_uncertain(&attempt)
+                            })
+                        })
+                        .await;
+                        return Err(error);
+                    }
+                };
+                retry_metadata(&self.stop, || {
+                    let store = self.media.store.clone();
+                    let attempt = attempt.clone();
+                    let claim = claim.clone();
+                    let natives = self.native_adapters();
+                    store_call(move || {
+                        store.complete_native_candidate_retirement(
+                            &attempt,
+                            &crate::canonical_native::Absent {
+                                natives,
+                                id: ConnectionId::from_string(claim.runtime_connection_id()),
+                                generation: claim.generation(),
+                            },
+                        )
+                    })
+                })
+                .await?;
+                lane.release()?;
+            }
+        }
+        // Joining the old worker must not hold this mutex: its role reconciler
+        // can need the same lock. Freeze the fresh Core revision only afterwards.
+        let _roles = self.role_projection.lock().await;
         let sid = SessionId::from_string(command.session_id.clone());
         let candidate = match &command.intent {
             TransitionIntent::Replace {
@@ -222,9 +289,13 @@ impl Runtime {
         } else {
             native_request
         };
-        let read = retry_metadata(&self.stop, || async { self.replacement_read(&origin) }).await?;
-        let store = self.media.store.clone();
-        let lease = store_call(move || store.prepare_native_replacement(read, request)).await?;
+        let lease = retry_metadata(&self.stop, || async {
+            let read = self.replacement_read(&origin)?;
+            let store = self.media.store.clone();
+            let request = request.clone();
+            store_call(move || store.prepare_native_replacement(read, request)).await
+        })
+        .await?;
         let Some(lease) = lease else {
             return Err(Error::new(
                 "reconciliation-required",
