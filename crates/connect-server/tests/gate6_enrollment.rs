@@ -21,6 +21,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[path = "support/canonical_listener_fixture.rs"]
 mod canonical_listener_fixture;
 use canonical_listener_fixture::*;
+#[path = "support/enrollment_browser.rs"]
+mod enrollment_browser;
 #[path = "support/enrollment_transport.rs"]
 mod enrollment_transport;
 
@@ -30,6 +32,15 @@ struct Hosted {
 }
 impl Hosted {
     async fn new() -> Self {
+        Self::with_origins(&[]).await
+    }
+    async fn with_origins(additional: &[String]) -> Self {
+        use chrono::Datelike;
+        let mut origins = vec![
+            "https://ui.fixture.invalid".into(),
+            "https://other.fixture.invalid".into(),
+        ];
+        origins.extend_from_slice(additional);
         let mut f = Fixture::new("EdDSA", 8).await;
         f.server.shutdown().await.unwrap();
         let mut ca = rcgen::CertificateParams::default();
@@ -45,6 +56,12 @@ impl Hosted {
             .push(rcgen::DnType::CommonName, "Enrollment fixture leaf");
         leaf.use_authority_key_identifier_extension = true;
         leaf.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
+        let today = chrono::Utc::now().date_naive();
+        let before = today - chrono::Duration::days(1);
+        let after = today + chrono::Duration::days(7);
+        leaf.not_before =
+            rcgen::date_time_ymd(before.year(), before.month() as u8, before.day() as u8);
+        leaf.not_after = rcgen::date_time_ymd(after.year(), after.month() as u8, after.day() as u8);
         let pair = rcgen::KeyPair::generate().unwrap();
         let cert = leaf.signed_by(&pair, &issuer).unwrap();
         std::fs::write(&f.config.certificate, cert.pem()).unwrap();
@@ -60,10 +77,7 @@ impl Hosted {
             surface,
             public_origin: None,
             allowed_origins: if surface == HttpSurface::Application {
-                vec![
-                    "https://ui.fixture.invalid".into(),
-                    "https://other.fixture.invalid".into(),
-                ]
+                origins.clone()
             } else {
                 vec![]
             },
@@ -74,10 +88,7 @@ impl Hosted {
         f.config.webtransport = Some(
             connect_server::canonical_webtransport::CanonicalWebTransportConfig {
                 mount_path: "/connect".into(),
-                allowed_origins: vec![
-                    "https://ui.fixture.invalid".into(),
-                    "https://other.fixture.invalid".into(),
-                ],
+                allowed_origins: origins.clone(),
                 advertised_url: None,
             },
         );
@@ -85,10 +96,7 @@ impl Hosted {
             connect_server::canonical_websocket::CanonicalWebSocketConfig {
                 bind: "127.0.0.1:0".parse().unwrap(),
                 mount_path: "/connect".into(),
-                allowed_origins: vec![
-                    "https://ui.fixture.invalid".into(),
-                    "https://other.fixture.invalid".into(),
-                ],
+                allowed_origins: origins,
                 advertised_url: None,
             },
         );

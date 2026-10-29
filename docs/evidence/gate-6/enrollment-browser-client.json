@@ -1,0 +1,453 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "d28363021c08328b486d5d20a862c68ef26844fb",
+  "status": "done",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Public browser enrollment and combined G6-055 local functional qualification on macOS arm64. Actual Chrome156.0.8078.48, HTTPS, IndexedDB nonextractable keys, WebCrypto proofs, production TypeScript SDK and signed WT/WSS peers. Combined run also includes public native QUIC/HTTPS and existing local HTTP/physical admission/recovery fixtures. Named remote/Linux hosting, media, independent full-contract and release qualification remain their separate Gate6 tasks.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "31b5765af37c6e810135c9e7b32a95afd46a011badec23b6ea83869aa11a8678",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "3ea5c6a246868b96e98c407cd2057684bea9d6c34abf72f75c6612cc4e84c42a",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_transport.rs": {
+      "sha256": "b24da31a798c494c9f64365c32d0f448bc4bd2ed3d08c366a2f0f70db2df0b76",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/client.mjs": {
+      "sha256": "ed295913f2bddcba6fb4902b8749a003a1819def6f3ef524264af6f8975a8bbe",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment_key.ts": {
+      "sha256": "c35fe943f18094979066c86afa27f79b33347a0fb36c497fa2ebfc410e868c84",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment_contract.ts": {
+      "sha256": "01456fee131534ed4c6621fd19f54b060007ffd4537105aea7b8c756383eb596",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "238306301c44866c4d71eff0d63e854d26edf0c42d7623fb45e9e734dbfaabca",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment_store.ts": {
+      "sha256": "2951b1e394b43cd2f2e09fc52dc6efe8d997bd1116080b2cd12c11242b43876b",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_enrollment.ts": {
+      "sha256": "c2464131af8c1b7b4b2ad1ab61ee35663b16b7877c9997909776644a68973897",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_key.d.ts": {
+      "sha256": "47cf236f1f4bc2a642ce30a749d21c649888ba21c2fa275ae0cf6f57b1f129a1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.js": {
+      "sha256": "6be84d2217298accb28940951c8702bbe7d029a15e8683bbe7e6d63a5a4f75ad",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment.js": {
+      "sha256": "b1b934ff19a036efb41fc4ae77ec491f1a20f2aa11317ee25ea033ab62c31682",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_store.d.ts": {
+      "sha256": "763e70bc5d33316c43ce71c5338adc09ca81e966d0d93baeb97c5186ab39a1bf",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_contract.js": {
+      "sha256": "028b84f55498ac0f3549e6d3b79d605a709d13ee70ff0f50e9d556e727034df3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "7d975a7bf926a486c5aef96c45643556e35b3a52fa8ad68a91a352c459c39827",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment.d.ts": {
+      "sha256": "9662c799c005ccae4da8fa585c33bc64b79e06638219b9dea61a3c753c932351",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "2c989c8e03da114726905550bd6c1e69346724f26659ee9e94aae7670875b22e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_contract.d.ts": {
+      "sha256": "ed342f3b5c10e21057ba9746da3c8616fe0fafa8516386dbffe5f540b111935a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_enrollment_key.js": {
+      "sha256": "8541d69689ed4d51e4561e2b8e777283f2c5c480b7a8666c5de8bdf85a2966c7",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "ffce7e04fcf43a514639cfef9d1536e3cc200d4fbedc09759499bd5fd8914269",
+      "mode": 420
+    },
+    "sdk/tests/browser_enrollment.test.mjs": {
+      "sha256": "b655658f491f410a2e7d92199c2bc27a72497841b5076a089d7ad5c57d4e9a09",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/enrollment.rs": {
+      "sha256": "944e17240d03b49400f28d8c42f6a947fc69ab753506b4e7d4a8b78cbbe336c5",
+      "mode": 420
+    },
+    "crates/connect-protocol/tests/enrollment.rs": {
+      "sha256": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/mod.rs": {
+      "sha256": "f143c2db083cd84dc74df041ee217e77b39ee038ffd5d17df1b223205b48c4ff",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/tests.rs": {
+      "sha256": "e21feb53aec3ea5e5eb7068854a858436649b3ecf42c3972c375e2d54203d6de",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/approval.rs": {
+      "sha256": "47ed52797f87cf8d22006c33bc7e199dcc46ea04c91a6bad7150084172c783f0",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/revoke.rs": {
+      "sha256": "b56b786813a5a13482aa3b99246a74c391065e918de2fd3981edf77758352392",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/claim.rs": {
+      "sha256": "be38e060488a6cffa01103a03f414c5911f2236df3a7cd525ff2118bc03762d7",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/key.rs": {
+      "sha256": "2eca7cc8f0fc8a302b2864cd48a8611e50ac4b87c4250c4141c9d9cd532873fb",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/state.rs": {
+      "sha256": "c0892e81d5e093fc939d6bd9a5bd01226489141142def94971870ce6aabb5898",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/tests.rs": {
+      "sha256": "e8973dd784dad158b8367d18972c0a811787cf11424a18aa3dc71ff57479dd28",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/http.rs": {
+      "sha256": "2c0d0044af6c29fd088f593c5374dbdd41eb0b1f8b7ce37fa9d5e7550f0ee36f",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment.rs": {
+      "sha256": "9ddcd29793578674a4d5724ef00b0c9fb9dcb91fcef5a9fa3928e87ca8429123",
+      "mode": 420
+    }
+  },
+  "guarded_manifests": {
+    "enrollment1020-final": {
+      "sha256": "034a6435505067ea4dadf506229b1fd30e5855c97ebed37acaa67b6f2690bd7b",
+      "source_inputs_unchanged": true
+    },
+    "enrollment1015-qualification": {
+      "sha256": "72b62aa7c079a799052173f8c85e17ba7687583db5bae2dcc713b67e6e39873e",
+      "source_inputs_unchanged": true
+    }
+  },
+  "final_runtime": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          392
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 4.372780000092462,
+        "log_sha256": "75e8f8285da7c251146bb1a07ba39c5fba27ad8f3f1a578bc73e6c66b04f002e"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          8
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 23.818569000111893,
+        "log_sha256": "f6a6c49f3f06c5318ff5836a4d02185bdd57e2d7c408b9455b6fb0e62dedcf79"
+      }
+    ]
+  },
+  "store_native_protocol": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "store",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": [
+          15
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 13.753160416148603,
+        "log_sha256": "ef31cbf0b5f0af1782e8972cc0facdba2e430e49eb7b999e6deeb03e71b21b1d"
+      },
+      {
+        "phase": "native-client",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": [
+          6
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.570486957905814,
+        "log_sha256": "f8ba5f590c09179cf96765d16f1063048b02324b399db4e5f0908368cd8f30c7"
+      },
+      {
+        "phase": "protocol",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": [
+          6
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.19788437499664724,
+        "log_sha256": "5d4efb9b1db57d73ad53337385ac5550adfe28809be73d5207630a263a5c2717"
+      },
+      {
+        "phase": "protocol-schema",
+        "passed": true,
+        "exit_code": 0,
+        "functions_passed": [
+          6
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.2103709999937564,
+        "log_sha256": "d77ed4ea4cecc4e249906025c85fc17d62fd5fbd32fed2dbd6a081e4898b0467"
+      }
+    ]
+  },
+  "actual_chrome": {
+    "prepare": {
+      "browser": "Chrome/156.0.8078.48",
+      "result": {
+        "passed": true,
+        "phase": "prepare",
+        "nonextractable_keys": 4,
+        "signed_connections": 4,
+        "wrong_endpoint_refusals": 4,
+        "stolen_proof_refusals": 5
+      },
+      "log_sha256": "60e431f9a56f705bde077e7944b9a5efdf934cf7a8e0bca991967c86e43b8cc7"
+    },
+    "foreign": {
+      "browser": "Chrome/156.0.8078.48",
+      "result": {
+        "passed": true,
+        "foreign_origin_refusals": 4
+      },
+      "log_sha256": "13820ded736d902db89a372507c4fb7ddd2a69d84dafabc76e6262edfed014b0"
+    },
+    "resume": {
+      "browser": "Chrome/156.0.8078.48",
+      "result": {
+        "passed": true,
+        "phase": "resume",
+        "expired_fresh_refusals": 4,
+        "recovered_after_challenge_expiry": 4,
+        "recovered": 4,
+        "rotated": 4,
+        "revoked": 8,
+        "signed_connections": 8
+      },
+      "log_sha256": "e45db5027cdd3e089e469271caa65e0b92c934ca2bc7842ca012d8179d8a87dc"
+    }
+  },
+  "distinct_behavior_functions": {
+    "total": 427,
+    "typescript_sdk": 392,
+    "server_enrollment": 8,
+    "store_enrollment": 15,
+    "native_client": 6,
+    "protocol": 6,
+    "protocol_schema_feature": "Same6functions rerun with schema enabled, not counted twice."
+  },
+  "implemented": [
+    "BrowserEnrollmentKey generates Ed25519/ES256 nonextractable private keys, exports only raw public key for approval, restores structured-cloned CryptoKey pairs and verifies key-pair consistency.",
+    "BrowserEnrollmentStore saves the complete normalized original request/key before backend approval in strict-durability IndexedDB transactions. Exclusive names and original-offer comparison prevent silently replacing intent or challenge. Issued bearer is never saved by the vault.",
+    "BrowserEnrollmentSession signs the exact shared59byte JCS proof context. Fetch omits cookies, Authorization and explicit Origin, rejects redirects, uses no cache/referrer, bounds request/streamed response64KiB and includes signing/read/decode in one cancellation/deadline budget.",
+    "Current exact Origin, offer/credential/issuer/installation/Device/Endpoint/key/transport/scope/recipient/absolute-expiry bindings are checked. Issued child bearer is memory-only for installation into exactly the approved transport, with independently supplied server signing and TLS trust.",
+    "No implicit credential fallback across WT/WSS. Certificate pin input is bounded to8SHA256/32byte pins on WT, copied at installation and refused on WSS. Native storage-denial errors and server refusal messages are sanitized.",
+    "Saved original recovery after reload does not regenerate IDs, keys or challenge. Rotation uses fresh name/original IDs/key; exact Device/Endpoint may be shared. Explicit local forgetting does not revoke server authority."
+  ],
+  "actual_browser_behavior": [
+    "Four fresh client scenes: Ed25519/ES256 x WebTransport/WSS. Browser-generated key persists before approval; complete broader offer, duplicate original name, changed challenge and wrong transport installation refuse.",
+    "All four fresh credentials open real signed peers through public enrollment.open. No operator/provider key or credential is passed to browser configuration.",
+    "Four wrong Endpoint claims refuse before grant. Five genuine wrong-client-key WebCrypto proofs against a stolen challenge exhaust it, then the approved key also cannot grant.",
+    "A second actual HTTPS Origin is separately listener-allowed. All four otherwise valid original signed claims refuse403 from that Origin, with no credential/Device/Endpoint/key effects.",
+    "Wait beyond original challenge expiries, close the original browser target and fully restart server at identical contacts. A new target reloads IndexedDB original keys/offers, recovers the identical child ID/bearer hash/absolute expiry and opens all four peers. No issued bearer is supplied for recovery.",
+    "Four expired pending challenges refuse gone on fresh proof; no grant rows are created. Four completed original claims recover after challenge expiry under current authority.",
+    "Four fresh-key rotations retain exact Device/Endpoint. Revoking old enrollment refuses old claim recovery and actual signed peer. Replacement opens, then is independently revoked and refuses recovery. Eight credentials/eight keys/fourDevices/fourEndpoints total; no duplicate effects on replay."
+  ],
+  "trust_scope": "Owned temporary Chrome profile uses one synthetic leaf SPKI exception for HTTPS/WSS plus explicit short-lived WebTransport certificate hash. No system trust, personal browser profile, devices, account, provider or model execution. This is local functional qualification, not minimum-browser/performance/remote-network evidence.",
+  "contract_checks": {
+    "source_inventory": {
+      "phase": "contract",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 0.26247262489050627,
+      "log_sha256": "be3a2ca8cef358eaf61903ecf304f72e7b31f5765ded828ff7dcc91de95d69ca"
+    },
+    "typed_outlines": {
+      "phase": "outlines",
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 5.536215707892552,
+      "log_sha256": "b601021c3371e8a4fc2c1b756c0f21086dca49269e6047797e08b6bef97f0e05"
+    }
+  },
+  "format_findings": {
+    "changed_typescript_passed": true,
+    "global_typescript_format_passed": false,
+    "unmodified_baseline_files": [
+      "sdk/typescript/src/protocol.ts",
+      "sdk/typescript/src/record_context.ts",
+      "sdk/typescript/src/task_protocol.ts"
+    ],
+    "baseline_unchanged": true,
+    "scope": "Changed enrollment sources formatted; existing three unmodified full-tree formatting findings retained."
+  },
+  "open_gate_findings": [
+    {
+      "scope": "Separate installed trusted provisioning CLI",
+      "observation": "Current rebuilt artifact reproduced original15second subprocess timeout in enrollment1006. No production CLI change in this increment. No complete Rust application SDK/workspace pass claimed.",
+      "evidence": "docs/evidence/gate-6/enrollment-native-client.json"
+    },
+    {
+      "scope": "Full-tree TypeScript formatting",
+      "observation": "Three pre-existing unmodified files fail prettier: protocol.ts,record_context.ts,task_protocol.ts. Changed enrollment source formatting passes. These findings remain visible for Gate6 finding resolution."
+    }
+  ],
+  "prior_attempts": [
+    {
+      "scope": "TypeScript compile",
+      "observation": "Initial union WebCrypto generateKey call did not match TS overload. Split Ed25519/ECDSA branches; corrected final build succeeds."
+    },
+    {
+      "scope": "Initial component fixture",
+      "observation": "Two unit cases failed: literal public-key base64 had an extra character, and a fixture aliased expected and offered request objects. Corrected independent fixture copies/key bytes; final9new component functions pass in the392function suite."
+    },
+    {
+      "scope": "Initial Rust browser fixture compile",
+      "summary": {
+        "passed": false,
+        "exit_code": 101,
+        "seconds": 0.623477749992162,
+        "log_sha256": "1699812f9d326a61af9a53062ee89af2652bce5f4012e211516168b039b767ad"
+      },
+      "observation": "No browser behavior ran: rcgen key SPKI method required PublicKeyData::subject_public_key_info; fixed fixture API."
+    },
+    {
+      "scope": "Earlier browser runs",
+      "observation": "1012passed initial4profile matrix;1014passed expiry/stolen/Endpoint extension. Final1020source-stable run supersedes these after storage-denial/pin-bound review fixes."
+    },
+    {
+      "scope": "Typed outline setup",
+      "observation": "Initial1016outline checker stopped because isolated venv lacked mypy. Prepared previously recorded mypy2.4.0 under ignored venv; final1017outlines pass."
+    }
+  ],
+  "prior_components": [
+    "docs/evidence/gate-6/enrollment-contract.json",
+    "docs/evidence/gate-6/enrollment-store.json",
+    "docs/evidence/gate-6/enrollment-http.json",
+    "docs/evidence/gate-6/enrollment-admission.json",
+    "docs/evidence/gate-6/enrollment-native-client.json"
+  ],
+  "privacy": "Protected challenges/proofs, browser IndexedDB/TLS state, temporary configuration and raw logs remain ignored under.local; public evidence contains digests, counts and scoped observations only.",
+  "final_checks": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "dependencies",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.14539454085752368,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "phase": "rust-format",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 2.6862880839034915,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "changed-typescript-format",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.194140583043918,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      {
+        "phase": "plan",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08560733310878277,
+        "log_sha256": "b6610abfc19dc1146a3ce1801c3f533b810820eefb2221505db1c4a39f81b82f"
+      },
+      {
+        "phase": "navigation",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04691420798189938,
+        "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+      },
+      {
+        "phase": "inventory",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08985995780676603,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "application-openapi",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.844824125058949,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      },
+      {
+        "phase": "canonical-openapi",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.07149358303286135,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "enrollment-openapi",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.042695790994912386,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "diff",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.0363430418074131,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  }
+}

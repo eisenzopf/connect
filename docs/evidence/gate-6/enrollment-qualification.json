@@ -1,0 +1,104 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "status": "done",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Approved G6-055 feature implementation and recorded local functional/failure-recovery qualification. Linux install/remote named rehearsals/full independent conformance/release remain G6-056/G6-093/G6-094/G6-101/G6-102. No Gate6 acceptance promotion.",
+  "dependencies": {
+    "G6-030": "done",
+    "G6-031": "done",
+    "G6-032": "done",
+    "G6-053": "done"
+  },
+  "requirements": [
+    {
+      "requirement": "Remote app credential/Endpoint workflow with explicit Identity/Device and scoped credentials",
+      "proved": true,
+      "sources": [
+        "crates/connect-protocol/src/enrollment.rs",
+        "crates/connect-store/src/enrollment/claim.rs",
+        "crates/connect-server/src/transports/enrollment.rs"
+      ],
+      "observed": "FinalStore15andserver8: atomic child/Device/key/Endpoint effects, exact scope/recipient/expiry and current metadata. Public native and browser installation actually open signed peers."
+    },
+    {
+      "requirement": "Trusted backends provision; browsers receive only needed capabilities; callback/operator secrets protected",
+      "proved": true,
+      "sources": [
+        "contracts/openapi-enrollment.json",
+        "crates/connect-server/src/transports/enrollment.rs",
+        "sdk/typescript/src/browser_enrollment.ts"
+      ],
+      "observed": "Current backend admin before body; Origin/provider-header/route isolation; claim bearer-free; no operator/provider fields. No administrator grant in child; browser fixture configuration receives only public trust, target Identity and service contacts."
+    },
+    {
+      "requirement": "Rotation and revocation",
+      "proved": true,
+      "sources": [
+        "crates/connect-store/src/enrollment/revoke.rs",
+        "sdk/typescript/src/browser_enrollment_store.ts"
+      ],
+      "observed": "FinalStore15andactualChrome4freshkey rotations retain shared Device/Endpoint, retire old key/credential, preserve replacement until its own revoke. Current key/Endpoint/issuer/child/receipt refusal cases are in Store tests."
+    },
+    {
+      "requirement": "Fresh browser/native clients enroll without provider keys",
+      "proved": true,
+      "sources": [
+        "crates/connect-client/src/enrollment.rs",
+        "sdk/typescript/src/browser_enrollment_store.ts"
+      ],
+      "observed": "Currentserver8includespublicnative2algorithmHTTPS/QUIC workflow andactualChrome4profileHTTPS/IndexedDB/WT/WSS workflow; client-owned private keys only."
+    },
+    {
+      "requirement": "Stolen and expired pairing challenges",
+      "proved": true,
+      "sources": [
+        "crates/connect-store/src/enrollment/tests.rs",
+        "crates/connect-server/tests/fixtures/gate6-enrollment-browser/client.mjs"
+      ],
+      "observed": "Store stolen/expiry/exhaustion tests and actualChrome5wrong-key stolen proofs, terminal approved-key refusal,4fresh expired challenges and4completed original recoveries after expiry."
+    },
+    {
+      "requirement": "Wrong Endpoint claims and cross-Origin use",
+      "proved": true,
+      "sources": [
+        "crates/connect-server/tests/gate6_enrollment.rs",
+        "crates/connect-server/tests/support/enrollment_transport.rs"
+      ],
+      "observed": "Final8includes4actualChrome wrongEndpoint and4separately-allowedforeignHTTPSOrigin refusals;16independent physicalWT/WSS scenes and browser-to-QUIC refusal; explicitTaskparentOrigin and exactkeyStore cases."
+    },
+    {
+      "requirement": "Current-authority replay and administrative isolation",
+      "proved": true,
+      "sources": [
+        "crates/connect-store/src/enrollment/tests.rs",
+        "crates/connect-server/tests/gate6_enrollment.rs"
+      ],
+      "observed": "Store original recovery rechecks issuer/child/key/Device/Endpoint/receipt. Actual client/server restart, same bearer/expiry/one-effect replay, lost physical response recovery, current revocation and admin/application surface isolation pass."
+    },
+    {
+      "requirement": "Public HTTP/OpenAPI and protected response delivery",
+      "proved": true,
+      "sources": [
+        "contracts/openapi-enrollment.json",
+        "docs/developer/server-http.md"
+      ],
+      "observed": "CurrentHTTPschema/reference and28declaration/29operation inventory; ownedStore authority through physical closing writer,64KiB/five-second bounds and no-store delivery. Finalserver8exercises exact typed replies, deadlines and lost response."
+    }
+  ],
+  "current_evidence": "docs/evidence/gate-6/enrollment-browser-client.json",
+  "open_findings": [
+    {
+      "scope": "Separate installed trusted provisioning CLI",
+      "observation": "Current rebuilt artifact reproduced original15second subprocess timeout in enrollment1006. No production CLI change in this increment. No complete Rust application SDK/workspace pass claimed.",
+      "evidence": "docs/evidence/gate-6/enrollment-native-client.json"
+    },
+    {
+      "scope": "Full-tree TypeScript formatting",
+      "observation": "Three pre-existing unmodified files fail prettier: protocol.ts,record_context.ts,task_protocol.ts. Changed enrollment source formatting passes. These findings remain visible for Gate6 finding resolution."
+    }
+  ],
+  "final_checks_passed": true,
+  "release_publication": "Separate action; not performed."
+}

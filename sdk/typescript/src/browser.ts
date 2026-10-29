@@ -50,6 +50,19 @@ export {
     type RtpDatagram,
 } from "./browser_rtp.js";
 export { BrowserHttpClient } from "./browser_http.js";
+export { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
+export { BrowserEnrollmentStore } from "./browser_enrollment_store.js";
+export type {
+    BrowserEnrollmentSession,
+    BrowserEnrollmentContact,
+    BrowserEnrollmentState,
+} from "./browser_enrollment.js";
+export type {
+    BrowserEnrollmentRequest,
+    BrowserEnrollmentOffer,
+    BrowserEnrollmentCredential,
+    BrowserEnrollmentTransport,
+} from "./browser_enrollment_contract.js";
 export {
     BrowserVoiceSession,
     BrowserVoiceOpenError,

@@ -1,9 +1,9 @@
-# Remote client enrollment (G6-055 in progress)
+# Remote client enrollment (G6-055)
 
 The enrollment protocol, Store transactions, bounded HTTP endpoints and
-credential-specific admission are implemented. The public Rust native enrollment
-workflow is described in [native enrollment](native-enrollment.md). Browser
-installation and complete end-to-end qualification remain pending. Existing
+credential-specific admission are implemented. The public native and browser enrollment
+workflows are described in [native enrollment](native-enrollment.md) and
+[browser enrollment](browser-enrollment.md). Existing
 trusted backend issuance remains described in
 [credential installation](credential-installation.md).
 
@@ -156,5 +156,11 @@ bodies checked against the generated reference.
 [Physical-admission evidence](../evidence/gate-6/enrollment-admission.json) records
 the corrected regressions and actual local signed QUIC/WT/WSS admission; these
 earlier HTTP claims do not qualify later connections.
-Public browser enrollment setup and complete G6-055 qualification remain
-implementation work.
+[Browser workflow evidence](../evidence/gate-6/enrollment-browser-client.json) adds
+actual HTTPS/IndexedDB/WebCrypto installation, recovery and rotation through the
+public browser API. Named remote/Linux hosting and release qualification remain
+separate Gate 6 tasks.
+
+[G6-055 completion audit](../evidence/gate-6/enrollment-qualification.json) maps each
+feature requirement to its current scoped behavior evidence. Gate 6 acceptance
+and the named remote/Linux/release lanes remain unqualified.

@@ -6,6 +6,8 @@ export { BrowserClient, browserTransportSupport, } from "./browser_client.js";
 export { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, RtpClock, OPUS_CONFIG, VP8_CONFIG, } from "./browser_codecs.js";
 export { MediaBindings, RtpSender, Vp8Assembler, MediaSendQueue, decodeRtpDatagram, MEDIA_LIMITS, } from "./browser_rtp.js";
 export { BrowserHttpClient } from "./browser_http.js";
+export { BrowserEnrollmentKey } from "./browser_enrollment_key.js";
+export { BrowserEnrollmentStore } from "./browser_enrollment_store.js";
 export { BrowserVoiceSession, BrowserVoiceOpenError, } from "./browser_voice.js";
 export { ConnectError } from "./errors.js";
 export { TASK_PROFILE } from "./tasks.js";

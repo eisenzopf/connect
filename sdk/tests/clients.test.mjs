@@ -1,6 +1,7 @@
 import './media_diagnostics.test.mjs';
 import './canonical_http.test.mjs';
 import './browser_uctp.test.mjs';
+import './browser_enrollment.test.mjs';
 import './browser_wss.test.mjs';
 import './browser_transport_client.test.mjs';
 import './browser_webrtc_signaling.test.mjs';

@@ -3,7 +3,7 @@
 The public Rust `connect_client::enrollment` API enrolls a fresh QUIC client.
 The client receives a bounded approved offer from a trusted backend; it never
 receives the backend administrator credential or provider keys. Browser
-installation remains separate implementation work.
+installation is described in [browser enrollment](browser-enrollment.md).
 
 Generate an Ed25519 or ES256 `NativeEnrollmentKey`, save it to a private file,
 and save the complete original `EnrollmentRequest` before asking the backend
@@ -60,7 +60,7 @@ the old enrollment after installation. Keep the old state for original receipt
 reconciliation; never replace its key to bypass current authority.
 
 This API does not prove Endpoint reachability, provider consent or media
-readiness. Full G6-055 browser/native qualification remains in progress.
+readiness. Named remote/Linux hosting and release qualification remain separate Gate 6 tasks.
 
 [Native component evidence](../evidence/gate-6/enrollment-native-client.json) records
 the actual public API and local failure/recovery checks, including both algorithms.
