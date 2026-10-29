@@ -1,4 +1,5 @@
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserOpusCodec, BrowserVp8Codec, browserCodecSupport, } from "./browser_codecs.js";
 import { MediaBindings, MediaSendQueue, RtpSender, Vp8Assembler, decodeRtpDatagram, MEDIA_LIMITS, } from "./browser_rtp.js";
 import { decodeRtcpSenderReport, isRtcpDatagram, wrapRtcpSenderReport, RtcpCaptureClock, RtcpReceiveClock, rtpTimestampFromMicroseconds, } from "./browser_rtcp.js";
@@ -21,6 +22,7 @@ const invert = (value) => {
 export class BrowserMediaPeer {
     client;
     callbacks;
+    tasks = new BrowserTasks();
     reader;
     writer;
     registry = new MediaBindings();
@@ -64,7 +66,7 @@ export class BrowserMediaPeer {
                     route.vp8?.lost();
             }
         }, 50);
-        void this.receive().catch((error) => this.die(error));
+        this.tasks.track(this.receive().catch((error) => this.die(error)));
     }
     get diagnostics() {
         return {
@@ -158,7 +160,7 @@ export class BrowserMediaPeer {
         }
         const work = this.reconcile(state, frame);
         state.reconciling = work;
-        void work
+        this.tasks.track(work
             .catch((error) => {
             if (!(error instanceof ConnectError &&
                 error.code === "closed" &&
@@ -173,7 +175,7 @@ export class BrowserMediaPeer {
                 !this.stopped &&
                 this.connections.get(state.scope.connid) === state)
                 this.serverOffer(state, next);
-        });
+        }));
     }
     async reconcile(state, frame) {
         const setup = frame.payload.substrate_setup;
@@ -367,7 +369,7 @@ export class BrowserMediaPeer {
                     if (!accepted || before !== this.queue.droppedPackets)
                         for (const r of this.routes.values())
                             r.vp8?.requestKeyFrame();
-                    void this.drain().catch((e) => this.die(e));
+                    this.tasks.track(this.drain().catch((e) => this.die(e)));
                 };
                 if (binding.kind === "audio")
                     route.opus = new BrowserOpusCodec({
@@ -1118,9 +1120,22 @@ export class BrowserMediaPeer {
             this.remove(route);
         this.registry.clear();
         this.queue.clear();
-        void this.reader.cancel().catch(() => { });
-        void this.writer.abort().catch(() => { });
+        this.tasks.track(this.reader.cancel());
+        this.tasks.track(this.writer.abort());
         this.client.close();
+    }
+    ownCleanup(work) {
+        this.tasks.track(work, true);
+    }
+    async shutdown() {
+        this.close();
+        try {
+            await this.tasks.join();
+        }
+        finally {
+            this.reader.releaseLock();
+            this.writer.releaseLock();
+        }
     }
 }
 export class BrowserMediaConnection {
@@ -1129,6 +1144,9 @@ export class BrowserMediaConnection {
     constructor(peer, id) {
         this.peer = peer;
         this.id = id;
+    }
+    ownCleanup(work) {
+        this.peer.ownCleanup(work);
     }
     get streams() {
         return this.peer.streams(this.id);

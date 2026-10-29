@@ -1,3 +1,4 @@
+import { BrowserTasks } from "./browser_tasks.js";
 import { ConnectError } from "./errors.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
@@ -37,6 +38,7 @@ function candidate(value) {
 export class CanonicalWebRtcSignaling {
     client;
     peer;
+    tasks = new BrowserTasks();
     finished;
     resolveFinished;
     rejectFinished;
@@ -178,7 +180,7 @@ export class CanonicalWebRtcSignaling {
             if (!this.stopped && this.ice.length)
                 void this.drain().catch((error) => this.die(error));
         });
-        return this.draining;
+        return this.tasks.track(this.draining);
     }
     /** One complete-ICE offer. No automatic retry, fallback, redial or message send. */
     async offer(options = {}) {
@@ -197,7 +199,10 @@ export class CanonicalWebRtcSignaling {
         });
         void stopped.catch(() => { });
         const bound = async (work) => {
-            const result = await Promise.race([work, stopped]);
+            const result = await Promise.race([
+                this.tasks.track(work),
+                stopped,
+            ]);
             this.check();
             return result;
         };
@@ -332,5 +337,9 @@ export class CanonicalWebRtcSignaling {
         this.retire();
         this.rejectWait?.(new ConnectError("closed", "WebRTC signaling owner closed"));
         this.resolveFinished();
+    }
+    async shutdown() {
+        this.close();
+        await this.tasks.join();
     }
 }

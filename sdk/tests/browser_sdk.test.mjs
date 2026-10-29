@@ -15,7 +15,7 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',fault}={}) {
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({identityId:f.options.identityId,deviceId:f.options.device.id,tenantId:'tnt_default',endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,timeoutMs:500,attemptTimeoutMs:100,resolveEnrollment:async()=>f.options});
   const peer=()=>path==='webtransport'?f.transports.at(-1):f.socket();
-  try{return await run({f,client,records,peer,view,setMode:v=>mode=v,setSnapshotHook:v=>snapshotHook=v,setRecord:v=>recordOverride=v,setRevision:v=>revisionOverride=v});}finally{client.close();}
+  try{return await run({f,client,records,peer,view,setMode:v=>mode=v,setSnapshotHook:v=>snapshotHook=v,setRecord:v=>recordOverride=v,setRevision:v=>revisionOverride=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   const reply=async(type,payload,scope=frame)=>{await peer.emit(type,payload,frame.id,scope);await peer.emit('ack',{},frame.id,frame);return true;};
   if(frame.type==='conversation.get'){

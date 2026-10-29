@@ -7,7 +7,7 @@
   "alignment_verified": true,
   "task_complete": false,
   "acceptance_qualified": false,
-  "scope": "Incomplete browser completion audit. All25mapped method surfaces and corrected TypeScript topology/return shapes compile against actual SDK declarations. The correction passes component and selected actual-browser regression lanes. The bounded close contract still contradicts current implementation; source sample and prior Screen finding remain unresolved. This is not full browser SDK or acceptance qualification.",
+  "scope": "Historical incomplete browser completion audit at the recorded base commit. All25mapped method surfaces and corrected TypeScript topology/return shapes compile. The original close/sample findings below are retained with follow-up resolutions; the prior Screen finding remains open. Not full browser SDK or acceptance qualification.",
   "schema": 115,
   "dependency_patch_count": 242,
   "tested_inputs": {
@@ -471,6 +471,11 @@
       "evidence": "docs/evidence/gate-6/browser-sdk-return-outlines.json",
       "resolved": true,
       "scope": "Shared declaration-only samples corrected; four compiler targets pass six negative cases each. Runtime qualification remains separate."
+    },
+    "bounded-client-close": {
+      "resolved": true,
+      "evidence": "docs/evidence/gate-6/browser-sdk-shutdown.json",
+      "scope": "Frozen async bounded signature plus joined owned cleanup;24new failure/recovery checks and selected Chrome regression evidence. Full G6-061 stays in progress."
     }
   }
 }

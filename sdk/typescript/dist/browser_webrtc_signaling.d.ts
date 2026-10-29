@@ -30,6 +30,7 @@ export interface SavedWebRtcOffer {
 export declare class CanonicalWebRtcSignaling {
     private readonly client;
     private readonly peer;
+    private readonly tasks;
     readonly finished: Promise<void>;
     private resolveFinished;
     private rejectFinished;
@@ -64,4 +65,5 @@ export declare class CanonicalWebRtcSignaling {
     private retire;
     /** Local owner retirement only. It does not cancel the durable remote operation. */
     close(): void;
+    shutdown(): Promise<void>;
 }

@@ -454,7 +454,9 @@ export class BrowserMediaRenderer {
         this.canvases.clear();
         if (this.context) {
             this.context.onstatechange = null;
-            void this.context.close().then(() => {
+            const cleanup = this.context.close();
+            this.connection.ownCleanup(cleanup);
+            void cleanup.then(() => {
                 if (this.failure)
                     this.failFinish(this.failure);
                 else

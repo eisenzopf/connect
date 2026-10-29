@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {BrowserMediaCapture,browserCaptureSupport} from '../typescript/dist/browser_media_capture.js';
 function owner(){
-  const closed=new Set();return{closed,streams:[{streamId:'audio',kind:'audio',codec:'opus',direction:'sendrecv'}],onClose(fn){closed.add(fn);return()=>closed.delete(fn);},encodeAudio(){return true;},encodeVideo(frame){frame.close();return true;}};
+  const closed=new Set();return{closed,streams:[{streamId:'audio',kind:'audio',codec:'opus',direction:'sendrecv'}],ownCleanup(work){void work.catch(()=>{});},onClose(fn){closed.add(fn);return()=>closed.delete(fn);},encodeAudio(){return true;},encodeVideo(frame){frame.close();return true;}};
 }
 async function environment(getUserMedia,run){
   const names=['navigator','AudioContext','AudioWorkletNode','document'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);

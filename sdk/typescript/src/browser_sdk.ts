@@ -2,6 +2,7 @@ import {
     createBrowserRaw,
     type BrowserRawCanonical,
 } from "./browser_sdk_raw.js";
+import { BrowserTasks } from "./browser_tasks.js";
 export type {
     BrowserRawCanonical,
     BrowserValidatedEnvelope,
@@ -983,6 +984,7 @@ interface Snapshot {
     streams: Map<string, BrowserStreamSnapshot>;
 }
 class State {
+    readonly cleanup = new BrowserTasks();
     mediaPeer?: BrowserMediaPeer;
     local = new Map<
         string,
@@ -1057,15 +1059,25 @@ class State {
         )
             throw new BrowserSdkError("cancelled", "read-only");
     }
-    watch() {
-        this.mediaPeer?.close();
+    retireMedia() {
+        if (this.mediaPeer) this.cleanup.track(this.mediaPeer.shutdown(), true);
         this.mediaPeer = undefined;
-        for (const local of this.local.values()) local.rtc?.close();
+        for (const local of this.local.values()) {
+            this.cleanup.track(local.ready);
+            if (local.control) this.cleanup.track(local.control);
+            if (local.rtc) this.cleanup.track(local.rtc.shutdown(), true);
+        }
         this.local.clear();
         this.pending.clear();
-        for (const renderer of this.renderers.values()) renderer.close();
+        for (const renderer of this.renderers.values()) {
+            renderer.close();
+            this.cleanup.track(renderer.finished);
+        }
         this.renderers.clear();
         this.captures.clear();
+    }
+    watch() {
+        this.retireMedia();
         this.stopEvents?.();
         this.stopClose?.();
         this.applicationReads.retire();
@@ -1811,15 +1823,26 @@ export class BrowserSdkClient {
             throw translated(error, "not-submitted");
         }
     }
-    close(): void {
+    async close(options: BrowserSdkRequestOptions): Promise<void> {
+        // Validate first, but a cancelled wait must still retire every owner.
+        const budget = new Budget({ timeoutMs: options?.timeoutMs });
+        const signal = options.signal;
+        if (signal !== undefined && !(signal instanceof AbortSignal)) invalid();
         const s = current(this);
-        s.owner.close();
-        s.applicationReads.retire();
+        s.retireMedia();
+        s.cleanup.track(s.owner.shutdown(), true);
+        s.cleanup.track(s.applicationReads.retire(), true);
+        for (const retire of s.eventReaders) retire();
+        s.eventReaders.clear();
         s.stopEvents?.();
         s.stopClose?.();
         s.inbox.clear();
         s.invitationRead = undefined;
         s.wake?.();
+        await boundedLocal(s.cleanup.join(), {
+            timeoutMs: budget.options().timeoutMs!,
+            signal,
+        });
     }
     async [submit]<T>(
         k: BrowserOperationKind<T>,
@@ -2465,7 +2488,13 @@ export class BrowserSession {
                     screen: low.screen,
                 };
                 s.local.set(connectionId, local);
-                begun.owner?.onClose(() => {
+                s.cleanup.track(begun.ready);
+                s.cleanup.track(begun.accepted);
+                const rtc = begun.owner;
+                rtc?.onClose(() => {
+                    // The Connection may end before Client.close. Keep its
+                    // asynchronous cleanup owned after removing the live handle.
+                    s.cleanup.track(rtc.shutdown(), true);
                     if (s.local.get(connectionId) === local)
                         s.local.delete(connectionId);
                 });
@@ -3049,6 +3078,8 @@ async function boundedLocal<T>(
     work: Promise<T>,
     options: BrowserSdkRequestOptions,
 ): Promise<T> {
+    // A pre-aborted wait still leaves owned retirement running.
+    void work.catch(() => {});
     const budget = new Budget(options);
     return new Promise<T>((resolve, reject) => {
         let settled = false;
@@ -3346,13 +3377,10 @@ export class BrowserConnection {
                     error ? translated(error, "read-only") : undefined,
                 );
             };
-            capture =
+            capture = await s.cleanup.track(
                 native instanceof BrowserRtcConnection
-                    ? await native.capture(
-                          { ...captured, state },
-                          budget.options(),
-                      )
-                    : await BrowserMediaCapture.open(native, {
+                    ? native.capture({ ...captured, state }, budget.options())
+                    : BrowserMediaCapture.open(native, {
                           audioStreamId: audio,
                           videoStreamId: video,
                           videoSource: captured.video,
@@ -3361,7 +3389,8 @@ export class BrowserConnection {
                           stream: captured.stream,
                           state,
                           ...budget.options(),
-                      });
+                      }),
+            );
             s.observe(peer, epoch);
             const owner = capture;
             return Object.freeze({
@@ -3429,18 +3458,16 @@ export class BrowserConnection {
             throw new BrowserSdkError("conflict", "read-only");
         let renderer: BrowserMediaRenderer | BrowserRenderHandle | undefined;
         try {
-            renderer =
+            renderer = await s.cleanup.track(
                 native instanceof BrowserRtcConnection
-                    ? await native.render(
-                          { audio, video, volume },
-                          budget.options(),
-                      )
-                    : await BrowserMediaRenderer.open(native, {
+                    ? native.render({ audio, video, volume }, budget.options())
+                    : BrowserMediaRenderer.open(native, {
                           audio,
                           video,
                           volume,
                           ...budget.options(),
-                      });
+                      }),
+            );
             s.observe(peer, epoch);
             if (s.renderers.has(this.id))
                 throw new BrowserSdkError("conflict", "read-only");

@@ -14,7 +14,7 @@ async function environment(t,run){
  const values=[Context,{visibilityState:'visible',addEventListener(){},removeEventListener(){}},{now:()=>wall}];
  for(let i=0;i<names.length;i++)Object.defineProperty(globalThis,names[i],{configurable:true,value:values[i]});
  t.mock.timers.enable({apis:['setTimeout']});
- const connection={id:'connection',streams:[binding(1,'audio'),binding(2,'video')],onClose(){return()=>{};}};
+ const connection={id:'connection',streams:[binding(1,'audio'),binding(2,'video')],ownCleanup(work){void work.catch(()=>{});},onClose(){return()=>{};}};
  let renderer;const drawn=[],clones=[],originals=[];
  const draw={drawImage(frame){drawn.push({timestamp:frame.timestamp,at:contexts[0].currentTime});}};const canvas={getContext:()=>draw};
  const frame=timestamp=>{const source={timestamp,closed:0,close(){this.closed++;},clone(){const c={timestamp,closed:0,close(){this.closed++;}};clones.push(c);return c;}};originals.push(source);return source;};

@@ -1075,9 +1075,39 @@ return forms have been removed to match the approved TypeScript contract.
 
 [The contract audit](../evidence/gate-6/browser-sdk-contract-audit.json) records
 all 25 mapped method surfaces, actual compiler witnesses and remaining gaps.
-The current browser shutdown still retires synchronously through `close()`;
-the frozen bounded asynchronous `close(options)` contract needs implementation
-and cleanup evidence. The shared cross-language return samples now include owner and assistant;
-[their four compiler checks](../evidence/gate-6/browser-sdk-return-outlines.json) pass. Shutdown and the prior Screen finding
-keep G6-061 in progress; passing method-presence checks do not qualify runtime
-parity, shutdown or successful live movement media.
+The shared cross-language return samples include owner and assistant;
+[their four compiler checks](../evidence/gate-6/browser-sdk-return-outlines.json) pass.
+The [bounded shutdown evidence](../evidence/gate-6/browser-sdk-shutdown.json)
+resolves the earlier close signature and cleanup finding. The earlier native
+Screen-resume revision/catalog conflict remains unexplained. G6-061 stays in
+progress; method presence and these fixes do not qualify full runtime parity
+or successful browser private movement media.
+
+## Bounded owned shutdown
+
+```typescript
+await client.close({ timeoutMs: 5000, signal: shutdownSignal });
+```
+
+`close(options)` requires a 1–60000 ms deadline and returns `Promise<void>`.
+Valid shutdown retires control, local capture/playback, event readers and
+application receipt reads immediately. It joins control and datagram reader
+cancellation, writer abort and admitted writes, native reconciliation, RTC
+signaling/track replacement, audio graph cleanup and owned HTTP fetch/body
+cleanup. Retired and opening physical peers remain owned until their cleanup
+settles. At most 16 physical peers may await cleanup; another reconnect refuses
+before allocating a new physical peer when that budget is full.
+
+Cancellation (including an already aborted signal) and deadline stop the wait;
+retirement continues. A later `close` call can join the same work with a new wait
+budget. Cleanup failure is reported after other owned cleanup settles. Invalid
+options refuse before retirement. Closing sends no durable cancellation,
+Session-end or replacement intent: retain operation references to observe
+remote outcomes through a separately authorized client.
+
+Application enrollment/receipt resolvers and device permission prompts can
+outlive cancellation in the host. Shutdown aborts their owned wrappers and
+fences late results; late tracks are stopped and late profiles cannot open
+another physical or submit work. Owned HTTP requests and browser resource
+cleanup remain joined, and a stalled host resource can therefore exhaust the
+shutdown wait. Logs and browser profiles for local verification stay ignored.

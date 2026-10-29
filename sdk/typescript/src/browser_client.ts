@@ -1,5 +1,6 @@
 import { validateBrowserCanonical } from "./browser_canonical_validation.js";
 import { canonicalTimestamp } from "./uctp_datetime.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import {
     WebTransportControl,
     WebSocketControl,
@@ -113,6 +114,10 @@ export class BrowserClient {
     private writes: Promise<void> = Promise.resolve();
     private queuedWrites = 0;
     private auth?: Envelope;
+    private readonly tasks = new BrowserTasks();
+    private retirement?: Promise<void>;
+    /** Physical terminal cleanup, including failed opening and stream owners. */
+    readonly disposed: Promise<void>;
     private constructor(private readonly options: BrowserClientOptions) {
         this.selectedTransport = options.transport ?? "webtransport";
         this.transport =
@@ -122,20 +127,25 @@ export class BrowserClient {
                       options.url,
                       options.serverCertificateHashes,
                   );
-        void this.transport.closed.then(
-            () => this.close(),
-            (error: unknown) =>
-                this.close(
-                    error instanceof ConnectError
-                        ? error
-                        : new ConnectError(
-                              "transport",
-                              "Canonical control transport closed",
-                          ),
-                ),
-        );
+        this.disposed = this.transport.closed
+            .then(
+                () => this.close(),
+                (error: unknown) =>
+                    this.close(
+                        error instanceof ConnectError
+                            ? error
+                            : new ConnectError(
+                                  "transport",
+                                  "Canonical control transport closed",
+                              ),
+                    ),
+            )
+            .then(() => this.shutdown());
     }
-    static async open(options: BrowserClientOptions): Promise<BrowserClient> {
+    static async open(
+        options: BrowserClientOptions,
+        own?: (client: BrowserClient) => void,
+    ): Promise<BrowserClient> {
         // A caller may reuse its draft for the next physical peer. Capture the
         // enrolled actor/key metadata before the first await; refreshing that
         // draft cannot change this peer's identity, signature or server trust.
@@ -237,9 +247,20 @@ export class BrowserClient {
         let client: BrowserClient | undefined;
         try {
             client = new BrowserClient(options);
+            own?.(client);
             await client.bound(client.transport.ready, until, options.signal);
+            const opening = client;
             const stream = await client.bound(
-                client.transport.stream(),
+                client.tasks.track(
+                    client.transport.stream().then((stream) => {
+                        if (opening.closed) {
+                            opening.tasks.track(stream.readable.cancel());
+                            opening.tasks.track(stream.writable.abort());
+                            opening.check();
+                        }
+                        return stream;
+                    }),
+                ),
                 until,
                 options.signal,
             );
@@ -247,9 +268,11 @@ export class BrowserClient {
             client.writer = stream.writable.getWriter();
             phase = "authentication";
             const physical = client;
-            void physical
-                .pump()
-                .catch((error: unknown) => physical.close(error));
+            physical.tasks.track(
+                physical
+                    .pump()
+                    .catch((error: unknown) => physical.close(error)),
+            );
             const hello = await client.exchange(
                 envelope("auth.hello", {
                     device: {
@@ -411,6 +434,7 @@ export class BrowserClient {
             }
             for (const frame of codec.push(value)) {
                 await verifyEnvelope(frame, this.options.server);
+                this.check();
                 const now = Date.now();
                 for (const [id, time] of this.seen)
                     if (time <= now - 60000) this.seen.delete(id);
@@ -564,6 +588,7 @@ export class BrowserClient {
                 this.queuedWrites--;
             });
         this.writes = write.catch((error: unknown) => this.close(error));
+        this.tasks.track(this.writes);
         return write;
     }
     private async exchange(
@@ -754,8 +779,8 @@ export class BrowserClient {
         this.events = [];
         this.eventBytes = 0;
         this.listeners.clear();
-        void this.reader?.cancel().catch(() => {});
-        void this.writer?.abort().catch(() => {});
+        if (this.reader) this.tasks.track(this.reader.cancel());
+        if (this.writer) this.tasks.track(this.writer.abort());
         this.transport.close();
         for (const callback of this.closeListeners) {
             try {
@@ -765,5 +790,15 @@ export class BrowserClient {
             }
         }
         this.closeListeners.clear();
+    }
+    /** Internal unbounded join; the SDK caller supplies the outer wait budget. */
+    shutdown(): Promise<void> {
+        this.close();
+        return (this.retirement ??= (async () => {
+            await this.transport.closed.catch(() => {});
+            await this.tasks.join();
+            this.reader?.releaseLock();
+            this.writer?.releaseLock();
+        })());
     }
 }

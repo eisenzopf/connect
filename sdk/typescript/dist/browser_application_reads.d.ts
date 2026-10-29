@@ -33,7 +33,7 @@ export declare class BrowserApplicationReads {
     readonly identityId: string;
     readonly deviceId: string;
     constructor(resolve: BrowserApplicationReadResolver | undefined, identityId: string, deviceId: string);
-    retire(): void;
+    retire(): Promise<void>;
     receipts(cid: ConversationId, mid: MessageId, options: {
         timeoutMs: number;
         signal?: AbortSignal;

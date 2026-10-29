@@ -1,4 +1,5 @@
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
     BrowserOpusCodec,
@@ -132,6 +133,7 @@ const invert = (value: Json | undefined): MediaBinding["direction"] => {
 
 /** One datagram owner per authenticated physical client; protocol/media state has no UI. */
 export class BrowserMediaPeer {
+    private readonly tasks = new BrowserTasks();
     private readonly reader: ReadableStreamDefaultReader<Uint8Array>;
     private readonly writer: WritableStreamDefaultWriter<Uint8Array>;
     private readonly registry = new MediaBindings();
@@ -183,7 +185,9 @@ export class BrowserMediaPeer {
                 if (expired) route.vp8?.lost();
             }
         }, 50);
-        void this.receive().catch((error: unknown) => this.die(error));
+        this.tasks.track(
+            this.receive().catch((error: unknown) => this.die(error)),
+        );
     }
     get diagnostics(): Readonly<
         typeof this.counters & {
@@ -311,26 +315,28 @@ export class BrowserMediaPeer {
         }
         const work = this.reconcile(state, frame);
         state.reconciling = work;
-        void work
-            .catch((error: unknown) => {
-                if (!(
-                    error instanceof ConnectError &&
-                    error.code === "closed" &&
-                    this.connections.get(state.scope.connid) !== state
-                ))
-                    this.die(error);
-            })
-            .finally(() => {
-                state.reconciling = undefined;
-                const next = state.pendingServer;
-                state.pendingServer = undefined;
-                if (
-                    next &&
-                    !this.stopped &&
-                    this.connections.get(state.scope.connid) === state
-                )
-                    this.serverOffer(state, next);
-            });
+        this.tasks.track(
+            work
+                .catch((error: unknown) => {
+                    if (!(
+                        error instanceof ConnectError &&
+                        error.code === "closed" &&
+                        this.connections.get(state.scope.connid) !== state
+                    ))
+                        this.die(error);
+                })
+                .finally(() => {
+                    state.reconciling = undefined;
+                    const next = state.pendingServer;
+                    state.pendingServer = undefined;
+                    if (
+                        next &&
+                        !this.stopped &&
+                        this.connections.get(state.scope.connid) === state
+                    )
+                        this.serverOffer(state, next);
+                }),
+        );
     }
     private async reconcile(
         state: ConnectionState,
@@ -586,7 +592,9 @@ export class BrowserMediaPeer {
                     if (!accepted || before !== this.queue.droppedPackets)
                         for (const r of this.routes.values())
                             r.vp8?.requestKeyFrame();
-                    void this.drain().catch((e: unknown) => this.die(e));
+                    this.tasks.track(
+                        this.drain().catch((e: unknown) => this.die(e)),
+                    );
                 };
                 if (binding.kind === "audio")
                     route.opus = new BrowserOpusCodec({
@@ -1601,9 +1609,21 @@ export class BrowserMediaPeer {
         for (const route of this.routes.values()) this.remove(route);
         this.registry.clear();
         this.queue.clear();
-        void this.reader.cancel().catch(() => {});
-        void this.writer.abort().catch(() => {});
+        this.tasks.track(this.reader.cancel());
+        this.tasks.track(this.writer.abort());
         this.client.close();
+    }
+    ownCleanup(work: Promise<unknown>): void {
+        this.tasks.track(work, true);
+    }
+    async shutdown(): Promise<void> {
+        this.close();
+        try {
+            await this.tasks.join();
+        } finally {
+            this.reader.releaseLock();
+            this.writer.releaseLock();
+        }
     }
 }
 
@@ -1612,6 +1632,9 @@ export class BrowserMediaConnection {
         private readonly peer: BrowserMediaPeer,
         readonly id: string,
     ) {}
+    ownCleanup(work: Promise<unknown>): void {
+        this.peer.ownCleanup(work);
+    }
     get streams(): Readonly<MediaBinding>[] {
         return this.peer.streams(this.id);
     }

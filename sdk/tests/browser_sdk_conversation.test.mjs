@@ -9,7 +9,7 @@ async function scenario(run,{path='wss-webrtc',fault,algorithm='EdDSA'}={}){
  let mode=fault,gate;const records=new Map(),journal=[];
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500});const room=client.conversations.byId(id('room'));
-  try{return await run({client,room,f,records,journal,setMode:v=>mode=v,setGate:v=>gate=v});}finally{client.close();}
+  try{return await run({client,room,f,records,journal,setMode:v=>mode=v,setGate:v=>gate=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   const reply=async(type,payload,scope=frame)=>{await peer.emit(type,payload,frame.id,scope);await peer.emit('ack',{},frame.id,frame);return true;};
   if(frame.type==='message.send'){

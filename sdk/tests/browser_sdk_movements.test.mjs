@@ -13,7 +13,7 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',fault}={}){
  let mode=fault;const records=new Map();
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500}),session=client.conversations.byId(id('room')).sessions.byId(id('session')),source=session.connections.byId(id('source'));
-  try{await run({client,session,source,f,setMode:v=>mode=v,records});}finally{client.close();}
+  try{await run({client,session,source,f,setMode:v=>mode=v,records});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   if(!['operation.get','session.handoff','connection.replace'].includes(frame.type))return false;
   const query=frame.type==='operation.get',own=query?frame.payload.operation_id:frame.operation_id,emit=async(type,payload)=>peer.emit(type,payload,frame.id,{cid:frame.cid,sid:frame.sid,connid:frame.connid,operation_id:frame.operation_id});
@@ -77,5 +77,5 @@ test('handoff, target and saved continuation validation reject changed intents b
 }));
 
 test('consultation parent from a retired owner is resolved through the current handoff owner',()=>scenario(async({client,session,f})=>{
- const previous=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{'wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:'wss-webrtc',resolveEnrollment:async()=>f.options,timeoutMs:500}),consultation=previous.operations.restore(parent(),browserOperationKinds.sessionConsult);previous.close();const original=await session.handoff({...handoffInput(),consultation},{...opts,operationId:id('handoff-original')});assert.equal((await original.wait(opts)).value.roleChange.targetParticipant,'p_to');assert.equal(f.sent.filter(v=>v.type==='operation.get'&&v.payload.operation_id==='consult-original').length,1);assert.equal(client.transport.state,'connected');
+ const previous=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{'wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:'wss-webrtc',resolveEnrollment:async()=>f.options,timeoutMs:500}),consultation=previous.operations.restore(parent(),browserOperationKinds.sessionConsult);await previous.close({timeoutMs:500});const original=await session.handoff({...handoffInput(),consultation},{...opts,operationId:id('handoff-original')});assert.equal((await original.wait(opts)).value.roleChange.targetParticipant,'p_to');assert.equal(f.sent.filter(v=>v.type==='operation.get'&&v.payload.operation_id==='consult-original').length,1);assert.equal(client.transport.state,'connected');
 }));

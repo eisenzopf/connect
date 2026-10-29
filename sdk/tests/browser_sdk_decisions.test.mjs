@@ -8,7 +8,7 @@ async function scenario(run,{path='wss-webrtc',algorithm='EdDSA',scope='conversa
  let mode=fault;const target=cases[scope],records=new Map([['original',{operation_id:'original',command_type:target.command==='conversation.create'?'create':target.command==='message.send'?'send':target.command,record_id:'record-original',state:'unknown',revision:1}]]);
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500}),original=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'original',command:target.command,scope:target.scope},browserOperationKinds[target.kind]);
-  try{return await run({client,original,f,records,setMode:v=>mode=v});}finally{client.close();}
+  try{return await run({client,original,f,records,setMode:v=>mode=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   const scope={cid:frame.cid,sid:frame.sid,connid:frame.connid,operation_id:frame.operation_id};const emit=async(type,payload,own=scope)=>peer.emit(type,payload,frame.id,own);
   if(frame.type==='operation.get'){

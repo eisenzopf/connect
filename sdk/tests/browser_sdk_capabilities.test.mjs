@@ -7,7 +7,7 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',application=false,fal
  return fixture(async f=>{
   let resolutions=0,applicationReads=0;
   const client=await BrowserSdkClient.connect({tenantId:sdkId('tnt_default'),identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:fallback?'webtransport':path,resolveEnrollment:async()=>{resolutions++;return f.options;},...(application?{resolveApplicationRead:async()=>{applicationReads++;throw Error('must not run');}}:{}),timeoutMs:500});
-  try{await run({client,f,counts:()=>({resolutions,applicationReads})});}finally{client.close();}
+  try{await run({client,f,counts:()=>({resolutions,applicationReads})});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler});
 }
 for(const path of ['webtransport','wss-webrtc'])for(const algorithm of ['EdDSA','ES256'])for(const application of [false,true])test(`browser capability support ${path}/${algorithm}/application=${application} is local and immutable`,()=>scenario(async({client,f,counts})=>{
@@ -38,7 +38,7 @@ test('expired signed authentication cannot return a live local capability profil
  assert.equal(f.sent.length,before);assert.equal(client.transport.state,'connected');assert.equal((await client.capabilities.refresh(opts)).runtimeRole,'browser');
 }));
 test('closed or disconnected browser owners cannot fabricate live capability snapshots',()=>scenario(async({client,f})=>{
- f.socket().close();await new Promise(setImmediate);assert.equal(client.transport.state,'disconnected');await assert.rejects(()=>client.capabilities.refresh(opts),{kind:'cancelled',certainty:'read-only'});await client.reconnect({timeoutMs:500});await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);client.close();await assert.rejects(()=>client.capabilities.refresh(opts),{kind:'cancelled',certainty:'read-only'});
+ f.socket().close();await new Promise(setImmediate);assert.equal(client.transport.state,'disconnected');await assert.rejects(()=>client.capabilities.refresh(opts),{kind:'cancelled',certainty:'read-only'});await client.reconnect({timeoutMs:500});await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);await client.close({timeoutMs:500});await assert.rejects(()=>client.capabilities.refresh(opts),{kind:'cancelled',certainty:'read-only'});
 }));
 test('local capability support never supplies cached server permission after revocation',()=>scenario(async({client,f})=>{
  const snapshot=await client.capabilities.refresh(opts),before=f.sent.length;f.setCredential('revoked');await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);assert.equal(f.sent.length,before);
@@ -50,9 +50,9 @@ test('local capability checks do not consume the sixteen occupied canonical cont
  return scenario(async({client,f})=>{
   const operation=client.operations.restore({schema:'connect-operation-reference/1',operation_id:'saved',command:'conversation.create',scope:{}},client.operationKinds.conversationCreate),pending=Array.from({length:16},()=>operation.status({timeoutMs:5000})),settled=Promise.allSettled(pending);let timer;
   try{await Promise.race([ready.promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('sixteen requests not observed')),300);})]);}finally{clearTimeout(timer);}
-  assert.equal(f.sent.filter(v=>v.type==='operation.get').length,16);const before=f.sent.length;await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);assert.equal(f.sent.length,before);client.close();assert((await settled).every(v=>v.status==='rejected'));
+  assert.equal(f.sent.filter(v=>v.type==='operation.get').length,16);const before=f.sent.length;await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);assert.equal(f.sent.length,before);await client.close({timeoutMs:500});assert((await settled).every(v=>v.status==='rejected'));
  },{handler:async({frame})=>{if(frame.type!=='operation.get')return false;if(++seen===16)ready.resolve();return true;}});
 });
 test('capability require cannot cross a physical retirement during its local continuation',()=>scenario(async({client})=>{
- const pending=client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);client.close();await assert.rejects(()=>pending,{kind:'cancelled',certainty:'read-only'});
+ const pending=client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);await client.close({timeoutMs:500});await assert.rejects(()=>pending,{kind:'cancelled',certainty:'read-only'});
 }));

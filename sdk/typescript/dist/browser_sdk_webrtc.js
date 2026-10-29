@@ -1,4 +1,5 @@
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { CanonicalWebRtcSignaling } from "./browser_webrtc_signaling.js";
 import { browserIceConfiguration } from "./browser_ice.js";
 import { captureDevices, validateBrowserAnswer } from "./browser_capture.js";
@@ -17,6 +18,7 @@ function timeout(options) {
 export class BrowserRtcConnection {
     client;
     input;
+    tasks = new BrowserTasks();
     stopped = false;
     stop = new AbortController();
     retired = new Set();
@@ -400,7 +402,7 @@ export class BrowserRtcConnection {
                         ? this.input.screen
                         : this.input.video;
                 replacing = true;
-                await budget.run(() => this.senders.get(id).sender.replaceTrack(track), signal);
+                await budget.run(() => this.tasks.track(this.senders.get(id).sender.replaceTrack(track)), signal);
                 replacing = false;
                 if (stopped || signal.aborted)
                     throw closed();
@@ -474,8 +476,11 @@ export class BrowserRtcConnection {
             gain?.disconnect();
             if (this.renderOwner === handle)
                 this.renderOwner = undefined;
-            if (context)
-                void context.close().then(() => (error ? fail(error) : finish()), () => fail(new ConnectError("media", "Playback graph cleanup failed")));
+            if (context) {
+                const cleanup = context.close();
+                this.tasks.track(cleanup, true);
+                void cleanup.then(() => (error ? fail(error) : finish()), () => fail(new ConnectError("media", "Playback graph cleanup failed")));
+            }
             else
                 error ? fail(error) : finish();
         };
@@ -618,5 +623,10 @@ export class BrowserRtcConnection {
         for (const track of this.remote.values())
             track.stop();
         this.remote.clear();
+    }
+    async shutdown() {
+        this.close();
+        await this.signaling?.shutdown();
+        await this.tasks.join();
     }
 }

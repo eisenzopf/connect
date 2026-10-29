@@ -1,3 +1,4 @@
+import { BrowserTasks } from "./browser_tasks.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { ConnectError } from "./errors.js";
 import {
@@ -70,6 +71,7 @@ function candidate(value: JsonObject): RTCIceCandidateInit {
  * alone does not establish Core readiness or decoded playback.
  */
 export class CanonicalWebRtcSignaling {
+    private readonly tasks = new BrowserTasks();
     readonly finished: Promise<void>;
     private resolveFinished!: () => void;
     private rejectFinished!: (error: Error) => void;
@@ -245,7 +247,7 @@ export class CanonicalWebRtcSignaling {
             if (!this.stopped && this.ice.length)
                 void this.drain().catch((error: unknown) => this.die(error));
         });
-        return this.draining;
+        return this.tasks.track(this.draining);
     }
     /** One complete-ICE offer. No automatic retry, fallback, redial or message send. */
     async offer(options: RequestOptions = {}): Promise<void> {
@@ -285,7 +287,10 @@ export class CanonicalWebRtcSignaling {
         });
         void stopped.catch(() => {});
         const bound = async <T>(work: Promise<T>): Promise<T> => {
-            const result = await Promise.race([work, stopped]);
+            const result = await Promise.race([
+                this.tasks.track(work),
+                stopped,
+            ]);
             this.check();
             return result;
         };
@@ -457,5 +462,9 @@ export class CanonicalWebRtcSignaling {
             new ConnectError("closed", "WebRTC signaling owner closed"),
         );
         this.resolveFinished();
+    }
+    async shutdown(): Promise<void> {
+        this.close();
+        await this.tasks.join();
     }
 }

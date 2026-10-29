@@ -18,6 +18,7 @@ export interface BrowserRtcCaptureInput {
 export declare class BrowserRtcConnection {
     private readonly client;
     readonly input: BrowserConnectionOptions;
+    private readonly tasks;
     private stopped;
     private readonly stop;
     private readonly retired;
@@ -48,4 +49,5 @@ export declare class BrowserRtcConnection {
         volume?: number;
     }, options: RequestOptions): Promise<BrowserRenderHandle>;
     close(error?: Error): void;
+    shutdown(): Promise<void>;
 }

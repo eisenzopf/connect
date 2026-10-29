@@ -1,5 +1,5 @@
 // Compile-only public browser workflow; no Node helper types or protocol frames.
-import {BrowserSdkClient,browserOperationKinds,sdkId,sdkRevision,type BrowserOperation,type BrowserConversation,type BrowserSession,type BrowserSdkOperationReference} from '../typescript/dist/browser.js';
+import {BrowserSdkClient,browserOperationKinds,sdkId,sdkRevision,type BrowserSdkRequestOptions,type BrowserOperation,type BrowserConversation,type BrowserSession,type BrowserSdkOperationReference} from '../typescript/dist/browser.js';
 import type {ConversationId,OperationId,SdkRevision} from '../typescript/dist/index.js';
 declare const client:BrowserSdkClient;
 declare const cid:ConversationId;
@@ -203,3 +203,8 @@ consultation.topology;
 // @ts-expect-error Return uses the frozen explicit input shape, never a positional revision alias.
 consulting.returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId});
 void [flatConsultation,flatHandoff,flatMove,originalConsultation];
+
+const boundedClose: (options: BrowserSdkRequestOptions) => Promise<void> = client.close.bind(client);
+void boundedClose;
+// @ts-expect-error Shutdown requires a bounded wait.
+await client.close();

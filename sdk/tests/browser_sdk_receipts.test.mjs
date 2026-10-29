@@ -13,7 +13,7 @@ async function scenario(run,{path='wss-webrtc',algorithm='EdDSA',unsupported=fal
  try{return await fixture(async f=>{
   const profile={url:'https://service.fixture.invalid',transport:'http-json',identityId:f.options.identityId,deviceId:f.options.device.id,browserOrigin:ui,credential:'ab'.repeat(32),expiresAt:Math.floor(Date.now()/1000)+300};
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,...(unsupported?{}:{resolveApplicationRead:async context=>{resolutions.push(context);if(resolveGate)await resolveGate();return profileOverride??profile;}}),timeoutMs:500});const room=client.conversations.byId(id('room'));
-  try{return await run({client,room,f,calls,resolutions,profile,setHttp:v=>http=v,setResolverGate:v=>resolveGate=v,setProfile:v=>profileOverride=v});}finally{client.close();}
+  try{return await run({client,room,f,calls,resolutions,profile,setHttp:v=>http=v,setResolverGate:v=>resolveGate=v,setProfile:v=>profileOverride=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   if(frame.type!=='conversation.get')return false;await peer.emit('conversation.snapshot',{revision:0,cursor:'cursor',items:[{kind:'conversation',data:{conversation_id:'room',revision:0,closed:false,policy:'persistent'}}],has_more:false},frame.id,frame);await peer.emit('ack',{},frame.id,frame);return true;
  }});}finally{for(const[k,d]of saved)d?Object.defineProperty(globalThis,k,d):delete globalThis[k];}
@@ -37,7 +37,7 @@ for(const mode of ['transport','body','resolver'])for(const cancel of [false,tru
  let release,seen,bodyCancelled=false;const started=new Promise(r=>seen=r),held=new Promise(r=>release=r);if(mode==='resolver')setResolverGate(()=>{seen();return held;});else setHttp(()=>{seen();return mode==='transport'?held.then(()=>page([row(1)],'late-cursor')):new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('{'));},cancel(){bodyCancelled=true;}}));});const epoch=client.transport.physicalEpoch,stop=new AbortController(),pending=room.receipts(id('message'),{timeoutMs:cancel?300:25,signal:stop.signal});await started;if(cancel)stop.abort();await assert.rejects(()=>pending,{kind:cancel?'cancelled':'deadline'});if(mode==='body'){await Promise.resolve();assert(bodyCancelled,'abandonment actively cancels the owned body reader');}assert.equal(client.transport.state,'connected');assert.equal(client.transport.physicalEpoch,epoch);for(const call of calls)assert(call.init.signal.aborted);setResolverGate(undefined);setHttp(()=>page());release();assert.deepEqual(await room.receipts(id('message'),opts),[]);await room.refresh(opts);assert(calls.length<=2,'late abandoned work never requests another page');
 }));
 for(const replacement of ['close','reconnect'])test('receipt read cannot cross physical '+replacement,()=>scenario(async({room,client,setHttp})=>{
- let seen,release;const started=new Promise(r=>seen=r),held=new Promise(r=>release=r);setHttp(()=>{seen();return held.then(()=>page([row(1)]));});const pending=room.receipts(id('message'),opts);void pending.catch(()=>{});await started;if(replacement==='close')client.close();else await client.reconnect({preferredTransport:'wss-webrtc',timeoutMs:500});await assert.rejects(()=>pending,{kind:'cancelled'});release();
+ let seen,release;const started=new Promise(r=>seen=r),held=new Promise(r=>release=r);setHttp(()=>{seen();return held.then(()=>page([row(1)]));});const pending=room.receipts(id('message'),opts);void pending.catch(()=>{});await started;let closing,joined=false;if(replacement==='close')closing=client.close({timeoutMs:500}).then(()=>joined=true);else await client.reconnect({preferredTransport:'wss-webrtc',timeoutMs:500});await assert.rejects(()=>pending,{kind:'cancelled'});if(closing){await new Promise(setImmediate);assert.equal(joined,false,'close joins the owned fetch after cancelling its caller');}release();await closing;
 }));
 test('receipt read owner bounds concurrent resolvers and cancellation frees its slots',()=>scenario(async({room,setResolverGate,setHttp})=>{
  let release;const held=new Promise(r=>release=r);setResolverGate(()=>held);const stop=new AbortController(),pending=Array.from({length:8},()=>room.receipts(id('message'),{timeoutMs:300,signal:stop.signal}));await assert.rejects(()=>room.receipts(id('message'),opts),{kind:'conflict'});stop.abort();assert((await Promise.allSettled(pending)).every(v=>v.status==='rejected'&&v.reason.kind==='cancelled'));setResolverGate(undefined);setHttp(()=>page());release();assert.deepEqual(await room.receipts(id('message'),opts),[]);
@@ -48,3 +48,13 @@ for(const [name,change]of [['transport',v=>v.transport='webtransport'],['identit
 test('missing application read configuration is unsupported with no inferred endpoint',()=>scenario(async({room,calls})=>{
  await assert.rejects(()=>room.receipts(id('message'),opts),{kind:'unsupported'});assert.equal(calls.length,0);
 },{unsupported:true}));
+
+for(const deadline of [false,true])test(`client close joins owned HTTP body cancellation${deadline?' across an expired wait':''}`,()=>scenario(async({room,client,setHttp})=>{
+ let started,release,body;const reading=new Promise(r=>started=r),held=new Promise(r=>release=r);
+ setHttp(()=>{body=new ReadableStream({pull(){started();},cancel(){return held;}});return new Response(body);});
+ const pending=room.receipts(id('message'),opts);void pending.catch(()=>{});await reading;
+ let joined=false;const closing=client.close({timeoutMs:deadline?20:500}).then(()=>joined=true);void closing.catch(()=>{});
+ await assert.rejects(pending,{kind:'cancelled'});await new Promise(setImmediate);assert.equal(joined,false);
+ if(deadline)await assert.rejects(closing,{kind:'deadline'});
+ release();if(!deadline)await closing;await client.close({timeoutMs:500});assert.equal(body.locked,false);
+}));

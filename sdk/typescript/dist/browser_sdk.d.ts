@@ -219,7 +219,7 @@ export declare class BrowserSdkClient {
     static connect(options: BrowserSdkClientOptions): Promise<BrowserSdkClient>;
     get transport(): BrowserTransportState;
     reconnect(options?: Parameters<BrowserTransportClient["reconnect"]>[0]): Promise<void>;
-    close(): void;
+    close(options: BrowserSdkRequestOptions): Promise<void>;
     [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope, continuation?: BrowserTransitionContinuation): Promise<BrowserOperation<T>>;
     incomingInvitations(options: BrowserSdkRequestOptions): BrowserIncomingInvitations;
 }

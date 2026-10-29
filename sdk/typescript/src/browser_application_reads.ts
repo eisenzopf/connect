@@ -1,5 +1,6 @@
 import { ConnectError } from "./errors.js";
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import {
     canonicalJson,
     jsonObject,
@@ -80,14 +81,17 @@ export function applicationReadOrigin(value: string): string {
 }
 /** Independently disposable HTTPS reads. No canonical credential or framing is reused. */
 export class BrowserApplicationReads {
-    readonly #active = new Set<AbortController>();
+    readonly #cleanup = new BrowserTasks();
+    readonly #active = new Map<AbortController, Promise<void>>();
     constructor(
         readonly resolve: BrowserApplicationReadResolver | undefined,
         readonly identityId: string,
         readonly deviceId: string,
     ) {}
-    retire(): void {
-        for (const read of this.#active) read.abort();
+    async retire(): Promise<void> {
+        for (const read of this.#active.keys()) read.abort();
+        await Promise.all(this.#active.values());
+        await this.#cleanup.join();
     }
     async receipts(
         cid: ConversationId,
@@ -114,7 +118,13 @@ export class BrowserApplicationReads {
                 ...(options.signal ? [options.signal] : []),
             ]),
             budget = new BrowserDeadline(options.timeoutMs);
-        this.#active.add(controller);
+        let finished!: () => void;
+        this.#active.set(
+            controller,
+            new Promise<void>((resolve) => {
+                finished = resolve;
+            }),
+        );
         const check = () => {
             current();
             budget.remaining();
@@ -167,9 +177,8 @@ export class BrowserApplicationReads {
                     total = 0;
                 for (let page = 0; page < 64; page++) {
                     authorized();
-                    const response = await fetch(
-                        profile.url + "/v1/operations",
-                        {
+                    const response = await this.#cleanup.track(
+                        fetch(profile.url + "/v1/operations", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
@@ -187,7 +196,7 @@ export class BrowserApplicationReads {
                             cache: "no-store",
                             referrerPolicy: "no-referrer",
                             signal,
-                        },
+                        }),
                     );
                     try {
                         authorized();
@@ -206,8 +215,13 @@ export class BrowserApplicationReads {
                             fail();
                         const reader = response.body.getReader(),
                             chunks: Uint8Array[] = [];
+                        let cancelling: Promise<void> | undefined;
                         const cancelBody = () => {
-                            void reader.cancel().catch(() => {});
+                            cancelling ??= this.#cleanup.track(
+                                reader
+                                    .cancel()
+                                    .finally(() => reader.releaseLock()),
+                            );
                         };
                         signal.addEventListener("abort", cancelBody, {
                             once: true,
@@ -367,7 +381,7 @@ export class BrowserApplicationReads {
                         cursors.add(after);
                     } finally {
                         if (response.body && !response.body.locked)
-                            void response.body.cancel().catch(() => {});
+                            this.#cleanup.track(response.body.cancel());
                     }
                 }
                 return fail();
@@ -381,6 +395,7 @@ export class BrowserApplicationReads {
         } finally {
             controller.abort();
             this.#active.delete(controller);
+            finished();
         }
     }
 }

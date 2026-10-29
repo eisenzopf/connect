@@ -117,7 +117,7 @@ async function environment(run) {
                     direction: "sendrecv",
                 },
             ],
-            onClose(fn) {
+            ownCleanup(work){void work.catch(()=>{});},onClose(fn) {
                 observers.add(fn);
                 return () => observers.delete(fn);
             },

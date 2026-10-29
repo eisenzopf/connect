@@ -61,6 +61,8 @@ export interface BrowserConversationRecoveryPage {
  * A new physical epoch retires old capture/media owners; applications must
  * explicitly reconnect media or submit a distinct device-replacement intent. */
 export declare class BrowserTransportClient {
+    private readonly tasks;
+    private readonly physicals;
     private readonly identityId;
     private readonly deviceId;
     private readonly endpoints;
@@ -85,7 +87,10 @@ export declare class BrowserTransportClient {
         preferredTransport?: BrowserTransportPath;
     }): Promise<void>;
     private openRound;
+    private startRound;
     close(): void;
+    /** Joins every owned physical, including retired and opening peers. */
+    shutdown(): Promise<void>;
     private observed;
     private malformed;
     /** Status-first recovery only. It never dispatches the referenced command. */

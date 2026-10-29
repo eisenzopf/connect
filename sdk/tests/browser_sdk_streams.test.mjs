@@ -9,7 +9,7 @@ async function scenario(run,{fault,large=false}={}){
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{'wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:'wss-webrtc',resolveEnrollment:async()=>f.options,timeoutMs:500});
   const connection=client.conversations.byId(sdkId('room')).sessions.byId(sdkId('session')).connections.byId(sdkId('connection'));
-  try{return await run({client,connection,f,records,setFault:value=>mode=value});}finally{client.close();}
+  try{return await run({client,connection,f,records,setFault:value=>mode=value});}finally{await client.close({timeoutMs:500});}
  },{handler:async({peer,frame})=>{
   const reply=async(type,payload)=>{await peer.emit(type,payload,frame.id,frame);await peer.emit('ack',{},frame.id,frame);return true;};
   if(frame.type==='operation.get'){

@@ -220,7 +220,7 @@ globalThis.runBrowserFixture=async cfg=>{try{globalThis.typedUiComplete=false;
     savedCancellations.set(path,cancel.referenceJson());
     {const input={sessionId:sdkId('session-queued-cancel-'+suffix),to:[target.id],medium:'text-chat',intent:'queued-synthetic',capabilities:{data:['reliable-ordered']}},key=mutation('queued-invite');sessionStorage.setItem('queued-invite-intent-'+suffix,JSON.stringify({input,mutation:key}));const queued=await room.sessions.invite(input,key),session=(await queued.wait(options)).value,current=await session.refresh(options),cancelInput={reasonCode:487,reason:'Queued cancellation',expectedTopologyRevision:current.topologyRevision},cancelKey=mutation('queued-cancel');sessionStorage.setItem('queued-cancel-intent-'+suffix,JSON.stringify({input:cancelInput,mutation:cancelKey}));const cancelled=await session.cancelInvitation(cancelInput,cancelKey);await cancelled.wait(options);await incoming.close();incoming=callee.incomingInvitations({timeoutMs:100});let empty;try{await incoming.next();}catch(error){empty=error;}assert(empty?.kind==='deadline'&&callee.transport.state==='connected','queued cancellation yields no stale invitation or automatic decision');result.queued_cancellation_refused++;}
    }finally{await incoming.close();}
-  }finally{for(const client of clients)client.close();}
+  }finally{for(const client of clients)await client.close({timeoutMs:5000});}
  }
  // Both path workflows finish before retiring WT: a refused preferred profile
  // deliberately cannot fall back to a different transport credential.
@@ -235,7 +235,7 @@ globalThis.runBrowserFixture=async cfg=>{try{globalThis.typedUiComplete=false;
    assert(refused&&['authentication','transport-uncertain','cancelled'].includes(refused.kind),'current revoked authority refuses original receipt');
    let originalClaim;try{await client.reconnect({preferredTransport:path});}catch(error){originalClaim=error;}
    assert(originalClaim?.kind==='authentication'&&originalClaim?.certainty==='refused','revoked original claim cannot restore a new physical');result.current_authority_refusal++;
-  }finally{client.close();}
+  }finally{await client.close({timeoutMs:5000});}
  }
  const mutations=trace.filter(x=>x.operation&&['conversation.create','message.send','conversation.participant.add','conversation.participant.update','conversation.participant.remove','session.invite','session.accept','session.reject','session.cancel','session.end','session.update','connection.offer','connection.end','connection.update','stream.subscribe','stream.unsubscribe'].includes(x.request));
  assert(mutations.length===75&&new Set(mutations.map(x=>x.operation)).size===75,'seventy-five original mutations, no status/restore resubmission');

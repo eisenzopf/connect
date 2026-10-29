@@ -543,7 +543,7 @@ export class BrowserMediaCapture {
         }
         this.input?.disconnect();
         this.silent?.disconnect();
-        void this.context?.close().catch(() => {});
+        if (this.context) this.connection.ownCleanup(this.context.close());
         for (const [track, handler] of this.ended)
             track.removeEventListener("ended", handler);
         this.ended.clear();

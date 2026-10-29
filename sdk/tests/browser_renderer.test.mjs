@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {BrowserMediaRenderer} from '../typescript/dist/browser_media_renderer.js';
 const binding=(handle,kind)=>({handle,streamId:kind,connectionId:'connection',sessionId:'session',generation:1,kind,codec:kind==='audio'?'opus':'vp8',payloadType:kind==='audio'?111:96,direction:'sendrecv'});
-function owner(){const closed=new Set();return{id:'connection',streams:[binding(1,'audio'),binding(2,'video')],closed,onClose(fn){closed.add(fn);return()=>closed.delete(fn);}};}
+function owner(){const closed=new Set();return{id:'connection',streams:[binding(1,'audio'),binding(2,'video')],closed,ownCleanup(work){void work.catch(()=>{});},onClose(fn){closed.add(fn);return()=>closed.delete(fn);}};}
 async function environment(resume,run){
   const contexts=[],names=['AudioContext','document','performance'],old=names.map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);
   class Node{connect(){}disconnect(){}gain={value:1};fftSize=0;getFloatTimeDomainData(array){array.fill(.1);}}

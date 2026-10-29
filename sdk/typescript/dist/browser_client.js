@@ -1,5 +1,6 @@
 import { validateBrowserCanonical } from "./browser_canonical_validation.js";
 import { canonicalTimestamp } from "./uctp_datetime.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { WebTransportControl, WebSocketControl, } from "./browser_control_transport.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
@@ -57,6 +58,10 @@ export class BrowserClient {
     writes = Promise.resolve();
     queuedWrites = 0;
     auth;
+    tasks = new BrowserTasks();
+    retirement;
+    /** Physical terminal cleanup, including failed opening and stream owners. */
+    disposed;
     constructor(options) {
         this.options = options;
         this.selectedTransport = options.transport ?? "webtransport";
@@ -64,11 +69,13 @@ export class BrowserClient {
             this.selectedTransport === "websocket"
                 ? new WebSocketControl(options.url)
                 : new WebTransportControl(options.url, options.serverCertificateHashes);
-        void this.transport.closed.then(() => this.close(), (error) => this.close(error instanceof ConnectError
+        this.disposed = this.transport.closed
+            .then(() => this.close(), (error) => this.close(error instanceof ConnectError
             ? error
-            : new ConnectError("transport", "Canonical control transport closed")));
+            : new ConnectError("transport", "Canonical control transport closed")))
+            .then(() => this.shutdown());
     }
-    static async open(options) {
+    static async open(options, own) {
         // A caller may reuse its draft for the next physical peer. Capture the
         // enrolled actor/key metadata before the first await; refreshing that
         // draft cannot change this peer's identity, signature or server trust.
@@ -150,15 +157,24 @@ export class BrowserClient {
         let client;
         try {
             client = new BrowserClient(options);
+            own?.(client);
             await client.bound(client.transport.ready, until, options.signal);
-            const stream = await client.bound(client.transport.stream(), until, options.signal);
+            const opening = client;
+            const stream = await client.bound(client.tasks.track(client.transport.stream().then((stream) => {
+                if (opening.closed) {
+                    opening.tasks.track(stream.readable.cancel());
+                    opening.tasks.track(stream.writable.abort());
+                    opening.check();
+                }
+                return stream;
+            })), until, options.signal);
             client.reader = stream.readable.getReader();
             client.writer = stream.writable.getWriter();
             phase = "authentication";
             const physical = client;
-            void physical
+            physical.tasks.track(physical
                 .pump()
-                .catch((error) => physical.close(error));
+                .catch((error) => physical.close(error)));
             const hello = await client.exchange(envelope("auth.hello", {
                 device: {
                     ...options.device,
@@ -277,6 +293,7 @@ export class BrowserClient {
             }
             for (const frame of codec.push(value)) {
                 await verifyEnvelope(frame, this.options.server);
+                this.check();
                 const now = Date.now();
                 for (const [id, time] of this.seen)
                     if (time <= now - 60000)
@@ -387,6 +404,7 @@ export class BrowserClient {
             this.queuedWrites--;
         });
         this.writes = write.catch((error) => this.close(error));
+        this.tasks.track(this.writes);
         return write;
     }
     async exchange(frame, signed, terminal, options, validateCanonical = false) {
@@ -519,8 +537,10 @@ export class BrowserClient {
         this.events = [];
         this.eventBytes = 0;
         this.listeners.clear();
-        void this.reader?.cancel().catch(() => { });
-        void this.writer?.abort().catch(() => { });
+        if (this.reader)
+            this.tasks.track(this.reader.cancel());
+        if (this.writer)
+            this.tasks.track(this.writer.abort());
         this.transport.close();
         for (const callback of this.closeListeners) {
             try {
@@ -531,5 +551,15 @@ export class BrowserClient {
             }
         }
         this.closeListeners.clear();
+    }
+    /** Internal unbounded join; the SDK caller supplies the outer wait budget. */
+    shutdown() {
+        this.close();
+        return (this.retirement ??= (async () => {
+            await this.transport.closed.catch(() => { });
+            await this.tasks.join();
+            this.reader?.releaseLock();
+            this.writer?.releaseLock();
+        })());
     }
 }

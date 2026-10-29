@@ -69,3 +69,23 @@ test('WSS single video RTP profile refuses simultaneous camera and screen before
  assert.throws(()=>BrowserRtcConnection.begin(client,{...input,connectionId:'other',operationId:'other-offer',video:'camera',screen:'desktop'},'recipient',{}, {timeoutMs:100}),{code:'unsupported-media-profile'});
  assert.equal(peer(),original);assert.equal(f.sent.length,sent);assert.equal(permissions(),0);assert.equal(client.closed,false);
 }));
+test('WSS shutdown joins an uncertain track replacement after stopping its capture',()=>scenario(async({begun,peer})=>{
+ const owner=await begun.ready,late=deferred(),entered=deferred(),track=new Track(),sender=peer().getTransceivers()[0].sender;
+ sender.replaceTrack=async value=>{entered.resolve();await late.promise;sender.track=value;};
+ const capture=owner.capture({audio:true,stream:new Stream([track])},{timeoutMs:200});void capture.catch(()=>{});await entered.promise;
+ let joined=false;const closing=owner.shutdown().then(()=>joined=true);await new Promise(setImmediate);
+ assert.equal(joined,false);assert.equal(track.readyState,'ended');assert.equal(peer().connectionState,'closed');
+ late.resolve();await closing;await assert.rejects(capture);assert.equal(sender.track.readyState,'ended');
+}));
+for(const failure of [false,true])test(`WSS shutdown joins renderer audio cleanup${failure?' and reports its failure':''}`,()=>scenario(async({begun,peer})=>{
+ const owner=await begun.ready,late=deferred(),original=Object.getOwnPropertyDescriptor(globalThis,'AudioContext');let reject;
+ const cleanup=failure?new Promise((_,no)=>reject=no):late.promise;
+ class Node{gain={value:1};connect(){}disconnect(){}}
+ class Context{destination={};createMediaStreamSource(){return new Node();}createGain(){return new Node();}async resume(){}close(){return cleanup;}}
+ Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:Context});
+ try{
+  const renderer=await owner.render({audio:true},{timeoutMs:100});let joined=false;
+  const closing=owner.shutdown().finally(()=>joined=true);void closing.catch(()=>{});await new Promise(setImmediate);assert.equal(joined,false);assert.equal(peer().connectionState,'closed');
+  if(failure){reject(Error('synthetic RTC cleanup failure'));await assert.rejects(closing,/synthetic RTC cleanup failure/);await assert.rejects(renderer.finished,{code:'media'});}else{late.resolve();await closing;await renderer.finished;}
+ }finally{late.resolve();if(original)Object.defineProperty(globalThis,'AudioContext',original);else delete globalThis.AudioContext;}
+}));

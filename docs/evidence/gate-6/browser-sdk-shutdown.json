@@ -1,0 +1,376 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "7610082217b954f8eeccb3458c8da6f389a81017",
+  "status": "in-progress",
+  "passed": true,
+  "task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Bounded asynchronous browser SDK shutdown, component failure/recovery evidence and selected existing production-server/local-Chrome regression workflows. No full G6-061 or remote/installed/private-movement qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "contracts/sdk-api/typescript/contract.ts": {
+      "sha256": "97f65235ac4dd9c24aa081584e23533f8ab26c7007a50217e05a9f8de8f6f297",
+      "mode": 420
+    },
+    "contracts/sdk-gate-6-api.json": {
+      "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "254d9742cb10d7a33dad3d56c0c58d4aeaa4a75b86cbb2a99c9349a0a8cb687b",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/receipts-browser.mjs": {
+      "sha256": "f4770c63cea9d24c8830bf58d7fdd992d92caafa84c64625ee67b5cf6399fbca",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "e86b9d6cd66a807ce42de99897cd02cf0c426cea75a7b566faa90b63917cf155",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_capture_media.test.mjs": {
+      "sha256": "3ef1dc79bdf5d22106ef77cc460f086d6d8d36764cc25d82f36f5b1c285d0fca",
+      "mode": 420
+    },
+    "sdk/tests/browser_capture_timing.test.mjs": {
+      "sha256": "9e93b5f9031729bbcb5960109179e5cb424838b8513a29fa1f24a714ca6026f7",
+      "mode": 420
+    },
+    "sdk/tests/browser_media.test.mjs": {
+      "sha256": "8c73dae9de690129cc5ff4891ea17e6101930f97faf0cc36928e0b2a2298297a",
+      "mode": 420
+    },
+    "sdk/tests/browser_playout_deadline.test.mjs": {
+      "sha256": "b2f28c2f18ab091b640f572fb3029deb72cc677efd70361eddd14670cd41af6d",
+      "mode": 420
+    },
+    "sdk/tests/browser_presentation_clock.test.mjs": {
+      "sha256": "7526d46e67bf4e8fb467c41559729aa758707551d1550c14b4c543b9595cc5fb",
+      "mode": 420
+    },
+    "sdk/tests/browser_renderer.test.mjs": {
+      "sha256": "fd81d9a69b69e16a019abf2c94148f4590bf32c4f3a1b46981c7f44db9e566b2",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "ebc766039c336963e8daea5a47326899c4a0c7dedeeab279962cd11de2794c76",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_capabilities.test.mjs": {
+      "sha256": "5cfd57e0d48197d4483df727efcdb30519d7ed604fa29e6791b267e6495d8c0b",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_close.test.mjs": {
+      "sha256": "459d751aff29e150e8c78a96c38ec85c2efb5b2cf8cfbf16c2e81e8990a2e411",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_consultations.test.mjs": {
+      "sha256": "ff5fbff5efa8c19f8086d5b3e94792c97340fc9acfe0284f120981244f6b2711",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_conversation.test.mjs": {
+      "sha256": "17a733b081d3515388dec524ab398e113404b7625361502338f0686c81f001d6",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_decisions.test.mjs": {
+      "sha256": "5346adf6aa15ce23d62c71ce6230157f6db576a20112944b88d3c24514cb3ebc",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_membership.test.mjs": {
+      "sha256": "89b1d2b51e390bad5ce8c614c27261a4e3b533f3c192ac92bda85818faa7a3f0",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_movements.test.mjs": {
+      "sha256": "e7451e18a02ccb1d4ec9a2910bd337d7abaefa352a63c6140f81347126168981",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_raw.test.mjs": {
+      "sha256": "12d14244b5a23d7fe866d0432b011a44271a47ae9bd40724758b671f646d0f66",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_receipts.test.mjs": {
+      "sha256": "8646b85bc475547e69a8ade6fceccd1eafce5c0f8fead8686cbb314655d02fb0",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_streams.test.mjs": {
+      "sha256": "8d07a9305b128e1fd1e8c2c6257594a48151bc44175741fbc5a492abe81a8de6",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "84a27fd1333b5d61690e8a1686888c5a715f8c493eb4b1830de166ba0e672c1a",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_webrtc.test.mjs": {
+      "sha256": "13349de33802181e5594991db67935b00f4d7fa05cad23e703dca93a23d9e8bb",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "e1489f5a780b17a27a9b969957deccc30e09f5d9adde5af42e6c00984418e2f4",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_application_reads.d.ts": {
+      "sha256": "67762af36bf4d503c193a9d4e6580a18941056861bb29f4ff96bc57533d94604",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_application_reads.js": {
+      "sha256": "44ee74aac1afff2c4d81f122328526c4c51a9f01d3ebc71041def201744a51f0",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.d.ts": {
+      "sha256": "3266dbb667df4ff47b8d5327b7282e1ea28eda1c2d3ad0f672b494878bdf06e1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.js": {
+      "sha256": "1aa6ed99c40918fc40cff31c7a697b30bb8551a48a4923d059f8fdb42533dbb4",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.d.ts": {
+      "sha256": "b14aef8073a582fbc87108a6f7ae3d4f7fb7d3a2cc95ecefc583a656950bbf5d",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.js": {
+      "sha256": "7c543077b3b0597660827b51102151e1e1f2f2fba4bdaa24fe76d47aba254032",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media_capture.js": {
+      "sha256": "ee1e9e6b6c7a185e2ecd1c0aace3e6a79c2028e0c6dcc976b08e6635ed366dce",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media_renderer.js": {
+      "sha256": "5b6c7a37054706245bc76feb031f0066a4fd89db8e64cff2d25b54f40ed4c802",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "ff48f51daaa0065e3dbc8c6f6796a93b23c4c59e9b04f4dd1bb0820bcbbc2770",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "46d9686f0af50951b39bfd57770b49291adbff0c541fc76f28e18a89df6188f2",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_webrtc.d.ts": {
+      "sha256": "8afaf4badfd89d106a6e8afc9ea7a09904b82e45217cf88e0d0757a6569a2074",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_webrtc.js": {
+      "sha256": "3e99ac1bd8a7c85f5e7c37231cfdbad365576d7c9b93231f9959bca8fd711da3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_tasks.d.ts": {
+      "sha256": "7a46970c14ebc249f4c4503f0e69652654e3017b7f0eb3779bc36fe5ee293078",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_tasks.js": {
+      "sha256": "37cafdec84de199b0fdd611e2631f8604f9d544428f8d60c5752dcf2cfbaa635",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_transport_client.d.ts": {
+      "sha256": "a6d85b0b501ab2e2f8ee3989d6677da500490070c4529dc19844a2c95415a73b",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_transport_client.js": {
+      "sha256": "b3b64724bc944ac43dd861f339d9f86eea39148e632accad7b1db4b61ef3cae3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_webrtc_signaling.d.ts": {
+      "sha256": "057b9b09508fccf4557be87f7fbc178b7487a300b81bf12f20d9dc9d67b2e214",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_webrtc_signaling.js": {
+      "sha256": "f9c7d4e62cd4ad5004d06199a7dc5fd28dfd90b736fe2f6551a8db721ea16322",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_application_reads.ts": {
+      "sha256": "8fa9968e4f367328e9ce5e122599b02c86f266a74cf2a60fe5a64b18b093d767",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_client.ts": {
+      "sha256": "38f5a5472e2480486f3486d742043540e88f3a1b8d23221db105e0551c307289",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media.ts": {
+      "sha256": "ba0e15fcf0d12dec5cf94d2537dc5cf7c5c93ef04136ba4deb9b78cbb242e051",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media_capture.ts": {
+      "sha256": "5e5175f4aa3c8ef3033c58d75c096c60512a6a1047f8f269e962a5a02fc5c5b8",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media_renderer.ts": {
+      "sha256": "f8e018512fe7338409d6193451cc8b1df82365cedab4e48bdf551893c64309b5",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "2ddffc0ff82d176d1b6b3928efb2a50ebb1df37394e336483627ec1accd9a818",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_webrtc.ts": {
+      "sha256": "2214d61c709b51bda3245ecf4f5b0f17e69fa62256302a62bf5f682f1be066c0",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_tasks.ts": {
+      "sha256": "cddfb09317892cee0d48630ca8f669d1fc8509ae098ebfa633a246c3831a419b",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_transport_client.ts": {
+      "sha256": "be551e1bd753543caee66a0f8e5e65a070ef939c39db05caead95abfd136f44c",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_webrtc_signaling.ts": {
+      "sha256": "351681d7ec70c0f759c750c0557475b320b33f95d4247bc490ba5deabb13c56c",
+      "mode": 420
+    }
+  },
+  "behavior": [
+    "BrowserSdkClient.close(options) requires a 1\u201360000ms deadline and returns Promise<void>, matching the frozen TypeScript signature. Invalid options refuse before retirement. Valid options retire immediately, including a pre-aborted signal.",
+    "One caller budget bounds the join. Deadline/abort ends only that wait; cleanup continues and a later close joins the same owners. No durable cancellation/end/replacement intent is submitted.",
+    "Control ownership joins terminal transport closure, the reader pump, admitted/signing/write work, stream cancellation and abort, then releases stream locks. Late physical-stream opening is fenced and cancelled/aborted. Reconnect tracks opening and retired physicals; at most16unsettled physicals may be retained before refusing further allocation.",
+    "Native media joins receive/drain/reconciliation, datagram cancellation/abort and audio capture/renderer cleanup. RTC joins signaling work, uncertain track replacement and renderer cleanup. Current capture/render startup wrappers are tracked; retired local readiness/control promises settle before successful shutdown. Cleanup failures remain observed and are reported after owned work settles.",
+    "Application reads abort active wrappers, join owned HTTP fetch/body cancellation and release body reader locks. Application resolvers/device prompts are fenced without waiting indefinitely for uncooperative application work; late tracks stop and late profiles cannot create another physical."
+  ],
+  "verification": {
+    "source_input_count": 2788,
+    "source_inputs_manifest_sha256": "46df7eafd2e82a8b7ad4dbce7134109ba4cd2a396a5ccf4a0b915bc2e6f05d53",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          824
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.428201665868983,
+        "log_sha256": "d3889867eec75bb8ecc8521a1dd856d5c33d24c86481935d9e0728a5ec3601f0"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3004732080735266,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2025973750278354,
+        "log_sha256": "899d735c9eb07ffc5c18322cc004282d9a40d05ced2c38fb893a4cb68c519484"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36536749987863004,
+        "log_sha256": "7acec522773e39c492cc1115edf525f55489861a0ab58076610958c389680a7d"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4778410838916898,
+        "log_sha256": "14f2d0ca4c11cafe2712837614b635458337b2195a84c997cd84d1a741a0b996"
+      },
+      {
+        "phase": "canonical-schema",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4289017498958856,
+        "log_sha256": "12f447106df18f61b0d5ad25b0fb1b5c1111feed7d52cd3faaf25ae5c4586730"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 89.93746241601184,
+        "log_sha256": "5030e913835d7e721cd59672c9d33cc6155c81c5ae6218be8edcc99d8e5966f4"
+      }
+    ]
+  },
+  "new_checks": {
+    "count": 24,
+    "sdk_close": 17,
+    "native_renderer_cleanup": 2,
+    "rtc_cleanup_and_track_replacement": 3,
+    "http_body_cleanup": 2,
+    "meaning": "Delayed owned work keeps the join pending; deadline/abort/pre-abort leave retirement running; repeated close joins it; invalid options preserve a usable client; late resolvers cannot reopen it; retired physical retention is bounded; no duplicate durable work; cleanup failure releases resources."
+  },
+  "contract_probe": {
+    "source_sha256": "1e823416f923e07533a355610066997ca73aabcba8d8224032cef8aca4d6235f",
+    "previous_diagnostics": [
+      "TS2322",
+      "TS2554"
+    ],
+    "current_exit_code": 0,
+    "current_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "meaning": "The unchanged actual-declaration probe from the earlier incomplete audit now compiles. Committed public type checks also require Promise<void> and reject an omitted wait argument. Runtime joining is verified separately."
+  },
+  "failed_iterations": [
+    {
+      "artifact": ".local/gate-6/browser1218-final",
+      "passed": false,
+      "reason": "Interrupted after presentation test doubles lacked the new production cleanup hook. Added ownership hooks to doubles; media timing/quality assertions unchanged.",
+      "sdk_log_sha256": "6907857754dde7fb491cef8a48ec9e3b8200a964c282d5e7f87090613f548c90"
+    },
+    {
+      "artifact": ".local/gate-6/browser1219-final",
+      "passed": false,
+      "reason": "823/824 SDK passed; an old previous.close() movement-fixture caller omitted the now-required wait. Updated it to await bounded shutdown. Later lanes did not run.",
+      "summary_sha256": "3ebb5b27b688678e75997c50782c6a72ec26d6fa82b83fe264020411ffab4959"
+    },
+    {
+      "artifact": ".local/gate-6/browser1216-close-focused.log",
+      "passed": false,
+      "reason": "A receipt fixture awaited close before releasing its synthetic fetch. Updated the check to assert close remains pending until owned HTTP work settles. Earlier development assertions also assumed different existing reconnect error classifications; production classification was not relaxed."
+    }
+  ],
+  "checks": "824 SDK functions, browser/Node standalone types,37 Node functions,2serverScreen+2upstreamScreen+1Rustcanonical+12realroot integration functions,0ignored;339shared canonical vectors. Changed TypeScript and Rust formatting, generated canonical schema/policy, plan/navigation and HTTP/OpenAPI reference integrity checked.",
+  "open_work": [
+    "Prior native WT Screen-resume revision/catalog conflict remains unresolved; later passing cohorts do not explain it.",
+    "G6-061 successful browser private movement media and remaining completion proof are unqualified. G6-070 installed parity, G6-072 reference app, G6-095 remote/browser qualification and G6-054 remote proof remain open."
+  ],
+  "known_findings": [
+    "Existing CLI15second provisioning timeout, three unchanged full-tree TypeScript format findings, cached debug-strip ENOSPC/linker warnings. No full Rust workspace/release/performance claim."
+  ],
+  "privacy": "Only local synthetic fixtures and owned Chrome; no additional model/account/provider/namedremote execution or agents. Credentials, state, raw logs and browser profiles remain ignored."
+}

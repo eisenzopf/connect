@@ -12,7 +12,7 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',fault}={}){
  let mode=fault;const records=new Map();
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500}),session=client.conversations.byId(id('room')).sessions.byId(id('session'));
-  try{await run({client,session,f,records,setMode:v=>mode=v});}finally{client.close();}
+  try{await run({client,session,f,records,setMode:v=>mode=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   if(!['operation.get','session.consult','session.consult.return'].includes(frame.type))return false;
   const query=frame.type==='operation.get',own=query?frame.payload.operation_id:frame.operation_id,returned=own==='return-original',command=returned?'session.consult.return':'session.consult',scope={cid:frame.cid,sid:frame.sid,connid:frame.connid,operation_id:frame.operation_id},emit=async(type,payload)=>peer.emit(type,payload,frame.id,scope);

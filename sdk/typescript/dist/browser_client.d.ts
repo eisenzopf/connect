@@ -54,8 +54,12 @@ export declare class BrowserClient {
     private writes;
     private queuedWrites;
     private auth?;
+    private readonly tasks;
+    private retirement?;
+    /** Physical terminal cleanup, including failed opening and stream owners. */
+    readonly disposed: Promise<void>;
     private constructor();
-    static open(options: BrowserClientOptions): Promise<BrowserClient>;
+    static open(options: BrowserClientOptions, own?: (client: BrowserClient) => void): Promise<BrowserClient>;
     /** Actual physical control selected at construction; caller option edits cannot change it. */
     get controlTransport(): "webtransport" | "websocket";
     get identityId(): string;
@@ -101,4 +105,6 @@ export declare class BrowserClient {
     operationStatus(conversationId: string, operationId: string, options?: RequestOptions): Promise<JsonObject>;
     keepAlive(options?: RequestOptions): Promise<void>;
     close(reason?: unknown): void;
+    /** Internal unbounded join; the SDK caller supplies the outer wait budget. */
+    shutdown(): Promise<void>;
 }

@@ -1,5 +1,6 @@
 import { BrowserClient, BrowserClientOpenError, browserTransportSupport, } from "./browser_client.js";
 import { ConnectError } from "./errors.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { jsonObject } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 const paths = ["webtransport", "wss-webrtc"];
@@ -139,6 +140,8 @@ class Budget {
  * A new physical epoch retires old capture/media owners; applications must
  * explicitly reconnect media or submit a distinct device-replacement intent. */
 export class BrowserTransportClient {
+    tasks = new BrowserTasks();
+    physicals = new Set();
     identityId;
     deviceId;
     endpoints;
@@ -209,10 +212,15 @@ export class BrowserTransportClient {
         return this.openRound("reconnect", options);
     }
     async openRound(reason, options) {
+        return this.tasks.track(this.startRound(reason, options));
+    }
+    async startRound(reason, options) {
         if (this.phase === "closed")
             throw new ConnectError("closed", "Browser transport owner closed");
         if (this.round)
             throw new ConnectError("conflict", "A browser connection round is already in progress");
+        if (this.physicals.size >= 16)
+            throw new ConnectError("backpressure", "Retired browser physical cleanup budget exhausted");
         const preferred = options.preferredTransport ?? this.preferred;
         if (!paths.includes(preferred))
             throw new ConnectError("invalid-request", "Unknown browser transport preference");
@@ -280,6 +288,9 @@ export class BrowserTransportClient {
                             : undefined,
                         timeoutMs: Math.min(this.attemptTimeoutMs, budget.remaining()),
                         signal: round.signal,
+                    }, (physical) => {
+                        this.physicals.add(physical);
+                        void physical.disposed.then(() => this.physicals.delete(physical));
                     });
                     try {
                         budget.remaining();
@@ -337,9 +348,16 @@ export class BrowserTransportClient {
         this.round?.abort();
         this.stopWatching?.();
         this.stopWatching = undefined;
-        this.current?.close();
+        for (const physical of this.physicals)
+            physical.close();
         this.current = undefined;
         this.selected = undefined;
+    }
+    /** Joins every owned physical, including retired and opening peers. */
+    async shutdown() {
+        this.close();
+        await this.tasks.join();
+        await Promise.all([...this.physicals].map((peer) => peer.shutdown()));
     }
     observed(client, epoch) {
         if (this.phase !== "connected" ||

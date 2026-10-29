@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import {BrowserMediaPeer} from '../typescript/dist/browser_media.js';
 import {envelope} from '../typescript/dist/uctp_wire.js';
 import {RtpSender,decodeRtpDatagram} from '../typescript/dist/browser_rtp.js';
+import {BrowserMediaRenderer} from '../typescript/dist/browser_media_renderer.js';
 
 class Control {
   closed=false;events=new Set();lifetimes=new Set();sent=[];index=0;
@@ -30,6 +31,21 @@ class Control {
   async operationStatus(cid,op){return{operation_id:op,state:this.mode==='failure'?'failed':'completed'};}
 }
 const input={conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'offer',data:[{id:'data',protocol:'binary'}]};
+for(const failure of [false,true])test(`native media shutdown joins renderer audio cleanup${failure?' and reports its failure':''}`,async()=>{
+ const originals=['AudioContext','document'].map(n=>[n,Object.getOwnPropertyDescriptor(globalThis,n)]);let finish;
+ const held=new Promise((resolve,reject)=>{finish=failure?()=>reject(Error('synthetic cleanup failure')):resolve;});
+ class Node{gain={value:1};connect(){}disconnect(){}}
+ class Context{sampleRate=48000;state='running';destination={};createGain(){return new Node();}createAnalyser(){return new Node();}async resume(){}close(){return held;}}
+ Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:Context});Object.defineProperty(globalThis,'document',{configurable:true,value:{visibilityState:'visible',addEventListener(){},removeEventListener(){}}});
+ const client=new Control(),peer=new BrowserMediaPeer(client);
+ try{
+  const connection=await peer.offerConnection(input),renderer=await BrowserMediaRenderer.open(connection);let joined=false;
+  const closing=peer.shutdown().finally(()=>joined=true);void closing.catch(()=>{});await new Promise(setImmediate);
+  assert.equal(joined,false);assert.equal(client.closed,true);assert.equal(peer.diagnostics.activeBindings,0);
+  finish();if(failure){await assert.rejects(closing,/synthetic cleanup failure/);await assert.rejects(renderer.finished,/synthetic cleanup failure/);}else{await closing;await renderer.finished;}
+  assert.equal(client.datagrams.readable.locked,false);assert.equal(client.datagrams.writable.locked,false);
+ }finally{finish();peer.close();for(const[n,d]of originals)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
+});
 test('video ownership ends exactly once on missing sender and retired Connection',async()=>{
   const client=new Control(),peer=new BrowserMediaPeer(client);let closed=0;
   const frame=()=>({close(){closed++;}});

@@ -1,5 +1,6 @@
 import { ConnectError } from "./errors.js";
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { canonicalJson, jsonObject, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 function fail(code = "protocol") {
@@ -36,15 +37,18 @@ export class BrowserApplicationReads {
     resolve;
     identityId;
     deviceId;
-    #active = new Set();
+    #cleanup = new BrowserTasks();
+    #active = new Map();
     constructor(resolve, identityId, deviceId) {
         this.resolve = resolve;
         this.identityId = identityId;
         this.deviceId = deviceId;
     }
-    retire() {
-        for (const read of this.#active)
+    async retire() {
+        for (const read of this.#active.keys())
             read.abort();
+        await Promise.all(this.#active.values());
+        await this.#cleanup.join();
     }
     async receipts(cid, mid, options, physicalEpoch, current) {
         if (!identifier(cid) ||
@@ -63,7 +67,10 @@ export class BrowserApplicationReads {
             controller.signal,
             ...(options.signal ? [options.signal] : []),
         ]), budget = new BrowserDeadline(options.timeoutMs);
-        this.#active.add(controller);
+        let finished;
+        this.#active.set(controller, new Promise((resolve) => {
+            finished = resolve;
+        }));
         const check = () => {
             current();
             budget.remaining();
@@ -110,7 +117,7 @@ export class BrowserApplicationReads {
                 let after = null, total = 0;
                 for (let page = 0; page < 64; page++) {
                     authorized();
-                    const response = await fetch(profile.url + "/v1/operations", {
+                    const response = await this.#cleanup.track(fetch(profile.url + "/v1/operations", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -128,7 +135,7 @@ export class BrowserApplicationReads {
                         cache: "no-store",
                         referrerPolicy: "no-referrer",
                         signal,
-                    });
+                    }));
                     try {
                         authorized();
                         if (response.redirected ||
@@ -141,8 +148,11 @@ export class BrowserApplicationReads {
                                 Number(length) > 2 * 1024 * 1024 - total))
                             fail();
                         const reader = response.body.getReader(), chunks = [];
+                        let cancelling;
                         const cancelBody = () => {
-                            void reader.cancel().catch(() => { });
+                            cancelling ??= this.#cleanup.track(reader
+                                .cancel()
+                                .finally(() => reader.releaseLock()));
                         };
                         signal.addEventListener("abort", cancelBody, {
                             once: true,
@@ -275,7 +285,7 @@ export class BrowserApplicationReads {
                     }
                     finally {
                         if (response.body && !response.body.locked)
-                            void response.body.cancel().catch(() => { });
+                            this.#cleanup.track(response.body.cancel());
                     }
                 }
                 return fail();
@@ -289,6 +299,7 @@ export class BrowserApplicationReads {
         finally {
             controller.abort();
             this.#active.delete(controller);
+            finished();
         }
     }
 }

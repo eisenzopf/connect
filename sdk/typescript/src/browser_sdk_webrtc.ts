@@ -1,5 +1,6 @@
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserDeadline } from "./browser_deadline.js";
+import { BrowserTasks } from "./browser_tasks.js";
 import { CanonicalWebRtcSignaling } from "./browser_webrtc_signaling.js";
 import { browserIceConfiguration } from "./browser_ice.js";
 import { captureDevices, validateBrowserAnswer } from "./browser_capture.js";
@@ -47,6 +48,7 @@ function timeout(options: RequestOptions): number {
 }
 /** One current physical's RTC owner. No capture permission is requested by offer. */
 export class BrowserRtcConnection {
+    private readonly tasks = new BrowserTasks();
     private stopped = false;
     private readonly stop = new AbortController();
     private readonly retired = new Set<(error?: Error) => void>();
@@ -510,7 +512,10 @@ export class BrowserRtcConnection {
                           : this.input.video;
                 replacing = true;
                 await budget.run(
-                    () => this.senders.get(id!)!.sender.replaceTrack(track),
+                    () =>
+                        this.tasks.track(
+                            this.senders.get(id!)!.sender.replaceTrack(track),
+                        ),
                     signal,
                 );
                 replacing = false;
@@ -611,8 +616,10 @@ export class BrowserRtcConnection {
             source?.disconnect();
             gain?.disconnect();
             if (this.renderOwner === handle) this.renderOwner = undefined;
-            if (context)
-                void context.close().then(
+            if (context) {
+                const cleanup = context.close();
+                this.tasks.track(cleanup, true);
+                void cleanup.then(
                     () => (error ? fail(error) : finish()),
                     () =>
                         fail(
@@ -622,7 +629,7 @@ export class BrowserRtcConnection {
                             ),
                         ),
                 );
-            else error ? fail(error) : finish();
+            } else error ? fail(error) : finish();
         };
         const pause = () => {
             if (stopped || paused) return;
@@ -763,5 +770,10 @@ export class BrowserRtcConnection {
         if (this.worker) stopVideoWorker(this.worker);
         for (const track of this.remote.values()) track.stop();
         this.remote.clear();
+    }
+    async shutdown(): Promise<void> {
+        this.close();
+        await this.signaling?.shutdown();
+        await this.tasks.join();
     }
 }

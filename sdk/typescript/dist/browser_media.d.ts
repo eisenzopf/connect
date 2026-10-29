@@ -74,6 +74,7 @@ interface Route {
 export declare class BrowserMediaPeer {
     private readonly client;
     private readonly callbacks;
+    private readonly tasks;
     private readonly reader;
     private readonly writer;
     private readonly registry;
@@ -149,11 +150,14 @@ export declare class BrowserMediaPeer {
     retireLocalConnection(id: string): void;
     private retire;
     close(): void;
+    ownCleanup(work: Promise<unknown>): void;
+    shutdown(): Promise<void>;
 }
 export declare class BrowserMediaConnection {
     private readonly peer;
     readonly id: string;
     constructor(peer: BrowserMediaPeer, id: string);
+    ownCleanup(work: Promise<unknown>): void;
     get streams(): Readonly<MediaBinding>[];
     get revision(): number;
     onClose(callback: () => void): () => void;

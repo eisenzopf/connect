@@ -9,7 +9,7 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',fault}={}){
  let mode=fault;const record={operation_id:'decision-original',record_id:'host-decision-original',command_type:'operation.cancel',state:'completed',revision:1,result:{target_operation_id:'original',state_at_decision:'completed',disposition:'already_terminal',evidence_id:null}};
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({tenantId:'tnt_default',identityId:f.options.identityId,deviceId:f.options.device.id,endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,resolveEnrollment:async()=>f.options,timeoutMs:500});
-  try{await run({client,f,setMode:v=>mode=v});}finally{client.close();}
+  try{await run({client,f,setMode:v=>mode=v});}finally{await client.close({timeoutMs:500});}
  },{algorithm,wtMode:path==='webtransport'?'ok':undefined,handler:async({peer,frame})=>{
   if(!['operation.cancel','operation.get','conversation.subscribe'].includes(frame.type))return false;
   const scope={cid:frame.cid,sid:frame.sid,connid:frame.connid,operation_id:frame.operation_id},emit=(type,payload,headers=scope,extensions)=>peer.emit(type,payload,frame.id,headers,extensions);
@@ -48,7 +48,7 @@ test('raw local validation and unsupported request classification perform no IO'
  const hierarchy=client.raw.validate(request('operation.get',{connid:'connection'}));await assert.rejects(()=>client.raw.request(hierarchy,opts),{kind:'validation'});assert.equal(f.sent.length,before);
 }));
 test('raw pure validation remains available after close while requests cannot borrow another owner',()=>scenario(async({client,f})=>{
- const before=f.sent.length;client.close();const local=client.raw.validate(cancellation());await assert.rejects(()=>client.raw.request(local,opts),{certainty:'not-submitted'});assert.equal(f.sent.length,before);
+ const before=f.sent.length;await client.close({timeoutMs:500});const local=client.raw.validate(cancellation());await assert.rejects(()=>client.raw.request(local,opts),{certainty:'not-submitted'});assert.equal(f.sent.length,before);
 }));
 test('raw pre-abort, invalid budget and options keep a mutation known not submitted',()=>scenario(async({client,f})=>{
  const before=f.sent.length,value=client.raw.validate(cancellation()),stop=new AbortController();stop.abort();await assert.rejects(()=>client.raw.request(value,{...opts,signal:stop.signal}),keyError('cancelled','not-submitted'));for(const timeoutMs of [0,Infinity,60001])await assert.rejects(()=>client.raw.request(value,{timeoutMs}),keyError('validation','not-submitted'));await assert.rejects(()=>client.raw.request(value,{...opts,terminalType:'auth.session'}),{kind:'validation',certainty:'not-submitted'});assert.equal(f.sent.length,before);
