@@ -69,3 +69,14 @@ export function browserUiTypes(operation: import("../typescript/dist/browser.js"
     capture.start().then(owner => owner.sendRtp({}));
     return {completion,devices:browserInputDevices({timeoutMs:1000})};
 }
+
+import type { BrowserConnectionUpdateReceipt, BrowserStreamSelectionReceipt } from "../typescript/dist/browser.js";
+export function browserNativeControlTypes(connection: import("../typescript/dist/browser.js").BrowserConnection, stream: import("../typescript/dist/browser.js").StreamId, revision: import("../typescript/dist/browser.js").SdkRevision<"stream">, mutation: import("../typescript/dist/browser.js").BrowserSdkMutationOptions) {
+    const update: Promise<import("../typescript/dist/browser.js").BrowserOperation<BrowserConnectionUpdateReceipt>> = connection.update({action:"mute",streams:{first:stream,rest:[]}},revision,mutation);
+    const select: Promise<import("../typescript/dist/browser.js").BrowserOperation<BrowserStreamSelectionReceipt>> = connection.streams.subscribe({selectors:{first:{stream},rest:[]},expectedStreamRevision:revision},mutation);
+    // @ts-expect-error Resource revisions cannot assert a negotiated native revision.
+    connection.update({action:"resume"},{} as import("../typescript/dist/browser.js").SdkRevision<"connection-resource">,mutation);
+    // @ts-expect-error A logical source selector is not a renderer or capture owner.
+    select.then(async op => (await op.wait({timeoutMs:1000})).value.bindings?.[0].encodeVideo({}));
+    return {update,select};
+}

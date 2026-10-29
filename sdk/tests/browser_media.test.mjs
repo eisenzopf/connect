@@ -197,3 +197,41 @@ test('begin offer captures original scope and stream intent before asynchronous 
   const connection=await begun.ready;assert.equal(connection.id,'connection');assert.equal(offered.length,1);assert.equal(offered[0].scope.operation_id,'offer');assert.equal(offered[0].scope.cid,'room');assert.equal(offered[0].scope.connid,'connection');assert.equal(offered[0].payload.streams_offered[0].id,'data');assert.deepEqual(offered[0].payload.streams_offered[0].codec_preferences,['binary']);
  }finally{p.close();}
 });
+class TypedControl extends Control {
+ records=new Map();begun=[];hold=false;
+ begin(type,payload,scope){
+  this.begun.push({type,payload,scope});
+  if(type==='connection.update'){
+   const id='typed_'+ ++this.index;
+   const result={connection_id:scope.connid,stream_revision:scope.expected_revision+(payload.action==='quality'?0:1),resources_changed:false,...(payload.action==='quality'?{quality_interval_ms:payload.quality_interval_ms}:{action:payload.action})};
+   this.records.set(scope.operation_id,result);
+   return{id,response:Promise.resolve([envelope('ack',{}, {...scope,in_reply_to:id})])};
+  }
+  if(type==='stream.subscribe')this.records.set(scope.operation_id,{connection_id:scope.connid,stream_revision:scope.expected_revision+1,resources_changed:true});
+  return super.begin(type,payload,scope);
+ }
+ async operationStatus(cid,op){return this.records.has(op)?{operation_id:op,state:this.hold?'unknown':'completed',result:this.records.get(op)}:super.operationStatus(cid,op);}
+}
+test('typed WT gate and correlated subscription preserve original keys and keep the local revision current for the next mutation',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client);
+ try{
+  const connection=await peer.offerConnection(input),body={action:'mute',streams:['data']};
+  const gate=peer.beginControl(connection.id,'gate-original','connection.update',body,1,{timeoutMs:300});body.streams[0]='changed';await gate.response;await gate.ready;assert.equal(connection.revision,2);assert.equal(client.begun.find(v=>v.type==='connection.update').payload.streams[0],'data');
+  const selection=peer.beginControl(connection.id,'select-original','stream.subscribe',{subscriptions:[{from_participant:'other',kinds:['data']}]},2,{timeoutMs:300});await selection.response;await selection.ready;assert.equal(connection.revision,3);
+  assert.equal(client.begun.filter(v=>v.type==='stream.subscribe').length,1);assert.equal(client.begun.find(v=>v.type==='stream.subscribe').scope.expected_revision,2);assert.equal(client.sent.filter(v=>v.type==='connection.answer'&&v.scope.operation_id==='select-original').length,1);assert.equal(client.closed,false);
+ }finally{peer.close();}
+});
+test('typed WT queued control deadline cannot reset behind another original control or submit late intent',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client);
+ try{
+  const connection=await peer.offerConnection(input);client.hold=true;
+  const first=peer.beginControl(connection.id,'first-control','connection.update',{action:'mute',streams:['data']},1,{timeoutMs:300});await first.response;
+  const queued=peer.beginControl(connection.id,'queued-control','connection.update',{action:'unmute',streams:['data']},2,{timeoutMs:15});await assert.rejects(queued.response,{code:'timeout'});await assert.rejects(queued.ready,{code:'timeout'});assert.equal(queued.submissionAttempted,false);assert.equal(client.begun.some(v=>v.scope.operation_id==='queued-control'),false);assert.equal(client.closed,false);
+  client.hold=false;await first.ready;assert.equal(connection.revision,2);
+  const next=peer.beginControl(connection.id,'fresh-control','connection.update',{action:'quality',quality_interval_ms:250},2,{timeoutMs:100});await next.ready;assert.equal(connection.revision,2);assert.equal(client.begun.filter(v=>v.type==='connection.update').length,2);
+ }finally{peer.close();}
+});
+test('typed WT stale control revision refuses before submission and leaves the current owner usable',async()=>{
+ const client=new TypedControl(),peer=new BrowserMediaPeer(client);
+ try{const connection=await peer.offerConnection(input);const stale=peer.beginControl(connection.id,'stale','connection.update',{action:'mute',streams:['data']},0,{timeoutMs:100});await assert.rejects(stale.response,{code:'conflict'});await assert.rejects(stale.ready,{code:'conflict'});assert.equal(stale.submissionAttempted,false);assert.equal(client.begun.length,1);assert.equal(client.closed,false);assert.equal(connection.revision,1);}finally{peer.close();}
+});

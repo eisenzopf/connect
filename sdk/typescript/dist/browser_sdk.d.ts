@@ -1,3 +1,5 @@
+import { type BrowserNonEmpty, type BrowserStreamSelector, type BrowserConnectionUpdate, type BrowserConnectionUpdateReceipt, type BrowserStreamSelectionReceipt } from "./browser_sdk_streams.js";
+export type { BrowserNonEmpty, BrowserStreamSelector, BrowserConnectionUpdate, BrowserConnectionUpdateReceipt, BrowserStreamSelectionReceipt, BrowserCodecObservation, BrowserStreamGateObservation, BrowserMedium, BrowserDirection, } from "./browser_sdk_streams.js";
 import { type BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
 import { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
 import { CanonicalError, type CanonicalErrorKind, type Certainty } from "./canonical_error.js";
@@ -86,6 +88,9 @@ export interface BrowserSessionDecision {
     readonly topologyRevision: SdkRevision<"topology">;
 }
 export declare const browserOperationKinds: Readonly<{
+    connectionUpdate: BrowserOperationKind<BrowserConnectionUpdateReceipt>;
+    streamSubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
+    streamUnsubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
     connectionOffer: BrowserOperationKind<BrowserConnection>;
     connectionEnd: BrowserOperationKind<BrowserConnection>;
     conversationCreate: BrowserOperationKind<BrowserConversation>;
@@ -112,6 +117,9 @@ declare const submit: unique symbol;
 export declare class BrowserSdkClient {
     readonly role: "browser";
     readonly operationKinds: Readonly<{
+        connectionUpdate: BrowserOperationKind<BrowserConnectionUpdateReceipt>;
+        streamSubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
+        streamUnsubscribe: BrowserOperationKind<BrowserStreamSelectionReceipt>;
         connectionOffer: BrowserOperationKind<BrowserConnection>;
         connectionEnd: BrowserOperationKind<BrowserConnection>;
         conversationCreate: BrowserOperationKind<BrowserConversation>;
@@ -250,6 +258,8 @@ export interface BrowserOfferedStream {
     readonly codecs: readonly [string, ...string[]];
 }
 export interface BrowserConnectionSnapshot {
+    /** Current physical's last committed negotiated revision, when locally known. */
+    readonly streamRevision?: SdkRevision<"stream">;
     readonly id: ConnectionId;
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
@@ -278,11 +288,20 @@ export declare class BrowserConnection {
     readonly id: ConnectionId;
     readonly receiptStreamRevision?: SdkRevision<"stream"> | undefined;
     readonly streams: {
+        subscribe: (input: {
+            readonly selectors: BrowserNonEmpty<BrowserStreamSelector>;
+            readonly expectedStreamRevision: SdkRevision<"stream">;
+        }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserStreamSelectionReceipt>>;
+        unsubscribe: (input: {
+            readonly streams: BrowserNonEmpty<StreamId>;
+            readonly expectedStreamRevision: SdkRevision<"stream">;
+        }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserStreamSelectionReceipt>>;
         byId: (id: StreamId) => BrowserStream;
         list: (options: BrowserSdkRequestOptions) => Promise<readonly BrowserStream[]>;
     };
     constructor(client: BrowserSdkClient, conversationId: ConversationId, sessionId: SessionId, id: ConnectionId, receiptStreamRevision?: SdkRevision<"stream"> | undefined);
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserConnectionSnapshot>;
+    update(input: BrowserConnectionUpdate, expectedStreamRevision: SdkRevision<"stream">, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserConnectionUpdateReceipt>>;
     end(input: {
         reasonCode: number;
         reason: string;

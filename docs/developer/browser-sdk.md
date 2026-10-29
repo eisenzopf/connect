@@ -9,8 +9,8 @@ SDK through a type-only leaf.
 This checkpoint implements Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
 creation, Session invitation/acceptance/rejection/cancellation/end, and native
-WT/WSS audio/video Connection offer/end. Connection updates and subscriptions,
-complete media parity, broader Session controls and full app integration remain
+WT/WSS audio/video/Screen Connection offer/end, typed Connection updates and
+Stream subscribe/unsubscribe. Complete media parity, broader Session controls and full app integration remain
 in progress. A successful Session control operation does not establish media.
 
 ```ts
@@ -108,7 +108,7 @@ const same = client.operations.recover(original.reference);
 ```
 
 `restore` checks the SDK-owned kind and original scope locally before IO. There
-is no opaque continuation support in these eight mutation kinds. Saved references
+is no opaque continuation support in these mutation kinds. Saved references
 and receipt snapshots do not confer current authorization. Explicit reconnect
 resolves the selected transport's original enrollment again; revoked preferred
 credentials refuse the round before any fallback attempt.
@@ -116,7 +116,7 @@ credentials refuse the round before any fallback attempt.
 [Typed browser control evidence](../evidence/gate-6/browser-sdk-control.json)
 records the signed boundary and owned Chrome checks over direct WT and bounded
 WSS fallback. Later checkpoints below add explicit media owners and basic
-source/progress UI. Screen capture, Linux, remote hosting and complete G6-061
+source/progress UI and Screen capture. Linux, remote hosting and complete G6-061
 acceptance remain open.
 
 
@@ -306,9 +306,84 @@ to select a titled tab created in its fresh owned profile. It verifies
 This is local source-capture evidence; remote decoded playback remains a
 separate observation. No personal tab, display or application window is selected.
 
-RTC Screen subscriptions and gates through the typed facade, full recovery/fault
-coverage and received decoded quality remain in the G6-061 audit. The current
-increment implements initial offer/capture/render/end and original observation.
+The original evidence below records initial Screen admission. The subsequent
+controls checkpoint adds subscriptions and gates; full recovery/fault coverage,
+received audio and frozen quality measurements remain in the G6-061 audit.
 
 [Typed Screen evidence](../evidence/gate-6/browser-sdk-screen-owners.json)
 records this bounded initial Screen lifecycle and the remaining qualifications.
+
+
+## Connection controls and Stream selections
+
+Enrollment must permit the requested `connection.update`, `stream.subscribe` or
+`stream.unsubscribe` operation, plus original `operation.get` observation and
+the relevant Conversation/Session reads.
+
+Every control uses a caller-saved original mutation ID and an explicit negotiated
+Stream revision. A current local media owner exposes its last committed
+`streamRevision` through `connection.refresh(wait)`; observers without that
+owner omit it. `resourceRevision` describes a Store resource and cannot be used
+as a negotiated revision. A control receipt records its original revision;
+restoring an older receipt never rolls the current local revision backward.
+Concurrent changes can still conflict: observe the original result and refresh
+current state before making a separate explicit decision.
+
+```ts
+const current = await connection.refresh(wait);
+if (current.streamRevision === undefined) throw new Error("No local media revision");
+// Persist selector, revision and original ID before IO.
+const subscribe = await connection.streams.subscribe({
+    selectors: { first: { stream: savedRemoteStreamId }, rest: [] },
+    expectedStreamRevision: current.streamRevision,
+}, { ...wait, operationId: savedSubscribeOperationId });
+const selected = (await subscribe.wait(wait)).value;
+// null means the original binding capture is unavailable; [] means known empty.
+if (selected.bindings === null) throw new Error("Binding capture unavailable");
+const screenBindings = selected.bindings.filter(v => v.parameters.medium === "screen");
+const receiver = screenBindings.find(v => v.parameters.id === savedRemoteStreamId)
+    ?? screenBindings[0];
+if (receiver) {
+    const stream = selected.connection.streams.byId(receiver.parameters.id);
+    const renderer = await selected.connection.render({
+        audio: false, video: [{ stream, canvas: remoteCanvas }],
+    }, wait);
+}
+const mute = await connection.update({
+    action: "mute", streams: { first: savedPublishedStreamId, rest: [] },
+}, selected.streamRevision, { ...wait, operationId: savedMuteOperationId });
+const muted = (await mute.wait(wait)).value;
+// Later unsubscribe names the source logical Stream, which can differ from
+// the fixed RTC receiver's own logical Stream ID.
+const unsubscribe = await connection.streams.unsubscribe({
+    streams: { first: savedRemoteStreamId, rest: [] },
+    expectedStreamRevision: muted.streamRevision,
+}, { ...wait, operationId: savedUnsubscribeOperationId });
+```
+
+`BrowserNonEmpty<T>` uses `{ first, rest }`. Selectors name one exact Stream or
+one Participant with optional nonempty `kinds`; omitted kinds mean all supported
+media for that Participant. WT supports correlated counteroffers, including
+future Participant selection. The fixed WSS RTC profile supports exact sources
+on already negotiated audio/camera/Screen ports; future nonaudio Participant
+selection requires another profile and explicitly refuses. Camera and Screen
+remain distinct logical media even though RTC uses one physical video slot.
+
+Updates are the discriminated actions `mute`, `unmute`, `hold` with an explicit
+`direction`, `resume`, `quality` with `intervalMs`, and `codec-renegotiate` with
+nonempty `codecPreferences`. Typed outcomes distinguish gates, quality and
+codecs. Backend support remains profile-specific: the current WSS RTC profile
+supports gates, subscriptions and end, and refuses quality/codec renegotiation
+that requires another profile. Gate observation directions belong to the server
+binding and retain that orientation.
+
+WT controls retain the original counteroffer owner, use one deadline including
+queueing, and fence capture/render until local installation settles. An expired
+queued request never submits later. These methods return observable Operations;
+waiting, reconnecting and restoring only read the original record. Receipt
+bindings are immutable observations and grant no new capture/render custody.
+A logical Stream can appear independently on multiple Connections; each typed
+Stream handle retains its Session and Connection scope.
+
+[Typed browser stream control evidence](../evidence/gate-6/browser-sdk-stream-controls.json)
+records the verified bounds and remaining Gate 6 work.

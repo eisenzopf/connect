@@ -60,6 +60,9 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "owned_tab_capture_retired",
         "screen_kind_observed",
         "screen_recovery_without_custody",
+        "screen_duplex_decoded",
+        "screen_controls",
+        "screen_resubscription",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
@@ -75,7 +78,9 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(result["result"][name], 1, "{name}");
     }
     assert_eq!(result["result"]["restored_media_observation_only"], 4);
-    assert_eq!(result["result"]["original_mutations"], 24);
+    assert_eq!(result["result"]["original_mutations"], 45);
+    assert_eq!(result["result"]["restored_control_observations"], 6);
+    assert_eq!(result["result"]["screen_camera_selector_refused"], 1);
     assert_eq!(
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)

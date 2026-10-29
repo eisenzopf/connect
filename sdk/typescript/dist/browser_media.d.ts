@@ -2,7 +2,8 @@ import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import { BrowserOpusCodec, BrowserVp8Codec } from "./browser_codecs.js";
 import { RtpSender, Vp8Assembler, type MediaBinding } from "./browser_rtp.js";
 import { RtcpCaptureClock, RtcpReceiveClock } from "./browser_rtcp.js";
-import { type Json } from "./uctp_json.js";
+import { type Json, type JsonObject } from "./uctp_json.js";
+import { type Envelope } from "./uctp_wire.js";
 export type BrowserDataProtocol = "text" | "json" | "binary";
 export type BrowserDataBody = {
     type: "text";
@@ -125,6 +126,12 @@ export declare class BrowserMediaPeer {
         readonly submissionAttempted: boolean;
     };
     offerConnection(input: BrowserConnectionOptions, options?: RequestOptions, accepted?: () => void, attempted?: () => void): Promise<BrowserMediaConnection>;
+    /** Start one original native control while retaining its counteroffer owner. */
+    beginControl(id: string, operationId: string, type: "stream.subscribe" | "stream.unsubscribe" | "connection.update", payload: JsonObject, expectedRevision: number, options: RequestOptions): {
+        response: Promise<Envelope[]>;
+        ready: Promise<void>;
+        readonly submissionAttempted: boolean;
+    };
     private transition;
     private completed;
     private state;

@@ -33,9 +33,12 @@ impl Runtime {
         }
         let bindings = controller.active_bindings();
         if bindings.is_empty()
-            || bindings
-                .iter()
-                .any(|b| !matches!(b.negotiated.requested.medium, Medium::Audio | Medium::Video))
+            || bindings.iter().any(|b| {
+                !matches!(
+                    b.negotiated.requested.medium,
+                    Medium::Audio | Medium::Video | Medium::Screen
+                )
+            })
         {
             return Err(Error::new(
                 "unsupported-media-profile",

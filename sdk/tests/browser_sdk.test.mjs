@@ -9,6 +9,8 @@ function scenario(run,{path='wss-webrtc',fault}={}) {
  const view=(sid='session')=>({id:sid,conversation_id:'room',state,media:['data'],intent:'synthetic',capabilities_offer:{data:['reliable-ordered']},codec_preferences:[],is_main:true,revision,topology_revision:revision,created_at:1,updated_at:2,ended_reason:null});
  const items=()=>[{kind:'conversation',data:{conversation_id:'room',revision,closed:false,policy:'persistent'}},...['caller','callee'].map((pid,i)=>({kind:'participant',data:{participant_id:pid,conversation_id:'room',identity_id:i?'wss_identity':'other',kind:'human',role:'participant',membership_epoch:1,active:mode!=='removed'||i===0,removal_reason:null}})),{kind:'connection',data:{connection_id:mode==='foreign-connection'?'other':'connection',session_id:mode==='foreign-parent'?'other':'session',participant_id:'callee',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:3,state:'ready',replaces:null}},
  {kind:'stream',data:{stream_id:'source',session_id:'session',participant_id:'callee',connection_id:'connection',medium:'video',state:'active',revision:7}},
+ ...(mode==='scoped-streams'?[{kind:'connection',data:{connection_id:'subscriber',session_id:'session',participant_id:'caller',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:4,state:'ready',replaces:null}}]:[]),
+ ...(mode==='scoped-streams'||mode==='duplicate-stream'?[{kind:'stream',data:{stream_id:'source',session_id:'session',participant_id:'caller',connection_id:mode==='duplicate-stream'?'connection':'subscriber',medium:'video',state:'paused',revision:9}}]:[]),
  {kind:'session',data:view()},{kind:'session_participant',data:{session_id:'session',participant_id:'callee',membership_epoch:1,role:'participant',state:state==='invited'?'invited':'present'}}];
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({identityId:f.options.identityId,deviceId:f.options.device.id,tenantId:'tnt_default',endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,timeoutMs:500,attemptTimeoutMs:100,resolveEnrollment:async()=>f.options});
@@ -120,3 +122,14 @@ test('historical Connection cannot render or prompt for capture and foreign Stre
  await assert.rejects(()=>connection.render({audio:false,video:[{stream:session.connections.byId(id('foreign')).streams.byId(id('source')),canvas:{}}]},opts),{kind:'validation'});
  await assert.rejects(()=>connection.capture({audio:true},opts),{kind:'receipt-unavailable'});assert.equal(f.sent.length,n);
 }));
+
+test('same logical Stream is observed independently on publisher and subscriber Connections',()=>scenario(async({client})=>{
+ const connections=client.conversations.byId(id('room')).sessions.byId(id('session')).connections;
+ const publisher=connections.byId(id('connection')),subscriber=connections.byId(id('subscriber'));
+ assert.equal((await publisher.streams.list(opts)).length,1);assert.equal((await subscriber.streams.list(opts)).length,1);
+ assert.equal((await publisher.streams.byId(id('source')).refresh(opts)).resourceRevision,7);
+ const selected=await subscriber.streams.byId(id('source')).refresh(opts);assert.equal(selected.connectionId,'subscriber');assert.equal(selected.state,'paused');assert.equal(selected.resourceRevision,9);
+},{fault:'scoped-streams'}));
+test('duplicate logical Stream within one Connection remains a protocol failure',()=>scenario(async({client})=>{
+ await assert.rejects(()=>client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection')).streams.list(opts),{kind:'protocol'});
+},{fault:'duplicate-stream'}));

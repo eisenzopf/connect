@@ -1,0 +1,281 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "71a0ac4fd4f53fe9265b5d1707bedd4fc7823410",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Typed browser Connection update and Stream subscribe/unsubscribe with scoped original receipts, current local revision observations and real WT/WSS opposite Screen decoding, selected-source gate suppression/recovery, unsubscribe/resubscribe and no-custody original recovery. Bounded owned macOS Chrome/EdDSA scope; not whole G6-061 or frozen quality/profile qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "contracts/http-endpoints.json": {
+      "sha256": "f6d07f9d2103c1bc899681cde1962b4a539d93303644cf6054fc41417128f8b2",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "f98280e00fee7ff86cd29e98286223ac767fb0ce19a2f60d535430697558cb52",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "b3633ce90f8511cc3653a93a5b6fc2912add7a021625b68b6e53e0fdc1d34dd6",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_streams.ts": {
+      "sha256": "79c0a924c796fc025bdc501144eee4bcff9c5b7396cadedb3ae7b4dc42e3d1bc",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media.ts": {
+      "sha256": "dd8910bc43f18d357024ef741a46e4b4a426639940f86b1afe9723ea0dff2843",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "b6cebc0aa6cc78ea3dd794091da4d49cda51aeb09d121daabe73994bab7c7b50",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_streams.js": {
+      "sha256": "3e0f6b8f3a4679643945691304bf8caeb4c69504712f03aaa06397fd6156213a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.js": {
+      "sha256": "d175a7007b2845da2df250eb57e093985bcdc5019694623a2115ba19a1a84202",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_streams.test.mjs": {
+      "sha256": "52ef37564834932dacd7e6ab761185501c73e1a931c84a2c68c398a4d3cb96cf",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "3bd75c40762348eb3f3daae0b1afd8aef318c3edee2910d25ae38a1cced156ad",
+      "mode": 420
+    },
+    "sdk/tests/browser_media.test.mjs": {
+      "sha256": "159f4aa160cc2afb8cbb3fec9dd45c8f1cc0fb59138565c83819ab68de630d0f",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "afa86a49c78033118180085447d8f28754e7f4d632465e7d7cea48a3e16ae7e6",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_webrtc/streams.rs": {
+      "sha256": "2e43a2cd44ad2a6d65e4f6fc9d96b93826c5ad3d6c5c83fc2166af41087b1998",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_webrtc/gates.rs": {
+      "sha256": "fb1a197933eee596b59c0d0f47d64859466d9fa03f5d6194b246fd96fd10346c",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "2603ed1bacbdfb79b1d9ca77ff55c72e9fd09b4410ba1a8ba70a1ef5005f7622",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "4c20a9fefe517bf7d4b9c041566180bbdc893808b11d219ef81b4fd65340c1c1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "c102f260676c9c89d7c2d523d14d5d649de5988e9e02736a766086e224adf036",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2726,
+    "source_inputs_manifest_sha256": "985805c98883f142b1785fd77daa4b79719b575876416a205963db26eb58df74",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          470
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 5.026781667023897,
+        "log_sha256": "136e0098e49f58ec893e5aa6d45f2ef91a8de32740176bf5113b975f40c7fecd"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.35655870917253196,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2688925829716027,
+        "log_sha256": "341e097910a83f6a1dd057e107aff2a5d177694c2e2f34472e1d7e75bd4f0c39"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36441925005055964,
+        "log_sha256": "7acec522773e39c492cc1115edf525f55489861a0ab58076610958c389680a7d"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.5957250001374632,
+        "log_sha256": "37221bb7d9e93ff90a561a15fd1b9d48e39c8d5f537b16c4409e87f0bdb2dcbb"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 65.16039800015278,
+        "log_sha256": "bb9eb311f0b43a819a010d5cd4ce1e3c6a4325f7485522caaff6d50ec566805e"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 45
+    },
+    "log_sha256": "9681043d5f9c1ecffac1b7551399bda2fe0a0946fe6757fb6342c49c67575c59",
+    "scope": "Fresh owned Chrome profile, fake mic/camera, real getDisplayMedia for an owned titled blue data tab, explicit supplied moving red canvas and oscillator counterpart; no personal devices/screens. Same two enrolled actors per transport, four keys/credentials, two Devices, four independently verified Endpoints.",
+    "witness": "Caller decodes opposite red RGB 210/30/40 and callee opposite blue RGB 12/145/210; center-pixel tolerance of 28. Selected blue source is live before mute, yields zero new decoded renderer callbacks after a 500 ms settling interval over a 400 ms observation while opposite red continues, and resumes after unmute. Inactive hold repeats stop/resume. This is bounded causal video delivery, not frame-rate/synchronization/clean60/audio quality qualification.",
+    "originals": "45 distinct original communication mutations; control status and restore never submits another original. Saved intent and IDs precede IO. Six original control observations after physical reconnect cannot render; four original offer observations cannot capture. One original WSS camera kind selection against Screen-only binding explicitly fails under the current Screen connection."
+  },
+  "implementation": [
+    "Public NonEmpty first/rest selectors and discriminated mute/unmute/hold/resume/quality/codec-renegotiate inputs; exact runtime field validation and immutable typed outcome observations.",
+    "Original control receipt decoder validates command, Connection scope, positive generations, bounded distinct local handles/codecs, negotiated revisions and null versus empty binding capture. A restored receipt grants no media custody.",
+    "WT original control retains correlated counteroffer owner/confirmation and installed native revision. One deadline includes queueing/reconciliation; an expired queued request cannot submit late or bypass an older pending original. Capture/render waits local control installation.",
+    "Current local Connection refresh exposes known committed negotiated revision without using resourceRevision; same epoch/scope/generation observations advance monotonically. Historical/fromId observers without owner omit negotiated revision.",
+    "Stream snapshot index uses Session, Connection and logical Stream identity; the same logical source on publisher/subscriber is valid, duplicate within one Connection remains a protocol error.",
+    "RTC service accepts Screen gates and exact source subscriptions on original audio plus one VP8 Screen port, preserving current authority/source floors, exact bindings/revisions and guard against new ports. WSS future nonaudio Participant selection remains explicitly unsupported.",
+    "Generic original result copy uses the existing 1 MiB wire budget; signed 70 KiB result regression passes, eliminating the former 64 KiB copy restriction. Full maximal Conversation audit remains separate."
+  ],
+  "regressions": "470 SDK, 37 Node, two server Screen, two upstream Screen and ten real root functions, zero ignored in the final guarded cohort; standalone browser/Node typechecks. Source inputs unchanged throughout. No broader Rust workspace/release/performance or external qualification.",
+  "prior_attempts": [
+    {
+      "scope": "WT opposite Screen decoding and gates progressed, but subsequent current snapshot rejected duplicate logical IDs across different Connections.",
+      "log_sha256": "bbe0670c4d826b3e295bd424001ea5da4e33c1710baa98fc73b98f0902c22643"
+    },
+    {
+      "scope": "Diagnostic rerun locates per-Conversation Stream ID uniqueness assumption; full trace remained private.",
+      "log_sha256": "30d5b27e7575ee2ddfd71a388d2771125f4180b4f6f0b7c5fc6491c65bd80810"
+    },
+    {
+      "scope": "A WT gate mutation ended with a recorded application refusal; its exact server problem was not captured. The fixture reused a prior receipt revision after peer changes. Later runs refresh current revision before each explicit gate decision, without resubmitting a refused mutation.",
+      "log_sha256": "fd25360d29209beb80ead408f8ac534fc151626ce8af7c9597153b679c88a98a"
+    },
+    {
+      "scope": "WT controls/lifecycle progress; WSS future nonaudio Participant selector explicitly refuses its fixed-port profile.",
+      "log_sha256": "164785d907ae74b4dd422f3f4e41ae6c9b870826acb80932c990be468b8af797"
+    },
+    {
+      "scope": "Original recorded WSS refusal identifies unsupported-media-profile; positive WSS flow uses explicit exact Stream selector without broadening fixed-port future selection.",
+      "log_sha256": "6a6fd6d3d6ab8c12f08e039b839693a1d11a62c09afd34c6ac620819abf2c5d6"
+    },
+    {
+      "scope": "Single real typed Chrome flow passes 45 original mutations after exact WSS selection; predates final causal gate-delivery assertions.",
+      "log_sha256": "94f1a2b727ddf557c462a23dd25c067d4118fcf5a3ab7601ef1d0ea6b58f1927"
+    },
+    {
+      "scope": "Initial TypeScript narrowing error; fixed before successful build.",
+      "log_sha256": "c3dcfe17b05e0e1261a791657c109f1f82f7699504d9bbc111557c534c4f4609"
+    },
+    {
+      "scope": "Initial TypeScript JSON object inference errors; fixed before successful build.",
+      "log_sha256": "d8bf94bf420f67f35e6449da25a76139f96f5ba6a06a5bcb161dc032a43173c2"
+    },
+    {
+      "scope": "Two new assertions compared canonical null-prototype objects to plain objects; normalized the test representation before checking exact wire intent.",
+      "log_sha256": "1ae43e0e83813b74eb2d9fd85037c8e270383b649a8dc88a6ebf636541ac5972"
+    },
+    {
+      "scope": "New scoped-Stream test fixture omitted its subscriber Connection; corrected fixture then both same-source scopes pass while same-Connection duplicates refuse.",
+      "log_sha256": "691807cf76f44badf70f2ab2dff0c309733ee5fb4bd3d406065eafd49709250b"
+    }
+  ],
+  "remaining": [
+    "Broader frozen browser Session/messaging/event/capability APIs, durable invitation discovery/recovery/deduplication and full reference app flow.",
+    "WSS future nonaudio Participant subscriptions and quality/codec renegotiation require supported backend profiles; no compatibility/downgrade fallback added.",
+    "Received audio, full frozen video quality/synchronization, codecs/renegotiation/fault/recovery, profile/browser/hosting/accessibility/persistence matrix and complete G6-061 requirement audit."
+  ],
+  "known_findings": [
+    "Installed positive provisioning CLI 15-second timeout remains; three unchanged full-tree TS format findings remain.",
+    "Cached debug stripping disk and unit linker unwind warnings remain; no stripped/release/performance qualification.",
+    "Stale prior application OpenAPI digest in the HTTP inventory refreshed; no route/schema changes."
+  ],
+  "privacy": "Raw traces, SDP, candidates, credentials, device IDs, screenshots, browser profiles and logs remain ignored. No new model/account/provider/named remote execution or agents.",
+  "reference_checks": [
+    "Pinned dependency/source-lock verification passes with 242 patches.",
+    "Repository Rust formatting and changed TypeScript formatting pass.",
+    "Gate 6 plan integrity, developer navigation and HTTP endpoint inventory pass.",
+    "Application, canonical and enrollment OpenAPI generation checks pass.",
+    "git diff --check passes."
+  ]
+}

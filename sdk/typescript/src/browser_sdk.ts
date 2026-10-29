@@ -1,4 +1,27 @@
 import {
+    subscribeBody,
+    unsubscribeBody,
+    updateBody,
+    selectionResult,
+    updateResult,
+    type BrowserNonEmpty,
+    type BrowserStreamSelector,
+    type BrowserConnectionUpdate,
+    type BrowserConnectionUpdateReceipt,
+    type BrowserStreamSelectionReceipt,
+} from "./browser_sdk_streams.js";
+export type {
+    BrowserNonEmpty,
+    BrowserStreamSelector,
+    BrowserConnectionUpdate,
+    BrowserConnectionUpdateReceipt,
+    BrowserStreamSelectionReceipt,
+    BrowserCodecObservation,
+    BrowserStreamGateObservation,
+    BrowserMedium,
+    BrowserDirection,
+} from "./browser_sdk_streams.js";
+import {
     BrowserRtcConnection,
     type BrowserRtcConfiguration,
 } from "./browser_sdk_webrtc.js";
@@ -90,8 +113,8 @@ function freeze<T>(v: T): T {
 }
 function copy<T>(v: T): T {
     return parseCanonicalJson(
-        new TextEncoder().encode(canonicalJson(v as Json, 65536)),
-        65536,
+        new TextEncoder().encode(canonicalJson(v as Json, 1048576)),
+        1048576,
     ) as T;
 }
 function boundedText(v: unknown, max = 256, empty = false): v is string {
@@ -344,6 +367,16 @@ function connectionResult(
         )
             return bad();
         revision = value.stream_revision as SdkRevision<"stream">;
+        const s = current(client),
+            local = s.local.get(key.scope.connectionId!);
+        if (
+            local &&
+            local.offerOperation === key.operationId &&
+            local.cid === key.scope.conversationId &&
+            local.sid === key.scope.sessionId &&
+            local.epoch === s.owner.status.physicalEpoch
+        )
+            local.revision = Math.max(local.revision ?? 0, revision);
     } else {
         if (
             value.ended !== true ||
@@ -364,7 +397,68 @@ function connectionResult(
         revision,
     );
 }
+function controlConnection(
+    value: Json,
+    client: BrowserSdkClient,
+    key: BrowserOperationReference,
+): BrowserConnection {
+    if (
+        !object(value) ||
+        !numeric(value.stream_revision) ||
+        value.stream_revision < 1
+    )
+        return current(client).malformed(key, "recorded");
+    return new BrowserConnection(
+        client,
+        key.scope.conversationId as ConversationId,
+        key.scope.sessionId as SessionId,
+        key.scope.connectionId as ConnectionId,
+        value.stream_revision as SdkRevision<"stream">,
+    );
+}
+function observedControl<
+    T extends BrowserConnectionUpdateReceipt | BrowserStreamSelectionReceipt,
+>(value: T, client: BrowserSdkClient, key: BrowserOperationReference): T {
+    const s = current(client),
+        local = s.local.get(key.scope.connectionId!);
+    if (
+        local &&
+        local.cid === key.scope.conversationId &&
+        local.sid === key.scope.sessionId &&
+        local.epoch === s.owner.status.physicalEpoch &&
+        local.generation === value.connectionGeneration
+    )
+        local.revision = Math.max(local.revision ?? 0, value.streamRevision);
+    return value;
+}
 export const browserOperationKinds = Object.freeze({
+    connectionUpdate: kind("connection.update", "connection", (v, c, k) =>
+        observedControl(
+            updateResult(v, k, controlConnection(v, c, k), () =>
+                current(c).malformed(k, "recorded"),
+            ),
+            c,
+            k,
+        ),
+    ),
+    streamSubscribe: kind("stream.subscribe", "connection", (v, c, k) =>
+        observedControl(
+            selectionResult(v, k, controlConnection(v, c, k), () =>
+                current(c).malformed(k, "recorded"),
+            ),
+            c,
+            k,
+        ),
+    ),
+    streamUnsubscribe: kind("stream.unsubscribe", "connection", (v, c, k) =>
+        observedControl(
+            selectionResult(v, k, controlConnection(v, c, k), () =>
+                current(c).malformed(k, "recorded"),
+            ),
+            c,
+            k,
+        ),
+    ),
     connectionOffer: kind("connection.offer", "connection", connectionResult),
     connectionEnd: kind("connection.end", "connection", connectionResult),
     conversationCreate: kind("create", "root", (v, c, k) => {
@@ -576,6 +670,10 @@ class State {
             epoch: number;
             ready: Promise<BrowserMediaConnection | BrowserRtcConnection>;
             rtc?: BrowserRtcConnection;
+            control?: Promise<void>;
+            revision?: number;
+            offerOperation: string;
+            generation: number;
             audio?: string;
             video?: string;
             screen?: string;
@@ -793,8 +891,9 @@ class State {
                 connections.set(c.id, c);
             } else if (item.kind === "stream") {
                 const v = streamView(d, cid, () => this.malformed());
-                if (streams.has(v.id)) this.malformed();
-                streams.set(v.id, v);
+                const key = JSON.stringify([v.sessionId, v.connectionId, v.id]);
+                if (streams.has(key)) this.malformed();
+                streams.set(key, v);
             } else if (item.kind === "session_participant") {
                 if (
                     !identifier(d.session_id) ||
@@ -1110,14 +1209,74 @@ export class BrowserSdkClient {
         );
         const budget = new Budget(options);
         const captured = copy(body);
+        let control: ReturnType<BrowserMediaPeer["beginControl"]> | undefined;
         try {
-            const frames = await current(this).request(
-                d.command === "create" ? "conversation.create" : d.command,
-                captured,
-                { ...scope, operation_id: key.operationId },
-                budget.options(),
-                key,
-            );
+            const s = current(this),
+                peer = s.peer,
+                epoch = s.owner.status.physicalEpoch;
+            const local =
+                scope.connid === undefined
+                    ? undefined
+                    : s.local.get(scope.connid);
+            let frames: Envelope[];
+            if (
+                peer.controlTransport === "webtransport" &&
+                local &&
+                [
+                    "connection.update",
+                    "stream.subscribe",
+                    "stream.unsubscribe",
+                ].includes(d.command)
+            ) {
+                if (
+                    local.cid !== scope.cid ||
+                    local.sid !== scope.sid ||
+                    local.epoch !== epoch
+                )
+                    throw new BrowserSdkError(
+                        "receipt-unavailable",
+                        "not-submitted",
+                        key,
+                    );
+                await boundedLocal(
+                    local.ready,
+                    budget.options() as BrowserSdkRequestOptions,
+                );
+                s.observe(peer, epoch);
+                control = s
+                    .nativePeer()
+                    .beginControl(
+                        scope.connid!,
+                        key.operationId,
+                        d.command as
+                            | "connection.update"
+                            | "stream.subscribe"
+                            | "stream.unsubscribe",
+                        captured,
+                        scope.expected_revision!,
+                        budget.options(),
+                    );
+                const pending = Promise.allSettled([
+                    local.control ?? Promise.resolve(),
+                    control.ready,
+                ]).then(() => {});
+                local.control = pending;
+                void pending
+                    .finally(() => {
+                        if (local.control === pending)
+                            local.control = undefined;
+                    })
+                    .catch(() => {});
+                frames = await control.response;
+                s.observe(peer, epoch);
+            } else
+                frames = await s.request(
+                    d.command === "create" ? "conversation.create" : d.command,
+                    captured,
+                    { ...scope, operation_id: key.operationId },
+                    budget.options(),
+                    key,
+                );
             const updates = frames.filter(
                 (f) => f.type === "operation.updated",
             );
@@ -1148,7 +1307,13 @@ export class BrowserSdkClient {
             budget.options();
             return new BrowserOperation(this, key, k);
         } catch (error) {
-            throw translated(error, "uncertain", key);
+            throw translated(
+                error,
+                control && !control.submissionAttempted
+                    ? "not-submitted"
+                    : "uncertain",
+                key,
+            );
         }
     }
     incomingInvitations(
@@ -1429,6 +1594,8 @@ export class BrowserSession {
                     epoch,
                     ready: begun.ready,
                     rtc: begun.owner,
+                    offerOperation: key.operationId,
+                    generation: 1,
                     audio: low.audio,
                     video: low.video,
                     screen: low.screen,
@@ -1782,6 +1949,8 @@ export interface BrowserOfferedStream {
     readonly codecs: readonly [string, ...string[]];
 }
 export interface BrowserConnectionSnapshot {
+    /** Current physical's last committed negotiated revision, when locally known. */
+    readonly streamRevision?: SdkRevision<"stream">;
     readonly id: ConnectionId;
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
@@ -1890,6 +2059,50 @@ async function boundedLocal<T>(
 }
 export class BrowserConnection {
     readonly streams = {
+        subscribe: (
+            input: {
+                readonly selectors: BrowserNonEmpty<BrowserStreamSelector>;
+                readonly expectedStreamRevision: SdkRevision<"stream">;
+            },
+            options: BrowserSdkMutationOptions,
+        ): Promise<BrowserOperation<BrowserStreamSelectionReceipt>> => {
+            if (!input) invalid();
+            return this.client[submit](
+                browserOperationKinds.streamSubscribe,
+                subscribeBody(input.selectors, invalid),
+                {
+                    cid: this.conversationId,
+                    sid: this.sessionId,
+                    connid: this.id,
+                    expected_revision: sdkRevision(
+                        input.expectedStreamRevision,
+                    ),
+                },
+                options,
+            );
+        },
+        unsubscribe: (
+            input: {
+                readonly streams: BrowserNonEmpty<StreamId>;
+                readonly expectedStreamRevision: SdkRevision<"stream">;
+            },
+            options: BrowserSdkMutationOptions,
+        ): Promise<BrowserOperation<BrowserStreamSelectionReceipt>> => {
+            if (!input) invalid();
+            return this.client[submit](
+                browserOperationKinds.streamUnsubscribe,
+                unsubscribeBody(input.streams, invalid),
+                {
+                    cid: this.conversationId,
+                    sid: this.sessionId,
+                    connid: this.id,
+                    expected_revision: sdkRevision(
+                        input.expectedStreamRevision,
+                    ),
+                },
+                options,
+            );
+        },
         byId: (id: StreamId) => {
             sdkId(id);
             return new BrowserStream(
@@ -1938,7 +2151,49 @@ export class BrowserConnection {
         ).connections.get(this.id);
         if (!c || c.sessionId !== this.sessionId)
             throw new BrowserSdkError("receipt-unavailable", "read-only");
+        const s = current(this.client),
+            local = s.local.get(this.id);
+        if (
+            local &&
+            local.cid === this.conversationId &&
+            local.sid === this.sessionId &&
+            local.epoch === s.owner.status.physicalEpoch &&
+            local.generation === c.generation
+        ) {
+            let revision = local.revision ?? 0;
+            if (s.mediaPeer)
+                try {
+                    revision = Math.max(
+                        revision,
+                        s.mediaPeer.revision(this.id),
+                    );
+                } catch {
+                    /* Retired or not installed locally. */
+                }
+            if (revision > 0)
+                return freeze({
+                    ...c,
+                    streamRevision: revision as SdkRevision<"stream">,
+                });
+        }
         return c;
+    }
+    update(
+        input: BrowserConnectionUpdate,
+        expectedStreamRevision: SdkRevision<"stream">,
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserConnectionUpdateReceipt>> {
+        return this.client[submit](
+            browserOperationKinds.connectionUpdate,
+            updateBody(input, invalid),
+            {
+                cid: this.conversationId,
+                sid: this.sessionId,
+                connid: this.id,
+                expected_revision: sdkRevision(expectedStreamRevision),
+            },
+            options,
+        );
     }
     end(
         input: {
@@ -1986,7 +2241,16 @@ export class BrowserConnection {
             local.epoch !== epoch
         )
             throw new BrowserSdkError("receipt-unavailable", "read-only");
-        const native = await boundedLocal(local.ready, options);
+        const budget = new Budget(options);
+        const native = await boundedLocal(
+            local.ready,
+            budget.options() as BrowserSdkRequestOptions,
+        );
+        while (local.control)
+            await boundedLocal(
+                local.control,
+                budget.options() as BrowserSdkRequestOptions,
+            );
         s.observe(peer, epoch);
         if (s.local.get(this.id) !== local)
             throw new BrowserSdkError("receipt-unavailable", "read-only");
@@ -2211,7 +2475,9 @@ export class BrowserStream {
     ): Promise<BrowserStreamSnapshot> {
         const v = (
             await current(this.client).snapshot(this.conversationId, options)
-        ).streams.get(this.id);
+        ).streams.get(
+            JSON.stringify([this.sessionId, this.connectionId, this.id]),
+        );
         if (
             !v ||
             v.sessionId !== this.sessionId ||

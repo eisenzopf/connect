@@ -677,17 +677,70 @@ export class BrowserMediaPeer {
         }
         return new BrowserMediaConnection(this, input.connectionId);
     }
-    async transition(state, operationId, type, payload, options, accepted, attempted) {
+    /** Start one original native control while retaining its counteroffer owner. */
+    beginControl(id, operationId, type, payload, expectedRevision, options) {
+        const timeout = options.timeoutMs ?? 10000;
+        if (!Number.isFinite(timeout) ||
+            timeout < 1 ||
+            timeout > 60000 ||
+            !Number.isSafeInteger(expectedRevision) ||
+            expectedRevision < 0)
+            throw new ConnectError("invalid-request", "Use an original bounded native control");
+        const state = this.state(id), budget = new BrowserDeadline(timeout);
+        const body = parseCanonicalJson(new TextEncoder().encode(canonicalJson(payload, 32768)), 32768);
+        let resolve, reject, attempted = false;
+        const response = new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+        });
+        const previous = state.controlling;
+        const ready = (async () => {
+            if (previous)
+                await budget.run(() => previous.catch(() => { }), options.signal);
+            this.requireState(state);
+            await this.transition(state, operationId, type, body, { ...options, timeoutMs: budget.remaining() }, undefined, () => {
+                attempted = true;
+            }, expectedRevision, (work) => {
+                void work.then(resolve, reject);
+            });
+        })().catch((error) => {
+            reject(error);
+            throw error;
+        });
+        const settled = Promise.allSettled([
+            previous ?? Promise.resolve(),
+            ready,
+        ]).then(() => { });
+        state.controlling = settled;
+        void settled.then(() => {
+            if (state.controlling === settled)
+                state.controlling = undefined;
+        });
+        void response.catch(() => { });
+        void ready.catch(() => { });
+        return {
+            response,
+            ready,
+            get submissionAttempted() {
+                return attempted;
+            },
+        };
+    }
+    async transition(state, operationId, type, payload, options, accepted, attempted, requestedRevision, startedResponse) {
         this.check();
-        await this.stable(state);
+        const timeout = options.timeoutMs ?? 10000;
+        if (!Number.isFinite(timeout) || timeout < 1 || timeout > 60000)
+            throw new ConnectError("invalid-request", "Invalid media deadline");
+        const budget = new BrowserDeadline(timeout);
+        await budget.run(() => this.stable(state), options.signal);
+        const expected = requestedRevision ?? state.revision;
+        if (expected !== state.revision)
+            throw new ConnectError("conflict", "Native control revision conflicts");
         if (!identifier(operationId) ||
             this.transitions.has(operationId) ||
             [...this.transitions.values()].some((t) => t.scope.connid === state.scope.connid))
             throw new ConnectError("invalid-request", "Use a distinct stable logical operation ID");
-        const timeout = options.timeoutMs ?? 10000;
-        if (!Number.isFinite(timeout) || timeout < 1 || timeout > 60000)
-            throw new ConnectError("invalid-request", "Invalid media deadline");
-        const until = performance.now() + timeout;
+        const until = performance.now() + budget.remaining();
         const remaining = () => ({
             timeoutMs: Math.max(1, until - performance.now()),
             signal: options.signal,
@@ -708,6 +761,7 @@ export class BrowserMediaPeer {
             ...remaining(),
             terminalType: type === "connection.offer" ? "connection.answer" : undefined,
         });
+        startedResponse?.(started.response);
         this.transitions.set(operationId, {
             scope,
             requestId: started.id,
@@ -725,7 +779,7 @@ export class BrowserMediaPeer {
             const error = new ConnectError("timeout", "Media negotiation deadline; retain logical operation ID");
             reject(error);
             this.client.close(error);
-        }, timeout);
+        }, budget.remaining());
         options.signal?.addEventListener("abort", abort, { once: true });
         if (options.signal?.aborted)
             abort();
@@ -752,25 +806,28 @@ export class BrowserMediaPeer {
                         ? ": " + problem.message
                         : ""));
             }
+            let completed;
+            const selectedKinds = new Set();
+            if (type === "stream.subscribe" &&
+                Array.isArray(payload.subscriptions))
+                for (const sub of payload.subscriptions)
+                    if (jsonObject(sub)) {
+                        const kinds = Array.isArray(sub.kinds)
+                            ? sub.kinds
+                            : ["audio", "video", "screen", "data"];
+                        for (const kind of kinds)
+                            if (typeof kind === "string")
+                                selectedKinds.add(kind);
+                    }
             if (frame) {
-                const selectedKinds = new Set();
-                if (type === "stream.subscribe" &&
-                    Array.isArray(payload.subscriptions))
-                    for (const sub of payload.subscriptions)
-                        if (jsonObject(sub) && Array.isArray(sub.kinds))
-                            for (const kind of sub.kinds)
-                                if (typeof kind === "string")
-                                    selectedKinds.add(kind);
                 this.requireState(state);
                 const plan = this.plan(frame, state, selectedKinds);
                 accepted?.();
                 await this.answer(state, frame, operationId, remaining());
                 await started.response;
-                await this.completed(state.scope.cid, operationId, until, options.signal);
+                completed = await this.completed(state.scope.cid, operationId, until, options.signal);
                 try {
                     this.install(state, plan);
-                    for (const kind of selectedKinds)
-                        state.selectedKinds.add(kind);
                 }
                 catch (error) {
                     if (!(error instanceof ConnectError &&
@@ -781,7 +838,31 @@ export class BrowserMediaPeer {
                 }
             }
             else
-                await this.completed(state.scope.cid, operationId, until, options.signal);
+                completed = await this.completed(state.scope.cid, operationId, until, options.signal);
+            if (type !== "connection.offer" &&
+                requestedRevision !== undefined) {
+                const result = completed.result;
+                if (!jsonObject(result))
+                    return fail("Missing original native control result");
+                if (result.connection_id !== state.scope.connid ||
+                    !Number.isSafeInteger(result.stream_revision) ||
+                    Number(result.stream_revision) < expected ||
+                    Number(result.stream_revision) > expected + 1 ||
+                    (frame
+                        ? result.stream_revision !== state.revision
+                        : result.resources_changed !== false) ||
+                    (type === "connection.update" &&
+                        payload.action !== "codec-renegotiate" &&
+                        (payload.action === "quality"
+                            ? result.quality_interval_ms !==
+                                payload.quality_interval_ms
+                            : result.action !== payload.action)))
+                    fail("Native control result does not bind the original revision/profile");
+                this.requireState(state);
+                state.revision = Number(result.stream_revision);
+            }
+            for (const kind of selectedKinds)
+                state.selectedKinds.add(kind);
         }
         catch (error) {
             if (!(error instanceof ConnectError) ||
@@ -810,7 +891,7 @@ export class BrowserMediaPeer {
                 signal,
             });
             if (state.state === "completed")
-                return;
+                return state;
             if (["failed", "cancelled"].includes(String(state.state))) {
                 const problem = jsonObject(state.problem) ? state.problem : {};
                 throw new ConnectError("refused", "Media operation " +

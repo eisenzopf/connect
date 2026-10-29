@@ -104,7 +104,7 @@ impl Runtime {
         if negotiated.is_empty()
             || negotiated
                 .iter()
-                .any(|m| !matches!(m, Medium::Audio | Medium::Video))
+                .any(|m| !matches!(m, Medium::Audio | Medium::Video | Medium::Screen))
         {
             return Err(Error::new(
                 "unsupported-media-profile",
@@ -137,6 +137,9 @@ impl Runtime {
                                         }
                                         "video" if negotiated.contains(&Medium::Video) => {
                                             Ok(Medium::Video)
+                                        }
+                                        "screen" if negotiated.contains(&Medium::Screen) => {
+                                            Ok(Medium::Screen)
                                         }
                                         _ => Err(Error::new(
                                             "unsupported-media-profile",
@@ -210,7 +213,7 @@ impl Runtime {
         if plan.requires_reconciliation()
             || plan.desired().len() != bindings.len()
             || plan.desired().iter().any(|s| {
-                !matches!(s.medium, Medium::Audio | Medium::Video)
+                !matches!(s.medium, Medium::Audio | Medium::Video | Medium::Screen)
                     || !bindings.iter().any(|b| &b.negotiated.requested == s)
             })
         {
@@ -334,6 +337,7 @@ impl Runtime {
                             .map(|s| match s.medium {
                                 Medium::Audio => Ok("audio".to_owned()),
                                 Medium::Video => Ok("video".to_owned()),
+                                Medium::Screen => Ok("screen".to_owned()),
                                 _ => Err(Error::forbidden()),
                             })
                             .collect::<Result<BTreeSet<_>>>()?
