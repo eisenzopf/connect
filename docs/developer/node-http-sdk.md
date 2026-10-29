@@ -87,10 +87,10 @@ The exact2d Linux run on Node22 and26 is retained in
 [node-native-2d.json](../evidence/gate-6/node-native-2d.json). Both HTTPS algorithms
 reach send, original status/replay and the journal before a fixture assertion
 fails at25:110. The application `ReceiptPage` has `receipts` and `next`; only
-individual recipient facts carry Conversation/message IDs. The consumer now
-asserts the actual empty page `{receipts: [], next: null}` instead of nonexistent
-page-level resource fields. This source correction passes JavaScript syntax;
-its original-server Linux result remains pending. Current authorization checks,
+individual recipient facts carry Conversation/message IDs. At that checkpoint the consumer
+assumed an empty page `{receipts: [], next: null}` instead of nonexistent
+page-level resource fields. The shape-only correction passed syntax but remained
+wrong about emptiness; exact70 and profile3 below record the queued-receipt fix. Current authorization checks,
 causal witness, singleton effect, request/phase deadlines and cleanup assertions
 remain in the fixture. The five exact2d failures stay recorded as failures.
 
@@ -126,3 +126,25 @@ and execution. This does not complete candidate adoption. The remaining protocol
 must retain old attempt attribution, retire/join its original worker, acquire
 fresh replacement custody/resources and update the existing Connection ID under
 an exact ownership fence. An unanswered offer supplies metadata, not readiness.
+
+The [exact70 native matrix](../evidence/gate-6/node-native-70.json) retains six
+Node22 and five Node26 failures. Both reach the resumed compact causal-field
+assertion, which profile8 corrects through independent Store/journal witnesses.
+Node22 also records read-only `transport-uncertain` at the revoked consultation
+return read; a bare EOF is not classified as authentication. Candidate failures
+remain. Both HTTPS algorithms still fail receipts: the earlier page-shape fix
+kept an incorrect empty-page assumption. The Store queues a native journal fact
+on acceptance. [Profile3](../evidence/gate-6/node-https-queued-receipt.json) instead
+requires exactly one scoped queued receipt and independently verifies zero
+`delivered`/`read` facts. Its installed consumer also runs from its external
+project directory. Actual production TLS execution of this correction is pending.
+
+The [cleanup follow-up](../evidence/gate-6/native-cleanup-terminal-recovery.json)
+passes29 actual local Store native-wire functions with8,228 guarded inputs
+unchanged. It keeps the live-successor fence while permitting the original
+unobserved retirement after real Session end/leave, and prior-epoch interrupted
+cleanup under an exclusive successor owner. The exact old mapping and attributed
+absence remain required. Initial runs caught an invalid test generation rewind
+and an omitted restart-recovery path; both are corrected with retained failed
+logs.23 extracted SQL vectors also pass. Candidate worker custody/adoption still
+needs implementation; these are Store results, not actual replacement media proof.

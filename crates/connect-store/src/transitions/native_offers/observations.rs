@@ -271,10 +271,14 @@ impl Store {
         )
         .map_err(|_| Error::storage())?;
         if !retired {
-            // Absence of this exact old Core route cannot retire a successor
-            // that reuses its public Connection ID. A pending original has no
-            // observed runtime yet; an observed one must belong to this lease.
-            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND generation=?2 AND (observed_runtime_id IS NULL OR observed_runtime_id=?3)",params![lease.connection,lease.generation,lease.runtime]).map_err(|_|Error::storage())?;
+            // Absence of this old Core route cannot retire a live successor.
+            // Session end/leave fences the original by one generation before
+            // physical cleanup: only that recorded terminal, unobserved slot
+            // may finish retirement here. Exclusive successor-owner recovery also
+            // settles its prior epoch's interrupted original; the exact old
+            // mapping and absence observation remain required. No branch
+            // grants new execution authority.
+            let changed=tx.execute("UPDATE connections SET state='retired',generation=generation+1,revision=revision+1,observed_runtime_id=NULL,observed_at=NULL,readiness_json=NULL WHERE id=?1 AND ((generation=?2 AND (observed_runtime_id IS NULL OR observed_runtime_id=?3)) OR (observed_runtime_id IS NULL AND readiness_json IS NULL AND ((state='retiring' AND (generation=?2+1 OR (?3!=?4 AND generation>?2)) AND (EXISTS(SELECT 1 FROM sessions s WHERE s.id=connections.session_id AND s.state IN ('ended','cancelled','rejected','failed')) OR EXISTS(SELECT 1 FROM session_participants sp WHERE sp.session_id=connections.session_id AND sp.participant_id=connections.participant_id AND sp.membership_epoch=connections.membership_epoch AND sp.state IN ('left','removed')))) OR (state='interrupted' AND ?3!=?4 AND generation>?2))))",params![lease.connection,lease.generation,lease.runtime,self.runtime_epoch()]).map_err(|_|Error::storage())?;
             if changed != 1 {
                 return Err(Error::forbidden());
             }

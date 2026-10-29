@@ -1,0 +1,1247 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "commit": "70a2900ffc6a5d0c7f2b272246f5b181f1ef2363",
+  "run_id": 40807029543,
+  "aggregate_passed": false,
+  "matrix_complete": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scope": "Exact70 original Linux artifacts. Both native controls reach the resumed event check and fail the invented compact causal_event_ids assertion189:204 (new profile8 correction pending). Both HTTPS algorithms still fail receipts25:110: the page shape was fixed but its empty expectation conflicts with the actual queued-native-receipt trigger; profile3 must require one exact queued journal fact without delivery/read. Both candidate paths fail343:13. Node22 also fails Rust consultation audio at sdk_controls.rs418:17. All failures remain retained; no request/phase/media predicate changed.",
+  "scopes": [
+    {
+      "commit": "70a2900ffc6a5d0c7f2b272246f5b181f1ef2363",
+      "run_id": 40807029543,
+      "artifact_id": 12869482280,
+      "zip_sha256": "ba516e6b47150186b84a207d79e8c9c8160064fbc59edde5c3a878529b906ca4",
+      "node_matrix": 22,
+      "node_version": "v22.23.4",
+      "aggregate_passed": false,
+      "guarded_inputs": 8223,
+      "tracked_contents_and_modes_verified": 4131,
+      "source_inputs_sha256": "e720b9fd81a12c52b455724058f999fa638caa10db72ded6b2efbc3b1158a497",
+      "functions_passed": 195,
+      "failures": [
+        {
+          "name": "rust-sdk-consultation-audio",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 23.125253798000017,
+          "log_sha256": "cd11bfca1c4189e606520c6a25e55a611ec844a712db7e2561b8a05d7dba98c0",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 23.06s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/sdk_controls.rs",
+              "line": 418,
+              "column": 17
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [
+            {
+              "certainty": "read-only",
+              "kind": "transport-uncertain",
+              "stage": "revoked-return-read"
+            }
+          ],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-https-eddsa",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.1164697780000097,
+          "log_sha256": "c63a51cdf41b58ea5c46fef2ad89ac22918af5d4534cf5b8552b28aa608c46a1",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.09s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 90,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-receipts",
+              "column": 110,
+              "command": null,
+              "kind": "assertion",
+              "line": 25,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-https-es256",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.1165878140000132,
+          "log_sha256": "5d34f1491df6a3bdd73687679712dbfc05a4b12ad1f19a8741781e04e74acc64",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.09s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 90,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-receipts",
+              "column": 110,
+              "command": null,
+              "kind": "assertion",
+              "line": 25,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.2768149910000375,
+          "log_sha256": "a2768bafdcb0ef277098127ddd62c693157496146a89469a9c3baecfd5807f77",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.22s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.3302224540000225,
+          "log_sha256": "81cb03ba0ae2088e60046becf1a1263c21474b6a0768d227b0be7a80304bbe50",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.28s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 35.40518673000008,
+          "log_sha256": "8dd3422fc894f7cd105c67a8905f0300ca7991861e10b991a6ebc59f46191cb6",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 35.34s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 136,
+              "column": 17
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 7.9394326920000005
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.138455408
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "initial",
+              "seconds": 14.227334181
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "events-resume",
+              "column": 204,
+              "command": null,
+              "kind": "assertion",
+              "line": 189,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "administration_passed": true,
+      "https": {
+        "passed": false,
+        "profile": "node-https/2",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "passed": false
+          },
+          {
+            "algorithm": "ES256",
+            "passed": false
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, independent full Store causal link and exact journal row, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification."
+      },
+      "native": {
+        "passed": false,
+        "functional_phase_profile": "node-controls/7"
+      },
+      "movements": {
+        "passed": false,
+        "profile": "node-movements/3",
+        "results": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_session_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_session_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_conversation_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_conversation_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "scenario": "installed_node_eddsa_move_candidate",
+            "passed": false
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_revoked_target_key",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_recording_failure",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_session_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_session_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_conversation_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_conversation_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "scenario": "installed_node_es256_move_candidate",
+            "passed": false
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_revoked_target_key",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_recording_failure",
+            "servers_joined": 1,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification."
+      }
+    },
+    {
+      "commit": "70a2900ffc6a5d0c7f2b272246f5b181f1ef2363",
+      "run_id": 40807029543,
+      "artifact_id": 12869581980,
+      "zip_sha256": "c6f73790321db8a28ef3b3bea51eeb3a337a83f9782a66c0eb2ac2b35738602d",
+      "node_matrix": 26,
+      "node_version": "v26.12.1",
+      "aggregate_passed": false,
+      "guarded_inputs": 8223,
+      "tracked_contents_and_modes_verified": 4131,
+      "source_inputs_sha256": "e720b9fd81a12c52b455724058f999fa638caa10db72ded6b2efbc3b1158a497",
+      "functions_passed": 196,
+      "failures": [
+        {
+          "name": "installed-node-https-eddsa",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.2176979349999897,
+          "log_sha256": "516f8ec46c8b403207ebf6aab37cc595b9212b4ea73efdf5da9049bc2653fdda",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.17s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 90,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-receipts",
+              "column": 110,
+              "command": null,
+              "kind": "assertion",
+              "line": 25,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-https-es256",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.1671427739999558,
+          "log_sha256": "a4ae6cf7be787527e23f6b5f3539002e1dbc401450cdfc63ecf9cb8ddd9a51fe",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.16s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 90,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-receipts",
+              "column": 110,
+              "command": null,
+              "kind": "assertion",
+              "line": 25,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.431248707000009,
+          "log_sha256": "b243d2e5e3a8c67bc5e61e5678f8b76f27964732b011e9c7a52069c3ce2454b2",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.40s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.330793751999977,
+          "log_sha256": "f1eeb4a7ba88b42918cb9317da7fe90de52b41d9a2027ef88e1792aa02347a02",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.29s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [],
+          "node_failures": [],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 36.9079867009998,
+          "log_sha256": "8d241cbf3da1fb26e2a9c4adef8a319d3e0c4e67718353e865d72c5331cd3c66",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 36.85s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 136,
+              "column": 17
+            }
+          ],
+          "local_schema_mismatches": [],
+          "native_audio_boundary_failures": [],
+          "native_audio_minimum_failures": [],
+          "native_audio_quiescence_failures": [],
+          "sdk_current_read_failures": [],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.123333551
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.415985836
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "initial",
+              "seconds": 14.934366516
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "events-resume",
+              "column": 204,
+              "command": null,
+              "kind": "assertion",
+              "line": 189,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ],
+          "node_consultation_phases": [],
+          "node_consultation_failures": [],
+          "node_movement_phases": [],
+          "node_movement_failures": [],
+          "node_administrative_phases": [],
+          "node_administrative_failures": [],
+          "node_administrative_drain_failures": [],
+          "compiler_diagnostics": []
+        }
+      ],
+      "administration_passed": true,
+      "https": {
+        "passed": false,
+        "profile": "node-https/2",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "passed": false
+          },
+          {
+            "algorithm": "ES256",
+            "passed": false
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, independent full Store causal link and exact journal row, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification."
+      },
+      "native": {
+        "passed": false,
+        "functional_phase_profile": "node-controls/7"
+      },
+      "movements": {
+        "passed": false,
+        "profile": "node-movements/3",
+        "results": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_session_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_session_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_conversation_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_conversation_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "scenario": "installed_node_eddsa_move_candidate",
+            "passed": false
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_revoked_target_key",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_cancel_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_recording_failure",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_session_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_session_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_conversation_handoff_observe",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_conversation_handoff_leave",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "scenario": "installed_node_es256_move_candidate",
+            "passed": false
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_revoked_target_key",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_speaker",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_observer",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_cancel_revoked_endpoint",
+            "servers_joined": 1,
+            "passed": true
+          },
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_recording_failure",
+            "servers_joined": 1,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Actual native peers/audio with installed public Node controller; topology/role/binding match host result, fresh original-record recovery, current revocation/cancellation/known-commit failure, original helpers/servers/drains. No model/provider/remote or full SDK qualification."
+      }
+    }
+  ]
+}

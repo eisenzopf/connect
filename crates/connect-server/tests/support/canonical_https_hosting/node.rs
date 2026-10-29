@@ -45,12 +45,13 @@ async fn run(algorithm: &str) {
         .find(|p| p.identity_id.as_str() == h.f.peer.identity_id)
         .unwrap();
     let spec = h.f.temp.path().join("node-https-spec.json");
-    connect_server::cli::init::private_write(&spec,serde_json::to_vec(&json!({"project":script.parent().unwrap(),"endpoint":h.endpoint(HttpSurface::Application).origin,"credential":h.f.client.credential,"cid":room.id(),"recipient":recipient.id})).unwrap().as_slice()).unwrap();
+    connect_server::cli::init::private_write(&spec,serde_json::to_vec(&json!({"project":script.parent().unwrap(),"endpoint":h.endpoint(HttpSurface::Application).origin,"credential":h.f.client.credential,"cid":room.id(),"recipient":recipient.id,"recipient_epoch":recipient.membership_epoch})).unwrap().as_slice()).unwrap();
     let mut child = tokio::process::Command::new(
         std::env::var_os("CONNECT_GATE6_NODE").unwrap_or_else(|| "node".into()),
     )
     .arg(&script)
     .arg(&spec)
+    .current_dir(script.parent().unwrap())
     .env("NODE_EXTRA_CA_CERTS", &h.tls.root)
     .env_remove("NODE_TLS_REJECT_UNAUTHORIZED")
     .stdin(Stdio::piped())
@@ -95,7 +96,7 @@ async fn run(algorithm: &str) {
     for field in [
         "current_https_journal",
         "original_replay_record",
-        "application_receipts_empty",
+        "application_queued_receipt_current",
     ] {
         assert_eq!(initial[field], true);
     }
@@ -189,6 +190,17 @@ async fn run(algorithm: &str) {
         initial["event_id_sha256"],
         hex::encode(sha2::Sha256::digest(event_id.as_bytes()))
     );
+    // Acceptance creates one queued journal fact, never delivery/read evidence.
+    let queued: u64 = database.query_row("SELECT COUNT(*) FROM message_receipts WHERE message_id='node-https-original-message' AND participant_id=?1 AND membership_epoch=?2 AND channel='native' AND delivery_id=?1 AND kind='queued' AND provenance='journal'",rusqlite::params![recipient.id.as_str(),recipient.membership_epoch],|row|row.get(0)).unwrap();
+    assert_eq!(queued, 1);
+    let delivered: u64 = database
+        .query_row(
+            "SELECT COUNT(*) FROM message_receipts WHERE message_id='node-https-original-message' AND kind IN ('delivered','read')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(delivered, 0);
     drop(database);
     native.close(options()).await.unwrap();
     tokio::time::timeout(Duration::from_secs(5), async {
@@ -205,7 +217,7 @@ async fn run(algorithm: &str) {
     h.f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-node-https-witness {}",
-        json!({"profile":"node-https/2","algorithm":algorithm,"initial":initial,"completed":completed,"independent_native_original_record":true,"independent_store_original_cause":true,"one_original_message_and_operation":true,"zero_forbidden_message_and_operation":true,"node_process_joined":true,"helper_processes":0,"servers_joined":2,"physical_peers_drained":true,"media_readers_drained":true})
+        json!({"profile":"node-https/3","algorithm":algorithm,"initial":initial,"completed":completed,"independent_native_original_record":true,"independent_store_original_cause":true,"one_original_message_and_operation":true,"queued_receipt_without_delivery_or_read":true,"zero_forbidden_message_and_operation":true,"node_process_joined":true,"helper_processes":0,"servers_joined":2,"physical_peers_drained":true,"media_readers_drained":true})
     );
 }
 #[tokio::test]

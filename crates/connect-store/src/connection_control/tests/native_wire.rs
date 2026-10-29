@@ -846,7 +846,13 @@ fn native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_meta
     }
     // Controlled projection races qualify the Store compare-and-swap only.
     // They are not candidate adoption or evidence of a physically ready route.
-    for (generation, observed) in [(2, None), (17, None), (1, Some("foreign-runtime"))] {
+    for (generation, observed, state) in [
+        (2, None, "preparing"),
+        (17, None, "preparing"),
+        (1, Some("foreign-runtime"), "preparing"),
+        (2, None, "retiring"),
+        (2, None, "interrupted"),
+    ] {
         let f = Fixture::new();
         let (_, proof) = prepared(&f, 600);
         f.store
@@ -862,8 +868,8 @@ fn native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_meta
             .connection()
             .unwrap()
             .execute(
-                "UPDATE connections SET generation=?2,observed_runtime_id=?3 WHERE id=?1",
-                params![lease.connection_id(), generation, observed],
+                "UPDATE connections SET generation=?2,observed_runtime_id=?3,state=?4 WHERE id=?1",
+                params![lease.connection_id(), generation, observed, state],
             )
             .unwrap();
         let snapshot = || {
@@ -886,27 +892,123 @@ fn native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_meta
             "forbidden"
         );
         assert_eq!(snapshot(), before);
-        // The original generation can still settle after its actual absence.
+    }
+    // A separate original slot can settle without rewinding any generation.
+    let f = Fixture::new();
+    let (_, proof) = prepared(&f, 600);
+    f.store
+        .accept_native_offer_with_peer(&f.keys[0], &proof)
+        .unwrap();
+    let (lease, _) = f
+        .store
+        .begin_native_offer_with_peer(&f.keys[0], &proof)
+        .unwrap()
+        .unwrap();
+    drop(proof);
+    let absent = Absent {
+        runtime: lease.runtime_connection_id().into(),
+        generation: lease.generation(),
+    };
+    f.store
+        .settle_native_offer_cleanup(&lease, &absent)
+        .unwrap();
+    let snapshot = || {
+        f.store.connection().unwrap().query_row(
+        "SELECT o.state,e.state,c.state,c.generation,(SELECT COUNT(*) FROM journal) FROM operations o JOIN native_offer_operations n ON n.operation_record_id=o.record_id JOIN operation_effects e ON e.id=n.effect_id JOIN connections c ON c.id=o.connection_id WHERE o.record_id=?1",
+        [lease.record_id()],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,u64>(3)?,r.get::<_,u64>(4)?)),
+    ).unwrap()
+    };
+    let after = snapshot();
+    assert_eq!(
+        (&after.0, &after.1, &after.2),
+        (
+            &"failed".to_owned(),
+            &"failed".to_owned(),
+            &"retired".to_owned()
+        )
+    );
+    assert_eq!(after.3, lease.generation() + 1);
+    f.store
+        .settle_native_offer_cleanup(&lease, &absent)
+        .unwrap();
+    assert_eq!(snapshot(), after);
+}
+
+#[test]
+fn native_cleanup_finishes_original_route_after_actual_session_retirement() {
+    struct Absent {
+        runtime: String,
+        generation: u64,
+    }
+    impl crate::NativeOfferRuntimeObservation for Absent {
+        fn observe(&self) -> connect_protocol::Result<crate::NativeOfferObservation> {
+            Ok(crate::NativeOfferObservation::Retired {
+                runtime_connection_id: self.runtime.clone(),
+                generation: self.generation,
+            })
+        }
+    }
+    for leave in [false, true] {
+        let f = Fixture::new();
+        let (_, proof) = prepared(&f, 600);
         f.store
-            .connection()
+            .accept_native_offer_with_peer(&f.keys[0], &proof)
+            .unwrap();
+        let (lease, _) = f
+            .store
+            .begin_native_offer_with_peer(&f.keys[0], &proof)
             .unwrap()
+            .unwrap();
+        drop(proof);
+        f.store
             .execute(
-                "UPDATE connections SET generation=?2,observed_runtime_id=NULL WHERE id=?1",
-                params![lease.connection_id(), lease.generation()],
+                &f.keys[0],
+                &Operation::SessionControl {
+                    request: Request {
+                        operation_id: "retire-original-session-source".into(),
+                        conversation_id: f.cid.clone(),
+                        session_id: "session".into(),
+                        by_participant: None,
+                        expected_revision: Some(3),
+                        action: if leave {
+                            Action::Leave {
+                                participant_id: f.pids[0].clone(),
+                            }
+                        } else {
+                            Action::End {
+                                reason_code: 1000,
+                                reason: "controlled cleanup boundary".into(),
+                            }
+                        },
+                    },
+                },
             )
             .unwrap();
+        let projection = || {
+            f.store.connection().unwrap().query_row(
+            "SELECT state,generation,observed_runtime_id,readiness_json,(SELECT COUNT(*) FROM journal) FROM connections WHERE id=?1",
+            [lease.connection_id()],
+            |r|Ok((r.get::<_,String>(0)?,r.get::<_,u64>(1)?,r.get::<_,Option<String>>(2)?,r.get::<_,Option<String>>(3)?,r.get::<_,u64>(4)?)),
+        ).unwrap()
+        };
+        let retiring = projection();
+        assert_eq!(retiring.0, "retiring");
+        assert_eq!(retiring.1, lease.generation() + 1);
+        assert_eq!((&retiring.2, &retiring.3), (&None, &None));
+        let absent = Absent {
+            runtime: lease.runtime_connection_id().into(),
+            generation: lease.generation(),
+        };
         f.store
             .settle_native_offer_cleanup(&lease, &absent)
             .unwrap();
-        let after = snapshot();
-        assert_eq!(after.0, "failed");
-        assert_eq!(after.2, "failed");
-        assert_eq!(after.3, "retired");
-        assert_eq!(after.4, lease.generation() + 1);
+        let after = projection();
+        assert_eq!(after.0, "retired");
+        assert_eq!(after.1, lease.generation() + 2);
         f.store
             .settle_native_offer_cleanup(&lease, &absent)
             .unwrap();
-        assert_eq!(snapshot(), after);
+        assert_eq!(projection(), after);
     }
 }
 

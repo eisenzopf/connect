@@ -508,3 +508,14 @@ discovery now partitions core169/60s, HTTP protocol22/30s and deliberate lifetim
 stalls2/10s. All193 local functions and37 type constraints pass; the changed
 fixtures still require their own Linux evidence. These changes do not alter
 product request limits, cancellation, retry or ownership policy.
+
+The [exacta50 Linux matrix](../evidence/gate-6/python-sdk-linux-a50.json)
+passes all193 component functions and37 negative type constraints on all four
+Python versions. The separate installed HTTP subset passes everywhere, with six
+requests/six joined workers,36 verified runtime files and identical wheel bytes
+across versions. Every artifact matches its84 or86 tracked Git file contents and
+modes. Core, protocol HTTP and deliberately stalled lifetime lanes all finish
+without timeout, forced cleanup or unexpected async diagnostics. This resolves
+the earlier Linux component failures for this source. The original native Rust
+helper/server, restart/current-authorization and complete installed control
+journey remain unqualified; G6-063 is still in progress.

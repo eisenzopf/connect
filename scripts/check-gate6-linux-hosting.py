@@ -357,7 +357,7 @@ def run(node_sdk=False):
             ("raw-local-validation", "hosting", "sdk_handles::raw::local_helper_validator_", 3),
             ("snapshot-store", "store", "events::tests::", 1),
             ("snapshot-peer-authority", "store", "peer_authority::tests::", 3),
-            ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_preserves_successor_generation_and_rolls_back_old_attempt_metadata", 1),
+            ("native-offer-cleanup-generation", "store", "connection_control::tests::native_wire::native_cleanup_", 2),
             ("rust-sdk-consultation-audio", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_retains_actual_private_and_restored_audio", 1),
             ("rust-sdk-consultation-eof", "hosting", "canonical_native_connections::consultation::sdk_controls::production_public_rust_sdk_consultation_return_after_remote_eof_reports_no_continuing_call", 1),
             ("addressing", "library", "canonical_webrtc::addressing::tests::", 4),
@@ -406,14 +406,15 @@ def run(node_sdk=False):
                 witnesses=[json.loads(line.split('installed-node-https-witness ',1)[1]) for line in text.splitlines() if 'installed-node-https-witness ' in line]
                 assert len(witnesses)==1
                 witness=witnesses[0]
-                assert witness['profile']=='node-https/2' and witness['algorithm']==algorithm
+                assert witness['profile']=='node-https/3' and witness['algorithm']==algorithm
                 assert all(witness[field] for field in ('independent_native_original_record','independent_store_original_cause','one_original_message_and_operation','zero_forbidden_message_and_operation','node_process_joined','physical_peers_drained','media_readers_drained'))
                 assert re.fullmatch(r'[0-9a-f]{64}',witness['initial']['event_id_sha256'])
-                assert all(witness['initial'][f] for f in ('current_https_journal','original_replay_record','application_receipts_empty'))
+                assert all(witness['initial'][f] for f in ('current_https_journal','original_replay_record','application_queued_receipt_current'))
+                assert witness['queued_receipt_without_delivery_or_read']
                 assert all(witness['completed'][f] for f in ('current_https_read_refused','current_https_replay_refused','current_https_new_mutation_refused','current_https_receipts_refused'))
                 assert witness['helper_processes']==0 and witness['servers_joined']==2
                 https_results.append(dict(witness,passed=True))
-            report['installed_node_https']={'passed':all(v['passed'] for v in https_results),'profile':'node-https/2','results':https_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,'scope':'Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, independent full Store causal link and exact journal row, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification.'}
+            report['installed_node_https']={'passed':all(v['passed'] for v in https_results),'profile':'node-https/3','results':https_results,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,'scope':'Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, independent full Store causal link and exact journal row, queued journal receipt without delivery/read, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification.'}
             administrative_results = []
             for algorithm, label in (('EdDSA','eddsa'),('ES256','es256')):
                 for scenario, suffix in (('commands','covers_all_commands_and_original_recovery'),

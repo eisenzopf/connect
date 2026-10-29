@@ -14,6 +14,7 @@ const emit=value=>process.stdout.write(JSON.stringify(value)+'\n'),lines=createI
 let checkpoint='https-snapshot';
 const progress=stage=>{checkpoint=stage;emit({phase:'progress',checkpoint:stage});};
 try {
+ assert.equal(await realpath(process.cwd()),await realpath(spec.project));
  const snapshot=await client.request('conversation.get',{}, {cid:spec.cid},options),cursor=snapshot.find(v=>v.type==='conversation.snapshot')?.payload.cursor;assert.equal(typeof cursor,'string');
  progress('https-send');await client.request('message.send',payload,scope,options);
  const original=record(await client.request('operation.get',{operation_id:scope.operation_id},{cid:spec.cid},options));assert.equal(original.state,'completed');
@@ -22,8 +23,20 @@ try {
  progress('https-journal');const journal=await client.request('conversation.subscribe',{after:cursor,live:false,limit:63},{cid:spec.cid},options);
  const fact=journal.filter(v=>v.type==='conversation.event').map(v=>v.payload.data).find(v=>v.operation_id===scope.operation_id&&v.data?.kind==='message'&&v.data.data.id===payload.msg_id);assert.ok(fact);assert.equal(fact.conversation_id,spec.cid);assert.equal(fact.data.data.conversation_id,spec.cid);
  assert.equal(original.operation_id,scope.operation_id);assert.equal(original.command_type,'send');
- progress('https-receipts');const receipts=await application.messageReceipts(spec.cid,payload.msg_id);assert.deepEqual(receipts,{receipts:[],next:null});
- emit({phase:'initial',record_id:original.record_id,event_id_sha256:createHash('sha256').update(fact.event_id).digest('hex'),current_https_journal:true,original_replay_record:true,application_receipts_empty:true});
+ progress('https-receipts');
+ const receipts=await application.messageReceipts(spec.cid,payload.msg_id);
+ assert.equal(receipts.receipts.length,1);
+ assert.equal(typeof receipts.next,'string');
+ const queued=receipts.receipts[0];
+ assert.equal(queued.conversation_id,spec.cid);
+ assert.equal(queued.message_id,payload.msg_id);
+ assert.equal(queued.participant_id,spec.recipient);
+ assert.equal(queued.membership_epoch,spec.recipient_epoch);
+ assert.equal(queued.channel,'native');
+ assert.equal(queued.delivery_id,spec.recipient);
+ assert.equal(queued.state,'queued');
+ assert.equal(queued.provenance,'journal');
+ emit({phase:'initial',record_id:original.record_id,event_id_sha256:createHash('sha256').update(fact.event_id).digest('hex'),current_https_journal:true,original_replay_record:true,application_queued_receipt_current:true});
  let timer;try{const next=await Promise.race([lines.next(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('bounded host phase missing')),15000);})]);assert.equal(next.value,'revoked');}finally{clearTimeout(timer);}
  progress('https-revocation');for(const [type,body,bound] of [['operation.get',{operation_id:scope.operation_id},{cid:spec.cid}],['message.send',payload,scope],['message.send',{...payload,msg_id:'node-https-forbidden-message'},{...scope,operation_id:'node-https-forbidden-send'}]])await assert.rejects(client.request(type,body,bound,options),error=>{assert.ok(error instanceof CanonicalError);assert.equal(error.kind,'authentication');assert.equal(error.certainty,type==='operation.get'?'read-only':'refused');assert.ok([401,403].includes(error.problem.code));return true;});
  await assert.rejects(application.messageReceipts(spec.cid,payload.msg_id),error=>{assert.ok(error instanceof ConnectError);assert.ok(['unauthorized','forbidden'].includes(error.code));assert.ok([401,403].includes(error.httpStatus));return true;});
