@@ -9,12 +9,12 @@ import time
 from .sdk_types import SdkError
 
 
-def _validate(executable: str, command: str, value: bytes) -> bytes:
+def _validate(executable: str, command: str, value: bytes, *, arguments: tuple[str, ...] = (), maximum_output: int = 16384) -> bytes:
     """Own the original one-shot child, including bounded pipes and forced join."""
     child = None
     expires = time.monotonic() + 2
     try:
-        child = subprocess.Popen([executable, command], stdin=subprocess.PIPE,
+        child = subprocess.Popen([executable, command, *arguments], stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         assert child.stdin is not None and child.stdout is not None
         output = bytearray()
@@ -38,13 +38,13 @@ def _validate(executable: str, command: str, value: bytes) -> bytes:
                             child.stdin.close()
                     else:
                         try:
-                            chunk = os.read(child.stdout.fileno(), 16385 - len(output))
+                            chunk = os.read(child.stdout.fileno(), min(65536, maximum_output + 1 - len(output)))
                         except BlockingIOError:
                             continue
                         if not chunk:
                             selector.unregister(child.stdout)
                         output.extend(chunk)
-                        if len(output) > 16384:
+                        if len(output) > maximum_output:
                             raise ValueError()
         remaining = expires - time.monotonic()
         if remaining <= 0 or child.wait(timeout=remaining) != 0:

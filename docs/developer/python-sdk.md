@@ -68,7 +68,7 @@ The synchronous API remains G6-063 implementation work. Its intended owner is a
 dedicated event-loop thread with the same bounded dispatch, deadlines and single
 process lifetime; calling `asyncio.run()` independently for each method cannot
 share this client safely. Current public APIs are asynchronous. Remaining work
-also includes HTTP parity, administrative provisioning, helper
+also includes HTTP parity, helper
 packaging and the clean installed-venv real-server/restart qualification.
 Capabilities advertise only Python interfaces currently exposed and supported
 by the original helper. They do not grant server permission or native media.
@@ -245,3 +245,65 @@ Each artifact matches69 tracked file contents and modes and includes all20 reade
 functions. This qualifies that recorded reader/control/helper source. The newer
 139-function raw interface changes guarded sources and needs its own Linux proof;
 neither component qualifies the full installed original-server journey.
+
+`AdministrativeClient` is the explicit trusted backend facade. It owns
+`connect sdk-admin-stdio` with the separate `connect-sdk-administration/2` profile.
+It exposes no Conversation or raw participant interface; `Client` exposes no
+provisioning method. The Rust owner uses the explicit configured application and
+native endpoints with the same supplied credential and current server authority.
+Python adds no route or credential fallback.
+
+```python
+from connect_sdk import AdministrativeClient, MutationOptions, OperationId
+
+async with AdministrativeClient(admin_config) as admin:
+    command = admin.validate_provisioning({
+        "type": "identity", "operation_id": "provision-original",
+        "alias": "local", "kind": "human", "display_name": "Local",
+    })
+    saved_reference = command.reference_json()
+    private_intent = command.to_json()  # Persist privately before submission.
+    operation = await admin.provision(
+        command, MutationOptions(OperationId("provision-original"), options),
+    )
+    result = await operation.wait(options)
+```
+
+`validate_provisioning()` uses the original frozen Rust parser and normalizer
+locally, without a configuration or network argument. Its immutable
+`TrustedProvisioningCommand` preserves the original logical ID and normalized
+intent. Commands and saved references grant no authority. Submission needs the
+same ID in `MutationOptions`; nonempty provisioning extensions are unsupported.
+Only SDK-created command tokens can be submitted. The validator is synchronous,
+bounded to two seconds with128-KiB output and joined cleanup. Command input stays
+at64KiB, reference input at4KiB, and the helper wrapper has its own bounded space.
+Ordinary participant write limits are unchanged.
+
+Administrative mutations return the same typed `Operation[Json]` interface for
+status, readiness and completion. The original Rust kind validates the
+provisioning outcome; Python exposes its immutable JSON. Cancellation and
+reconciliation create distinct `Operation[DecisionReceipt]` decisions and retain
+their original target. Stable record, key, scope and submitted uncertainty fences
+apply. No automatic retry or configuration reload occurs.
+
+On an explicitly constructed administrative client,
+`admin.operations.restore(saved_reference)` validates the reference locally,
+without submission, then returns `Operation[Json | DecisionReceipt]` according to
+its recorded kind. `recover(reference)` retains the original typed result and
+uses SDK-created administrative metadata without another validator process.
+Every later read or decision rechecks current server authority. Direct typed
+recovery rejects references from the other facade. JSON export remains explicit;
+default representations omit private commands, configuration paths and payloads.
+
+[Administrative component evidence](../evidence/gate-6/python-sdk-administration.json)
+records156 local functions, including17 administrative functions,74 unchanged
+source guards,12 runtime modules plus the public outline passing mypy and30
+expected negative type constraints. The initial administrative run failed its
+full64-KiB carrier test because the synthetic Node validator exited before
+flushing its65757-byte reply. Its writer now awaits completion; the exact same
+65536-byte input produces a complete reply. This fixes a fixture, without
+relaxing the input limit. All109 Node component/type regressions pass afterward.
+These checks simulate the validator and backend. Linux, actual administrative
+server/current-authority and installed-package execution still need evidence;
+HTTP parity, synchronous ownership, deployment and the complete clean-venv
+restart journey remain required for G6-063.

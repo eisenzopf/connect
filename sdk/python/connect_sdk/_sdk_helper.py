@@ -202,8 +202,8 @@ class _SdkHelper:
         try:
             if type(options) is not RequestOptions or type(action) is not dict or type(action.get("type")) is not str:
                 raise ValueError()
-            large = action["type"] == "raw_request"
-            captured, _ = _encode(action, 1024 * 1024 + 1024 if large else 65_536 if self._administrative else 63 * 1024, large)
+            raw_action = action["type"] == "raw_request"
+            captured, _ = _encode(action, 1024 * 1024 + 1024 if raw_action else 65_536 + 1024 if self._administrative else 63 * 1024, raw_action or self._administrative)
         except (ValueError, TypeError, UnicodeError, RecursionError):
             raise fail("validation") from None
         if cancelled(options.signal):

@@ -11,8 +11,9 @@ from .sdk_movements import ConsultationOperation
 from .sdk_events import EventStream
 from .sdk_incoming import InvitationStream
 from .sdk_raw import RawCanonical, ValidatedEnvelope
+from .sdk_administration import AdministrativeClient, AdministrativeOperations, TrustedProvisioningCommand
 from .sdk_types import (
-    Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision,
+    Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision, Json,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
     MessageAcceptance, MessageId, MutationOptions, NonEmpty, OperationId, OperationKey,
     OperationSnapshot, ParticipantId, ParticipantSnapshot, RequestOptions, Scope, SdkError,
@@ -56,4 +57,6 @@ __all__ += [
     "MoveInput", "MoveResult", "MoveBinding", "SessionRole", "TopologyChange",
     "AudienceMember", "EventSource", "JournalEvent", "IncomingInvitation", "EventStream", "InvitationStream",
     "RawCanonical", "ValidatedEnvelope",
+    "AdministrativeClient", "AdministrativeOperations", "TrustedProvisioningCommand",
+    "Json",
 ]

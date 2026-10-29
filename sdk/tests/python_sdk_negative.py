@@ -1,9 +1,10 @@
-"""Twenty-five unsuppressed public-type constraints; compilation must fail exactly twenty-five."""
+"""Thirty unsuppressed public-type constraints; compilation must fail exactly thirty."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
     ConnectionId, Quality, Session, SessionId, SessionRevision, StreamId, StreamResourceRevision, StreamRevision,
     ConversationRevision, ConversationRole, HandoffInput, IdentityId, MoveInput, MoveResult, SessionRole,
+    AdministrativeClient,
 )
 
 
@@ -41,3 +42,13 @@ async def invalid(client: Client, options: RequestOptions, mutation: MutationOpt
     checked=client.raw.validate({})
     checked.value=None
     checked.native_owner
+
+
+async def invalid_administration(admin: AdministrativeClient, client: Client, mutation: MutationOptions) -> None:
+    admin.conversations
+    client.validate_provisioning({})
+    await admin.provision({},mutation)
+    command=admin.validate_provisioning({})
+    command.value=None
+    operation=await admin.provision(command,mutation)
+    wrong: Operation[Conversation]=admin.operations.recover(operation.reference)

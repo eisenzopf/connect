@@ -12,6 +12,7 @@ from connect_sdk import (
     EndpointTarget, HandoffInput, HandoffResult, MoveInput, MoveResult, SessionRole,
     Cursor, EventStream, InvitationStream, JournalEvent, IncomingInvitation,
     RawCanonical, ValidatedEnvelope,
+    AdministrativeClient, TrustedProvisioningCommand, Json,
 )
 
 
@@ -82,3 +83,14 @@ async def raw(client: Client, options: RequestOptions) -> None:
     checked=client.raw.validate({'v':2,'id':'local','ts':'2026-10-28T00:00:00Z','type':'operation.get','payload':{'operation_id':'original'}})
     assert_type(checked,ValidatedEnvelope)
     assert_type(await client.raw.request(checked,options),Sequence[ValidatedEnvelope])
+
+
+async def administration(admin: AdministrativeClient, options: RequestOptions) -> None:
+    command=admin.validate_provisioning({'type':'identity','operation_id':'original','alias':'local','kind':'human','display_name':'Local'})
+    assert_type(command,TrustedProvisioningCommand)
+    operation=await admin.provision(command,MutationOptions(OperationId('original'),options))
+    assert_type(operation,Operation[Json])
+    assert_type((await operation.wait(options)).value,Json)
+    assert_type(admin.operations.recover(operation.reference),Operation[Json])
+    assert_type(admin.operations.restore(command.reference_json()),Operation[Json|DecisionReceipt])
+    assert_type(await operation.cancel(MutationOptions(OperationId('cancel'),options)),Operation[DecisionReceipt])

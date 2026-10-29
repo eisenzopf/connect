@@ -73,6 +73,7 @@ def main():
     movements=[name for name in functions if '.TypedPythonMovements.' in name]
     readers=[name for name in functions if '.TypedPythonReaders.' in name]
     raw=[name for name in functions if '.TypedPythonRaw.' in name]
+    administrative=[name for name in functions if '.TypedPythonAdministration.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
@@ -84,7 +85,8 @@ def main():
                                 'sdk/python/connect_sdk/sdk_connections.py','sdk/python/connect_sdk/sdk_movements.py',
                                 'sdk/python/connect_sdk/_sdk_readers.py','sdk/python/connect_sdk/sdk_events.py',
                                 'sdk/python/connect_sdk/sdk_incoming.py','sdk/python/connect_sdk/_sdk_validation.py',
-                                'sdk/python/connect_sdk/sdk_raw.py','sdk/tests/python_sdk_positive.py']),
+                                'sdk/python/connect_sdk/sdk_raw.py','sdk/python/connect_sdk/sdk_administration.py',
+                                'sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
         for label,paths in commands:
@@ -99,15 +101,15 @@ def main():
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*17+['attr-defined']*5+['misc']*3,
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*19+['attr-defined']*7+['misc']*4,
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==139 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19
-                          and re.search(r'^Ran 139 tests in ',log,re.M)
+                          and len(functions)==156 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17
+                          and re.search(r'^Ran 156 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, frozen-parser-classified finite raw canonical exchanges, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, frozen-parser-classified finite raw canonical exchanges, separate trusted administrative controls, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
@@ -118,6 +120,7 @@ def main():
             'typed_movement_functions_passed':len(movements),
             'typed_reader_functions_passed':len(readers),
             'typed_raw_functions_passed':len(raw),
+            'typed_administrative_functions_passed':len(administrative),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),

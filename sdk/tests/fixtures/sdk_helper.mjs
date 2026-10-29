@@ -20,7 +20,7 @@ if (process.argv[2] === 'sdk-validate-provisioning') {
  if(config.adminValidator==='kind-array')result.kind=['administrative'];
  if(config.adminValidator==='foreign-id')result.reference.operation_id='foreign';
  if(config.adminValidator==='hang'){setInterval(()=>{},1000);await new Promise(()=>{});}
- process.stdout.write(JSON.stringify(result)+'\n');process.exit(0);
+ await new Promise((resolve,reject)=>process.stdout.write(JSON.stringify(result)+'\n',error=>error?reject(error):resolve()));process.exit(0);
 }
 // Local validator simulation only; actual frozen-parser evidence is separate.
 if (process.argv[2] === 'sdk-validate-envelope') {
