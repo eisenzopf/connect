@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile,realpath} from 'node:fs/promises';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {NodeClient,NodeSdkError,sdkCursor,CanonicalError,CanonicalHttpClient,HttpClient,ConnectError} from '@rudeless/connect';
+import {NodeClient,NodeSdkError,SdkRtpPacket,SdkTextData,SdkJsonData,SdkBinaryData,sdkCursor,CanonicalError,CanonicalHttpClient,HttpClient,ConnectError} from '@rudeless/connect';
 const spec=JSON.parse(await readFile(process.argv[2],'utf8'));
 assert.ok((await realpath(fileURLToPath(import.meta.resolve('@rudeless/connect')))).startsWith(spec.project+'/node_modules/'));
 const opts={timeoutMs:4000},mutation={...opts,operationId:'typed-node-original-send'};
@@ -27,6 +27,57 @@ const captureFailure=error=>{
  observedHttpStatus=error instanceof ConnectError&&Number.isSafeInteger(error.httpStatus)&&error.httpStatus>=100&&error.httpStatus<=599?error.httpStatus:null;
 };
 const progress=stage=>{checkpoint=stage;observedKind=null;observedCertainty=null;observedHttpStatus=null;emit({phase:'progress',checkpoint:stage});};
+async function mediaJourney(owner,other,room,native,solo,peer,own){
+ const completed=async promise=>(await (await promise).wait(opts)).value;
+ progress('media-packets');
+ const selected=await native.media.refresh(opts),audio=native.streams.byId('typed-native-audio').media;
+ assert.equal(selected.binding.connectionId,native.id);assert.equal(selected.streams[0].id,'typed-native-audio');
+ const header=Buffer.alloc(12);header[0]=0x80;header.writeUInt16BE(1,2);header.writeUInt32BE(160,4);header.writeUInt32BE(0x4e4d5031,8);
+ const pcmu=Buffer.from(Array.from({length:160},(_,i)=>i%16<8?0x80:0));
+ assert.equal((await audio.sendRtp(new SdkRtpPacket(1,Buffer.concat([header,pcmu])),opts)).boundary,'local-media-queue');
+ const now=Date.now()/1000+2208988800,ntp=(BigInt(Math.floor(now))<<32n)+BigInt(Math.floor((now-Math.floor(now))*2**32));
+ const clock={ssrc:0x4e4d5031,ntp,rtp:160,packets:1,octets:160,cname:'synthetic-node-media'};
+ if(selected.sourceClock)assert.equal((await audio.sendClock(2,clock,opts)).boundary,'local-media-queue');
+ else await assert.rejects(audio.sendClock(2,clock,opts),e=>e instanceof NodeSdkError&&e.kind==='unsupported'&&e.certainty==='not-submitted');
+ progress('media-data-setup');
+ const capabilities={audio:['g.711-mu'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
+ const dataSession=await completed(room.sessions.invite({sessionId:'node-data-session',to:[peer.id],medium:'mixed',intent:'synthetic reliable data',capabilities},{...opts,operationId:'node-data-invite'}));
+ const otherSession=other.conversations.byId(room.id).sessions.byId(dataSession.id),current=await otherSession.refresh(opts);
+ await completed(otherSession.accept({capabilities,expectedTopologyRevision:current.topologyRevision},{...opts,operationId:'node-data-accept'}));
+ const recovery=new NodeClient({config:spec.config,executable:spec.executable});
+ try{
+  for(const format of ['text','json','binary']){
+   progress('media-data-'+format);
+   const payload=format==='text'?new SdkTextData('🦀'+'x'.repeat(65532)):format==='json'?new SdkJsonData({data:'x'.repeat(65525)}):new SdkBinaryData(Buffer.from(Array.from({length:65536},(_,i)=>i%256)));
+   const bytes=Buffer.from(format==='binary'?payload.value:format==='text'?payload.value:JSON.stringify(payload.value));assert.equal(bytes.length,65536);
+   const sourceId='node-data-'+format+'-source-stream',targetId='node-data-'+format+'-target-stream';
+   const offer=(where,side)=>completed(where.connections.offer({connectionId:'node-data-'+format+'-'+side,streams:{first:{id:side==='source'?sourceId:targetId,kind:'data',direction:'sendrecv',codecs:{first:format,rest:[]}},rest:[]}},{...opts,operationId:'node-data-'+format+'-'+side+'-offer'}));
+   const source=await offer(dataSession,'source'),target=await offer(otherSession,'target');
+   for(const [connection,remoteId]of [[source,targetId],[target,sourceId]])await completed(connection.streams.subscribe({selectors:{first:{stream:remoteId},rest:[]},expectedStreamRevision:connection.receiptStreamRevision},{...opts,operationId:'node-data-'+connection.id+'-select'}));
+   const sender=source.streams.byId(sourceId).media,receiver=target.streams.byId(sourceId).media;
+   const intent={messageId:'node-data-'+format+'-message',to:{first:peer.id,rest:[]},payload},mutation={...opts,operationId:'node-data-'+format+'-send'};
+   await writeFile(spec.pid_file+'.data-'+format+'.bin',bytes,{mode:0o600});
+   await writeFile(spec.pid_file+'.data-'+format+'.json',JSON.stringify({messageId:intent.messageId,operationId:mutation.operationId,recipient:peer.id,connectionId:source.id,format}),{mode:0o600});
+   const operation=await sender.sendData(intent,mutation),original=await operation.wait(opts),received=await receiver.receiveData(opts);
+   assert.equal(original.value.boundary,'core-queue-admission');assert.equal(received.messageId,intent.messageId);assert.equal(received.operationId,mutation.operationId);assert.equal(received.fromParticipant,own.id);assert.deepEqual(received.payload.value,payload.value);
+   const saved=operation.referenceJson();await writeFile(spec.pid_file+'.data-'+format+'.reference.json',JSON.stringify(saved),{mode:0o600});
+   const restored=await recovery.operations.restore(saved,recovery.operationKinds.data_send).wait(opts);assert.equal(restored.snapshot.recordId,original.snapshot.recordId);assert.deepEqual(restored.value,original.value);
+   await assert.rejects(recovery.media.connection({conversationId:room.id,sessionId:dataSession.id,connectionId:source.id}).refresh(opts),e=>e instanceof NodeSdkError&&e.kind==='unsupported'&&e.certainty==='read-only');
+   assert.deepEqual(await completed(sender.sendData(intent,mutation)),original.value);
+   await assert.rejects(receiver.receiveData({timeoutMs:80}),e=>e instanceof NodeSdkError&&e.kind==='deadline'&&e.certainty==='read-only');
+   await assert.rejects(sender.sendData({...intent,messageId:'node-data-'+format+'-changed'},mutation),e=>e instanceof NodeSdkError&&e.kind==='authentication'&&e.certainty==='refused'&&e.operation.operationId===mutation.operationId);
+   const returnIntent={messageId:'node-data-'+format+'-return-message',to:{first:own.id,rest:[]},payload},reverse={...opts,operationId:'node-data-'+format+'-return'};
+   await writeFile(spec.pid_file+'.data-'+format+'.return.json',JSON.stringify({messageId:returnIntent.messageId,operationId:reverse.operationId,recipient:own.id,connectionId:target.id,format}),{mode:0o600});
+   await completed(target.streams.byId(targetId).media.sendData(returnIntent,reverse));
+   const returned=await source.streams.byId(targetId).media.receiveData(opts);assert.equal(returned.operationId,reverse.operationId);assert.equal(returned.fromParticipant,peer.id);assert.deepEqual(returned.payload.value,payload.value);
+   for(const connection of [source,target])await completed(connection.end({reasonCode:1000,reason:'complete'},{...opts,operationId:'node-data-'+connection.id+'-end'}));
+  }
+  assert.equal((await owner.media.dataStats(opts)).queuedBytes,0);assert.equal((await other.media.dataStats(opts)).queuedBytes,0);
+ }finally{await recovery.close(opts);}
+ const end=await dataSession.refresh(opts);await completed(dataSession.end({reasonCode:1000,reason:'complete',expectedTopologyRevision:end.topologyRevision},{...opts,operationId:'node-data-session-end'}));
+ emit({phase:'media-complete',native_media_negotiation:true,native_rtp_local_queue:true,native_clock_local_queue:selected.sourceClock,native_clock_unnegotiated_refused:!selected.sourceClock,
+  native_data_typed_round_trip:true,native_data_full_64k:true,native_data_original_recovery:true,native_data_one_effect_replay:true,native_data_changed_intent_refused:true,native_data_foreign_custody_refused:true});
+}
 const http=new CanonicalHttpClient({endpoint:spec.http,credential:spec.credential});
 const application=new HttpClient(spec.http,spec.credential,opts.timeoutMs);
 try {
@@ -53,9 +104,9 @@ try {
  assert.equal(returned.id,peer.id);const currentMemberEpoch=(await returned.refresh(opts)).membershipEpoch;assert.ok(currentMemberEpoch>epoch);
  await assert.rejects(client.operations.restore(addedSaved,client.operationKinds.conversation_participant_add).status(opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.certainty,'refused');return true;});
  progress('capabilities');
- const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['durable-events','incoming-invitations','message-receipts','original-id-operations','raw-canonical']);
+ const runtime=await client.capabilities.refresh(opts);assert.equal(runtime.runtimeRole,'node');assert.equal(runtime.selectedTransport,'quic');assert.deepEqual([...runtime.features].sort(),['durable-events','incoming-invitations','message-receipts','native-programmatic-media','original-id-operations','raw-canonical']);
  await client.capabilities.require('original-id-operations',opts);
- for(const feature of ['native-programmatic-media'])await assert.rejects(client.capabilities.require(feature,opts),e=>{assert.ok(e instanceof NodeSdkError);assert.equal(e.kind,'unsupported');assert.equal(e.certainty,'read-only');return true;});
+ await client.capabilities.require('native-programmatic-media',opts);
  progress('session');
  const capabilities={audio:['g.711-mu','g.711-a'],video:['vp8'],screen:['vp8'],data:['reliable-ordered']};
  const own=refreshed.participants.find(p=>p.id!==peer.id);assert.ok(own);
@@ -90,6 +141,7 @@ try {
  assert.equal((await (await solo.connections.offer(nativeInput('typed-node-native','typed-native-audio'),{...opts,operationId:'typed-native-offer'})).wait(opts)).value.id,native.id);
  progress('peer-offer');
  const remote=(await (await peerSolo.connections.offer(nativeInput('typed-peer-native','typed-peer-audio'),{...opts,operationId:'typed-peer-offer'})).wait(opts)).value;
+ await mediaJourney(client,peerClient,room,native,solo,peer,own);
  let streamRevision=native.receiptStreamRevision;
  const updateNative=async(input,id)=>{const op=await native.update(input,streamRevision,{...opts,operationId:id}),result=(await op.wait(opts)).value;assert.equal(result.connection.id,native.id);assert.ok(result.connectionGeneration>0);streamRevision=result.streamRevision;return result;};
  progress('native-quality');
@@ -168,7 +220,7 @@ try {
  assert.equal((await sent.status(opts)).recordId,original.recordId);
  await writeFile(spec.config,'invalid TOML after fixed SDK helper loaded\n',{mode:0o600});
  assert.equal((await sent.status(opts)).recordId,original.recordId);
- await client.close(opts);assert.equal(await stopped(),2);
+ await client.close(opts);assert.equal(await stopped(),3);
  emit({phase:'initial',record_id:original.recordId,state:original.state,cid:room.id,message_id:intent.messageId,typed_result:true,node_capability_support_only:true,movement_current_authority_refused:true,native_connection_controls:true,native_selection:true,native_http_record:true,observation_only_stream:true,native_end_journaled:true,same_id_one_message:true,native_http_same_record:true,reconciliation_evidence_refused:true,decision_target:decision.value.target,decision_id:decision.value.decision.operationId,participant_stable_id:true,membership_epoch_advanced:true,removed_receipt_unavailable:true,old_membership_operation_refused:true,stale_revision_refused:true,session_control_journey:true,session_topology_revision_refused:true,session_end_journaled:true,session_reject_cancel:true,first_helper_joined:true,events_original_record:true,events_cursor_persisted:true,event_id_sha256:originalFactDigest});
  await resume('restart');
  client=new NodeClient({config:spec.config,executable:spec.executable});
@@ -250,10 +302,10 @@ try {
   assert.equal(e.operation.operationId,mutation.operationId);nativeFailure={kind:e.kind,certainty:e.certainty};return true;
  });
  await assert.rejects(http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts),e=>{captureFailure(e);assert.equal(e.kind,'authentication');assert.ok([401,403].includes(e.problem?.code));httpFailure={kind:e.kind,certainty:e.certainty};return true;});
- await client.close(opts);await http.close(opts);assert.equal(await stopped(),4);
+ await client.close(opts);await http.close(opts);assert.equal(await stopped(),5);
  const validators=(await readFile(spec.pid_file+'.validators','utf8')).trim().split('\n').filter(Boolean).map(Number);assert.equal(validators.length,3);assert.equal(new Set(validators).size,3);
  for(const pid of validators)assert.throws(()=>process.kill(pid,0),e=>e.code==='ESRCH');
- emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:4,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true,events_current_authority_no_data:true,events_close_control_live:true});
+ emit({phase:'completed',algorithm:spec.algorithm,native_failure:nativeFailure,http_failure:httpFailure,helpers_joined:5,local_validators_joined:3,query_recovery_without_replay:true,typed_receipts_current_authority:true,http_receipts_current_authority:true,http_receipts_status:receiptHttpStatus,receipt_failure:receiptFailure,raw_current_authority:true,events_current_authority_no_data:true,events_close_control_live:true});
 } catch(error) {
  // Only fixed labels/enums and source coordinates enter CI evidence. Raw
  // diagnostics remain on the private stderr owned by the Rust harness.

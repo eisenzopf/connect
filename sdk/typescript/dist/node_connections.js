@@ -60,6 +60,9 @@ export class SdkConnection {
     ctx;
     id;
     receiptStreamRevision;
+    get media() {
+        return this.ctx.media(this.id);
+    }
     conversationId;
     sessionId;
     streams;
@@ -217,6 +220,9 @@ export class SdkStream {
     ctx;
     connectionId;
     id;
+    get media() {
+        return this.ctx.media(this.connectionId).streamById(this.id);
+    }
     conversationId;
     sessionId;
     constructor(ctx, connectionId, id) {

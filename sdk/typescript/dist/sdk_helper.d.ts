@@ -24,6 +24,7 @@ export declare class SdkHelper {
         readonly config: string;
         readonly executable?: string;
     }, backend?: "participant" | "administrative");
+    get isClosed(): boolean;
     request<T>(action: JsonObject, options: CanonicalRequestOptions, decode: (value: Json) => T, key?: OperationKey, mutation?: boolean): Promise<T>;
     private error;
     private release;

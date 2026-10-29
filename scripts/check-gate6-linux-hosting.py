@@ -91,7 +91,7 @@ def audio_quiescence_diagnostic(value):
 
 
 
-NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','media-packets','media-data-setup','media-data-text','media-data-json','media-data-binary','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
     'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'receipt-read','current-revocation'}
 
 
@@ -628,7 +628,7 @@ def run(node_sdk=False, python_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/9'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/10'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -637,7 +637,7 @@ def run(node_sdk=False, python_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/9'
+                    assert witness['functional_phase_profile'] == 'node-controls/10'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
@@ -649,6 +649,9 @@ def run(node_sdk=False, python_sdk=False):
                     assert witness['original_and_resumed_causal_store_verified']
                     assert witness['completed']['events_current_authority_no_data'] and witness['completed']['events_close_control_live']
                     assert witness['native']['native_controls_completed']
+                    assert witness['native_data_independent_store'] and witness['servers_joined']==2
+                    assert all(witness['media'][f] for f in ('native_media_negotiation','native_rtp_local_queue','native_data_typed_round_trip','native_data_full_64k','native_data_original_recovery','native_data_one_effect_replay','native_data_changed_intent_refused','native_data_foreign_custody_refused'))
+                    assert type(witness['media']['native_clock_local_queue']) is bool and type(witness['media']['native_clock_unnegotiated_refused']) is bool and witness['media']['native_clock_local_queue']!=witness['media']['native_clock_unnegotiated_refused']
                     assert witness['initial']['movement_current_authority_refused']
                     assert witness['initial']['node_capability_support_only']
                     assert witness['initial']['native_connection_controls'] and witness['initial']['native_selection']
@@ -659,12 +662,12 @@ def run(node_sdk=False, python_sdk=False):
                     assert witness['receipts']['http_same_delivery_fact']
                     assert witness['completed']['http_receipts_current_authority'] and witness['completed']['http_receipts_status'] in (401,403)
                     assert witness['completed']['raw_current_authority']
-                    assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
+                    assert witness['completed']['helpers_joined'] == 5 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/9', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/10', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
-                    'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
+                    'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 10, 'local_validators_joined': 6, 'servers_joined': 4,
                     'causal_store_and_exact_journal_witnesses_per_algorithm': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,
                     'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}

@@ -91,5 +91,5 @@ original helper; no automatic reconnect transfers native custody.
 installed wheel, real production listener and independent Rust Store byte/effect
 checks for EdDSA/ES256. The local component suite also covers limits, cancelled
 reads and sends, helper death, malformed replies and bounded cleanup. Decoded
-Python audio/video utility evidence, Node media/data, the complete platform
+Python audio/video utility evidence, Node decoded audio/video, the complete platform
 matrix and full G6-064 qualification remain open.

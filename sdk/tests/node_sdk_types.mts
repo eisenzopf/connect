@@ -133,3 +133,31 @@ declare const fact:SdkJournalEvent;
 fact.audience.push(fact.audience[0]);
 // @ts-expect-error Journal data is immutable recursively.
 const mutableData:{[key:string]:string}=fact.data;
+
+
+import {SdkRtpPacket,SdkBinaryData,SdkJsonData} from '../typescript/dist/index.js';
+import type {SdkDataAcceptance,SdkReceivedData,SdkMediaPacket,MessageId,SdkSenderClockReport} from '../typescript/dist/index.js';
+const mediaStream=connection.streams.byId('media' as import('../typescript/dist/index.js').StreamId).media;
+declare const dataMessageId:MessageId;
+const dataOperation:SdkOperation<SdkDataAcceptance>=await mediaStream.sendData({messageId:dataMessageId,to:{first:participant.id,rest:[]},payload:new SdkJsonData({typed:true})},{timeoutMs:1000,operationId});
+const restoredData:SdkOperation<SdkDataAcceptance>=client.operations.restore(dataOperation.referenceJson(),client.operationKinds.data_send);
+const receivedData:SdkReceivedData=await mediaStream.receiveData({timeoutMs:1000});
+const receivedMedia:SdkMediaPacket=await mediaStream.receivePacket({timeoutMs:1000});
+const wideDataCounter:bigint=(await client.media.dataStats({timeoutMs:1000})).acceptedMessages;
+// @ts-expect-error A message ID is distinct from an operation ID.
+mediaStream.sendData({messageId:operationId,to:{first:participant.id,rest:[]},payload:new SdkBinaryData(new Uint8Array())},{timeoutMs:1000,operationId});
+// @ts-expect-error Reliable data requires captured typed payloads, not raw bytes.
+mediaStream.sendData({messageId:dataMessageId,to:{first:participant.id,rest:[]},payload:new Uint8Array()},{timeoutMs:1000,operationId});
+// @ts-expect-error Data admission cannot be relabeled as ordinary Conversation message acceptance.
+const wrongData:SdkOperation<SdkMessageAcceptance>=restoredData;
+// @ts-expect-error NTP is an exact unsigned64 bigint, not a rounded number.
+const lossyClock:SdkSenderClockReport={ssrc:1,ntp:123,rtp:2,packets:3,octets:4,cname:'source'};
+// @ts-expect-error Datagram sequence is a numeric u32, not an ID.
+new SdkRtpPacket(operationId,new Uint8Array());
+// @ts-expect-error 64-bit counters cannot be implicitly rounded to number.
+const lossyDataCounter:number=wideDataCounter;
+// @ts-expect-error Captured data values cannot be replaced after construction.
+new SdkJsonData({typed:true}).value=null;
+// @ts-expect-error A Participant ID does not name a Connection's media owner.
+client.media.connection({conversationId:roomId,sessionId:session.id,connectionId:participant.id});
+void [receivedData,receivedMedia,wrongData,lossyClock,lossyDataCounter];

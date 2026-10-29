@@ -1,5 +1,6 @@
 //! Installed typed Node package -> public Rust SDK + current canonical HTTP authority.
 use super::*;
+use base64::Engine;
 use sha2::Digest;
 use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Stdio};
 
@@ -13,7 +14,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
     assert!(script.starts_with(root.join(".local").canonicalize().unwrap()));
     let project = script.parent().unwrap();
     for algorithm in ["EdDSA", "ES256"] {
-        let f = Fixture::with_extra_scopes(
+        let mut f = Fixture::with_extra_scopes(
             algorithm,
             8,
             true,
@@ -22,6 +23,12 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             &["operation.cancel", "operation.reconcile"],
         )
         .await;
+        f.server.shutdown().await.unwrap();
+        f.config.limits.message_bytes = 65536;
+        f.server = RunningCanonicalServer::start(f.config.clone())
+            .await
+            .unwrap();
+        f.client.endpoint = f.server.address;
         crate::canonical_native_connections::ready_endpoint_with_capabilities(
             &f,
             vec!["audio".into(), "video".into(), "data".into()],
@@ -47,7 +54,7 @@ async fn installed_typed_node_sdk_recovers_typed_operations_and_current_authorit
             &f,
             &f.peer.identity_id,
             72,
-            vec!["audio".into()],
+            vec!["audio".into(), "data".into()],
             peer_scope,
         );
         let peer_sdk_config = connect_client::sdk::ClientConfig {
@@ -177,6 +184,27 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         );
         drop(database);
         stdin.write_all(b"native\n").await.unwrap();
+        let media_phase = phase(&mut lines, "media-complete", algorithm).await;
+        for name in [
+            "native_media_negotiation",
+            "native_rtp_local_queue",
+            "native_data_typed_round_trip",
+            "native_data_full_64k",
+            "native_data_original_recovery",
+            "native_data_one_effect_replay",
+            "native_data_changed_intent_refused",
+            "native_data_foreign_custody_refused",
+        ] {
+            assert_eq!(media_phase[name], true);
+        }
+        assert!(
+            media_phase["native_clock_local_queue"].is_boolean()
+                && media_phase["native_clock_unnegotiated_refused"].is_boolean()
+        );
+        assert_ne!(
+            media_phase["native_clock_local_queue"],
+            media_phase["native_clock_unnegotiated_refused"]
+        );
         let native_phase = phase(&mut lines, "native-complete", algorithm).await;
         assert_eq!(native_phase["native_controls_completed"], true);
         stdin.write_all(b"finish\n").await.unwrap();
@@ -419,9 +447,61 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         }
         assert_eq!(completed["events_current_authority_no_data"], true);
         assert_eq!(completed["events_close_control_live"], true);
+        for format in ["text", "json", "binary"] {
+            let expected = match format {
+                "text" => format!("🦀{}", "x".repeat(65532)).into_bytes(),
+                "json" => serde_json::to_vec(&json!({"data":"x".repeat(65536-11)})).unwrap(),
+                _ => (0..65536).map(|i| i as u8).collect::<Vec<_>>(),
+            };
+            assert_eq!(expected.len(), 65536);
+            for (suffix, side) in [("message", "source"), ("return-message", "target")] {
+                let message = format!("node-data-{format}-{suffix}");
+                let (body, encoding): (String, String) = database
+                    .query_row(
+                        "SELECT body,body_encoding FROM messages WHERE id=?1 AND conversation_id=?2",
+                        rusqlite::params![message, initial["cid"].as_str().unwrap()],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )
+                    .unwrap();
+                let bytes = if format == "binary" {
+                    assert_eq!(encoding, "base64");
+                    base64::engine::general_purpose::STANDARD
+                        .decode(body)
+                        .unwrap()
+                } else {
+                    assert_eq!(encoding, "utf8");
+                    body.into_bytes()
+                };
+                assert_eq!(bytes, expected);
+                let operation = format!(
+                    "node-data-{format}-{}",
+                    if side == "source" { "send" } else { "return" }
+                );
+                let connection = format!("node-data-{format}-{side}");
+                let (count,state,record):(u64,String,String)=database.query_row("SELECT COUNT(*),MIN(o.state),MIN(o.record_id) FROM operations o WHERE o.operation_id=?1 AND o.connection_id=?2 AND o.command_type='message.send'",rusqlite::params![operation,connection],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+                let effects: u64 = database
+                    .query_row(
+                        "SELECT COUNT(*) FROM operation_effects WHERE operation_record_id=?1",
+                        [record],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                assert_eq!((count, state.as_str(), effects), (1, "completed", 1));
+            }
+            assert_eq!(
+                database
+                    .query_row(
+                        "SELECT COUNT(*) FROM messages WHERE id=?1",
+                        [format!("node-data-{format}-changed")],
+                        |r| r.get::<_, u64>(0)
+                    )
+                    .unwrap(),
+                0
+            );
+        }
         drop(database);
         assert_eq!(completed["local_validators_joined"], 3);
-        assert_eq!(completed["helpers_joined"], 4);
+        assert_eq!(completed["helpers_joined"], 5);
         drop(stdin);
         assert!(
             tokio::time::timeout(Duration::from_secs(5), lines.next_line())
@@ -476,7 +556,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         f.server.shutdown().await.unwrap();
         eprintln!(
             "installed-typed-node-sdk-witness {}",
-            json!({"functional_phase_profile":"node-controls/9","original_and_resumed_causal_store_verified":true,"controls":controls,"native":native_phase,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+            json!({"functional_phase_profile":"node-controls/10","original_and_resumed_causal_store_verified":true,"controls":controls,"media":media_phase,"native":native_phase,"native_data_independent_store":true,"servers_joined":2,"initial":initial,"recovered":recovered,"receipts":receipts,"completed":completed,"server_shutdown_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }
 }

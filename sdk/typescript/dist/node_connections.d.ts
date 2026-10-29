@@ -1,3 +1,4 @@
+import type { SdkMediaConnection, SdkMediaStream } from "./node_media.js";
 import type { SdkMoveInput, SdkMoveResult } from "./node_movements.js";
 import type { ConversationId, ParticipantId, SdkId, SdkRevision, SdkMutationOptions, SdkOperation, SdkOperationKind } from "./node_sdk.js";
 import type { SessionId, SdkMedium, SdkNonEmpty } from "./node_sessions.js";
@@ -125,6 +126,7 @@ interface Kinds {
     readonly stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
 }
 export interface ConnectionContext {
+    media(id: ConnectionId): SdkMediaConnection;
     move(id: ConnectionId, input: SdkMoveInput, options: SdkMutationOptions): Promise<SdkOperation<SdkMoveResult>>;
     readonly cid: ConversationId;
     readonly sid: SessionId;
@@ -138,6 +140,7 @@ export declare class SdkConnection {
     private readonly ctx;
     readonly id: ConnectionId;
     readonly receiptStreamRevision?: SdkRevision<"stream"> | undefined;
+    get media(): SdkMediaConnection;
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
     readonly streams: Readonly<{
@@ -165,6 +168,7 @@ export declare class SdkStream {
     private readonly ctx;
     readonly connectionId: ConnectionId;
     readonly id: StreamId;
+    get media(): SdkMediaStream;
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
     constructor(ctx: ConnectionContext, connectionId: ConnectionId, id: StreamId);

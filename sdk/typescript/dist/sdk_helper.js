@@ -68,6 +68,9 @@ export class SdkHelper {
         this.child.stdout.on("data", (chunk) => this.receive(chunk));
         this.child.stdout.once("end", () => this.fence("transport-uncertain"));
     }
+    get isClosed() {
+        return this.closed;
+    }
     request(action, options, decode, key, mutation = false) {
         const started = performance.now();
         let captured;

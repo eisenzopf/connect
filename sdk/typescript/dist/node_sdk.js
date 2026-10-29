@@ -1,3 +1,4 @@
+import { createMedia } from "./node_media.js";
 import { createEvents, } from "./node_events.js";
 import { createIncoming, } from "./node_incoming.js";
 import { createRaw } from "./node_raw.js";
@@ -8,6 +9,7 @@ import { createSessions, sessionSnapshot, } from "./node_sessions.js";
 import { canonicalJson, parseCanonicalJson, } from "./uctp_json.js";
 import { identifier } from "./uctp_wire.js";
 import { SdkHelper, NodeSdkError, object } from "./sdk_helper.js";
+import { duration, } from "./canonical_validation.js";
 export function sdkRevision(value) {
     if (!Number.isSafeInteger(value) || value < 0)
         invalid();
@@ -36,6 +38,9 @@ function capabilitySnapshot(value) {
         f === "incoming-invitations" ||
         f === "durable-events" ||
         f === "raw-canonical"));
+    if (value.features.includes("native-programmatic-media") &&
+        value.features.includes("managed-media-ipc-v2"))
+        set.add("native-programmatic-media");
     const features = Object.freeze({
         get size() {
             return set.size;
@@ -361,6 +366,20 @@ function selectionReceipt(value, client, key) {
     return streamSelection(value, client[connectionContext](key.scope.conversationId, key.scope.sessionId), key.scope.connectionId);
 }
 const operationKinds = Object.freeze({
+    data_send: kind("data_send", "message.send", (value, _client, key) => {
+        if (!object(value, ["messageId", "connectionId", "boundary"]) ||
+            Object.keys(value).length !== 3 ||
+            !identifier(value.messageId) ||
+            !key.scope.connectionId ||
+            value.connectionId !== key.scope.connectionId ||
+            value.boundary !== "core-queue-admission")
+            return protocol();
+        return Object.freeze({
+            messageId: value.messageId,
+            connectionId: value.connectionId,
+            boundary: "core-queue-admission",
+        });
+    }),
     session_handoff: kind("session_handoff", "session.handoff", (value, client, key, saved) => handoffResult(value, {
         key,
         connection: (id) => client.conversations
@@ -411,15 +430,15 @@ const operationKinds = Object.freeze({
     operation_cancel: kind("operation_cancel", "operation.cancel", decision),
     operation_reconcile: kind("operation_reconcile", "operation.reconcile", decision),
 });
-/** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * remote HTTP remains under development. Journal facts and incoming hints grant no custody.
- * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
+/** Typed Node participant SDK. Journal facts and incoming hints grant no media
+ * custody. One fixed Rust owner; no transparent reconnect or mutation replay. */
 const eventStream = Symbol("eventStream");
 export class NodeClient {
     role = "node";
     operationKinds = operationKinds;
     capabilities;
     raw;
+    media;
     conversations;
     operations;
     incomingInvitations(options) {
@@ -436,6 +455,12 @@ export class NodeClient {
         };
         this.helper = new SdkHelper(captured);
         this.raw = createRaw(this.helper, captured.executable);
+        this.media = createMedia(this.helper, {
+            restore: (value, key) => this.fromReply(value, this.operationKinds.data_send, key),
+            observe: (value, key) => {
+                snapshot(value, key);
+            },
+        });
         const refresh = (options) => this.helper.request({ type: "capabilities_refresh" }, options, capabilitySnapshot);
         this.capabilities = Object.freeze({
             refresh,
@@ -527,7 +552,8 @@ export class NodeClient {
             invalid();
         if (k.name === "conversation_create"
             ? Object.keys(s).length !== 0
-            : transition ||
+            : k.name === "data_send" ||
+                transition ||
                 k.name.startsWith("connection_") ||
                 k.name.startsWith("stream_")
                 ? !s.conversation_id || !s.session_id || !s.connection_id
@@ -782,6 +808,11 @@ export class NodeClient {
             cid,
             sid,
             kinds: this.operationKinds,
+            media: (id) => this.media.connection({
+                conversationId: cid,
+                sessionId: sid,
+                connectionId: id,
+            }),
             move: (id, input, options) => this[moveConnection](cid, sid, id, input, options),
             mutate: (id, action, kind, options) => {
                 const key = makeKey(options?.operationId, kind.command, {
@@ -806,8 +837,26 @@ export class NodeClient {
             }, options, decode),
         };
     }
-    close(options) {
-        return this.helper.close(options);
+    async close(options) {
+        options = { timeoutMs: options?.timeoutMs, signal: options?.signal };
+        duration(options);
+        if (options.signal !== undefined &&
+            !(options.signal instanceof AbortSignal))
+            throw new NodeSdkError("validation", "read-only");
+        const started = performance.now();
+        let mediaFailure;
+        try {
+            await this.media.close(options);
+        }
+        catch (e) {
+            mediaFailure = e;
+        }
+        await this.helper.close({
+            timeoutMs: Math.max(1, Math.floor(options.timeoutMs - (performance.now() - started))),
+            signal: options.signal,
+        });
+        if (mediaFailure)
+            throw mediaFailure;
     }
 }
 export class SdkConversation {

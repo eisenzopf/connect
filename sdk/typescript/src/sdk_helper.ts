@@ -124,6 +124,9 @@ export class SdkHelper {
         this.child.stdout.on("data", (chunk: Buffer) => this.receive(chunk));
         this.child.stdout.once("end", () => this.fence("transport-uncertain"));
     }
+    get isClosed(): boolean {
+        return this.closed;
+    }
     request<T>(
         action: JsonObject,
         options: CanonicalRequestOptions,

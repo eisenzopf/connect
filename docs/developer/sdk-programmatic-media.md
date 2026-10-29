@@ -2,7 +2,8 @@
 
 G6-064 is in progress. Binary framing and managed Rust helper routing are
 implemented; Python [packet](python-media.md) and [reliable-data](python-data.md)
-APIs are implemented. Node media/data and the decoded utility path remain open. The
+APIs and the [Node packet/data interface](node-media.md) are implemented.
+The decoded utility path remains open. The
 current control SDK's Stream and Connection observations do not acquire media
 custody by being restored from IDs or operation receipts.
 
@@ -118,8 +119,12 @@ Reliable data has a separate Rust inbox of 32 messages per Stream, 256 messages/
 1 MiB overall. Python retains at most 16 data receive flights/results (another
 1 MiB) and refuses overflow instead of draining into an unbounded secondary queue.
 Publisher labels must be unique in the selection catalog; receive on the matched
-negotiated remote Stream ID. Node interfaces and the app-owned encoding/decoding
-utility path remain open.
+negotiated remote Stream ID. Node has the same 16-flight/1 MiB retained data bound.
+Its [scoped evidence](../evidence/gate-6/node-programmatic-media.json) records 125
+component functions, 48 negative type constraints and a clean installed real
+EdDSA/ES256 native journey: full 64 KiB typed data in both directions, independent
+Rust Store bytes/effects, original recovery/replay/custody and joined resources.
+The app-owned encoding/decoding utility path remains open.
 
 Completion still requires actual Node/Python identified audio, decoded video
 through the documented utility path and typed data, plus slow consumers, limits,

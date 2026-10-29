@@ -1,3 +1,5 @@
+import { type SdkMedia } from "./node_media.js";
+import type { SdkDataAcceptance } from "./node_media_types.js";
 import { type SdkEventStream, type SdkCursor } from "./node_events.js";
 import { type SdkIncomingInvitations } from "./node_incoming.js";
 import { type SdkRawCanonical } from "./node_raw.js";
@@ -8,7 +10,7 @@ import { type SdkSession, type SdkSessions, type SessionId, type SdkSessionDecis
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { SdkHelper } from "./sdk_helper.js";
 import type { OperationKey as CanonicalOperationKey } from "./canonical_error.js";
-import type { CanonicalRequestOptions } from "./canonical_validation.js";
+import { type CanonicalRequestOptions } from "./canonical_validation.js";
 declare const identity: unique symbol;
 declare const resultType: unique symbol;
 declare const revisionFamily: unique symbol;
@@ -132,6 +134,7 @@ declare const moveConnection: unique symbol;
 declare const submitMovement: unique symbol;
 export declare function sdkId<K extends string>(value: string): SdkId<K>;
 declare const operationKinds: Readonly<{
+    data_send: SdkOperationKind<SdkDataAcceptance>;
     session_handoff: SdkOperationKind<SdkHandoffResult>;
     connection_replace: SdkOperationKind<SdkMoveResult>;
     session_consult: SdkOperationKind<SdkConsultationResult>;
@@ -155,13 +158,13 @@ declare const operationKinds: Readonly<{
     operation_cancel: SdkOperationKind<SdkDecisionReceipt>;
     operation_reconcile: SdkOperationKind<SdkDecisionReceipt>;
 }>;
-/** Typed Conversation/message/decision slice of G6-062. Other control kinds,
- * remote HTTP remains under development. Journal facts and incoming hints grant no custody.
- * One fixed SDK configuration, one Rust owner, no transparent restart/retry. */
+/** Typed Node participant SDK. Journal facts and incoming hints grant no media
+ * custody. One fixed Rust owner; no transparent reconnect or mutation replay. */
 declare const eventStream: unique symbol;
 export declare class NodeClient {
     readonly role: "node";
     readonly operationKinds: Readonly<{
+        data_send: SdkOperationKind<SdkDataAcceptance>;
         session_handoff: SdkOperationKind<SdkHandoffResult>;
         connection_replace: SdkOperationKind<SdkMoveResult>;
         session_consult: SdkOperationKind<SdkConsultationResult>;
@@ -187,6 +190,7 @@ export declare class NodeClient {
     }>;
     readonly capabilities: SdkCapabilities;
     readonly raw: SdkRawCanonical;
+    readonly media: SdkMedia;
     readonly conversations: Readonly<{
         byId: (id: ConversationId) => SdkConversation;
         create: (input: {

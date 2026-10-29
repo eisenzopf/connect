@@ -1,3 +1,4 @@
+import type { SdkMediaConnection, SdkMediaStream } from "./node_media.js";
 import type { SdkMoveInput, SdkMoveResult } from "./node_movements.js";
 import { sdkRevision } from "./node_sdk.js";
 import type {
@@ -140,6 +141,7 @@ interface Kinds {
     readonly stream_unsubscribe: SdkOperationKind<SdkStreamSelectionReceipt>;
 }
 export interface ConnectionContext {
+    media(id: ConnectionId): SdkMediaConnection;
     move(
         id: ConnectionId,
         input: SdkMoveInput,
@@ -241,6 +243,9 @@ export function createConnections(ctx: ConnectionContext): SdkConnections {
 }
 /** Captured receipt revision is historical; byId construction supplies none. */
 export class SdkConnection {
+    get media(): SdkMediaConnection {
+        return this.ctx.media(this.id);
+    }
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
     readonly streams;
@@ -461,6 +466,9 @@ export class SdkConnection {
     }
 }
 export class SdkStream {
+    get media(): SdkMediaStream {
+        return this.ctx.media(this.connectionId).streamById(this.id);
+    }
     readonly conversationId: ConversationId;
     readonly sessionId: SessionId;
     constructor(
