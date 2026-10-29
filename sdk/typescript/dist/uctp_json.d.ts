@@ -9,4 +9,6 @@ export declare const MAX_ENVELOPE_BYTES: number;
 export declare function canonicalJson(value: Json, maximumBytes?: number, maximumDepth?: number, maximumNodes?: number): string;
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
 export declare function parseCanonicalJson(bytes: Uint8Array, maximumBytes?: number, maximumDepth?: number, maximumNodes?: number): Json;
+export declare function canonicalWireJson(value: Json): string;
+export declare function parseWireJson(bytes: Uint8Array): Json;
 export declare function jsonObject(value: Json | undefined): value is JsonObject;

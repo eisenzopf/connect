@@ -109,6 +109,8 @@ export {
 } from "./browser_sdk.js";
 export type {
     BrowserDecisionReceipt,
+    BrowserRawCanonical,
+    BrowserValidatedEnvelope,
     BrowserOperationRecordId,
     EndpointId,
     DeviceId,

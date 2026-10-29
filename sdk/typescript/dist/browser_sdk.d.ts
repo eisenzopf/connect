@@ -1,3 +1,5 @@
+import { type BrowserRawCanonical } from "./browser_sdk_raw.js";
+export type { BrowserRawCanonical, BrowserValidatedEnvelope, } from "./browser_sdk_raw.js";
 import { type BrowserHandoffInput, type BrowserHandoffResult, type BrowserMoveInput, type BrowserMoveResult } from "./browser_sdk_movements.js";
 export type { EndpointId, DeviceId, BrowserHandoffRole, BrowserHandoffInput, BrowserHandoffResult, BrowserHandoffRoleChange, BrowserMoveTarget, BrowserMoveInput, BrowserMoveResult, BrowserMoveBindingObservation, } from "./browser_sdk_movements.js";
 import { type TransitionReference, type BrowserTransitionContinuation, type BrowserConsultInput, type BrowserConsultationResult, type BrowserConsultationReturnReceipt } from "./browser_sdk_consultations.js";
@@ -155,6 +157,7 @@ export declare const browserSdkFeatures: Readonly<{
     durableEvents: "durable-events";
     incomingInvitations: "incoming-invitations";
     messageReceipts: "message-receipts";
+    rawCanonical: "raw-canonical";
 }>;
 export interface BrowserSdkCapabilitySnapshot {
     readonly profile: "connect/2";
@@ -194,6 +197,7 @@ export declare class BrowserSdkClient {
         sessionReject: BrowserOperationKind<BrowserSessionDecision>;
         sessionCancelInvitation: BrowserOperationKind<BrowserSessionDecision>;
     }>;
+    readonly raw: BrowserRawCanonical;
     readonly capabilities: BrowserSdkCapabilities;
     readonly conversations: {
         byId: (id: ConversationId) => BrowserConversation;

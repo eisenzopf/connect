@@ -76,10 +76,12 @@ export declare class BrowserClient {
     /** Advanced protocol escape hatch; caller supplies a stable operation_id for mutations. */
     request(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {
         terminalType?: string;
+        validateCanonical?: boolean;
     }): Promise<Envelope[]>;
     /** Fresh request ID binds the server's native media parameter exchange. */
     begin(type: string, payload: JsonObject, scope?: Scope, options?: RequestOptions & {
         terminalType?: string;
+        validateCanonical?: boolean;
     }): {
         id: string;
         response: Promise<Envelope[]>;

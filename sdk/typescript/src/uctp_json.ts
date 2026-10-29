@@ -19,14 +19,19 @@ function scalar(value: string): string {
     return value;
 }
 
-function limits(bytes: number, depth: number, nodes: number): void {
+function limits(
+    bytes: number,
+    depth: number,
+    nodes: number,
+    ceiling = 40,
+): void {
     if (
         !Number.isSafeInteger(bytes) ||
         bytes < 1 ||
         bytes > 2 * MAX_ENVELOPE_BYTES ||
         !Number.isSafeInteger(depth) ||
         depth < 1 ||
-        depth > 40 ||
+        depth > ceiling ||
         !Number.isSafeInteger(nodes) ||
         nodes < 1 ||
         nodes > 1100000
@@ -40,7 +45,16 @@ export function canonicalJson(
     maximumDepth = 32,
     maximumNodes = 100000,
 ): string {
-    limits(maximumBytes, maximumDepth, maximumNodes);
+    return serialize(value, maximumBytes, maximumDepth, maximumNodes, 40);
+}
+function serialize(
+    value: Json,
+    maximumBytes: number,
+    maximumDepth: number,
+    maximumNodes: number,
+    ceiling: number,
+): string {
+    limits(maximumBytes, maximumDepth, maximumNodes, ceiling);
     let nodes = 0;
     const visit = (item: Json, depth: number): string => {
         if (++nodes > maximumNodes || depth > maximumDepth) return fail();
@@ -84,7 +98,16 @@ export function parseCanonicalJson(
     maximumDepth = 32,
     maximumNodes = 100000,
 ): Json {
-    limits(maximumBytes, maximumDepth, maximumNodes);
+    return parse(bytes, maximumBytes, maximumDepth, maximumNodes, 40);
+}
+function parse(
+    bytes: Uint8Array,
+    maximumBytes: number,
+    maximumDepth: number,
+    maximumNodes: number,
+    ceiling: number,
+): Json {
+    limits(maximumBytes, maximumDepth, maximumNodes, ceiling);
     if (
         !Number.isSafeInteger(maximumBytes) ||
         maximumBytes < 1 ||
@@ -180,6 +203,25 @@ export function parseCanonicalJson(
     return result;
 }
 
+/** Frozen wire parsing matches serde_json's127 permitted nested containers.
+ * General application JSON keeps its existing32-depth/100000-node defaults.
+ */
+function wireDepth(value: Json, parents = 0): void {
+    if (value === null || typeof value !== "object") return;
+    if (parents >= 127) fail();
+    for (const child of Array.isArray(value) ? value : Object.values(value))
+        wireDepth(child, parents + 1);
+}
+export function canonicalWireJson(value: Json): string {
+    const result = serialize(value, MAX_ENVELOPE_BYTES, 128, 1100000, 128);
+    wireDepth(value);
+    return result;
+}
+export function parseWireJson(bytes: Uint8Array): Json {
+    const result = parse(bytes, MAX_ENVELOPE_BYTES, 128, 1100000, 128);
+    wireDepth(result);
+    return result;
+}
 export function jsonObject(value: Json | undefined): value is JsonObject {
     return value !== null && typeof value === "object" && !Array.isArray(value);
 }

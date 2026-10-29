@@ -1,0 +1,417 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "3686bf3536e99cbfb28d9b00aed3fc406a44d016",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Fixed-schema browser raw canonical validation and finite signed requests, whole-value identifier and RFC3339 calendar/signature-clock correctness, and frozen wire JSON container/node bounds. Shared vectors with an independent current Rust parser, signed component exchanges, and actual owned local macOS Chrome WT/WSS. No installed-package/full SDK/remote/provider/media-movement or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/envelope.schema.json": {
+      "sha256": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+      "mode": 420
+    },
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/mod.rs": {
+      "sha256": "506d07c5257da6bd0d5b063e37090264c62ad02adaf00063d4a376ed05ea6011",
+      "mode": 420
+    },
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/payloads.rs": {
+      "sha256": "d905983b5e5a1db668eb4e1680307d02892b724adbf70e5992b82625798f4e7d",
+      "mode": 420
+    },
+    ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/validation.rs": {
+      "sha256": "cf7a7da6cd9c7257b9aef4270e3716c4bc7cb4ad82f1b2925924ddb9eabac892",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "contracts/schemas/uctp-envelope-2.schema.json": {
+      "sha256": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+      "mode": 420
+    },
+    "contracts/sdk-gate-6-api.json": {
+      "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+      "mode": 420
+    },
+    "contracts/uctp-vectors/browser-canonical.json": {
+      "sha256": "66421ab712525feeedc80bb36613bbc3e7285e6aeb4717f66468788057bc101b",
+      "mode": 420
+    },
+    "contracts/uctp-vectors/gate6-envelope.json": {
+      "sha256": "f3b286a44abd30d9c2d8d1f88dd8d6e54950e0636f0312758da7d669f3ee6654",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical.rs": {
+      "sha256": "34561fad94e94e34e230410c1090970e7d6f54ab4c2e6c08620a4c4e6d567502",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/raw.rs": {
+      "sha256": "dbc8ce9ca876efd837451c6b320f879dc4d40ac94682cbdc463a763bac79ecb2",
+      "mode": 420
+    },
+    "crates/connect-client/tests/gate6_browser_canonical.rs": {
+      "sha256": "6a8354e903183d9eddcaed5eb669a69a19180462885a2cf503000bf6009e42cc",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "0a872797054f16a944e7baffa91e020e4dc98681ee189e9d57c2b58bc6d2587e",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_decisions.rs": {
+      "sha256": "173fbea73187b5e2e8df07d05047dc24579ee91ecd0125e22a551d6e6e3d37af",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "scripts/generate-browser-canonical.py": {
+      "sha256": "36999828164d36bf74ca8802937051aa3d59726506996c5be7422b46a204dffb",
+      "mode": 420
+    },
+    "sdk/tests/browser_canonical.test.mjs": {
+      "sha256": "44d20b7f1f9164dfe6c17a8881ee4d4e81149f7fd3987e7b240cf94faf140824",
+      "mode": 420
+    },
+    "sdk/tests/browser_canonical_time.test.mjs": {
+      "sha256": "9a0f77a8d4ac561ab06e890afed31531b07b5f71a4751b4c39584ff8743f916d",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_capabilities.test.mjs": {
+      "sha256": "325d9b94bce3cbe0ddd5f948eec1c9054cafcc4d9a4233bd003e2f4497d50a5b",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_raw.test.mjs": {
+      "sha256": "53f19fa44f61578c433f4526190525ccf89b1504263c5b15c5cb2c3b0517c1d7",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "53f1b05a81d534c638ee86d5c7cd1ff7245d3be5f1a07c2278715ac46bef2e49",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "bdf390ddd0e50f23221cbbf8a9ff702f92c0abd6b019cb38796c2d918d6e1470",
+      "mode": 420
+    },
+    "sdk/tests/fixtures/browser_canonical_vectors.mjs": {
+      "sha256": "d5044f9a61d0319cf70120ae268bee168c232ec88077f404273d83f4b4dd7bb2",
+      "mode": 420
+    },
+    "sdk/tests/fixtures/browser_control_peer.mjs": {
+      "sha256": "e8bd3f5e90241ac3358f235b0db6cc04ae85a7c24c6b72e9d4fb6e8079944f16",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "c0592f2de1b2b2aff0ecd9de4d7789b0320ed0756de5f850ca7b503e150a1d77",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_canonical_schema.d.ts": {
+      "sha256": "d58782e37522b014d06614fa3a9ccbbf7e91ff67ff66c532df9e74d3e92eb291",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_canonical_schema.js": {
+      "sha256": "5deb9f04e3431e6e925085c75bb2f9d844625a551da7579088c881830874530e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_canonical_validation.d.ts": {
+      "sha256": "bf55686e5fe8b6ef4a5cf562374b485df3cc384de571e255a4bed2f645573cc2",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_canonical_validation.js": {
+      "sha256": "f155a872e06db2e876f41a2eb8da1d3f203d332b51f783c19891efcde2a68e37",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.d.ts": {
+      "sha256": "da9a0db86b5c4a1bab692c2e9e3fe006bc96b7f907e3596a0261f57c5ca52ab6",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.js": {
+      "sha256": "c2706e9c8bef1be9ce213963db6ade15934b483e59cd58698c8c00ef8c707b09",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "350cc6a6561acde0fd9fcbd8dc1a22a0c5ff7cd16ab001dbba01486449657712",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "ad09427937105f66b7bbd79b71558ee938217f4d739ce637f9b354799f4716a2",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_raw.d.ts": {
+      "sha256": "1ad09baae1b7ffdcbbf90a1c45e8ed436ccdd0ee733074fab533421905100830",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_raw.js": {
+      "sha256": "dc41eca6f0ad00344942b579542869704f3b6d464ba3431ce457173064d9d7d4",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_datetime.d.ts": {
+      "sha256": "49c0eaf5faae4096fbad98b59aa7d9d007dea1aba0c833003e2280fad1190da6",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_datetime.js": {
+      "sha256": "ff9bf58f1888a7986775491aeeb33aec2c212187133f7d764f7ea6aba905f0c3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_json.d.ts": {
+      "sha256": "abc32d5b634cdf3ac12a71439a7cb53e377645294a094aa259e4f388aaab0f94",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_json.js": {
+      "sha256": "aae4bcaae9b0d62e16ac2633fd2334dc452d4ca5cb4ae3f74e1a6db67addf95d",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_signing.js": {
+      "sha256": "44928e745ca41aee4a2ffbaab26938ed4c9f825eb9eb4df30989479f9bdb73ac",
+      "mode": 420
+    },
+    "sdk/typescript/dist/uctp_wire.js": {
+      "sha256": "4a1b9e6757b169c43dd7e8ca8c4192af9b9fb24496c947239f6ecd3f4126911d",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "9d811cc109736c7f7cd0ad9f84e6d43a5a7075782cfe31ee85cfe57c3c006201",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_canonical_schema.ts": {
+      "sha256": "78d34fd8fa292cc18e9321dfc2ff04f972c32d413b907a19c14cf4a7bc846672",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_canonical_validation.ts": {
+      "sha256": "cdb5344ad9c4271a2ead11c8316160a63130018443f1781d4bd8f255a4da38ef",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_client.ts": {
+      "sha256": "b5bfa878906637667f429f911ab73d824aa6e49d58f69babc21eae3508326e03",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "8427011f5b95b8f9a44be6723c39e11a50b653136f05ff480482538086642c44",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_raw.ts": {
+      "sha256": "b65f4f1bb7d712db7379ad3f3eb852a3c8ecfc7b28a2d2fc8e489782456fec83",
+      "mode": 420
+    },
+    "sdk/typescript/src/uctp_datetime.ts": {
+      "sha256": "92330fae603bbfe69e4bfe9bde8587236c2a5ed0c12838d053e349a6fbceac5e",
+      "mode": 420
+    },
+    "sdk/typescript/src/uctp_json.ts": {
+      "sha256": "470c7be2988581002e92dc2de36a7681088d85275c2f0e5031a2342e909ba9b2",
+      "mode": 420
+    },
+    "sdk/typescript/src/uctp_signing.ts": {
+      "sha256": "97ce717c0c6e5dce510724e372d4d4bd8804504391d3d94209a29f7ba43677a8",
+      "mode": 420
+    },
+    "sdk/typescript/src/uctp_wire.ts": {
+      "sha256": "ce25a61dd0e44efa3944098ab8a1a58b741152419c34b8b8a0853031da396595",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2784,
+    "source_inputs_manifest_sha256": "394a238b6f95a878ecba2ea20372da82fd7e0fb0dcc22c7e31beccf93b89c333",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          798
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.173813582863659,
+        "log_sha256": "9758ce0d77fcffca3ba5f7e59074fba51a0ce97561ca9cf1aaa2fe8079c15feb"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3629729589447379,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3420269160997123,
+        "log_sha256": "c639df4d1d0f42893ddf96b903e25ff2a94d566fdfcb6aa1fa3e9e1e300a0d64"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4412527501117438,
+        "log_sha256": "ff86c3f9e22e22c557a6a3dac6000facfa43d32b62ac134366445faf8afd1e8b"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.616762625053525,
+        "log_sha256": "fbbb26bc98f583742215124736fea185cc6502c8761b887b74684782ef7d0979"
+      },
+      {
+        "phase": "canonical-schema",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4221374588087201,
+        "log_sha256": "136eb9ebbf5ac90c8db3b79d54d032689b568ecc6f25f805c8885cecefded3e8"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 101.76399033307098,
+        "log_sha256": "eb08e12290637215c4c37aa6c3a794d340c2cabc367df5924f4c12bb0d39d515"
+      }
+    ]
+  },
+  "implementation": [
+    "BrowserSdkClient.raw.validate captures a frozen unforgeable BrowserValidatedEnvelope. Fixed current JSONschema,66-kind registry, operation/revision requirements, full identifier/calendar/body constraints and prepared-source digests are generated from the repository contract and actual Rust registry/policy. Arbitrary schemas and remote refs are unavailable. Payload schemas, conditional journal hints and decoded65536-byte raw message limits are enforced; schema-only signatures do not authenticate caller text.",
+    "Raw finite request eligibility is generated from the current Rust raw policy. Top-level unknown intent/response correlation, auth/step-up, native offer/answer, binary records and live leases refuse before IO. Finite conversation.subscribe requires explicit live:false. Original payload extensions, logical ID, resource scope and expected revision survive; physical attempt ID/time/signature are freshly produced by the current owned signed peer.",
+    "Every returned frame passes full fixed schema before canonical errors are interpreted, plus actual peer signature/replay/correlation checks. Complete immutable original envelopes retain signed optional fields through final ACK. Exact scope/current physical fence,128frame/oneMiB owned batch bounds and one caller budget prevent partial/stale output. Malformed batches retire the captured peer, not a replacement.",
+    "Pre-IO abort/validation preserves not-submitted original mutations. Submitted abort/lost reply/server5xx retain uncertain own keys. Explicit reconnect and original status do not replay. Current authorization remains mandatory; validated tokens and earlier results confer no permission. raw-canonical is now an exposed local interface feature, without implying native media or server grants.",
+    "Identifier validation explicitly checks the whole ASCII value; the newline/control rejection already held in the baseline and is preserved by the new regression. The shared calendar parser matches Chrono Gregorian dates, leap seconds, lowercase/space separators, fractions and Unicode-minus offsets. Wire parsing, authentication expiry, signature time window and replay retention use that parser; original signed timestamp text is unchanged. Existing60second signature window remains.",
+    "Frozen wire JSON supports the Rust127-container boundary and1,100,000nodes under its oneMiB byte bound, including signed WT/WSS deep/wide extensions. General application JSON retains32-depth/100000-node defaults and its previous configurable ceiling. Standard base64 rejects invalid alphabet/whitespace/padding/pad bits and oversized decoded content. Raw results create no capture/render ownership."
+  ],
+  "verification_cases": [
+    "339 shared current vectors:254existing frozen schema cases plus85focused calendar/offset/leap/identifier/gateway/revision/UTF8/base64/optional-signature/body/container/wide-graph cases. All expected decisions match both browser validation and actual rvoip_uctp::v2::Envelope::from_value in one independent Rust integration function. This proves those data cases, not universal execution, signatures or authority.",
+    "29 added SDK component functions cover schema/source/policy binding, wire/calendar/signature-clock behavior and EdDSA/ES256 x WT/WSS raw immutable exchanges. Signed extensions, fresh metadata, all correlated observations, exact scope, malformed known/unknown/error/hint/replay frames, lost ACK/503 recovery, current refusal, no-IO unsupported/forged tokens, close, pre-abort/invalid options and submitted abort are exercised. Both transports preserve125nested-container and120000-node extensions under an explicit2second caller budget.",
+    "Three identical selected identifier/calendar/signature-clock tests run against a private contemporaneous bundle with only the two prior committed wire/signing files restored: identifier rejection already passes, while framing and signature verification wrongly accept a normalized invalid calendar date. Both causal calendar tests fail before correction and pass afterward; current3pass. No assertion or signature-time-window relaxation. The baseline schema and application JSON defaults remain unchanged.",
+    "Actual owned Chrome WT/bounded fallback submits two raw already-terminal cancellation decisions, reads original records after explicit reconnect and restores them through the typed original operation kind. Original local validation IDs are not reused as physical attempt IDs. A third real raw read precedes enrollment revocation; the next cannot return cached data, and reconnect still refuses the original revoked enrollment."
+  ],
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "root_decisions": 2,
+      "message_decisions": 2,
+      "original_sources_unchanged": 2,
+      "recovered_originals": 2,
+      "unattributed_evidence_refused": 2,
+      "revoked_decision_refused": 1,
+      "local_capability_snapshots": 4,
+      "local_capability_refusals": 6,
+      "ungranted_consults_refused": 2,
+      "ungranted_handoffs_refused": 2,
+      "ungranted_moves_refused": 2,
+      "raw_cancellations": 2,
+      "raw_original_reads": 3,
+      "raw_revoked_refused": 1,
+      "source_mutations": 4,
+      "decision_mutations": 6,
+      "reconcile_attempts": 2,
+      "credentials": 2,
+      "devices": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "8939d849727b74eed36a7f504c0c8ac0cc6a0d7d0f2c47c4f00ca95364c69ca9",
+    "independent_store_checks": {
+      "messages": 2,
+      "original_send_records": 2,
+      "completed_cancel_records_with_null_connection_and_already_terminal_disposition": 6,
+      "cancel_decision_link_rows": 6,
+      "accepted_reconcile_records": 0,
+      "accepted_consult_return_handoff_or_replacement_records": 0
+    },
+    "limits": "Four source mutations/six accepted cancellation decisions/two refused reconciliations/six ungranted transitions use18distinct explicit IDs;2credentials/1Device/2non-media Endpoints. Three actual raw reads/one retirement refusal; local capability snapshots now advertise raw-canonical and execute six remaining unsupported-feature checks. SQL counts links under foreign keys, while browser receipts independently check targets. This is production-library/local browser proof, not installed-package or private decoded movement media qualification."
+  },
+  "causal_control": {
+    "baseline": "3686bf3536e99cbfb28d9b00aed3fc406a44d016",
+    "changed_private_baseline_files": {
+      "uctp_wire.js": "90b0bdcd629900c019f762a449f843813136f53948c19839239ec23d0fffd576",
+      "uctp_signing.js": "90fb86fa778f95553378b0082511d0652f0ef92d4bd2cf76c5b474e37004d573"
+    },
+    "same_test_sha256": "9a0f77a8d4ac561ab06e890afed31531b07b5f71a4751b4c39584ff8743f916d",
+    "pattern": "resource identifiers|rolled invalid|matching rolled clock",
+    "results": [
+      {
+        "label": "negative",
+        "exit_code": 1,
+        "log_sha256": "d872bac66b0c2ddad34599629bda139279c0784c781f657ba89d0c73204912ce"
+      },
+      {
+        "label": "positive",
+        "exit_code": 0,
+        "log_sha256": "221db610bb7569535c6271035358d04059fa298ecd11a6d5f621362c4a8a0af7"
+      }
+    ],
+    "private_manifest_sha256": "350edcde25e2a35421cdb8559dd158e08cef456006c162e9809b5e5f75696ca0",
+    "negative_result": "1pass/2fail",
+    "positive_result": "3pass/0fail"
+  },
+  "checks": "Final unchanged-source798SDK functions plus339shared vector decisions, standalone browser/Node types,37Node regressions,2serverScreen/2upstreamScreen/1independentRustcanonical/12realroot integration functions;0ignored. Generated schema/policy, Rust/changed-source TS formatting, plan/navigation and HTTP/OpenAPI references checked before commit.",
+  "prior_attempts": [
+    {
+      "scope": "Generator initially compared registry order although the current unique registry and schema contain the same66tuples in a different ordering. It now checks exact sorted tuple equality and uniqueness, then preserves actual Rust ordering. No runtime parser constraint changed."
+    },
+    {
+      "scope": "Initial TypeScript compile needs explicit JSON-object narrowing for schema validation. The subsequent witness assertion needs an explicit unknown cast backed by its private WeakMap; both corrected before component verification.",
+      "build_logs_sha256": [
+        "d4e9d4f55f8e4d3c763f11d509f71a46951acdf8736573b0f0d8e270649c9152",
+        "380dacba01995bc59c57cace9cfffecd7b0a7cbb0931f3328801b32839045106"
+      ]
+    },
+    {
+      "scope": "First focused invocation predates rebuilding the newly generated finite-policy exports, causing an import failure. Rebuild corrects the generated artifact before qualification.",
+      "log_sha256": "21fd8137e36728cb40c175ef570ace89412f3df349531b3e71c9cea63edf7c23"
+    },
+    {
+      "scope": "Next24/25pass; the hierarchy fixture serialized sid:undefined, which is not canonical JSON. Final fixture omits sid, then explicitly verifies the finite-request hierarchy refusal. No production assertion, schema or deadline was relaxed.",
+      "log_sha256": "8bbe2679b2bb599aa3f2ffe5573c12ac5cf2c03d709bf0be1316c828ccc3b0d7"
+    },
+    {
+      "scope": "Expanded wire-profile cases preserve the actual Rust127-container/byte bounds rather than treating the existing general application JSON32-depth/100000-node defaults as the raw wire contract. Native339 and focused25 pass before adding four actual signed deep/wide transport cases.",
+      "rust_log_sha256": "4948e61984b9c6a0547c2d1e356c7af8df44db9f47f86bcd68bf9d5a5c670cc0",
+      "component_log_sha256": "d40fd591cd1f2b8081e1e6e79b074032b36f5c69095d6b8b6abf23d2762069c4"
+    }
+  ],
+  "remaining": [
+    "G6-061 requirement-by-requirement frozen browser API/UI-primitive audit remains. Raw access does not qualify every typed advanced resource or application workflow.",
+    "Successful browser consultation/return/handoff/device movement media integration remains unqualified. Installed facade parity, public reference app and remote/browser qualification remain required downstream G6-070/G6-072/G6-095 work.",
+    "Earlier intermittent native WT Screen-resume revision/catalog conflict remains unresolved. Full Gate6 quality/browser/hosting/accessibility/persistence and G6-054 remote proof remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker unwind warning remain. Cached debug/connect is not a valid runtime oracle; this increment uses a newly linked source-owned Rust parser test and the production server library in integration fixtures. User installed daemon untouched. No full Rust workspace, release or performance qualification."
+  ],
+  "privacy": "Raw logs, signatures/traces, runtime record/operation IDs, state, credentials and owned browser profiles remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

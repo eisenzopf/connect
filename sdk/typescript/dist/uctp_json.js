@@ -16,13 +16,13 @@ function scalar(value) {
     }
     return value;
 }
-function limits(bytes, depth, nodes) {
+function limits(bytes, depth, nodes, ceiling = 40) {
     if (!Number.isSafeInteger(bytes) ||
         bytes < 1 ||
         bytes > 2 * MAX_ENVELOPE_BYTES ||
         !Number.isSafeInteger(depth) ||
         depth < 1 ||
-        depth > 40 ||
+        depth > ceiling ||
         !Number.isSafeInteger(nodes) ||
         nodes < 1 ||
         nodes > 1100000)
@@ -30,7 +30,10 @@ function limits(bytes, depth, nodes) {
 }
 /** RFC 8785: UTF-16 key ordering, finite ECMAScript numbers, scalar Unicode. */
 export function canonicalJson(value, maximumBytes = MAX_ENVELOPE_BYTES, maximumDepth = 32, maximumNodes = 100000) {
-    limits(maximumBytes, maximumDepth, maximumNodes);
+    return serialize(value, maximumBytes, maximumDepth, maximumNodes, 40);
+}
+function serialize(value, maximumBytes, maximumDepth, maximumNodes, ceiling) {
+    limits(maximumBytes, maximumDepth, maximumNodes, ceiling);
     let nodes = 0;
     const visit = (item, depth) => {
         if (++nodes > maximumNodes || depth > maximumDepth)
@@ -70,7 +73,10 @@ export function canonicalJson(value, maximumBytes = MAX_ENVELOPE_BYTES, maximumD
 }
 /** Reject duplicate decoded keys before JSON.parse can erase signature input. */
 export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES, maximumDepth = 32, maximumNodes = 100000) {
-    limits(maximumBytes, maximumDepth, maximumNodes);
+    return parse(bytes, maximumBytes, maximumDepth, maximumNodes, 40);
+}
+function parse(bytes, maximumBytes, maximumDepth, maximumNodes, ceiling) {
+    limits(maximumBytes, maximumDepth, maximumNodes, ceiling);
     if (!Number.isSafeInteger(maximumBytes) ||
         maximumBytes < 1 ||
         maximumBytes > 2 * MAX_ENVELOPE_BYTES ||
@@ -168,6 +174,27 @@ export function parseCanonicalJson(bytes, maximumBytes = MAX_ENVELOPE_BYTES, max
     space();
     if (pos !== text.length)
         return fail();
+    return result;
+}
+/** Frozen wire parsing matches serde_json's127 permitted nested containers.
+ * General application JSON keeps its existing32-depth/100000-node defaults.
+ */
+function wireDepth(value, parents = 0) {
+    if (value === null || typeof value !== "object")
+        return;
+    if (parents >= 127)
+        fail();
+    for (const child of Array.isArray(value) ? value : Object.values(value))
+        wireDepth(child, parents + 1);
+}
+export function canonicalWireJson(value) {
+    const result = serialize(value, MAX_ENVELOPE_BYTES, 128, 1100000, 128);
+    wireDepth(value);
+    return result;
+}
+export function parseWireJson(bytes) {
+    const result = parse(bytes, MAX_ENVELOPE_BYTES, 128, 1100000, 128);
+    wireDepth(result);
     return result;
 }
 export function jsonObject(value) {

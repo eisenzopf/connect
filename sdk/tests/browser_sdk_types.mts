@@ -183,3 +183,13 @@ moved.binding.generation=3;
 // @ts-expect-error Captured role metadata is immutable.
 if(transferred.roleChange)transferred.roleChange.cleanup='pending';
 void [transferred,endpoint];
+
+const validated:import('../typescript/dist/browser.js').BrowserValidatedEnvelope=client.raw.validate({v:2,id:'validation-only',ts:'2026-10-29T00:00:00Z',type:'operation.get',payload:{operation_id:operationId}});
+const replies:readonly import('../typescript/dist/browser.js').BrowserValidatedEnvelope[]=await client.raw.request(validated,{timeoutMs:1000});
+// @ts-expect-error A caller shape cannot manufacture a validated envelope witness.
+client.raw.request({value:{}},{timeoutMs:1000});
+// @ts-expect-error Validated original envelopes are immutable observations.
+validated.value={};
+// @ts-expect-error The bounded correlated response array cannot be mutated.
+replies.push(validated);
+void replies;

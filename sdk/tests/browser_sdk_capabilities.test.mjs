@@ -13,12 +13,12 @@ function scenario(run,{path='wss-webrtc',algorithm='EdDSA',application=false,fal
 for(const path of ['webtransport','wss-webrtc'])for(const algorithm of ['EdDSA','ES256'])for(const application of [false,true])test(`browser capability support ${path}/${algorithm}/application=${application} is local and immutable`,()=>scenario(async({client,f,counts})=>{
  const before=f.sent.length,count=counts(),snapshot=await client.capabilities.refresh(opts);
  assert.equal(snapshot.profile,'connect/2');assert.equal(snapshot.runtimeRole,'browser');assert.equal(snapshot.selectedTransport,path);assert.equal(snapshot.fallbackReason,undefined);
- const expected=['durable-events','incoming-invitations','original-id-operations',...(application?['message-receipts']:[])].sort();assert.deepEqual([...snapshot.features],expected);assert.equal(snapshot.features.size,expected.length);assert(Object.isFrozen(snapshot)&&Object.isFrozen(snapshot.features)&&Object.isFrozen(client.capabilities)&&Object.isFrozen(browserSdkFeatures));
+ const expected=['durable-events','incoming-invitations','original-id-operations','raw-canonical',...(application?['message-receipts']:[])].sort();assert.deepEqual([...snapshot.features],expected);assert.equal(snapshot.features.size,expected.length);assert(Object.isFrozen(snapshot)&&Object.isFrozen(snapshot.features)&&Object.isFrozen(client.capabilities)&&Object.isFrozen(browserSdkFeatures));
  assert.equal(snapshot.features.add,undefined);assert.throws(()=>Set.prototype.add.call(snapshot.features,'forged'),TypeError);assert.throws(()=>snapshot.selectedTransport='quic',TypeError);
  assert.deepEqual([...snapshot.features.entries()],expected.map(v=>[v,v]));assert.deepEqual([...snapshot.features.keys()],expected);assert.deepEqual([...snapshot.features.values()],expected);
  const receiver={},seen=[];snapshot.features.forEach(function(value,key,owner){assert.equal(this,receiver);assert.equal(owner,snapshot.features);assert.equal(value,key);seen.push(value);},receiver);assert.deepEqual(seen,expected);
  await client.capabilities.require(browserSdkFeatures.originalIdOperations,opts);
- for(const name of ['native-programmatic-media','raw-canonical','desktop-capture','provider-delivered','decoded-media-ready','unknown-feature',...(application?[]:['message-receipts'])])await assert.rejects(()=>client.capabilities.require(name,opts),{kind:'unsupported',certainty:'read-only'});
+ for(const name of ['native-programmatic-media','desktop-capture','provider-delivered','decoded-media-ready','unknown-feature',...(application?[]:['message-receipts'])])await assert.rejects(()=>client.capabilities.require(name,opts),{kind:'unsupported',certainty:'read-only'});
  assert.equal(f.sent.length,before);assert.deepEqual(counts(),count);
 },{path,algorithm,application}));
 test('browser capabilities follow explicit physical selection and retain immutable earlier snapshots',()=>scenario(async({client,f,counts})=>{

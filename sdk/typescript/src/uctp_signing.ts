@@ -1,5 +1,6 @@
+import { canonicalTimestamp } from "./uctp_datetime.js";
 import { ConnectError } from "./errors.js";
-import { canonicalJson, jsonObject, type JsonObject } from "./uctp_json.js";
+import { canonicalWireJson, jsonObject, type JsonObject } from "./uctp_json.js";
 
 export type SigningAlgorithm = "EdDSA" | "ES256";
 export interface SigningIdentity {
@@ -67,7 +68,7 @@ export async function signEnvelope(
     const signature = await crypto.subtle.sign(
         algorithm(identity.algorithm),
         identity.key,
-        new TextEncoder().encode(canonicalJson(bare)),
+        new TextEncoder().encode(canonicalWireJson(bare)),
     );
     return {
         ...bare,
@@ -85,7 +86,8 @@ export async function verifyEnvelope(
 ): Promise<void> {
     validateSigningIdentity(trust, "verify");
     const sig = frame.signature;
-    const timestamp = typeof frame.ts === "string" ? Date.parse(frame.ts) : NaN;
+    const timestamp =
+        typeof frame.ts === "string" ? canonicalTimestamp(frame.ts) : NaN;
     if (
         !Number.isFinite(trust.notBefore) ||
         !Number.isFinite(trust.expiresAt) ||
@@ -111,7 +113,7 @@ export async function verifyEnvelope(
             algorithm(trust.algorithm),
             trust.key,
             bytes,
-            new TextEncoder().encode(canonicalJson(bare)),
+            new TextEncoder().encode(canonicalWireJson(bare)),
         ))
     )
         throw new ConnectError(

@@ -1,3 +1,5 @@
+import { validateBrowserCanonical } from "./browser_canonical_validation.js";
+import { canonicalTimestamp } from "./uctp_datetime.js";
 import { WebTransportControl, WebSocketControl, } from "./browser_control_transport.js";
 import { ConnectError } from "./errors.js";
 import { jsonObject } from "./uctp_json.js";
@@ -187,7 +189,7 @@ export class BrowserClient {
                 auth.payload.identity_id !== options.identityId ||
                 typeof auth.payload.session_token !== "string" ||
                 typeof auth.payload.expires_at !== "string" ||
-                !(Date.parse(auth.payload.expires_at) > Date.now()))
+                !(canonicalTimestamp(auth.payload.expires_at) > Date.now()))
                 throw new ConnectError("authentication", "Server did not authenticate the enrolled participant");
             client.auth = auth;
             return client;
@@ -212,7 +214,7 @@ export class BrowserClient {
     /** Expiry of the signed authentication observation; not a current server grant. */
     get authenticationExpiresAt() {
         return this.auth
-            ? Date.parse(this.auth.payload.expires_at)
+            ? canonicalTimestamp(this.auth.payload.expires_at)
             : undefined;
     }
     get closed() {
@@ -281,7 +283,7 @@ export class BrowserClient {
                         this.seen.delete(id);
                 if (this.seen.has(frame.id) || this.seen.size >= 4096)
                     throw new ConnectError("protocol", "Server replay or replay window exhausted");
-                this.seen.set(frame.id, Date.parse(frame.ts));
+                this.seen.set(frame.id, canonicalTimestamp(frame.ts));
                 const p = typeof frame.in_reply_to === "string"
                     ? this.pending.get(frame.in_reply_to)
                     : undefined;
@@ -354,7 +356,7 @@ export class BrowserClient {
         const frame = envelope(type, payload, scope);
         const response = this.exchange(frame, true, (f) => f.type === "ack" ||
             f.type === "error" ||
-            f.type === options.terminalType, options);
+            f.type === options.terminalType, options, options.validateCanonical === true);
         return { id: frame.id, response };
     }
     /** Signed one-way protocol response, such as confirming server media parameters. */
@@ -387,7 +389,7 @@ export class BrowserClient {
         this.writes = write.catch((error) => this.close(error));
         return write;
     }
-    async exchange(frame, signed, terminal, options) {
+    async exchange(frame, signed, terminal, options, validateCanonical = false) {
         this.check();
         const until = performance.now() + this.timeout(options.timeoutMs);
         if (options.signal?.aborted)
@@ -413,6 +415,17 @@ export class BrowserClient {
             const write = this.write(frame, signed);
             await this.bound(write, until, options.signal);
             const frames = await result;
+            if (validateCanonical) {
+                try {
+                    for (const frame of frames)
+                        validateBrowserCanonical(frame);
+                }
+                catch {
+                    const error = new ConnectError("protocol", "Invalid frozen canonical response");
+                    this.close(error);
+                    throw error;
+                }
+            }
             const error = frames.find((f) => f.type === "error");
             if (error) {
                 const p = error.payload;

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {canonicalJson,parseCanonicalJson} from '../../typescript/dist/uctp_json.js';
+import {canonicalWireJson,parseWireJson} from '../../typescript/dist/uctp_json.js';
 import {signEnvelope,verifyEnvelope} from '../../typescript/dist/uctp_signing.js';
 import {envelope,encodeEnvelope,EnvelopeReader} from '../../typescript/dist/uctp_wire.js';
 import {ConnectError} from '../../typescript/dist/errors.js';
@@ -42,8 +42,8 @@ export async function fixture(run,{algorithm='EdDSA',lostCreateAck=false,tamper=
       }
     })();tasks.push(task);void task.catch(()=>{});return task;
   };
-  const signed=async(type,payload,in_reply_to,scope={})=>{
-    const frame=await signEnvelope(envelope(type,payload,{...scope,in_reply_to}),serverSigning);
+  const signed=async(type,payload,in_reply_to,scope={},extensions={})=>{
+    const frame=await signEnvelope({...envelope(type,payload,{...scope,in_reply_to}),...extensions},serverSigning);
     if(tamper&&type==='auth.session')frame.payload.identity_id='forged';return frame;
   };
   class Socket extends EventTarget {
@@ -51,8 +51,8 @@ export async function fixture(run,{algorithm='EdDSA',lostCreateAck=false,tamper=
     readyState=0;bufferedAmount=0;closeCount=0;path='wss-webrtc';mode=wsMode;
     constructor(){super();socket=this;sockets.push(this);queueMicrotask(()=>{if(this.readyState!==0)return;if(this.mode==='transport-refused'){this.dispatchEvent(new Event('error'));return;}if(this.mode==='timeout')return;this.readyState=1;this.dispatchEvent(new Event('open'));});}
     text(value){if(this.readyState!==3)this.dispatchEvent(new MessageEvent('message',{data:value}));}
-    async emit(type,payload,in_reply_to,scope){const frame=await signed(type,payload,in_reply_to,scope);this.text(canonicalJson(frame));return frame;}
-    send(text){assert.equal(typeof text,'string');strings.push(text);if(!raw)accept(this,parseCanonicalJson(bytes(text)));}
+    async emit(type,payload,in_reply_to,scope,extensions){const frame=await signed(type,payload,in_reply_to,scope,extensions);this.text(canonicalWireJson(frame));return frame;}
+    send(text){assert.equal(typeof text,'string');strings.push(text);if(!raw)accept(this,parseWireJson(bytes(text)));}
     close(){if(this.readyState===3)return;this.readyState=3;this.closeCount++;this.dispatchEvent(new Event('close'));}
   }
   const installWT=mode=>{
@@ -67,7 +67,7 @@ export async function fixture(run,{algorithm='EdDSA',lostCreateAck=false,tamper=
         this.ready=mode==='timeout'?new Promise(()=>{}):mode==='transport-refused'?Promise.reject(new ConnectError('transport','fixture physical failure')):Promise.resolve();
         transports.push(this);
       }
-      async emit(type,payload,in_reply_to,scope){const frame=await signed(type,payload,in_reply_to,scope);if(!this.didClose)this.controller.enqueue(encodeEnvelope(frame));return frame;}
+      async emit(type,payload,in_reply_to,scope,extensions){const frame=await signed(type,payload,in_reply_to,scope,extensions);if(!this.didClose)this.controller.enqueue(encodeEnvelope(frame));return frame;}
       async createBidirectionalStream(){const decoder=new EnvelopeReader();return{readable:this.output,writable:new WritableStream({write:async chunk=>{for(const frame of decoder.push(chunk))await accept(this,frame);}})};}
       close(){if(this.didClose)return;this.didClose=true;this.finish();try{this.controller.close();}catch{}}
     }

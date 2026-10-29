@@ -1,3 +1,5 @@
+import { validateBrowserCanonical } from "./browser_canonical_validation.js";
+import { canonicalTimestamp } from "./uctp_datetime.js";
 import {
     WebTransportControl,
     WebSocketControl,
@@ -298,7 +300,7 @@ export class BrowserClient {
                 auth.payload.identity_id !== options.identityId ||
                 typeof auth.payload.session_token !== "string" ||
                 typeof auth.payload.expires_at !== "string" ||
-                !(Date.parse(auth.payload.expires_at) > Date.now())
+                !(canonicalTimestamp(auth.payload.expires_at) > Date.now())
             )
                 throw new ConnectError(
                     "authentication",
@@ -326,7 +328,7 @@ export class BrowserClient {
     /** Expiry of the signed authentication observation; not a current server grant. */
     get authenticationExpiresAt(): number | undefined {
         return this.auth
-            ? Date.parse(this.auth.payload.expires_at as string)
+            ? canonicalTimestamp(this.auth.payload.expires_at)
             : undefined;
     }
     get closed(): boolean {
@@ -417,7 +419,7 @@ export class BrowserClient {
                         "protocol",
                         "Server replay or replay window exhausted",
                     );
-                this.seen.set(frame.id, Date.parse(frame.ts));
+                this.seen.set(frame.id, canonicalTimestamp(frame.ts));
                 const p =
                     typeof frame.in_reply_to === "string"
                         ? this.pending.get(frame.in_reply_to)
@@ -493,7 +495,10 @@ export class BrowserClient {
         type: string,
         payload: JsonObject,
         scope: Scope = {},
-        options: RequestOptions & { terminalType?: string } = {},
+        options: RequestOptions & {
+            terminalType?: string;
+            validateCanonical?: boolean;
+        } = {},
     ): Promise<Envelope[]> {
         return this.begin(type, payload, scope, options).response;
     }
@@ -502,7 +507,10 @@ export class BrowserClient {
         type: string,
         payload: JsonObject,
         scope: Scope = {},
-        options: RequestOptions & { terminalType?: string } = {},
+        options: RequestOptions & {
+            terminalType?: string;
+            validateCanonical?: boolean;
+        } = {},
     ): { id: string; response: Promise<Envelope[]> } {
         const frame = envelope(type, payload, scope);
         const response = this.exchange(
@@ -513,6 +521,7 @@ export class BrowserClient {
                 f.type === "error" ||
                 f.type === options.terminalType,
             options,
+            options.validateCanonical === true,
         );
         return { id: frame.id, response };
     }
@@ -562,6 +571,7 @@ export class BrowserClient {
         signed: boolean,
         terminal: Pending["terminal"],
         options: RequestOptions,
+        validateCanonical = false,
     ): Promise<Envelope[]> {
         this.check();
         const until = performance.now() + this.timeout(options.timeoutMs);
@@ -594,6 +604,18 @@ export class BrowserClient {
             const write = this.write(frame, signed);
             await this.bound(write, until, options.signal);
             const frames = await result;
+            if (validateCanonical) {
+                try {
+                    for (const frame of frames) validateBrowserCanonical(frame);
+                } catch {
+                    const error = new ConnectError(
+                        "protocol",
+                        "Invalid frozen canonical response",
+                    );
+                    this.close(error);
+                    throw error;
+                }
+            }
             const error = frames.find((f) => f.type === "error");
             if (error) {
                 const p = error.payload;

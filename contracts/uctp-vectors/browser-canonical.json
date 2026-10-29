@@ -1,0 +1,755 @@
+{
+  "schema": "connect-browser-canonical-vectors/1",
+  "scope": "Fixed schema/registry/encoding boundary vectors only; no signature, authorization or media qualification. Templates are current positive gate6-envelope vectors.",
+  "vectors": [
+    {
+      "id": "timestamp-valid-0",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "ts": "2000-02-29T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-valid-1",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "ts": "0000-02-29t00:00:00z"
+      }
+    },
+    {
+      "id": "timestamp-valid-2",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29 12:34:56+23:59"
+      }
+    },
+    {
+      "id": "timestamp-valid-3",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T12:34:60.123456789123Z"
+      }
+    },
+    {
+      "id": "timestamp-valid-4",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T12:34:56\u221200:30"
+      }
+    },
+    {
+      "id": "timestamp-invalid-5",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-02-29T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-6",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2000-02-30T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-7",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "1900-02-29T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-8",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29"
+      }
+    },
+    {
+      "id": "timestamp-invalid-9",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-13-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-10",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-01-00T00:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-11",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T24:00:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-12",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:60:00Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-13",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:61Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-14",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:00+24:00"
+      }
+    },
+    {
+      "id": "timestamp-invalid-15",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:00+00:60"
+      }
+    },
+    {
+      "id": "timestamp-invalid-16",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:00+0000"
+      }
+    },
+    {
+      "id": "timestamp-invalid-17",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:00.Z"
+      }
+    },
+    {
+      "id": "timestamp-invalid-18",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": "2026-10-29T00:00:00Z\n"
+      }
+    },
+    {
+      "id": "timestamp-invalid-19",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "ts": " 2026-10-29T00:00:00Z"
+      }
+    },
+    {
+      "id": "identifier-newline-id",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "id": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-id",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-id",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-newline-cid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "cid": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-cid",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "cid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-cid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "cid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-newline-sid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "sid": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-sid",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "sid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-sid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "sid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-newline-connid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "connid": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-connid",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "connid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-connid",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "connid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-newline-in_reply_to",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "in_reply_to": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-in_reply_to",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "in_reply_to": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-in_reply_to",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "in_reply_to": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-newline-operation_id",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "operation_id": "valid\n"
+      }
+    },
+    {
+      "id": "identifier-max-operation_id",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "operation_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "identifier-over-operation_id",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "operation_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "gateway-38",
+      "valid": true,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:bob@example.com"
+        ]
+      }
+    },
+    {
+      "id": "gateway-39",
+      "valid": true,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sips:host;transport=tcp"
+        ]
+      }
+    },
+    {
+      "id": "gateway-40",
+      "valid": true,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "tel:+14155550123"
+        ]
+      }
+    },
+    {
+      "id": "gateway-41",
+      "valid": true,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      }
+    },
+    {
+      "id": "gateway-42",
+      "valid": false,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      }
+    },
+    {
+      "id": "gateway-43",
+      "valid": false,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:"
+        ]
+      }
+    },
+    {
+      "id": "gateway-44",
+      "valid": false,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:bob@example.com\n"
+        ]
+      }
+    },
+    {
+      "id": "gateway-45",
+      "valid": false,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "https://example.com"
+        ]
+      }
+    },
+    {
+      "id": "gateway-46",
+      "valid": false,
+      "template": "session.invite",
+      "set": {
+        "payload.to": [
+          "sip:a b@example.com"
+        ]
+      }
+    },
+    {
+      "id": "revision-47",
+      "valid": true,
+      "template": "session.update",
+      "set": {
+        "expected_revision": 9007199254740991
+      }
+    },
+    {
+      "id": "revision-48",
+      "valid": false,
+      "template": "session.update",
+      "set": {
+        "expected_revision": 9007199254740992
+      }
+    },
+    {
+      "id": "revision-49",
+      "valid": false,
+      "template": "session.update",
+      "set": {
+        "expected_revision": -1
+      }
+    },
+    {
+      "id": "revision-50",
+      "valid": false,
+      "template": "session.update",
+      "set": {
+        "expected_revision": 0.5
+      }
+    },
+    {
+      "id": "revision-51",
+      "valid": false,
+      "template": "session.update",
+      "set": {
+        "expected_revision": null
+      }
+    },
+    {
+      "id": "body-52",
+      "valid": true,
+      "template": "message.send",
+      "body": {
+        "unit": "a",
+        "count": 65536,
+        "encoding": "utf8"
+      }
+    },
+    {
+      "id": "body-53",
+      "valid": false,
+      "template": "message.send",
+      "body": {
+        "unit": "a",
+        "count": 65537,
+        "encoding": "utf8"
+      }
+    },
+    {
+      "id": "body-54",
+      "valid": true,
+      "template": "message.send",
+      "body": {
+        "unit": "\u00e9",
+        "count": 32768,
+        "encoding": "utf8"
+      }
+    },
+    {
+      "id": "body-55",
+      "valid": false,
+      "template": "message.send",
+      "body": {
+        "unit": "\u00e9",
+        "count": 32769,
+        "encoding": "utf8"
+      }
+    },
+    {
+      "id": "body-56",
+      "valid": true,
+      "template": "message.send",
+      "body": {
+        "unit": "a",
+        "count": 65536,
+        "encoding": "base64"
+      }
+    },
+    {
+      "id": "body-57",
+      "valid": false,
+      "template": "message.send",
+      "body": {
+        "unit": "a",
+        "count": 65537,
+        "encoding": "base64"
+      }
+    },
+    {
+      "id": "body-58",
+      "valid": true,
+      "template": "message.send",
+      "body": {
+        "unit": "\u00e9",
+        "count": 32768,
+        "encoding": "base64"
+      }
+    },
+    {
+      "id": "body-59",
+      "valid": false,
+      "template": "message.send",
+      "body": {
+        "unit": "\u00e9",
+        "count": 32769,
+        "encoding": "base64"
+      }
+    },
+    {
+      "id": "base64-60",
+      "valid": true,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zg=="
+      }
+    },
+    {
+      "id": "base64-61",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zh=="
+      }
+    },
+    {
+      "id": "base64-62",
+      "valid": true,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zm8="
+      }
+    },
+    {
+      "id": "base64-63",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zm9="
+      }
+    },
+    {
+      "id": "base64-64",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zg"
+      }
+    },
+    {
+      "id": "base64-65",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "Zg==\n"
+      }
+    },
+    {
+      "id": "base64-66",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "AA=A"
+      }
+    },
+    {
+      "id": "base64-67",
+      "valid": false,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": "-_=="
+      }
+    },
+    {
+      "id": "base64-68",
+      "valid": true,
+      "template": "message.send",
+      "set": {
+        "payload.body_encoding": "base64",
+        "payload.body": ""
+      }
+    },
+    {
+      "id": "optional-extensions",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "vendor": {
+          "retained": [
+            1,
+            true,
+            null
+          ]
+        },
+        "payload.vendor": {
+          "opaque": "local-only"
+        }
+      }
+    },
+    {
+      "id": "signature-local-schema-not-crypto",
+      "valid": true,
+      "template": "operation.get",
+      "set": {
+        "signature": {
+          "keyid": "local",
+          "alg": "EdDSA",
+          "sig": "not-verified"
+        }
+      }
+    },
+    {
+      "id": "unknown-wire-kind",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "type": "provider.invented"
+      }
+    },
+    {
+      "id": "non-string-kind",
+      "valid": false,
+      "template": "operation.get",
+      "set": {
+        "type": [
+          "operation.get"
+        ]
+      }
+    },
+    {
+      "id": "missing-operation-id",
+      "valid": false,
+      "template": "session.consult",
+      "remove": [
+        "operation_id"
+      ]
+    },
+    {
+      "id": "missing-required-revision",
+      "valid": false,
+      "template": "session.consult",
+      "remove": [
+        "expected_revision"
+      ]
+    },
+    {
+      "id": "oversize-envelope",
+      "valid": false,
+      "template": "message.send",
+      "body": {
+        "unit": "x",
+        "count": 1048576,
+        "encoding": "utf8"
+      }
+    },
+    {
+      "id": "container-depth-31",
+      "valid": true,
+      "template": "operation.get",
+      "nest": {
+        "levels": 31,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-32",
+      "valid": true,
+      "template": "operation.get",
+      "nest": {
+        "levels": 32,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-64",
+      "valid": true,
+      "template": "operation.get",
+      "nest": {
+        "levels": 64,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-124",
+      "valid": true,
+      "template": "operation.get",
+      "nest": {
+        "levels": 124,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-125",
+      "valid": true,
+      "template": "operation.get",
+      "nest": {
+        "levels": 125,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-126",
+      "valid": false,
+      "template": "operation.get",
+      "nest": {
+        "levels": 126,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-127",
+      "valid": false,
+      "template": "operation.get",
+      "nest": {
+        "levels": 127,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "container-depth-128",
+      "valid": false,
+      "template": "operation.get",
+      "nest": {
+        "levels": 128,
+        "field": "payload.vendor"
+      }
+    },
+    {
+      "id": "wire-node-count-above-application-default",
+      "valid": true,
+      "template": "operation.get",
+      "array": {
+        "count": 120000,
+        "field": "payload.vendor"
+      }
+    }
+  ]
+}

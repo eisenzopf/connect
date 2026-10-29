@@ -1,7 +1,11 @@
+import { canonicalTimestamp } from "./uctp_datetime.js";
 import { ConnectError } from "./errors.js";
-import { canonicalJson, jsonObject, MAX_ENVELOPE_BYTES, parseCanonicalJson, } from "./uctp_json.js";
+import { canonicalWireJson, jsonObject, MAX_ENVELOPE_BYTES, parseWireJson, } from "./uctp_json.js";
 export function identifier(value) {
-    return typeof value === "string" && /^[A-Za-z0-9._~-]{1,128}$/.test(value);
+    return (typeof value === "string" &&
+        value.length > 0 &&
+        value.length <= 128 &&
+        !/[^A-Za-z0-9._~-]/.test(value));
 }
 export function envelope(type, payload, scope = {}) {
     const frame = {
@@ -10,7 +14,7 @@ export function envelope(type, payload, scope = {}) {
         id: "env_" + crypto.randomUUID().replaceAll("-", ""),
         ts: new Date().toISOString(),
         // Capture the intention before signing or a queued write can await.
-        payload: parseCanonicalJson(new TextEncoder().encode(canonicalJson(payload))),
+        payload: parseWireJson(new TextEncoder().encode(canonicalWireJson(payload))),
     };
     for (const key of [
         "cid",
@@ -33,7 +37,7 @@ export function validateEnvelope(frame) {
         typeof value.type !== "string" ||
         !/^[a-z][a-z.-]{1,63}$/.test(value.type) ||
         typeof value.ts !== "string" ||
-        !Number.isFinite(Date.parse(value.ts)) ||
+        !Number.isFinite(canonicalTimestamp(value.ts)) ||
         !jsonObject(value.payload))
         throw new ConnectError("protocol", "Malformed UCTP envelope");
     for (const key of ["cid", "sid", "connid", "operation_id", "in_reply_to"])
@@ -46,7 +50,7 @@ export function validateEnvelope(frame) {
 }
 export function encodeEnvelope(frame) {
     validateEnvelope(frame);
-    const body = new TextEncoder().encode(canonicalJson(frame));
+    const body = new TextEncoder().encode(canonicalWireJson(frame));
     const output = new Uint8Array(4 + body.length);
     new DataView(output.buffer).setUint32(0, body.length);
     output.set(body, 4);
@@ -78,7 +82,7 @@ export class EnvelopeReader {
             this.bodySize += size;
             offset += size;
             if (this.bodySize === this.body.length) {
-                const value = parseCanonicalJson(this.body);
+                const value = parseWireJson(this.body);
                 validateEnvelope(value);
                 this.body = undefined;
                 this.bodySize = this.headerSize = 0;

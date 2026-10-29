@@ -1,3 +1,4 @@
+import { createBrowserRaw, } from "./browser_sdk_raw.js";
 import { handoffIntent, moveIntent, movementCompletion, } from "./browser_sdk_movements.js";
 import { transitionCommand, transitionContinuation, transitionObservation, consultationCompletion, consultBody, } from "./browser_sdk_consultations.js";
 import { operationDecisionResult, } from "./browser_sdk_decisions.js";
@@ -897,6 +898,7 @@ export const browserSdkFeatures = Object.freeze({
     durableEvents: "durable-events",
     incomingInvitations: "incoming-invitations",
     messageReceipts: "message-receipts",
+    rawCanonical: "raw-canonical",
 });
 function featureSet(values) {
     const set = new Set(values.sort());
@@ -917,6 +919,55 @@ const submit = Symbol("submit");
 export class BrowserSdkClient {
     role = "browser";
     operationKinds = browserOperationKinds;
+    raw = createBrowserRaw({
+        error: (kind, certainty, key) => new BrowserSdkError(kind, certainty, key),
+        perform: async (value, scope, options, key) => {
+            let budget;
+            try {
+                fields(options, ["timeoutMs", "signal"], invalid);
+                budget = new Budget(options);
+            }
+            catch (error) {
+                const failure = translated(error, key ? "not-submitted" : "read-only", key);
+                throw failure;
+            }
+            const s = current(this);
+            let peer;
+            try {
+                peer = s.peer;
+            }
+            catch (error) {
+                const failure = translated(error, key ? "not-submitted" : "read-only", key);
+                throw failure;
+            }
+            const epoch = s.owner.status.physicalEpoch;
+            try {
+                const pending = peer.begin(value.type, value.payload, scope, {
+                    ...budget.options(),
+                    validateCanonical: true,
+                }), frames = await pending.response;
+                s.observe(peer, epoch);
+                budget.options();
+                return {
+                    requestId: pending.id,
+                    frames,
+                    check: () => {
+                        try {
+                            s.observe(peer, epoch);
+                            budget.options();
+                        }
+                        catch (error) {
+                            throw translated(error, key ? "uncertain" : "read-only", key);
+                        }
+                    },
+                    retire: () => peer.close(new ConnectError("protocol", "Invalid frozen canonical response")),
+                };
+            }
+            catch (error) {
+                throw translated(error, key ? "uncertain" : "read-only", key);
+            }
+        },
+    });
     capabilities = Object.freeze({
         refresh: async (options) => {
             const budget = new Budget(options), s = current(this), transport = s.owner.status;
@@ -929,6 +980,7 @@ export class BrowserSdkClient {
                 browserSdkFeatures.originalIdOperations,
                 browserSdkFeatures.durableEvents,
                 browserSdkFeatures.incomingInvitations,
+                browserSdkFeatures.rawCanonical,
             ];
             if (s.applicationReads.resolve)
                 features.push(browserSdkFeatures.messageReceipts);

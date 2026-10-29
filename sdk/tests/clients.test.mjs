@@ -150,3 +150,7 @@ import './browser_sdk_capabilities.test.mjs';
 import './browser_sdk_consultations.test.mjs';
 
 import './browser_sdk_movements.test.mjs';
+
+import './browser_canonical.test.mjs';
+import './browser_canonical_time.test.mjs';
+import './browser_sdk_raw.test.mjs';

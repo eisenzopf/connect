@@ -1,5 +1,6 @@
+import { canonicalTimestamp } from "./uctp_datetime.js";
 import { ConnectError } from "./errors.js";
-import { canonicalJson, jsonObject } from "./uctp_json.js";
+import { canonicalWireJson, jsonObject } from "./uctp_json.js";
 export function base64url(bytes) {
     let raw = "";
     for (const byte of bytes)
@@ -41,7 +42,7 @@ export async function signEnvelope(frame, identity) {
     validateSigningIdentity(identity, "sign");
     const bare = { ...frame };
     delete bare.signature;
-    const signature = await crypto.subtle.sign(algorithm(identity.algorithm), identity.key, new TextEncoder().encode(canonicalJson(bare)));
+    const signature = await crypto.subtle.sign(algorithm(identity.algorithm), identity.key, new TextEncoder().encode(canonicalWireJson(bare)));
     return {
         ...bare,
         signature: {
@@ -54,7 +55,7 @@ export async function signEnvelope(frame, identity) {
 export async function verifyEnvelope(frame, trust, now = Date.now()) {
     validateSigningIdentity(trust, "verify");
     const sig = frame.signature;
-    const timestamp = typeof frame.ts === "string" ? Date.parse(frame.ts) : NaN;
+    const timestamp = typeof frame.ts === "string" ? canonicalTimestamp(frame.ts) : NaN;
     if (!Number.isFinite(trust.notBefore) ||
         !Number.isFinite(trust.expiresAt) ||
         now / 1000 < trust.notBefore ||
@@ -70,6 +71,6 @@ export async function verifyEnvelope(frame, trust, now = Date.now()) {
     delete bare.signature;
     const bytes = unbase64url(sig.sig);
     if (bytes.length !== 64 ||
-        !(await crypto.subtle.verify(algorithm(trust.algorithm), trust.key, bytes, new TextEncoder().encode(canonicalJson(bare)))))
+        !(await crypto.subtle.verify(algorithm(trust.algorithm), trust.key, bytes, new TextEncoder().encode(canonicalWireJson(bare)))))
         throw new ConnectError("authentication", "Invalid server envelope signature");
 }

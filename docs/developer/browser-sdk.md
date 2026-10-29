@@ -825,13 +825,13 @@ cannot return a live profile. Both methods honor the caller's bounded local
 budget and abort signal without enrolling, using a canonical control slot,
 resolving HTTP authority or prompting for devices.
 
-The exposed feature names are `original-id-operations`, `durable-events` and
-`incoming-invitations`, plus `message-receipts` when an application-read resolver
+The exposed feature names are `original-id-operations`, `durable-events`,
+`incoming-invitations` and `raw-canonical`, plus `message-receipts` when an application-read resolver
 was configured. `browserSdkFeatures` exports these names. The readonly set has
 no mutators, including through callbacks or native `Set` methods. Unknown or
 unexposed names return `unsupported` with read-only certainty; malformed names
-return validation errors. Browser raw-canonical and native packet-media parity
-are not advertised by this typed facade at this checkpoint.
+return validation errors. Native packet-media parity
+is not advertised by this typed facade at this checkpoint.
 
 Support describes local interfaces. It supplies no current server permission,
 delivery fact, codec agreement, capture permission, render custody or decoded
@@ -980,3 +980,84 @@ returned handles cannot borrow capture/render custody from another Connection.
 controlled signed successful receipts/recovery from actual Chrome refusal of
 ungranted actions. Successful live browser media handoff and device-movement
 qualification remain outstanding.
+
+## Advanced finite raw canonical exchanges
+
+```ts
+const original = client.raw.validate({
+    v: 2,
+    id: 'local-validation-metadata',
+    ts: '2026-10-29T00:00:00Z',
+    type: 'operation.get',
+    cid: savedConversationId,
+    payload: { operation_id: savedLogicalId },
+});
+const frames = await client.raw.request(original, { timeoutMs: 5000 });
+for (const frame of frames) {
+    // Complete immutable original envelopes, including signed optional fields.
+    inspectPrivately(frame.value);
+}
+```
+
+`validate` captures an immutable, unforgeable envelope witness using the fixed
+current schema, 66-kind registry, required operation/revision fields, identifier
+and calendar rules, and raw message decoded-body limits. It performs no IO,
+configuration, enrollment or signature authentication, including after the client
+closes. Local schema validation supplies no authorization or media custody.
+Caller signature metadata may be schema-valid while cryptographically unverified.
+
+`request` uses the current owned signed physical client and its bounded control
+queue. Fresh attempt ID, timestamp and signature replace only physical metadata;
+original payload extensions, logical operation ID, scope and expected revision
+are preserved. Save full intent and a stable logical ID before a mutation. Raw
+successful results contain every correlated validated frame through the final
+ACK; interpret command-specific outcomes explicitly or restore their typed
+original Operation. Raw envelopes do not create local capture/render owners.
+
+The finite request set is generated from the existing Rust raw policy. It covers
+Conversation/Participant/Session/movement/Connection/stream control, messages,
+capabilities, DTMF and original-operation reads/decisions. Unknown top-level
+intent fields, response correlation supplied as a request, authentication/step-up,
+native offer/answer, binary-record transfer and live event leases refuse before
+IO. Finite `conversation.subscribe` requires explicit `live: false`; use
+`Conversation.events` for the journal workflow. Validating a known envelope does
+not imply that this finite raw interface can execute it.
+
+Responses pass the fixed schema before canonical refusals are interpreted, in
+addition to the owned peer's signature, replay and correlation checks. Exact
+resource scope and the final ACK are required. Immutable results retain signed
+extensions; malformed later frames discard the batch and retire the captured
+physical. A retired response cannot follow a replacement owner. Current
+revocation is checked on each real request; earlier validated envelopes and
+observed results provide no cached permission.
+
+The caller's single bounded budget covers request and complete response
+validation. Before-IO abort/validation preserves a known not-submitted mutation;
+submitted abort, lost reply or server 5xx retains the original uncertain key.
+Explicit reconnect and status-first recovery never replay raw mutations. Explicit
+canonical 4xx refusals remain refusals. Raw request options are closed to
+`timeoutMs` and `signal`.
+
+Wire JSON follows the frozen Rust parser's one-MiB envelope and 127-container
+boundary, with a 1,100,000-node ceiling sufficient for the byte-bounded syntax.
+General application JSON keeps its existing 32-depth/100,000-node defaults.
+The owned reply queue additionally bounds a batch to 128 frames and one MiB
+including framing. Raw `message.send` obeys the frozen 65,536-byte decoded-body
+bound, including strict canonical standard base64 padding and pad bits. These
+are wire/interface bounds, not media or performance qualification.
+
+Regenerate fixed browser data after an approved source-contract change:
+
+```sh
+bash scripts/prepare-dependencies.sh
+python3 scripts/generate-browser-canonical.py
+# Or verify checked-in data:
+python3 scripts/generate-browser-canonical.py --check
+```
+
+Generation checks the prepared Rust schema/registry and finite-policy source.
+[Raw canonical evidence](../evidence/gate-6/browser-sdk-raw.json) includes 339
+shared vectors checked independently by the frozen Rust parser, identifier regression
+coverage and causal calendar/signature-clock negatives, signed component
+exchanges, and actual Chrome WT/fallback mutation, reconnect/original recovery
+and current enrollment retirement.
