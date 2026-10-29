@@ -476,6 +476,12 @@
       "resolved": true,
       "evidence": "docs/evidence/gate-6/browser-sdk-shutdown.json",
       "scope": "Frozen async bounded signature plus joined owned cleanup;24new failure/recovery checks and selected Chrome regression evidence. Full G6-061 stays in progress."
+    },
+    "screen-resume-refusal-meaning": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-gate-refusals.json",
+      "supported_cases_verified": true,
+      "historical_cause": "undetermined",
+      "meaning": "Native busy versus captured revision conflict now explicit; signed native adapter refusal/recovery and actual Chrome Store-admission stale Screen refusal/no-effect/original-status/new-resume evidence. The old ambiguous trace is preserved, not retrospectively assigned a cause."
     }
   }
 }

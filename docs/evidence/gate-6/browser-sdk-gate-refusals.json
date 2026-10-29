@@ -1,0 +1,367 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "5600f4ef8d5493dadb3f015f49daadcbc95abdc7",
+  "status": "in-progress",
+  "passed": true,
+  "task_complete": false,
+  "acceptance_qualified": false,
+  "schema": 115,
+  "dependency_patch_count": 243,
+  "scope": "Local native gate preflight classification and explicit recovery: signed native adapter QUIC/WT cases plus production-server/owned-Chrome Store-admission stale Screen refusal, immutable original receipt recovery, no engine effect and subsequent decoded resume. Existing local typed WT/WSS workflow regressions retain their own scope. Historical1154cause remains undetermined; no full browser SDK/remote/installed/movement qualification.",
+  "implementation": {
+    "upstream_patch": "patches/rvoip/gate6-native-gate-preflight-refusals.patch",
+    "patch_sha256": "359ddc65a8eb3dd29b133d8a1cf214270b68db4ccc80e3b6b2f73231f547f17b",
+    "source_lock_sha256": "7ec2aad52e3dc1cadad5f79bb73af278d386980448ae63530e94d115caac7d52",
+    "behavior": [
+      "Native gate planning returns NegotiationBusy at the occupied request-slot/current-negotiation decision; stale gate planning returns RevisionConflict with the exact expected/current revision captured at that comparison. Other native conflict paths remain unchanged.",
+      "The service maps these before-attempt gate refusals to busy/Native media negotiation is in progress and conflict/Native stream revision conflicts (expected N, current M). Current physical/credential/member/owner authority checks still precede planning.",
+      "No automatic mutation or engine retry was added. Service preflight refusal records the failed original before begin_native_stream_with_peer. Uncertainty after attempt start remains conservative original-operation recovery."
+    ]
+  },
+  "upstream_native_boundary": {
+    "functions": 5,
+    "new_function_profiles": [
+      "signed QUIC",
+      "signed WebTransport"
+    ],
+    "new_function": "actual_native_gate_preflight_distinguishes_busy_and_stale_then_accepts_explicit_recovery",
+    "behavior": "A real server-origin proposal holds the negotiation slot. A distinct gate is refused NegotiationBusy with revision and binding unchanged. After the signed reply releases the proposal, a new mute commits revision2. A stale unmute is refused with captured expected1/current2; a new current unmute commits revision3. Exactly four gate outcomes (busy,commit,stale,commit), no implicit retry and one open stream budget. Existing public stale/foreign/malformed/denied, binding-lifecycle, directional hold/resume and actual decoded mute/unmute regressions pass.",
+    "qualification_limit": "Controlled host/domain policy and native adapter effects; this fixture does not claim durable Connect receipts. The service busy mapping is compiled/reviewed but a durable busy refusal is not separately forced in the Chrome scene."
+  },
+  "production_browser_boundary": {
+    "browser": {
+      "product": "Chrome/156.0.8078.48",
+      "protocol_version": "1.3",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "js_version": "15.6.75.19"
+    },
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "screen_stale_gate_refused": 1,
+      "screen_conflict_original_recovered": 1,
+      "session_updates": 8,
+      "session_reinvitations": 2,
+      "restored_session_updates": 2,
+      "invitation_read_recovered": 2,
+      "queued_cancellation_refused": 2,
+      "message_acceptances": 4,
+      "journal_received": 6,
+      "journal_resumed": 2,
+      "message_recovered_original": 2,
+      "membership_adds": 2,
+      "membership_updates": 2,
+      "membership_removals": 2,
+      "membership_rejoins": 2,
+      "membership_refusals": 2,
+      "membership_old_cursor_refusals": 2,
+      "membership_old_receipt_refusals": 2,
+      "membership_recovered": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 76
+    },
+    "ui": {
+      "completed": true,
+      "final_phase": "screen-progress-1"
+    },
+    "behavior": "After an actual inactive Screen hold on WT, a separate raw finite control deliberately supplies one less than the completed hold receipt revision. Store admission records its exact existing canonical conflict before runtime planning. Requested/last-committed revision context is retained in the saved input/hold receipt, not invented as an engine-plan comparison. Typed restore/status reads preserve record ID, revision and problem without resubmission; Screen stays held. The next distinct typed current-revision resume restores decoded opposite Screen frames. Existing identified-pixel/permission/keyboard/device/WT/WSS/ownership/revocation checks remain unchanged.",
+    "sql": "Exactly one screen-stale-resume native_stream_operations row joined to its failed operation; effect_started=0, effect_id/attempt_id/attempt_runtime NULL, closed=1. A third SQL assertion joins that failed native operation to the completed hold on the same Connection/Session/Conversation and proves requested+1 equals the hold result revision. Existing credential/device/endpoint/message/membership SQL assertions retained.",
+    "mutation_identity": "76 distinct original controls across the scene: original75 plus exactly one deliberately refused stale resume. Original status/restore does not resubmit the failed control."
+  },
+  "historical_failure": {
+    "artifact": ".local/gate-6/browser1154-final",
+    "log_sha256": "95434f16c3841c3fe17dbcbf35337932ff7e17b76b4eb2da4d267c5d05227d51",
+    "passed": false,
+    "cause": "undetermined",
+    "meaning": "The earlier native WT Screen-resume record retained one generic revision/catalog conflict and no exact branch or compared revisions. Its empty typed-browser.json and failed aggregate remain preserved. Later green cohorts do not explain it. This change establishes explicit supported refusal/recovery meanings and future diagnostics; it does not retroactively identify the old branch."
+  },
+  "verification": {
+    "source_input_count": 2792,
+    "source_inputs_manifest_sha256": "e3aeaa0a3065065b23bac06f83276e57960bb76baa61e582a3f1275eff79d6f9",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          824
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.286344167077914,
+        "log_sha256": "8ef311dfca154200568ad630ee160ee1d7fe6efdb1a3cde1382c668bae5646c6"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3586957920342684,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.3536727919708937,
+        "log_sha256": "ae3c3d947635f3329a27f05d6737536780c1e2130788637695c62e36e11c0d8c"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.4273106250911951,
+        "log_sha256": "d9dc3d3271ea5cac02f9545cf9e52d5a096dfd28e2daf719435d0079a5273104"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.42531720781698823,
+        "log_sha256": "998b0afeb2de22613cf63703eed32ddc25a26b1140eee4596118f424efbcf538"
+      },
+      {
+        "phase": "canonical-schema",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 61.475443333154544,
+        "log_sha256": "ac6c4f4cbeb319ddb369b9c3a09ec6ec9d490ac1b6f62e88adf147e11abb7871"
+      },
+      {
+        "phase": "upstream-gate-preflight",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.7258349999319762,
+        "log_sha256": "ba6c547f5c52d71c4739c1025fc0e46ed16383980542d47243ecf7c57aec63db"
+      },
+      {
+        "phase": "upstream-gate-refusal",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.6075400419067591,
+        "log_sha256": "98c6f3d90aa7929e6b96fb1a259aca5873404a72600df6c8a876e192ba060310"
+      },
+      {
+        "phase": "upstream-gate-hold",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.6563884168863297,
+        "log_sha256": "6e661f26e0a388f3157e456364052f9b3e9e52d4354b72634f199884db7edbac"
+      },
+      {
+        "phase": "upstream-gate-mute",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.5998082088772207,
+        "log_sha256": "5e86dac64470703edc505672353797fd4c22b92bf082d8d385a8729703547f61"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 93.17272233404219,
+        "log_sha256": "7ea357d3b0a7e077a93d59da41e319363a5f0766d566c822c13016e5c6c1b06f"
+      }
+    ]
+  },
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "contracts/application-http-dispatch.json": {
+      "sha256": "22a449a091a3afae1ff43b358107d6cb8b3ec649c1fc8a64e4081666f4fc1034",
+      "mode": 420
+    },
+    "contracts/http-endpoints.json": {
+      "sha256": "46b4d4dcb1e38e668fa70f0f14d3853f176caff6536a87a0ea8a63a8f5fc4a3c",
+      "mode": 420
+    },
+    "contracts/openapi-application-http.json": {
+      "sha256": "0f177b2bc1b96db6937860eca32641d3d6bc07a2e90b9001249dd4984f096b1b",
+      "mode": 420
+    },
+    "contracts/schemas/uctp-envelope-2.schema.json": {
+      "sha256": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "c4d21338067fd178979bb80c7b059b4cdf2602d339859df0d9a4504b28b332f4",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "01ede276229fc3032b7b1562845bf05d1314cdc7398538acff95ae19acd15182",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_native_streams.rs": {
+      "sha256": "2393dd633eaeca5c47d29076bcfceada3d408c04a27231b64e7fa431e11f57de",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "7ec2aad52e3dc1cadad5f79bb73af278d386980448ae63530e94d115caac7d52",
+      "mode": 420
+    },
+    "patches/rvoip/gate6-native-gate-preflight-refusals.patch": {
+      "sha256": "359ddc65a8eb3dd29b133d8a1cf214270b68db4ccc80e3b6b2f73231f547f17b",
+      "mode": 420
+    }
+  },
+  "iterations": [
+    {
+      "name": "upstream-first.log",
+      "sha256": "e99ffa98d8df3f3f11e72ce58ff8020def1770c1f94f143d9a4c25f44afa3dd5",
+      "passed": false,
+      "interpretation": "Target discovery did not run a test"
+    },
+    {
+      "name": "upstream-second.log",
+      "sha256": "585dee4544baee6670f6e65b2eea29e3c6646c79ad885ea14457ed4a380f6ad7",
+      "passed": false,
+      "interpretation": "Held client proposal blocks this incoming control dispatcher; three-second driver read deadline retained"
+    },
+    {
+      "name": "upstream-backtrace.log",
+      "sha256": "f5a4ed187b34e17b58fa122209b69ba3a8c2a2c834233a12411f54c4571af88f",
+      "passed": false,
+      "interpretation": "Held client proposal blocks this incoming control dispatcher; three-second driver read deadline retained"
+    },
+    {
+      "name": "upstream-server-proposal.log",
+      "sha256": "cdc924e43c1f0c0de88ed33b602610ec6b05078e2e2dd496e6c4308d19c485c6",
+      "passed": true,
+      "interpretation": "Held server-origin proposal exercises real request-slot contention; both QUIC and WT branches and explicit recovery pass"
+    },
+    {
+      "name": "root-build.log",
+      "sha256": "5e1aa96b5f6bc52ff05e5060d53aa43700a9b48bff1511c551b29038ad479e92",
+      "passed": false,
+      "interpretation": "E0308: Error::new requires a borrowed message, corrected to &format!(...). Known failing compiler was interrupted; no test execution or pass claimed."
+    },
+    {
+      "name": "root-build-fixed.log",
+      "sha256": "d740120d50e28a9137ebd70ea10567572a1a3cc72247ef1cda941d16a2858439",
+      "passed": false,
+      "interpretation": "Corrected service and server unit harness compile, but concurrent enrollment link/CLI stripping exhaust disk; no enrollment execution pass claimed."
+    },
+    {
+      "name": "root-build-serial.log",
+      "sha256": "a954903a462ff7e842a5ca98e95429f94ec5e457298116ecd8ffc3df32c23919",
+      "passed": true,
+      "interpretation": "Same sources relink serially after trimming exact unused cache variants; enrollment harness build completes before remaining frozen final phases."
+    },
+    {
+      "name": "root-build-admission-assertions.log",
+      "sha256": "d922a3b18088da202702bfaeddc8b52836dc5eab870e17a2eec4e213df17ef54",
+      "passed": true,
+      "interpretation": "Final SQL assertion explicitly joins stale requested revision to a completed hold. Source-identical production libraries reused; integration harness relinks serially. CLI strip warning retained and its executable unused."
+    }
+  ],
+  "additional_failed_iterations": [
+    {
+      "name": "browser1222-final",
+      "passed": false,
+      "summary_sha256": "ca9defb1544c81b7046aa19e552c568ac2713462515333e288ff8ba97677e655",
+      "meaning": "SDK824/types/Node37/serverScreen2 passed; upstreamScreen cold compilation reached the outer180s orchestration cutoff. No test pass inferred; dependencies then warmed separately with unchanged runtime deadlines."
+    },
+    {
+      "name": "typed-first/second/third",
+      "passed": false,
+      "logs_sha256": [
+        "4ef6f0e062ebc905e8283550a5be978a832002e4875878e1d45e2a67f970580b",
+        "9d037b266d393a6159774b65622072f61a07e59b15b302719873de5fab40270e",
+        "842802373e94e31aaa7d38c2505c4ca3ea4c45a571214268e3ccdec685f00b74"
+      ],
+      "meaning": "New assertion expected an engine-plan comparison, but the actual Store correctly rejected the stale revision earlier with its canonical conflict. Instrumentation established the boundary. The corrected check requires the exact Store problem, a completed hold receipt and SQL stale-revision/no-attempt relation; no product refusal or media assertion was relaxed."
+    }
+  ],
+  "checks": "824 SDK and37 Node functions/types;22 selected Rust functions including5 native adapter gate cases,2 serverScreen/2 upstreamScreen/1 Rust canonical/12 real root integration functions,0ignored;339 shared canonical vectors. Source snapshots fixed across all final phases. Prepared patches/source-lock, formatting, generated schema/policy, plan/navigation and HTTP/OpenAPI reference integrity checked.",
+  "open_work": [
+    "Historical1154cause cannot be distinguished from the preserved trace. Durable busy refusal is not separately forced in this Chrome scene.",
+    "G6-061 still needs full successful browser private movement media and remaining implementation completion evidence. G6-070 installed parity/G6-072 reference app/G6-095 remote/browser qualification/G6-054 remote proof remain open."
+  ],
+  "known_findings": [
+    "Existing15second positive-provisioning CLI timeout, three unchanged whole-SDK TypeScript format findings and earlier debug-strip/linker warnings remain recorded. Only explicitly selected checks are qualified. No full Rust workspace/release/performance claim."
+  ],
+  "privacy": "Only local synthetic/native/owned-Chrome fixtures. No additional model/account/provider/namedremote execution or agents. Credentials/state/raw logs/browser profiles remain ignored. Only obsolete rebuildable test/cache artifacts were trimmed with a private hash manifest; installed daemon untouched."
+}

@@ -94,12 +94,14 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         assert_eq!(result["result"][name], 1, "{name}");
     }
     assert_eq!(result["result"]["restored_media_observation_only"], 4);
-    assert_eq!(result["result"]["original_mutations"], 75);
+    assert_eq!(result["result"]["original_mutations"], 76);
     assert_eq!(result["result"]["message_acceptances"], 4);
     assert_eq!(result["result"]["journal_received"], 6);
     assert_eq!(result["result"]["session_updates"], 8);
     assert_eq!(result["result"]["restored_control_observations"], 6);
     assert_eq!(result["result"]["screen_camera_selector_refused"], 1);
+    assert_eq!(result["result"]["screen_stale_gate_refused"], 1);
+    assert_eq!(result["result"]["screen_conflict_original_recovered"], 1);
     assert_eq!(
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)
@@ -111,6 +113,9 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
                 .query_row(sql, [], |row| row.get::<_, u64>(0))
                 .unwrap()
         };
+        assert_eq!(count("SELECT COUNT(*) FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.operation_id LIKE 'screen-stale-resume-%'"), 1);
+        assert_eq!(count("SELECT COUNT(*) FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id WHERE o.operation_id LIKE 'screen-stale-resume-%' AND o.state='failed' AND n.effect_started=0 AND n.effect_id IS NULL AND n.attempt_id IS NULL AND n.attempt_runtime IS NULL AND n.closed=1"), 1);
+        assert_eq!(count("SELECT COUNT(*) FROM native_stream_operations n JOIN operations o ON o.record_id=n.operation_record_id JOIN operations h ON h.connection_id=o.connection_id AND h.conversation_id=o.conversation_id AND h.session_id=o.session_id WHERE o.operation_id LIKE 'screen-stale-resume-%' AND h.operation_id LIKE 'screen-hold-%' AND h.state='completed' AND o.expected_revision+1=json_extract(h.result_json,'$.stream_revision')"), 1);
         assert_eq!(
             count("SELECT COUNT(*) FROM messages WHERE id LIKE 'typed-message-%'"),
             4

@@ -30,12 +30,17 @@ effect. A held invocation must match the exact engine plan's action, stream set,
 revision and Connection. It cannot borrow the initial offer's negotiation grant
 or create a counteroffer.
 
-Before an engine attempt starts, an occupied native negotiation reports a failed
+At runtime-plan preflight, before an engine attempt starts, an occupied native
+negotiation reports a failed
 original operation with problem code `busy` and message
-`Native media negotiation is in progress`. A stale gate revision reports
-`conflict` with the captured expected and current revisions, for example
+`Native media negotiation is in progress`. Once the negotiation slot is free,
+a stale gate revision reports `conflict` with the captured expected and current revisions, for example
 `Native stream revision conflicts (expected 10, current 11)`. These decisions
-create no engine attempt or effect. They do not invoke an automatic retry.
+create no engine attempt or effect. Earlier Store admission can also reject a
+stale revision against its committed source with the standard canonical
+`conflict` problem before this runtime-plan check. Preserve the exact original
+input and last completed control receipt to interpret that boundary. These
+refusals do not invoke an automatic retry.
 Current authorization is still required to read the failed original receipt;
 restoring that receipt cannot change its failure or resume media.
 

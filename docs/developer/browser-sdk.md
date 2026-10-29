@@ -334,6 +334,15 @@ restoring an older receipt never rolls the current local revision backward.
 Concurrent changes can still conflict: observe the original result and refresh
 current state before making a separate explicit decision.
 
+Native gate admission distinguishes a busy negotiation from a stale revision.
+The runtime-plan check captures the requested/current revisions in its failed
+receipt. Earlier Store admission may instead return the standard canonical
+conflict against its last committed revision. Preserve the original input and
+last completed control receipt. Neither preflight refusal starts an engine effect. A later explicit
+attempt uses a new ID and a fresh revision; restoring the failed original reads
+its unchanged failure. [The native control reference](native-runtime-controls.md)
+describes the boundary between these refusals and uncertainty after an attempt.
+
 ```ts
 const current = await connection.refresh(wait);
 if (current.streamRevision === undefined) throw new Error("No local media revision");
@@ -1078,8 +1087,11 @@ all 25 mapped method surfaces, actual compiler witnesses and remaining gaps.
 The shared cross-language return samples include owner and assistant;
 [their four compiler checks](../evidence/gate-6/browser-sdk-return-outlines.json) pass.
 The [bounded shutdown evidence](../evidence/gate-6/browser-sdk-shutdown.json)
-resolves the earlier close signature and cleanup finding. The earlier native
-Screen-resume revision/catalog conflict remains unexplained. G6-061 stays in
+resolves the earlier close signature and cleanup finding. The historical native
+Screen-resume branch cannot be recovered from the old trace.
+[Explicit gate refusal and recovery evidence](../evidence/gate-6/browser-sdk-gate-refusals.json)
+now distinguishes busy negotiation from captured revision conflicts and verifies
+original-receipt recovery followed by a new decoded Screen resume. G6-061 stays in
 progress; method presence and these fixes do not qualify full runtime parity
 or successful browser private movement media.
 
