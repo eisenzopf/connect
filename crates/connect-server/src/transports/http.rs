@@ -367,10 +367,12 @@ fn routes(
         ))
         .layer(DefaultBodyLimit::max(65_536))
         .merge(super::credential_issuance::router(state.clone()))
+        .merge(super::enrollment::administration(state.clone()))
         .merge(super::user_delegation::router(state.clone()))
         .merge(access);
     let application = Router::new()
         .route("/v1/operations", post(operation))
+        .merge(super::enrollment::application(state.clone()))
         .merge(super::canonical_http::router(state.clone()))
         .merge(super::record_mutations::router(state.clone()))
         .route(

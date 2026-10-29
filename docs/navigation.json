@@ -36,6 +36,7 @@
     { "label": "Canonical control OpenAPI", "href": "../contracts/openapi-canonical-http.json", "scope": "Generated finite canonical HTTP commands and replies." },
     { "label": "Application HTTP OpenAPI", "href": "../contracts/openapi-application-http.json", "scope": "Generated named application operations and schemas." },
     { "label": "Protected HTTP OpenAPI", "href": "../contracts/openapi-protected-http.json", "scope": "Protected administration, files and provider boundaries." },
+    { "label": "Enrollment HTTP OpenAPI", "href": "../contracts/openapi-enrollment.json", "scope": "Backend approval, signed client claim and revocation." },
     { "label": "Endpoint inventory", "href": "../contracts/http-endpoints.json", "scope": "Machine-readable supported routes and methods." },
     { "label": "Canonical UCTP mapping", "href": "../contracts/connect-uctp.md", "scope": "Protocol model and contract boundaries; independent conformance remains separately qualified." },
     { "label": "Published v0.1 SDK guide", "href": "SDK.md", "scope": "Earlier API generation; use with matching published binaries, not as current Gate 6 source instructions." }

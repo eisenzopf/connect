@@ -270,6 +270,27 @@ pub struct EnrollmentRevocation {
     pub revoked: bool,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EnrollmentRevokeRequest {
+    pub operation_id: String,
+}
+
+/// Protected HTTP result. Successful offers and credentials must stay private.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EnrollmentResponse<T> {
+    pub profile: String,
+    pub result: Result<T>,
+}
+impl<T> std::fmt::Debug for EnrollmentResponse<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("EnrollmentResponse(redacted)")
+    }
+}
+
 fn canonical_bytes(value: &str, expected: usize) -> Result<Vec<u8>> {
     if value.len() > 128 {
         return Err(invalid());

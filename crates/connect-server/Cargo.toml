@@ -79,6 +79,7 @@ rmcp = { workspace = true, features = ["client", "transport-streamable-http-clie
 reqwest-mcp = { package = "reqwest", version = "0.13.2", default-features = false, features = ["json", "stream"] }
 tempfile.workspace = true
 ed25519-dalek = "2"
+p256 = { workspace = true, features = ["ecdsa"] }
 wiremock = "0.6"
 rusqlite.workspace = true
 

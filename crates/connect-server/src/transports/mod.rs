@@ -13,6 +13,7 @@ mod http_record_io;
 pub(crate) mod record_https;
 
 mod credential_issuance;
+mod enrollment;
 mod hosting_policy;
 mod record_mutations;
 mod user_delegation;

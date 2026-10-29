@@ -7,7 +7,7 @@ OpenAPI path. This avoids treating `/v2/records/{id}/mutations` and its document
 `{uuid}` spelling as different endpoints. MCP and configured WSS/WebTransport
 mounts reference protocol/configuration metadata separately.
 
-The inventory checks24 declarations and25 explicit HTTP operations. Path
+The inventory checks28 declarations and29 explicit HTTP operations. Path
 coverage alone does not qualify every `/v1/operations` body variant, response,
 authorization case, profile or framework-generated method. Runtime evidence
 remains attached to its particular contract and gate task.
@@ -18,6 +18,7 @@ remains attached to its particular contract and gate task.
 | Current named application operation bodies and results | [application HTTP](../../contracts/openapi-application-http.json) |
 | Trusted Identity/participant/Device/key/endpoint provisioning | [provisioning](../../contracts/openapi-provisioning.json) |
 | Protected scoped credential issuance, Task grants and base artifact bytes | [protected HTTP](../../contracts/openapi-protected-http.json) |
+| Backend-approved client enrollment, signed claim and revocation | [enrollment HTTP](../../contracts/openapi-enrollment.json) |
 | Attachment control, links and receipt observations | [attachments](../../contracts/openapi-attachments.json) |
 | Record redaction/deletion | [record mutations](../../contracts/openapi-record-mutations.json) |
 
@@ -86,6 +87,13 @@ python3 scripts/check-gate6-protected-http.py --application-contract \
 ```
 
 ## Scoped credential issuance
+
+For client-owned keys and explicit Device/Endpoint/transport/Origin approval,
+use the [remote enrollment workflow](remote-enrollment.md). Its protected
+administration surface approves and revokes; the application surface accepts a
+signed claim without a bearer. Original-ID recovery preserves the same scoped
+credential and expiry. The reference distinguishes these implemented HTTP/Store
+components from pending browser/native setup and transport-bound credential use.
 
 `POST /v2/credentials` accepts a typed `CredentialIssueRequest` with the original
 operation ID, target Identity, literal operation/recipient sets and absolute Unix

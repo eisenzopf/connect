@@ -1,9 +1,8 @@
 # Remote client enrollment (G6-055 in progress)
 
-The enrollment protocol and Store transactions are implemented. HTTP enrollment
-endpoints, transport-bound credential admission and native/browser enrollment
-clients remain pending. This Store checkpoint does not enable a fresh remote
-client to obtain a credential over the network. Existing trusted backend issuance remains described in
+The enrollment protocol, Store transactions and bounded HTTP endpoints are
+implemented. Transport-bound use of the resulting credential and native/browser
+public enrollment clients remain pending. Existing trusted backend issuance remains described in
 [credential installation](credential-installation.md).
 
 `connect_protocol::enrollment` defines a backend-approved `EnrollmentRequest`,
@@ -71,11 +70,43 @@ Endpoint revocation still prevents recovery. Another currently authorized backen
 can revoke even when the original issuer is no longer active.
 
 Store results retain authority fences through `OwnedEnrollment`; an HTTP adapter
-must transfer that owner to physical response custody. Copying the result or
+transfers that owner to physical response custody. Copying the result or
 reading `enrollment_credential_binding` facts does not grant later transport I/O.
 Schema 115 includes enrollment in snapshot digests and refuses older candidate
 state unchanged; retain a matching-binary backup and explicitly initialize fresh
 state. No automatic migration is provided.
+
+The [HTTP/OpenAPI reference](../../contracts/openapi-enrollment.json) describes:
+
+- `POST /v2/enrollments` on the administration surface: authenticate the current
+  ordinary administrator before parsing the complete original approval request.
+- `POST /v2/enrollments/{id}/claim` on the application surface: send the signed
+  claim without a bearer. The path and body enrollment ID must agree. Browser
+  claims send their actual approved Origin; native QUIC claims send no Origin.
+- `POST /v2/enrollments/{id}/revoke` on the administration surface: send
+  `{"operation_id":"original-revoke-id"}` with current backend administration.
+
+Remote use requires explicit HTTPS hosting and trusted certificates. The same
+routes are available on the existing loopback HTTP listener for local use.
+Administration rejects every Origin; claim rejects every Authorization header,
+including an operator bearer. Host, provider identity headers, duplicate Origin,
+query parameters and HTTP version are checked before parsing. HTTPS hosting also
+requires the Origin to be on that application's configured allowlist. The claim
+checks the exact approved Origin even if another Origin is on that allowlist.
+No bearer or challenge belongs in a URL.
+Listener policy can reject an invalid Host or unlisted Origin earlier with the
+canonical `profile: "connect/2"` problem response; route rejections use
+`profile: "connect-enrollment/1"` and a typed `result.Err`.
+
+All three routes bound JSON to 64 KiB and share one five-second admission,
+body-collection, Store and physical-response deadline. Responses use closing
+HTTP/1.1 with `Cache-Control: no-store` and `Pragma: no-cache`. The actual socket
+retains Store authority and shared capacity after Hyper consumes body bytes.
+Cancellation or the earliest issuer/credential/admission expiry stops protected
+writes. Detached blocking Store work retains its capacity slot until it ends.
+A transaction can commit after response observation ends: preserve the original
+offer, request, logical IDs and client private key, then explicitly reconcile.
+Neither a timeout nor a lost response authorizes a replacement grant.
 
 Debug output for request/offer/claim is redacted. Intentional JSON encoding carries
 the protected challenge and must stay private. Neither Device-key possession nor
@@ -88,6 +119,9 @@ proof vector, in default and schema-enabled builds.
 functions, including both algorithms across all three transport intents,
 stolen/expired challenges, current-authority recovery, revocation, rotation,
 atomic rollback and protected in-process delivery. These are isolated SQLite
-fixtures. Physical credential delivery, trusted transport/Origin admission,
-actual browser/native setup and the server HTTP/OpenAPI reference remain G6-055
-implementation work.
+fixtures. [HTTP evidence](../evidence/gate-6/enrollment-http.json) records three
+local behavior functions, six algorithm/transport-intent scenes and 36 captured
+bodies checked against the generated reference. Actual
+browser/native setup and transport/Origin-bound use of enrolled credentials
+remain G6-055 implementation work; an HTTP claim test does not qualify those
+later connections.

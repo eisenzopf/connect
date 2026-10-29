@@ -1,0 +1,246 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "7be9c6a3",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Actual isolated local HTTPS HTTP component, plus local loopback deadline/lost-response checks. Backend approval, public signed claim, current replay/restart and revocation; six Ed25519/ES256 x QUIC/WebTransport/WSS enrollment intents, not six actual physical transport sessions. No browser engine, native client enrollment installer, credential-specific transport/Origin admission or full G6-055 qualification.",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "tested_inputs": {
+    "Cargo.toml": {
+      "sha256": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "713ba9daf575438ff12ec4895ded61d37e0c3540e254f750a3040044cbb58e11",
+      "mode": 420
+    },
+    "crates/connect-server/Cargo.toml": {
+      "sha256": "c3ac29ea9fad98f212538b0ccfcb3df58bd4a396a8ec34348e7e101cb180db22",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/enrollment.rs": {
+      "sha256": "944e17240d03b49400f28d8c42f6a947fc69ab753506b4e7d4a8b78cbbe336c5",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/enrollment.rs": {
+      "sha256": "daf5be01ccb1d8d6a631d1df3689cece82510c25df04d6136cd14e775df3c63b",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/http.rs": {
+      "sha256": "83ee5f56a37007fd7953b73682105e7bc7ad7c635be17010b69b2db8fde995bf",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/http_record_io.rs": {
+      "sha256": "1e03f9398478c0dcdd2e239020da12ccd50a310bd67c00a8a1ff5380356c250a",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/hosting_policy.rs": {
+      "sha256": "088e5a0d3ee233b5d227a7b3cc5d36c7caa550b909883a1aff210068291c2cec",
+      "mode": 420
+    },
+    "crates/connect-server/src/transports/mod.rs": {
+      "sha256": "97fc6fa4014946b08360a3c1d567266f494b19880ddf6cdd7e00e42e7753ee4f",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "659a14eb8002639d9a815b170d1473831b3eb9d60e64abe9833ff39dd0d5cc97",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/canonical_listener_fixture.rs": {
+      "sha256": "0999e741fd53692d9009c09a2e21f950d992d6a1acac6c3656ea9f61c76cb1a7",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/mod.rs": {
+      "sha256": "c4a764c89200c573d0c567ba4574ad9454176146405e5640a99882bef50105e5",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/tests.rs": {
+      "sha256": "2dac3c9fd449492f67770f0692e42995d338614bfacb4486e8886cbbd98fa374",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/approval.rs": {
+      "sha256": "47ed52797f87cf8d22006c33bc7e199dcc46ea04c91a6bad7150084172c783f0",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/revoke.rs": {
+      "sha256": "b56b786813a5a13482aa3b99246a74c391065e918de2fd3981edf77758352392",
+      "mode": 420
+    },
+    "crates/connect-store/src/enrollment/claim.rs": {
+      "sha256": "be38e060488a6cffa01103a03f414c5911f2236df3a7cd525ff2118bc03762d7",
+      "mode": 420
+    },
+    "crates/connect-protocol/examples/enrollment_schema.rs": {
+      "sha256": "a7538cdfa8560bb67582a571f70ee6a2796e1e3765b2fb99b27e6217d815ca3f",
+      "mode": 420
+    },
+    "crates/connect-protocol/tests/enrollment.rs": {
+      "sha256": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
+      "mode": 420
+    },
+    "scripts/generate-enrollment-openapi.py": {
+      "sha256": "4446d0b869af22eb80201ea9aea2227dcd3451bbfeab184d0e4c1e25e26fd2c5",
+      "mode": 420
+    },
+    "scripts/check-enrollment-openapi.py": {
+      "sha256": "d1a5bca2fa5db9bc73600d2acff34d8ebb5e57d95d3c8db280e0dd74204234b9",
+      "mode": 420
+    },
+    "contracts/openapi-enrollment.json": {
+      "sha256": "7793f704b0e5552b5593f27873823c35db9b6390a9b2d0a7b78328d1132cb955",
+      "mode": 420
+    },
+    "contracts/schemas/enrollment-1.schema.json": {
+      "sha256": "b116122966377a3ccba7d8f664df7d935746a41f8059f838612cb92a0bd8bfee",
+      "mode": 420
+    },
+    "contracts/http-endpoints.json": {
+      "sha256": "bc890f0686a8bfce4c25616764d26f840f9c356c2d538211755c10065c9eda64",
+      "mode": 420
+    }
+  },
+  "http": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "seconds": 16.19698691694066,
+    "source_inputs_unchanged": true,
+    "functions_passed": 3,
+    "source_inputs_sha256": "408b0e0a19b1cf0c9ca2ca2d56dff977b98ef88e0f70b4b8934724377846c00c",
+    "log_sha256": "35eb63828c20a0730c819e8c69531045ebd512afa36f2e20d1e2ba8ab5af2a56"
+  },
+  "actual_openapi_samples": {
+    "passed": true,
+    "scenes": 6,
+    "actual_http_bodies": 36,
+    "schema_sha256": "7793f704b0e5552b5593f27873823c35db9b6390a9b2d0a7b78328d1132cb955",
+    "scope": "Real isolated HTTPS fixture bodies match derived DTO/OpenAPI shapes; no browser/native transport or full G6-055 qualification."
+  },
+  "protocol_and_generation": {
+    "passed": true,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "0da48d8e28b8ca5247b9631288d6edf4ef66c63da6bf39c81e8d0c88dda4dc2b",
+    "modes": [
+      {
+        "mode": "default",
+        "passed": true,
+        "functions": 6,
+        "log_sha256": "b320209f91be26f1d2d308442f7779cb78fc58c1230d025456d4ce2f34f5ec8b"
+      },
+      {
+        "mode": "schema",
+        "passed": true,
+        "functions": 6,
+        "log_sha256": "3d7ad0526591151c84e79a4d9a8a2a5359d467345e059cd80a7702589848b9b1"
+      }
+    ],
+    "derived_schema_current": true,
+    "openapi_current": true,
+    "seconds": 5.134274374926463
+  },
+  "tests": [
+    {
+      "function": "enrollment_bounds_body_deadline_and_recovers_a_committed_lost_response",
+      "checks": [
+        "Five-second whole-admission bound on a partially delivered authenticated JSON body",
+        "65537-byte body refuses with413",
+        "Physical HTTP200 headers observed after claim commit, then body observation intentionally lost",
+        "Explicit original signed retry returns the committed credential ID without new grant rows",
+        "Receipt excludes bearer and raw challenge"
+      ]
+    },
+    {
+      "function": "https_enrollment_admits_real_proofs_all_profiles_and_recovers_after_restart",
+      "checks": [
+        "Six real Ed25519/ES256 proof scenes across the three approved transport intents",
+        "Administration approval makes no credential/Device/Endpoint/key effect",
+        "Current original replay and restart preserve exact child bearer/absolute expiry",
+        "TLS certificates verified with explicit local root; intended Origin receives CORS header",
+        "Issued scopes contain no admin; exact one credential/Device/Endpoint/key effect",
+        "Current backend revoke/replay succeeds, then child and claim refuse"
+      ]
+    },
+    {
+      "function": "https_enrollment_isolates_admin_origin_route_and_proof_authority",
+      "checks": [
+        "Missing or nonadministrator bearer refuses before malformed body parsing",
+        "Administration Origin/provider identity headers refuse",
+        "Administration routes absent from application and claim absent from administration",
+        "Omitted, globally unlisted and separately allowlisted wrong Origin all refuse",
+        "Bearer/operator Authorization on public claim, provider headers and query all refuse",
+        "Wrong Endpoint claim refuses",
+        "Five matching invalid signatures exhaust approval; valid late proof cannot grant",
+        "No credential/Device/Endpoint/key effects from refused claims"
+      ]
+    }
+  ],
+  "physical_delivery_implementation": "OwnedEnrollment is retained by the existing GuardedStream/Custody physical closing writer, with shared capacity, earliest absolute deadline/expiry and cancellation. Real HTTP response delivery is exercised; large stalled-response/backpressure and live-expiry races are not newly qualified by these small response fixtures.",
+  "prior_store_component": "docs/evidence/gate-6/enrollment-store.json",
+  "prior_attempts": [
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "seconds": 0.09068883396685123,
+      "source_inputs_unchanged": true,
+      "functions_passed": null,
+      "source_inputs_sha256": "32e46b5531f8f031a04aa0d725ee207004834cc859eaebb1d41bff360194e385",
+      "log_sha256": "ca2e42fffa070b464c4f5b9ee97d59340c65d977eb17c4cb4ca9736572f16471",
+      "reason": "Stopped before compile: new ES256 test dev-dependency needed Cargo.lock entry. Final lock change only adds connect-server p256 dependency."
+    },
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "seconds": 672.9850322920829,
+      "source_inputs_unchanged": true,
+      "functions_passed": null,
+      "source_inputs_sha256": "5c3587ce2e49a6ef644e2ae822349b995ac26295a60de40d1c2f41f2a7075e39",
+      "log_sha256": "301415f1eb482ec2935db1ffbc5629e5f7601146ecd8b67ad05662e65a355995",
+      "reason": "Server compiled; test target failed because claim fixture omitted four existing immutable ID fields. No HTTP behavior ran."
+    },
+    {
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "seconds": 1.0060510002076626,
+      "source_inputs_unchanged": true,
+      "functions_passed": null,
+      "source_inputs_sha256": "6df04c01df5c0f39bc96f78a5ffd64126b66f1a86b733051755829b1a53bffdb",
+      "log_sha256": "0826a6164cbdc896492830df09b59d9f02f8c1c426e29e4143fcd903efa77767",
+      "reason": "Fixture compiled far enough to require the existing canonical harness recursion_limit256 for recursive upstream SIP types. No HTTP behavior ran."
+    }
+  ],
+  "nonfatal_build_diagnostics": [
+    "Existing upstream rvoip-webrtc dead-code warning",
+    "macOS linker compact-unwind __eh_frame size warning; tests complete successfully"
+  ],
+  "format": {
+    "command": "bash scripts/format.sh --check",
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "inventory": {
+    "declarations": 28,
+    "explicit_http_operations": 29,
+    "uncovered": 0,
+    "scope": "Source/reference coverage only"
+  },
+  "navigation": {
+    "local_links_checked": 340,
+    "changed": []
+  },
+  "remaining": [
+    "Credential-specific actual transport/Origin/Device/key admission; WSS/WT must preserve accepted Origin into physical handler using a pinned upstream patch",
+    "Public native/browser approved-offer, private-key/proof and installation workflows",
+    "Actual fresh browser/native connections and wrong-origin/transport/replay/admin failure and recovery scenes",
+    "Complete G6-055 and Gate6 acceptance"
+  ],
+  "no_accounts_remote_provider_model_or_secret_execution": true,
+  "raw_logs_private_state_credentials_and_http_samples_excluded": true
+}

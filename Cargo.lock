@@ -873,6 +873,7 @@ dependencies = [
  "hmac",
  "nix",
  "opus",
+ "p256",
  "prism-fixture",
  "quinn",
  "rcgen",

@@ -1,0 +1,1412 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Connect remote enrollment HTTP",
+    "version": "connect-enrollment/1",
+    "description": "Implemented HTTP component and Store contract. The legacy loopback HTTP listener exposes the same bounded routes for local use. Remote use requires explicit HTTPS hosting and trusted certificates. Actual browser/native client setup and transport-bound use of issued credentials remain separate G6-055 work; schema generation alone is not runtime qualification."
+  },
+  "paths": {
+    "/v2/enrollments": {
+      "post": {
+        "operationId": "approveEnrollment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Host must match the configured HTTPS authority or concrete loopback listener/localhost:port. Query parameters, X-Call-ID, X-Chat-ID and Upgrade refuse. Closing HTTP/1.1 only; request body collection, Store work and physical response delivery share one five-second deadline. Cache-Control:no-store and Pragma:no-cache. An interrupted response can follow a commit: explicitly recover original intent; no automatic retry or renewal. Administration surface only; absent from application, callback and health surfaces. Refuse any Origin. Authenticate current ordinary admin before parsing JSON; model/task grants cannot administer. Current target/recipient/tenant and issuer scope/expiry ceilings apply. Approval reserves distinct original approval/completion IDs and a fresh public key but creates no Device, Endpoint or credential. Challenge<=600seconds; browser credential<=3600seconds, QUIC<=86400seconds and within issuer expiry. IDs/scopes/sets/addresses normalize before immutable JCS intent. Store at most32unexpired pending approvals per Identity and reserve two receipt slots. Recover the same protected offer with original current issuer and exact intent. No provider/operator secret fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original approved offer, admitted credential or revocation recovered under current authority.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed/closed JSON, invalid bounded intent, unsupported HTTP version or Upgrade.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current administrator unavailable or original issuer/child expired or revoked.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong host, Origin, route/body binding, bearer on public claim, provider headers, tenant/scope/key/proof authority or terminal approval.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/EnrollmentResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed original intent, reserved operation ID, Device/key/Endpoint or revision conflict.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired pending challenge or tombstoned original receipt; no new grant.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request body exceeds65536 bytes.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Shared admission/delivery, durable receipt or32pending-per-Identity capacity exhausted.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority/storage unavailable, cancellation or five-second observation deadline. A transaction may have committed; preserve original IDs and exact intent.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-admission-deadline-seconds": 5,
+        "x-automatic-retries": 0,
+        "x-closed-query": true,
+        "x-http-version": "1.1",
+        "x-response-custody": "Store authority and shared capacity retained by the physical socket until close, cancellation or earliest admission/credential/issuer expiry."
+      }
+    },
+    "/v2/enrollments/{id}/claim": {
+      "post": {
+        "operationId": "claimEnrollment",
+        "security": [],
+        "description": "Host must match the configured HTTPS authority or concrete loopback listener/localhost:port. Query parameters, X-Call-ID, X-Chat-ID and Upgrade refuse. Closing HTTP/1.1 only; request body collection, Store work and physical response delivery share one five-second deadline. Cache-Control:no-store and Pragma:no-cache. An interrupted response can follow a commit: explicitly recover original intent; no automatic retry or renewal. Application surface only. No bearer is accepted, including operator, ordinary client or task credentials. Exact Origin comes only from the request header; browser Origin must also be allowed by this HTTPS listener and equal the approved serialized HTTPS Origin. QUIC claims require no Origin. Path id must equal body enrollment_id. Verify canonical64-byte raw Ed25519 or ES256(SHA256) signature over ASCII(connect-enrollment-proof/1)||NUL||SHA256(JCS(normalized full offer)); challenge alone grants nothing. Wrong bindings make no effects; five matching invalid signatures exhaust pending approval. Fresh valid claim atomically creates scoped credential, immutable Device/key binding and unverified Endpoint, or reuses the exact active Endpoint for rotation; late conflicts roll back. Completed signed recovery may outlive challenge expiry but rechecks current original issuer, child, key, Device, Endpoint, recipient ceilings and original receipt; it returns the same bearer and absolute expiry. Provider consent, route verification/reachability and media readiness are separate.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentClaim"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original approved offer, admitted credential or revocation recovered under current authority.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed/closed JSON, invalid bounded intent, unsupported HTTP version or Upgrade.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current administrator unavailable or original issuer/child expired or revoked.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong host, Origin, route/body binding, bearer on public claim, provider headers, tenant/scope/key/proof authority or terminal approval.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/EnrollmentResponse2"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed original intent, reserved operation ID, Device/key/Endpoint or revision conflict.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired pending challenge or tombstoned original receipt; no new grant.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request body exceeds65536 bytes.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Shared admission/delivery, durable receipt or32pending-per-Identity capacity exhausted.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority/storage unavailable, cancellation or five-second observation deadline. A transaction may have committed; preserve original IDs and exact intent.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse2"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-admission-deadline-seconds": 5,
+        "x-automatic-retries": 0,
+        "x-closed-query": true,
+        "x-http-version": "1.1",
+        "x-response-custody": "Store authority and shared capacity retained by the physical socket until close, cancellation or earliest admission/credential/issuer expiry.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          }
+        ]
+      }
+    },
+    "/v2/enrollments/{id}/revoke": {
+      "post": {
+        "operationId": "revokeEnrollment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Host must match the configured HTTPS authority or concrete loopback listener/localhost:port. Query parameters, X-Call-ID, X-Chat-ID and Upgrade refuse. Closing HTTP/1.1 only; request body collection, Store work and physical response delivery share one five-second deadline. Cache-Control:no-store and Pragma:no-cache. An interrupted response can follow a commit: explicitly recover original intent; no automatic retry or renewal. Administration surface only, absent from application/callback/health. Refuse any Origin and authenticate current ordinary admin before parsing. Current tenant/target scope required, including replay. A currently authorized backend can revoke even when the original issuer is inactive. Revoke pending approval/completion or completed child credential/key atomically; retain shared Device/Endpoint so an admitted replacement can continue. Preserve original revoke operation ID. No new credential or expiry extension.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentRevokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original approved offer, admitted credential or revocation recovered under current authority.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed/closed JSON, invalid bounded intent, unsupported HTTP version or Upgrade.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current administrator unavailable or original issuer/child expired or revoked.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong host, Origin, route/body binding, bearer on public claim, provider headers, tenant/scope/key/proof authority or terminal approval.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/EnrollmentResponse3"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Rejection"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed original intent, reserved operation ID, Device/key/Endpoint or revision conflict.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired pending challenge or tombstoned original receipt; no new grant.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded request body exceeds65536 bytes.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Shared admission/delivery, durable receipt or32pending-per-Identity capacity exhausted.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority/storage unavailable, cancellation or five-second observation deadline. A transaction may have committed; preserve original IDs and exact intent.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Pragma": {
+                "schema": {
+                  "const": "no-cache"
+                }
+              },
+              "Connection": {
+                "schema": {
+                  "const": "close"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse3"
+                }
+              }
+            }
+          }
+        },
+        "x-max-request-bytes": 65536,
+        "x-admission-deadline-seconds": 5,
+        "x-automatic-retries": 0,
+        "x-closed-query": true,
+        "x-http-version": "1.1",
+        "x-response-custody": "Store authority and shared capacity retained by the physical socket until close, cancellation or earliest admission/credential/issuer expiry.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._~-]{1,128}$"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "CredentialIssueOutcome": {
+        "description": "Intended protected response only. Persist the original request before IO;\nexact replay never replaces the credential or extends its absolute expiry.",
+        "type": "object",
+        "properties": {
+          "credential": {
+            "type": "string"
+          },
+          "credential_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "installation_id": {
+            "type": "string"
+          },
+          "issued_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "issuer_credential_id": {
+            "type": "string"
+          },
+          "issuer_identity_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "credential_id",
+          "identity_id",
+          "issuer_identity_id",
+          "issuer_credential_id",
+          "installation_id",
+          "operations",
+          "recipients",
+          "issued_at",
+          "expires_at",
+          "credential"
+        ]
+      },
+      "DeviceSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "platform"
+        ]
+      },
+      "EnrollmentClaim": {
+        "description": "Unauthenticated claim syntax. Binding checks are not signature verification.",
+        "type": "object",
+        "properties": {
+          "browser_origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "endpoint_id": {
+            "type": "string"
+          },
+          "enrollment_id": {
+            "type": "string"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "key_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "signature": {
+            "description": "Canonical unpadded base64url; Ed25519/ES256 signatures are exactly64 bytes.",
+            "type": "string"
+          },
+          "transport": {
+            "$ref": "#/components/schemas/EnrollmentTransport"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "enrollment_id",
+          "identity_id",
+          "device_id",
+          "endpoint_id",
+          "key_id",
+          "transport",
+          "challenge",
+          "signature"
+        ],
+        "x-sensitive": true
+      },
+      "EnrollmentCredential": {
+        "description": "Protected client response after verified admission; never a public journal receipt.",
+        "type": "object",
+        "properties": {
+          "browser_origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credential": {
+            "$ref": "#/components/schemas/CredentialIssueOutcome"
+          },
+          "device_id": {
+            "type": "string"
+          },
+          "endpoint_id": {
+            "type": "string"
+          },
+          "enrollment_id": {
+            "type": "string"
+          },
+          "key_id": {
+            "type": "string"
+          },
+          "transport": {
+            "$ref": "#/components/schemas/EnrollmentTransport"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "enrollment_id",
+          "endpoint_id",
+          "device_id",
+          "key_id",
+          "transport",
+          "credential"
+        ],
+        "x-sensitive": true
+      },
+      "EnrollmentOffer": {
+        "description": "Protected backend offer. Its challenge alone never proves device possession.",
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "endpoint_id": {
+            "type": "string"
+          },
+          "enrollment_id": {
+            "type": "string"
+          },
+          "installation_id": {
+            "type": "string"
+          },
+          "issuer_identity_id": {
+            "type": "string"
+          },
+          "profile": {
+            "const": "connect-enrollment/1"
+          },
+          "request": {
+            "$ref": "#/components/schemas/EnrollmentRequest"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "enrollment_id",
+          "endpoint_id",
+          "installation_id",
+          "issuer_identity_id",
+          "request",
+          "challenge"
+        ],
+        "x-sensitive": true
+      },
+      "EnrollmentRequest": {
+        "description": "Backend-approved original intent. No operator/provider secret is accepted.",
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "$ref": "#/components/schemas/SigningAlgorithm"
+          },
+          "browser_origin": {
+            "description": "Exact serialized HTTPS origin for browser profiles; absent for QUIC.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "challenge_expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completion_operation_id": {
+            "description": "Client persists this logical completion ID before requesting approval.",
+            "type": "string"
+          },
+          "credential_expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceSpec"
+          },
+          "endpoint_address": {
+            "type": "string"
+          },
+          "identity_id": {
+            "type": "string"
+          },
+          "key_id": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "public_key": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transport": {
+            "$ref": "#/components/schemas/EnrollmentTransport"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "operation_id",
+          "completion_operation_id",
+          "identity_id",
+          "device",
+          "key_id",
+          "algorithm",
+          "public_key",
+          "transport",
+          "endpoint_address",
+          "capabilities",
+          "operations",
+          "recipients",
+          "credential_expires_at",
+          "challenge_expires_at"
+        ],
+        "x-normalization": "Literal scopes/recipients/capabilities sort and deduplicate; address normalizes with the existing Endpoint validator. Validation cannot grant authority.",
+        "x-time-bounds-seconds": {
+          "challenge": 600,
+          "browser_credential": 3600,
+          "native_credential": 86400,
+          "issuer_ceiling": true
+        },
+        "x-sensitive": true
+      },
+      "EnrollmentResponse": {
+        "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-enrollment/1"
+          },
+          "result": {
+            "$ref": "#/components/schemas/Result_of_EnrollmentOffer_or_Error"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "EnrollmentResponse2": {
+        "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-enrollment/1"
+          },
+          "result": {
+            "$ref": "#/components/schemas/Result_of_EnrollmentCredential_or_Error"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "EnrollmentResponse3": {
+        "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "const": "connect-enrollment/1"
+          },
+          "result": {
+            "$ref": "#/components/schemas/Result_of_EnrollmentRevocation_or_Error"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "result"
+        ]
+      },
+      "EnrollmentRevocation": {
+        "description": "Non-secret current revocation projection for a trusted backend.",
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enrollment_id": {
+            "type": "string"
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "enrollment_id",
+          "revoked"
+        ]
+      },
+      "EnrollmentRevokeRequest": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "operation_id"
+        ]
+      },
+      "EnrollmentTransport": {
+        "type": "string",
+        "enum": [
+          "quic",
+          "webtransport",
+          "wss-webrtc"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "category",
+          "reason"
+        ]
+      },
+      "Rejection": {
+        "type": "object",
+        "properties": {
+          "problem": {
+            "$ref": "#/components/schemas/Problem"
+          },
+          "profile": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "profile",
+          "problem"
+        ]
+      },
+      "Result_of_EnrollmentCredential_or_Error": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "Ok": {
+                "$ref": "#/components/schemas/EnrollmentCredential"
+              }
+            },
+            "required": [
+              "Ok"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Err": {
+                "$ref": "#/components/schemas/Error"
+              }
+            },
+            "required": [
+              "Err"
+            ]
+          }
+        ]
+      },
+      "Result_of_EnrollmentOffer_or_Error": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "Ok": {
+                "$ref": "#/components/schemas/EnrollmentOffer"
+              }
+            },
+            "required": [
+              "Ok"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Err": {
+                "$ref": "#/components/schemas/Error"
+              }
+            },
+            "required": [
+              "Err"
+            ]
+          }
+        ]
+      },
+      "Result_of_EnrollmentRevocation_or_Error": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "Ok": {
+                "$ref": "#/components/schemas/EnrollmentRevocation"
+              }
+            },
+            "required": [
+              "Ok"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "Err": {
+                "$ref": "#/components/schemas/Error"
+              }
+            },
+            "required": [
+              "Err"
+            ]
+          }
+        ]
+      },
+      "SigningAlgorithm": {
+        "type": "string",
+        "enum": [
+          "EdDSA",
+          "ES256"
+        ]
+      }
+    }
+  }
+}

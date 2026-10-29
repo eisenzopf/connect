@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EnrollmentContract",
+  "type": "object",
+  "properties": {
+    "claim": {
+      "$ref": "#/$defs/EnrollmentClaim"
+    },
+    "credential_response": {
+      "$ref": "#/$defs/EnrollmentResponse2"
+    },
+    "hosting_rejection": {
+      "$ref": "#/$defs/Rejection"
+    },
+    "offer_response": {
+      "$ref": "#/$defs/EnrollmentResponse"
+    },
+    "request": {
+      "$ref": "#/$defs/EnrollmentRequest"
+    },
+    "revoke": {
+      "$ref": "#/$defs/EnrollmentRevokeRequest"
+    },
+    "revoke_response": {
+      "$ref": "#/$defs/EnrollmentResponse3"
+    }
+  },
+  "required": [
+    "request",
+    "claim",
+    "revoke",
+    "offer_response",
+    "credential_response",
+    "revoke_response",
+    "hosting_rejection"
+  ],
+  "$defs": {
+    "CredentialIssueOutcome": {
+      "description": "Intended protected response only. Persist the original request before IO;\nexact replay never replaces the credential or extends its absolute expiry.",
+      "type": "object",
+      "properties": {
+        "credential": {
+          "type": "string"
+        },
+        "credential_id": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "identity_id": {
+          "type": "string"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "issued_at": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "issuer_credential_id": {
+          "type": "string"
+        },
+        "issuer_identity_id": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "credential_id",
+        "identity_id",
+        "issuer_identity_id",
+        "issuer_credential_id",
+        "installation_id",
+        "operations",
+        "recipients",
+        "issued_at",
+        "expires_at",
+        "credential"
+      ]
+    },
+    "DeviceSpec": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "platform"
+      ]
+    },
+    "EnrollmentClaim": {
+      "description": "Unauthenticated claim syntax. Binding checks are not signature verification.",
+      "type": "object",
+      "properties": {
+        "browser_origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "challenge": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "endpoint_id": {
+          "type": "string"
+        },
+        "enrollment_id": {
+          "type": "string"
+        },
+        "identity_id": {
+          "type": "string"
+        },
+        "key_id": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "signature": {
+          "description": "Canonical unpadded base64url; Ed25519/ES256 signatures are exactly64 bytes.",
+          "type": "string"
+        },
+        "transport": {
+          "$ref": "#/$defs/EnrollmentTransport"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "enrollment_id",
+        "identity_id",
+        "device_id",
+        "endpoint_id",
+        "key_id",
+        "transport",
+        "challenge",
+        "signature"
+      ]
+    },
+    "EnrollmentCredential": {
+      "description": "Protected client response after verified admission; never a public journal receipt.",
+      "type": "object",
+      "properties": {
+        "browser_origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "credential": {
+          "$ref": "#/$defs/CredentialIssueOutcome"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "endpoint_id": {
+          "type": "string"
+        },
+        "enrollment_id": {
+          "type": "string"
+        },
+        "key_id": {
+          "type": "string"
+        },
+        "transport": {
+          "$ref": "#/$defs/EnrollmentTransport"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enrollment_id",
+        "endpoint_id",
+        "device_id",
+        "key_id",
+        "transport",
+        "credential"
+      ]
+    },
+    "EnrollmentOffer": {
+      "description": "Protected backend offer. Its challenge alone never proves device possession.",
+      "type": "object",
+      "properties": {
+        "challenge": {
+          "type": "string"
+        },
+        "endpoint_id": {
+          "type": "string"
+        },
+        "enrollment_id": {
+          "type": "string"
+        },
+        "installation_id": {
+          "type": "string"
+        },
+        "issuer_identity_id": {
+          "type": "string"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/EnrollmentRequest"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "enrollment_id",
+        "endpoint_id",
+        "installation_id",
+        "issuer_identity_id",
+        "request",
+        "challenge"
+      ]
+    },
+    "EnrollmentRequest": {
+      "description": "Backend-approved original intent. No operator/provider secret is accepted.",
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "$ref": "#/$defs/SigningAlgorithm"
+        },
+        "browser_origin": {
+          "description": "Exact serialized HTTPS origin for browser profiles; absent for QUIC.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "challenge_expires_at": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "completion_operation_id": {
+          "description": "Client persists this logical completion ID before requesting approval.",
+          "type": "string"
+        },
+        "credential_expires_at": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "device": {
+          "$ref": "#/$defs/DeviceSpec"
+        },
+        "endpoint_address": {
+          "type": "string"
+        },
+        "identity_id": {
+          "type": "string"
+        },
+        "key_id": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transport": {
+          "$ref": "#/$defs/EnrollmentTransport"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "completion_operation_id",
+        "identity_id",
+        "device",
+        "key_id",
+        "algorithm",
+        "public_key",
+        "transport",
+        "endpoint_address",
+        "capabilities",
+        "operations",
+        "recipients",
+        "credential_expires_at",
+        "challenge_expires_at"
+      ]
+    },
+    "EnrollmentResponse": {
+      "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/Result_of_EnrollmentOffer_or_Error"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "result"
+      ]
+    },
+    "EnrollmentResponse2": {
+      "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/Result_of_EnrollmentCredential_or_Error"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "result"
+      ]
+    },
+    "EnrollmentResponse3": {
+      "description": "Protected HTTP result. Successful offers and credentials must stay private.",
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/$defs/Result_of_EnrollmentRevocation_or_Error"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "result"
+      ]
+    },
+    "EnrollmentRevocation": {
+      "description": "Non-secret current revocation projection for a trusted backend.",
+      "type": "object",
+      "properties": {
+        "credential_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enrollment_id": {
+          "type": "string"
+        },
+        "revoked": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enrollment_id",
+        "revoked"
+      ]
+    },
+    "EnrollmentRevokeRequest": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id"
+      ]
+    },
+    "EnrollmentTransport": {
+      "type": "string",
+      "enum": [
+        "quic",
+        "webtransport",
+        "wss-webrtc"
+      ]
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "Problem": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "category",
+        "reason"
+      ]
+    },
+    "Rejection": {
+      "type": "object",
+      "properties": {
+        "problem": {
+          "$ref": "#/$defs/Problem"
+        },
+        "profile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "problem"
+      ]
+    },
+    "Result_of_EnrollmentCredential_or_Error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Ok": {
+              "$ref": "#/$defs/EnrollmentCredential"
+            }
+          },
+          "required": [
+            "Ok"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Err": {
+              "$ref": "#/$defs/Error"
+            }
+          },
+          "required": [
+            "Err"
+          ]
+        }
+      ]
+    },
+    "Result_of_EnrollmentOffer_or_Error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Ok": {
+              "$ref": "#/$defs/EnrollmentOffer"
+            }
+          },
+          "required": [
+            "Ok"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Err": {
+              "$ref": "#/$defs/Error"
+            }
+          },
+          "required": [
+            "Err"
+          ]
+        }
+      ]
+    },
+    "Result_of_EnrollmentRevocation_or_Error": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "Ok": {
+              "$ref": "#/$defs/EnrollmentRevocation"
+            }
+          },
+          "required": [
+            "Ok"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Err": {
+              "$ref": "#/$defs/Error"
+            }
+          },
+          "required": [
+            "Err"
+          ]
+        }
+      ]
+    },
+    "SigningAlgorithm": {
+      "type": "string",
+      "enum": [
+        "EdDSA",
+        "ES256"
+      ]
+    }
+  }
+}

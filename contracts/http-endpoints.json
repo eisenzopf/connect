@@ -1,8 +1,8 @@
 {
   "status": "Source route/reference inventory only; runtime schemas and authorization need separate evidence.",
   "scope": "All current route/route_service/nest/nest_service declarations in Connect server and MCP source, plus explicit configured canonical transport mounts. Framework-generated methods and all /v1/operations body variants are not independently qualified by path coverage.",
-  "declarations": 25,
-  "explicit_http_operations": 26,
+  "declarations": 28,
+  "explicit_http_operations": 29,
   "parameter_matching": "Only placeholder names are normalized. Original source path and every referenced path spelling remain recorded.",
   "routes": [
     {
@@ -68,6 +68,63 @@
               "path": "/v2/credentials",
               "method": "post",
               "pointer": "/paths/~1v2~1credentials/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/enrollment.rs",
+      "line": 33,
+      "registration": "route",
+      "path": "/v2/enrollments",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-enrollment.json",
+              "path": "/v2/enrollments",
+              "method": "post",
+              "pointer": "/paths/~1v2~1enrollments/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/enrollment.rs",
+      "line": 34,
+      "registration": "route",
+      "path": "/v2/enrollments/{id}/revoke",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-enrollment.json",
+              "path": "/v2/enrollments/{id}/revoke",
+              "method": "post",
+              "pointer": "/paths/~1v2~1enrollments~1{id}~1revoke/post"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "crates/connect-server/src/transports/enrollment.rs",
+      "line": 40,
+      "registration": "route",
+      "path": "/v2/enrollments/{id}/claim",
+      "operations": [
+        {
+          "method": "post",
+          "references": [
+            {
+              "document": "contracts/openapi-enrollment.json",
+              "path": "/v2/enrollments/{id}/claim",
+              "method": "post",
+              "pointer": "/paths/~1v2~1enrollments~1{id}~1claim/post"
             }
           ]
         }
@@ -322,7 +379,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 373,
+      "line": 374,
       "registration": "route",
       "path": "/v1/operations",
       "operations": [
@@ -389,7 +446,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 376,
+      "line": 378,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}",
       "operations": [
@@ -419,7 +476,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 380,
+      "line": 382,
       "registration": "route",
       "path": "/v1/conversations/{conversation_id}/artifacts/{artifact_id}/links/{token}",
       "operations": [
@@ -449,7 +506,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 384,
+      "line": 386,
       "registration": "route",
       "path": "/webhooks/telnyx",
       "operations": [
@@ -468,7 +525,7 @@
     },
     {
       "source": "crates/connect-server/src/transports/http.rs",
-      "line": 389,
+      "line": 391,
       "registration": "route",
       "path": "/healthz",
       "operations": [
@@ -571,6 +628,7 @@
     "contracts/openapi-canonical-http.json": "a5d456618b41f21ca9592d88f2787d571fd5f59a63bb9b6af38b0b849a62396d",
     "contracts/openapi-context.json": "04edd01183d47c3844a0620937e7bfd809b7e0d092261a17ab157ee767edc9e8",
     "contracts/openapi-conversations.json": "91c85900303ff4dca6cc41941dc7366fc06284af8f134057dba4b93fcb032d0c",
+    "contracts/openapi-enrollment.json": "7793f704b0e5552b5593f27873823c35db9b6390a9b2d0a7b78328d1132cb955",
     "contracts/openapi-events.json": "7e1c48e8541a86b9bbb2b55117672bf94c08e5928011a5f16bd291ef613ff404",
     "contracts/openapi-incoming-contacts.json": "a741e7059fca8a00803a10e8f3b09a77d4361dff7a9ee56c840a4fcde773eb64",
     "contracts/openapi-membership.json": "e1666be68b0043bd57b83dda1d7034f2c96d9e78e5eee36f060cf0f54c5d38e8",
@@ -588,7 +646,8 @@
     "crates/connect-server/src/canonical_webtransport.rs": "50b8f08b7ce7b68acb69030719f7d92bbced6fd1322f4e9c2c804373249fb150",
     "crates/connect-server/src/transports/canonical_http.rs": "54944369938763864e7b48119d8c4383d7c595c8ca413e9c6560555dd2d76ef6",
     "crates/connect-server/src/transports/credential_issuance.rs": "fb16b6a66e3324e03057f22be479ee4afd720d675c5e86a7b000504321833a96",
-    "crates/connect-server/src/transports/http.rs": "21d955183099f48c29e4fe59e32892b9ae0cb737d3b38adc4621d98e0c4eada5",
+    "crates/connect-server/src/transports/enrollment.rs": "daf5be01ccb1d8d6a631d1df3689cece82510c25df04d6136cd14e775df3c63b",
+    "crates/connect-server/src/transports/http.rs": "83ee5f56a37007fd7953b73682105e7bc7ad7c635be17010b69b2db8fde995bf",
     "crates/connect-server/src/transports/record_https.rs": "bd35ff993c355e61442b30d10021b33acd8c8bad8f1abc50783f1db44808cdd3",
     "crates/connect-server/src/transports/record_mutations.rs": "49a9ccc35833669aa405ea105d2c0126173c5937055f5bb849f25ee416cc1113",
     "crates/connect-server/src/transports/user_delegation.rs": "de833cdafbb9dbed59c21a5d0f8d482b991eeade37b56b55fe516259be957a66"
