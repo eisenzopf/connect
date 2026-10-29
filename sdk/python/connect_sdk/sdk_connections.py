@@ -16,6 +16,7 @@ from .sdk_types import (
     Scope, SessionId, SourceClock, StreamGateObservation, StreamId, StreamResourceRevision,
     StreamRevision, StreamSelectionReceipt, StreamSelector, StreamSnapshot, StreamTarget,
     freeze, identifier,
+    MoveInput, MoveResult,
 )
 
 T = TypeVar("T")
@@ -130,6 +131,10 @@ class Connection:
     @property
     def streams(self) -> Streams:
         return Streams(self)
+
+    async def replace_device(self, input: MoveInput, options: MutationOptions) -> Operation[MoveResult]:
+        from .sdk_movements import replace_device
+        return await replace_device(self, input, options)
 
     async def _read(self, action: dict, options: RequestOptions, decode: Callable[[Any],T]) -> T:
         return await self._client._helper.request({"type":"connection", "conversation_id":self.conversation_id, "session_id":self.session_id, "connection_id":self.id, "action":action}, options, decode)

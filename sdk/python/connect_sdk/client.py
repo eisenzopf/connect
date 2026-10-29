@@ -22,7 +22,7 @@ from .sdk_types import (
     IdentityKind, Json, MessageAcceptance, MessageId, MutationOptions, NonEmpty,
     OperationId, OperationKey, OperationSnapshot, OperationState, ParticipantId,
     ParticipantSnapshot, RequestOptions, Scope, SdkError, freeze, identifier,
-    ConnectionUpdateReceipt, StreamSelectionReceipt,
+    ConnectionUpdateReceipt, StreamSelectionReceipt, ConsultationResult, HandoffResult, MoveResult, TopologyRevision,
 )
 
 T = TypeVar("T")
@@ -90,7 +90,7 @@ def _mutation(options: MutationOptions) -> dict:
 class OperationKind(Generic[T]):
     command: str
     _name: str
-    _decode: Callable[[Any, Client, OperationKey], T]
+    _decode: Callable[[Any, Client, OperationKey, Json], T]
     _proof: object = field(repr=False)
 
     def __post_init__(self):
@@ -133,6 +133,11 @@ class Operation(Generic[T]):
     reference: OperationReference[T]
     _record: str | None = field(default=None, init=False)
 
+    def __post_init__(self):
+        if self.reference.command == "session.consult":
+            context = cast(Any,self.reference._saved)["continuation"]
+            object.__setattr__(self, "_record", context.get("record_id"))
+
     def reference_json(self) -> Json:
         value, _ = _encode(self.reference._saved, 4096)
         return value
@@ -143,6 +148,10 @@ class Operation(Generic[T]):
             if self._record is not None and snapshot.record_id != self._record:
                 return _bad()
             object.__setattr__(self, "_record", snapshot.record_id)
+            if self.reference.command == "session.consult":
+                saved = cast(Any,self.reference._saved)
+                context = {**saved["continuation"], "record_id":snapshot.record_id}
+                object.__setattr__(self.reference, "_saved", freeze({**saved, "continuation":context}))
         return snapshot
 
     async def _run(self, action: dict, options: RequestOptions, decode: Callable[[Any], R],
@@ -169,11 +178,15 @@ class Operation(Generic[T]):
             snapshot = self._observe(value["snapshot"])
             if snapshot.state != "completed":
                 return _bad()
-            result = self.reference._kind._decode(value["value"], self._client, self.reference._key)
+            result = self.reference._kind._decode(value["value"], self._client, self.reference._key, self.reference._saved)
             if isinstance(result, DecisionReceipt) and self.reference._decision_target is not None and result.target != self.reference._decision_target:
                 return _bad()
             return Completion(snapshot, result)
         return await self._run({"type":"wait"}, options, decode)
+
+    async def return_to_retained(self: Operation[ConsultationResult], expected_topology_revision: TopologyRevision, options: MutationOptions) -> Operation[Session]:
+        from .sdk_movements import return_to_retained
+        return await return_to_retained(self, expected_topology_revision, options)
 
     async def _decide(self, action: dict, options: MutationOptions, kind: OperationKind[DecisionReceipt]) -> Operation[DecisionReceipt]:
         action = {**action, "mutation":_mutation(options)}
@@ -196,7 +209,7 @@ class Operation(Generic[T]):
         return await self._decide({"type":"reconcile", "outcome":outcome, "evidence_id":evidence_id}, options, self._client.operation_kinds.operation_reconcile)
 
 
-def _decision(value: Any, client: Client, key: OperationKey) -> DecisionReceipt:
+def _decision(value: Any, client: Client, key: OperationKey, saved: Json) -> DecisionReceipt:
     if (not _object(value, ("decision", "target", "observedState", "disposition", "evidenceId"))
             or _key(value["decision"]) != key or not identifier(value["target"]) or value["target"] == key.operation_id
             or type(value["observedState"]) is not str or value["observedState"] not in _STATES
@@ -206,47 +219,62 @@ def _decision(value: Any, client: Client, key: OperationKey) -> DecisionReceipt:
     return DecisionReceipt(key, value["target"], cast(OperationState, value["observedState"]), value["disposition"], value["evidenceId"])
 
 
-def _message(value: Any, client: Client, key: OperationKey) -> MessageAcceptance:
+def _message(value: Any, client: Client, key: OperationKey, saved: Json) -> MessageAcceptance:
     if not _object(value, ("messageId", "operation", "boundary")) or not identifier(value["messageId"]) or _key(value["operation"]) != key or value["boundary"] != "local-mutation":
         return _bad()
     return MessageAcceptance(value["messageId"], key)
 
 
-def _conversation(value: Any, client: Client, key: OperationKey) -> Conversation:
+def _conversation(value: Any, client: Client, key: OperationKey, saved: Json) -> Conversation:
     if not _object(value, ("id",)) or not identifier(value["id"]):
         return _bad()
     return client.conversations.by_id(value["id"])
 
 
-def _participant(value: Any, client: Client, key: OperationKey) -> Participant:
+def _participant(value: Any, client: Client, key: OperationKey, saved: Json) -> Participant:
     if not _object(value, ("id", "conversationId")) or not identifier(value["id"]) or value["conversationId"] != key.scope.conversation_id:
         return _bad()
     return client.conversations.by_id(value["conversationId"]).participants.by_id(value["id"])
 
 
-def _session(value: Any, client: Client, key: OperationKey) -> Session:
+def _session(value: Any, client: Client, key: OperationKey, saved: Json) -> Session:
     from .sdk_sessions import session_handle
     return session_handle(value, client, key)
 
 
-def _session_decision(value: Any, client: Client, key: OperationKey) -> SessionDecision:
+def _session_decision(value: Any, client: Client, key: OperationKey, saved: Json) -> SessionDecision:
     from .sdk_sessions import session_decision
     return session_decision(value, client, key)
 
 
-def _connection(value: Any, client: Client, key: OperationKey) -> Connection:
+def _connection(value: Any, client: Client, key: OperationKey, saved: Json) -> Connection:
     from .sdk_connections import connection_handle
     return connection_handle(value, client, key)
 
 
-def _connection_update(value: Any, client: Client, key: OperationKey) -> ConnectionUpdateReceipt:
+def _connection_update(value: Any, client: Client, key: OperationKey, saved: Json) -> ConnectionUpdateReceipt:
     from .sdk_connections import connection_update
     return connection_update(value, client, key)
 
 
-def _stream_selection(value: Any, client: Client, key: OperationKey) -> StreamSelectionReceipt:
+def _stream_selection(value: Any, client: Client, key: OperationKey, saved: Json) -> StreamSelectionReceipt:
     from .sdk_connections import stream_selection
     return stream_selection(value, client, key)
+
+
+def _consultation(value: Any, client: Client, key: OperationKey, saved: Json) -> ConsultationResult:
+    from .sdk_movements import consultation_result
+    return consultation_result(value, client, key, saved)
+
+
+def _handoff(value: Any, client: Client, key: OperationKey, saved: Json) -> HandoffResult:
+    from .sdk_movements import handoff_result
+    return handoff_result(value, client, key, saved)
+
+
+def _move(value: Any, client: Client, key: OperationKey, saved: Json) -> MoveResult:
+    from .sdk_movements import move_result
+    return move_result(value, client, key, saved)
 
 
 @dataclass(frozen=True)
@@ -270,6 +298,11 @@ class OperationKinds:
     stream_subscribe: OperationKind[StreamSelectionReceipt] = field(default_factory=lambda:OperationKind("stream.subscribe", "stream_subscribe", _stream_selection, _PROOF))
     stream_unsubscribe: OperationKind[StreamSelectionReceipt] = field(default_factory=lambda:OperationKind("stream.unsubscribe", "stream_unsubscribe", _stream_selection, _PROOF))
 
+    session_consult: OperationKind[ConsultationResult] = field(default_factory=lambda:OperationKind("session.consult", "session_consult", _consultation, _PROOF))
+    session_consult_return: OperationKind[Session] = field(default_factory=lambda:OperationKind("session.consult.return", "session_consult_return", _session, _PROOF))
+    session_handoff: OperationKind[HandoffResult] = field(default_factory=lambda:OperationKind("session.handoff", "session_handoff", _handoff, _PROOF))
+    connection_replace: OperationKind[MoveResult] = field(default_factory=lambda:OperationKind("connection.replace", "connection_replace", _move, _PROOF))
+
 
 _KINDS = OperationKinds()
 
@@ -279,11 +312,13 @@ class Operations:
     _client: Client
 
     def restore(self, saved: Json, expected: OperationKind[T]) -> Operation[T]:
-        if expected not in vars(_KINDS).values():
+        if not any(expected is known for known in vars(_KINDS).values()):
             return _invalid()
         try:
             value, _ = _encode(saved, 4096)
-            if (not _object(value, ("schema", "operation_id", "command", "scope"))
+            transition = expected.command in ("session.consult","session.consult.return","session.handoff","connection.replace")
+            fields = ("schema", "operation_id", "command", "scope") + (("continuation",) if transition else ())
+            if (not _object(value, fields)
                     or value["schema"] != "connect-operation-reference/1" or not identifier(value["operation_id"])
                     or value["command"] != expected.command or type(value["scope"]) is not dict
                     or not set(value["scope"]) <= {"conversation_id", "session_id", "connection_id"}
@@ -297,10 +332,14 @@ class Operations:
                     return _invalid()
             if expected.command.startswith("operation.") and scope.connection_id is not None:
                 return _invalid()
-            if expected.command.startswith("session.") and (scope.conversation_id is None or scope.session_id is None or scope.connection_id is not None):
+            if expected.command.startswith("session.") and not transition and (scope.conversation_id is None or scope.session_id is None or scope.connection_id is not None):
                 return _invalid()
             if expected.command.startswith(("connection.","stream.")) and scope.connection_id is None:
                 return _invalid()
+            if transition:
+                from .sdk_movements import valid_context
+                if scope.connection_id is None or not valid_context(value["continuation"], expected.command, scope.connection_id):
+                    return _invalid()
             key = OperationKey(value["operation_id"], value["command"], scope)
             return Operation(self._client, OperationReference(key, expected, freeze(value), _PROOF))
         except (ValueError, TypeError, UnicodeError, RecursionError):

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 if TYPE_CHECKING:
     from .sdk_connections import Connections
+    from .sdk_movements import ConsultationOperation
 
 from .client import Client, Operation, OperationKind, _bad, _id, _invalid, _mutation, _natural, _object, _revision
 from .sdk_types import (
@@ -14,6 +15,7 @@ from .sdk_types import (
     MutationOptions, NonEmpty, OperationKey, ParticipantId, ParticipantLeave,
     RequestOptions, RoleChange, Scope, SessionId, SessionRevision, SessionSnapshot,
     SessionUpdate, TopologyRevision, freeze, identifier,
+    ConsultInput, HandoffInput, HandoffResult,
 )
 
 T = TypeVar("T")
@@ -105,6 +107,14 @@ class Session:
     def connections(self) -> Connections:
         from .sdk_connections import Connections
         return Connections(self._client, self.conversation_id, self.id)
+
+    async def consult(self, input: ConsultInput, options: MutationOptions) -> ConsultationOperation:
+        from .sdk_movements import consult
+        return await consult(self, input, options)
+
+    async def handoff(self, input: HandoffInput, options: MutationOptions) -> Operation[HandoffResult]:
+        from .sdk_movements import handoff
+        return await handoff(self, input, options)
 
     async def _mutate(self, action: dict, kind: OperationKind[T], options: MutationOptions) -> Operation[T]:
         action = {**action, "mutation":_mutation(options)}

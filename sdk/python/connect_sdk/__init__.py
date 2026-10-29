@@ -7,6 +7,7 @@ from .record_context import ContextRecord
 from .client import Client, Conversation, Participant, Operation, OperationKind, OperationKinds, OperationReference
 from .sdk_sessions import Session, SessionDecision, Sessions
 from .sdk_connections import Connection, Connections, Stream, Streams
+from .sdk_movements import ConsultationOperation
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -21,6 +22,8 @@ from .sdk_types import (
     MediaFormat, Mute, NegotiatedStream, OfferedStream, ParticipantStreams, Quality, QualityOutcome,
     ResumeConnection, SourceClock, StreamGateObservation, StreamResourceRevision, StreamSelectionReceipt,
     StreamSelector, StreamSnapshot, StreamTarget,
+    ConsultInput, ConsultationResult, ConversationRole, DeviceId, EndpointTarget, CandidateTarget,
+    HandoffInput, HandoffResult, HandoffRoleChange, MoveInput, MoveResult, MoveBinding, SessionRole, TopologyChange,
 )
 
 __all__ = ["ConnectError", "NativeClient", "NativeAudioClient", "HttpClient", "ContextRecord", "TASK_PROFILE", "TaskCommand", "TaskDefinition", "TaskOutcome", "TaskRecord", "TaskScope"]
@@ -44,4 +47,7 @@ __all__ += [
     "NegotiatedStream", "OfferedStream", "ParticipantStreams", "Quality", "QualityOutcome", "ResumeConnection",
     "SourceClock", "StreamGateObservation", "StreamResourceRevision", "StreamSelectionReceipt", "StreamSelector",
     "StreamSnapshot", "StreamTarget",
+    "ConsultationOperation", "ConsultInput", "ConsultationResult", "ConversationRole", "DeviceId",
+    "EndpointTarget", "CandidateTarget", "HandoffInput", "HandoffResult", "HandoffRoleChange",
+    "MoveInput", "MoveResult", "MoveBinding", "SessionRole", "TopologyChange",
 ]

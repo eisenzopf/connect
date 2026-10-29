@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Generic, Literal, Mapping, NewType, Protocol, 
 
 if TYPE_CHECKING:
     from .sdk_connections import Connection
+    from .sdk_sessions import Session
+    from .client import Operation
 
 ConversationId = NewType("ConversationId", str)
 ParticipantId = NewType("ParticipantId", str)
@@ -19,6 +21,7 @@ StreamId = NewType("StreamId", str)
 OperationId = NewType("OperationId", str)
 MessageId = NewType("MessageId", str)
 EndpointId = NewType("EndpointId", str)
+DeviceId = NewType("DeviceId", str)
 IdentityId = NewType("IdentityId", str)
 Cursor = NewType("Cursor", str)
 ConversationRevision = NewType("ConversationRevision", int)
@@ -392,6 +395,100 @@ class StreamSnapshot:
     format: MediaFormat | None
     clock: SourceClock | None
     ownership: Literal["observation", "local-source", "local-sink", "local-duplex"]
+
+
+@dataclass(frozen=True)
+class ConsultInput:
+    via: ConnectionId
+    retain: ConnectionId
+    with_participants: NonEmpty[ParticipantId]
+    hold: Literal["silence", "configured-media"]
+    expected_topology_revision: TopologyRevision
+
+
+@dataclass(frozen=True)
+class SessionRole:
+    scope: Literal["session"] = "session"
+
+
+@dataclass(frozen=True)
+class ConversationRole:
+    expected_conversation_revision: ConversationRevision
+    scope: Literal["conversation"] = "conversation"
+
+
+@dataclass(frozen=True, repr=False)
+class HandoffInput:
+    via: ConnectionId
+    from_participant: ParticipantId
+    to: ParticipantId
+    retain: ConnectionId
+    outgoing: Literal["leave", "observe"]
+    role: SessionRole | ConversationRole
+    expected_topology_revision: TopologyRevision
+    candidate: ConnectionId | None = None
+    consultation: Operation[ConsultationResult] | None = None
+
+
+@dataclass(frozen=True)
+class EndpointTarget:
+    endpoint: EndpointId
+
+
+@dataclass(frozen=True)
+class CandidateTarget:
+    candidate: ConnectionId
+
+
+@dataclass(frozen=True)
+class MoveInput:
+    retain: ConnectionId
+    target: EndpointTarget | CandidateTarget
+    expected_topology_revision: TopologyRevision
+
+
+@dataclass(frozen=True, repr=False)
+class TopologyChange:
+    retained: Sequence[Connection]
+    admitted: Sequence[Connection]
+    retired: Sequence[ConnectionId]
+    topology_revision: TopologyRevision
+    conversation_revision: ConversationRevision | None
+
+
+@dataclass(frozen=True, repr=False)
+class ConsultationResult(TopologyChange):
+    session: Session
+
+
+@dataclass(frozen=True, repr=False)
+class HandoffRoleChange:
+    participant_revision: int
+    role_scope: Literal["session", "conversation"]
+    outgoing: Literal["leave", "observe"]
+    source_participant: ParticipantId
+    target_participant: ParticipantId
+    cleanup: Literal["pending", "not_requested"]
+
+
+@dataclass(frozen=True, repr=False)
+class HandoffResult(TopologyChange):
+    role_change: HandoffRoleChange | None
+
+
+@dataclass(frozen=True, repr=False)
+class MoveBinding:
+    generation: int
+    participant_id: ParticipantId
+    membership_epoch: int
+    endpoint_id: EndpointId
+    device_id: DeviceId
+
+
+@dataclass(frozen=True, repr=False)
+class MoveResult(TopologyChange):
+    connection: Connection
+    binding: MoveBinding
 
 
 @dataclass(frozen=True)

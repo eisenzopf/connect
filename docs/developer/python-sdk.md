@@ -68,8 +68,7 @@ The synchronous API remains G6-063 implementation work. Its intended owner is a
 dedicated event-loop thread with the same bounded dispatch, deadlines and single
 process lifetime; calling `asyncio.run()` independently for each method cannot
 share this client safely. Current public APIs are asynchronous. Remaining work
-also includes movement/consultation,
-incoming/durable events, raw/HTTP parity, administrative provisioning, helper
+also includes incoming/durable events, raw/HTTP parity, administrative provisioning, helper
 packaging and the clean installed-venv real-server/restart qualification.
 Capabilities advertise only Python interfaces currently exposed and supported
 by the original helper. They do not grant server permission or native media.
@@ -106,3 +105,31 @@ attempts failed because the Mac exhausted disk space; they are not passes.
 Only reproducible Python test caches were removed. The successful rerun retains
 raw logs privately. Linux and actual installed native/server qualification for
 this expanded source remain pending.
+
+Consultation, return, handoff and device replacement now complete the22 frozen
+participant operation-kind mappings. `Session.consult(ConsultInput(...), options)`
+returns a `ConsultationOperation`; its typed `return_to_retained(topology, options)`
+creates a separately identified return operation. A saved consultation retains
+its original host record. A previously unbound restored reference binds that
+record on observation and exports it for later recovery. A different record
+fences the original owner rather than silently rebinding it.
+
+`Session.handoff(HandoffInput(...), options)` preserves the original retained
+Connection, optional exact candidate, leave/observe disposition and Session or
+Conversation role scope. An optional consultation uses the original SDK-created
+reference. `Connection.replace_device(MoveInput(...), options)` accepts exactly
+one `EndpointTarget` or `CandidateTarget`. Typed results preserve disjoint
+retained/admitted/retired topology, revision families and captured role/binding
+observations. None of these recovered handles acquires native media custody.
+The actual backend candidate-preparation defect remains unresolved; synthetic
+Python candidate tests do not qualify that production path.
+
+[Transition evidence](../evidence/gate-6/python-sdk-transition-control.json)
+records100 local functions, including12 new transition functions and the
+47 public-control,17 owned-helper and36 historical regression functions
+in total (the47 include these12). All six runtime modules and the actual public
+outline pass mypy;18 unsuppressed negative constraints reject mixed IDs,
+revision/result families, ambiguous targets, foreign witnesses and unsupported
+media custody. The22 Python kind names match the frozen contract and original
+Rust helper enum. Complete installed/native/server/Linux qualification, events,
+raw/HTTP/admin interfaces, synchronous ownership and deployment remain open.

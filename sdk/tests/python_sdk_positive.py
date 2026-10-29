@@ -7,6 +7,8 @@ from connect_sdk import (
     Connection, ConnectionId, ConnectionUpdateReceipt, OfferedStream,
     Quality, Session, SessionDecision, SessionId, StreamId, StreamRevision,
     StreamSelectionReceipt, StreamTarget, TopologyRevision,
+    CandidateTarget, ConsultInput, ConsultationOperation, ConsultationResult, EndpointId,
+    EndpointTarget, HandoffInput, HandoffResult, MoveInput, MoveResult, SessionRole,
 )
 
 
@@ -39,3 +41,18 @@ async def session_control(client: Client, options: RequestOptions, mutation: Mut
     connection = (await offered.wait(options)).value
     assert_type(await connection.update(Quality(250), StreamRevision(1), mutation), Operation[ConnectionUpdateReceipt])
     assert_type(await connection.streams.subscribe(NonEmpty(StreamTarget(StreamId('audio'))), StreamRevision(1), mutation), Operation[StreamSelectionReceipt])
+
+
+async def transitions(client: Client, mutation: MutationOptions) -> None:
+    session=client.conversations.by_id(ConversationId('room')).sessions.by_id(SessionId('session'))
+    consulted=await session.consult(ConsultInput(ConnectionId('controller'),ConnectionId('retained'),NonEmpty(ParticipantId('peer')),'silence',TopologyRevision(2)),mutation)
+    assert_type(consulted,ConsultationOperation)
+    assert_type(consulted,Operation[ConsultationResult])
+    assert_type(await consulted.return_to_retained(TopologyRevision(3),mutation),Operation[Session])
+    handed=await session.handoff(HandoffInput(ConnectionId('controller'),ParticipantId('from'),ParticipantId('to'),ConnectionId('retained'),'leave',SessionRole(),TopologyRevision(3),consultation=consulted),mutation)
+    assert_type(handed,Operation[HandoffResult])
+    connection=session.connections.by_id(ConnectionId('controller'))
+    moved=await connection.replace_device(MoveInput(ConnectionId('retained'),EndpointTarget(EndpointId('endpoint')),TopologyRevision(4)),mutation)
+    assert_type(moved,Operation[MoveResult])
+    assert_type(await connection.replace_device(MoveInput(ConnectionId('retained'),CandidateTarget(ConnectionId('candidate')),TopologyRevision(4)),mutation),Operation[MoveResult])
+    assert_type(client.operations.restore(moved.reference_json(),client.operation_kinds.connection_replace),Operation[MoveResult])

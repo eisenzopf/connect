@@ -1,8 +1,9 @@
-"""Twelve unsuppressed public-type constraints; compilation must fail exactly twelve."""
+"""Eighteen unsuppressed public-type constraints; compilation must fail exactly eighteen."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
     ConnectionId, Quality, Session, SessionId, SessionRevision, StreamId, StreamResourceRevision, StreamRevision,
+    ConversationRevision, ConversationRole, HandoffInput, IdentityId, MoveInput, MoveResult, SessionRole,
 )
 
 
@@ -23,3 +24,10 @@ async def invalid(client: Client, options: RequestOptions, mutation: MutationOpt
     await connection.streams.subscribe([], StreamRevision(1), mutation)
     wrong_connection: Operation[Session] = client.operations.restore({}, client.operation_kinds.connection_offer)
     connection.streams.by_id(StreamId('audio')).send_audio(b'no custody')
+    await message.return_to_retained(TopologyRevision(3),mutation)
+    MoveInput(ConnectionId('retained'),{'endpoint':'endpoint','candidate':'candidate'},TopologyRevision(3))
+    HandoffInput(ConnectionId('controller'),IdentityId('wrong-identity-kind'),ParticipantId('to'),ConnectionId('retained'),'leave',SessionRole(),TopologyRevision(3))
+    ConversationRole(TopologyRevision(3))
+    wrong_handoff: Operation[MoveResult] = client.operations.restore({},client.operation_kinds.session_handoff)
+    consult=client.operations.restore({},client.operation_kinds.session_consult)
+    await consult.return_to_retained(SessionRevision(3),mutation)

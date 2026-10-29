@@ -62,6 +62,10 @@ class TypedPythonSdk(PythonSdkFixture):
                 with self.assertRaises(SdkError) as observed:client.operations.restore(value,client.operation_kinds.message_send)
                 self.assertEqual(observed.exception.kind,'validation')
         with self.assertRaises(SdkError):client.operations.restore(saved(),object())
+        class EqualButForeign:
+            command='message.send'
+            def __eq__(self,other):return True
+        with self.assertRaises(SdkError):client.operations.restore(saved(),EqualButForeign())
         with self.assertRaises(SdkError):client.operations.recover(object())
         with self.assertRaises(SdkError):client.operations.restore(saved('conversation.create',{'conversation_id':'room'}),client.operation_kinds.conversation_create)
         self.assertEqual(self.calls(),[]);self.assertIsNone(client._helper._process)
