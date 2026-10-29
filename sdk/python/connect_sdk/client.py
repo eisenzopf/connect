@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from .sdk_connections import Connection
     from .sdk_events import EventStream
     from .sdk_incoming import InvitationStream
+    from .sdk_raw import RawCanonical
 
 from ._sdk_helper import _SdkHelper, _encode
 from .sdk_types import (
@@ -499,7 +500,7 @@ class Capabilities:
                     or len(set(value["features"])) != len(value["features"])):
                 return _bad()
             # Expose only interfaces actually implemented by this Python facade.
-            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations")))
+            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations", "raw-canonical")))
         return await self._client._helper.request({"type":"capabilities_refresh"}, options, decode)
 
     async def require(self, feature: str, options: RequestOptions) -> None:
@@ -517,13 +518,16 @@ class Client:
     operations: Operations
     conversations: Conversations
     capabilities: Capabilities
+    raw: RawCanonical
 
     def __init__(self, config: str | os.PathLike, executable: str | os.PathLike = "connect"):
+        from .sdk_raw import RawCanonical
         object.__setattr__(self, "_helper", _SdkHelper(config, executable))
         object.__setattr__(self, "operation_kinds", _KINDS)
         object.__setattr__(self, "operations", Operations(self))
         object.__setattr__(self, "conversations", Conversations(self))
         object.__setattr__(self, "capabilities", Capabilities(self))
+        object.__setattr__(self, "raw", RawCanonical(self._helper))
 
     def _from_reply(self, value: Any, kind: OperationKind[T], key: OperationKey) -> Operation[T]:
         try:

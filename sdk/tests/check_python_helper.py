@@ -60,7 +60,11 @@ def main():
             except subprocess.TimeoutExpired:
                 forced=True;os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=5)
     log=(private/'tests.log').read_text(errors='replace')
-    functions=re.findall(r'^\w+ \(([^)]+)\) \.\.\. ok$',log,re.M)
+    # Synchronous bounded local validation can trigger asyncio debug timing
+    # lines between unittest's test header and its final result. Keep those
+    # diagnostics in the private log and require an actual terminal ok status.
+    outcomes=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (.*?)(?=^\w+ \([A-Za-z0-9_.]+\) \.\.\. |\n-+\n)',log,re.M|re.S)
+    functions=[name for name,body in outcomes if body.strip()=='ok' or re.search(r'\nok\s*$',body)]
     assert all(re.fullmatch(r'[A-Za-z0-9_.]+',name) for name in functions)
     owned=[name for name in functions if '.OwnedSdkHelper.' in name]
     public=[name for name in functions if '.TypedPythonSdk.' in name]
@@ -68,6 +72,7 @@ def main():
     connections=[name for name in functions if '.TypedPythonConnections.' in name]
     movements=[name for name in functions if '.TypedPythonMovements.' in name]
     readers=[name for name in functions if '.TypedPythonReaders.' in name]
+    raw=[name for name in functions if '.TypedPythonRaw.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
@@ -78,7 +83,8 @@ def main():
                                 'sdk/python/connect_sdk/_sdk_helper.py','sdk/python/connect_sdk/sdk_sessions.py',
                                 'sdk/python/connect_sdk/sdk_connections.py','sdk/python/connect_sdk/sdk_movements.py',
                                 'sdk/python/connect_sdk/_sdk_readers.py','sdk/python/connect_sdk/sdk_events.py',
-                                'sdk/python/connect_sdk/sdk_incoming.py','sdk/tests/python_sdk_positive.py']),
+                                'sdk/python/connect_sdk/sdk_incoming.py','sdk/python/connect_sdk/_sdk_validation.py',
+                                'sdk/python/connect_sdk/sdk_raw.py','sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
         for label,paths in commands:
@@ -93,15 +99,15 @@ def main():
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*16+['attr-defined']*4+['misc']*2,
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*17+['attr-defined']*5+['misc']*3,
                'checks':checks}
     unchanged=unchanged and sources()==before
     result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==120 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20
-                          and re.search(r'^Ran 120 tests in ',log,re.M)
+                          and len(functions)==139 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19
+                          and re.search(r'^Ran 139 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, frozen-parser-classified finite raw canonical exchanges, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
             'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
@@ -111,6 +117,7 @@ def main():
             'typed_session_functions_passed':len(sessions),'typed_connection_functions_passed':len(connections),
             'typed_movement_functions_passed':len(movements),
             'typed_reader_functions_passed':len(readers),
+            'typed_raw_functions_passed':len(raw),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),

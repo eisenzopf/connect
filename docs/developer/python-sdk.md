@@ -68,7 +68,7 @@ The synchronous API remains G6-063 implementation work. Its intended owner is a
 dedicated event-loop thread with the same bounded dispatch, deadlines and single
 process lifetime; calling `asyncio.run()` independently for each method cannot
 share this client safely. Current public APIs are asynchronous. Remaining work
-also includes raw/HTTP parity, administrative provisioning, helper
+also includes HTTP parity, administrative provisioning, helper
 packaging and the clean installed-venv real-server/restart qualification.
 Capabilities advertise only Python interfaces currently exposed and supported
 by the original helper. They do not grant server permission or native media.
@@ -191,3 +191,50 @@ summary/type verification completed; its raw logs are retained as a failed
 aggregate. The passing check disables disposable bytecode/type caches. Expanded
 Linux, installed original-server/restart/current-authority and complete SDK
 qualification remain pending; G6-063 stays in progress.
+
+`client.raw` exposes finite canonical exchanges through the same Rust peer.
+`validate(value)` synchronously invokes the frozen Rust schema/intent validator,
+without a configuration argument, credentials or network. It returns an
+SDK-created `ValidatedEnvelope` with immutable `value`; `to_json()` exports an
+independent copy for private persistence. Arbitrary dictionaries and forged
+lookalikes cannot be submitted as validated tokens. Local validation confers no
+authentication or authority. The original Rust peer verifies returned signatures.
+
+```python
+checked = client.raw.validate({
+    "v": 2, "id": "saved-local-attempt", "ts": "2026-10-28T00:00:00Z",
+    "type": "operation.get", "cid": "saved-conversation",
+    "payload": {"operation_id": "saved-original-mutation"},
+})
+replies = await client.raw.request(checked, options)
+for reply in replies:
+    signed_value = reply.value
+```
+
+The local validator owns one child, a two-second absolute validation deadline,
+16-KiB output limit and a joined kill path. No private stderr is surfaced. The
+Rust descriptor classifies mutation intent and finite-lifecycle support; Python
+does not maintain a competing command-policy list. Raw execution retains payload
+extensions and original logical operation IDs while Rust creates fresh physical
+request metadata. Batches preserve every correlated frame and final ACK, signed
+metadata and optional payload fields. Python rechecks frame identity, scopes,
+terminal ordering and descriptor capture without claiming its own cryptographic
+verification. A malformed batch fences the original helper; submitted mutations
+remain uncertain and retain their original key. No automatic retry occurs.
+
+Finite journal replay needs explicit `live: False`; live leases, authentication,
+step-up, native offers/answers and binary transfer keep their dedicated lifecycle
+APIs. The original one-MiB per-envelope/depth32/node100000 limits apply without
+enlarging ordinary typed writes. Envelope and reply representations omit private
+payloads. Local validation is synchronous and can briefly block its calling
+thread, including when called from an async application.
+
+[Raw component evidence](../evidence/gate-6/python-sdk-raw.json) records139 local
+functions, including19 raw functions,72 unchanged source guards,11 runtime modules
+plus the public outline passing mypy and25 expected negative type constraints.
+All109 Node component/type regressions also pass after the shared synthetic
+fixture additions. These tests simulate the frozen validator and signed replies;
+they do not execute the original Rust validator, authenticate actual server
+traffic, or qualify complete installed SDK behavior. HTTP/admin, synchronous
+ownership, helper deployment and the installed original-server/restart/current-
+authority journey remain required.

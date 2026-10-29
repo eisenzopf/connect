@@ -10,6 +10,7 @@ from .sdk_connections import Connection, Connections, Stream, Streams
 from .sdk_movements import ConsultationOperation
 from .sdk_events import EventStream
 from .sdk_incoming import InvitationStream
+from .sdk_raw import RawCanonical, ValidatedEnvelope
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -54,4 +55,5 @@ __all__ += [
     "EndpointTarget", "CandidateTarget", "HandoffInput", "HandoffResult", "HandoffRoleChange",
     "MoveInput", "MoveResult", "MoveBinding", "SessionRole", "TopologyChange",
     "AudienceMember", "EventSource", "JournalEvent", "IncomingInvitation", "EventStream", "InvitationStream",
+    "RawCanonical", "ValidatedEnvelope",
 ]

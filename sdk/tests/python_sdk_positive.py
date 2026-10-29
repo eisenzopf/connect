@@ -1,5 +1,6 @@
 """Compiled against actual public Python runtime types; never runs a server."""
 from typing import assert_type
+from collections.abc import Sequence
 from connect_sdk import (
     Client, Conversation, ConversationId, ConversationRevision, DecisionReceipt,
     IdentityId, MessageAcceptance, MessageId, MutationOptions, NonEmpty, Operation,
@@ -10,6 +11,7 @@ from connect_sdk import (
     CandidateTarget, ConsultInput, ConsultationOperation, ConsultationResult, EndpointId,
     EndpointTarget, HandoffInput, HandoffResult, MoveInput, MoveResult, SessionRole,
     Cursor, EventStream, InvitationStream, JournalEvent, IncomingInvitation,
+    RawCanonical, ValidatedEnvelope,
 )
 
 
@@ -73,3 +75,10 @@ async def readers(client: Client, options: RequestOptions) -> None:
     assert_type(hints,InvitationStream)
     async with hints:
         assert_type(await anext(hints),IncomingInvitation)
+
+
+async def raw(client: Client, options: RequestOptions) -> None:
+    assert_type(client.raw,RawCanonical)
+    checked=client.raw.validate({'v':2,'id':'local','ts':'2026-10-28T00:00:00Z','type':'operation.get','payload':{'operation_id':'original'}})
+    assert_type(checked,ValidatedEnvelope)
+    assert_type(await client.raw.request(checked,options),Sequence[ValidatedEnvelope])

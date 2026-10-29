@@ -1,4 +1,4 @@
-"""Twenty-two unsuppressed public-type constraints; compilation must fail exactly twenty-two."""
+"""Twenty-five unsuppressed public-type constraints; compilation must fail exactly twenty-five."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
@@ -37,3 +37,7 @@ async def invalid(client: Client, options: RequestOptions, mutation: MutationOpt
     event.audience.append(event.audience[0])
     hint=await anext(client.incoming_invitations(options))
     hint.native_owner
+    await client.raw.request({},options)
+    checked=client.raw.validate({})
+    checked.value=None
+    checked.native_owner

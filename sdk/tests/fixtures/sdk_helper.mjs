@@ -134,6 +134,34 @@ createInterface({input:process.stdin}).on('line',line=>{
   if(config.mode==='raw-duplicate'||config.mode==='raw-after-ack')result.Ok.envelopes.push({value:{...frame,id:config.mode==='raw-duplicate'?frame.id:'next'},request:{error}});
   if(config.mode==='raw-empty')result.Ok.envelopes=[];
   if(config.mode==='raw-wrong-descriptor')result.Ok.envelopes[0].request={key:{operationId:'foreign',command:'ack',scope:{conversationId:v.cid??null,sessionId:null,connectionId:null}}};
+  if(config.mode==='raw-es256')frame.signature.alg='ES256';
+  if(config.mode==='raw-time')frame.ts='invalid';
+  if(config.mode==='raw-id-array')frame.id=['reply'];
+  if(config.mode==='raw-payload-array')frame.payload=[];
+  if(config.mode==='raw-v-bool')frame.v=true;
+  if(config.mode==='raw-revision')frame.expected_revision=9007199254740992;
+  if(config.mode==='raw-assigned'){
+   frame.cid='assigned-room';error.operation.scope.conversationId='assigned-room';
+  }
+  if(config.mode?.startsWith('raw-journal')||config.mode?.startsWith('raw-session-event')||config.mode?.startsWith('raw-receipt-event')||config.mode?.startsWith('raw-recording-event')){
+   const event={...frame,id:'fact',type:'conversation.event',sid:'session',connid:'connection',operation_id:'original-fact',payload:{event_id:'original-event',cursor:'original-cursor',data:{event_id:'original-event',cursor:'original-cursor',conversation_id:v.cid,session_id:'session',connection_id:'connection',operation_id:'original-fact',data:{private:'retained optional fact'}}}};
+   if(config.mode==='raw-journal-correlation')event.payload.data.event_id='foreign';
+   if(config.mode==='raw-journal-scope')event.payload.data.conversation_id='foreign';
+   if(config.mode?.startsWith('raw-session-event')){
+    event.type='session.started';delete event.connid;delete event.operation_id;event.payload={};
+    if(config.mode==='raw-session-event-connection')event.connid='forbidden';
+   }
+   if(config.mode?.startsWith('raw-receipt-event')){
+    event.type='message.delivered';delete event.sid;delete event.connid;delete event.operation_id;event.payload={evidence:{event_id:'delivery-event'}};
+    if(config.mode==='raw-receipt-event-evidence')event.payload.evidence.event_id=['foreign'];
+   }
+   if(config.mode?.startsWith('raw-recording-event')){
+    event.type='recording.vcon-ready';delete event.connid;delete event.operation_id;event.payload={vcon_handle:{uuid:'12345678-1234-1234-1234-123456789012',revision:1}};
+    if(config.mode==='raw-recording-event-handle')event.payload.vcon_handle.revision=0;
+   }
+   const operation=event.operation_id==null?null:{operationId:event.operation_id,command:event.type,scope:{conversationId:event.cid??null,sessionId:event.sid??null,connectionId:event.connid??null}};
+   result.Ok.envelopes.unshift({value:event,request:{error:{kind:'unsupported',certainty:operation?'not-submitted':'read-only',operation,problem:null,observation:null}}});
+  }
  }
  else if(a.type==='session_handoff'||a.type==='connection_move') {
   const i=a.input,handoff=a.type==='session_handoff',scope={conversation_id:a.conversation_id,session_id:a.session_id,connection_id:handoff?i.via:a.connection_id};
