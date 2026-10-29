@@ -163,6 +163,18 @@ def python_administrative_failure_diagnostic(value):
     return value
 
 
+def python_consultation_failure_diagnostic(value):
+    assert set(value)=={'phase','checkpoint','kind','certainty','line','error_type'}
+    assert value['phase']=='failed'
+    assert value['checkpoint'] in {'submit','return-submit','return-wait','return-recover','completed','revoked','close','invalid'}
+    assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
+    assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
+    assert value['line'] is None or type(value['line']) is int and 0<value['line']<100000
+    assert value['error_type'] in {'SdkError','AssertionError','AttributeError','KeyError','TypeError',
+                                   'ValueError','RuntimeError','OSError','TimeoutError'}
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -188,6 +200,7 @@ def run(node_sdk=False, python_sdk=False):
         os.environ['CONNECT_GATE6_PYTHON_CONSUMER'] = str(ROOT / python_package['consumer'])
         os.environ['CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER'] = str(ROOT / python_package['movement_consumer'])
         os.environ['CONNECT_GATE6_PYTHON_ADMIN_CONSUMER'] = str(ROOT / python_package['administrative_consumer'])
+        os.environ['CONNECT_GATE6_PYTHON_CONSULT_CONSUMER'] = str(ROOT / python_package['consultation_consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -319,6 +332,8 @@ def run(node_sdk=False, python_sdk=False):
         step['python_movement_phases'] = []
         step['python_movement_failures'] = []
         step['python_native_failures'] = []
+        step['python_consultation_phases'] = []
+        step['python_consultation_failures'] = []
         for line in text.splitlines():
             if line.startswith('installed-python-movement-phase '):
                 step['python_movement_phases'].append(python_movement_phase_diagnostic(json.loads(line.split(' ',1)[1])))
@@ -326,6 +341,14 @@ def run(node_sdk=False, python_sdk=False):
                 step['python_movement_failures'].append(python_movement_failure_diagnostic(json.loads(line.split(' ',1)[1])))
             if line.startswith('installed-python-native-failure '):
                 step['python_native_failures'].append(python_native_failure_diagnostic(json.loads(line.split(' ',1)[1])))
+            if line.startswith('installed-python-consultation-failure '):
+                step['python_consultation_failures'].append(python_consultation_failure_diagnostic(json.loads(line.split(' ',1)[1])))
+            if line.startswith('installed-python-consultation-phase '):
+                phase=json.loads(line.split(' ',1)[1])
+                assert set(phase)=={'algorithm','phase','seconds','deadline_seconds'}
+                assert phase['algorithm'] in {'EdDSA','ES256'} and phase['phase'] in {'submitted','returned','completed','revoked','closed'}
+                assert type(phase['seconds']) in (int,float) and 0<=phase['seconds']<=90 and phase['deadline_seconds']==15
+                step['python_consultation_phases'].append(phase)
         step['node_administrative_phases'] = []
         step['node_administrative_failures'] = []
         step['node_administrative_drain_failures'] = []
@@ -710,6 +733,36 @@ def run(node_sdk=False, python_sdk=False):
                 'verified_validators_joined':sum(v.get('validators_joined',0) for v in administrative_results),
                 'verified_servers_joined':sum(v.get('servers_joined',0) for v in administrative_results),
                 'scope':'All11 actual trusted administrative commands and ordinary/current-revoked authority via installed Python SDK; independent Rust signed journal comparisons, exact replay after server restart, new revoked startup refusing original/new mutations without submission, independent authorized recovery, no unauthorized receipts and original joins/drains. Actual held HTTP commit/cancellation preserves original uncertainty, queued no-submission and fresh signed recovery without replay. Full SDK qualification remains separate.'}
+            consultation_results = []
+            for scenario, name, helpers in (
+                ('restored', 'installed_python_consultation_and_return_preserve_actual_private_and_restored_audio', 3),
+                ('remote-ended', 'installed_python_consultation_return_after_remote_eof_cannot_claim_a_continuing_call', 2),
+            ):
+                case = 'canonical_native_connections::consultation::sdk_controls::node_controls::' + name
+                text = sdk_case('installed-python-consultation-' + scenario, case, {'CONNECT_GATE6_PYTHON_CONSULT':'1'})
+                if text is None:
+                    consultation_results.append({'scenario': scenario, 'passed': False})
+                    continue
+                assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text) == [('1', '0', '0')]
+                witnesses = [json.loads(line.split('installed-python-consultation-witness ', 1)[1])
+                             for line in text.splitlines() if 'installed-python-consultation-witness ' in line]
+                assert len(witnesses) == 2 and {w['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
+                for witness in witnesses:
+                    assert witness['profile'] == 'python-consultation/1'
+                    assert witness['http_workers_joined'] == 2
+                    assert witness['audio_case'] == scenario and witness['current_return_authority']
+                    assert witness['original_record_recovered'] and witness['helpers_joined'] == helpers and witness['server_joined']
+                    assert witness['physical_peers_drained'] and witness['media_readers_drained']
+                consultation_results.append({'scenario': scenario, 'passed': True,
+                    'helpers_joined': sum(w['helpers_joined'] for w in witnesses), 'servers_joined': len(witnesses)})
+            report['installed_python_consultation_audio'] = {'passed': all(v['passed'] for v in consultation_results),
+                'results': consultation_results, 'algorithms': ['EdDSA', 'ES256'],
+                'whole_function_deadline_seconds': 90, 'request_budget_ms': 4000, 'phase_deadline_seconds': 15,
+                'scenarios': ['restored', 'remote-ended'], 'required_original_helpers_joined': 10, 'required_servers_joined': 4,
+                'verified_original_helpers_joined': sum(v.get('helpers_joined', 0) for v in consultation_results),
+                'verified_servers_joined': sum(v.get('servers_joined', 0) for v in consultation_results),
+                'scope': 'Public installed Python controls with actual native private/restored audio and remote EOF; no model/provider/remote lane or full SDK qualification.'}
+            report['scope'] += ' Also installed Python private/restored decoded audio and remote-EOF controls.'
             movements=[]
             for algorithm,label in (('EdDSA','eddsa'),('ES256','es256')):
                 for suffix in ('session_handoff_observe','move_speaker'):

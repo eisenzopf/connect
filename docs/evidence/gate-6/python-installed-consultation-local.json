@@ -1,0 +1,306 @@
+{
+  "task": "G6-063",
+  "date": "2026-10-29",
+  "base_commit": "e6886068",
+  "profile": "python-consultation/1",
+  "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper public consultation/return controls. Independent actual private/restored native audio and remote EOF, current signed and HTTP authority, fresh original-record recovery, original helpers/HTTP workers/servers joined and native readers drained. No complete SDK/Linux/remote/provider/model/acceptance qualification.",
+  "implementation_qualified": true,
+  "acceptance_qualified": false,
+  "tested_inputs": {
+    "sdk/tests/python_consultation_server_consumer.py": {
+      "sha256": "7e0248e76806318af701f171662349eb1fe410b489b02db840ed5f3e865423df",
+      "mode": 420
+    },
+    "sdk/tests/prepare_python_native_consumer.py": {
+      "sha256": "ede26183c9b7cdbb0df05689d17c610987d9b5258d954e91bec7ca1b485020b1",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/canonical_native_connections/consultation/node_controls.rs": {
+      "sha256": "a1b25c2a4987b5160c44ad35c215be646cd43a18cfd982659ddf3857eb2ae801",
+      "mode": 420
+    },
+    "scripts/check-gate6-linux-hosting.py": {
+      "sha256": "3a5df313667568208dd6bb5cf179a0e9ab05f7310a1633ebe16598d28ba37d72",
+      "mode": 420
+    },
+    "scripts/tests/test_gate6_linux_diagnostics.py": {
+      "sha256": "39e773d44129f5c3443289a679d30f5effaed6b613bb8fd8bac0364fad79371f",
+      "mode": 420
+    }
+  },
+  "build": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 8259,
+    "source_inputs_sha256": "fde5246d91b81f650c0cdfd6f52500ee71c88d13fee410ccb4260fc6dfd313d2",
+    "build_log_sha256": "aec59091d25b350fe40fd298bc81d5fa7220a226b933be4d20f9e745ac9b12bd",
+    "seconds": 20.321248500142246,
+    "machine": "arm64",
+    "scope": "Local original production hosting test/CLI compilation only; no behavior qualification."
+  },
+  "executables": [
+    {
+      "target": "connect",
+      "test": false,
+      "sha256": "3d26bdd86e2b68c044369d724bb4636d63a40b264366412b53b4c50cb5130f21"
+    },
+    {
+      "target": "gate6_canonical_runtime",
+      "test": true,
+      "sha256": "816f8b7ed0bd11c1535d6dab46fcf06c21ac5c1adb16f55449a4cbeb03a2a9f7"
+    }
+  ],
+  "package": {
+    "profile": "python-native-package/1",
+    "consumer_sha256": "0500a22b92b4a3bf8e82ac07f07d13338cb79c1b4086798540135c2e12b8d258",
+    "movement_consumer_sha256": "06da29cd6e40e2effe9c37ac83d5f3702f98e4ecdace1fafdd8535007c557a31",
+    "wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "installed_dist_matches": true,
+    "installed_dist_sha256": {
+      "membership_validation.py": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+      "task_protocol.py": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+      "record_context.py": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+      "sdk_http.py": "38a51ab0761daaa143a360a3c8377ec8662b8aca5bd2407894faf2e2dd902aac",
+      "conversation_validation.py": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+      "_sdk_helper.py": "068ee6cbd9940c2e01d4b3bbcd0fbb49aafc95b402203bf03deea329e99de715",
+      "sdk_types.py": "a86a11bb737e95952da05c2764dfafeb111df96687024a6da7a74b09c38d3758",
+      "agent_observations.py": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+      "task_types.py": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+      "protocol.py": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+      "client.py": "bae17d3d644ef0f74712ccbb9437e240d45e478b8954c1c83d2b36bef6e33f62",
+      "sdk_sessions.py": "510a2ab8396227604b45af745b9c13c082148bdbc0cc71e7379d7fd9056c7c23",
+      "__init__.py": "62c0626564b965640c29aabfff052ec84dab13329463e97dff6477ccfb306498",
+      "native.py": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+      "_sdk_validation.py": "c49304d4543b998a38af75edf387e6c23933a09137d10757bf89b652eff1df2c",
+      "membership_types.py": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+      "sdk_sync.py": "a17107799ed9e988e6d89f5487e51b667f08134c8eca46d95dbd6be779a6464e",
+      "operations.py": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+      "_sdk_http_worker.py": "de6c7f54cd27feda4c4571962bccc8b79d7d119bbae63406175ef5e0be675b10",
+      "_validation.py": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+      "sdk_incoming.py": "503135a9b5beeeffcb9d4a9406cf4185457c937244a3f47fb72113fd009da2c6",
+      "task_operations.py": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+      "event_validation.py": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+      "sdk_connections.py": "def19ff13bf6e3134b53d37a48f93868ca78f1434298b25063a8e7ab4eea095e",
+      "http.py": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+      "sdk_administration.py": "1a9fc59fe32c056a5d758fb3a54702b4e9c9e694e4b52d6e70241c9addb876b6",
+      "_sdk_http_protocol.py": "d44c6583527cb034dd7f739aa3c715f10bd88fbe394d8a0b6dccd87bbf887b48",
+      "py.typed": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sdk_events.py": "d136d353ec64ade7572f7601aa144249baccd9fc3f86238a3f9c7061cf2c022e",
+      "sdk_raw.py": "4cfb039b4121785da554b91cc1edd605929ed108ab8e4c23d409395c4f774b4e",
+      "_sdk_readers.py": "0d887b2dc13ed8587794182ffeb48bb5faed1a5ac02493b8e22eca9ca405d0f1",
+      "errors.py": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+      "contact_validation.py": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+      "native_audio.py": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+      "sdk_movements.py": "fe5801a08a4b91661973e59dd061375be0af2227c865d7808ab45349a2bd53ea",
+      "media_validation.py": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d"
+    },
+    "python_version": "3.14.7",
+    "synthetic_http_workers_joined": 6,
+    "native_server_qualified": false,
+    "publication": false,
+    "reused_installed_runtime_from": ".local/gate-6/python-movement-installed798/package-result.json",
+    "scope": "Same verified installed36-runtime-file wheel and isolated interpreter; fresh consumer, no package/runtime code changes.",
+    "consultation_consumer_sha256": "7e0248e76806318af701f171662349eb1fe410b489b02db840ed5f3e865423df"
+  },
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "restored",
+        "algorithm": "both",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 52.23827262502164,
+        "log_sha256": "08503ca71ed9564ab0b7ae9c9fd39049c23766395bf21380b795619689ea6078",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "http_workers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-consultation/1",
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "http_workers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-consultation/1",
+            "server_joined": true
+          }
+        ]
+      },
+      {
+        "scenario": "remote-ended",
+        "algorithm": "both",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 13.160666791955009,
+        "log_sha256": "b7755f780f0be22cf13c168e0d33c1548399b950bfdf8de7def73760470b6bfa",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "http_workers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-consultation/1",
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "http_workers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-consultation/1",
+            "server_joined": true
+          }
+        ]
+      }
+    ],
+    "seconds": 66.10881750006229,
+    "source_inputs_unchanged": true,
+    "source_count": 8259,
+    "source_inputs_sha256": "fde5246d91b81f650c0cdfd6f52500ee71c88d13fee410ccb4260fc6dfd313d2",
+    "executable_sha256": "816f8b7ed0bd11c1535d6dab46fcf06c21ac5c1adb16f55449a4cbeb03a2a9f7",
+    "installed_wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "python_version": "3.14.7",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper public consultation/return controls. Independent actual private/restored native audio and remote EOF, current signed and HTTP authority, fresh original-record recovery, original helpers/HTTP workers/servers joined and native readers drained. No complete SDK/Linux/remote/provider/model/acceptance qualification."
+  },
+  "node_shared_launcher_regression": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "restored",
+        "algorithm": "both",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 45.96319687506184,
+        "log_sha256": "02d0a0f59ad10e822afb5563f912d8be6c9c02433fd1fb40a85d9606e88e5c13",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "restored",
+            "current_return_authority": true,
+            "helpers_joined": 3,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          }
+        ]
+      },
+      {
+        "scenario": "remote-ended",
+        "algorithm": "both",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 12.860844584181905,
+        "log_sha256": "5b6793fda99918cbb91df4dd6841ff911c2334694cde6bdd82782aba6a405ca3",
+        "witnesses": [
+          {
+            "algorithm": "EdDSA",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          },
+          {
+            "algorithm": "ES256",
+            "audio_case": "remote-ended",
+            "current_return_authority": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "server_joined": true
+          }
+        ]
+      }
+    ],
+    "seconds": 59.53584120818414,
+    "source_inputs_unchanged": true,
+    "source_count": 8259,
+    "source_inputs_sha256": "fde5246d91b81f650c0cdfd6f52500ee71c88d13fee410ccb4260fc6dfd313d2",
+    "executable_sha256": "816f8b7ed0bd11c1535d6dab46fcf06c21ac5c1adb16f55449a4cbeb03a2a9f7",
+    "installed_archive_sha256": "97d774d043927a836e7941ae90030b1fd36d113d9a3633e27387f6756478d9eb",
+    "node_version": "v26.7.0",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Node package/original configured helper public consultation/return controls. Independent actual private/restored native audio and remote EOF, current signed and HTTP authority, fresh original-record recovery, original helpers/HTTP workers/servers joined and native readers drained. No complete SDK/Linux/remote/provider/model/acceptance qualification."
+  },
+  "ownership": {
+    "helpers_joined": 10,
+    "http_workers_joined": 8,
+    "server_instances_joined": 4,
+    "original_python_consumers_joined": 8,
+    "physical_peers_drained": true,
+    "media_readers_drained": true
+  },
+  "retained_failed_fixture": {
+    "summary_sha256": "245765509ce6c4ed738837deaf5c6828150dc42a9dd4004ac722767bac1377f9",
+    "passed": false,
+    "restored_both_algorithms_passed": true,
+    "scene": "EdDSA remote-ended",
+    "reason": "Behavior and original joins completed, then fixture observer expected one HTTP worker while both consultation and return owners each made an independent current-authority HTTP read. Actual helpers/workers was 2/2, not 2/1. Corrected the observer expectation; no production SDK/runtime or deadline change."
+  },
+  "diagnostics": {
+    "passed": true,
+    "functions": 11,
+    "log_sha256": "61d98a7f3c197b1acc2cec656250c9a9d323d25a201b1c07bae437a2e3f4c695",
+    "scope": "Closed failure/location and phase schema; private intent/reference/credential fields refused."
+  },
+  "limits": [
+    "Python uses public installed SDK control handles; independent Rust fixture owns actual negotiated media and decoded audio oracle",
+    "This does not implement Python programmatic media; G6-064 remains separate",
+    "Linux lane is prepared; actual named remote/provider/model, package/platform/full parity and acceptance remain unqualified"
+  ]
+}

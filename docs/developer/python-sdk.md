@@ -1,11 +1,19 @@
 # Python canonical SDK
 
-The installed wheel now also passes real local EdDSA/ES256 handoff and Endpoint
-replacement controls with independent decoded native media, original-reference
-recovery, eight helpers and four servers joined. The consumer uses the default
-`connect` lookup in its isolated installation. See [scoped movement evidence](../evidence/gate-6/python-installed-movements-local.json). All 194 component
-checks and the shared Node launcher regressions pass. Linux selection is wired
-but not yet qualified; this does not close G6-063 or claim Python media ownership.
+The [G6-063 implementation audit](../evidence/gate-6/python-implementation.json)
+records the Python control implementation as complete. All 25 frozen methods are
+implemented, with real installed local control, administrative, handoff/move and
+consultation/return journeys, 194 component checks and positive/negative type checks.
+The installed Python 3.14.7 consumer uses the default `connect` on PATH with no
+repository import path. Native and explicit HTTP observations agree, original IDs
+survive restart, synchronous recovery works, and original processes join.
+
+Programmatic media is G6-064, candidate bundling G6-069 and complete installed
+platform/version/facade/media parity G6-070. Acceptance remains unqualified.
+[Recorded administrative validation failures](../evidence/gate-6/python-installed-administration-local.json)
+remain unresolved; successful targeted observations do not erase those failures.
+The historical component sections below retain the scope of their recorded
+checkpoint; the implementation audit above gives the current status.
 
 `connect_sdk.Client` is the asynchronous participant SDK. It owns one lazily
 started `connect sdk-stdio` process using `connect-sdk-helper/4`. The public Rust
@@ -60,7 +68,7 @@ own operation ID; its receipt identifies the original target separately.
 Serialized JSON is an independent mutable copy. SDK references, handles,
 options, typed results and nested observations are immutable.
 
-Python 3.11 and newer use standard-library asyncio subprocesses. Call a client
+The implementation uses standard-library asyncio subprocesses and declares a Python 3.11 import floor. The approved Gate 6 qualification profile starts at Python 3.12; the current external local evidence uses Python 3.14.7. Call a client
 from one event loop. Use `async with` or explicit `await client.close(options)`;
 close owns the original process and pending waits. Unsent cancellation/deadline
 does not submit a mutation; a submitted timeout/cancellation retains the original
@@ -585,3 +593,13 @@ A real caller-thread synchronous owner recovers the original after server restar
 Each algorithm joins nine native helpers, five validators, two HTTP workers and
 two servers. Original installed consultation/return controls remain to complete
 G6-063; Python media is the later G6-064 task.
+
+The [installed consultation/return controls](../evidence/gate-6/python-installed-consultation-local.json)
+pass both signing algorithms with independent decoded private/restored native
+audio and remote-EOF behavior. Saved references recover the original record,
+current native and HTTP reads reject revoked authority, and observation handles
+grant no media custody. The four algorithm/scene observations join ten Rust
+helpers, eight Python HTTP workers, eight consumer processes and four servers.
+The same shared launcher passes the Node consultation regressions. These complete
+the original-server control journey for G6-063; app-owned Python audio/video/data
+read/write remains G6-064.

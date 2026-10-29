@@ -13,6 +13,13 @@ struct Process {
     language: &'static str,
     helpers: usize,
 }
+static PYTHON_CONSULT_HELPERS: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+static PYTHON_CONSULT_WORKERS: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+fn python_consult() -> bool {
+    std::env::var("CONNECT_GATE6_PYTHON_CONSULT").as_deref() == Ok("1")
+}
 impl Process {
     async fn phase(&mut self, expected: &str) -> Value {
         let started = tokio::time::Instant::now();
@@ -24,7 +31,11 @@ impl Process {
         assert!(line.len() <= 8192);
         let value: Value = serde_json::from_str(&line).unwrap();
         if value["phase"] == "failed" {
-            let prefix = if self.language == "python" {
+            let prefix = if self.language == "python"
+                && matches!(self.mode.as_str(), "consult" | "return")
+            {
+                "installed-python-consultation-failure"
+            } else if self.language == "python" {
                 "installed-python-movement-failure"
             } else if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
                 "installed-node-movement-failure"
@@ -34,13 +45,16 @@ impl Process {
             eprintln!("{prefix} {value}");
         }
         assert_eq!(value["phase"], expected);
-        let prefix = if self.language == "python" {
-            "installed-python-movement-phase"
-        } else if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
-            "installed-node-movement-phase"
-        } else {
-            "installed-node-consultation-phase"
-        };
+        let prefix =
+            if self.language == "python" && matches!(self.mode.as_str(), "consult" | "return") {
+                "installed-python-consultation-phase"
+            } else if self.language == "python" {
+                "installed-python-movement-phase"
+            } else if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
+                "installed-node-movement-phase"
+            } else {
+                "installed-node-consultation-phase"
+            };
         eprintln!(
             "{prefix} {}",
             json!({
@@ -68,7 +82,11 @@ async fn start(f: &Fixture, token: &str, mode: &str, detail: Value) -> (Process,
         config,
         mode,
         detail,
-        "CONNECT_GATE6_NODE_CONSULT_CONSUMER",
+        if python_consult() {
+            "CONNECT_GATE6_PYTHON_CONSULT_CONSUMER"
+        } else {
+            "CONNECT_GATE6_NODE_CONSULT_CONSUMER"
+        },
         if mode == "consult" {
             "submitted"
         } else {
@@ -85,7 +103,10 @@ async fn start_configured(
     consumer_env: &str,
     initial: &str,
 ) -> (Process, Value) {
-    let python = consumer_env == "CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER";
+    let python = matches!(
+        consumer_env,
+        "CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER" | "CONNECT_GATE6_PYTHON_CONSULT_CONSUMER"
+    );
     let token = config.credential.clone();
     let script = PathBuf::from(std::env::var_os(consumer_env).unwrap())
         .canonicalize()
@@ -123,7 +144,15 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         .unwrap(),
     )
     .unwrap();
-    let stderr = f.temp.path().join(format!("node-consult-{mode}.stderr"));
+    let stderr = project.join(format!(
+        "{}-consult-{mode}-{}-{}.stderr",
+        if python { "python" } else { "node" },
+        f.client.signing_algorithm,
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     init::private_write(&stderr, b"").unwrap();
     let mut command = if python {
         let interpreter = PathBuf::from(std::env::var_os("CONNECT_GATE6_PYTHON").unwrap());
@@ -208,8 +237,12 @@ impl Probe {
         let db = rusqlite::Connection::open(&f.config.database).unwrap();
         let rows: i64 = db
             .query_row(
-                "SELECT COUNT(*) FROM operations WHERE operation_id='node-return-without-grant'",
-                [],
+                "SELECT COUNT(*) FROM operations WHERE operation_id=?1",
+                [if process.language == "python" {
+                    "python-return-without-grant"
+                } else {
+                    "node-return-without-grant"
+                }],
                 |r| r.get(0),
             )
             .unwrap();
@@ -238,6 +271,11 @@ impl Probe {
         let value = process.request(json!({"action":"close"}), "closed").await;
         assert_eq!(value["mode"], process.mode);
         assert_eq!(value["helpers_joined"], process.helpers);
+        if process.language == "python" {
+            assert_eq!(value["http_workers_joined"], 1);
+            PYTHON_CONSULT_HELPERS.fetch_add(process.helpers, std::sync::atomic::Ordering::SeqCst);
+            PYTHON_CONSULT_WORKERS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
         drop(process.input);
         assert!(
             tokio::time::timeout(Duration::from_secs(5), process.output.next_line())
@@ -421,6 +459,7 @@ impl MovementProbe {
 #[tokio::test]
 #[ignore = "Requires installed Node consultation consumer under .local"]
 async fn installed_node_consultation_and_return_preserve_actual_private_and_restored_audio() {
+    assert!(!python_consult());
     for algorithm in ["EdDSA", "ES256"] {
         private_candidate_case_with_auxiliary_checks(
             true,
@@ -444,6 +483,7 @@ async fn installed_node_consultation_and_return_preserve_actual_private_and_rest
 #[tokio::test]
 #[ignore = "Requires installed Node consultation consumer under .local"]
 async fn installed_node_consultation_return_after_remote_eof_cannot_claim_a_continuing_call() {
+    assert!(!python_consult());
     for algorithm in ["EdDSA", "ES256"] {
         private_candidate_case_with_auxiliary_checks(
             true,
@@ -460,6 +500,78 @@ async fn installed_node_consultation_return_after_remote_eof_cannot_claim_a_cont
         eprintln!(
             "installed-node-consultation-witness {}",
             json!({"algorithm":algorithm,"audio_case":"remote-ended","current_return_authority":true,"original_record_recovered":true,"helpers_joined":2,"server_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
+        );
+    }
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python consultation consumer and explicit CONNECT_GATE6_PYTHON_CONSULT=1"]
+async fn installed_python_consultation_and_return_preserve_actual_private_and_restored_audio() {
+    assert!(python_consult());
+    use std::sync::atomic::Ordering;
+    for algorithm in ["EdDSA", "ES256"] {
+        let before = (
+            PYTHON_CONSULT_HELPERS.load(Ordering::SeqCst),
+            PYTHON_CONSULT_WORKERS.load(Ordering::SeqCst),
+        );
+        private_candidate_case_with_auxiliary_checks(
+            true,
+            false,
+            false,
+            true,
+            false,
+            None,
+            false,
+            false,
+            Some(Auxiliary::Node(algorithm)),
+        )
+        .await;
+        let helpers = PYTHON_CONSULT_HELPERS.load(Ordering::SeqCst) - before.0;
+        let workers = PYTHON_CONSULT_WORKERS.load(Ordering::SeqCst) - before.1;
+        assert_eq!((helpers, workers), (3, 2));
+        eprintln!(
+            "installed-python-consultation-witness {}",
+            json!({
+                "profile":"python-consultation/1","algorithm":algorithm,"audio_case":"restored",
+                "current_return_authority":true,"original_record_recovered":true,"helpers_joined":helpers,
+                "http_workers_joined":workers,"server_joined":true,"physical_peers_drained":true,"media_readers_drained":true
+            })
+        );
+    }
+}
+
+#[tokio::test]
+#[ignore = "Requires installed Python consultation consumer and explicit CONNECT_GATE6_PYTHON_CONSULT=1"]
+async fn installed_python_consultation_return_after_remote_eof_cannot_claim_a_continuing_call() {
+    assert!(python_consult());
+    use std::sync::atomic::Ordering;
+    for algorithm in ["EdDSA", "ES256"] {
+        let before = (
+            PYTHON_CONSULT_HELPERS.load(Ordering::SeqCst),
+            PYTHON_CONSULT_WORKERS.load(Ordering::SeqCst),
+        );
+        private_candidate_case_with_auxiliary_checks(
+            true,
+            true,
+            false,
+            true,
+            false,
+            None,
+            false,
+            false,
+            Some(Auxiliary::Node(algorithm)),
+        )
+        .await;
+        let helpers = PYTHON_CONSULT_HELPERS.load(Ordering::SeqCst) - before.0;
+        let workers = PYTHON_CONSULT_WORKERS.load(Ordering::SeqCst) - before.1;
+        assert_eq!((helpers, workers), (2, 2));
+        eprintln!(
+            "installed-python-consultation-witness {}",
+            json!({
+                "profile":"python-consultation/1","algorithm":algorithm,"audio_case":"remote-ended",
+                "current_return_authority":true,"original_record_recovered":true,"helpers_joined":helpers,
+                "http_workers_joined":workers,"server_joined":true,"physical_peers_drained":true,"media_readers_drained":true
+            })
         );
     }
 }
