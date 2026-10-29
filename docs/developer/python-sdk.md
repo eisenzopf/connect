@@ -573,3 +573,15 @@ and eight server instances in total. The two initial EdDSA command scenes refuse
 local validation before submission; a targeted unchanged-source run passed. Their
 cause remains unresolved and the full six-scene run is recorded as failed.
 The shared launcher also passes all six installed Node administrative regressions.
+
+The [native/3 receipt and decision extension](../evidence/gate-6/python-installed-control-receipts-local.json)
+passes EdDSA and ES256 on the same installed local Python 3.14.7 wheel. Local
+wait cancellation is read-only; a durable cancellation decision keeps the completed
+original record; invented reconciliation evidence refuses without another decision.
+Explicit canonical HTTP and native operation reads agree. Independent Rust HTTP
+reads match native SDK receipt recipient/epoch/channel/delivery-ID/state/provenance/time.
+Read reports remain Delivered until recipient opt-in and a fresh report yields Read.
+A real caller-thread synchronous owner recovers the original after server restart.
+Each algorithm joins nine native helpers, five validators, two HTTP workers and
+two servers. Original installed consultation/return controls remain to complete
+G6-063; Python media is the later G6-064 task.

@@ -142,11 +142,11 @@ def python_native_failure_diagnostic(value):
     assert set(value)=={'phase','checkpoint','kind','certainty','source_line','error_type'}
     assert value['phase']=='failed'
     assert value['checkpoint'] in {'initial','participants','sessions','connections','session-decisions',
-                                   'message-events','restart','revocation'}
+                                   'message-events','operation-decisions','receipts','restart','revocation'}
     assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
     assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
     assert value['source_line'] is None or type(value['source_line']) is int and 0<value['source_line']<100000
-    assert value['error_type'] in {'SdkError','AssertionError','AttributeError','KeyError','TypeError',
+    assert value['error_type'] in {'SdkError','AssertionError','UnboundLocalError','AttributeError','KeyError','TypeError',
                                    'ValueError','RuntimeError','OSError','TimeoutError'}
     return value
 
@@ -158,7 +158,7 @@ def python_administrative_failure_diagnostic(value):
     assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
     assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
     assert value['line'] is None or type(value['line']) is int and 0<value['line']<100000
-    assert value['error_type'] in {'SdkError','AssertionError','AttributeError','KeyError','TypeError',
+    assert value['error_type'] in {'SdkError','AssertionError','UnboundLocalError','AttributeError','KeyError','TypeError',
                                    'ValueError','RuntimeError','OSError','TimeoutError'}
     return value
 
@@ -653,7 +653,7 @@ def run(node_sdk=False, python_sdk=False):
                 witnesses = [json.loads(line.split('installed-python-native-witness ', 1)[1]) for line in text.splitlines() if 'installed-python-native-witness ' in line]
                 assert len(witnesses) == 1
                 witness = witnesses[0]
-                assert witness['profile'] == 'python-native/2' and witness['algorithm'] == algorithm
+                assert witness['profile'] == 'python-native/3' and witness['algorithm'] == algorithm
                 for field in ('original_reference_recovered', 'same_id_replay', 'changed_intent_refused', 'typed_capability_refusal',
                               'signed_finite_journal', 'same_cause_after_restart', 'current_read_refused',
                               'current_replay_refused', 'current_new_mutation_refused', 'independent_store_original_cause',
@@ -661,12 +661,17 @@ def run(node_sdk=False, python_sdk=False):
                               'default_helper_on_path', 'python_process_joined', 'physical_peers_drained', 'media_readers_drained',
                               'participant_epoch_advanced', 'stale_revisions_refused', 'incoming_original_hint',
                               'session_decisions_completed', 'native_controls_completed', 'stream_selection_completed',
-                              'independent_control_records', 'typed_message_event'):
+                              'independent_control_records', 'typed_message_event', 'local_wait_cancelled_read_only',
+                              'durable_cancel_original_preserved', 'unattributed_reconciliation_refused',
+                              'canonical_http_same_original_record', 'independent_http_receipt_agreement',
+                              'receipt_queued_without_delivery', 'attributed_delivery', 'read_default_withheld_then_opted_in',
+                              'attributed_read', 'current_receipts_refused', 'synchronous_original_recovered'):
                     assert witness[field] is True
-                assert (witness['helpers_joined'], witness['validators_joined'], witness['servers_joined']) == (6, 5, 2)
+                assert (witness['helpers_joined'], witness['validators_joined'], witness['servers_joined']) == (9, 5, 2)
+                assert witness['http_workers_joined'] == 2
                 results.append(dict(witness, passed=True))
             report['installed_python_native'] = {'passed': all(v['passed'] for v in results),
-                'profile': 'python-native/2', 'results': results, 'request_budget_ms': 4000,
+                'profile': 'python-native/3', 'results': results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'scope': 'Clean installed wheel, original signed native Rust helper/server, participant epochs and stale revisions, Session decisions and incoming hints, native Connection/Stream controls, typed and finite journal agreement, saved reference across actual restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
             administrative_results = []

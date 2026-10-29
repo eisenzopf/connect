@@ -13,7 +13,8 @@ from connect_sdk import (Client, ConversationId, MessageId, MutationOptions,
                         IdentityId, SessionId, ConnectionId, StreamId, RoleChange,
                         MediumUpgrade, CodecRenegotiate, OfferedStream, Quality,
                         Mute, HoldConnection, ResumeConnection, ConnectionCodecRenegotiate,
-                        ParticipantStreams, ParticipantLeave)
+                        ParticipantStreams, ParticipantLeave, Cancellation,
+                        CanonicalHttpClient, HttpCommandScope, SynchronousSdk)
 
 spec=json.loads(Path(sys.argv[1]).read_text())
 assert Path.cwd().resolve()==Path(spec['project']).resolve()
@@ -25,6 +26,15 @@ mutation=lambda id:MutationOptions(OperationId(id),options)
 cid=ConversationId(spec['cid'])
 recipient=NonEmpty(ParticipantId(spec['recipient']))
 checkpoint='initial'
+http_workers=[]
+original_spawn=asyncio.create_subprocess_exec
+
+
+async def observe_spawn(*args,**kwargs):
+    child=await original_spawn(*args,**kwargs)
+    if args==(sys.executable,'-m','connect_sdk._sdk_http_worker'):
+        http_workers.append(child)
+    return child
 
 
 def emit(value):
@@ -234,6 +244,7 @@ async def run():
             operation=await send(first)
             saved=operation.reference_json()
             complete=await operation.wait(options)
+            assert (await operation.wait_until_ready(options)).state=='completed'
             assert complete.value.message_id=='python-native-message'
             record=complete.snapshot.record_id
             assert record is not None
@@ -259,11 +270,54 @@ async def run():
                 await events.close()
             event_hash=await journal(first,cursor)
             assert event_hash==hashlib.sha256(fact.event_id.encode()).hexdigest()
+            checkpoint='operation-decisions'
+            local=Cancellation()
+            local.cancel()
+            try:
+                await operation.wait(RequestOptions(4000,local))
+            except SdkError as error:
+                assert (error.kind,error.certainty)==('cancelled','read-only')
+            else:
+                raise AssertionError('Cancelled local wait accepted')
+            decision=await completed(operation.cancel(mutation('python-native-cancel')))
+            assert decision.target=='python-native-send' and decision.decision.operation_id=='python-native-cancel'
+            await refused(operation.reconcile('completed','python-native-invented-evidence',
+                mutation('python-native-unattributed-reconcile')),'authentication')
+            assert (await operation.status(options)).record_id==record
+            assert (await operation.status(options)).state=='completed'
+            async with CanonicalHttpClient(spec['http'],spec['credential']) as http:
+                frames=await http.request('operation.get',{'operation_id':'python-native-send'},HttpCommandScope(cid),options)
+                durable=next(f.value['payload'] for f in frames if f.value['type']=='operation.updated')
+                assert durable['record_id']==record and durable['state']=='completed'
+                history=await http.request('message.history',{'limit':63},HttpCommandScope(cid),options)
+                assert len([f for f in history if f.value['type']=='message.send'
+                    and f.value['payload']['msg_id']=='python-native-message'])==1
+            queued=await first.conversations.by_id(cid).receipts(MessageId('python-native-message'),options)
+            assert len(queued)==1 and queued[0].state=='queued' and queued[0].provenance=='journal'
             # Persist only the public reference/cursor; reconstruction grants no IO.
             Path(spec['saved']).write_text(json.dumps({'reference':saved,'cursor':cursor,'record':record,'event':event_hash}))
         emit({'phase':'stopped','record_id':record,'event_id_sha256':event_hash,
               'same_id_replay':True,'changed_intent_refused':True,'signed_finite_journal':True,
-              'typed_message_event':True,'typed_capability_refusal':True})
+              'typed_message_event':True,'typed_capability_refusal':True,'local_wait_cancelled_read_only':True,
+              'durable_cancel_original_preserved':True,'unattributed_reconciliation_refused':True,
+              'canonical_http_same_original_record':True,'receipt_queued_without_delivery':True})
+        checkpoint='receipts'
+        await command('receipts')
+        async with client() as receipts:
+            async def observed(expected):
+                facts=await receipts.conversations.by_id(cid).receipts(MessageId('python-native-message'),options)
+                assert len(facts)==1
+                fact=facts[0]
+                assert fact.participant_id==recipient.first and fact.membership_epoch>0
+                assert (fact.channel,fact.state,fact.provenance)==('native',expected,'client_reported')
+                return {'membership_epoch':fact.membership_epoch,
+                        'delivery_id_sha256':hashlib.sha256(fact.delivery_id.encode()).hexdigest(),
+                        'observed_at':fact.observed_at}
+            delivered=await observed('delivered')
+            emit({'phase':'receipts-observed','attributed_delivery':True,**delivered})
+            await command('read-receipt')
+            read=await observed('read')
+        emit({'phase':'read-observed','attributed_read':True,**read})
         checkpoint='restart'
         await command('restart')
         saved=json.loads(Path(spec['saved']).read_text())
@@ -274,29 +328,51 @@ async def run():
             assert recovered.value.message_id=='python-native-message'
             assert (await (await send(fresh)).wait(options)).snapshot.record_id==saved['record']
             assert await journal(fresh,saved['cursor'])==saved['event']
+        def synchronous_recovery():
+            async def recover(owner):
+                original=owner.operations.restore(saved['reference'],owner.operation_kinds.message_send)
+                assert (await original.wait(options)).snapshot.record_id==saved['record']
+                assert (await owner.conversations.by_id(cid).refresh(options)).id==cid
+                return True
+            with SynchronousSdk(client()) as synchronous:
+                assert synchronous.run(recover)
+        await asyncio.to_thread(synchronous_recovery)
         emit({'phase':'resumed','record_id':saved['record'],'event_id_sha256':saved['event'],
-              'original_reference_recovered':True,'same_cause_after_restart':True})
+              'original_reference_recovered':True,'same_cause_after_restart':True,'synchronous_original_recovered':True})
         checkpoint='revocation'
         await command('revoked')
-        for action in ('read','replay','new'):
-            async with client() as refused:
+        for action in ('read','receipts','replay','new'):
+            async with client() as revoked_owner:
                 try:
                     if action=='read':
-                        original=refused.operations.restore(saved['reference'],refused.operation_kinds.message_send)
+                        original=revoked_owner.operations.restore(saved['reference'],revoked_owner.operation_kinds.message_send)
                         await original.status(options)
+                    elif action=='receipts':
+                        await revoked_owner.conversations.by_id(cid).receipts(MessageId('python-native-message'),options)
                     else:
-                        await send(refused,forbidden=action=='new')
+                        await send(revoked_owner,forbidden=action=='new')
                 except SdkError as error:
                     assert error.kind=='authentication'
-                    assert error.certainty==('read-only' if action=='read' else 'not-submitted')
+                    assert error.certainty==('read-only' if action in ('read','receipts') else 'not-submitted')
                 else:
                     raise AssertionError('Revoked authority accepted')
-        emit({'phase':'completed','current_read_refused':True,'current_replay_refused':True,'current_new_mutation_refused':True})
+        assert len(http_workers)==2
+        for worker in http_workers:
+            assert worker.returncode is not None
+            try:
+                os.kill(worker.pid,0)
+            except ProcessLookupError:
+                pass
+            else:
+                raise AssertionError('Original HTTP worker still exists')
+        emit({'phase':'completed','current_read_refused':True,'current_replay_refused':True,
+              'current_new_mutation_refused':True,'current_receipts_refused':True,'http_workers_joined':2})
     finally:
         transport.close()
 
 
 try:
+    asyncio.create_subprocess_exec=observe_spawn
     asyncio.run(run())
 except Exception as error:
     import traceback
