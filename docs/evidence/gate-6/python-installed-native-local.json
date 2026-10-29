@@ -206,5 +206,91 @@
   "linux_native_execution_pending": true,
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
-  "publication": false
+  "publication": false,
+  "latest_shared_reservation_regression": {
+    "base_commit": "bf726ad7",
+    "scope": "Current local regression after shared managed replacement admission change; no full SDK/acceptance/publication qualification.",
+    "result": {
+      "passed": true,
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 2.0596630841027945,
+          "log_sha256": "6a84499f81698df6f0b408618aaa6609b164479c3d026661398f3225a74feea6",
+          "witness": {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "current_new_mutation_refused": true,
+            "current_read_refused": true,
+            "current_replay_refused": true,
+            "default_helper_on_path": true,
+            "helpers_joined": 5,
+            "independent_store_original_cause": true,
+            "media_readers_drained": true,
+            "one_original_message_and_operation": true,
+            "original_reference_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-native/1",
+            "python_process_joined": true,
+            "same_cause_after_restart": true,
+            "same_id_replay": true,
+            "servers_joined": 2,
+            "signed_finite_journal": true,
+            "typed_capability_refusal": true,
+            "validators_joined": 5,
+            "zero_forbidden_message_and_operation": true
+          }
+        },
+        {
+          "algorithm": "ES256",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 1.9195853339042515,
+          "log_sha256": "b08a72e7d099c1ea8ce4d8b6c34eecb9cd6055dcda2d46048fc0b5de6d0af575",
+          "witness": {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "current_new_mutation_refused": true,
+            "current_read_refused": true,
+            "current_replay_refused": true,
+            "default_helper_on_path": true,
+            "helpers_joined": 5,
+            "independent_store_original_cause": true,
+            "media_readers_drained": true,
+            "one_original_message_and_operation": true,
+            "original_reference_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "python-native/1",
+            "python_process_joined": true,
+            "same_cause_after_restart": true,
+            "same_id_replay": true,
+            "servers_joined": 2,
+            "signed_finite_journal": true,
+            "typed_capability_refusal": true,
+            "validators_joined": 5,
+            "zero_forbidden_message_and_operation": true
+          }
+        }
+      ],
+      "source_count": 8246,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "source_inputs_unchanged": true,
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+      "installed_package_sha256": "d9857fece3f8f40bc10363e40277d455780b9954adc2552d69d35e1594439190",
+      "python_version": "3.14.7",
+      "system": "Darwin",
+      "machine": "arm64",
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Original local installed Python wheel/native helper/server control, restart, current authority and process ownership only; not Linux/remote/media/full SDK/acceptance qualification."
+    },
+    "combined_evidence": "docs/evidence/gate-6/native-candidate-production-local.json"
+  }
 }

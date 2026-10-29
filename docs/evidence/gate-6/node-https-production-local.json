@@ -95,5 +95,103 @@
   "request_budget_ms": 4000,
   "phase_deadline_seconds": 15,
   "whole_function_deadline_seconds": 90,
-  "scope": "Original local installed Node production HTTPS control only; not Linux/remote/media/full SDK/acceptance qualification."
+  "scope": "Original local installed Node production HTTPS control only; not Linux/remote/media/full SDK/acceptance qualification.",
+  "latest_shared_reservation_regression": {
+    "base_commit": "bf726ad7",
+    "scope": "Current local regression after shared managed replacement admission change; no full SDK/acceptance/publication qualification.",
+    "result": {
+      "passed": true,
+      "results": [
+        {
+          "algorithm": "EdDSA",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 1.0181934160646051,
+          "log_sha256": "7803302e08cb5277ff0565e2ddc9c1efcd65b9b2ab1db490e27f79d77400e090",
+          "witness": {
+            "algorithm": "EdDSA",
+            "completed": {
+              "current_https_new_mutation_refused": true,
+              "current_https_read_refused": true,
+              "current_https_receipts_refused": true,
+              "current_https_replay_refused": true,
+              "phase": "completed"
+            },
+            "helper_processes": 0,
+            "independent_native_original_record": true,
+            "independent_store_original_cause": true,
+            "initial": {
+              "application_queued_receipt_current": true,
+              "current_https_journal": true,
+              "event_id_sha256": "8050ba8c9e9d05b634c8827f85ffcacb5e25bf70aa2e479066c93220e5c11b12",
+              "original_replay_record": true,
+              "phase": "initial",
+              "record_id_sha256": "d707eb65761aff60bf0c2b3e76617f1751fcf0c88191c01f6790812b14a0c359"
+            },
+            "media_readers_drained": true,
+            "node_process_joined": true,
+            "one_original_message_and_operation": true,
+            "physical_peers_drained": true,
+            "profile": "node-https/3",
+            "queued_receipt_without_delivery_or_read": true,
+            "servers_joined": 2,
+            "zero_forbidden_message_and_operation": true
+          }
+        },
+        {
+          "algorithm": "ES256",
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "forced_cleanup": false,
+          "seconds": 0.9261925830505788,
+          "log_sha256": "6008a244dd8e949083623d1c83c7f847af9b47db81be2c35768b48d7e2041084",
+          "witness": {
+            "algorithm": "ES256",
+            "completed": {
+              "current_https_new_mutation_refused": true,
+              "current_https_read_refused": true,
+              "current_https_receipts_refused": true,
+              "current_https_replay_refused": true,
+              "phase": "completed"
+            },
+            "helper_processes": 0,
+            "independent_native_original_record": true,
+            "independent_store_original_cause": true,
+            "initial": {
+              "application_queued_receipt_current": true,
+              "current_https_journal": true,
+              "event_id_sha256": "6722bd407c0bdefd83cd366d31441143c0dd36f8c3f8c1ffe94605accbda2980",
+              "original_replay_record": true,
+              "phase": "initial",
+              "record_id_sha256": "890b492803da607a0d9efc4d193d042e132d848ad6b5f69d9b8961af9ed62dfa"
+            },
+            "media_readers_drained": true,
+            "node_process_joined": true,
+            "one_original_message_and_operation": true,
+            "physical_peers_drained": true,
+            "profile": "node-https/3",
+            "queued_receipt_without_delivery_or_read": true,
+            "servers_joined": 2,
+            "zero_forbidden_message_and_operation": true
+          }
+        }
+      ],
+      "source_count": 8246,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "source_inputs_unchanged": true,
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+      "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+      "node_version": "v26.7.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Original local installed Node production HTTPS control only; not Linux/remote/media/full SDK/acceptance qualification."
+    },
+    "combined_evidence": "docs/evidence/gate-6/native-candidate-production-local.json"
+  }
 }

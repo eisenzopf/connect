@@ -8,12 +8,23 @@ cover [native controls](node-connection-sdk.md), [movement](node-movement-sdk.md
 [trusted administration](node-administration-sdk.md), [raw canonical control](node-raw-sdk.md)
 and [explicit HTTP/HTTPS control](node-http-sdk.md).
 
-Exact Linux source evidence in `docs/evidence/gate-6/node-native-972.json` qualifies
+Current local source `bf726ad7` passes both signing algorithms for the installed
+Node candidate movement and its subsequent Endpoint move, with actual decoded
+native audio, current authority and original helper/server drains. The same
+executables pass Node control profile 8, HTTPS profile 3 and the installed Python
+native restart/authority regression. The
+[current local evidence](../evidence/gate-6/native-candidate-production-local.json)
+records exact source/executable/package hashes and scope. This is macOS arm64
+with Node 26; the complete current Node 22/26 Linux matrix and frozen-contract
+closure audit remain required for G6-062. Programmatic media remains G6-064.
+
+Earlier Linux source evidence in `docs/evidence/gate-6/node-native-972.json` qualifies
 the recorded native control/invitation/raw/receipt and administration scenes on
 Node22/26 with both signing algorithms. Node22's full recorded lane passes;
 Node26 retains a minimum-audio failure, and earlier audio/EOF causes remain
-unresolved. Event resume and production HTTPS candidates still await Linux
-execution. Full SDK, native media custody, acceptance and publication remain open.
+unresolved. At that checkpoint, event resume and production HTTPS still awaited Linux
+execution. Current evidence above and later linked artifacts supersede that
+pending status; complete SDK, acceptance and publication remain open.
 Programmatic media is G6-064. Transport selection is explicit.
 
 Install the matching trusted `connect` executable. This component invokes

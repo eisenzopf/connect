@@ -100,7 +100,7 @@
   "full_sdk_qualified": false,
   "acceptance_qualified": false,
   "publication": false,
-  "implementation_status": "Candidate-only immediate admission allows the installed first move to complete on both signing algorithms after correlated original reply handling. The remaining observed failure is the same SQL reacquisition pattern in a later ordinary Endpoint reservation. Shared immediate admission passes171 current Store checks; full post-fix hosting/installed verification is pending.",
+  "implementation_status": "Shared immediate admission resolves both candidate and subsequent Endpoint reservations. Both complete installed signing cases pass on source bf726ad7, including generation-three decoded media/key-loss/later cancellation, fresh original-record recovery and helper/server drains. Current local Node native8/HTTPS3/Python native1 regressions also pass on the same unchanged8246 inputs and executables. Current full Node22/26 Linux matrix and frozen-contract closure audit remain open.",
   "store_implementation_commit": "d3ec1194",
   "service_implementation_commit": "915c9665",
   "hosting_build": {
@@ -230,7 +230,7 @@
       "diagnosis": "One EdDSA diagnostic run confirms same boundary; metadata retry returns authority-busy. No additional model/account/provider call. Failure site requires further diagnosis."
     }
   ],
-  "next_required": "Fresh full hosting build and both complete installed candidate functions, then current Node native8/HTTPS3/Python1 regressions and current Linux matrix. Preserve all original request/phase/function and audio/authority/drain predicates.",
+  "next_required": "Run the current complete Node movement/administration/consultation matrix, inspect exact current Linux artifacts and complete the G6-062 method/result/event/ownership/documentation audit. Preserve every deadline/media/current authorization predicate.",
   "current_store_diagnostics_check": {
     "passed": true,
     "results": [
@@ -1149,5 +1149,91 @@
     },
     "regressions": "All142 controlled replacement-source/custody/native/telephone/phase/commit/recovery functions and29 native-wire functions pass. New Endpoint test proves SQL/current-reader contention returns within500ms, releases SQL, preserves the snapshot without reservation/effect, and permits later exact preparation. The new test is required explicitly by the Linux runner.",
     "actual_installed_after_shared_fix_executed": false
-  }
+  },
+  "current_local_candidate_passed": true,
+  "current_local_positive_evidence": "docs/evidence/gate-6/native-candidate-production-local.json",
+  "current_complete_installed_functions": {
+    "passed": true,
+    "results": [
+      {
+        "algorithm": "EdDSA",
+        "scenario": "installed_node_eddsa_move_candidate",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 47.27349712490104,
+        "log_sha256": "83e9d20415d366587fe24e0f3ab60dbdb56cba37163f2be3f9dbadc3c01d3d4b",
+        "witnesses": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_eddsa_move_candidate",
+            "servers_joined": 1
+          }
+        ]
+      },
+      {
+        "algorithm": "ES256",
+        "scenario": "installed_node_es256_move_candidate",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 44.19690387509763,
+        "log_sha256": "4f73006564e266abd7b6eddbba120b2bc959c2c60c27dd01ad515b3652e2fd0a",
+        "witnesses": [
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "node-movements/3",
+            "scenario": "installed_node_es256_move_candidate",
+            "servers_joined": 1
+          }
+        ]
+      }
+    ],
+    "seconds": 92.17441762518138,
+    "source_inputs_unchanged": true,
+    "source_count": 8246,
+    "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+    "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+    "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+    "node_version": "v26.7.0",
+    "system": "Darwin",
+    "machine": "arm64",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local installed Node pending-candidate adoption and native decoded media; current authority, original-record recovery, helpers and servers drained. No Linux/remote/provider, full SDK or acceptance qualification."
+  },
+  "current_local_regressions": {
+    "node-native8": {
+      "passed": true,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92"
+    },
+    "node-https3": {
+      "passed": true,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92"
+    },
+    "python-native1": {
+      "passed": true,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92"
+    }
+  },
+  "aggregate_scope": "The complete G6-062 matrix/frozen control surface remains unqualified; current local candidate and regression subset passes."
 }

@@ -68,8 +68,8 @@ independent native media peers and the installed public Node controller. Exact
 `ca6fb159` passes the full Node26 lane, including these24 scenes with48 original
 helpers and24 servers joined; see `docs/evidence/gate-6/node-native-ca6.json`.
 Exact `972ed986` passes the Node22 lane; its Node26 scope retains a minimum-audio
-failure. Earlier audio/EOF causes remain unresolved by later success. Local Rust
-linking remains skipped because of the retained Mac ENOSPC.
+failure. Earlier audio/EOF causes remain unresolved by later success. At that checkpoint, local Rust linking was skipped because of ENOSPC; current
+local linking and candidate runtime results are recorded below.
 
 The [native movement fixture](node-movement-audio.md) exercises role scopes,
 outgoing dispositions, endpoint movement, cancellation, revocation and recording
@@ -78,5 +78,12 @@ cases. An original signed target creates a preparing Connection at its separate
 Endpoint; Node selects that exact ID and must still obtain the original managed
 replacement ticket, generation-two IO and strict media boundaries. The expanded
 matrix has26 cases,52 helpers and26 servers. All24 original cases remain required;
-the two new cases fail the preparation-row check on both Linux matrices at exact94. Ordinary pending offer metadata has no current observed runtime until readiness, while replacement currently requires preparing plus that runtime. Public candidate preparation/adoption remains unresolved. See
-[the candidate evidence record](../evidence/gate-6/node-move-candidate.json).
+the two new cases failed the preparation-row check on both Linux matrices at
+exact94. An ordinary pending offer has no media readiness and cannot supply a
+private replacement ticket. The host now retires its exact original exchange
+before acquiring fresh managed preparation and preserving the public candidate
+ID at commit. Both complete candidate cases pass locally on `bf726ad7`, including
+actual decoded audio, the subsequent Endpoint move and current key-loss/recovery
+checks. See [current local evidence](../evidence/gate-6/native-candidate-production-local.json)
+and the [retained candidate investigation](../evidence/gate-6/native-candidate-adoption.json).
+The complete current local/Linux matrix and G6-062 closure audit remain open.

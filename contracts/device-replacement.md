@@ -893,10 +893,13 @@ verifies its correlated terminal rejection before expecting the fresh media
 answer on the same authenticated physical peer. An old reply cannot be treated
 as the new request's answer.
 
-All142 controlled replacement and29 native-wire Store checks pass. The installed
-pre-shared-admission run completes the first candidate move on both signing
-algorithms, including actual decoded audio and continued current control after
-old-source revocation, but fails its later generation-three Endpoint preparation.
-The current shared admission fix still requires complete installed runtime
-verification. Complete SDK and Gate 6 acceptance remain unqualified; see
-docs/evidence/gate-6/native-candidate-adoption.json.
+All 142 controlled replacement and 29 native-wire Store checks pass. The current
+local installed Node cases also pass both signing algorithms through candidate
+adoption and a subsequent generation-three Endpoint move. They verify actual
+decoded native audio, current control and key-loss behavior, original-reference
+recovery and original helper/server joins and media drains. Current local Node
+control, HTTPS and Python native restart/authority regressions pass on the same
+source and executables. See docs/evidence/gate-6/native-candidate-production-local.json.
+Earlier failures remain in docs/evidence/gate-6/native-candidate-adoption.json.
+The complete current Linux matrix, full SDK and Gate 6 acceptance remain
+unqualified; publication stays separate.

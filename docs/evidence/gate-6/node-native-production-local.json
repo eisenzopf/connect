@@ -223,5 +223,231 @@
   "request_budget_ms": 4000,
   "phase_deadline_seconds": 15,
   "whole_function_deadline_seconds": 90,
-  "scope": "Local installed Node original production native/HTTP control and causal recovery subset only. No candidate adoption, actual decoded media, Linux/remote/provider/full SDK or acceptance qualification."
+  "scope": "Local installed Node original production native/HTTP control and causal recovery subset only. No candidate adoption, actual decoded media, Linux/remote/provider/full SDK or acceptance qualification.",
+  "latest_shared_reservation_regression": {
+    "base_commit": "bf726ad7",
+    "scope": "Current local regression after shared managed replacement admission change; no full SDK/acceptance/publication qualification.",
+    "result": {
+      "passed": true,
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 31.92328887502663,
+      "log_sha256": "b771b73a26a4fe950b2132efc139989da9ee4f6a47b4bbb79af854caebb0aab4",
+      "source_inputs_unchanged": true,
+      "source_count": 8246,
+      "source_inputs_sha256": "e85017605a0deecbc22b8b3183c621bd48783efa93698841a5eb520674af974a",
+      "test_executable_sha256": "437356e76d16eb81bc47627f83d4f020509dbcfd7cef6fe3d8d1bbb49b635e92",
+      "installed_package_sha256": "b69ec23dc406bb90babbdc342931fc57c9b578675c434afbf929c7a11e0dcabd",
+      "node_version": "v26.7.0",
+      "system": "Darwin",
+      "machine": "arm64",
+      "witnesses": [
+        {
+          "completed": {
+            "algorithm": "EdDSA",
+            "events_close_control_live": true,
+            "events_current_authority_no_data": true,
+            "helpers_joined": 4,
+            "http_failure": {
+              "certainty": "read-only",
+              "kind": "authentication"
+            },
+            "http_receipts_current_authority": true,
+            "http_receipts_status": 401,
+            "local_validators_joined": 3,
+            "native_failure": {
+              "certainty": "not-submitted",
+              "kind": "cancelled"
+            },
+            "phase": "completed",
+            "query_recovery_without_replay": true,
+            "raw_current_authority": true,
+            "receipt_failure": {
+              "certainty": "read-only",
+              "kind": "cancelled"
+            },
+            "typed_receipts_current_authority": true
+          },
+          "controls": {
+            "incoming_close_control_live": true,
+            "incoming_original_hint": true,
+            "incoming_session_decision": true,
+            "incoming_source_sha256": "eed364eb11b989c2cf7845e3320e88fbd050cd822eb434cd5545668b7257a1f5",
+            "phase": "controls-ready",
+            "session_participants_accepted": true
+          },
+          "functional_phase_profile": "node-controls/8",
+          "initial": {
+            "cid_sha256": "48aaa4282a6acfd57d0b4af19df5fdc1ac71bf9718ef6f669402f4f0d0451a78",
+            "decision_id_sha256": "d369ef95da8901696b35ab54f97397af0b1a1b5872c5cdac152bc69f42f88af2",
+            "decision_target_sha256": "49e398948e6b1e8370b7e626ad0dd723df4a11aa8c9f84a2a501918197ec8a2c",
+            "event_id_sha256": "ce9ae794ba988041e58c25a9f7739f7456515a1559829ea603e1737cc7172502",
+            "events_cursor_persisted": true,
+            "events_original_record": true,
+            "first_helper_joined": true,
+            "membership_epoch_advanced": true,
+            "message_id_sha256": "355a417855eb4da619979586de9f210a131ecd8b70e10b27e4630820ca262bfd",
+            "movement_current_authority_refused": true,
+            "native_connection_controls": true,
+            "native_end_journaled": true,
+            "native_http_record": true,
+            "native_http_same_record": true,
+            "native_selection": true,
+            "node_capability_support_only": true,
+            "observation_only_stream": true,
+            "old_membership_operation_refused": true,
+            "participant_stable_id": true,
+            "phase": "initial",
+            "record_id_sha256": "2af89e3dd9d5b6f7e1182521837d829c850bc6dc8780d3d40a89a21c02164aa0",
+            "removed_receipt_unavailable": true,
+            "same_id_one_message": true,
+            "session_control_journey": true,
+            "session_end_journaled": true,
+            "session_reject_cancel": true,
+            "session_topology_revision_refused": true,
+            "stale_revision_refused": true,
+            "state": "completed",
+            "typed_result": true
+          },
+          "media_readers_drained": true,
+          "native": {
+            "native_controls_completed": true,
+            "phase": "native-complete"
+          },
+          "original_and_resumed_causal_store_verified": true,
+          "physical_peers_drained": true,
+          "receipts": {
+            "current_delivery_fact": true,
+            "http_same_delivery_fact": true,
+            "phase": "receipts-observed",
+            "raw_local_configuration_independent": true,
+            "raw_same_id_one_message": true,
+            "raw_signed_original_record": true
+          },
+          "recovered": {
+            "events_resume_event_id_sha256": "d11c52876ffbb823435bbd287255a48d7659cbdd1f8e2c9dc9555ac0c423bd2e",
+            "events_resume_http_record": true,
+            "events_resume_new_fact": true,
+            "events_resume_original_record": true,
+            "events_resume_record_id_sha256": "70558b1c22a29de4af5ecdf01e8c6ca29f31b28f091da5371c61de2c44aa962f",
+            "phase": "recovered",
+            "record_id_sha256": "2af89e3dd9d5b6f7e1182521837d829c850bc6dc8780d3d40a89a21c02164aa0",
+            "resubmitted": false,
+            "state": "completed",
+            "typed_connection_end_recovered": true,
+            "typed_decision_recovered": true,
+            "typed_session_end_recovered": true,
+            "typed_wait": true
+          },
+          "server_shutdown_joined": true
+        },
+        {
+          "completed": {
+            "algorithm": "ES256",
+            "events_close_control_live": true,
+            "events_current_authority_no_data": true,
+            "helpers_joined": 4,
+            "http_failure": {
+              "certainty": "read-only",
+              "kind": "authentication"
+            },
+            "http_receipts_current_authority": true,
+            "http_receipts_status": 401,
+            "local_validators_joined": 3,
+            "native_failure": {
+              "certainty": "not-submitted",
+              "kind": "cancelled"
+            },
+            "phase": "completed",
+            "query_recovery_without_replay": true,
+            "raw_current_authority": true,
+            "receipt_failure": {
+              "certainty": "read-only",
+              "kind": "cancelled"
+            },
+            "typed_receipts_current_authority": true
+          },
+          "controls": {
+            "incoming_close_control_live": true,
+            "incoming_original_hint": true,
+            "incoming_session_decision": true,
+            "incoming_source_sha256": "c68666ec7ed6854f8dbb3159f358fbc5e1cc520a3d78dbd6a0ef8e8fd4171471",
+            "phase": "controls-ready",
+            "session_participants_accepted": true
+          },
+          "functional_phase_profile": "node-controls/8",
+          "initial": {
+            "cid_sha256": "f5ca72e533a95cd4e017268bd3c6e7b8c6f85dd8e384779ee637d8b0810e75ae",
+            "decision_id_sha256": "d369ef95da8901696b35ab54f97397af0b1a1b5872c5cdac152bc69f42f88af2",
+            "decision_target_sha256": "49e398948e6b1e8370b7e626ad0dd723df4a11aa8c9f84a2a501918197ec8a2c",
+            "event_id_sha256": "704c09b9fa652edaf4422bc83465a9ffd60cdd3accb9444635f65fbf8242fad8",
+            "events_cursor_persisted": true,
+            "events_original_record": true,
+            "first_helper_joined": true,
+            "membership_epoch_advanced": true,
+            "message_id_sha256": "355a417855eb4da619979586de9f210a131ecd8b70e10b27e4630820ca262bfd",
+            "movement_current_authority_refused": true,
+            "native_connection_controls": true,
+            "native_end_journaled": true,
+            "native_http_record": true,
+            "native_http_same_record": true,
+            "native_selection": true,
+            "node_capability_support_only": true,
+            "observation_only_stream": true,
+            "old_membership_operation_refused": true,
+            "participant_stable_id": true,
+            "phase": "initial",
+            "record_id_sha256": "b3e353ab7eb82a19f12202b0378c33258990124a60b2c25b8c07918b182135a5",
+            "removed_receipt_unavailable": true,
+            "same_id_one_message": true,
+            "session_control_journey": true,
+            "session_end_journaled": true,
+            "session_reject_cancel": true,
+            "session_topology_revision_refused": true,
+            "stale_revision_refused": true,
+            "state": "completed",
+            "typed_result": true
+          },
+          "media_readers_drained": true,
+          "native": {
+            "native_controls_completed": true,
+            "phase": "native-complete"
+          },
+          "original_and_resumed_causal_store_verified": true,
+          "physical_peers_drained": true,
+          "receipts": {
+            "current_delivery_fact": true,
+            "http_same_delivery_fact": true,
+            "phase": "receipts-observed",
+            "raw_local_configuration_independent": true,
+            "raw_same_id_one_message": true,
+            "raw_signed_original_record": true
+          },
+          "recovered": {
+            "events_resume_event_id_sha256": "a52b5b2e0d17ba77710b3ef06223a9eeeccfa14a17ba8582e3eb1cb135a41a63",
+            "events_resume_http_record": true,
+            "events_resume_new_fact": true,
+            "events_resume_original_record": true,
+            "events_resume_record_id_sha256": "5c37c1cd1a12f0fa3c21d8355beaca754dd16d44eb3b0d785e4d6f27a5c104bb",
+            "phase": "recovered",
+            "record_id_sha256": "b3e353ab7eb82a19f12202b0378c33258990124a60b2c25b8c07918b182135a5",
+            "resubmitted": false,
+            "state": "completed",
+            "typed_connection_end_recovered": true,
+            "typed_decision_recovered": true,
+            "typed_session_end_recovered": true,
+            "typed_wait": true
+          },
+          "server_shutdown_joined": true
+        }
+      ],
+      "failures": [],
+      "request_budget_ms": 4000,
+      "phase_deadline_seconds": 15,
+      "whole_function_deadline_seconds": 90,
+      "scope": "Local installed Node original production native/HTTP control and causal recovery subset only. No candidate adoption, actual decoded media, Linux/remote/provider/full SDK or acceptance qualification."
+    },
+    "combined_evidence": "docs/evidence/gate-6/native-candidate-production-local.json"
+  }
 }

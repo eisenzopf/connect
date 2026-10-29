@@ -21,6 +21,14 @@ try {
 }
 ```
 
+Current local source `bf726ad7` passes production HTTPS profile 3 under EdDSA
+and ES256, including independent signed-native/Store record and causal agreement,
+exact one-effect replay, the queued receipt boundary and current revocation.
+The [current local record](../evidence/gate-6/native-candidate-production-local.json)
+also includes passing native candidate, control and Python regressions on the
+same executables. This does not qualify the complete current Linux matrix or
+close G6-062. The source-specific failures below remain historical evidence.
+
 The endpoint and credential are captured once. Remote mode requires HTTPS with
 platform certificate and hostname validation. URLs with user information, query,
 fragment or a non-root path, malformed/oversized URLs, and invalid bearer values
@@ -50,7 +58,8 @@ SDK record, then requires current revocation to deny read/replay/new mutation an
 receipt data. SQL requires one original effect and zero forbidden effects; the
 original Node process, native owner and server must join and drain. Four-second
 requests, fifteen-second phases, ninety-second functions and five-second drains
-remain required. Candidate execution is pending. No named remote endpoint or
+remain required. This initial profile has since been superseded by the current profile 3 local
+record above. No named remote endpoint or
 provider/model account was contacted, and this does not close G6-062.
 
 The original production HTTPS fixture used the same default subject for its CA
