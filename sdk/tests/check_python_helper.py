@@ -48,17 +48,37 @@ def main():
                      PYTHONPYCACHEPREFIX=str(private/'pycache'),TMPDIR=str(private/'tmp'))
     before=sources()
     (directory/'source-inputs.json').write_text(json.dumps(before,indent=2)+'\n')
-    started=time.monotonic();timed=False;forced=False
-    with (private/'tests.log').open('wb') as stream:
-        child=subprocess.Popen([sys.executable,'-m','unittest','discover','-s','sdk/tests','-p','test_*.py','-v'],
-                               cwd=ROOT,env=environment,stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
-        try:
-            child.wait(timeout=60)
-        except subprocess.TimeoutExpired:
-            timed=True;os.killpg(child.pid,signal.SIGTERM)
-            try:child.wait(timeout=5)
+    started=time.monotonic();timed=False;forced=False;phases={}
+    # Discover the complete suite in both children; partition by module so no
+    # nested/failed discovery test is silently omitted. Core keeps its original
+    # 60s bound; actual HTTP/TLS workers have a separate explicit 30s lane.
+    run_suite='''import sys,unittest
+suite=unittest.defaultTestLoader.discover("sdk/tests",pattern="test_*.py")
+def leaves(suite):
+ for item in suite:
+  if isinstance(item,unittest.TestSuite):yield from leaves(item)
+  else:yield item
+is_http=lambda case:case.__class__.__module__ in ("test_python_http","test_python_https")
+selected=[case for case in leaves(suite) if is_http(case)==(sys.argv[1]=="http")]
+result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(selected))
+raise SystemExit(not result.wasSuccessful())
+'''
+    for label,budget in [('core',60),('http',30)]:
+        phase_started=time.monotonic();phase_timed=False;phase_forced=False
+        with (private/(label+'-tests.log')).open('wb') as stream:
+            child=subprocess.Popen([sys.executable,'-c',run_suite,label],cwd=ROOT,env=environment,
+                                   stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
+            try:child.wait(timeout=budget)
             except subprocess.TimeoutExpired:
-                forced=True;os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=5)
+                phase_timed=True;os.killpg(child.pid,signal.SIGTERM)
+                try:child.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    phase_forced=True;os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=5)
+        phases[label]={'exit_code':child.returncode,'budget_seconds':budget,'timed_out':phase_timed,
+                       'forced_cleanup':phase_forced,'seconds':time.monotonic()-phase_started,
+                       'log_sha256':digest(private/(label+'-tests.log'))}
+        timed=timed or phase_timed;forced=forced or phase_forced
+    (private/'tests.log').write_bytes(b'\n'.join((private/(label+'-tests.log')).read_bytes() for label in phases))
     log=(private/'tests.log').read_text(errors='replace')
     # Synchronous bounded local validation can trigger asyncio debug timing
     # lines between unittest's test header and its final result. Keep those
@@ -74,6 +94,8 @@ def main():
     readers=[name for name in functions if '.TypedPythonReaders.' in name]
     raw=[name for name in functions if '.TypedPythonRaw.' in name]
     administrative=[name for name in functions if '.TypedPythonAdministration.' in name]
+    http=[name for name in functions if '.TypedPythonHttp.' in name]
+    https=[name for name in functions if '.TypedPythonHttps.' in name]
     unsafe=bool(re.search(r'exception in shielded future|Task was destroyed|ResourceWarning|Exception in callback|unclosed transport|exception was never retrieved',log,re.I))
     failed_functions=re.findall(r'^\w+ \(([A-Za-z0-9_.]+)\) \.\.\. (FAIL|ERROR)$',log,re.M)
     unchanged=sources()==before
@@ -86,6 +108,8 @@ def main():
                                 'sdk/python/connect_sdk/_sdk_readers.py','sdk/python/connect_sdk/sdk_events.py',
                                 'sdk/python/connect_sdk/sdk_incoming.py','sdk/python/connect_sdk/_sdk_validation.py',
                                 'sdk/python/connect_sdk/sdk_raw.py','sdk/python/connect_sdk/sdk_administration.py',
+                                'sdk/python/connect_sdk/_sdk_http_protocol.py','sdk/python/connect_sdk/_sdk_http_worker.py',
+                                'sdk/python/connect_sdk/sdk_http.py',
                                 'sdk/tests/python_sdk_positive.py']),
                   ('negative', ['sdk/tests/python_sdk_negative.py'])]
         checks={}
@@ -101,16 +125,16 @@ def main():
             errors=re.findall(r'^sdk/tests/python_sdk_negative.py:\d+: error: .*? \[([a-z-]+)\]$',type_log,re.M)
             checks[label]={'exit_code':code,'log_sha256':digest(private/(label+'-types.log')),'negative_error_codes':errors}
         types={'passed':checks['positive']['exit_code']==0 and checks['negative']['exit_code']==1
-                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*19+['attr-defined']*7+['misc']*4,
+                         and sorted(checks['negative']['negative_error_codes'])==['arg-type']*22+['attr-defined']*7+['misc']*5,
                'checks':checks}
     unchanged=unchanged and sources()==before
-    result={'passed':bool(child.returncode==0 and not timed and not forced and unchanged and not unsafe
-                          and len(functions)==156 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17
-                          and re.search(r'^Ran 156 tests in ',log,re.M)
+    result={'passed':bool(all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
+                          and len(functions)==180 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==3
+                          and re.search(r'^Ran 156 tests in ',log,re.M) and re.search(r'^Ran 24 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
-            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, frozen-parser-classified finite raw canonical exchanges, separate trusted administrative controls, typed Operation/recovery/capability/receipt control through a synthetic child, plus existing fake SDK/HTTP/codec regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
-            'exit_code':child.returncode,'timed_out':timed,'forced_cleanup':forced,
+            'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',
+            'exit_code':next((phase['exit_code'] for phase in phases.values() if phase['exit_code']),0),'timed_out':timed,'forced_cleanup':forced,'phases':phases,
             'source_inputs_unchanged':unchanged,'source_count':len(before),
             'source_inputs_sha256':digest(directory/'source-inputs.json'),
             'log_sha256':digest(private/'tests.log'),'unexpected_async_diagnostics':unsafe,
@@ -121,6 +145,7 @@ def main():
             'typed_reader_functions_passed':len(readers),
             'typed_raw_functions_passed':len(raw),
             'typed_administrative_functions_passed':len(administrative),
+            'typed_http_functions_passed':len(http),'typed_https_functions_passed':len(https),
             'public_type_checks':types,
             'python_version':sys.version.split()[0],
             'node_version':subprocess.check_output(['node','--version'],text=True).strip(),

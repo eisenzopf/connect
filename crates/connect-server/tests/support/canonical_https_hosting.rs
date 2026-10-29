@@ -45,6 +45,9 @@ impl Tls {
         p.not_before = (now - Duration::from_secs(60)).into();
         p.not_after = (now + Duration::from_secs(3600)).into();
         p.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
+        // Platform X.509 strict verification (including Python 3.13+) requires
+        // the leaf to identify the issuing CA. Keep verification enabled.
+        p.use_authority_key_identifier_extension = true;
         let key = rcgen::KeyPair::generate().unwrap();
         let certificate = p.signed_by(&key, &self.issuer).unwrap();
         std::fs::write(&self.certificate, certificate.pem()).unwrap();

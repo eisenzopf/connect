@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "connect-sdk"
 version = "0.1.0"
-description = "Connect SDK via native QUIC helper or local HTTP/JSON"
+description = "Connect SDK with canonical native and explicit HTTP/HTTPS control"
 requires-python = ">=3.11"
 
 [tool.setuptools.package-data]

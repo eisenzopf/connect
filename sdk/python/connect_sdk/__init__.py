@@ -12,6 +12,7 @@ from .sdk_events import EventStream
 from .sdk_incoming import InvitationStream
 from .sdk_raw import RawCanonical, ValidatedEnvelope
 from .sdk_administration import AdministrativeClient, AdministrativeOperations, TrustedProvisioningCommand
+from .sdk_http import CanonicalHttpClient, HttpCommandScope, HttpControlTransport, HttpEnvelope
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision, Json,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -59,4 +60,5 @@ __all__ += [
     "RawCanonical", "ValidatedEnvelope",
     "AdministrativeClient", "AdministrativeOperations", "TrustedProvisioningCommand",
     "Json",
+    "CanonicalHttpClient", "HttpCommandScope", "HttpControlTransport", "HttpEnvelope",
 ]

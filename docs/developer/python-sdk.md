@@ -311,9 +311,81 @@ restart journey remain required for G6-063.
 The latest [exact6c Linux component](../evidence/gate-6/python-sdk-administration-linux-6c.json)
 passes all156 functions and30 negative type constraints on
 Python3.11.17/3.12.15/3.13.17/3.14.9. Each artifact matches74 tracked file contents
-and modes, and those guarded files match the current Python source. This covers
+and modes, and those guarded files match the recorded administrative source before the HTTP additions below. This covers
 the control, reader, raw and administrative component, including the corrected
 64-KiB validator carrier and original child cleanup. It resolves the earlier
 pending Linux component check for this source. The original Rust/server,
 installed-package/restart/current-authority and complete G6-063 scopes remain
 unqualified.
+
+
+`CanonicalHttpClient` provides explicit finite canonical HTTP control. It posts
+current `connect/2` envelopes to `/v2/commands`; its policy matches the finite
+HTTP command surface, including `conversation.subscribe` with `live: false`.
+Choose `loopback-http` for a loopback HTTP origin or explicitly choose
+`remote-https` for HTTPS. HTTPS uses the normal platform CA chain and hostname
+verification. An explicitly constructed client keeps its captured origin and
+credential; redirects, proxies, alternate routes and automatic retries are
+unsupported. The application `HttpClient` remains a separate interface.
+
+```python
+from connect_sdk import (
+    CanonicalHttpClient, ConversationId, HttpCommandScope, OperationId,
+    RequestOptions,
+)
+
+async with CanonicalHttpClient("https://connect.example", credential,
+                               transport="remote-https") as http:
+    frames = await http.request(
+        "message.send", {"msg_id": "message-original", "to": ["participant-original"],
+                         "content_type": "text/plain", "body": "Hello",
+                         "body_encoding": "utf8", "label": "connect-messages",
+                         "attachments": [], "in_reply_to_msg": None},
+        HttpCommandScope(conversation_id=ConversationId("conversation-original"),
+                         operation_id=OperationId("send-original")),
+        RequestOptions(5000),
+    )
+    private_reply = frames[0].to_json()
+```
+
+The caller supplies the original logical operation ID. Each explicit call makes
+fresh physical request metadata; uncertainty preserves that original ID and
+never resubmits. Results are immutable `HttpEnvelope` values, with independent
+JSON export. Errors use the common typed SDK kinds, canonical problems and
+read-only/not-submitted/refused/uncertain certainty. A completed HTTP exchange
+does not imply a durable operation completed: reconcile through explicit status
+reads under current server authority.
+
+Each request owns a one-shot Python worker started with the current interpreter;
+origin, credential and request travel through private stdin. The absolute caller
+deadline includes startup, DNS, TLS, network and decoding. Cancellation or expiry
+terminates and joins the original worker, including a worker blocked in DNS.
+The client binds to one asyncio loop, permits16 active requests and retains
+cleanup ownership until the worker joins. Use `async with` or explicit `close()`.
+No Rust executable is needed for this HTTP transport. Its private worker module
+must be installed alongside the package.
+
+Request JSON stays at64KiB, each response envelope at1MiB, the whole response
+at2MiB and a batch at128 envelopes, with depth32/100000 value-node limits and
+interoperable JSON integers. Correlation, repeated resource/cursor scopes,
+terminal ordering, unsigned HTTP profile, content type and response framing are
+validated. Native offers, live subscriptions and decoded media are outside this
+finite transport. It does not advertise participant/native capability parity.
+
+[HTTP component evidence](../evidence/gate-6/python-sdk-http.json) records180 local
+functions, including21 actual local HTTP and3 verified HTTPS functions,80
+unchanged source guards and34 negative type constraints. Core and HTTP test
+phases have separate60s/30s runner budgets; request deadlines are unchanged.
+The HTTPS fixtures use an ephemeral proper CA/leaf chain. The first positive
+TLS test exposed a missing leaf Authority Key Identifier; adding that extension
+makes strict OpenSSL verification pass while normal certificate and hostname
+checks remain enabled. The shared Rust hosting fixture now emits that extension;
+its new runtime check is pending Linux CI. All109 Node component/type regressions
+pass with the corrected local certificate fixture.
+
+These are actual HTTP sockets with synthetic local responses and owned Python
+workers. They do not qualify a named remote endpoint, original Rust server,
+installed clean-venv/restart/current-authorization journey or the complete SDK.
+The expanded Linux Python matrix remains pending for this new source. Application
+HTTP coverage, bounded synchronous ownership and helper deployment remain open
+in G6-063, which stays in progress.

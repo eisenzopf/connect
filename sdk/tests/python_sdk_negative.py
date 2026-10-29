@@ -1,10 +1,11 @@
-"""Thirty unsuppressed public-type constraints; compilation must fail exactly thirty."""
+"""Thirty-four unsuppressed public-type constraints; compilation must fail exactly thirty-four."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
     ConnectionId, Quality, Session, SessionId, SessionRevision, StreamId, StreamResourceRevision, StreamRevision,
     ConversationRevision, ConversationRole, HandoffInput, IdentityId, MoveInput, MoveResult, SessionRole,
     AdministrativeClient,
+    CanonicalHttpClient, HttpCommandScope, Scope,
 )
 
 
@@ -52,3 +53,11 @@ async def invalid_administration(admin: AdministrativeClient, client: Client, mu
     command.value=None
     operation=await admin.provision(command,mutation)
     wrong: Operation[Conversation]=admin.operations.recover(operation.reference)
+
+
+async def invalid_http(client: CanonicalHttpClient, options: RequestOptions) -> None:
+    HttpCommandScope(ParticipantId('wrong-conversation-family'))
+    await client.request('operation.get',{},Scope(ConversationId('room')),options)
+    CanonicalHttpClient('http://127.0.0.1','credential','automatic')
+    values=await client.request('operation.get',{},HttpCommandScope(ConversationId('room')),options)
+    values[0].value=values[0].value

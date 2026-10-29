@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import json
 import math
 import os
+import sys
 from typing import Any, Callable, Coroutine, Generic, TypeVar
 import uuid
 
@@ -87,8 +88,8 @@ def _encode(value, limit, large=False):
     return value, raw
 
 
-def _parse(raw, large=False):
-    if len(raw) > 2 * 1024 * 1024:
+def _parse(raw, large=False, *, maximum_bytes=2 * 1024 * 1024):
+    if len(raw) > maximum_bytes:
         raise ValueError()
     value = json.loads(raw.decode("utf-8", errors="strict"), object_pairs_hook=_pairs,
                        parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
@@ -117,16 +118,19 @@ class _Job(Generic[T]):
 
 
 class _SdkHelper:
-    def __init__(self, config: str | os.PathLike, executable: str | os.PathLike = "connect", *, administrative=False):
+    def __init__(self, config: str | os.PathLike, executable: str | os.PathLike = "connect", *, administrative=False, http=False):
         try:
             self._config, self._executable = os.fspath(config), os.fspath(executable)
             if any(type(value) is not str or not value or len(value) > 4096 or "\0" in value for value in (self._config, self._executable)):
                 raise ValueError()
         except (ValueError, TypeError):
             raise SdkError("configuration", "not-submitted") from None
-        self._profile = "connect-sdk-administration/2" if administrative else "connect-sdk-helper/4"
+        if administrative and http:
+            raise SdkError("configuration", "not-submitted")
+        self._profile = "connect-sdk-http-control/1" if http else "connect-sdk-administration/2" if administrative else "connect-sdk-helper/4"
         self._command = "sdk-admin-stdio" if administrative else "sdk-stdio"
         self._administrative = administrative
+        self._http = http
         self._loop: asyncio.AbstractEventLoop | None = None
         self._queue: deque[_Job[Any]] = deque()
         self._active = None
@@ -203,7 +207,7 @@ class _SdkHelper:
             if type(options) is not RequestOptions or type(action) is not dict or type(action.get("type")) is not str:
                 raise ValueError()
             raw_action = action["type"] == "raw_request"
-            captured, _ = _encode(action, 1024 * 1024 + 1024 if raw_action else 65_536 + 1024 if self._administrative else 63 * 1024, raw_action or self._administrative)
+            captured, _ = _encode(action, 128 * 1024 if self._http else 1024 * 1024 + 1024 if raw_action else 65_536 + 1024 if self._administrative else 63 * 1024, raw_action or self._administrative or self._http)
         except (ValueError, TypeError, UnicodeError, RecursionError):
             raise fail("validation") from None
         if cancelled(options.signal):
@@ -236,10 +240,13 @@ class _SdkHelper:
 
     async def _start(self):
         try:
+            arguments = [self._executable, self._command, "--config", self._config]
+            if self._http:
+                arguments = [sys.executable, "-m", "connect_sdk._sdk_http_worker"]
             self._process = await asyncio.create_subprocess_exec(
-                self._executable, self._command, "--config", self._config,
+                *arguments,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE, limit=2 * 1024 * 1024 + 1)
+                stderr=asyncio.subprocess.PIPE, limit=2 * 1024 * 1024 + (1024 if self._http else 0) + 1)
         except OSError:
             self._fence("configuration")
             return
@@ -268,8 +275,8 @@ class _SdkHelper:
                 try:
                     raw_action = job.action["type"] == "raw_request"
                     _, line = _encode({"profile":self._profile,"id":job.id,"request":{"timeout_ms":remaining,"action":job.action}},
-                                      2 * 1024 * 1024 if raw_action else 128 * 1024 if self._administrative else 65_536,
-                                      raw_action or self._administrative)
+                                      2 * 1024 * 1024 if raw_action else 128 * 1024 if self._administrative or self._http else 65_536,
+                                      raw_action or self._administrative or self._http)
                     job.sent = True
                     self._process.stdin.write(line + b"\n")
                     await self._process.stdin.drain()
@@ -313,7 +320,8 @@ class _SdkHelper:
         try:
             while chunk := await self._process.stdout.read(65_536):
                 job = self._active
-                if job is None or len(pending) + len(chunk) > 2 * 1024 * 1024 + 1:
+                maximum = 2 * 1024 * 1024 + (1024 if self._http else 0)
+                if job is None or len(pending) + len(chunk) > maximum + 1:
                     self._fence("protocol")
                     return
                 if self._loop.time() >= job.deadline:
@@ -326,7 +334,7 @@ class _SdkHelper:
                 if extra:
                     raise ValueError()
                 pending.clear()
-                value = _parse(raw, job.action["type"] in ("raw_request","events_poll") or self._administrative)
+                value = _parse(raw, job.action["type"] in ("raw_request","events_poll") or self._administrative or self._http, maximum_bytes=maximum)
                 result, error = self._response(value, job)
                 if self._loop.time() >= job.deadline:
                     self._fence("deadline")

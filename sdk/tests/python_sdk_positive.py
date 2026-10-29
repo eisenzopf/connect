@@ -13,6 +13,7 @@ from connect_sdk import (
     Cursor, EventStream, InvitationStream, JournalEvent, IncomingInvitation,
     RawCanonical, ValidatedEnvelope,
     AdministrativeClient, TrustedProvisioningCommand, Json,
+    CanonicalHttpClient, HttpCommandScope, HttpEnvelope,
 )
 
 
@@ -94,3 +95,10 @@ async def administration(admin: AdministrativeClient, options: RequestOptions) -
     assert_type(admin.operations.recover(operation.reference),Operation[Json])
     assert_type(admin.operations.restore(command.reference_json()),Operation[Json|DecisionReceipt])
     assert_type(await operation.cancel(MutationOptions(OperationId('cancel'),options)),Operation[DecisionReceipt])
+
+
+async def http_control(client: CanonicalHttpClient, options: RequestOptions) -> None:
+    scope=HttpCommandScope(ConversationId('room'),operation_id=OperationId('original'))
+    values=await client.request('message.send',{'text':'synthetic'},scope,options)
+    assert_type(values,Sequence[HttpEnvelope])
+    assert_type(values[0].to_json(),Json)
