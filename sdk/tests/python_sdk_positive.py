@@ -14,6 +14,7 @@ from connect_sdk import (
     RawCanonical, ValidatedEnvelope,
     AdministrativeClient, TrustedProvisioningCommand, Json,
     CanonicalHttpClient, HttpCommandScope, HttpEnvelope,
+    SynchronousSdk, CapabilitySnapshot,
 )
 
 
@@ -102,3 +103,13 @@ async def http_control(client: CanonicalHttpClient, options: RequestOptions) -> 
     values=await client.request('message.send',{'text':'synthetic'},scope,options)
     assert_type(values,Sequence[HttpEnvelope])
     assert_type(values[0].to_json(),Json)
+
+
+def synchronous(native: SynchronousSdk[Client], admin: SynchronousSdk[AdministrativeClient],
+                http: SynchronousSdk[CanonicalHttpClient], options: RequestOptions) -> None:
+    assert_type(native.run(lambda client:client.capabilities.refresh(options)),CapabilitySnapshot)
+    operation=native.run(lambda client:client.conversations.create([IdentityId('peer')],'persistent',MutationOptions(OperationId('original'),options)))
+    assert_type(operation,Operation[Conversation])
+    assert_type(native.run(lambda client:operation.wait(options)).value,Conversation)
+    assert_type(admin.run(lambda client:administration(client,options)),None)
+    assert_type(http.run(lambda client:client.request('operation.get',{'operation_id':'original'},HttpCommandScope(),options)),Sequence[HttpEnvelope])

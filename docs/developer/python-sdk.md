@@ -389,3 +389,70 @@ installed clean-venv/restart/current-authorization journey or the complete SDK.
 The expanded Linux Python matrix remains pending for this new source. Application
 HTTP coverage, bounded synchronous ownership and helper deployment remain open
 in G6-063, which stays in progress.
+
+The [exactf79 Linux HTTP component](../evidence/gate-6/python-sdk-http-linux-f79.json)
+is mixed. Python3.13 passes180 functions and34 negative type constraints.
+Python3.11/3.12/3.14 pass the156-function core and type checks but fail HTTP
+sent-deadline/cancellation fixture assertions;3.12 also reports a blocked-resolver
+fixture failure. All80 tracked contents and modes match the exact commit. No
+runner phase timed out or required forced cleanup. The older artifact does not
+identify the failing assertion line, so startup timing or another cause remains
+unproven. The runner now publishes only repository source paths/line numbers
+from failures, excluding assertion text, private paths and raw logs. Those failed
+profiles remain unqualified; no request deadline or submission assertion changed.
+
+`SynchronousSdk` is the synchronous entry point to these same async types.
+Transfer a fresh `Client`, `AdministrativeClient` or `CanonicalHttpClient` to one
+owner. Call `run()` from its constructing thread with a typed async callback;
+the owner invokes it on one persistent private event loop. Typed handles and
+operation references can be retained between calls to that same owner.
+The loop progresses during `run()` and `close()`; background event/status work
+resumes on the next call rather than running between synchronous calls.
+
+```python
+from connect_sdk import Client, RequestOptions, SynchronousSdk
+
+options = RequestOptions(3000)
+with SynchronousSdk(Client(config)) as sdk:
+    capabilities = sdk.run(lambda client: client.capabilities.refresh(options))
+    # Run an existing async control journey with the same typed SDK.
+    result = sdk.run(lambda client: my_async_control_journey(client, options))
+```
+
+The callback receives the exact typed client chosen at construction. Participant
+and administrative roles remain separate; HTTP control retains its explicit
+origin and trust selection. There is no second command implementation, retry,
+background owner thread or alternate executable. asyncio may use its normal
+platform child watcher. SDK calls retain their own `RequestOptions` deadlines
+and thread-safe cancellation signal. User callback code has no additional outer
+timeout: each SDK call must provide its options and custom async work must be
+bounded by the application. A mutation's original certainty/key passes through.
+
+An active async loop, foreign thread, nested/reentrant call, duplicate transfer,
+already-bound client or closed owner is refused before invoking a callback.
+After transfer, use the original client and retained async handles only through
+this owner. Explicit `close(options)` has one cleanup budget. It closes the SDK,
+drains the original helper tasks, cancels outstanding callback tasks and closes
+async generators. It closes the loop only after pending work and original
+processes have joined. Incomplete cleanup returns `cleanup-incomplete`, retains
+the loop and rejects new calls; call `close()` again to drive the original cleanup.
+A forced process kill is reported even after its eventual join. Context exit uses
+five seconds. Callbacks must await their own work and must not create executor
+jobs; this owner does not adopt application-created executors or external threads.
+
+The synchronous component exercises repeated typed operation/handle calls with
+one original helper, distinct administrative profile, actual local HTTP sockets,
+pre-cancelled and sent cancellation/deadline certainty, thread/loop/reentrancy
+refusal, callback errors, graceful close, forced child cleanup and bounded
+stubborn-task refusal followed by retained-loop recovery. This qualifies the
+recorded local component, not the installed original-server journey or G6-063.
+
+
+[Synchronous component evidence](../evidence/gate-6/python-sdk-sync.json)
+records193 local functions including13 synchronous ownership functions,
+82 unchanged source guards,16 runtime modules plus the public outline passing
+mypy and37 expected negative type constraints. Initial cleanup lost a callback
+task that completed with SDK cancellation while closing the client; retaining
+the initial task set before cleanup now retrieves that completion and closes
+without unexpected async diagnostics. Runner/request deadlines are unchanged.
+The installed original-server and expanded Linux scopes remain open.

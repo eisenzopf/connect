@@ -1,4 +1,4 @@
-"""Thirty-four unsuppressed public-type constraints; compilation must fail exactly thirty-four."""
+"""Thirty-seven unsuppressed public-type constraints; compilation must fail exactly thirty-seven."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
@@ -6,6 +6,7 @@ from connect_sdk import (
     ConversationRevision, ConversationRole, HandoffInput, IdentityId, MoveInput, MoveResult, SessionRole,
     AdministrativeClient,
     CanonicalHttpClient, HttpCommandScope, Scope,
+    SynchronousSdk,
 )
 
 
@@ -61,3 +62,9 @@ async def invalid_http(client: CanonicalHttpClient, options: RequestOptions) -> 
     CanonicalHttpClient('http://127.0.0.1','credential','automatic')
     values=await client.request('operation.get',{},HttpCommandScope(ConversationId('room')),options)
     values[0].value=values[0].value
+
+
+def synchronous_roles(native: SynchronousSdk[Client], admin: SynchronousSdk[AdministrativeClient], options: RequestOptions) -> None:
+    native.run(lambda client:client.provision({}))
+    admin.run(lambda client:client.conversations.list(options))
+    native._client=native._client
