@@ -857,9 +857,9 @@ const original = await session.consult({
 }, { timeoutMs: 5000, operationId: savedConsultationId });
 await saveOriginalReference(original.referenceJson());
 const observed = (await original.wait({ timeoutMs: 5000 })).value;
-// observed.topology contains retained/admitted observations, with no new capture owner.
+// observed.retained/admitted/retired and topologyRevision are direct observations.
 
-const returning = await original.returnToRetained(nextTopologyRevision, {
+const returning = await original.returnToRetained({ expectedTopologyRevision: nextTopologyRevision }, {
     timeoutMs: 5000, operationId: savedReturnId,
 });
 await saveOriginalReference(returning.referenceJson());
@@ -925,7 +925,7 @@ const handingOff = await session.handoff({
 }, { timeoutMs: 5000, operationId: savedHandoffId });
 await saveOriginalReference(handingOff.referenceJson());
 const handoff = (await handingOff.wait({ timeoutMs: 5000 })).value;
-// handoff.topology and optional handoff.roleChange are captured observations.
+// handoff.retained/admitted/retired and optional roleChange are captured observations.
 
 const replacing = await primaryConnection.replaceDevice({
     retain: remoteConnectionId,
@@ -1061,3 +1061,23 @@ shared vectors checked independently by the frozen Rust parser, identifier regre
 coverage and causal calendar/signature-clock negatives, signed component
 exchanges, and actual Chrome WT/fallback mutation, reconnect/original recovery
 and current enrollment retirement.
+
+
+## Frozen TypeScript shape audit
+
+Consultation, handoff and device-move results implement `BrowserTopologyChange`
+directly: `retained`, `admitted`, `retired`, `topologyRevision` and optional
+`conversationRevision` are result fields. Consultation additionally has `session`;
+move additionally has `connection` and `binding`. `BrowserConsultationOperation`
+is the named original-operation type. Returning takes the explicit
+`{ expectedTopologyRevision }` input. The earlier nested result and positional
+return forms have been removed to match the approved TypeScript contract.
+
+[The contract audit](../evidence/gate-6/browser-sdk-contract-audit.json) records
+all 25 mapped method surfaces, actual compiler witnesses and remaining gaps.
+The current browser shutdown still retires synchronously through `close()`;
+the frozen bounded asynchronous `close(options)` contract needs implementation
+and cleanup evidence. The declaration-only cross-language return samples also
+need a second private Participant to match the protocol minimum. These findings
+keep G6-061 in progress; passing method-presence checks do not qualify runtime
+parity, shutdown or successful live movement media.

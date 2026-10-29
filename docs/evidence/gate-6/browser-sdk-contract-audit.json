@@ -1,0 +1,469 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "fbbed3376674d86d7feaca31d52600d9601d18e5",
+  "status": "in-progress",
+  "passed": false,
+  "alignment_verified": true,
+  "task_complete": false,
+  "acceptance_qualified": false,
+  "scope": "Incomplete browser completion audit. All25mapped method surfaces and corrected TypeScript topology/return shapes compile against actual SDK declarations. The correction passes component and selected actual-browser regression lanes. The bounded close contract still contradicts current implementation; source sample and prior Screen finding remain unresolved. This is not full browser SDK or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "contracts/schemas/uctp-envelope-2.schema.json": {
+      "sha256": "d10a4e7ccbd4d025ea964c5109e9a479b614ac909caf46da2efb964ec9c81f39",
+      "mode": 420
+    },
+    "contracts/sdk-api/python/outline.py": {
+      "sha256": "e20baecf9168b0cdaa82555a415608dbf810d26345a64c02b74d2bc26e378e41",
+      "mode": 420
+    },
+    "contracts/sdk-api/rust/outline.rs": {
+      "sha256": "d5dcab8facaf10dfe1d759cc3fb2aa3f9a7af3b7d8b9cb57c5838fbde0593d09",
+      "mode": 420
+    },
+    "contracts/sdk-api/typescript/contract.ts": {
+      "sha256": "97f65235ac4dd9c24aa081584e23533f8ab26c7007a50217e05a9f8de8f6f297",
+      "mode": 420
+    },
+    "contracts/sdk-api/typescript/outline.ts": {
+      "sha256": "5f52a653133a591ee6d19aa3a3ec18528b7be1ebecc47c5141e8db0b926ac29a",
+      "mode": 420
+    },
+    "contracts/sdk-gate-6-api.json": {
+      "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+      "mode": 420
+    },
+    "crates/connect-protocol/src/transitions.rs": {
+      "sha256": "6d4d9c0296049d7fa6906af6039609fd19d222cd2a3539f68ec5d47c1f6ccd30",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_consultations.test.mjs": {
+      "sha256": "e62f0d3d6fe7ca79d6b6e816f57642021c13086f7ed23c18ea959b003ff7b38d",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_movements.test.mjs": {
+      "sha256": "c445ad079b64a0ba55a383dbc1557ae15af52d033925feea25ec8c87e6927ec9",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "7e3cb036739217e93636d4c3bece1090ffaa2d334e4e4a7940d76142289ae1ff",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "2889130b77cb2b0f335983d8022281b6270288a6064a8ca94f53c1469c29c07a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "ad406a295f412cc4b646c74f6581edbd5a4cc15670cd28d0e0bf1a7065f2c335",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "baaa54a34efe99dc973ef25f19075e57e65e3f151bcea7c1973f408c8f931030",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_consultations.d.ts": {
+      "sha256": "18ef4dfd8d57f303ea76f7687121232fa367607db3f536cd3893540cdbc8fd8f",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_movements.d.ts": {
+      "sha256": "4ed43f0f2ac8a5c64312dc638af88b37cd37cffadbdc91855e7a35de06c3b290",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "bd246121b25b782f914bea3c38d68cd9e6610b95e0ea4069b3b042b4a0cce3b6",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "2abb8cb494e61af57ee9f05b2c4704b3f5d1a55a555e408b2cd58f7defee4dda",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_consultations.ts": {
+      "sha256": "f4ae61d27ac0f18fca8508893fbb356be6a1529f3392060aff5f698907b73f01",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_movements.ts": {
+      "sha256": "957d7f9ab44df1b2d44cb3909fac3e0e5168ea9975680420aab9f3f33d6990d4",
+      "mode": 420
+    }
+  },
+  "alignment": {
+    "change": "BrowserConsultationResult, BrowserHandoffResult and BrowserMoveResult now directly extend BrowserTopologyChange as required by the frozen TypeScript contract. No nested topology aliases remain on those results. Return uses {expectedTopologyRevision}, and the named BrowserConsultationOperation is exported. Original wire commands, IDs, saved continuations, current authority and separate return-receipt capture remain unchanged.",
+    "behavior": "Input is captured before an unknown parent-record read. Positional return and extra input fields refuse before IO. Completed direct arrays/revision fields and frozen metadata are verified throughout existing consultation/movement matrices; no legacy overload/alias or fallback path.",
+    "causal_type_check": {
+      "baseline": "fbbed3376674d86d7feaca31d52600d9601d18e5",
+      "restored_private_declarations": {
+        "browser.d.ts": "c0592f2de1b2b2aff0ecd9de4d7789b0320ed0756de5f850ca7b503e150a1d77",
+        "browser_sdk.d.ts": "350cc6a6561acde0fd9fcbd8dc1a22a0c5ff7cd16ab001dbba01486449657712",
+        "browser_sdk_consultations.d.ts": "b62fc16faf14344e1d3396cf04e048e98c251db3bb0020a67322edd132879509",
+        "browser_sdk_movements.d.ts": "183c6ea0630ac84639c51248f4aaef80849ee70c2beb47f366f21a5494d14948"
+      },
+      "probe_source_sha256": "35de007aab23abc4dea47431a0d39a310626b1920cbe56cf837a9e5e063df6fa",
+      "only_positive_import_location_changed": true,
+      "results": [
+        {
+          "label": "negative",
+          "exit_code": 1,
+          "diagnostics": [
+            "TS2739",
+            "TS2739",
+            "TS2739",
+            "TS2345"
+          ],
+          "log_sha256": "7eb2a3990b77f8bc9f507615c6619cb9ea22b90712ce5f9b4dcbb23cf951cef5"
+        },
+        {
+          "label": "positive",
+          "exit_code": 0,
+          "diagnostics": [],
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "manifest_sha256": "6a629fa4d5cf4ef3639d8c3e497ddbedf8130890de2c96c1d5cd4a3c93958e1d",
+      "meaning": "The same shape probe, with only its import location changed, fails against four prior committed declaration files with3TS2739 missing topology-field diagnostics and1TS2345 positional-return diagnostic. Current declarations compile with no diagnostics. Declaration proof only; runtime is covered separately."
+    }
+  },
+  "verification": {
+    "source_input_count": 2784,
+    "source_inputs_manifest_sha256": "904c9c133a4d441865cc50b9c252056fb3ee95cb1c8307bdc3a4b4e2f5ed58ef",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          800
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 9.199307624949142,
+        "log_sha256": "63a606d58bc99e1554229ef7c06991cdce139a6054908dab0f219cd9ca8a959a"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36122283316217363,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.366515041096136,
+        "log_sha256": "c208f619c730afed2ae7c4727c6820536b1b3a7465e7d2732484148501b751fd"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43148441705852747,
+        "log_sha256": "d9dc3d3271ea5cac02f9545cf9e52d5a096dfd28e2daf719435d0079a5273104"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.543086500139907,
+        "log_sha256": "5ef4d18ac564f7f7f686ff359e2fb23b69e4a387e10be13ef6c57e62348898b2"
+      },
+      {
+        "phase": "canonical-schema",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          1
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.45953908399678767,
+        "log_sha256": "136eb9ebbf5ac90c8db3b79d54d032689b568ecc6f25f805c8885cecefded3e8"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 92.11531875003129,
+        "log_sha256": "3faa17796a9ed748ec46eb823caa99fdf6d474aa342693dabcee887659d8bdf9"
+      }
+    ]
+  },
+  "method_surface_audit": {
+    "scope": "Property witnesses for all25frozen target paths; presence is not full signature, authorization, media or installed-runtime qualification. Existing SDK type tests additionally witness all three direct result shapes and explicit return input.",
+    "method_surface_count": 25,
+    "surface_only_not_runtime_qualification": true,
+    "results": {
+      "surface": {
+        "exit_code": 0,
+        "source_sha256": "fe7b83378c0cd8950d225c066b43643131294f85b3e7530d4e7342b209b2cc83",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diagnostics": []
+      },
+      "close": {
+        "exit_code": 1,
+        "source_sha256": "1e823416f923e07533a355610066997ca73aabcba8d8224032cef8aca4d6235f",
+        "log_sha256": "09bb3c1ded91800a72753ab4fbb97971016a46a52fc807c3ea4e29df51f48bb5",
+        "diagnostics": [
+          "TS2322",
+          "TS2554"
+        ]
+      }
+    },
+    "task_complete": false,
+    "verified_gaps": [
+      {
+        "id": "bounded-client-close",
+        "finding": "Actual BrowserSdkClient.close accepts no options and returns void; frozen TypeScript ParticipantClient.close(options) requires Promise<void>. Async resource joining/budget semantics are not implemented by this signature.",
+        "proof": "actual compiler TS2322/TS2554 plus source ownership review"
+      },
+      {
+        "id": "single-participant-return-outline",
+        "finding": "Shared TypeScript/Rust/Python return-consultation outlines specify only the owner, while canonical TransitionCommand.normalize and SessionConsult schema require at least two private participants.",
+        "proof": "contracts/sdk-api/{typescript,rust,python}/outline source versus protocol transitions validator"
+      },
+      {
+        "id": "screen-resume-conflict",
+        "finding": "Earlier native WT Screen-resume revision/catalog conflict remains unresolved; later passing workflows do not explain that result.",
+        "proof": "preserved browser SDK evidence and ignored1154 trace"
+      }
+    ],
+    "methods": [
+      {
+        "id": "conversation.create",
+        "target_typescript": "Client.conversations.create",
+        "canonical_type": "conversation.create",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "message.private",
+        "target_typescript": "Conversation.send",
+        "canonical_type": "message.send",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "conversation.snapshot",
+        "target_typescript": "Conversation.refresh",
+        "canonical_type": "conversation.get",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "participant.add",
+        "target_typescript": "Conversation.participants.add",
+        "canonical_type": "conversation.participant.add",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "participant.update",
+        "target_typescript": "Participant.update",
+        "canonical_type": "conversation.participant.update",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "participant.remove",
+        "target_typescript": "Participant.remove",
+        "canonical_type": "conversation.participant.remove",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.invite",
+        "target_typescript": "Conversation.sessions.invite",
+        "canonical_type": "session.invite",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.accept",
+        "target_typescript": "Session.accept",
+        "canonical_type": "session.accept",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.reject",
+        "target_typescript": "Session.reject",
+        "canonical_type": "session.reject",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.cancel",
+        "target_typescript": "Session.cancelInvitation",
+        "canonical_type": "session.cancel",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.consult",
+        "target_typescript": "Session.consult",
+        "canonical_type": "session.consult",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "Controlled signed positive; successful browser private movement remains unqualified"
+      },
+      {
+        "id": "session.consult.return",
+        "target_typescript": "ConsultationOperation.returnToRetained",
+        "canonical_type": "session.consult.return",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "Controlled signed positive; successful browser private movement remains unqualified"
+      },
+      {
+        "id": "session.handoff",
+        "target_typescript": "Session.handoff",
+        "canonical_type": "session.handoff",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "Controlled signed positive; successful browser private movement remains unqualified"
+      },
+      {
+        "id": "session.update",
+        "target_typescript": "Session.update",
+        "canonical_type": "session.update",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "session.end",
+        "target_typescript": "Session.end",
+        "canonical_type": "session.end",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "connection.offer",
+        "target_typescript": "Session.connections.offer",
+        "canonical_type": "connection.offer",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "connection.update",
+        "target_typescript": "Connection.update",
+        "canonical_type": "connection.update",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "connection.replace",
+        "target_typescript": "Connection.replaceDevice",
+        "canonical_type": "connection.replace",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "Controlled signed positive; successful browser private movement remains unqualified"
+      },
+      {
+        "id": "connection.end",
+        "target_typescript": "Connection.end",
+        "canonical_type": "connection.end",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "stream.subscribe",
+        "target_typescript": "Connection.streams.subscribe",
+        "canonical_type": "stream.subscribe",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "stream.unsubscribe",
+        "target_typescript": "Connection.streams.unsubscribe",
+        "canonical_type": "stream.unsubscribe",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "operation.status",
+        "target_typescript": "Operation.status",
+        "canonical_type": "operation.get",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "operation.cancel",
+        "target_typescript": "Operation.cancel",
+        "canonical_type": "operation.cancel",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "operation.reconcile",
+        "target_typescript": "Operation.reconcile",
+        "canonical_type": "operation.reconcile",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      },
+      {
+        "id": "events",
+        "target_typescript": "Conversation.events",
+        "canonical_type": "conversation.subscribe",
+        "status": "actual-declaration-surface-present",
+        "runtime_evidence_limit": "See individual browser SDK evidence and selected current workflow; no broad parity qualification"
+      }
+    ],
+    "probe_source": "import type {BrowserSdkClient,BrowserConversation,BrowserParticipant,BrowserSession,BrowserConnection,BrowserOperation,BrowserConsultationOperation,BrowserConsultationResult,BrowserHandoffResult,BrowserMoveResult,BrowserTopologyChange,BrowserSdkRequestOptions,SdkRevision,OperationId} from \"../../../sdk/typescript/dist/browser.js\";\ndeclare const client:BrowserSdkClient;\ndeclare const conversation:BrowserConversation;\ndeclare const participant:BrowserParticipant;\ndeclare const session:BrowserSession;\ndeclare const connection:BrowserConnection;\ndeclare const operation:BrowserOperation<unknown>;\ndeclare const consultationOperation:BrowserConsultationOperation;\nvoid client.conversations.create;\nvoid conversation.send;\nvoid conversation.refresh;\nvoid conversation.participants.add;\nvoid participant.update;\nvoid participant.remove;\nvoid conversation.sessions.invite;\nvoid session.accept;\nvoid session.reject;\nvoid session.cancelInvitation;\nvoid session.consult;\nvoid consultationOperation.returnToRetained;\nvoid session.handoff;\nvoid session.update;\nvoid session.end;\nvoid session.connections.offer;\nvoid connection.update;\nvoid connection.replaceDevice;\nvoid connection.end;\nvoid connection.streams.subscribe;\nvoid connection.streams.unsubscribe;\nvoid operation.status;\nvoid operation.cancel;\nvoid operation.reconcile;\nvoid conversation.events;\ndeclare const consultResult:BrowserConsultationResult, handoffResult:BrowserHandoffResult, moveResult:BrowserMoveResult;\nconst direct:readonly BrowserTopologyChange[]=[consultResult,handoffResult,moveResult];\ndeclare const topology:SdkRevision<\"topology\">, own:OperationId;\nconst returning:Promise<BrowserOperation<BrowserSession>>=consultationOperation.returnToRetained({expectedTopologyRevision:topology},{timeoutMs:1000,operationId:own});\nvoid [direct,returning];\n",
+    "close_probe_source": "import type {BrowserSdkClient,BrowserConversation,BrowserParticipant,BrowserSession,BrowserConnection,BrowserOperation,BrowserConsultationOperation,BrowserConsultationResult,BrowserHandoffResult,BrowserMoveResult,BrowserTopologyChange,BrowserSdkRequestOptions,SdkRevision,OperationId} from \"../../../sdk/typescript/dist/browser.js\";\ndeclare const client:BrowserSdkClient;\nconst expected:(options:BrowserSdkRequestOptions)=>Promise<void>=client.close.bind(client);\nclient.close({timeoutMs:1000});\nvoid expected;\n"
+  },
+  "verified_open_work": [
+    {
+      "id": "bounded-client-close",
+      "required": "Frozen ParticipantClient.close(options:RequestOptions):Promise<void>, with owned cleanup and bounded deadline/abort behavior.",
+      "actual": "BrowserSdkClient.close():void, BrowserTransportClient.close():void, and low BrowserClient.close fire-and-forget reader/writer retirement. Current declaration fails TS2322 and TS2554 against the promised signature.",
+      "next": "Implement bounded asynchronous shutdown and joined owned work; do not substitute a resolved wrapper around unjoined cleanup."
+    },
+    {
+      "id": "return-outline-audience",
+      "required": "Protocol TransitionCommand.normalize and SessionConsult schema require at least two distinct private Participants.",
+      "actual": "TypeScript returnConsultation, Rust return_consultation and Python return_consultation declaration-only samples contain only the owner. Current browser guide and runtime API already require the actual protocol minimum.",
+      "next": "Correct shared samples, rerun all language outline checks, and keep compile-only scope explicit."
+    },
+    {
+      "id": "screen-resume-conflict",
+      "required": "Explain/reproduce and resolve the previously recorded native WT Screen-resume revision/catalog conflict, or establish its precise supported failure/recovery meaning with evidence.",
+      "actual": "Later final cohorts pass, including this one, but they do not explain the earlier recorded conflict.",
+      "next": "Review original1154trace and current catalog/revision/ownership ordering; preserve failed evidence and avoid automatic mutation retry or relaxed media assertions."
+    }
+  ],
+  "checks": "Alignment cohort800SDK functions, standalone browser/Node types,37Node regressions,2serverScreen/2upstreamScreen/1independentRustcanonical/12realroot integration functions,0ignored;339shared schema vectors. Current frozen method property probe passes; bounded-close probe intentionally remains failing and is recorded as an unresolved contract gap. Rust/changed-source TS format, generated schema/policy, progress/navigation and HTTP/OpenAPI references checked before commit.",
+  "qualification_boundary": "No new successful actual browser consultation/return/handoff/move media proof; existing positive movement receipts are controlled signed fixtures and actual Chrome exercises current grant refusal. G6-070 installed parity/G6-072 public reference app/G6-095 remote/browser qualification remain required downstream work. G6-054 remote proof remains open.",
+  "known_findings": [
+    "CLI15second positive-provisioning timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC/linker warnings; no release/performance/full Rust workspace claim."
+  ],
+  "privacy": "Runtime logs/state/credentials/browser profiles remain ignored; public audit contains declaration source, hashes and synthetic counts only. No new model/account/provider/named remote execution or agents."
+}

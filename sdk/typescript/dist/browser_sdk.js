@@ -240,7 +240,7 @@ function consultationResult(value, client, key) {
     const observed = consultationCompletion(value, key, () => current(client).malformed(key, "recorded"));
     return freeze({
         session: new BrowserSession(client, key.scope.conversationId, key.scope.sessionId),
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
     });
 }
 function consultationReturnResult(value, client, key) {
@@ -256,7 +256,7 @@ function handoffResult(value, client, key) {
     if (observed.kind !== "handoff")
         return bad();
     return freeze({
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
         ...(observed.roleChange === undefined
             ? {}
             : { roleChange: observed.roleChange }),
@@ -268,7 +268,7 @@ function moveResult(value, client, key) {
         return bad();
     return freeze({
         connection: new BrowserConnection(client, key.scope.conversationId, key.scope.sessionId, observed.connectionId),
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
         binding: observed.binding,
     });
 }
@@ -822,7 +822,7 @@ export class BrowserOperation {
             await budget.delay();
         }
     }
-    async returnToRetained(expectedTopologyRevision, options) {
+    async returnToRetained(input, options) {
         fields(options, ["timeoutMs", "signal", "operationId"], invalid);
         const context = this.reference.continuation, key = {
             operationId: options.operationId,
@@ -832,6 +832,8 @@ export class BrowserOperation {
         const invalidReturn = () => {
             throw new BrowserSdkError("validation", "not-submitted", key);
         };
+        fields(input, ["expectedTopologyRevision"], invalidReturn);
+        const expectedTopologyRevision = input.expectedTopologyRevision;
         if (this.reference.command !== "session.consult" ||
             context?.kind !== "consultation" ||
             !identifier(options.operationId) ||

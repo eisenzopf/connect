@@ -155,15 +155,15 @@ void [browserRole,nativeRole];
 
 const consulting=await room.sessions.byId(sdkId<'session'>('s')).consult({via:sdkId<'connection'>('primary'),retain:sdkId<'connection'>('remote'),with:{first:sdkId<'participant'>('one'),rest:[sdkId<'participant'>('two')]},hold:'configured-media',expectedTopologyRevision:sdkRevision<'topology'>(2)},{timeoutMs:1000,operationId});
 const consultation:import('../typescript/dist/browser.js').BrowserConsultationResult=(await consulting.wait({timeoutMs:1000})).value;
-const returning=await consulting.returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId:sdkId<'operation'>('return')});
+const returning=await consulting.returnToRetained({expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId:sdkId<'operation'>('return')});
 const returned:BrowserSession=(await returning.wait({timeoutMs:1000})).value;
 const hostRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId|undefined=returned.receiptConsultationReturn?.consultationRecordId;
 // @ts-expect-error Returning requires a consultation result, not a Message operation.
-(await textSend).returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId});
+(await textSend).returnToRetained({expectedTopologyRevision:sdkRevision<'topology'>(3)},{timeoutMs:1000,operationId});
 // @ts-expect-error A resource revision cannot assert the consultation topology.
-consulting.returnToRetained(sdkRevision<'session'>(3),{timeoutMs:1000,operationId});
+consulting.returnToRetained({expectedTopologyRevision:sdkRevision<'session'>(3)},{timeoutMs:1000,operationId});
 // @ts-expect-error Receipt topology does not expose a mutable admitted list.
-consultation.topology.admitted.push(consultation.topology.retained[0]);
+consultation.admitted.push(consultation.retained[0]);
 // @ts-expect-error A logical mutation ID is not a host operation-record identity.
 const falseRecord:import('../typescript/dist/browser.js').BrowserOperationRecordId=operationId;
 void [hostRecord,falseRecord];
@@ -193,3 +193,13 @@ validated.value={};
 // @ts-expect-error The bounded correlated response array cannot be mutated.
 replies.push(validated);
 void replies;
+
+const flatConsultation:import('../typescript/dist/browser.js').BrowserTopologyChange=consultation;
+const flatHandoff:import('../typescript/dist/browser.js').BrowserTopologyChange=transferred;
+const flatMove:import('../typescript/dist/browser.js').BrowserTopologyChange=moved;
+const originalConsultation:import('../typescript/dist/browser.js').BrowserConsultationOperation=consulting;
+// @ts-expect-error The frozen TypeScript result exposes direct topology, with no nested compatibility alias.
+consultation.topology;
+// @ts-expect-error Return uses the frozen explicit input shape, never a positional revision alias.
+consulting.returnToRetained(sdkRevision<'topology'>(3),{timeoutMs:1000,operationId});
+void [flatConsultation,flatHandoff,flatMove,originalConsultation];

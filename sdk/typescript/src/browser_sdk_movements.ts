@@ -55,8 +55,7 @@ export interface BrowserHandoffRoleChange {
     readonly targetParticipant: ParticipantId;
     readonly cleanup: "pending" | "not_requested";
 }
-export interface BrowserHandoffResult {
-    readonly topology: BrowserTopologyChange;
+export interface BrowserHandoffResult extends BrowserTopologyChange {
     readonly roleChange?: BrowserHandoffRoleChange;
 }
 export interface BrowserMoveBindingObservation {
@@ -66,9 +65,8 @@ export interface BrowserMoveBindingObservation {
     readonly endpointId: EndpointId;
     readonly deviceId: DeviceId;
 }
-export interface BrowserMoveResult {
+export interface BrowserMoveResult extends BrowserTopologyChange {
     readonly connection: BrowserConnection;
-    readonly topology: BrowserTopologyChange;
     readonly binding: BrowserMoveBindingObservation;
 }
 type SavedRole =

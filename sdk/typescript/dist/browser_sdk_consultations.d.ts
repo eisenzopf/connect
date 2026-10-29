@@ -32,9 +32,8 @@ export interface BrowserTopologyChange {
     readonly topologyRevision: SdkRevision<"topology">;
     readonly conversationRevision?: SdkRevision<"conversation">;
 }
-export interface BrowserConsultationResult {
+export interface BrowserConsultationResult extends BrowserTopologyChange {
     readonly session: BrowserSession;
-    readonly topology: BrowserTopologyChange;
 }
 export interface BrowserConsultationReturnReceipt {
     readonly consultationRecordId: BrowserOperationRecordId;

@@ -66,6 +66,7 @@ export interface BrowserSdkOperationReference<T> extends TransitionReference {
     };
     readonly [result]: (value: T) => T;
 }
+export type BrowserConsultationOperation = BrowserOperation<BrowserConsultationResult>;
 export interface BrowserOperationKind<T> {
     readonly command: string;
     readonly [result]: (value: T) => T;
@@ -143,7 +144,9 @@ export declare class BrowserOperation<T> {
     status(options: BrowserSdkRequestOptions): Promise<BrowserOperationSnapshot>;
     wait(options: BrowserSdkRequestOptions): Promise<BrowserCompletion<T>>;
     waitUntilReady(options: BrowserSdkRequestOptions): Promise<BrowserOperationSnapshot>;
-    returnToRetained(this: BrowserOperation<BrowserConsultationResult>, expectedTopologyRevision: SdkRevision<"topology">, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserSession>>;
+    returnToRetained(this: BrowserOperation<BrowserConsultationResult>, input: {
+        readonly expectedTopologyRevision: SdkRevision<"topology">;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserSession>>;
     cancel(options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserDecisionReceipt>>;
     reconcile(input: {
         readonly outcome: "completed" | "cancelled" | "failed";

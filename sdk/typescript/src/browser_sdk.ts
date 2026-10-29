@@ -292,6 +292,8 @@ export interface BrowserSdkOperationReference<T> extends TransitionReference {
     };
     readonly [result]: (value: T) => T;
 }
+export type BrowserConsultationOperation =
+    BrowserOperation<BrowserConsultationResult>;
 export interface BrowserOperationKind<T> {
     readonly command: string;
     readonly [result]: (value: T) => T;
@@ -608,7 +610,7 @@ function consultationResult(
             key.scope.conversationId as ConversationId,
             key.scope.sessionId as SessionId,
         ),
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
     });
 }
 function consultationReturnResult(
@@ -640,7 +642,7 @@ function handoffResult(
         observed = movementCompletion(value, key, bad);
     if (observed.kind !== "handoff") return bad();
     return freeze({
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
         ...(observed.roleChange === undefined
             ? {}
             : { roleChange: observed.roleChange }),
@@ -661,7 +663,7 @@ function moveResult(
             key.scope.sessionId as SessionId,
             observed.connectionId,
         ),
-        topology: transitionTopology(client, key, observed),
+        ...transitionTopology(client, key, observed),
         binding: observed.binding,
     });
 }
@@ -1387,7 +1389,7 @@ export class BrowserOperation<T> {
     }
     async returnToRetained(
         this: BrowserOperation<BrowserConsultationResult>,
-        expectedTopologyRevision: SdkRevision<"topology">,
+        input: { readonly expectedTopologyRevision: SdkRevision<"topology"> },
         options: BrowserSdkMutationOptions,
     ): Promise<BrowserOperation<BrowserSession>> {
         fields(options, ["timeoutMs", "signal", "operationId"], invalid);
@@ -1400,6 +1402,8 @@ export class BrowserOperation<T> {
         const invalidReturn = () => {
             throw new BrowserSdkError("validation", "not-submitted", key);
         };
+        fields(input, ["expectedTopologyRevision"], invalidReturn);
+        const expectedTopologyRevision = input.expectedTopologyRevision;
         if (
             this.reference.command !== "session.consult" ||
             context?.kind !== "consultation" ||

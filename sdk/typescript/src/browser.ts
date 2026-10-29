@@ -124,6 +124,7 @@ export type {
     BrowserMoveBindingObservation,
     BrowserConsultInput,
     BrowserConsultationResult,
+    BrowserConsultationOperation,
     BrowserConsultationReturnReceipt,
     BrowserTopologyChange,
     BrowserSdkCapabilities,
