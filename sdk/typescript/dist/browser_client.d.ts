@@ -60,6 +60,8 @@ export declare class BrowserClient {
     get controlTransport(): "webtransport" | "websocket";
     get identityId(): string;
     get participantId(): string | undefined;
+    /** Expiry of the signed authentication observation; not a current server grant. */
+    get authenticationExpiresAt(): number | undefined;
     get closed(): boolean;
     /** Media owns these streams; one datagram reader/writer per physical peer. */
     get datagrams(): WebTransportDatagramDuplexStream;

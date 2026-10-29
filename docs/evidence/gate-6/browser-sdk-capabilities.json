@@ -1,0 +1,218 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "73bd55a312e2f71fe8861f275649deaf817603b9",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Local browser runtime interface support on the actual selected owned physical profile. Explicit local query only; current server authorization, permissions, codecs and media observations remain separate. Signed component boundaries and owned local macOS Chrome WT/WSS. No full SDK, remote/provider or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical/tests/sdk_capabilities.rs": {
+      "sha256": "625cdc4b67064c5b956623ad94b492381bd987621417852da7b6e8f144c2d708",
+      "mode": 420
+    },
+    "crates/connect-client/src/sdk/capabilities.rs": {
+      "sha256": "a4b742c7e6fec1d59bce81ae8329e640523e7ad5519a80117f6b204b21d5a231",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/decisions-browser.mjs": {
+      "sha256": "d7a7ca046ae1e8e5889663acfd16e593795419e75ddc111206555300f93f1737",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_decisions.rs": {
+      "sha256": "0747a08de6b41732dee2c9e1a53b0f48aa90feb665dcc5b9767a37feeec32133",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_capabilities.test.mjs": {
+      "sha256": "57011da3f3a372096c616721979308b544a7f567ef4733126bc4260b0f12e996",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "b17664c492df883202023c20d9651ad5d4ccb243d56fff34fba7a7fd147eaa8b",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "2ab48a612df0213db6ae1ea2c919710fa5ae5f4dafc92a910af4f4215c0d9b59",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "f1ede9615630f05e3d3816e9b80518f6f502759cafd2e81425652da6f5a33299",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "8e034baba24948772076311404541844a4e3738f1c6cc8077ba9227f3511b877",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.d.ts": {
+      "sha256": "182b7d643f89a556294bdb44a5a17723064cefef8215217eb3faeb46577a1281",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_client.js": {
+      "sha256": "448c0610fa7b1347fbbdae034ccf681b0572f6dbdb6145646eb001d031eac0f4",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "d20dd349b05262a60230a234b3e40e006eac010fe4b12b7c5a19ea5e126dbcec",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "21fe3f7f52672c88d79e658f56608112efd0ae47ecd3f34d4e79de51f865aae9",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "ec96c2bc901f4efa4000a94857561ef9157c3d49c61d5b2175f0e5d92301e45c",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_client.ts": {
+      "sha256": "7b92ef00ebe0d39150c0da7306063d8a01751ce128d5ba4626c8306898c638d9",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "5913645fc88aaec667832168701ea8740c5f74b122f6e05882986112e1cb78c2",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2757,
+    "source_inputs_manifest_sha256": "9dc04c1f82f006935502e17ab25277a3aa6380a1a74c1149ecf99ea03ce3219f",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          657
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 8.259312833892182,
+        "log_sha256": "bce87c45f5ae5e765e49a6487fc5716522f8d8d1fc573f6c39b4b825de1450ee"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.36003258312121034,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.409744583070278,
+        "log_sha256": "a8ef4d225abe089eed7db524db4f52ef8639ae48f48529de0e02a1b7c61fb077"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43535979208536446,
+        "log_sha256": "d0f2709d9aa11cabef01a334481a8b2a878cace9ff48cfa8a35bcd50d15ea2ac"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.43174829077906907,
+        "log_sha256": "998b0afeb2de22613cf63703eed32ddc25a26b1140eee4596118f424efbcf538"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          12
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 99.37392399995588,
+        "log_sha256": "6526171bed52efdc4f8021fbc96a18c81fa3057af92f29f60b9643bf4a352c80"
+      }
+    ]
+  },
+  "implementation": [
+    "BrowserSdkClient.capabilities.refresh returns an immutable connect/2 browser snapshot with actual selectedTransport, optional current fallbackReason and a sorted readonly feature set. require validates a bounded lowercase feature name and refuses unexposed names as unsupported/read-only.",
+    "Exposes original-id-operations, durable-events and incoming-invitations; message-receipts appears only when an application-read resolver was configured. Browser raw-canonical and native packet-media parity are not advertised by this typed facade. Feature support is not an authorization, provider delivery, codec, capture or render-custody fact.",
+    "The low physical client exposes only the expiry of its signed authentication observation. Closed/disconnected owners and expired authentication cannot return a live profile. Every refresh samples current physical selection; older frozen snapshots retain their earlier selection and fallback reason.",
+    "No network/enrollment/resolver/device or canonical-control-slot work occurs. Refresh and require honor one bounded monotonic caller budget and abort; require fences its continuation against physical retirement. Readonly set callbacks/iterators do not expose the mutable backing set."
+  ],
+  "verification_cases": [
+    "Fifteen added signed component functions: WT/WSS x EdDSA/ES256 x separate HTTP-resolver configured/unconfigured; explicit fallback and reconnect with retained old snapshot; malformed names/budgets; initial and continuation abort; signed authentication expiry; closed/disconnected owner; current revocation;16occupied control slots; retirement during local require continuation.",
+    "Feature refresh does not resolve the configured HTTP service. A locally supported interface after server-side revocation does not authorize the subsequent real mutation: its current credential refuses. No mutation replay or permission cache is introduced.",
+    "Independent real owned Chrome observes direct WT and bounded WT-to-WSS fallback, local support before canonical work and after explicit reconnect, four snapshots and eight unexposed-feature refusals. Trace and enrollment-resolution counters stay unchanged during capability calls. Existing decision/refusal/original-ID-recovery/current-revocation and independent SQL assertions remain in the same focused workflow."
+  ],
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "root_decisions": 2,
+      "message_decisions": 2,
+      "original_sources_unchanged": 2,
+      "recovered_originals": 2,
+      "unattributed_evidence_refused": 2,
+      "revoked_decision_refused": 1,
+      "local_capability_snapshots": 4,
+      "local_capability_refusals": 8,
+      "source_mutations": 4,
+      "decision_mutations": 4,
+      "reconcile_attempts": 2,
+      "credentials": 2,
+      "devices": 1,
+      "endpoints": 2
+    },
+    "log_sha256": "968c9705ed8ad3988dc51877f0485f233f7360782202e9898aaf1be702013553",
+    "limits": "The four actual capability snapshots are local support observations, not server grant/expiry/revocation or media readiness proofs. Existing focused workflow retains4source mutations/4decision mutations/2refused reconcile attempts,2credentials/1Device/2non-media Endpoints; capability calls add no mutations."
+  },
+  "checks": "Final unchanged-input657SDK functions, standalone browser/Node types,37Node regressions,2serverScreen,2upstreamScreen and12realroot integration functions;0ignored. Rust/changed-source TypeScript formatting, plan/navigation and HTTP/OpenAPI references checked before commit.",
+  "prior_attempts": [
+    {
+      "scope": "Initial654/655 pass: fixture closed a socket then assumed owner retirement was synchronous. The final case awaits one event-loop turn and asserts observed disconnected state before querying. No production timeout or behavior was relaxed.",
+      "log_sha256": "928e7db69a9434f1d6249e1a9f6b1e3b1fba4bc0c5fef277dc9cc8e521739e89"
+    },
+    {
+      "scope": "Next656/657 pass: control-capacity fixture assumed16signed writes had arrived after one immediate. It now waits for the explicit16th handler observation under a300ms bound. This guard also detected stale generated browser_sdk.js from a source edit; rebuild before final snapshot restores generated-source consistency.",
+      "summary_sha256": "dfcf92880a3b45c4a495144c5e19098dfb38bc56372b0100fb57eb2d1e039656",
+      "log_sha256": "feb1ecd29c2815194d1663f89793d542f4086cb31e77b8ae4ff1d5bca14a797a"
+    }
+  ],
+  "remaining": [
+    "G6-061 consultation/handoff/device movement, raw canonical surface, reference-app integration and full browser SDK audit.",
+    "Application snapshot/journal recovery and durable invitation discovery; no offline inbox or indefinite deduplication claim.",
+    "Earlier intermittent native WT Screen-resume revision/catalog conflict remains unresolved. Full codec/media/failure/recovery/quality/browser/hosting/accessibility/persistence audit and G6-054 remote qualification remain."
+  ],
+  "known_findings": [
+    "Existing positive provisioning CLI15second timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC and linker unwind warning remain. No full Rust workspace, release or performance qualification."
+  ],
+  "privacy": "Raw logs, signed traces, state, credentials and owned browser profiles remain ignored. Public evidence contains hashes and synthetic aggregate facts only. No new model/account/provider/named remote execution or agents."
+}

@@ -323,6 +323,12 @@ export class BrowserClient {
             ? this.auth.payload.participant_id
             : undefined;
     }
+    /** Expiry of the signed authentication observation; not a current server grant. */
+    get authenticationExpiresAt(): number | undefined {
+        return this.auth
+            ? Date.parse(this.auth.payload.expires_at as string)
+            : undefined;
+    }
     get closed(): boolean {
         return this.failure !== undefined;
     }

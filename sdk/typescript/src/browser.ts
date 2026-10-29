@@ -100,6 +100,7 @@ export {
 
 export {
     BrowserSdkClient,
+    browserSdkFeatures,
     BrowserSdkError,
     browserOperationKinds,
     browserCursor,
@@ -108,6 +109,8 @@ export {
 } from "./browser_sdk.js";
 export type {
     BrowserDecisionReceipt,
+    BrowserSdkCapabilities,
+    BrowserSdkCapabilitySnapshot,
     BrowserApplicationReadOptions,
     BrowserApplicationReadContext,
     BrowserApplicationReadResolver,

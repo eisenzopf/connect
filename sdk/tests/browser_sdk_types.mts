@@ -141,3 +141,14 @@ const acceptance:import('../typescript/dist/browser.js').BrowserMessageAcceptanc
 // @ts-expect-error Reconciliation admits only terminal outcomes and an evidence reference.
 (await textSend).reconcile({outcome:'ready',evidenceId:'e'},{timeoutMs:1000,operationId});
 void [reconciled,target,acceptance];
+
+const localSupport:import('../typescript/dist/browser.js').BrowserSdkCapabilitySnapshot=await client.capabilities.refresh({timeoutMs:1000});
+const browserRole:'browser'=localSupport.runtimeRole;
+await client.capabilities.require('original-id-operations',{timeoutMs:1000});
+// @ts-expect-error A support snapshot cannot grant a native Rust role.
+const nativeRole:'rust'=localSupport.runtimeRole;
+// @ts-expect-error The local feature set has no mutation API.
+localSupport.features.add('decoded-media-ready');
+// @ts-expect-error Selected transport is an immutable observation.
+localSupport.selectedTransport='webtransport';
+void [browserRole,nativeRole];

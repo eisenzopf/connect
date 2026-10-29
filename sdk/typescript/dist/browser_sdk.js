@@ -749,10 +749,73 @@ export class BrowserOperation {
         }, options, { cid: target.scope.conversationId, sid: target.scope.sessionId });
     }
 }
+/** Local exposed interfaces only; permission and negotiated media are separate. */
+export const browserSdkFeatures = Object.freeze({
+    originalIdOperations: "original-id-operations",
+    durableEvents: "durable-events",
+    incomingInvitations: "incoming-invitations",
+    messageReceipts: "message-receipts",
+});
+function featureSet(values) {
+    const set = new Set(values.sort());
+    const result = Object.freeze({
+        get size() {
+            return set.size;
+        },
+        has: (value) => set.has(value),
+        entries: () => set.entries(),
+        keys: () => set.keys(),
+        values: () => set.values(),
+        [Symbol.iterator]: () => set.values(),
+        forEach: (callback, thisArg) => set.forEach((value) => callback.call(thisArg, value, value, result)),
+    });
+    return result;
+}
 const submit = Symbol("submit");
 export class BrowserSdkClient {
     role = "browser";
     operationKinds = browserOperationKinds;
+    capabilities = Object.freeze({
+        refresh: async (options) => {
+            const budget = new Budget(options), s = current(this), transport = s.owner.status;
+            if (transport.state !== "connected" || !transport.selectedTransport)
+                throw new BrowserSdkError("cancelled", "read-only");
+            const expiresAt = s.peer.authenticationExpiresAt;
+            if (expiresAt === undefined || !(expiresAt > Date.now()))
+                throw new BrowserSdkError("authentication", "read-only");
+            const features = [
+                browserSdkFeatures.originalIdOperations,
+                browserSdkFeatures.durableEvents,
+                browserSdkFeatures.incomingInvitations,
+            ];
+            if (s.applicationReads.resolve)
+                features.push(browserSdkFeatures.messageReceipts);
+            budget.options();
+            return Object.freeze({
+                profile: "connect/2",
+                runtimeRole: "browser",
+                selectedTransport: transport.selectedTransport,
+                ...(transport.fallbackReason
+                    ? { fallbackReason: transport.fallbackReason }
+                    : {}),
+                features: featureSet(features),
+            });
+        },
+        require: async (feature, options) => {
+            if (typeof feature !== "string" ||
+                !/^[a-z0-9-]{1,128}$/.test(feature))
+                invalid();
+            const budget = new Budget(options), s = current(this), peer = s.peer, epoch = s.owner.status.physicalEpoch;
+            const snapshot = await this.capabilities.refresh({
+                timeoutMs: budget.options().timeoutMs,
+                signal: budget.signal,
+            });
+            budget.options();
+            s.observe(peer, epoch);
+            if (!snapshot.features.has(feature))
+                throw new BrowserSdkError("unsupported", "read-only");
+        },
+    });
     conversations = {
         byId: (id) => {
             sdkId(id);

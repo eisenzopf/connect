@@ -14,7 +14,7 @@ export type { BrowserSessionMedium, BrowserSessionUpdate, } from "./browser_sdk_
 import { type BrowserNonEmpty, type BrowserMedium, type BrowserStreamSelector, type BrowserConnectionUpdate, type BrowserConnectionUpdateReceipt, type BrowserStreamSelectionReceipt } from "./browser_sdk_streams.js";
 export type { BrowserNonEmpty, BrowserStreamSelector, BrowserConnectionUpdate, BrowserConnectionUpdateReceipt, BrowserStreamSelectionReceipt, BrowserCodecObservation, BrowserStreamGateObservation, BrowserMedium, BrowserDirection, } from "./browser_sdk_streams.js";
 import { type BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
-import { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
+import { BrowserTransportClient, type BrowserTransportState, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
 import { CanonicalError, type CanonicalErrorKind, type Certainty } from "./canonical_error.js";
 import { type BrowserMediaCaptureOptions } from "./browser_media_capture.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
@@ -140,6 +140,24 @@ export declare class BrowserOperation<T> {
     }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserDecisionReceipt>>;
     private decide;
 }
+/** Local exposed interfaces only; permission and negotiated media are separate. */
+export declare const browserSdkFeatures: Readonly<{
+    originalIdOperations: "original-id-operations";
+    durableEvents: "durable-events";
+    incomingInvitations: "incoming-invitations";
+    messageReceipts: "message-receipts";
+}>;
+export interface BrowserSdkCapabilitySnapshot {
+    readonly profile: "connect/2";
+    readonly runtimeRole: "browser";
+    readonly selectedTransport: BrowserTransportState["selectedTransport"] & string;
+    readonly fallbackReason?: BrowserTransportState["fallbackReason"];
+    readonly features: ReadonlySet<string>;
+}
+export interface BrowserSdkCapabilities {
+    refresh(options: BrowserSdkRequestOptions): Promise<BrowserSdkCapabilitySnapshot>;
+    require(feature: string, options: BrowserSdkRequestOptions): Promise<void>;
+}
 declare const submit: unique symbol;
 export declare class BrowserSdkClient {
     readonly role: "browser";
@@ -163,6 +181,7 @@ export declare class BrowserSdkClient {
         sessionReject: BrowserOperationKind<BrowserSessionDecision>;
         sessionCancelInvitation: BrowserOperationKind<BrowserSessionDecision>;
     }>;
+    readonly capabilities: BrowserSdkCapabilities;
     readonly conversations: {
         byId: (id: ConversationId) => BrowserConversation;
         create: (input: {
@@ -178,7 +197,7 @@ export declare class BrowserSdkClient {
     };
     private constructor();
     static connect(options: BrowserSdkClientOptions): Promise<BrowserSdkClient>;
-    get transport(): import("./browser_transport_client.js").BrowserTransportState;
+    get transport(): BrowserTransportState;
     reconnect(options?: Parameters<BrowserTransportClient["reconnect"]>[0]): Promise<void>;
     close(): void;
     [submit]<T>(k: BrowserOperationKind<T>, body: JsonObject, scope: Scope, options: BrowserSdkMutationOptions, recordScope?: Scope): Promise<BrowserOperation<T>>;

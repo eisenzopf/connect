@@ -804,3 +804,43 @@ cap, per-call deadlines and media thresholds are unchanged.
 
 [Browser decision evidence](../evidence/gate-6/browser-sdk-decisions.json) records
 the exact scope, causal error-classification checks and remaining G6-061 work.
+
+## Local runtime capabilities
+
+```ts
+const support = await client.capabilities.refresh({ timeoutMs: 1000 });
+console.log(support.runtimeRole, support.selectedTransport, support.fallbackReason);
+await client.capabilities.require('original-id-operations', { timeoutMs: 1000 });
+if (support.features.has('message-receipts')) {
+    // This client has an explicit application-read resolver configured.
+    // Each actual receipt query resolves and checks its current authority.
+}
+```
+
+`refresh` returns an immutable `connect/2` browser snapshot for the current
+connected physical owner. Its transport and fallback reason reflect actual
+selection, including explicit reconnect. Older snapshots remain immutable
+observations. Closed/disconnected owners and expired signed authentication
+cannot return a live profile. Both methods honor the caller's bounded local
+budget and abort signal without enrolling, using a canonical control slot,
+resolving HTTP authority or prompting for devices.
+
+The exposed feature names are `original-id-operations`, `durable-events` and
+`incoming-invitations`, plus `message-receipts` when an application-read resolver
+was configured. `browserSdkFeatures` exports these names. The readonly set has
+no mutators, including through callbacks or native `Set` methods. Unknown or
+unexposed names return `unsupported` with read-only certainty; malformed names
+return validation errors. Browser raw-canonical and native packet-media parity
+are not advertised by this typed facade at this checkpoint.
+
+Support describes local interfaces. It supplies no current server permission,
+delivery fact, codec agreement, capture permission, render custody or decoded
+media progress. A revoked credential can still have local interface support
+until the owner learns of retirement; the next real action must pass current
+server authorization. `browserCaptureSupport` and `browserCodecSupport` expose
+separate local API/codec probes, while actual negotiation and media observations
+remain on the Connection workflow.
+
+[Capability evidence](../evidence/gate-6/browser-sdk-capabilities.json) includes
+signed boundary cases, fully occupied control slots, expiry and retirement,
+and actual Chrome WT/fallback selection with zero capability-query IO.

@@ -89,6 +89,7 @@ import {
 import { browserIceConfiguration } from "./browser_ice.js";
 import {
     BrowserTransportClient,
+    type BrowserTransportState,
     type BrowserTransportClientOptions,
     type BrowserOperationReference,
 } from "./browser_transport_client.js";
@@ -1217,10 +1218,109 @@ export class BrowserOperation<T> {
         );
     }
 }
+/** Local exposed interfaces only; permission and negotiated media are separate. */
+export const browserSdkFeatures = Object.freeze({
+    originalIdOperations: "original-id-operations",
+    durableEvents: "durable-events",
+    incomingInvitations: "incoming-invitations",
+    messageReceipts: "message-receipts",
+});
+export interface BrowserSdkCapabilitySnapshot {
+    readonly profile: "connect/2";
+    readonly runtimeRole: "browser";
+    readonly selectedTransport: BrowserTransportState["selectedTransport"] &
+        string;
+    readonly fallbackReason?: BrowserTransportState["fallbackReason"];
+    readonly features: ReadonlySet<string>;
+}
+export interface BrowserSdkCapabilities {
+    refresh(
+        options: BrowserSdkRequestOptions,
+    ): Promise<BrowserSdkCapabilitySnapshot>;
+    require(feature: string, options: BrowserSdkRequestOptions): Promise<void>;
+}
+function featureSet(values: string[]): ReadonlySet<string> {
+    const set = new Set(values.sort());
+    const result: ReadonlySet<string> = Object.freeze({
+        get size() {
+            return set.size;
+        },
+        has: (value: string) => set.has(value),
+        entries: () => set.entries(),
+        keys: () => set.keys(),
+        values: () => set.values(),
+        [Symbol.iterator]: () => set.values(),
+        forEach: (
+            callback: (
+                value: string,
+                key: string,
+                owner: ReadonlySet<string>,
+            ) => void,
+            thisArg?: unknown,
+        ) =>
+            set.forEach((value) =>
+                callback.call(thisArg, value, value, result),
+            ),
+    });
+    return result;
+}
 const submit = Symbol("submit");
 export class BrowserSdkClient {
     readonly role = "browser" as const;
     readonly operationKinds = browserOperationKinds;
+    readonly capabilities: BrowserSdkCapabilities = Object.freeze({
+        refresh: async (
+            options: BrowserSdkRequestOptions,
+        ): Promise<BrowserSdkCapabilitySnapshot> => {
+            const budget = new Budget(options),
+                s = current(this),
+                transport = s.owner.status;
+            if (transport.state !== "connected" || !transport.selectedTransport)
+                throw new BrowserSdkError("cancelled", "read-only");
+            const expiresAt = s.peer.authenticationExpiresAt;
+            if (expiresAt === undefined || !(expiresAt > Date.now()))
+                throw new BrowserSdkError("authentication", "read-only");
+            const features = [
+                browserSdkFeatures.originalIdOperations,
+                browserSdkFeatures.durableEvents,
+                browserSdkFeatures.incomingInvitations,
+            ] as string[];
+            if (s.applicationReads.resolve)
+                features.push(browserSdkFeatures.messageReceipts);
+            budget.options();
+            return Object.freeze({
+                profile: "connect/2",
+                runtimeRole: "browser",
+                selectedTransport: transport.selectedTransport,
+                ...(transport.fallbackReason
+                    ? { fallbackReason: transport.fallbackReason }
+                    : {}),
+                features: featureSet(features),
+            });
+        },
+        require: async (
+            feature: string,
+            options: BrowserSdkRequestOptions,
+        ): Promise<void> => {
+            if (
+                typeof feature !== "string" ||
+                !/^[a-z0-9-]{1,128}$/.test(feature)
+            )
+                invalid();
+            const budget = new Budget(options),
+                s = current(this),
+                peer = s.peer,
+                epoch = s.owner.status.physicalEpoch;
+            const snapshot = await this.capabilities.refresh({
+                timeoutMs: budget.options().timeoutMs!,
+                signal: budget.signal,
+            });
+            budget.options();
+            s.observe(peer, epoch);
+            if (!snapshot.features.has(feature))
+                throw new BrowserSdkError("unsupported", "read-only");
+        },
+    });
     readonly conversations = {
         byId: (id: ConversationId) => {
             sdkId(id);
