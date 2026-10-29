@@ -326,6 +326,77 @@ fn observation(plan: &Value) -> Value {
     json!({"operation_id":plan["operation_id"],"audience_revision":2,"receiver_revisions":revisions,"restored":true,"departed_connections":[],"participant_handoff":null,"participant_replacement":null})
 }
 #[test]
+fn native_return_reservation_refuses_contended_sql_or_authority_without_effect() {
+    let (f, command, key, _, sources) = fixture_full();
+    f.store
+        .admit_transition_command(&key, command.clone())
+        .unwrap();
+    let origin = f
+        .store
+        .native_consultation_return_origin(&key, command)
+        .unwrap();
+    let plan = return_plan(&f, &origin, &sources);
+    let before = Store::inspect_snapshot(f.store.path()).unwrap();
+    let effects_before = f.count("operation_effects");
+    let input = || {
+        f.store
+            .try_native_return_read(&origin, &sources, &[])
+            .unwrap()
+    };
+
+    let writer = rusqlite::Connection::open(f.store.path()).unwrap();
+    writer.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let read = input();
+    let started = std::time::Instant::now();
+    let refusal = f
+        .store
+        .prepare_native_consultation_return(read, plan.clone())
+        .unwrap_err();
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    assert_eq!(refusal.code, "authority-busy");
+    drop(f.store.try_connection().unwrap());
+    writer.execute_batch("ROLLBACK").unwrap();
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+
+    let identity = f.store.revalidate(&key).unwrap().identity_id;
+    let reader = f
+        .store
+        .try_acquire_authority(&[crate::AuthorityScope::identity(
+            &identity,
+            crate::AuthorityMode::Read,
+        )
+        .unwrap()])
+        .unwrap();
+    let read = input();
+    let started = std::time::Instant::now();
+    let refusal = f
+        .store
+        .prepare_native_consultation_return(read, plan.clone())
+        .unwrap_err();
+    assert!(started.elapsed() < std::time::Duration::from_millis(500));
+    assert_eq!(refusal.code, "authority-busy");
+    drop(f.store.try_connection().unwrap());
+    assert_eq!(Store::inspect_snapshot(f.store.path()).unwrap(), before);
+    drop(reader);
+
+    // Failed metadata admission must preserve the actual private audience.
+    assert!(f
+        .store
+        .try_native_media_read(&sources[0], Some(&sources[3]))
+        .is_ok());
+    assert!(f
+        .store
+        .try_native_media_read(&sources[1], Some(&sources[0]))
+        .is_err());
+    let lease = f
+        .store
+        .prepare_native_consultation_return(input(), plan.clone())
+        .unwrap()
+        .unwrap();
+    assert_eq!(lease.plan().unwrap(), plan);
+    assert_eq!(f.count("operation_effects"), effects_before + 1);
+}
+#[test]
 fn native_return_single_attempt_and_captured_recording_lifts_only_primary_floor_after_revocation() {
     let (f, command, key, parent, sources) = fixture_full();
     let (lease, origin) = prepared(&f, command.clone(), &key, &sources);

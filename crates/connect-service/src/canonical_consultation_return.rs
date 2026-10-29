@@ -97,7 +97,10 @@ impl Runtime {
         })
         .await.map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-original-observation",code=%error.code,"Native return refused");error})?;
         let sid = SessionId::from_string(session);
-        let (read, plan) = retry_metadata(&self.stop, || async {
+        // A refused metadata reservation consumes its planning readers. Retry
+        // with current sources and a fresh pure Core plan, never an old lease.
+        // Attempt admission and the actual Core change remain outside this loop.
+        let Some((lease, plan)) = retry_metadata(&self.stop, || async {
             let sources = self
                 .media
                 .scene_origins(&command.session_id)
@@ -120,23 +123,25 @@ impl Runtime {
                 )
                 .map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-plan",?error,"Native return refused");Error::forbidden()})?;
             tracing::debug!(target:"connect_service::canonical_consultation",stage="return-planned",current=read.current(),source_count=sources.len(),receiver_count=plan.expected_receiver_revisions().len(),"Native return planning snapshot");
-            Ok((read, plan))
+            let mut intent = descriptor(&plan)?;
+            intent["consultation_record_id"] = serde_json::json!(origin.consultation_record_id());
+            intent["restore"] = serde_json::json!(true);
+            intent["known_departed_connections"] = serde_json::json!(original_receivers
+                .iter()
+                .filter(|id| !plan
+                    .expected_receiver_revisions()
+                    .keys()
+                    .any(|current| current.as_str() == id.as_str()))
+                .collect::<Vec<_>>());
+            let store = self.media.store.clone();
+            let Some(lease) =
+                store_call(move || store.prepare_native_consultation_return(read, intent)).await.map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-prepare",code=%error.code,reason=%error.message,"Native return preparation refused");error})?
+            else {
+                return Ok(None);
+            };
+            Ok(Some((lease, plan)))
         })
-        .await?;
-        let mut intent = descriptor(&plan)?;
-        intent["consultation_record_id"] = serde_json::json!(origin.consultation_record_id());
-        intent["restore"] = serde_json::json!(true);
-        intent["known_departed_connections"] = serde_json::json!(original_receivers
-            .iter()
-            .filter(|id| !plan
-                .expected_receiver_revisions()
-                .keys()
-                .any(|current| current.as_str() == id.as_str()))
-            .collect::<Vec<_>>());
-        let store = self.media.store.clone();
-        let Some(lease) =
-            store_call(move || store.prepare_native_consultation_return(read, intent)).await.map_err(|error|{tracing::debug!(target:"connect_service::canonical_consultation",stage="return-prepare",code=%error.code,reason=%error.message,"Native return preparation refused");error})?
-        else {
+        .await? else {
             return Ok(());
         };
         let read = retry_metadata(&self.stop, || async {

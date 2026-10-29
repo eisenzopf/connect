@@ -150,29 +150,32 @@ impl Store {
         plan: serde_json::Value,
     ) -> Result<Option<NativeConsultationReturnLease>> {
         let selection = read.into_selection()?;
-        {
-            let c = self.connection()?;
-            selection.validate_plan(&c, &plan)?;
-        }
         let (hash, encoded) = digest(&plan)?;
         let selected = crate::provisioning::canonical_json(&selection.snapshot())?;
         if encoded.len() > 32768 || selected.len() > 32768 {
             return Err(invalid());
         }
-        let held = self.stable_authority(
-            &crate::AuthorityWait::new(crate::authority_fences::DEFAULT_WAIT),
-            || {
-                let c = self.connection()?;
-                selection.scopes(self, &c, true)
-            },
-        )?;
-        let mut c = self.connection()?;
+        // Never exclude current private packet readers while waiting for SQL.
+        // Couple only immediate admissions, then validate every current fact
+        // again in the transaction. The service retries fresh planning reads;
+        // no reservation or physical execution has happened on refusal.
+        let mut c = self.try_connection()?;
+        let held = self.try_acquire_authority(&selection.scopes(self, &c, true)?)?;
         let tx = c
             .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|_| Error::storage())?;
+            .map_err(|error| match error.sqlite_error_code() {
+                Some(rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked) => {
+                    Error::new(
+                        "authority-busy",
+                        "Native return reservation metadata is busy",
+                    )
+                }
+                _ => Error::storage(),
+            })?;
         if !self.authority_covers(&held, &selection.scopes(self, &tx, true)?) {
             return Err(Error::forbidden());
         }
+        selection.validate_plan(&tx, &plan)?;
         let origin = &selection.origin;
         let row = rows::by_record(&tx, &origin.record)?;
         if let Some((attempt,effect,old_plan,old_selection,old_hash,started,runtime,credential,expires))=tx.query_row("SELECT n.attempt_id,n.effect_id,n.plan_json,n.selection_json,n.plan_digest,n.started,n.runtime_epoch,n.credential_id,o.lease_expires_at FROM native_consultation_returns n JOIN operations o ON o.record_id=n.operation_record_id WHERE n.operation_record_id=?1 AND n.attempt_id IS NOT NULL",[&origin.record],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,bool>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,i64>(8)?))).optional().map_err(|_|Error::storage())? {
