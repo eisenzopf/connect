@@ -488,3 +488,23 @@ sources and the venv stay under `.local/`; wheels stay under `dist/sdk/python/`.
 The Linux Python matrix publishes installed-component evidence separately from
 core/HTTP test evidence, including when another component fails. Its new source
 still needs execution. No package publication occurs.
+
+The [exact70 Linux evidence](../evidence/gate-6/python-sdk-linux-70.json) now
+qualifies169 core functions, including13 synchronous ownership functions, and37
+negative type constraints on all four Python versions. All four clean installed
+HTTP checks also pass, each with six requests/six joined workers and36 runtime
+files verified against source. The wheel digest is identical across the matrix.
+This advances the recorded core/synchronous and installed HTTP subsets; it does
+not qualify the native Rust helper/server or restart/current-authorization journey.
+
+The same run retains HTTP test failures. Its failing source lines combine
+request-arrival/worker-join or resolver-marker/no-effect assertions; the400/500ms
+fixture callers can expire before the intended stalled phase. The
+[lifetime fixture correction](../evidence/gate-6/python-http-lifetime-fixture.json)
+uses the fixture's normal two-second caller deadline, retains every phase-entry,
+original-ID, no-effect and joined-PID assertion, and adds an observed elapsed
+bound below three seconds. The early unsent20ms test remains unchanged. Exhaustive
+discovery now partitions core169/60s, HTTP protocol22/30s and deliberate lifetime
+stalls2/10s. All193 local functions and37 type constraints pass; the changed
+fixtures still require their own Linux evidence. These changes do not alter
+product request limits, cancellation, retry or ownership policy.

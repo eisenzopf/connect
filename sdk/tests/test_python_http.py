@@ -134,7 +134,12 @@ class TypedPythonHttp(PythonHttpFixture):
 
     async def test_deadline_and_cancel_close_original_socket_and_keep_uncertain_mutation_key(self):
         client=self.client(await self.server(stall))
-        await self.assert_error('deadline','uncertain',client.request('message.send',{},MUTATION,RequestOptions(400)),'original')
+        # Cold CI imports can exceed400ms before any HTTP request. Use the
+        # normal fixture's2s caller deadline to exercise the intended sent
+        # socket stall; the separate unsent-deadline test retains its20ms bound.
+        started=asyncio.get_running_loop().time()
+        await self.assert_error('deadline','uncertain',client.request('message.send',{},MUTATION,OPTIONS),'original')
+        self.assertLess(asyncio.get_running_loop().time()-started,3)
         self.assertEqual(len(self.requests),1);self.assertTrue(self.helpers[-1]._joined)
         signal=Cancellation();pending=asyncio.create_task(client.request('message.send',{},MUTATION,RequestOptions(2000,signal)))
         await self.sent(2);signal.cancel();await self.assert_error('cancelled','uncertain',pending,'original')
@@ -232,7 +237,9 @@ class TypedPythonHttp(PythonHttpFixture):
         environment={'PYTHONPATH':str(self.directory)+os.pathsep+os.environ.get('PYTHONPATH','')}
         with patch.dict('os.environ',environment):
             client=self.client(endpoint.replace('127.0.0.1','localhost'))
-            await self.assert_error('deadline','uncertain',client.request('message.send',{},MUTATION,RequestOptions(500)),'original')
+            started=asyncio.get_running_loop().time()
+            await self.assert_error('deadline','uncertain',client.request('message.send',{},MUTATION,OPTIONS),'original')
+            self.assertLess(asyncio.get_running_loop().time()-started,3)
         self.assertTrue(marker.exists());self.assertEqual(self.requests,[])
         self.assertTrue(self.helpers[0]._joined);self.assertEqual(client._active,set())
 

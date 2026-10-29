@@ -51,19 +51,23 @@ def main():
     started=time.monotonic();timed=False;forced=False;phases={}
     # Discover the complete suite in both children; partition by module so no
     # nested/failed discovery test is silently omitted. Core keeps its original
-    # 60s bound; actual HTTP/TLS workers have a separate explicit 30s lane.
+    # 60s bound; HTTP/TLS protocol keeps30s. The two deliberately stalled
+    # lifetime tests have their own10s bound and2s actual caller deadlines.
     run_suite='''import sys,unittest
 suite=unittest.defaultTestLoader.discover("sdk/tests",pattern="test_*.py")
 def leaves(suite):
  for item in suite:
   if isinstance(item,unittest.TestSuite):yield from leaves(item)
   else:yield item
-is_http=lambda case:case.__class__.__module__ in ("test_python_http","test_python_https")
-selected=[case for case in leaves(suite) if is_http(case)==(sys.argv[1]=="http")]
+def phase(case):
+ if case.__class__.__module__ not in ("test_python_http","test_python_https"):return "core"
+ if case._testMethodName in ("test_deadline_and_cancel_close_original_socket_and_keep_uncertain_mutation_key","test_deadline_terminates_and_joins_a_worker_blocked_inside_its_resolver"):return "http-lifetime"
+ return "http"
+selected=[case for case in leaves(suite) if phase(case)==sys.argv[1]]
 result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(selected))
 raise SystemExit(not result.wasSuccessful())
 '''
-    for label,budget in [('core',60),('http',30)]:
+    for label,budget in [('core',60),('http',30),('http-lifetime',10)]:
         phase_started=time.monotonic();phase_timed=False;phase_forced=False
         with (private/(label+'-tests.log')).open('wb') as stream:
             child=subprocess.Popen([sys.executable,'-c',run_suite,label],cwd=ROOT,env=environment,
@@ -138,7 +142,7 @@ raise SystemExit(not result.wasSuccessful())
     unchanged=unchanged and sources()==before
     result={'passed':bool(all(phase['exit_code']==0 for phase in phases.values()) and not timed and not forced and unchanged and not unsafe
                           and len(functions)==193 and len(owned)==17 and len(public)==16 and len(sessions)==8 and len(connections)==11 and len(movements)==12 and len(readers)==20 and len(raw)==19 and len(administrative)==17 and len(http)==21 and len(https)==3 and len(synchronous)==13
-                          and re.search(r'^Ran 169 tests in ',log,re.M) and re.search(r'^Ran 24 tests in ',log,re.M)
+                          and re.search(r'^Ran 169 tests in ',log,re.M) and re.search(r'^Ran 22 tests in ',log,re.M) and re.search(r'^Ran 2 tests in ',log,re.M)
                           and (types is None or types['passed'])
                           and re.search(r'^OK$',log,re.M)),
             'scope':'Python owned helper and public canonical controls, consultation/handoff/replacement/return, durable event and invitation readers, finite raw and separate administrative controls through synthetic children, plus actual local HTTP/verified HTTPS servers and owned per-exchange Python workers, with persistent caller-thread synchronous ownership, and historical regressions. No decoded media, original Rust executable, real production server, installed package, complete Python SDK or G6-063 qualification.',

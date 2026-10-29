@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 check = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['node_failure_diagnostic']
+progress = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['node_progress_diagnostic']
 
 
 def failure(checkpoint='events-bootstrap'):
@@ -17,6 +18,20 @@ def failure(checkpoint='events-bootstrap'):
 
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_relative_progress_accepts_fixed_stages_without_payloads_or_private_paths(self):
+        for algorithm in ['EdDSA','ES256']:
+            for stage in ['session-finish','events-bootstrap','events-original','events-resume']:
+                value=dict(algorithm=algorithm,checkpoint=stage,seconds=3.25,deadline_seconds=15)
+                self.assertEqual(progress(value),value)
+
+    def test_relative_progress_rejects_unknown_or_unbounded_private_diagnostics(self):
+        base=dict(algorithm='EdDSA',checkpoint='events-original',seconds=1.5,deadline_seconds=15)
+        for value in [dict(base,credential='private'),dict(base,path='/private/config'),dict(base,message='private'),
+                      dict(base,algorithm='private'),dict(base,checkpoint='private checkpoint'),
+                      dict(base,seconds=True),dict(base,seconds=float('nan')),dict(base,seconds=float('inf')),
+                      dict(base,seconds=-1),dict(base,seconds=91),dict(base,deadline_seconds=60)]:
+            with self.assertRaises(AssertionError):progress(value)
+
     def test_https_assertion_location_uses_the_actual_installed_basename_without_private_stack(self):
         source=(ROOT/'sdk/tests/node_https_server_consumer.mjs').read_text()
         prepare=(ROOT/'sdk/tests/prepare_native_consumer.py').read_text()

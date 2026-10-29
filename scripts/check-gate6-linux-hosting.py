@@ -91,11 +91,23 @@ def audio_quiescence_diagnostic(value):
 
 
 
+NODE_CHECKPOINTS = {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
+
+
+def node_progress_diagnostic(value):
+    assert isinstance(value,dict) and set(value)=={'algorithm','checkpoint','seconds','deadline_seconds'}
+    assert value['algorithm'] in {'EdDSA','ES256'}
+    assert type(value['checkpoint']) is str and value['checkpoint'] in NODE_CHECKPOINTS
+    assert type(value['seconds']) in (int,float) and 0 <= value['seconds'] <= 90
+    assert type(value['deadline_seconds']) is int and value['deadline_seconds']==15
+    return value
+
+
 def node_failure_diagnostic(failure):
     assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
     assert failure['phase'] == 'failed'
-    assert failure['checkpoint'] in {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-        'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
+    assert failure['checkpoint'] in NODE_CHECKPOINTS
     assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
     assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
     assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
@@ -202,7 +214,11 @@ def run(node_sdk=False):
                 assert type(phase['seconds']) in (int,float) and 0 <= phase['seconds'] <= 90 and phase['deadline_seconds'] == 15
                 step['node_completed_phases'].append(phase)
         step["node_failures"] = []
+        step['node_progress'] = []
         for line in text.splitlines():
+            if line.startswith('installed-typed-node-sdk-progress '):
+                assert len(step['node_progress'])<128
+                step['node_progress'].append(node_progress_diagnostic(json.loads(line.split(' ',1)[1])))
             if line.startswith('installed-typed-node-sdk-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
                 step['node_failures'].append(node_failure_diagnostic(failure))
@@ -495,7 +511,7 @@ def run(node_sdk=False):
             case = 'canonical_stdio::node_sdk::installed_typed_node_sdk_recovers_typed_operations_and_current_authority'
             text = sdk_case('installed-node-native-control', case)
             if text is None:
-                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/7'}
+                report['installed_node_native'] = {'passed': False, 'functional_phase_profile': 'node-controls/8'}
             else:
                 counts = re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;', text)
                 assert counts == [('1', '0', '0')]
@@ -504,13 +520,16 @@ def run(node_sdk=False):
                 assert len(witnesses) == 2
                 assert {w['completed']['algorithm'] for w in witnesses} == {'EdDSA', 'ES256'}
                 for witness in witnesses:
-                    assert witness['functional_phase_profile'] == 'node-controls/7'
+                    assert witness['functional_phase_profile'] == 'node-controls/8'
                     assert witness['controls']['session_participants_accepted']
                     assert all(witness['controls'][field] for field in ('incoming_original_hint','incoming_session_decision','incoming_close_control_live'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['controls']['incoming_source_sha256'])
                     assert all(witness['initial'][f] for f in ('events_original_record','events_cursor_persisted'))
                     assert re.fullmatch(r'[0-9a-f]{64}',witness['initial']['event_id_sha256'])
                     assert all(witness['recovered'][f] for f in ('events_resume_original_record','events_resume_http_record','events_resume_new_fact'))
+                    assert re.fullmatch(r'[0-9a-f]{64}',witness['recovered']['events_resume_event_id_sha256'])
+                    assert isinstance(witness['recovered']['events_resume_record_id'],str) and witness['recovered']['events_resume_record_id']
+                    assert witness['original_and_resumed_causal_store_verified']
                     assert witness['completed']['events_current_authority_no_data'] and witness['completed']['events_close_control_live']
                     assert witness['native']['native_controls_completed']
                     assert witness['initial']['movement_current_authority_refused']
@@ -526,9 +545,10 @@ def run(node_sdk=False):
                     assert witness['completed']['helpers_joined'] == 4 and witness['completed']['local_validators_joined'] == 3
                     assert witness['server_shutdown_joined'] and witness['physical_peers_drained'] and witness['media_readers_drained']
                 report['installed_node_native'] = {'passed': True, 'package': node_package,
-                    'functional_phase_profile': 'node-controls/7', 'request_budget_ms': 4000,
+                    'functional_phase_profile': 'node-controls/8', 'request_budget_ms': 4000,
                     'scenario_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                     'algorithms': ['EdDSA', 'ES256'], 'original_helpers_joined': 8, 'local_validators_joined': 6, 'servers_joined': 2,
+                    'causal_store_and_exact_journal_witnesses_per_algorithm': 2,
                     'physical_peers_drained': True, 'media_readers_drained': True,
                     'scope': 'Installed current SDK through actual Rust/native/HTTP control; no decoded media, named remote/provider/model or full SDK qualification.'}
                 report['scope'] += ' Also one installed Node native control function for both algorithms, separate callers/peers and original drains; no decoded media claim.'

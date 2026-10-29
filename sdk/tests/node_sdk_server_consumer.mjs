@@ -186,10 +186,10 @@ try {
  const resumeMutation={...opts,operationId:'typed-node-events-resume-send'},resumeIntent={...intent,messageId:'typed-node-events-resume-message',text:'synthetic event resume'};
  const resumedSend=await client.conversations.byId(room.id).send(resumeIntent,resumeMutation),resumedCompletion=await resumedSend.wait(opts),resumedFact=await messageFact(resumed,resumeMutation.operationId,resumeIntent.messageId);
  assert.equal(resumedFact.data.data.id,resumeIntent.messageId);assert.notEqual(resumedFact.eventId,originalFact.eventId);assert.notEqual(resumedFact.cursor,originalFact.cursor);
- const resumedHttp=record(await http.request('operation.get',{operation_id:resumeMutation.operationId},{cid:room.id},opts));assert.equal(resumedHttp.record_id,resumedCompletion.snapshot.recordId);assert.ok(Array.isArray(resumedHttp.causal_event_ids)&&resumedHttp.causal_event_ids.includes(resumedFact.eventId));
+ const resumedHttp=record(await http.request('operation.get',{operation_id:resumeMutation.operationId},{cid:room.id},opts));assert.equal(resumedHttp.record_id,resumedCompletion.snapshot.recordId);assert.equal(resumedHttp.operation_id,resumeMutation.operationId);assert.equal(resumedHttp.command_type,'send');assert.equal(resumedHttp.state,'completed');
  await resumed.close();authorityEvents=client.conversations.byId(room.id).events({after:resumedFact.cursor},opts);await authorityEvents.ready();
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
- emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true,events_resume_original_record:true,events_resume_http_record:true,events_resume_new_fact:true});
+ emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true,events_resume_original_record:true,events_resume_http_record:true,events_resume_new_fact:true,events_resume_record_id:resumedCompletion.snapshot.recordId,events_resume_event_id_sha256:createHash('sha256').update(resumedFact.eventId).digest('hex')});
  await resume('receipts');
  progress('message-receipts');
  const facts=await client.conversations.byId(room.id).receipts(intent.messageId,opts);

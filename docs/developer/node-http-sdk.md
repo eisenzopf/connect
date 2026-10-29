@@ -93,3 +93,23 @@ page-level resource fields. This source correction passes JavaScript syntax;
 its original-server Linux result remains pending. Current authorization checks,
 causal witness, singleton effect, request/phase deadlines and cleanup assertions
 remain in the fixture. The five exact2d failures stay recorded as failures.
+
+The [exactf79 native matrix](../evidence/gate-6/node-native-f79.json) retains all
+seven Node22 and eight Node26 failures. Node26 reaches the original Message fact,
+helper restart and resumed fact, then fails another fixture assertion requiring
+`causal_event_ids` in compact canonical `operation.updated`. The
+[resumed witness correction](../evidence/gate-6/node-resumed-causal-witness.json)
+keeps original ID/record/command/completion comparisons and makes the host verify
+both original and resumed full causal links through authenticated Store reads,
+plus one exact journal row for each. It does not introduce another application
+route or invent a compact response field. The new native fixture profile is8;
+its production runtime verification is pending.
+
+Fixed-stage relative checkpoint timings now help distinguish a slow preceding
+stage from an event wait. The upload schema permits only the signing algorithm,
+known checkpoint, relative seconds and the existing15s deadline, with128 entries
+maximum. Credentials, payloads, raw stacks and private paths remain excluded.
+Local109 Node component/type functions,33 SQLite selection vectors and six privacy
+functions pass, alongside JavaScript syntax and Rust formatting. Node22's original
+event deadline, genuine candidate adoption and strict audio minimum failures
+remain open; request4s, phase15s and whole-function90s limits are unchanged.
