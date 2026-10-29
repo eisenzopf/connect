@@ -29,7 +29,7 @@ try {
  await assert.rejects(application.messageReceipts(spec.cid,payload.msg_id),error=>{assert.ok(error instanceof ConnectError);assert.ok(['unauthorized','forbidden'].includes(error.code));assert.ok([401,403].includes(error.httpStatus));return true;});
  emit({phase:'completed',current_https_read_refused:true,current_https_replay_refused:true,current_https_new_mutation_refused:true,current_https_receipts_refused:true});
 } catch(error) {
- const at=String(error?.stack??'').match(/node_https_server_consumer\.mjs:(\d+):(\d+)/);
+ const at=String(error?.stack??'').match(/(?:https-consume|node_https_server_consumer)\.mjs:(\d+):(\d+)/);
  emit({phase:'failed',checkpoint,kind:error instanceof CanonicalError?error.kind:error?.code==='ERR_ASSERTION'?'assertion':'unexpected',certainty:error instanceof CanonicalError?error.certainty:null,command:error instanceof CanonicalError?error.operation?.command??null:null,observedState:null,observedKind:null,observedCertainty:null,observedHttpStatus:null,line:at?Number(at[1]):null,column:at?Number(at[2]):null});
  process.exitCode=1;
 } finally {await client.close(options);process.stdin.destroy();}

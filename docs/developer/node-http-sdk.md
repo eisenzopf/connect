@@ -63,3 +63,13 @@ CA-signed distinct server leaf, and the full109 component/type checks pass.
 The corrected original production fixture still awaits Linux execution; this
 local reproduction does not claim its success. See
 [the source-bound TLS fixture evidence](../evidence/gate-6/node-https-ca-subjects.json).
+
+The [exactc527 Linux run](../evidence/gate-6/node-native-c527.json) verifies that
+both Node22/26 matrices now pass the original initial HTTPS snapshot, send,
+operation-record read and replay under both signing algorithms with normal CA
+verification. Both then fail an assertion at `https-journal`; the complete HTTPS
+journey remains unqualified. The installed script is named `https-consume.mjs`,
+while its catch code matched only the source filename, so that result has no
+exact assertion location. The diagnostic now recognizes both names and emits only
+bounded line/column numbers; four diagnostic/privacy tests pass. The corrected
+full-record causal witness and later native stages still await exact-source CI.

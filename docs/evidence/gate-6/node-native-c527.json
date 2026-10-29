@@ -1,0 +1,902 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "source_revision": "c52794947c093d9932d296c0e7aadb35911f341e",
+  "full_sdk_qualified": false,
+  "native_qualified": false,
+  "complete_https_qualified": false,
+  "acceptance_qualified": false,
+  "verified_profiles": [
+    {
+      "commit": "c52794947c093d9932d296c0e7aadb35911f341e",
+      "run_id": 40796396827,
+      "artifact_id": 12864763692,
+      "zip_sha256": "fcb7046d2ae3d8cd395c4241cb59a2104cad9b0046a1836e8674b76408957182",
+      "matrix": 22,
+      "source_bound_tracked_contents_and_modes": 4094,
+      "guarded_inputs": 8186,
+      "source_inputs_sha256": "92d1b855555ddb86f170527ab657e1c7d0a9b8beae405ffd1ef19f98a466984b",
+      "source_inputs_unchanged": true,
+      "aggregate_passed": false,
+      "passing_functions": 195,
+      "group_counts": {
+        "compile-client": 0,
+        "compile-store": 0,
+        "compile-library": 0,
+        "compile-hosting": 0,
+        "node-cli-preflight": 0,
+        "compile-rtp": 0,
+        "snapshot-test-inventory": 0,
+        "sdk-event-delivery": 3,
+        "sdk-events": 10,
+        "sdk-managed-delivery": 3,
+        "sdk-startup-context": 3,
+        "admin-local-validation": 3,
+        "raw-local-validation": 3,
+        "snapshot-store": 22,
+        "snapshot-peer-authority": 38,
+        "rust-sdk-consultation-audio": 1,
+        "rust-sdk-consultation-eof": 1,
+        "addressing": 4,
+        "config": 4,
+        "sip-config": 4,
+        "rtcp-udp": 32,
+        "rtcp-allocator": 20,
+        "rtcp-session-route": 1,
+        "owned-dtls": 1,
+        "https-hosting": 7,
+        "sip-unknown-account": 1,
+        "sip-bind-failure": 1,
+        "sip-owner-drop": 1,
+        "sip-readiness": 1,
+        "installed-node-administration-eddsa-commands": 1,
+        "installed-node-administration-eddsa-authority": 1,
+        "installed-node-administration-eddsa-uncertainty": 1,
+        "installed-node-administration-es256-commands": 1,
+        "installed-node-administration-es256-authority": 1,
+        "installed-node-administration-es256-uncertainty": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_move_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_move_observer": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_observer": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_recording_failure": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_move_speaker": 1,
+        "installed-node-movement-installed_node_es256_move_observer": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_es256_cancel_speaker": 1,
+        "installed-node-movement-installed_node_es256_cancel_observer": 1,
+        "installed-node-movement-installed_node_es256_cancel_revoked_endpoint": 1,
+        "installed-node-consultation-restored": 1,
+        "installed-node-consultation-remote-ended": 1
+      },
+      "compiled_artifacts": {
+        "client": "1788704c780c9c808b4bf7c1ff9087595f826a8a6e670daede5b312b60fc0c64",
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "69d4f6effe3a85811841f057d1bc0d2764495d6292b4a43d80f7178bd910b35c",
+        "hosting": "c9a2f7c6abbbd5e433a7a33c9d84b983ca72a55ad783574d9fcebb7d2983c556",
+        "cli": "a80a5cbb7534e45e16c0c97d5405758b9ed3dd606555896d560e767f208b244c",
+        "rtp": "4b36087660e07215505d78e5830ad0a9628551517e2d035b26692b953298afd9"
+      },
+      "administration": {
+        "passed": true,
+        "profile": "node-administration/3",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "EdDSA",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10,
+            "passed": true
+          },
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "EdDSA",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10,
+            "passed": true
+          },
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "ES256",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "verified_helpers_joined": 16,
+        "verified_validators_joined": 80,
+        "verified_servers_joined": 8,
+        "scope": "All11 actual trusted administrative commands and ordinary/current-revoked authority via installed Node SDK; independent Rust signed journal comparisons, exact replay after server restart, new revoked startup refusing original/new mutations without submission, independent authorized recovery, no unauthorized receipts and original joins/drains. Actual held HTTP commit/cancellation preserves original uncertainty, queued no-submission and fresh signed recovery without replay. Full SDK qualification remains separate."
+      },
+      "https": {
+        "passed": false,
+        "profile": "node-https/1",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "passed": false
+          },
+          {
+            "algorithm": "ES256",
+            "passed": false
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification."
+      },
+      "native": {
+        "passed": false,
+        "functional_phase_profile": "node-controls/7"
+      },
+      "tls_boundary": "Both algorithms pass initial snapshot/send/original record/replay under normal CA verification and reach https-journal assertion. This proves progress through the TLS boundary, not the complete HTTPS journey. Exact assertion location missing because installed basename differs from catch regex.",
+      "audio_minimum": {
+        "allowed_indices": [
+          1
+        ],
+        "non_silent_packets": 10,
+        "probe": "replacement-preparation-remote",
+        "received_packets": 10,
+        "receiver_index": 1,
+        "sent_packets": 22,
+        "source_index": 0,
+        "timestamp_step_max": 2123,
+        "timestamp_step_min": 22
+      },
+      "scope": "Exactc527 Linux native lane remains failed. Both candidate adoption cases fail. Node22 native receives original Message fact then compact-causal assertion fails; Node26 native fails events-original deadline. Both matrices additionally fail one strict audio minimum; cause remains unproven and no bound/predicate is relaxed.",
+      "movements": {
+        "passed": false,
+        "profile": "node-movements/3",
+        "cases": 26,
+        "passing_cases": 23,
+        "failed_cases": [
+          "installed_node_eddsa_move_candidate",
+          "installed_node_es256_move_candidate",
+          "installed_node_es256_move_recording_failure"
+        ],
+        "passing_case_helpers_joined": 46,
+        "passing_case_servers_joined": 23,
+        "passing_case_physical_peers_and_media_readers_drained": true
+      },
+      "failures": [
+        {
+          "name": "installed-node-https-eddsa",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.3169516749999843,
+          "log_sha256": "a902ba5aa3a9a0668bc8c489478ce7bc9c64e4853b957e665ca4f35b6535fad4",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.26s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 89,
+              "column": 13
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-journal",
+              "column": null,
+              "command": null,
+              "kind": "assertion",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        },
+        {
+          "name": "installed-node-https-es256",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.2682581789999858,
+          "log_sha256": "5c9869cdc8ffa1a09d6b5f463a0d5fbf285e8729bfa1d6bfc7fcf7db3a4b4c60",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.25s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 89,
+              "column": 13
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-journal",
+              "column": null,
+              "command": null,
+              "kind": "assertion",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.426400344000001,
+          "log_sha256": "e46e03714bab01f3c613438d871e10c56a4f62e9100356b26f8fc965ee1ab494",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.40s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.426550354000028,
+          "log_sha256": "1c5f29364cec97e377089258651226a964e1f9392a86a9ba50ec45ceb5460850",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.40s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_recording_failure",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 12.739967461000106,
+          "log_sha256": "33bc617ef4dc88808d1a67ff480af84bda0ba2139d6e33ad0db9af4ca478f2f9",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 12.72s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 671,
+              "column": 9
+            }
+          ],
+          "native_audio_minimum_failures": [
+            {
+              "allowed_indices": [
+                1
+              ],
+              "non_silent_packets": 10,
+              "probe": "replacement-preparation-remote",
+              "received_packets": 10,
+              "receiver_index": 1,
+              "sent_packets": 22,
+              "source_index": 0,
+              "timestamp_step_max": 2123,
+              "timestamp_step_min": 22
+            }
+          ],
+          "node_movement_phases": [
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "registered",
+              "seconds": 0.600251766
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "accepted",
+              "seconds": 0.174102264
+            }
+          ]
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 30.47796517200004,
+          "log_sha256": "c9924afb8c9271fa3dfca9b60acfe40fd39199adcc16a6744e86039ddd37a00d",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 30.44s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 136,
+              "column": 17
+            }
+          ],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.138388027
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 8.528188639
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "events-original",
+              "column": 93,
+              "command": null,
+              "kind": "assertion",
+              "line": 150,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "commit": "c52794947c093d9932d296c0e7aadb35911f341e",
+      "run_id": 40796396827,
+      "artifact_id": 12865002405,
+      "zip_sha256": "5c25673ff9879992953c960d8239268784c79c943c1ac84cf0bdd7064390438f",
+      "matrix": 26,
+      "source_bound_tracked_contents_and_modes": 4094,
+      "guarded_inputs": 8186,
+      "source_inputs_sha256": "92d1b855555ddb86f170527ab657e1c7d0a9b8beae405ffd1ef19f98a466984b",
+      "source_inputs_unchanged": true,
+      "aggregate_passed": false,
+      "passing_functions": 195,
+      "group_counts": {
+        "compile-client": 0,
+        "compile-store": 0,
+        "compile-library": 0,
+        "compile-hosting": 0,
+        "node-cli-preflight": 0,
+        "compile-rtp": 0,
+        "snapshot-test-inventory": 0,
+        "sdk-event-delivery": 3,
+        "sdk-events": 10,
+        "sdk-managed-delivery": 3,
+        "sdk-startup-context": 3,
+        "admin-local-validation": 3,
+        "raw-local-validation": 3,
+        "snapshot-store": 22,
+        "snapshot-peer-authority": 38,
+        "rust-sdk-consultation-audio": 1,
+        "rust-sdk-consultation-eof": 1,
+        "addressing": 4,
+        "config": 4,
+        "sip-config": 4,
+        "rtcp-udp": 32,
+        "rtcp-allocator": 20,
+        "rtcp-session-route": 1,
+        "owned-dtls": 1,
+        "https-hosting": 7,
+        "sip-unknown-account": 1,
+        "sip-bind-failure": 1,
+        "sip-owner-drop": 1,
+        "sip-readiness": 1,
+        "installed-node-administration-eddsa-commands": 1,
+        "installed-node-administration-eddsa-authority": 1,
+        "installed-node-administration-eddsa-uncertainty": 1,
+        "installed-node-administration-es256-commands": 1,
+        "installed-node-administration-es256-authority": 1,
+        "installed-node-administration-es256-uncertainty": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_eddsa_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_eddsa_move_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_move_observer": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_speaker": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_observer": 1,
+        "installed-node-movement-installed_node_eddsa_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_eddsa_move_recording_failure": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_session_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_observe": 1,
+        "installed-node-movement-installed_node_es256_conversation_handoff_leave": 1,
+        "installed-node-movement-installed_node_es256_move_observer": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_revoked_target_key": 1,
+        "installed-node-movement-installed_node_es256_cancel_speaker": 1,
+        "installed-node-movement-installed_node_es256_cancel_observer": 1,
+        "installed-node-movement-installed_node_es256_cancel_revoked_endpoint": 1,
+        "installed-node-movement-installed_node_es256_move_recording_failure": 1,
+        "installed-node-consultation-restored": 1,
+        "installed-node-consultation-remote-ended": 1
+      },
+      "compiled_artifacts": {
+        "client": "1788704c780c9c808b4bf7c1ff9087595f826a8a6e670daede5b312b60fc0c64",
+        "store": "addf9cc7f915c47f1377508286ac152b6e38fcc1211457c1bdf6fb3db72cdf56",
+        "library": "69d4f6effe3a85811841f057d1bc0d2764495d6292b4a43d80f7178bd910b35c",
+        "hosting": "c9a2f7c6abbbd5e433a7a33c9d84b983ca72a55ad783574d9fcebb7d2983c556",
+        "cli": "a80a5cbb7534e45e16c0c97d5405758b9ed3dd606555896d560e767f208b244c",
+        "rtp": "4b36087660e07215505d78e5830ad0a9628551517e2d035b26692b953298afd9"
+      },
+      "administration": {
+        "passed": true,
+        "profile": "node-administration/3",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "EdDSA",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10,
+            "passed": true
+          },
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "EdDSA",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "changed_intent_refused": true,
+            "command_families": 11,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "one_original_receipt": true,
+            "original_record_recovered": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "scenario": "commands",
+            "servers_joined": 2,
+            "validators_joined": 26,
+            "passed": true
+          },
+          {
+            "algorithm": "ES256",
+            "helpers_joined": 4,
+            "independent_authorized_original_record_recovered": true,
+            "media_readers_drained": true,
+            "no_forbidden_or_revoked_receipts": true,
+            "ordinary_submit_read_refused": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "revoked_current_read_refused": true,
+            "revoked_startup_replay_and_submit_not_submitted": true,
+            "scenario": "authority",
+            "servers_joined": 1,
+            "validators_joined": 10,
+            "passed": true
+          },
+          {
+            "actual_commit_held_response": true,
+            "algorithm": "ES256",
+            "fresh_original_record_recovered_without_replay": true,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "no_hidden_resubmission": true,
+            "one_original_receipt": true,
+            "original_cancelled_uncertain": true,
+            "physical_peers_drained": true,
+            "profile": "node-administration/3",
+            "queued_cancelled_not_submitted": true,
+            "scenario": "uncertainty",
+            "servers_joined": 1,
+            "validators_joined": 4,
+            "zero_queued_receipts": true,
+            "passed": true
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "verified_helpers_joined": 16,
+        "verified_validators_joined": 80,
+        "verified_servers_joined": 8,
+        "scope": "All11 actual trusted administrative commands and ordinary/current-revoked authority via installed Node SDK; independent Rust signed journal comparisons, exact replay after server restart, new revoked startup refusing original/new mutations without submission, independent authorized recovery, no unauthorized receipts and original joins/drains. Actual held HTTP commit/cancellation preserves original uncertainty, queued no-submission and fresh signed recovery without replay. Full SDK qualification remains separate."
+      },
+      "https": {
+        "passed": false,
+        "profile": "node-https/1",
+        "results": [
+          {
+            "algorithm": "EdDSA",
+            "passed": false
+          },
+          {
+            "algorithm": "ES256",
+            "passed": false
+          }
+        ],
+        "request_budget_ms": 4000,
+        "phase_deadline_seconds": 15,
+        "whole_function_deadline_seconds": 90,
+        "scope": "Explicit HTTPS facade against original local production TLS application surface; platform TLS validation with isolated fixture root, original signed native record, current revocation, finite journal, one-effect replay, no forbidden mutation and original process/server drains. No named remote/account/full SDK qualification."
+      },
+      "native": {
+        "passed": false,
+        "functional_phase_profile": "node-controls/7"
+      },
+      "tls_boundary": "Both algorithms pass initial snapshot/send/original record/replay under normal CA verification and reach https-journal assertion. This proves progress through the TLS boundary, not the complete HTTPS journey. Exact assertion location missing because installed basename differs from catch regex.",
+      "audio_minimum": {
+        "allowed_indices": [
+          0
+        ],
+        "non_silent_packets": 10,
+        "probe": "replacement-preparation-source",
+        "received_packets": 10,
+        "receiver_index": 0,
+        "sent_packets": 19,
+        "source_index": 1,
+        "timestamp_step_max": 2438,
+        "timestamp_step_min": 82
+      },
+      "scope": "Exactc527 Linux native lane remains failed. Both candidate adoption cases fail. Node22 native receives original Message fact then compact-causal assertion fails; Node26 native fails events-original deadline. Both matrices additionally fail one strict audio minimum; cause remains unproven and no bound/predicate is relaxed.",
+      "movements": {
+        "passed": false,
+        "profile": "node-movements/3",
+        "cases": 26,
+        "passing_cases": 23,
+        "failed_cases": [
+          "installed_node_eddsa_move_candidate",
+          "installed_node_es256_move_candidate",
+          "installed_node_es256_move_speaker"
+        ],
+        "passing_case_helpers_joined": 46,
+        "passing_case_servers_joined": 23,
+        "passing_case_physical_peers_and_media_readers_drained": true
+      },
+      "failures": [
+        {
+          "name": "installed-node-https-eddsa",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.5692195749999769,
+          "log_sha256": "c6df82e397637cd2f202facc0322a2d5af7b60a0e4495a8dafacd1957a952350",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.52s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 89,
+              "column": 13
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-journal",
+              "column": null,
+              "command": null,
+              "kind": "assertion",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        },
+        {
+          "name": "installed-node-https-es256",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 1.4686122360000127,
+          "log_sha256": "42e97c3da80dc1b46b7b14636812ec0ed4fed8605e4230025df183866dc1fde3",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 1.42s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_https_hosting/node.rs",
+              "line": 89,
+              "column": 13
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "https-journal",
+              "column": null,
+              "command": null,
+              "kind": "assertion",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_eddsa_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.836800585000049,
+          "log_sha256": "46db689d68c34cf33ca0a2021e5340154205c85af09f54e8ac0aa6698c58d392",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.78s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_candidate",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 6.786118289000001,
+          "log_sha256": "cf1f0f8db5b810c5b5913a228186fa26aed663f82b68c88469a4adffa3533ed0",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.74s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs",
+              "line": 343,
+              "column": 13
+            }
+          ]
+        },
+        {
+          "name": "installed-node-movement-installed_node_es256_move_speaker",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 18.02233244499996,
+          "log_sha256": "2a5f1f942dd45e334429b4489528c8ae86bd57c0158510b61f3a0fb056725fb2",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 17.96s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_native_connections/consultation/groups.rs",
+              "line": 671,
+              "column": 9
+            }
+          ],
+          "native_audio_minimum_failures": [
+            {
+              "allowed_indices": [
+                0
+              ],
+              "non_silent_packets": 10,
+              "probe": "replacement-preparation-source",
+              "received_packets": 10,
+              "receiver_index": 0,
+              "sent_packets": 19,
+              "source_index": 1,
+              "timestamp_step_max": 2438,
+              "timestamp_step_min": 82
+            }
+          ],
+          "node_movement_phases": [
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "registered",
+              "seconds": 0.689405924
+            },
+            {
+              "algorithm": "ES256",
+              "deadline_seconds": 15,
+              "phase": "accepted",
+              "seconds": 0.292683339
+            }
+          ]
+        },
+        {
+          "name": "installed-node-native-control",
+          "exit_code": 101,
+          "timed_out": false,
+          "forced_kill": false,
+          "seconds": 34.16770019599994,
+          "log_sha256": "fab5fa31b4b7a2d6f4867d17a2f4989e5331dfc229fd8251a3b6343996fb9299",
+          "test_results": [
+            "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 410 filtered out; finished in 34.11s"
+          ],
+          "panic_locations": [
+            {
+              "file": "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs",
+              "line": 124,
+              "column": 25
+            }
+          ],
+          "node_completed_phases": [
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "controls-ready",
+              "seconds": 8.979153121
+            },
+            {
+              "algorithm": "EdDSA",
+              "deadline_seconds": 15,
+              "passed": true,
+              "phase": "native-complete",
+              "seconds": 9.500868583
+            }
+          ],
+          "node_failures": [
+            {
+              "certainty": null,
+              "checkpoint": "events-original",
+              "column": null,
+              "command": null,
+              "kind": "deadline",
+              "line": null,
+              "observedCertainty": null,
+              "observedHttpStatus": null,
+              "observedKind": null,
+              "observedState": null,
+              "phase": "failed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "finding": "Normal TLS boundary now crossed on both Node22/26 and both EdDSA/ES256: initial snapshot/send/original record/replay complete, then https-journal assertion fails. This does not locate which journal assertion failed. Installed basename mismatch suppressed safe line/column diagnostic; corrected separately. NativeNode22 receives original fact then old compact causal assertion fails; Node26 fails events-original deadline. Both candidate cases and one strict audio minimum per matrix remain failed; no thresholds or budgets changed."
+}

@@ -1,0 +1,20 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "component": "Installed HTTPS assertion location diagnostic",
+  "finding": "prepare_native_consumer.py copies the HTTPS script to https-consume.mjs, while catch regex matched node_https_server_consumer.mjs only. Exactc527 assertions therefore lacked line/column.",
+  "change": "Match installed and source basenames; retain the existing bounded line/column allowlist, without exposing private stack text, payloads, paths or credentials.",
+  "diagnostic_privacy_functions_passed": 4,
+  "both_basenames_actual_node_match_passed": true,
+  "log_sha256": "898b3908b5093a06dbcf824c114d375c4351a3afa5c0aaf236351943d616bfee",
+  "javascript_syntax_passed": true,
+  "actual_corrected_production_run": "pending",
+  "full_sdk_qualified": false,
+  "complete_https_qualified": false,
+  "acceptance_qualified": false,
+  "source_sha256": {
+    "sdk/tests/node_https_server_consumer.mjs": "769e134e359396b0ab85aca7cded8e193270b959e8aaaf833dcd3a4d45b6d614",
+    "sdk/tests/prepare_native_consumer.py": "ebb157affc63705db3cc0316a4ca374a98e1166d8320d8b2993ca70c0e310879",
+    "scripts/tests/test_gate6_linux_diagnostics.py": "20fe1ee636f4a30d075719c40aa2cc42c071c90c6b5cf1a7f2f4b8c17062c713"
+  }
+}

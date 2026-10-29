@@ -238,3 +238,10 @@ they do not execute the original Rust validator, authenticate actual server
 traffic, or qualify complete installed SDK behavior. HTTP/admin, synchronous
 ownership, helper deployment and the installed original-server/restart/current-
 authority journey remain required.
+
+The [exact38 Linux reader component](../evidence/gate-6/python-sdk-readers-linux-38.json)
+passes120 functions and22 type constraints on Python3.11.17/3.12.15/3.13.17/3.14.9.
+Each artifact matches69 tracked file contents and modes and includes all20 reader
+functions. This qualifies that recorded reader/control/helper source. The newer
+139-function raw interface changes guarded sources and needs its own Linux proof;
+neither component qualifies the full installed original-server journey.

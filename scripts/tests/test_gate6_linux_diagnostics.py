@@ -1,5 +1,6 @@
 """Privacy boundary and producer/consumer agreement for installed SDK failures."""
 import json
+import subprocess
 from pathlib import Path
 import re
 import runpy
@@ -16,6 +17,16 @@ def failure(checkpoint='events-bootstrap'):
 
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_https_assertion_location_uses_the_actual_installed_basename_without_private_stack(self):
+        source=(ROOT/'sdk/tests/node_https_server_consumer.mjs').read_text()
+        prepare=(ROOT/'sdk/tests/prepare_native_consumer.py').read_text()
+        self.assertIn("'https-consume.mjs'",prepare)
+        pattern=re.search(r'\.match\((/[^;\n]+/)\)',source)[1]
+        code='const pattern='+pattern+';const result=[];for(const name of ["https-consume.mjs","node_https_server_consumer.mjs"]){const at=("Error: private credential and payload\\n at file:///private/state/"+name+":22:7").match(pattern);result.push({line:at?Number(at[1]):null,column:at?Number(at[2]):null});}process.stdout.write(JSON.stringify(result));'
+        result=subprocess.run(['node','--input-type=module','-e',code],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=3,check=True)
+        self.assertEqual(json.loads(result.stdout),[{'line':22,'column':7}]*2)
+        self.assertNotIn('private',result.stdout)
+
     def test_original_rust_timeout_producers_match_the_upload_schema(self):
         for name in ['canonical_stdio/node_sdk.rs','canonical_https_hosting/node.rs']:
             source=(ROOT/'crates/connect-server/tests/support'/name).read_text()
