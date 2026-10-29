@@ -39,6 +39,9 @@ impl Hosted {
         Self::with_origins(&[]).await
     }
     async fn with_origins(additional: &[String]) -> Self {
+        Self::with_media_origins(additional, false).await
+    }
+    async fn with_media_origins(additional: &[String], media: bool) -> Self {
         use chrono::Datelike;
         let mut origins = vec![
             "https://ui.fixture.invalid".into(),
@@ -104,6 +107,13 @@ impl Hosted {
                 advertised_url: None,
             },
         );
+        if media {
+            f.config.webrtc = Some(connect_server::canonical_webrtc::CanonicalWebRtcConfig {
+                profile: connect_server::canonical_webrtc::CanonicalWebRtcProfile::OpusVp8,
+                max_peers: 2,
+                addressing: None,
+            });
+        }
         f.server = RunningCanonicalServer::start(f.config.clone())
             .await
             .unwrap();

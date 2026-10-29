@@ -1,3 +1,4 @@
+import { type BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
 import { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
 import { CanonicalError, type CanonicalErrorKind, type Certainty } from "./canonical_error.js";
 import { type BrowserMediaCaptureOptions } from "./browser_media_capture.js";
@@ -19,6 +20,7 @@ export interface BrowserSdkMutationOptions extends BrowserSdkRequestOptions {
 }
 export interface BrowserSdkClientOptions extends BrowserTransportClientOptions {
     readonly tenantId: string;
+    readonly media?: BrowserRtcConfiguration;
 }
 export type BrowserOperationState = "accepted" | "preparing" | "ready" | "committing" | "completed" | "cancelled" | "failed" | "interrupted" | "unknown";
 export interface BrowserOperationSnapshot {

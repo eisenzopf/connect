@@ -6,9 +6,14 @@ use sha2::{Digest, Sha256};
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "Explicit owned Chrome and built production browser SDK"]
 async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
+        )
+        .try_init();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let origin = format!("https://{}", listener.local_addr().unwrap());
-    let h = Hosted::with_origins(&[origin.clone()]).await;
+    let h = Hosted::with_media_origins(&[origin.clone()], true).await;
     let before = counts(&h);
     let page = enrollment_browser::page(listener, &h, origin.clone()).await;
     let key = rcgen::KeyPair::from_pem(&std::fs::read_to_string(&h.f.config.private_key).unwrap())
@@ -48,11 +53,14 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
     for name in [
         "wt_native_connection",
         "wt_owned_capture_retired",
-        "restored_media_observation_only",
+        "wss_media_connection",
+        "wss_owned_capture_retired",
+        "wss_owned_renderer_retired",
     ] {
         assert_eq!(result["result"][name], 1, "{name}");
     }
-    assert_eq!(result["result"]["original_mutations"], 18);
+    assert_eq!(result["result"]["restored_media_observation_only"], 2);
+    assert_eq!(result["result"]["original_mutations"], 20);
     assert_eq!(
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)

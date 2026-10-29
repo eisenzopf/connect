@@ -140,3 +140,5 @@ export type {
     OperationId,
     SessionId,
 } from "./browser_sdk.js";
+
+export type { BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";

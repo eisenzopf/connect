@@ -1,3 +1,5 @@
+import { BrowserRtcConnection, } from "./browser_sdk_webrtc.js";
+import { browserIceConfiguration } from "./browser_ice.js";
 import { BrowserTransportClient, } from "./browser_transport_client.js";
 import { CanonicalError, } from "./canonical_error.js";
 import { BrowserMediaPeer, } from "./browser_media.js";
@@ -166,6 +168,7 @@ function connectionResult(value, client, key) {
             value.connection_id !== key.scope.connectionId)
             return bad();
         current(client).mediaPeer?.retireLocalConnection(key.scope.connectionId);
+        current(client).local.get(key.scope.connectionId)?.rtc?.close();
         current(client).local.delete(key.scope.connectionId);
     }
     return new BrowserConnection(client, key.scope.conversationId, key.scope.sessionId, key.scope.connectionId, revision);
@@ -339,19 +342,25 @@ class State {
     owner;
     tenant;
     actor;
+    rtcConfiguration;
     mediaPeer;
     local = new Map();
     renderers = new Map();
+    pending = new Map();
     captures = new Map();
     nativePeer() {
         if (this.peer.controlTransport !== "webtransport")
             throw new BrowserSdkError("unsupported", "not-submitted");
         return (this.mediaPeer ??= new BrowserMediaPeer(this.peer, {
             audio: (binding, frame) => {
-                this.renderers.get(binding.connectionId)?.audio(binding, frame);
+                const r = this.renderers.get(binding.connectionId);
+                if (r instanceof BrowserMediaRenderer)
+                    r.audio(binding, frame);
             },
             video: (binding, frame) => {
-                this.renderers.get(binding.connectionId)?.video(binding, frame);
+                const r = this.renderers.get(binding.connectionId);
+                if (r instanceof BrowserMediaRenderer)
+                    r.video(binding, frame);
             },
         }));
     }
@@ -361,10 +370,11 @@ class State {
     reader = false;
     stopEvents;
     stopClose;
-    constructor(owner, tenant, actor) {
+    constructor(owner, tenant, actor, rtcConfiguration = {}) {
         this.owner = owner;
         this.tenant = tenant;
         this.actor = actor;
+        this.rtcConfiguration = rtcConfiguration;
     }
     get peer() {
         try {
@@ -387,7 +397,10 @@ class State {
     watch() {
         this.mediaPeer?.close();
         this.mediaPeer = undefined;
+        for (const local of this.local.values())
+            local.rtc?.close();
         this.local.clear();
+        this.pending.clear();
         for (const renderer of this.renderers.values())
             renderer.close();
         this.renderers.clear();
@@ -698,8 +711,16 @@ export class BrowserSdkClient {
     static async connect(options) {
         sdkId(options.tenantId);
         const tenant = options.tenantId, actor = options.identityId;
+        let media;
         try {
-            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor));
+            media =
+                browserIceConfiguration(options.media?.iceServers, options.media?.iceTransportPolicy) ?? {};
+        }
+        catch (error) {
+            throw translated(error, "not-submitted");
+        }
+        try {
+            return new BrowserSdkClient(new State(await BrowserTransportClient.connect(options), tenant, actor, media));
         }
         catch (error) {
             throw translated(error, "not-submitted");
@@ -927,23 +948,52 @@ export class BrowserSession {
                     connectionId: input.connectionId,
                 },
             }), browserOperationKinds.connectionOffer);
-            if (s.local.has(connectionId))
+            if (s.local.has(connectionId) ||
+                s.pending.has(connectionId) ||
+                s.local.size + s.pending.size >= 8)
                 throw new BrowserSdkError("conflict", "not-submitted", key);
+            const reservation = {};
+            s.pending.set(connectionId, reservation);
             let begun;
             try {
-                begun = s
-                    .nativePeer()
-                    .beginOfferConnection(low, budget.options());
+                if (peer.controlTransport === "websocket") {
+                    if (!low.audio ||
+                        low.data?.length ||
+                        (low.screen && low.video))
+                        throw new BrowserSdkError("unsupported", "not-submitted", key);
+                    const snapshot = await s.snapshot(this.conversationId, budget.options());
+                    s.observe(peer, epoch);
+                    const participant = snapshot.conversation.participants.find((v) => v.identityId === s.actor && v.active);
+                    const presence = participant
+                        ? snapshot.appearances.get(this.id + ":" + participant.id)
+                        : undefined;
+                    if (!participant ||
+                        !presence ||
+                        presence.state !== "present" ||
+                        presence.membership_epoch !==
+                            participant.membershipEpoch)
+                        throw new BrowserSdkError("application", "not-submitted", key);
+                    begun = BrowserRtcConnection.begin(peer, low, participant.id, s.rtcConfiguration, budget.options());
+                }
+                else
+                    begun = s
+                        .nativePeer()
+                        .beginOfferConnection(low, budget.options());
                 const local = {
                     cid: this.conversationId,
                     sid: this.id,
                     epoch,
                     ready: begun.ready,
+                    rtc: begun.owner,
                     audio: low.audio,
                     video: low.video,
                     screen: low.screen,
                 };
                 s.local.set(connectionId, local);
+                begun.owner?.onClose(() => {
+                    if (s.local.get(connectionId) === local)
+                        s.local.delete(connectionId);
+                });
                 void begun.ready.catch(() => {
                     if (s.local.get(connectionId) === local)
                         s.local.delete(connectionId);
@@ -955,6 +1005,10 @@ export class BrowserSession {
             }
             catch (error) {
                 throw translated(error, begun?.submissionAttempted ? "uncertain" : "not-submitted", key);
+            }
+            finally {
+                if (s.pending.get(connectionId) === reservation)
+                    s.pending.delete(connectionId);
             }
         },
     };
@@ -1300,20 +1354,24 @@ export class BrowserConnection {
         };
         let capture;
         try {
-            capture = await BrowserMediaCapture.open(native, {
-                audioStreamId: audio,
-                videoStreamId: video,
-                videoSource: captured.video,
-                audioDeviceId: captured.audioDeviceId,
-                videoDeviceId: captured.videoDeviceId,
-                stream: captured.stream,
-                state: (state, error) => {
-                    if (state === "closed")
-                        release();
-                    captured.state?.(state, error ? translated(error, "read-only") : undefined);
-                },
-                ...budget.options(),
-            });
+            const state = (state, error) => {
+                if (state === "closed")
+                    release();
+                captured.state?.(state, error ? translated(error, "read-only") : undefined);
+            };
+            capture =
+                native instanceof BrowserRtcConnection
+                    ? await native.capture({ ...captured, state }, budget.options())
+                    : await BrowserMediaCapture.open(native, {
+                        audioStreamId: audio,
+                        videoStreamId: video,
+                        videoSource: captured.video,
+                        audioDeviceId: captured.audioDeviceId,
+                        videoDeviceId: captured.videoDeviceId,
+                        stream: captured.stream,
+                        state,
+                        ...budget.options(),
+                    });
             s.observe(peer, epoch);
             const owner = capture;
             return Object.freeze({
@@ -1359,12 +1417,15 @@ export class BrowserConnection {
             throw new BrowserSdkError("conflict", "read-only");
         let renderer;
         try {
-            renderer = await BrowserMediaRenderer.open(native, {
-                audio,
-                video,
-                volume,
-                ...budget.options(),
-            });
+            renderer =
+                native instanceof BrowserRtcConnection
+                    ? await native.render({ audio, video, volume }, budget.options())
+                    : await BrowserMediaRenderer.open(native, {
+                        audio,
+                        video,
+                        volume,
+                        ...budget.options(),
+                    });
             s.observe(peer, epoch);
             if (s.renderers.has(this.id))
                 throw new BrowserSdkError("conflict", "read-only");

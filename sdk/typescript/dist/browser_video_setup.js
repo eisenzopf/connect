@@ -53,16 +53,18 @@ export async function constrainVideoCapture(stream, timeoutMs) {
         throw new ConnectError("unsupported-media-profile", "Video capture must fit 640×360 at at most 30 fps");
 }
 /** Owned encoded transform; its keyframe feedback is separate from capture. */
-export function startVideoTransform(peer) {
+export function startVideoTransform(peer, selected) {
     // Capabilities contain one generic RTX entry without an apt parameter.
     // Preserve it so the browser can associate repair with the selected VP8 PT.
     const codecs = RTCRtpSender.getCapabilities("video")?.codecs.filter((codec) => ["video/vp8", "video/rtx"].includes(codec.mimeType.toLowerCase()));
     if (!codecs?.some((codec) => codec.mimeType.toLowerCase() === "video/vp8"))
         throw new ConnectError("unsupported-media-profile", "This browser does not support VP8");
-    const transceiver = peer
-        .getTransceivers()
-        .find((t) => t.sender.track?.kind === "video");
+    const transceiver = selected ??
+        peer.getTransceivers().find((t) => t.sender.track?.kind === "video");
     if (!transceiver ||
+        (selected &&
+            (!peer.getTransceivers().includes(selected) ||
+                selected.receiver?.track?.kind !== "video")) ||
         typeof RTCRtpScriptTransform !== "function" ||
         !("transform" in transceiver.sender))
         throw new ConnectError("unsupported-media-profile", "Video requires encoded-transform keyframe support");

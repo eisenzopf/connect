@@ -1,5 +1,12 @@
+import {BrowserRtcConnection} from '/sdk/browser_sdk_webrtc.js';
 import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId} from '/sdk/browser.js';
-const trace=[];
+const trace=[],rtcOwners=[];
+const originalRtcBegin=BrowserRtcConnection.begin;
+BrowserRtcConnection.begin=function(...args){const begun=originalRtcBegin.apply(this,args);rtcOwners.push(begun.owner);return begun;};
+const rtcObservations=async()=>Promise.all(rtcOwners.map(async owner=>{
+ const peer=owner.peer;const stats=await peer.getStats().catch(()=>new Map());
+ return {stopped:owner.stopped,connection:peer.connectionState,ice:peer.iceConnectionState,tracks:peer.getTransceivers().map(t=>({sent:t.sender.track?.kind,sender:t.sender.track?.readyState,enabled:t.sender.track?.enabled,received:t.receiver.track.readyState})),rtp:[...stats.values()].filter(v=>['inbound-rtp','outbound-rtp'].includes(v.type)).map(v=>({type:v.type,kind:v.kind,packetsSent:v.packetsSent,packetsReceived:v.packetsReceived,framesEncoded:v.framesEncoded,framesDecoded:v.framesDecoded,bytesSent:v.bytesSent}))};
+}));
 const originalBegin=BrowserClient.prototype.begin,originalEvents=BrowserClient.prototype.onEvent;
 BrowserClient.prototype.begin=function(...args){const begun=originalBegin.apply(this,args);trace.push({request:args[0],operation:args[2]?.operation_id});return begun;};
 BrowserClient.prototype.onEvent=function(callback){return originalEvents.call(this,frame=>{trace.push({event:frame.type});return callback(frame);});};
@@ -24,7 +31,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
   profiles.push({device,byPath});
  }
  const savedCancellations=new Map();let savedNative;
- const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0};
+ const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0,wss_media_connection:0,wss_owned_capture_retired:0,wss_owned_renderer_retired:0};
  for(const path of ['webtransport','wss-webrtc']){
   const resolutions=[[],[]],clients=[];
   try{
@@ -59,18 +66,24 @@ globalThis.runBrowserFixture=async cfg=>{try{
       assert(completed.value.state==='rejected'&&(await hint.session.refresh(options)).state==='rejected','current rejected state');result.incoming_rejections++;
      }else{
       assert(completed.value.id===pending.id,'accept typed result');result.incoming_accepts++;result.explicit_retry++;
-      if(path==='webtransport'){
-       const native=await pending.connections.offer({connectionId:sdkId('native-'+suffix),streams:[{id:sdkId('audio-'+suffix),kind:'audio',direction:'sendrecv',codecs:['opus']},{id:sdkId('video-'+suffix),kind:'video',direction:'sendrecv',codecs:['vp8']}]},mutation('native-offer'));
-       savedNative=native.referenceJson();const connection=(await native.wait(options)).value;
-       const observed=await connection.refresh(options);assert(observed.id===connection.id&&observed.generation===1&&observed.streamRevision===undefined,'current Connection resource observation');
-       const sources=await connection.streams.list(options);assert(sources.length===2,'typed Stream handles');
-       for(const stream of sources){const view=await stream.refresh(options);assert(view.ownership==='observation'&&view.connectionId===connection.id,'observations grant no capture');}
-       result.wt_native_connection++;
+      {
+       const native=await pending.connections.offer({connectionId:sdkId('native-'+suffix),streams:[{id:sdkId('audio-'+suffix),kind:'audio',direction:'sendrecv',codecs:['opus']},{id:sdkId('video-'+suffix),kind:'video',direction:'sendrecv',codecs:['vp8']}]},{...mutation('native-offer'),timeoutMs:15000});
+       savedNative=native.referenceJson();
+       // Capture is explicit on this saved pending Connection. WSS readiness
+       // requires observed source media; offer acceptance never invents it.
+       const connection=pending.connections.byId(sdkId('native-'+suffix));
        const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination(),canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.getContext('2d').fillRect(0,0,640,360);oscillator.frequency.value=500;oscillator.connect(destination);oscillator.start();
        const stream=new MediaStream([...destination.stream.getAudioTracks(),...canvas.captureStream(30).getVideoTracks()]);
+       let frame=0;const painting=setInterval(()=>{const out=canvas.getContext('2d');out.fillStyle=frame++%2?'rgb(220,20,20)':'rgb(20,20,220)';out.fillRect(0,0,640,360);},33);
        let capture,renderer;try{
         await within(context.resume(),'Owned synthetic audio startup');
         capture=await connection.capture({audio:true,video:'camera',stream},{timeoutMs:3000});assert(!capture.closed,'explicit owned synthetic capture starts');
+        let completedConnection;try{completedConnection=(await native.wait({...options,timeoutMs:10000})).value;}catch(error){trace.push({live_media:await rtcObservations()});throw error;}
+        const observed=await completedConnection.refresh(options);assert(observed.id===connection.id&&observed.generation===1&&observed.streamRevision===undefined,'current Connection resource observation');
+        const sources=await completedConnection.streams.list(options);assert(sources.length===2,'typed Stream handles');
+        for(const source of sources){const view=await source.refresh(options);assert(view.ownership==='observation'&&view.connectionId===connection.id,'observations grant no capture');}
+        result[path==='webtransport'?'wt_native_connection':'wss_media_connection']++;
+
         let duplicateCapture;try{await connection.capture({audio:true,stream},{timeoutMs:1000});}catch(error){duplicateCapture=error;}
         assert(duplicateCapture?.kind==='conflict'&&!capture.closed,'duplicate capture cannot replace an active source');
         const videoSource=sources.find(v=>v.id===sdkId('video-'+suffix)),output=document.createElement('canvas');
@@ -79,15 +92,15 @@ globalThis.runBrowserFixture=async cfg=>{try{
         let duplicateRender;try{await connection.render({audio:false},options);}catch(error){duplicateRender=error;}
         assert(duplicateRender?.kind==='conflict','duplicate renderer cannot replace its local owner');
         await new Promise(resolve=>setTimeout(resolve,100));
-        const ended=await connection.end({reasonCode:200,reason:'Finished',expectedStreamRevision:connection.receiptStreamRevision},mutation('native-end'));await ended.wait(options);
-        assert(capture.closed&&stream.getTracks().every(t=>t.readyState==='ended'),'recorded end retires owned tracks');result.wt_owned_capture_retired++;
-        await within(renderer.finished,'Owned renderer retirement');result.wt_owned_renderer_retired++;
-       }finally{renderer?.close();capture?.close();for(const track of stream.getTracks())track.stop();oscillator.stop();await within(context.close(),'Owned source graph closure');}
+        const ended=await connection.end({reasonCode:200,reason:'Finished',expectedStreamRevision:completedConnection.receiptStreamRevision},mutation('native-end'));await ended.wait(options);
+        assert(capture.closed&&stream.getTracks().every(t=>t.readyState==='ended'),'recorded end retires owned tracks');result[path==='webtransport'?'wt_owned_capture_retired':'wss_owned_capture_retired']++;
+        await within(renderer.finished,'Owned renderer retirement');result[path==='webtransport'?'wt_owned_renderer_retired':'wss_owned_renderer_retired']++;
+       }finally{clearInterval(painting);renderer?.close();capture?.close();for(const track of stream.getTracks())track.stop();oscillator.stop();await within(context.close(),'Owned source graph closure');}
       }
       const latest=await pending.refresh(options),end=await pending.end({reasonCode:200,reason:'Finished',expectedTopologyRevision:latest.topologyRevision},mutation('end'));
       const saved=end.referenceJson();sessionStorage.setItem('end-reference-'+suffix,JSON.stringify(saved));await end.wait(options);
       await caller.reconnect({preferredTransport:path});
-      if(path==='webtransport'){
+      {
        const historical=(await caller.operations.restore(savedNative,browserOperationKinds.connectionOffer).wait(options)).value;
        let refused;try{await historical.capture({audio:true},options);}catch(error){refused=error;}
        assert(refused?.kind==='receipt-unavailable','restored historical offer has no new physical media custody');result.restored_media_observation_only++;
@@ -121,6 +134,6 @@ globalThis.runBrowserFixture=async cfg=>{try{
   }finally{client.close();}
  }
  const mutations=trace.filter(x=>x.operation&&['conversation.create','session.invite','session.accept','session.reject','session.cancel','session.end','connection.offer','connection.end'].includes(x.request));
- assert(mutations.length===18&&new Set(mutations.map(x=>x.operation)).size===18,'sixteen Session mutations and two native mutations, no status/restore resubmission');
+ assert(mutations.length===20&&new Set(mutations.map(x=>x.operation)).size===20,'sixteen Session mutations and four media mutations, no status/restore resubmission');
  return {...result,credentials:4,devices:2,endpoints:4,original_mutations:mutations.length};
-}catch(error){throw Error(String(error)+"\n"+JSON.stringify(error.problem??{})+"\n"+JSON.stringify(trace));}};
+}catch(error){throw Error(String(error)+"\n"+JSON.stringify(error.problem??{})+"\n"+JSON.stringify(await rtcObservations())+"\n"+JSON.stringify(trace));}};

@@ -1,0 +1,215 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "2f83981e50b82ef24459de5ddfa74e84b7661aee",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Typed WT/WSS audio/video Connection and explicit local capture/render ownership composition. No actual camera/microphone permission, screen selection, decoded playback quality, complete media parity, accessible UI, Linux/remote or complete G6-061 acceptance claim.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "ae7630a866a3f1de6223fa56a603a2e69c47894fa796e9840a84f7ed3350e05d",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_webrtc.ts": {
+      "sha256": "03fece5d2aafd57df3f3de9c87ed49cded70ded54c39695856b4cc1cc319d14e",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_video_setup.ts": {
+      "sha256": "6b91c1aad2ffa140a5e6614716c0d801890b2875789b9342eb6eb201d16e5872",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "d912b6b0963d88d1a873e86aa9a509c2fce8f6f61572be993c165a84993476b8",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "009bf290c2edf34943fda7ae32f9df4347dd6ac0e9f90e7d173aac33683b16f1",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "6132a5b9300245f1dfa54963976be24a079e740b5fba795f883719f005b5fbb3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_webrtc.js": {
+      "sha256": "2d114e2967507ffc771ab6bd08af12308c724f3c70eb5f9c1ebec1a761aede11",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_webrtc.d.ts": {
+      "sha256": "61e8ff0a180169d86fc13cb3f7cacf895c9bc694507bbd998a8f68b5ce4a14aa",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_video_setup.js": {
+      "sha256": "bec3a302b29941d69b1c32240155afb996ad36b9207ff1803accce0b01a71ac7",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "9e900ba3c9785b1a9d8c3a28b64f7f0f5dfee4583bdaed3b759e63e721dd2dcb",
+      "mode": 420
+    },
+    "sdk/tests/clients.test.mjs": {
+      "sha256": "dbac62bb67071c783f64f8d54af0564a7de8939be8f9a04b73a78d3d37ea3646",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_webrtc.test.mjs": {
+      "sha256": "52eeefc00451edeacc7aebe61ec267b977aeb040398c932927524fdf6755043c",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "303927bc2e67052c611f37084abfe17c664a4bcd4f85d5e37fe22f038d0b2ed9",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "cece7fb13c89b5d974070fcc9ef2b1560ee0e8ce980aa1f7611ba8eb90956359",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "aaeee1ca4cd8477238c03a2c8a13d6585a6198481ad19aa7e1a0a07c9769430d",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "4031b7f5acab471474692339508e3b911f50d0a9192f447b12eda2b3a2e57b05",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "c057b97455c19cad656ffc82bfa756786dd343b6726dd3280395f364d520ee01",
+  "source_inputs_guarded": 2472,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          433
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 5.029646625043824,
+        "log_sha256": "b64673abbd3175d4b194fe89cbba5aea6b12f51a84c76b8d4db1ea041380b653"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.281371041899547,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.249947499949485,
+        "log_sha256": "88d8cef8df65a71ed57f777e1e257f9fd3e217f29d8aa99c0df034a758ed9c4e"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 119.97033445886336,
+        "log_sha256": "e0fd4cf8b5673d30322fc624a75d1e62174ddb9852ace29d3cafbd28ea1444a6"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 2,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 20
+    },
+    "log_sha256": "ef5623b2d55238aacf204587c7d2583f5bf646e67680291a055d97a904fdd65b",
+    "scope": "Two actors use the same typed invitation/rejection/new explicit retry/accept/audio-video offer/explicit synthetic capture/original completion/Connection-and-Stream observation/renderer startup/exclusive ownership/end/reconnect recovery workflow on direct WT and bounded350ms-WT-blackhole->WSS. Four separately verified fixture Endpoints; no personal device/screen capture. Renderer audio disabled in this fixture; received decoded quality unmeasured.",
+    "mutation_observation": "Read-only fixture observers forward production begin calls unchanged. Twenty distinct original canonical mutations: sixteen Session/Conversation controls plus offer/end for WT and WSS. Status/restore cannot resubmit. Four separate attributed trusted Endpoint verifications are fixture setup, excluded from communication mutation count."
+  },
+  "implemented": [
+    "Current-authorized Conversation actor Participant and Session appearance select the WSS signaling principal; the global physical authentication Participant is not copied across Conversations. Same original Connection/Stream/operation IDs survive uncertainty.",
+    "WSS RTC owner prepares null-track sendrecv Opus audio and optional VP8 camera video, verifies original answer/track scope and retained sender constraints, applies existing80ms receiver jitter target, and separates accepted answer from local connected readiness. Offer never obtains capture permission or waits on operation completion. Explicit ICE configuration is captured before connection; no implicit STUN/TURN services.",
+    "Explicit capture owns supplied MediaStream tracks or separately obtains bounded browser permission, replaces only original senders, enforces exact requested source shape, pauses while hidden, and stops tracks on end/abort/retirement. Late permission results stop their tracks. Cancellation during uncertain replaceTrack retires only the RTC owner to prevent late writes into new capture custody.",
+    "Owned RTC audio graph and scoped video/canvas presentation expose narrow immutable render controls and finite startup. Normal end settles finished and retires local resources without closing shared control. Diagnostics.audio is currently unmeasured zero; video counts presentation callbacks, not quality.",
+    "Duplicate pending offers reserve Connection IDs before asynchronous authorization reads; duplicate capture/render owners refuse. Physical replacement retires RTC owners. Restored completed original offers remain observations without local media custody or automatic SDP/capture.",
+    "WSS requires audio and refuses data, logical screen, unsupported codecs/directions and camera+screen. Existing RTC backend lacks logical Screen support; no partial SDP relabeling or undocumented dependency change. WT profile remains unchanged."
+  ],
+  "behavior": [
+    "Eight new signed-boundary RTC component functions cover no-device offer/accepted-vs-connected readiness, exact original mutation, explicit ownership/hidden pause/resume/end, permission denial without mutation, late permission cleanup, uncertain replaceTrack cancellation, original ICE deadline without submission, pre-aborted startup without prompting/custody, and misclassified remote-track refusal without collateral control closure.",
+    "Actual owned Chrome uses moving synthetic AudioContext/canvas sources in both paths and verifies original offer completion, two Stream observations, duplicate capture/render refusal, end stops supplied tracks/settles renderer, and restore after reconnect cannot obtain media custody.",
+    "Final unchanged-source cohort:433SDK functions,37targeted Node SDK/session/incoming functions,10combined real enrollment functions,0ignored. Browser/Node negative type checks pass. Node runtime JS, production service canonical source and production server signaling source match base byte-for-byte."
+  ],
+  "prior_attempts": [
+    {
+      "passed": false,
+      "log_sha256": "3561374bfa8d541cd6052a80ca6e58720b5554c1f175165138891d3826edbf5b",
+      "observation": "Waiting for original offer completion before explicit capture left WSS admission pending. Existing host readiness requires ICE/DTLS and primary RTP; reordered the shared typed fixture to saved pending Connection capture followed by original-operation wait, without an implicit SDK source."
+    },
+    {
+      "passed": false,
+      "log_sha256": "1f24cd14f104cdb5a68b5570a49abe8a49566db49c0b3fd043a0ba0d1f8b3d2f",
+      "observation": "Explicit capture still left readiness pending. The source canvas was painted only before track replacement."
+    },
+    {
+      "passed": false,
+      "log_sha256": "dc4b07356ac572b5162aefbd6da988192c32a21398e18d2eba147ba11407ce37",
+      "observation": "Bounded retained diagnostic reproduced pending admission; no completed media workflow claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "9d3cef6e5ab37c9b9f58a51f9badf9b64b2ceb8612fa1ed19006a006220df1e8",
+      "observation": "Sanitized live stats showed connected RTC with audio packets but zero encoded video frames/packets. Replaced the static synthetic fixture canvas with an owned33ms animation. No production server/service diagnostic edits remain."
+    }
+  ],
+  "trust_scope": "Fresh owned Chrome profile, explicit synthetic leaf SPKI exception for HTTPS/WSS, short-lived WT hash and independently verified server signatures. Only owned AudioContext/canvas sources and owned-page browser gesture. No personal browser/device/screen, system trust, model/account/provider/named remote execution.",
+  "remaining": [
+    "Complete WT/WSS media parity, including proper pinned backend support for logical Screen and actual owned-tab display capture; current WSS logical Screen refuses explicitly.",
+    "Typed subscriptions/Connection updates, broader frozen Session/messaging/event/capability API, and durable invitation discovery/recovery/deduplication.",
+    "Device/source choice, actual owned synthetic user-media permissions and keyboard-accessible pending/ready/failed UI with persisted original intent/recovery.",
+    "Received decoded media/quality, audio presentation measurement and complete high-level lifecycle qualification; full G6-061 audit before status changes."
+  ],
+  "open_gate_findings": [
+    "Final local test build emitted a debug-stripping warning after temporary disk exhaustion; compilation and executed tests completed. No stripped package/release qualification claimed.",
+    "Existing installed positive provisioning CLI15second subprocess timeout remains unresolved; no CLI fix or full Rust workspace pass claimed.",
+    "Three unchanged full-tree TypeScript formatting findings remain protocol.ts/record_context.ts/task_protocol.ts; changed files checked separately.",
+    "Generic browser Operation result copy currently64KiB; maximal Conversation results remain in full SDK audit."
+  ],
+  "privacy": "Raw logs, credentials, SDP, synthetic retained state, browser profiles and TLS state stay ignored under.local. Public evidence contains source/log digests, aggregate counts and bounded observations only."
+}
