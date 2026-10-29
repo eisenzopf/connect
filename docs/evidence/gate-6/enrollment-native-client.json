@@ -1,0 +1,313 @@
+{
+  "task": "G6-055",
+  "date": "2026-10-29",
+  "base_commit": "b3bb5305498ef4420b33de37cd156fd543c9756f",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Public Rust native enrollment component on isolated local macOS arm64: actual HTTPS approval/claim, client-generated Ed25519/ES256 keys, saved original state and real signed QUIC installation. Also bounded real loopback HTTP fault fixtures. This passed field does not qualify fullG6-055, browser enrollment, Linux/remote hosting or the unresolved installed provisioning CLI regression.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.toml": {
+      "sha256": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "crates/connect-client/Cargo.toml": {
+      "sha256": "9f59dd6db9b9e52a89f31d3a38fd06b5894320045dcf8c47dd699e399b47e77b",
+      "mode": 420
+    },
+    "crates/connect-client/src/lib.rs": {
+      "sha256": "8e0dfccd8ca5495862ca2fc102305d5dbaf207c9cf3596447225c42323b0d6d2",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment.rs": {
+      "sha256": "9ddcd29793578674a4d5724ef00b0c9fb9dcb91fcef5a9fa3928e87ca8429123",
+      "mode": 420
+    },
+    "crates/connect-client/src/canonical.rs": {
+      "sha256": "34561fad94e94e34e230410c1090970e7d6f54ab4c2e6c08620a4c4e6d567502",
+      "mode": 420
+    },
+    "crates/connect-server/tests/gate6_enrollment.rs": {
+      "sha256": "51fb6e7a6f4334a5814556b79e07dbeada5b5f277b46820e08073d5df077f766",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/canonical_listener_fixture.rs": {
+      "sha256": "0999e741fd53692d9009c09a2e21f950d992d6a1acac6c3656ea9f61c76cb1a7",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/key.rs": {
+      "sha256": "2eca7cc8f0fc8a302b2864cd48a8611e50ac4b87c4250c4141c9d9cd532873fb",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/state.rs": {
+      "sha256": "c0892e81d5e093fc939d6bd9a5bd01226489141142def94971870ce6aabb5898",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/tests.rs": {
+      "sha256": "e8973dd784dad158b8367d18972c0a811787cf11424a18aa3dc71ff57479dd28",
+      "mode": 420
+    },
+    "crates/connect-client/src/enrollment/http.rs": {
+      "sha256": "2c0d0044af6c29fd088f593c5374dbdd41eb0b1f8b7ce37fa9d5e7550f0ee36f",
+      "mode": 420
+    },
+    "contracts/openapi-application-http.json": {
+      "sha256": "3cde98bf63eabcd34a5a0ff218d587e45d78bda76d686c3be9ce46fa5681c71c",
+      "mode": 420
+    },
+    "contracts/application-http-dispatch.json": {
+      "sha256": "d9f0f57f8a739c1accf5da66aafd929d4685957c756f1635344bedf61fe43644",
+      "mode": 420
+    },
+    "contracts/http-endpoints.json": {
+      "sha256": "0eec278c0c37b7f8dbe8ca6117c21bae77e9f46441c0fd72b266848b44e16285",
+      "mode": 420
+    },
+    "docs/developer/native-enrollment.md": {
+      "sha256": "e417b7e172791d4d202e2317e6a48b5412ccdf24853dd30e943a89da76d44b15",
+      "mode": 420
+    }
+  },
+  "behavior": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "client",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          6
+        ],
+        "functions_expected": 6,
+        "source_inputs_unchanged": true,
+        "seconds": 12.303174749948084,
+        "log_sha256": "4ca246e278aa71ac819801d608a725ea644f6cca88ab4a8fdb8ee9f855819769"
+      },
+      {
+        "phase": "server",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          7
+        ],
+        "functions_expected": 7,
+        "source_inputs_unchanged": true,
+        "seconds": 99.80239291698672,
+        "log_sha256": "99716e46f5394944f5bc419b448ae317b662b3d8bcbadc423f416596a55ef098"
+      }
+    ]
+  },
+  "existing_application_client_regressions": {
+    "phase": "application-client-regressions",
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "functions_passed": [
+      21
+    ],
+    "seconds": 1.5887933331541717,
+    "log_sha256": "6e2e33c29032f7db452754a008eda64e90f3aa88d6156d52dd3de8bab8857936"
+  },
+  "application_schema": {
+    "passed": true,
+    "exit_code": 0,
+    "seconds": 1.7025965000502765,
+    "log_sha256": "e3cbb3d1f51cb670d687513c618c4cc585cabb213dd52e733788069c046bd42a",
+    "source_unchanged": true,
+    "schemas": 227,
+    "dispatch_cases": 69,
+    "task_cases": 16,
+    "openapi_sha256": "3cde98bf63eabcd34a5a0ff218d587e45d78bda76d686c3be9ce46fa5681c71c",
+    "catalog_sha256": "d9f0f57f8a739c1accf5da66aafd929d4685957c756f1635344bedf61fe43644",
+    "checks": 98
+  },
+  "checks": [
+    "Fresh client generates its own Ed25519/ES256 key and saves/reloads PKCS8 privately before approval. Backend receives only the public key and complete original request; approval creates no credential/Device/Endpoint/key effect.",
+    "Entire normalized approved request must equal expected original intent. Broader permissions, wrong key, browser profile and unsafe state refuse before creating enrollment state.",
+    "Saved state uses private0700 directory and0600 files on Unix. Files sync before atomic exclusive hard-link publication and parent sync. Existing files cannot be overwritten; symlink or nonprivate loaded state refuses.",
+    "Real cryptographic proof verification for both algorithms uses the original59byte offer context; saved original challenge/completion ID survive load even after challenge expiry. Server retains the decision whether recovery is currently authorized.",
+    "Native enrollment client accepts exact HTTPS origin with platform trust/optional explicit root or explicit loopback HTTP. URI userinfo, path/query/fragment/default-port aliases, remote plaintext and redirects refuse. No Authorization or Origin header is sent.",
+    "Real loopback fixtures enforce announced oversized response refusal, fixed sanitized server-error text, cancellation before IO and cancellation/deadline while a response body is only partially delivered. No automatic replay or replacement completion ID.",
+    "Real hosted fixtures refuse missing TLS trust and pre-cancellation with no new grant rows, then claim exactly one credential/Device/Endpoint/key effect per algorithm.",
+    "Discarded in-memory client state and actual server restart: restored original claim returns identical credential/bearer/absolute expiry without new rows.",
+    "Public installer validates issued binding, Identity, issuer Identity, installation, original completion ID, exact scopes/recipients/expiry and bounded secret shape. Broader response refuses. Identical reinstall returns same private config path.",
+    "Installed config opens a real TLS-verified signed native QUIC peer with each algorithm. Backend HTTP revocation then refuses both original public claim recovery and opening that same installed peer.",
+    "All prior six enrollment integration functions remain green, including16physical WT/WSS admission scenes, finite Origin refusal, admin isolation, lost response, restart and current revocation."
+  ],
+  "implemented_api": [
+    "connect_client::enrollment::NativeEnrollmentKey",
+    "connect_client::enrollment::NativeEnrollment",
+    "connect_client::enrollment::EnrollmentClient",
+    "connect_client::enrollment::EnrollmentClientConfig",
+    "connect_client::enrollment::EnrollmentServer"
+  ],
+  "references": {
+    "application_generation_current": true,
+    "canonical_enrollment_references_unchanged_and_current": true,
+    "inventory": {
+      "declarations": 28,
+      "explicit_http_operations": 29,
+      "uncovered": 0
+    },
+    "scope": "Reference agreement only; no broader service or hosting qualification."
+  },
+  "unresolved_cli": {
+    "passed": false,
+    "current_recheck": {
+      "phase": "installed-provision-recheck",
+      "passed": false,
+      "exit_code": 101,
+      "timed_out": false,
+      "functions_passed": [],
+      "seconds": 31.798172333976254,
+      "log_sha256": "3aef70dbe4b75fe19e545bdbeb6152f7c1287317529eae7815d5357e13ab6c51"
+    },
+    "function": "installed_provision_command_uses_application_authority_and_never_echoes_invalid_input",
+    "observation": "Current rebuilt artifact again expires at original15second positive provisioning subprocess wait. No production CLI fix, deadline increase or complete SDK pass claimed. Prior9/10suite evidence remains in enrollment-admission.json; this turn reruns only the previously failing function."
+  },
+  "prior_attempts": [
+    {
+      "attempt": "Initial native unit component",
+      "observation": "Five functions passed before adding partial-response cancellation/deadline and atomic file publication. Final six-function run supersedes it.",
+      "summary": {
+        "passed": true,
+        "exit_code": 0,
+        "source_inputs_unchanged": true,
+        "functions_expected": 5,
+        "seconds": 42.215198875172064,
+        "log_sha256": "dfe1c1cb4c3f229da690a8d0eb3203c9d548c536bec42d96cc2eb872e629a57e"
+      }
+    },
+    {
+      "attempt": "First server workflow build",
+      "observation": "Six client functions passed; server test never executed. Disk exhaustion during rust-objcopy left an unusable executable; Cargo reported Permission denied. Removed only recorded superseded/failed ignored build-cache executables, retained source/state/raw logs and rebuilt final source. No behavior qualification from the failed server attempt.",
+      "summary": {
+        "passed": false,
+        "results": [
+          {
+            "phase": "client",
+            "passed": true,
+            "exit_code": 0,
+            "timed_out": false,
+            "functions_passed": [
+              6
+            ],
+            "functions_expected": 6,
+            "source_inputs_unchanged": true,
+            "seconds": 10.453932625008747,
+            "log_sha256": "960c82d28ee6349b59490c1f066a9fe29962cc8a3e5e8e7a59dfb357e1bcf262"
+          },
+          {
+            "phase": "server",
+            "passed": false,
+            "exit_code": 101,
+            "timed_out": false,
+            "functions_passed": [],
+            "functions_expected": 7,
+            "source_inputs_unchanged": true,
+            "seconds": 92.07544658402912,
+            "log_sha256": "c6e467cc8caf83a1da4bdd6b099c7f46164f7442d5dfcb60c9072772291edb79"
+          }
+        ]
+      }
+    },
+    {
+      "attempt": "Reference inventory check",
+      "observation": "Application reference regenerated after Cargo.lock added existing ring dependency to connect-client; inventory initially stale because referenced file digest changed. Regenerated28declaration/29operation inventory and checked current state."
+    }
+  ],
+  "remaining": [
+    "Public browser approved-offer, client key/proof and credential installation workflow, with actual browser-engine/current physical profile qualification.",
+    "Complete fresh client failure/recovery, rotation/revocation/current-authority replay and administrative isolation coverage for the wholeG6-055 requirement. Native component success alone does not close the task.",
+    "Resolve installed provisioning positive subprocess timeout before qualifying the complete application SDK suite.",
+    "Linux x86_64 and designated named remote/native/browser hosting lanes remain separate; no new remote/provider/model/account execution."
+  ],
+  "prior_components": [
+    "docs/evidence/gate-6/enrollment-contract.json",
+    "docs/evidence/gate-6/enrollment-store.json",
+    "docs/evidence/gate-6/enrollment-http.json",
+    "docs/evidence/gate-6/enrollment-admission.json"
+  ],
+  "privacy": "Raw logs, synthetic protected offers/issued bearers, TLS material, temporary keys and configs remain ignored under.local. Public evidence records digests and scoped observations only.",
+  "final_checks": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "prepare",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.14035429200157523,
+        "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+      },
+      {
+        "phase": "format",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 2.6442621250171214,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "diff",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04813833301886916,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "plan",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.0850293340627104,
+        "log_sha256": "1c4f0d88fdd950f9f61632c2672152abf364af2c15e6c506c09f8867e1f9efc6"
+      },
+      {
+        "phase": "navigation",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08808395895175636,
+        "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+      },
+      {
+        "phase": "inventory",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.08678083308041096,
+        "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+      },
+      {
+        "phase": "application",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.7508424159605056,
+        "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+      },
+      {
+        "phase": "canonical",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.07900591706857085,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "seconds": 0.04298549983650446,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "source_inputs_unchanged_through_followup": true
+}

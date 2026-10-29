@@ -726,3 +726,125 @@ async fn enrollment_bounds_body_deadline_and_recovers_a_committed_lost_response(
     drop(c);
     h.f.server.shutdown().await.unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn public_native_enrollment_restores_original_claim_and_installs_real_signed_peers() {
+    use connect_client::enrollment::{
+        EnrollmentClient, EnrollmentClientConfig, EnrollmentServer, NativeEnrollment,
+        NativeEnrollmentKey,
+    };
+    let mut h = Hosted::new().await;
+    for (index, algorithm) in [SigningAlgorithm::EdDSA, SigningAlgorithm::ES256]
+        .into_iter()
+        .enumerate()
+    {
+        let directory = h.f.temp.path().join(format!("public-native-{index}"));
+        let original_key = h.f.temp.path().join(format!("original-native-{index}.pk8"));
+        let key = NativeEnrollmentKey::generate(algorithm).unwrap();
+        key.save(&original_key).unwrap();
+        let key = NativeEnrollmentKey::load(&original_key, algorithm).unwrap();
+        let mut intent = request(
+            &h,
+            &Key::new(algorithm),
+            algorithm,
+            EnrollmentTransport::Quic,
+            &format!("public-native-{index}"),
+        );
+        intent.public_key = key.public_key().into();
+        // The backend receives only public key + complete original bounded intent.
+        let before = counts(&h);
+        let offer = h.approve(&intent).await;
+        assert_eq!(before, counts(&h));
+        let saved = NativeEnrollment::create(&directory, offer.clone(), intent, key).unwrap();
+        let contact = || EnrollmentClientConfig {
+            origin: h.url(HttpSurface::Application, ""),
+            trust_certificate: Some(h.f.client.trust_certificate.clone()),
+            timeout_ms: 5000,
+        };
+        // Wrong TLS trust refuses before grant; pre-cancellation makes no request.
+        let untrusted = EnrollmentClient::open(EnrollmentClientConfig {
+            trust_certificate: None,
+            ..contact()
+        })
+        .await
+        .unwrap();
+        assert!(untrusted.claim(&saved).await.is_err());
+        assert_eq!(before, counts(&h));
+        let client = EnrollmentClient::open(contact()).await.unwrap();
+        let cancel = tokio_util::sync::CancellationToken::new();
+        cancel.cancel();
+        assert!(matches!(
+            client.claim_with_cancel(&saved, cancel).await,
+            Err(connect_client::ClientError::Cancelled)
+        ));
+        assert_eq!(before, counts(&h));
+        let issued = client.claim(&saved).await.unwrap();
+        let after = counts(&h);
+        assert_eq!(
+            after,
+            (before.0 + 1, before.1 + 1, before.2 + 1, before.3 + 1)
+        );
+        // Discard all in-memory client state, then restart the actual server.
+        drop(client);
+        drop(saved);
+        h.f.server.shutdown().await.unwrap();
+        h.f.server = RunningCanonicalServer::start(h.f.config.clone())
+            .await
+            .unwrap();
+        let restored = NativeEnrollment::load(&directory).unwrap();
+        let client = EnrollmentClient::open(EnrollmentClientConfig {
+            origin: h.url(HttpSurface::Application, ""),
+            trust_certificate: Some(h.f.client.trust_certificate.clone()),
+            timeout_ms: 5000,
+        })
+        .await
+        .unwrap();
+        let replay = client.claim(&restored).await.unwrap();
+        assert_eq!(issued, replay);
+        assert_eq!(after, counts(&h));
+        let config = &h.f.client;
+        let server = EnrollmentServer {
+            network_profile: config.network_profile,
+            endpoint: h.f.server.address,
+            server_name: config.server_name.clone(),
+            trust_certificate: config.trust_certificate.clone(),
+            server_key_id: config.server_key_id.clone(),
+            server_algorithm: config.server_algorithm.clone(),
+            server_public_key: config.server_public_key.clone(),
+            server_key_not_before: config.server_key_not_before,
+            server_key_expires_at: config.server_key_expires_at,
+            timeout_ms: 5000,
+        };
+        let path = restored.install(&replay, server.clone()).unwrap();
+        assert_eq!(path, restored.install(&replay, server.clone()).unwrap());
+        let mut altered = replay.clone();
+        altered.credential.operations.push("send".into());
+        assert!(restored.install(&altered, server).is_err());
+        let native = CanonicalClient::open(CanonicalClientConfig::load(&path).unwrap())
+            .await
+            .unwrap();
+        native.shutdown().await.unwrap();
+        let revoke = h
+            .http
+            .post(h.url(
+                HttpSurface::Administration,
+                &format!("/v2/enrollments/{}/revoke", offer.enrollment_id),
+            ))
+            .bearer_auth(&h.f.admin)
+            .json(&EnrollmentRevokeRequest {
+                operation_id: format!("revoke-public-native-{index}"),
+            })
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(revoke.status(), 200);
+        assert!(client.claim(&restored).await.is_err());
+        assert!(
+            CanonicalClient::open(CanonicalClientConfig::load(&path).unwrap())
+                .await
+                .is_err()
+        );
+        assert_eq!(after, counts(&h));
+    }
+    h.f.server.shutdown().await.unwrap();
+}

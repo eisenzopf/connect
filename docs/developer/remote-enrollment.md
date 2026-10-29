@@ -1,8 +1,9 @@
 # Remote client enrollment (G6-055 in progress)
 
 The enrollment protocol, Store transactions, bounded HTTP endpoints and
-credential-specific admission are implemented. Public native/browser enrollment
-installers and their complete end-to-end qualification remain pending. Existing
+credential-specific admission are implemented. The public Rust native enrollment
+workflow is described in [native enrollment](native-enrollment.md). Browser
+installation and complete end-to-end qualification remain pending. Existing
 trusted backend issuance remains described in
 [credential installation](credential-installation.md).
 
@@ -155,5 +156,5 @@ bodies checked against the generated reference.
 [Physical-admission evidence](../evidence/gate-6/enrollment-admission.json) records
 the corrected regressions and actual local signed QUIC/WT/WSS admission; these
 earlier HTTP claims do not qualify later connections.
-Public browser/native enrollment setup and complete G6-055 qualification remain
+Public browser enrollment setup and complete G6-055 qualification remain
 implementation work.

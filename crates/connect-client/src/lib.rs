@@ -29,6 +29,7 @@ mod client;
 mod config;
 mod contacts;
 mod discovery;
+pub mod enrollment;
 mod error;
 mod event_operations;
 mod media;

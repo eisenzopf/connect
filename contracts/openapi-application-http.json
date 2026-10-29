@@ -14559,7 +14559,7 @@
     }
   ],
   "x-connect-generation-inputs": {
-    "Cargo.lock": "713ba9daf575438ff12ec4895ded61d37e0c3540e254f750a3040044cbb58e11",
+    "Cargo.lock": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
     "Cargo.toml": "58f8f3e35070294be9e33c9d9fc6973974d043f02a8da435c4cd57f6cdfdbfbb",
     "contracts/openapi-canonical-http.json": "4df8d1464aa1a131d2744aeafe97afbf29e04d16c2e00dea94d69f4d7c748cbe",
     "crates/connect-protocol/Cargo.toml": "e222e677546e09429ca7d50b285cfec158386fb9ef5b7d861e3d00f81225f257",
