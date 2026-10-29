@@ -281,7 +281,11 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                 .unwrap(),
             1
         );
-        let event_id: String = database.query_row("SELECT id FROM visible_journal WHERE operation_record_id=?1 AND kind LIKE 'operation_%' AND json_extract(data_json,'$.state')='completed' LIMIT 1", [initial["record_id"].as_str().unwrap()], |row|row.get(0)).unwrap();
+        // Ordinary message acceptance journals a Message fact. Its original
+        // logical ID and sender bind it to the same completed control receipt;
+        // no operation_updated event is invented for this atomic mutation.
+        let (count, event_id): (u64, String) = database.query_row("SELECT COUNT(*),MIN(j.id) FROM visible_journal j JOIN operations o ON o.record_id=?1 WHERE j.recipient=o.owner_id AND j.conversation_id=o.conversation_id AND j.kind='message' AND j.message_id='typed-node-original-message' AND json_extract(j.data_json,'$.operation_id')=o.operation_id AND o.state='completed'", [initial["record_id"].as_str().unwrap()], |row|Ok((row.get(0)?,row.get(1)?))).unwrap();
+        assert_eq!(count, 1);
         assert_eq!(
             initial["event_id_sha256"],
             hex::encode(sha2::Sha256::digest(event_id.as_bytes()))

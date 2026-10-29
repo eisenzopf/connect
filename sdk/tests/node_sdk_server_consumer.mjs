@@ -132,13 +132,13 @@ try {
  const intent={messageId:'typed-node-original-message',to:{first:peer.id,rest:[]},text:'synthetic typed Node journey'};
  progress('events-bootstrap');
  const journal=room.events({},opts);await journal.ready();
- const operationFact=async(stream,operationId)=>{
+ const messageFact=async(stream,operationId,messageId)=>{
   const until=performance.now()+opts.timeoutMs;
   for(let count=0;count<256&&performance.now()<until;count++){
    const next=await stream.next();assert.equal(next.done,false);const fact=next.value;assert.equal(fact.conversationId,room.id);
-   if(fact.operationId===operationId&&fact.data?.kind==='operation'&&fact.data.data.state==='completed')return fact;
+   if(fact.operationId===operationId&&fact.data?.kind==='message'&&fact.data.data.id===messageId){assert.equal(fact.data.data.conversation_id,room.id);return fact;}
   }
-  assert.fail('original completed journal fact missing');
+  assert.fail('original message journal fact missing');
  };
  const sent=await room.send(intent,mutation),saved=sent.referenceJson();
  assert.throws(()=>sent.reference.scope.conversationId='foreign');assert.throws(()=>client.operations.restore(saved,client.operationKinds.conversation_create));
@@ -147,7 +147,7 @@ try {
  const original=completion.snapshot,viaHttp=record(await http.request('operation.get',{operation_id:mutation.operationId},{cid:room.id},opts));
  assert.equal(original.recordId,viaHttp.record_id);assert.equal(viaHttp.state,'completed');
  progress('events-original');
- const originalFact=await operationFact(journal,mutation.operationId);assert.equal(originalFact.data.data.record_id,original.recordId);assert.equal(originalFact.data.data.operation_id,mutation.operationId);assert.equal(originalFact.sessionId,undefined);assert.equal(originalFact.connectionId,undefined);assert.ok(originalFact.audience.some(v=>v.participantId===own.id&&v.membershipEpoch>0));
+ const originalFact=await messageFact(journal,mutation.operationId,intent.messageId);assert.ok(Array.isArray(viaHttp.causal_event_ids)&&viaHttp.causal_event_ids.includes(originalFact.eventId));assert.equal(originalFact.sessionId,undefined);assert.equal(originalFact.connectionId,undefined);assert.ok(originalFact.audience.some(v=>v.participantId===own.id&&v.membershipEpoch>0));
  await writeFile(spec.pid_file+'.event-cursor',originalFact.cursor,{mode:0o600});await journal.close();
  const originalFactDigest=createHash('sha256').update(originalFact.eventId).digest('hex');
 
@@ -180,9 +180,9 @@ try {
  progress('events-resume');
  const resumed=client.conversations.byId(room.id).events({after:sdkCursor(await readFile(spec.pid_file+'.event-cursor','utf8'))},opts);await resumed.ready();
  const resumeMutation={...opts,operationId:'typed-node-events-resume-send'},resumeIntent={...intent,messageId:'typed-node-events-resume-message',text:'synthetic event resume'};
- const resumedSend=await client.conversations.byId(room.id).send(resumeIntent,resumeMutation),resumedCompletion=await resumedSend.wait(opts),resumedFact=await operationFact(resumed,resumeMutation.operationId);
- assert.equal(resumedFact.data.data.record_id,resumedCompletion.snapshot.recordId);assert.equal(resumedFact.data.data.operation_id,resumeMutation.operationId);assert.notEqual(resumedFact.eventId,originalFact.eventId);assert.notEqual(resumedFact.cursor,originalFact.cursor);
- const resumedHttp=record(await http.request('operation.get',{operation_id:resumeMutation.operationId},{cid:room.id},opts));assert.equal(resumedHttp.record_id,resumedCompletion.snapshot.recordId);
+ const resumedSend=await client.conversations.byId(room.id).send(resumeIntent,resumeMutation),resumedCompletion=await resumedSend.wait(opts),resumedFact=await messageFact(resumed,resumeMutation.operationId,resumeIntent.messageId);
+ assert.equal(resumedFact.data.data.id,resumeIntent.messageId);assert.notEqual(resumedFact.eventId,originalFact.eventId);assert.notEqual(resumedFact.cursor,originalFact.cursor);
+ const resumedHttp=record(await http.request('operation.get',{operation_id:resumeMutation.operationId},{cid:room.id},opts));assert.equal(resumedHttp.record_id,resumedCompletion.snapshot.recordId);assert.ok(Array.isArray(resumedHttp.causal_event_ids)&&resumedHttp.causal_event_ids.includes(resumedFact.eventId));
  await resumed.close();authorityEvents=client.conversations.byId(room.id).events({after:resumedFact.cursor},opts);await authorityEvents.ready();
  const after=await http.request('message.history',{limit:100},{cid:room.id},opts);assert.equal(after.filter(f=>f.type==='message.send'&&f.payload.msg_id===intent.messageId).length,1);
  emit({phase:'recovered',record_id:status.recordId,state:status.state,resubmitted:false,typed_wait:true,typed_decision_recovered:true,typed_session_end_recovered:true,typed_connection_end_recovered:true,events_resume_original_record:true,events_resume_http_record:true,events_resume_new_fact:true});

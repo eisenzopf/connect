@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "component": "installed message journal witness corrected to current producer contract",
+  "runtime_qualified": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "finding": "Ordinary accepted messages have an authoritative JournalData::Message fact attributed to the original logical operation. Their completed control receipt links that fact through causal_event_ids. The previous installed consumer waited for a nonexistent operation_updated fact for this atomic mutation, and the SQL witness searched that same unsupported shape. Exact13d Node22 failed with the original SDK read-only deadline at events-original. HTTPS initialEOF cause remains pending its new safe diagnostic.",
+  "change": "Both installed Node consumers select exact original-operation/Conversation/Message facts and assert they belong to the same completed original HTTP/native record via causal_event_ids. Native SQL independently joins the original record with exactly one sender/Conversation/Message/logical-operation fact and compares its event-ID digest. Restart/new-message/cursor/current-revocation/strict original record/replay/SQL effect counts/helpers/server drains and all4s/15s/90s bounds remain required. No Store mutation, authorization or journal semantics changed.",
+  "verification": {
+    "rust_format_passed": true,
+    "javascript_syntax_both_consumers_passed": true,
+    "diagnostic_privacy_tests_passed": 3,
+    "sql_semantic_components": {
+      "passed": true,
+      "scope": "Current fixture SQL query semantics against isolated SQLite shape; not production Store/runtime qualification.",
+      "sql_vectors": [
+        "foreign-field-1",
+        "foreign-field-2",
+        "foreign-field-3",
+        "foreign-field-4",
+        "foreign-field-5",
+        "exact-owner-conversation-message-operation-completed-link",
+        "incomplete-record-refused",
+        "duplicate-not-singleton"
+      ],
+      "source_sha256": "22fa32f47e6e159c0bc0adcb635a39be5f2e10087e450ea0a665ec5e7a35c4c5"
+    },
+    "production_native_or_https_execution": "pending original source CI"
+  },
+  "source_sha256": {
+    "sdk/tests/node_sdk_server_consumer.mjs": "930cba58c4fffd581cc0e01f6e9b152ec9d768fc5e6538eadb6b55c249ec6e9d",
+    "sdk/tests/node_https_server_consumer.mjs": "60e746c92dccce4fa1d56211cf460bb71d75f71abffac6209926f04f17513c02",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "22fa32f47e6e159c0bc0adcb635a39be5f2e10087e450ea0a665ec5e7a35c4c5",
+    "crates/connect-store/src/messages.rs": "af2efac27bbb7e4a559eeb44aa03b50ff8daed25d319f23a56db4742dca40d64",
+    "crates/connect-store/src/operations/receipts.rs": "3a4b1cd35e991f6b5a6862596b1f268d86439a8ff57c5251881414df4a7dd92f",
+    "crates/connect-store/src/transitions/rows.rs": "4c9ba1f980bcc0f319212a2cdffeda7281d606e84be872a0cae62f97ae0cb4ae",
+    "crates/connect-store/src/events/journal.rs": "f65147d24a40b085721d396b5ec221dae69de45dc38bb5f404f420e77966b7b6",
+    "crates/connect-protocol/src/events.rs": "894e5f211449f729045aa69f904c3fffe3a7c0a7c604c0297097ba69956a422c",
+    "crates/connect-store/migrations/027_event_provenance.sql": "814d905bf5c175ca330179d5b49bf7731b0aa53e11a611965163d1dda82989ef"
+  }
+}

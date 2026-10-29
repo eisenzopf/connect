@@ -66,3 +66,20 @@ held initialization across several polls, exact retained replay/ACK, independent
 control and close. The baseline HTTPS selector then stopped before installed Node
 stages. Its corrected selection preserves both mandatory opt-in HTTPS cases;
 installed event delivery/resume/current-authority qualification remains pending.
+
+The installed message witness now follows the current producer contract. An
+ordinary atomic message creates an authoritative `JournalData::Message` fact;
+its completed Operation record lists that event in `causal_event_ids`. The
+consumer checks the exact original operation, Conversation and Message IDs,
+then compares the completed native/HTTP record and its causal event ID. The
+independent SQL witness requires exactly one matching sender/Conversation/
+Message/logical-operation row and compares its event-ID digest. It retains the
+persisted cursor, original server restart, new message, current revocation and
+all existing deadlines and joined cleanup.
+
+Exact13d Node22 timed out at `events-original` because the previous fixture
+waited for an `operation_updated` fact that ordinary message acceptance does not
+emit. This expectation is corrected; no new Store/journal event or authority
+behavior is invented. Eight isolated SQL selection vectors, Rust formatting and
+both consumer syntax checks pass. Actual native/HTTPS correction remains pending
+in the source CI lane; see [the witness evidence](../evidence/gate-6/node-message-journal-witness.json).
