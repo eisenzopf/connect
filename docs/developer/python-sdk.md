@@ -129,7 +129,13 @@ records100 local functions, including12 new transition functions and the
 47 public-control,17 owned-helper and36 historical regression functions
 in total (the47 include these12). All six runtime modules and the actual public
 outline pass mypy;18 unsuppressed negative constraints reject mixed IDs,
-revision/result families, ambiguous targets, foreign witnesses and unsupported
-media custody. The22 Python kind names match the frozen contract and original
+revision/result families, ambiguous targets and unsupported media custody.
+Separate runtime cases reject foreign command-kind witnesses, including equality
+spoofing. The22 Python kind names match the frozen contract and original
 Rust helper enum. Complete installed/native/server/Linux qualification, events,
 raw/HTTP/admin interfaces, synchronous ownership and deployment remain open.
+
+The [exact6d Linux component](../evidence/gate-6/python-sdk-public-linux-6d.json)
+passes69 functions and six negative constraints on Python3.11–3.14 with58 tracked
+file contents/modes verified per artifact. It qualifies that older control slice;
+the expanded88/100-function sources require their own Linux evidence.

@@ -8,10 +8,13 @@ import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 const root=fileURLToPath(new URL('../..',import.meta.url)),consumer=fileURLToPath(new URL('./fixtures/node_https_consumer.mjs',import.meta.url));
 async function fixture(action,run) {
- const base=join(root,'.local/gate-6/node-https-unit');await mkdir(base,{recursive:true,mode:0o700});const dir=await mkdtemp(join(base,'tls-')),key=join(dir,'key.pem'),cert=join(dir,'cert.pem'),config=join(dir,'openssl.cnf');
- await writeFile(config,'[req]\ndistinguished_name=dn\nx509_extensions=tls\nprompt=no\n[dn]\nCN=Connect synthetic local HTTPS\n[tls]\nbasicConstraints=critical,CA:TRUE\nkeyUsage=critical,digitalSignature,keyCertSign,cRLSign\nextendedKeyUsage=serverAuth\nsubjectAltName=IP:127.0.0.1\n',{mode:0o600});
+ const base=join(root,'.local/gate-6/node-https-unit');await mkdir(base,{recursive:true,mode:0o700});const dir=await mkdtemp(join(base,'tls-')),key=join(dir,'key.pem'),cert=join(dir,'cert.pem'),config=join(dir,'openssl.cnf'),rootKey=join(dir,'root.key'),rootCert=join(dir,'root.pem'),csr=join(dir,'server.csr');
+ await writeFile(config,'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=IP:127.0.0.1\n',{mode:0o600});
+ await promisify(execFile)('openssl',['genpkey','-algorithm','EC','-pkeyopt','ec_paramgen_curve:prime256v1','-out',rootKey],{timeout:3000});
+ await promisify(execFile)('openssl',['req','-new','-x509','-sha256','-days','1','-key',rootKey,'-out',rootCert,'-subj','/CN=Connect synthetic HTTPS root','-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign'],{timeout:3000});
  await promisify(execFile)('openssl',['genpkey','-algorithm','EC','-pkeyopt','ec_paramgen_curve:prime256v1','-out',key],{timeout:3000});
- await promisify(execFile)('openssl',['req','-new','-x509','-sha256','-days','1','-key',key,'-out',cert,'-config',config],{timeout:3000});
+ await promisify(execFile)('openssl',['req','-new','-key',key,'-out',csr,'-subj','/CN=Connect synthetic HTTPS server'],{timeout:3000});
+ await promisify(execFile)('openssl',['x509','-req','-in',csr,'-CA',rootCert,'-CAkey',rootKey,'-CAcreateserial','-out',cert,'-days','1','-extfile',config],{timeout:3000});
  const calls=[],server=createServer({key:await readFile(key),cert:await readFile(cert)},async(request,response)=>{
   let raw='';for await(const chunk of request)raw+=chunk;const value=JSON.parse(raw);calls.push({url:request.url,value,authorization:request.headers.authorization});await action(value,response,request);
  });
@@ -19,7 +22,7 @@ async function fixture(action,run) {
  const endpoint=`https://127.0.0.1:${server.address().port}`;
  const child=async(spec,trust=true)=>{
   const environment={...process.env,CONNECT_HTTPS_FIXTURE:JSON.stringify({endpoint,...spec})};delete environment.NODE_TLS_REJECT_UNAUTHORIZED;delete environment.NODE_USE_SYSTEM_CA;delete environment.NODE_USE_ENV_PROXY;
-  if(trust)environment.NODE_EXTRA_CA_CERTS=cert;else delete environment.NODE_EXTRA_CA_CERTS;
+  if(trust)environment.NODE_EXTRA_CA_CERTS=rootCert;else delete environment.NODE_EXTRA_CA_CERTS;
   const proc=spawn(process.execPath,[consumer],{env:environment,stdio:['ignore','pipe','pipe']});let out='',diagnostics='';proc.stdout.on('data',v=>out+=v);proc.stderr.on('data',v=>diagnostics+=v);const timer=setTimeout(()=>proc.kill('SIGKILL'),5000);
   const code=await new Promise((resolve,reject)=>{proc.once('error',reject);proc.once('close',resolve);});clearTimeout(timer);await writeFile(join(dir,'child-stderr.log'),diagnostics,{mode:0o600});assert.equal(code,0,'inspect private TLS fixture diagnostics');const result=JSON.parse(out);assert.equal(result.passed,true);assert.throws(()=>process.kill(proc.pid,0),e=>e.code==='ESRCH');return result;
  };

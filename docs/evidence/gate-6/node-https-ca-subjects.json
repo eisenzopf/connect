@@ -1,0 +1,51 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "component": "normal CA-chain fixture subjects for Node HTTPS",
+  "full_sdk_qualified": false,
+  "production_https_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "finding": "Exact6d Node22/26 both EdDSA/ES256 production fixtures fail first https-snapshot with read-only transport-uncertain. CA and leaf previously inherited the same default rcgen subject. A local Node/OpenSSL same-subject CA/leaf reproduction rejects DEPTH_ZERO_SELF_SIGNED_CERT and the distinct-subject control succeeds. This supports a TLS fixture cause; exact corrected production execution remains pending.",
+  "change": "Set explicit distinct root and server subjects in the original rcgen fixture. Keep normal chain/hostname verification, TLS listener, four-second requests, fifteen-second phases and ninety-second function bound. Upgrade all four existing local Node HTTPS functions from trusting a self-signed server certificate to trusting a CA that signs a distinct server leaf. No verification disable switch, fallback or production credential/network change.",
+  "verification": {
+    "rust_format_passed": true,
+    "subject_probe": [
+      {
+        "subject": "same",
+        "passed": false,
+        "code": "DEPTH_ZERO_SELF_SIGNED_CERT"
+      },
+      {
+        "subject": "distinct",
+        "passed": true
+      }
+    ],
+    "subject_probe_scope": "Local Node/OpenSSL certificate topology reproduction, not exact rcgen/native server execution.",
+    "probe_source_sha256": "c2fc2bc1c5d0ac3d7f46efe393c0d82e99e0bdf40eaba3eca12de6b6b2af78ee",
+    "chain_https_functions_passed": 4,
+    "component_suite": {
+      "passed": true,
+      "scope": "Synthetic owned raw/typed helper lifecycle, typed local operation reconstruction, negative declaration checks and fake local HTTP only. Fixture-shaped signatures are not cryptographic, real-server, installed parity or full G6-062 qualification.",
+      "typecheck_exit_code": 0,
+      "typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "timed_out": false,
+      "forced_cleanup": false,
+      "seconds": 13.875113041140139,
+      "source_count": 230,
+      "changed_inputs": [],
+      "source_inputs_sha256": "abbf03779fefb32d31e583af8fe9803c827eb8098c6ac6daa6a18d358778741c",
+      "log_sha256": "935ed83b16d5d007d90322c072f6b14aa5f4e1ba48ce81b5985759d23113b3fb",
+      "node_version": "v26.7.0",
+      "typescript_version": "Version 7.0.2",
+      "finished_at": "2026-10-29T00:45:57.980422+00:00"
+    },
+    "production_runtime": "pending original source Linux CI"
+  },
+  "source_sha256": {
+    "crates/connect-server/tests/support/canonical_https_hosting.rs": "5143a416faf3565c480d95e9cdf2df6ea140c1b701d904a2c8c914dee8a3d8fd",
+    "sdk/tests/node_https.test.mjs": "47108cc79e6b291a52be3f44f2cf028e424075c5746402100bee398c8916d23e"
+  }
+}

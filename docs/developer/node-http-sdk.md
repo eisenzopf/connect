@@ -52,3 +52,14 @@ original Node process, native owner and server must join and drain. Four-second
 requests, fifteen-second phases, ninety-second functions and five-second drains
 remain required. Candidate execution is pending. No named remote endpoint or
 provider/model account was contacted, and this does not close G6-062.
+
+The original production HTTPS fixture used the same default subject for its CA
+and signed server leaf. Exact6d diagnostics locate both algorithm failures at
+the first snapshot transport exchange. A local Node/OpenSSL reproduction rejects
+that CA/leaf topology with `DEPTH_ZERO_SELF_SIGNED_CERT`; a distinct-subject leaf
+succeeds. The fixture now names its root and server separately. Normal CA and
+hostname verification stay enabled. All four local HTTPS functions now use a
+CA-signed distinct server leaf, and the full109 component/type checks pass.
+The corrected original production fixture still awaits Linux execution; this
+local reproduction does not claim its success. See
+[the source-bound TLS fixture evidence](../evidence/gate-6/node-https-ca-subjects.json).

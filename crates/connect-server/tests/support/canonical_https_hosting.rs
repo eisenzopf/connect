@@ -19,6 +19,8 @@ struct Tls {
 impl Tls {
     fn new(f: &Fixture) -> Self {
         let mut ca = rcgen::CertificateParams::default();
+        ca.distinguished_name
+            .push(rcgen::DnType::CommonName, "Connect HTTPS fixture root");
         ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
         ca.key_usages = vec![rcgen::KeyUsagePurpose::KeyCertSign];
         let issuer =
@@ -35,6 +37,10 @@ impl Tls {
     fn replace(&self) -> Vec<u8> {
         let mut p =
             rcgen::CertificateParams::new(vec!["localhost".into(), "127.0.0.1".into()]).unwrap();
+        // OpenSSL treats a leaf with the same subject as its issuer as
+        // self-issued. Keep normal chain verification on every client.
+        p.distinguished_name
+            .push(rcgen::DnType::CommonName, "Connect HTTPS fixture server");
         let now = std::time::SystemTime::now();
         p.not_before = (now - Duration::from_secs(60)).into();
         p.not_after = (now + Duration::from_secs(3600)).into();
