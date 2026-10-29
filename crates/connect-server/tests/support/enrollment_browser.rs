@@ -199,6 +199,7 @@ pub(super) fn launch_capture(profile: &Path, log: &Path, spki: &str, synthetic: 
         .stderr(std::fs::File::create(log).unwrap());
     if synthetic {
         command.arg("--use-fake-device-for-media-stream");
+        command.arg("--auto-select-tab-capture-source-by-title=Connect Owned Screen");
     }
     #[cfg(unix)]
     {

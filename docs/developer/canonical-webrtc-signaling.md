@@ -76,7 +76,7 @@ max_peers = 8
 ```
 
 Use `profile = "opus"` for one duplex mono Opus stream, or `"opus-vp8"` for
-that audio plus one duplex VP8 camera. Both use the reviewed Opus 48 kHz/20 ms
+that audio plus one duplex VP8 camera or screen. Both use the reviewed Opus 48 kHz/20 ms
 mono profile with a 32 kbps receive limit. Opus SDP retains its required `/2`
 mapping. VP8 advertises the local 640×360/30 fps capacity, preserving the
 peer's directional receive parameters and negotiated payload IDs.
@@ -921,3 +921,25 @@ actual WSS control explicitly refuses `unsupported-transport`.
 All four control cells pass. The original 60-second AV observer remains unchanged
 and is checked separately. See
 [`browser-fallback-transition-control.json`](../evidence/gate-6/browser-fallback-transition-control.json).
+
+
+## Typed browser Screen checkpoint
+
+The explicitly configured AV host also accepts one logical Screen alongside
+Opus audio. Original logical Screen kind and ID remain in the answer and durable
+observations; only the SDP/RTP resource uses the physical video section. Audio
+is required, and camera plus screen cannot share the host's single video slot.
+The pinned adapter maps Screen to that source slot for readiness, ingress and
+failure cleanup while retaining the exact original logical binding and current
+authorization. It does not create a Screen floor from camera capability.
+
+The high-level browser owner selects display capture explicitly, separately from
+microphone capture. The bounded local fixture restricts selection to a titled
+owned Chrome tab and witnesses its pixels. Server host configuration and source
+capture do not establish remote decoded playback. Existing RTC subscriptions
+and gates retain their narrower audio/camera profile pending their Screen
+integration; the typed initial Screen offer/capture/render/end checkpoint does
+not qualify those commands or the full G6-061 lifecycle/API matrix.
+
+[Typed browser Screen evidence](../evidence/gate-6/browser-sdk-screen-owners.json)
+records the current guarded checks and prior-host refusal.

@@ -1,0 +1,295 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "c3cb72bdef9c0e374e846f89171b725ae5a6613b",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Initial typed logical Screen offer/capture/render/end/original-observation over WT and WSS, with actual owned-tab getDisplayMedia, exact source pixel witness and explicit visible-page resume. Does not qualify Screen subscriptions/gates, decoded remote media quality, full app/API/accessibility/recovery matrix, Linux/remote or complete G6-061.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "contracts/openapi-application-http.json": {
+      "sha256": "7e44906ecbdb74ca9519224a14105bdf0513e7c8a09aff2917f4cbd8c71ea62b",
+      "mode": 420
+    },
+    "contracts/application-http-dispatch.json": {
+      "sha256": "7f31be2b9d33525646176241c6242013cf5bf17ff6436fad5301db949a7d8c89",
+      "mode": 420
+    },
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "patches/rvoip/gate6-webrtc-logical-screen.patch": {
+      "sha256": "8d6b6b6d236633c5f4f53659e46b1fc280864c52898aff4d41400e9e6a8db62e",
+      "mode": 420
+    },
+    ".deps/rvoip/crates/webrtc/rvoip-webrtc/src/canonical/media.rs": {
+      "sha256": "a3b730260e0a1dae3bfeaef340198ec9a601b060a6ed63489767ecd7f3d3d178",
+      "mode": 420
+    },
+    "crates/connect-server/src/canonical_webrtc/signaling.rs": {
+      "sha256": "86c41310540887340b15198c0aa48c5189be9b5ee611875dcc5522b8cd777111",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_webrtc.ts": {
+      "sha256": "93c56428c4c64bd5dab9ca6117412a1750c587e321b8e1ce8ba3af541e3d582c",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_webrtc.js": {
+      "sha256": "de41dfa9a1b4a71e9d457ceccc6a98f2252d2ef87fa7774ae55b6bbab2331b76",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_ui.ts": {
+      "sha256": "c47c11b8f09383c37e8d9389462eba0fbd190d754673dae3c680eb1d8dbc932a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_ui.js": {
+      "sha256": "ba3604882b491132e40a25d4869d518a77cd7dcc1855d5441efedd799036fbe8",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_ui.d.ts": {
+      "sha256": "a3ebff354e16a0b6acbf9558336c057a4a8bfec53370c0caa96700b59df89b99",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_webrtc.test.mjs": {
+      "sha256": "b5ad27848edf9fba03ca54923ac067d76c07be3beeb89f9e536535adcabfc136",
+      "mode": 420
+    },
+    "sdk/tests/browser_ui.test.mjs": {
+      "sha256": "73a7e7f857f2bba81af7c4527c99dc97b51c13bab7cace3d043c68f229df4116",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "9007abd682d33de0882a5452f5379ac0ab79387f3a1d96549671cfadc53c2d8b",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "fae7ef4151ecd754cca4a8e06686e23e48f46749dacad82901da8bb17d14e0cf",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "03da532349cc42eb87886813af97384861779236e22ef3c1fac72bd14bdada11",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "ead478aae1f0cdaf4acc2c74ac6435010fb225570600cd58e4c3042aac4a8f73",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "0460b817e5478403d253752a4f2d8584beb9d7656fe6ad119aef4f82f3baf8fb",
+  "source_inputs_guarded": 2722,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          446
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 4.9553735421504825,
+        "log_sha256": "9e58fb648ec1c28c90ea1e47ceaa90a24115f358bcabd096fdfd97e1a42a5c53"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.29527858295477927,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2133947091642767,
+        "log_sha256": "adf74594cc52ae7a65aabc98c3b060bc192932aa2ee8743b5e28f84652ead418"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3555796660948545,
+        "log_sha256": "15e352dc9686ea22bcce8f476e7fded14913527a645d536f2d356d16348622ab"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.37387445801869035,
+        "log_sha256": "d0be9223e74da6aa10c3f0bb04d197496afa647b07b434b5aac16504c466bbed"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 39.72950750007294,
+        "log_sha256": "387dd4a500e9cd94f11ca3f57812d5f3a7f4b452073dfecdeec04d60028e7a2e"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "signature_scope": "EdDSA in this owned enrollment fixture; no wider signature/browser/profile matrix claim.",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 24
+    },
+    "log_sha256": "f4d65f83caa34ec11f41b4f536c123659cabc2fa50e0378a6e08af71fda9a278",
+    "source_witness": "Fresh owned Chrome process/profile with synthetic microphone/camera and one specifically titled data tab. The tab-only test switch selects that owned tab. Actual getDisplayMedia must report displaySurface browser; a local video/canvas witness must match its distinctive RGB12/145/210 pixel on both paths. This is source capture, not remote decoded playback quality.",
+    "lifecycle": "Same incoming reject/new explicit retry/accept workflow, then separate camera and Screen Connections on each transport. Original input/operation/source intent is saved before IO. Logical Screen kind/ID persist in typed current observations. End stops microphone/display tracks and renderer; later physical reconnect observes four original completed offers with no local media custody or new prompt. Current revoked claim/status authority still refuses.",
+    "mutation_observation": "Twenty-four distinct original communication mutations: sixteen Conversation/Session controls, camera offer/end on each path, Screen offer/end on each path. UI permission retry/pause/resume does not reoffer; progress/restore reads original records. Four credentials/keys, two Devices, four separately verified synthetic Endpoints.",
+    "authorization_floors": "Fixture explicitly uses a mixed Session and separately offers/accepts screen VP8 capability; its enrolled/verified Endpoints explicitly include screen. Camera permission never creates a Screen floor. Existing production service policy bytes remain unchanged.",
+    "trust": "Owned leaf SPKI exception, signed peers and short-lived WT certificate hash only. No external ICE service configured. Local-interface ICE candidate refusal/warning logs remain private; no remote-network or quality qualification."
+  },
+  "implemented": [
+    "Recorded pinned RTC patch maps logical Video/Screen to one physical RTP video source/slot for shape, readiness, ingress selection and failure retirement. Original port bindings retain logical Medium::Screen and all current authority, exact binding, clock, packet-age, IO and cleanup checks. Camera+Screen and data cannot occupy this profile. The only changed prepared rvoip source is canonical/media.rs.",
+    "Explicit AV SignalingHost validates required audio plus exactly one camera or Screen against original duplex audio/video SDP and distinct MIDs. Selected answer preserves original logical IDs/kinds and actual negotiated codec/PT. Audio-only host, camera+screen, changed directions and foreign physical shape refuse.",
+    "Typed WSS owner now accepts the logical Screen profile using the existing explicit display-capture path; simultaneous camera+Screen refuses before allocation/submission. It never obtains permission during offer or converts camera into Screen.",
+    "Owned-tab selection exposes real focus-induced background pause. The independently pushed c3cb72bd UI fix preserves paused startup and provides explicit existing-owner Pause/Resume; pending toggles deduplicate and late closed resume cannot reopen the panel. Returning visibly and pressing Resume restores the owned tracks before pixel witnessing."
+  ],
+  "behavior": [
+    "Final unchanged-source cohort passes446SDK functions, browser/Node negative types,37targeted Node functions,2server profile functions,2upstream slot/profile functions and10combined real enrollment functions,0ignored. Counts are separate cohorts, not an assertion of a summed distinct matrix.",
+    "Server profile functions preserve logical Screen ID/kind/PT through selected answer and refuse camera+screen/audio-only-host/direction mismatch. Upstream functions validate one physical video slot and data refusal.",
+    "Actual Chrome passes the same typed camera/Screen lifecycle on direct WT and bounded350msWTblackhole->separate-profile-WSS. Two owned-tab pixel witnesses, two display/microphone retirements, two logical Screen observations and two restored-Screen no-custody refusals are asserted.",
+    "Workspace formatting, changed TS formatting, HTTP/OpenAPI inventory/generators and plan/navigation checks pass. Node runtime JS and production service canonical/RTC stream/gate sources remain byte-identical to base; no HTTP wire/schema migration."
+  ],
+  "causal_control": {
+    "passed": false,
+    "expected_baseline_refusal_observed": true,
+    "scope": "Prior cached integration executable, sealed before backend rebuild, runs the same new browser bundle/fixture with equivalent owned-tab-only launch flag. WT owned-tab pixels and lifecycle progress, then original WSS Screen offer refuses501unsupported before display capture. Its older Rust helper expected20mutations if completion were reached; no causal claim relies on that later count mismatch.",
+    "binary_sha256": "e5dbc3668a45f61ba22e1c84220e6db66316b623e77f8d0728b773b9fb667776",
+    "log_sha256": "d6de76fc335298d53c14a6f942172605610f567c7009b955efcd34f677ee54f5",
+    "observed_wt_visibility_before_resume": {
+      "document_visibility": "hidden",
+      "capture_state": "paused",
+      "track_enabled": false
+    },
+    "observed_wt_pixels_after_resume": {
+      "rgba": [
+        12,
+        145,
+        210,
+        255
+      ],
+      "width": 640,
+      "height": 350
+    },
+    "patched_result": "Actual patched fixture and final guarded cohort pass with24original mutations."
+  },
+  "prior_attempts": [
+    {
+      "passed": false,
+      "log_sha256": "c2c83fbbc3e968e308e4e6e972a9a0770906f4d172377e28494589dcd752e633",
+      "observation": "Source-consistent repeat passed9of10but a CDP Runtime.evaluate refused during owned-page setup. Added diagnostic phases plus finite read-only page-readiness polling across initial navigation/context creation. Fixture invocation and all media/mutation actions remain non-retried; new full cohort required."
+    },
+    {
+      "passed": false,
+      "log_sha256": "8b3e5019cbe083b37937391107235534f6c3a85ba7e4d06b3dec3778f4c1f366",
+      "observation": "Reference check found stale dependency provenance after the new patch. Regenerated only the source-lock digest in application OpenAPI and dispatch catalog; schema/dispatch content unchanged. Final guarded cohort repeated with refreshed references."
+    },
+    {
+      "passed": false,
+      "log_sha256": "44c379586e6531d696eb36089cbf1564b4c213bb71ea0da8e1c75cacbcbb41e8",
+      "observation": "Initial command attempted to test the upstream dependency as a Connect workspace member; Cargo correctly refused dev-dependency execution. Used the pinned upstream workspace manifest for the real two functions."
+    },
+    {
+      "passed": false,
+      "log_sha256": "68404a6a7adc88106cc38e59f9e7d0fff6609587d0a10100062141a8c846cfed",
+      "observation": "Initial server profile cohort passed one negative but rejected the positive unit SDP before selection. Its hand-written SDP lacked the connection line. Added a valid connection line and explicit fixture parse check; production validation was not weakened."
+    },
+    {
+      "passed": false,
+      "log_sha256": "cff4f7f4547533a55e2f9d1e2eabfc8b1095ab1a06d02f518597f0c579c50139",
+      "observation": "Prior integration binary with new owned-screen fixture opened tab capture but the pixel witness waited for a second presentation callback after playback had started. No full capture pass claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "b66c4dc51c338860b72cf45504a61597684f7ceece9d99c09d04e4f2e2900622",
+      "observation": "First-frame witness was black. No owned-source identity pass claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "9a470d18aa87ab01289ef64466786b04382560c3b1e08a7bc338dbc4528038b2",
+      "observation": "Painted the owned tab before returning to controls. Diagnostic still showed a2x2black preview, not the intended source witness. Real subsequent visibility/track observations identified hidden-page automatic pause."
+    },
+    {
+      "passed": false,
+      "log_sha256": "c918ef4839df5b1c5ebf874679cbaab96971d915e86c53636291be18143cd08e",
+      "observation": "Pause UI strict build exposed stale TypeScript narrowing across a synchronous owner callback; repeat the current state through its getter before publishing pause/resume."
+    }
+  ],
+  "remaining": [
+    "RTC Screen subscriptions/gates still retain the existing narrower audio/camera profile. Integrate original Screen selectors/control through service and typed facade; do not infer this from initial Screen admission.",
+    "Broader frozen browser Session/messaging/event/capability and Connection update/subscription API plus durable invitation discovery/recovery/deduplication.",
+    "Received decoded/audio presentation measurements, remaining end-to-end failure/recovery/media parity and full reference-app integration.",
+    "Complete source-choice/persistence/assistive-technology/browser/hosting qualification and requirement audit before changing G6-061 status."
+  ],
+  "open_gate_findings": [
+    "Known installed positive provisioning CLI15second timeout remains; no CLI fix or full Rust workspace pass claimed.",
+    "Three unchanged full-tree TypeScript format findings protocol.ts/record_context.ts/task_protocol.ts; changed files checked.",
+    "Generic browser Operation result copy currently64KiB; maximal Conversation audit pending.",
+    "Cached debug stripping disk warning and local unit-linker unwind-size warning retained; no stripped/release/performance qualification. Only unused reproducible task build outputs were cleaned to make room, with hashes recorded privately."
+  ],
+  "privacy": "Raw SDP, device IDs, candidate addresses, credentials, screenshots, browser profiles and logs remain ignored. Public evidence has source/log/binary digests, aggregate counts and synthetic pixel observations only. No personal source, system trust, model/account/provider/named remote execution or agents."
+}

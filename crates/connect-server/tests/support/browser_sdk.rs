@@ -56,6 +56,10 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "keyboard_capture_retry",
         "device_source_choice",
         "operation_progress_ui",
+        "owned_tab_capture",
+        "owned_tab_capture_retired",
+        "screen_kind_observed",
+        "screen_recovery_without_custody",
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
@@ -65,11 +69,13 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
         "wss_media_connection",
         "wss_owned_capture_retired",
         "wss_owned_renderer_retired",
+        "wt_screen_connection",
+        "wss_screen_connection",
     ] {
         assert_eq!(result["result"][name], 1, "{name}");
     }
-    assert_eq!(result["result"]["restored_media_observation_only"], 2);
-    assert_eq!(result["result"]["original_mutations"], 20);
+    assert_eq!(result["result"]["restored_media_observation_only"], 4);
+    assert_eq!(result["result"]["original_mutations"], 24);
     assert_eq!(
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)

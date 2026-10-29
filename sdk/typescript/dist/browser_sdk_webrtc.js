@@ -40,7 +40,7 @@ export class BrowserRtcConnection {
             typeof RTCRtpSender === "undefined" ||
             typeof RTCRtpSender.getCapabilities !== "function" ||
             !input.audio ||
-            input.screen !== undefined ||
+            (input.screen !== undefined && input.video !== undefined) ||
             input.data?.length)
             throw unsupported();
         const ice = browserIceConfiguration(configuration.iceServers, configuration.iceTransportPolicy);

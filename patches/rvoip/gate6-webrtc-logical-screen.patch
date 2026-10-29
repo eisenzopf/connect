@@ -1,0 +1,122 @@
+--- a/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
++++ b/crates/webrtc/rvoip-webrtc/src/canonical/media.rs
+@@ -205,11 +205,7 @@
+                         clean = false;
+                     }
+                 }
+-                if clean {
+-                    Ok(())
+-                } else {
+-                    Err(())
+-                }
++                if clean { Ok(()) } else { Err(()) }
+             });
+             async move { task.await.unwrap_or(Err(())) }
+                 .boxed()
+@@ -321,6 +317,7 @@
+         if self.lifetime.is_cancelled() {
+             return Err(StreamControlError::Cancelled);
+         }
++        let medium = rtp_medium(medium)?;
+         let source = self.sources[if medium == Medium::Audio { 0 } else { 1 }].get_or_init(|| {
+             let (tx, ready) = watch::channel(None);
+             let stop = self.lifetime.child_token();
+@@ -347,7 +344,8 @@
+                 if result.is_err() {
+                     stop.cancel();
+                     for entry in ports.iter().filter(|p| {
+-                        p.binding.negotiated.requested.medium == medium && p.binding.source_ready
++                        rtp_medium(p.binding.negotiated.requested.medium).ok() == Some(medium)
++                            && p.binding.source_ready
+                     }) {
+                         entry.health.ready.store(false, Ordering::Release);
+                         entry.health.stop.cancel();
+@@ -425,6 +423,25 @@
+         && a.negotiated == b.negotiated
+         && a.source_ready == b.source_ready
+         && a.sink_ready == b.sink_ready
++}
++// One physical RTP video source may back a logical camera OR screen Stream.
++// Logical bindings retain their original Medium; only source/SDP slots use this
++// mapping. Data and a simultaneous camera+screen profile remain unsupported.
++fn rtp_medium(medium: Medium) -> ControlResult<Medium> {
++    match medium {
++        Medium::Audio => Ok(Medium::Audio),
++        Medium::Video | Medium::Screen => Ok(Medium::Video),
++        _ => Err(StreamControlError::Unsupported),
++    }
++}
++fn validate_rtp_slots(media: impl IntoIterator<Item = Medium>) -> ControlResult<()> {
++    let mut kinds = std::collections::BTreeSet::new();
++    for medium in media {
++        if !kinds.insert(rtp_medium(medium)?) {
++            return Err(StreamControlError::Unsupported);
++        }
++    }
++    Ok(())
+ }
+ async fn shape(
+     peer: &RvoipPeerConnection,
+@@ -470,7 +487,7 @@
+             },
+             mapping.payload_type,
+         )
+-    } else if medium == Medium::Video {
++    } else if matches!(medium, Medium::Video | Medium::Screen) {
+         let mapping = crate::media::core_video_profile::negotiated_profile(offer, answer)?;
+         (
+             MediaFormat::Encoded {
+@@ -542,15 +559,11 @@
+         if ports.is_empty() || ports.len() > 2 {
+             return Err(StreamControlError::Unsupported);
+         }
+-        let mut kinds = std::collections::BTreeSet::new();
+-        for prepared in &ports {
+-            let requested = &prepared.port.binding().negotiated.requested;
+-            if !matches!(requested.medium, Medium::Audio | Medium::Video)
+-                || !kinds.insert(requested.medium)
+-            {
+-                return Err(StreamControlError::Unsupported);
+-            }
+-        }
++        validate_rtp_slots(
++            ports
++                .iter()
++                .map(|prepared| prepared.port.binding().negotiated.requested.medium),
++        )?;
+         for prepared in &ports {
+             self.prepare_port(prepared, deadline, &cancel).await?;
+         }
+@@ -718,7 +731,7 @@
+     }
+     for entry in ports.iter() {
+         let io = entry.value();
+-        if io.binding.negotiated.requested.medium != source.medium
++        if rtp_medium(io.binding.negotiated.requested.medium).ok() != Some(source.medium)
+             || !io.health.ready.load(Ordering::Acquire)
+             || io.health.stop.is_cancelled()
+             || io
+@@ -1180,3 +1193,23 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod screen_profile_tests {
++    use super::*;
++    #[test]
++    fn logical_screen_uses_video_rtp_without_changing_its_binding_kind() {
++        let logical = Medium::Screen;
++        assert_eq!(rtp_medium(logical).unwrap(), Medium::Video);
++        assert_eq!(logical, Medium::Screen);
++        assert!(validate_rtp_slots([Medium::Audio, logical]).is_ok());
++        assert!(validate_rtp_slots([Medium::Audio, Medium::Video]).is_ok());
++    }
++    #[test]
++    fn a_single_video_rtp_slot_cannot_admit_camera_and_screen_or_data() {
++        assert!(validate_rtp_slots([Medium::Video, Medium::Screen]).is_err());
++        assert!(validate_rtp_slots([Medium::Screen, Medium::Screen]).is_err());
++        assert!(validate_rtp_slots([Medium::Audio, Medium::Data]).is_err());
++        assert!(rtp_medium(Medium::Data).is_err());
++    }
++}

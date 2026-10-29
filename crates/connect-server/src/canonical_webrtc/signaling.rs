@@ -5,7 +5,7 @@ use connect_service::canonical_webrtc::{Attempt, Host, Preparation};
 use rvoip_uctp::v2::payloads::ConnectionAnswer;
 use serde_json::json;
 
-/// Bounded mono audio or mono audio plus one VP8 camera signaling profile.
+/// Bounded mono audio or mono audio plus one VP8 camera or screen signaling profile.
 /// It is deliberately not installed or advertised by the default server config.
 pub struct SignalingHost {
     config: WebRtcConfig,
@@ -14,7 +14,7 @@ pub struct SignalingHost {
 }
 impl SignalingHost {
     /// One exact mono audio codec; Opus retains its required SDP /2 mapping.
-    /// The explicit AV flag admits one duplex VP8 camera alongside audio.
+    /// The explicit AV flag admits one duplex VP8 camera or screen alongside audio.
     pub fn new(config: WebRtcConfig, capacity: usize) -> Result<Arc<Self>> {
         let audio = &config.capabilities.audio_codecs;
         let supported = audio.len() == 1
@@ -42,7 +42,7 @@ impl SignalingHost {
         if capacity == 0 || capacity > 512 || !supported || config.trickle_ice || !supported_video {
             return Err(Error::new(
                 "unsupported-media-profile",
-                "Canonical WebRTC requires supported mono audio and an optional explicit VP8 camera profile",
+                "Canonical WebRTC requires supported mono audio and an optional explicit VP8 camera or screen profile",
             ));
         }
         Ok(Arc::new(Self {
@@ -135,12 +135,19 @@ fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
         if id.is_empty()
             || !ids.insert(id)
             || !kinds.insert(kind)
-            || (kind != "audio" && !(av && kind == "video"))
+            || (kind != "audio" && !(av && matches!(kind, "video" | "screen")))
             || stream["direction"] != "sendrecv"
         {
             return Err(unsupported());
         }
     }
+    if !kinds.contains("audio") || (av && kinds.contains("video") == kinds.contains("screen")) {
+        return Err(unsupported());
+    }
+    let physical = kinds
+        .iter()
+        .map(|kind| if *kind == "screen" { "video" } else { *kind })
+        .collect::<std::collections::BTreeSet<_>>();
     let sdp = offer["substrate_setup"]["sdp"]
         .as_str()
         .ok_or_else(unsupported)?;
@@ -150,7 +157,7 @@ fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
     let mut mids = std::collections::BTreeSet::new();
     for m in parsed.media_descriptions.iter().filter(|m| m.port != 0) {
         if !actual.insert(m.media.as_str())
-            || !kinds.contains(m.media.as_str())
+            || !physical.contains(m.media.as_str())
             || direction(m, &parsed) != "sendrecv"
         {
             return Err(unsupported());
@@ -159,7 +166,7 @@ fn validate_offer(offer: &serde_json::Value, av: bool) -> Result<()> {
             return Err(unsupported());
         }
     }
-    if parsed.media_descriptions.len() > 32 || actual != kinds {
+    if parsed.media_descriptions.len() > 32 || actual != physical {
         return Err(unsupported());
     }
     Ok(())
@@ -236,7 +243,7 @@ fn selected_answer(
             Some("audio") => {
                 json!({"name":codec.name,"params":{"sample_rate":codec.clock_rate_hz,"channels":codec.channels,"payload_type":audio.payload_type}})
             }
-            Some("video") => {
+            Some("video" | "screen") => {
                 json!({"name":"vp8","params":{"sample_rate":90000,"channels":0,"payload_type":video.as_ref().ok_or_else(unsupported)?.payload_type}})
             }
             _ => return Err(unsupported()),
@@ -256,4 +263,48 @@ fn selected_answer(
         "substrate_setup":{"kind":"websocket+webrtc","sdp":answer}}),
     )
     .map_err(|_| engine_error())
+}
+
+#[cfg(test)]
+mod screen_profile_tests {
+    use super::*;
+    fn offer() -> serde_json::Value {
+        json!({"streams_offered":[
+            {"id":"audio-original","kind":"audio","direction":"sendrecv","codec_preferences":["opus"]},
+            {"id":"screen-original","kind":"screen","direction":"sendrecv","codec_preferences":["vp8"]}
+        ],"substrate_setup":{"sdp":"v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\ns=Owned screen fixture\r\nc=IN IP4 127.0.0.1\r\nt=0 0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:audio\r\na=sendrecv\r\na=rtpmap:111 opus/48000/2\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=mid:screen\r\na=sendrecv\r\na=rtpmap:96 VP8/90000\r\n"}})
+    }
+    #[test]
+    fn screen_keeps_its_original_logical_kind_and_ids_in_the_answer() {
+        let original = offer();
+        rvoip_sip_core::types::sdp::SdpSession::from_str(
+            original["substrate_setup"]["sdp"].as_str().unwrap(),
+        )
+        .expect("valid owned SDP fixture");
+        validate_offer(&original, true).unwrap();
+        let answer = selected_answer(
+            "actor",
+            &original,
+            original["substrate_setup"]["sdp"].as_str().unwrap(),
+            true,
+        )
+        .unwrap();
+        let answer = serde_json::to_value(answer).unwrap();
+        assert_eq!(answer["streams_answered"][1]["id"], "screen-original");
+        assert_eq!(answer["streams_answered"][1]["kind"], "screen");
+        assert_eq!(
+            answer["streams_answered"][1]["codec"]["params"]["payload_type"],
+            96
+        );
+    }
+    #[test]
+    fn screen_does_not_admit_camera_plus_screen_or_an_audio_only_host() {
+        let mut original = offer();
+        assert!(validate_offer(&original, false).is_err());
+        original["streams_offered"][0]["kind"] = json!("video");
+        assert!(validate_offer(&original, true).is_err());
+        original["streams_offered"][0]["kind"] = json!("audio");
+        original["streams_offered"][1]["direction"] = json!("sendonly");
+        assert!(validate_offer(&original, true).is_err());
+    }
 }

@@ -14619,7 +14619,7 @@
     "crates/connect-protocol/tests/enrollment.rs": "876ac10ebfb6e068657a7d54bb46b2f52838e12b1907d230dd8b68fe8cd0c716",
     "crates/connect-protocol/tests/task_contract.rs": "27d111e9c826d5d13080b9d7a8fd83bdcf200535d09f220aba149b75f6f3f942",
     "crates/connect-server/src/transports/http.rs": "266ace0c1031cfa0966bfa656fb7ab02f297449d1e9ef46f13b3fb073fe9bb8d",
-    "dependencies/source-lock.json": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+    "dependencies/source-lock.json": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
     "scripts/generate-application-http-openapi.py": "c68cc67f3dd850b01af95d879f80b5ef2aead0703483970043d843211120d24f"
   },
   "x-connect-generation-refinements": [

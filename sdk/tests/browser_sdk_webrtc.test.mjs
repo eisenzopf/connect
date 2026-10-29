@@ -64,3 +64,8 @@ test('WSS pre-aborted local media startup cannot prompt or take ownership of sup
 test('WSS foreign or misclassified receiver track retires only the original RTC owner',()=>scenario(async({begun,peer,client})=>{
  await begun.ready;const track=new Track();track.kind='video';peer().ontrack({track,transceiver:peer().getTransceivers()[0]});assert.equal(peer().connectionState,'closed');assert.equal(client.closed,false);
 }));
+test('WSS single video RTP profile refuses simultaneous camera and screen before allocating or submitting another owner',()=>scenario(async({begun,client,peer,f,permissions})=>{
+ await begun.ready;const original=peer(),sent=f.sent.length;
+ assert.throws(()=>BrowserRtcConnection.begin(client,{...input,connectionId:'other',operationId:'other-offer',video:'camera',screen:'desktop'},'recipient',{}, {timeoutMs:100}),{code:'unsupported-media-profile'});
+ assert.equal(peer(),original);assert.equal(f.sent.length,sent);assert.equal(permissions(),0);assert.equal(client.closed,false);
+}));

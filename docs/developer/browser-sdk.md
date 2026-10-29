@@ -133,8 +133,9 @@ reference; no browser receives administration credentials.
 stream intent. The current native browser profile supports duplex Opus audio,
 VP8 video/screen and ordered text/JSON/binary data. Unsupported directions or
 codecs refuse before submission; the SDK does not replace the requested
-profile. WSS uses WebRTC with required Opus audio and optional VP8 camera video;
-WSS screen/data and audio-free profiles refuse locally. The same typed
+profile. WSS uses WebRTC with required Opus audio and one VP8 camera or screen
+when the explicit AV host is configured. Camera and screen cannot share that
+single physical video slot; WSS data and audio-free profiles refuse locally. The same typed
 Session/Connection workflow selects the current transport's media owner.
 
 An optional `media: { iceServers, iceTransportPolicy }` client configuration
@@ -182,7 +183,7 @@ happens to be active.
 
 The capture in the example selects this offer's senders. A matching, already
 owned synthetic MediaStream can instead be transferred with `stream`; its
-tracks stop when the capture or Connection retires. WT supports
+tracks stop when the capture or Connection retires. Both transports support
 `video: "screen"` for an explicitly offered screen Stream.
 
 Device IDs remain local capture constraints. Screen selection uses the browser
@@ -208,9 +209,9 @@ synthetic capture, original completion, scoped observations, renderer startup,
 exclusive ownership, end and reconnect recovery over WT and WSS. It animates
 its canvas so the RTC host can observe fresh primary video RTP. It does not
 request personal devices. The UI checkpoint below adds actual browser permission
-checks with synthetic devices. Owned-tab screen selection, received decoded
-quality and complete media parity remain
-required before G6-061 can close. RTC renderer `diagnostics.audio` is currently
+checks with synthetic devices. The screen checkpoint below adds owned-tab
+display selection. Received decoded quality and complete media/API/lifecycle
+qualification remain required before G6-061 can close. RTC renderer `diagnostics.audio` is currently
 unmeasured (zero); its video counter records presentation callbacks only.
 
 [Native media ownership evidence](../evidence/gate-6/browser-sdk-native-owners.json)
@@ -257,7 +258,8 @@ or stopping the controls cancels their local permission/capture work and stops
 late tracks; a retired owner cannot publish a late ready state. Source changes
 that require different negotiated Streams need a separate saved offer intent.
 A logical screen selection still invokes the browser's separate display picker;
-no stored camera device ID selects a screen. WSS screen media remains unsupported.
+no stored camera device ID selects a screen. The app must offer logical
+`kind: "screen"` for this choice, with current Screen authorization and capabilities.
 
 The progress button observes the original Operation with current authorization.
 It can stop waiting or recheck after a failed read without submitting a new
@@ -272,4 +274,41 @@ records actual owned Chrome permission denial/grant with Chrome's synthetic
 microphone/camera, trusted keyboard source/capture/retry actions and current
 operation progress over WT and WSS. This qualifies these basic interactions;
 it does not qualify a complete reference app, assistive-technology matrix,
-personal devices, owned-tab screen capture or received decoded media quality.
+personal devices or received decoded media quality. The screen checkpoint below
+records its separate display-capture scope.
+
+## Logical screen media
+
+A Screen Stream retains its original kind and ID through WT or WSS offer,
+answer, current Stream observation and recorded end. RTC SDP uses its one
+physical video section; it cannot turn a camera permission into Screen
+capability or admit camera and screen together. The server `opus-vp8` host
+validates audio plus exactly one logical camera or screen against that SDP.
+Current Session media, offered and accepted `screen: ["vp8"]` capabilities, and
+an explicitly verified Screen-capable Endpoint remain separate requirements.
+The fixture uses an explicitly `mixed` Session so both separate camera and
+screen Connections fit the original Session media intent.
+
+Select `video: "screen"` on the pending scoped Connection to invoke
+`getDisplayMedia` through the capture controls' explicit user action. The browser
+selects the display source; `videoDeviceId` is forbidden for this selection.
+Microphone capture remains separate. Selecting a tab may move focus away from
+the controls page, so automatic background pause is reported as `paused`. Return
+to the controls and use **Resume capture** explicitly; the SDK does not silently
+re-enable hidden capture. Both owners stop their tracks on capture,
+Connection or physical retirement. Observing the saved original offer after
+reconnect grants no display capture custody and cannot reopen the picker.
+
+The bounded fixture uses Chrome's
+[tab-only test selection switch](https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/common/chrome_switches.h)
+to select a titled tab created in its fresh owned profile. It verifies
+`displaySurface: "browser"` and a distinctive pixel color from that owned tab.
+This is local source-capture evidence; remote decoded playback remains a
+separate observation. No personal tab, display or application window is selected.
+
+RTC Screen subscriptions and gates through the typed facade, full recovery/fault
+coverage and received decoded quality remain in the G6-061 audit. The current
+increment implements initial offer/capture/render/end and original observation.
+
+[Typed Screen evidence](../evidence/gate-6/browser-sdk-screen-owners.json)
+records this bounded initial Screen lifecycle and the remaining qualifications.
