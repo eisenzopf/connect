@@ -1,4 +1,6 @@
-import { type BrowserNonEmpty, type BrowserStreamSelector, type BrowserConnectionUpdate, type BrowserConnectionUpdateReceipt, type BrowserStreamSelectionReceipt } from "./browser_sdk_streams.js";
+import { type BrowserSessionMedium, type BrowserSessionUpdate } from "./browser_sdk_sessions.js";
+export type { BrowserSessionMedium, BrowserSessionUpdate, } from "./browser_sdk_sessions.js";
+import { type BrowserNonEmpty, type BrowserMedium, type BrowserStreamSelector, type BrowserConnectionUpdate, type BrowserConnectionUpdateReceipt, type BrowserStreamSelectionReceipt } from "./browser_sdk_streams.js";
 export type { BrowserNonEmpty, BrowserStreamSelector, BrowserConnectionUpdate, BrowserConnectionUpdateReceipt, BrowserStreamSelectionReceipt, BrowserCodecObservation, BrowserStreamGateObservation, BrowserMedium, BrowserDirection, } from "./browser_sdk_streams.js";
 import { type BrowserRtcConfiguration } from "./browser_sdk_webrtc.js";
 import { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
@@ -71,7 +73,7 @@ export interface BrowserSessionSnapshot {
     readonly id: SessionId;
     readonly conversationId: ConversationId;
     readonly state: string;
-    readonly media: readonly string[];
+    readonly media: readonly BrowserMedium[];
     readonly intent: string | null;
     readonly capabilitiesOffer: Json;
     readonly codecPreferences: readonly string[];
@@ -96,6 +98,7 @@ export declare const browserOperationKinds: Readonly<{
     conversationCreate: BrowserOperationKind<BrowserConversation>;
     sessionInvite: BrowserOperationKind<BrowserSession>;
     sessionAccept: BrowserOperationKind<BrowserSession>;
+    sessionUpdate: BrowserOperationKind<BrowserSession>;
     sessionEnd: BrowserOperationKind<BrowserSession>;
     sessionReject: BrowserOperationKind<BrowserSessionDecision>;
     sessionCancelInvitation: BrowserOperationKind<BrowserSessionDecision>;
@@ -125,6 +128,7 @@ export declare class BrowserSdkClient {
         conversationCreate: BrowserOperationKind<BrowserConversation>;
         sessionInvite: BrowserOperationKind<BrowserSession>;
         sessionAccept: BrowserOperationKind<BrowserSession>;
+        sessionUpdate: BrowserOperationKind<BrowserSession>;
         sessionEnd: BrowserOperationKind<BrowserSession>;
         sessionReject: BrowserOperationKind<BrowserSessionDecision>;
         sessionCancelInvitation: BrowserOperationKind<BrowserSessionDecision>;
@@ -133,10 +137,7 @@ export declare class BrowserSdkClient {
         byId: (id: ConversationId) => BrowserConversation;
         create: (input: {
             policy: "persistent" | "ephemeral";
-            participants: readonly {
-                identityId: IdentityId;
-                role: string;
-            }[];
+            participants: readonly IdentityId[];
             idleCloseSeconds?: number;
             metadata?: Json;
         }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserConversation>>;
@@ -172,7 +173,7 @@ export declare class BrowserConversation {
         invite: (input: {
             sessionId: SessionId;
             to: readonly ParticipantId[];
-            medium: string;
+            medium: BrowserSessionMedium;
             intent: string;
             capabilities: Json;
         }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserSession>>;
@@ -189,11 +190,19 @@ export declare class BrowserSession {
         byId: (id: ConnectionId) => BrowserConnection;
         offer: (input: {
             connectionId: ConnectionId;
-            streams: readonly [BrowserOfferedStream, ...BrowserOfferedStream[]];
+            streams: BrowserNonEmpty<BrowserOfferedStream>;
         }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserConnection>>;
     };
     constructor(client: BrowserSdkClient, conversationId: ConversationId, id: SessionId, receiptSnapshot?: BrowserSessionSnapshot | undefined);
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserSessionSnapshot>;
+    inviteParticipants(input: {
+        readonly to: BrowserNonEmpty<ParticipantId>;
+        readonly medium: BrowserSessionMedium;
+        readonly intent: string;
+        readonly capabilities: Json;
+        readonly expectedTopologyRevision: SdkRevision<"topology">;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserSession>>;
+    update(input: BrowserSessionUpdate, expectedTopologyRevision: SdkRevision<"topology">, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserSession>>;
     accept(input: {
         capabilities: Json;
         expectedTopologyRevision: SdkRevision<"topology">;
@@ -225,7 +234,7 @@ export interface BrowserIncomingInvitation {
         readonly kind: "session.invite";
         readonly correlationId: OperationId;
     };
-    readonly medium: string;
+    readonly medium: BrowserSessionMedium;
     readonly intent: string;
     readonly capabilities: Json;
 }
@@ -255,7 +264,7 @@ export interface BrowserOfferedStream {
     readonly id: StreamId;
     readonly kind: "audio" | "video" | "screen" | "data";
     readonly direction: "sendonly" | "recvonly" | "sendrecv" | "inactive";
-    readonly codecs: readonly [string, ...string[]];
+    readonly codecs: BrowserNonEmpty<string>;
 }
 export interface BrowserConnectionSnapshot {
     /** Current physical's last committed negotiated revision, when locally known. */

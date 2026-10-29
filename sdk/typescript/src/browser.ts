@@ -134,6 +134,8 @@ export type {
     BrowserCompletion,
     BrowserConversationSnapshot,
     BrowserSessionSnapshot,
+    BrowserSessionMedium,
+    BrowserSessionUpdate,
     BrowserSessionDecision,
     BrowserParticipantSnapshot,
     BrowserIncomingInvitation,

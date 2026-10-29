@@ -80,3 +80,25 @@ export function browserNativeControlTypes(connection: import("../typescript/dist
     select.then(async op => (await op.wait({timeoutMs:1000})).value.bindings?.[0].encodeVideo({}));
     return {update,select};
 }
+
+import type {BrowserSessionUpdate,BrowserSessionMedium} from '../typescript/dist/browser.js';
+export function browserSessionControls(session: BrowserSession, participant: import('../typescript/dist/browser.js').ParticipantId, revision: SdkRevision<'topology'>, options: import('../typescript/dist/browser.js').BrowserSdkMutationOptions) {
+ const update: BrowserSessionUpdate={action:'role-change',participantId:participant,role:'observer'};
+ const mutation:Promise<BrowserOperation<BrowserSession>>=session.update(update,revision,options);
+ const medium:BrowserSessionMedium='mixed';
+ session.inviteParticipants({to:{first:participant,rest:[]},medium,intent:'join',capabilities:{},expectedTopologyRevision:revision},options);
+ // @ts-expect-error A participant-leave cannot silently carry a role change.
+ session.update({action:'participant-leave',participantId:participant,role:'observer'},revision,options);
+ // @ts-expect-error Session resource revisions cannot authorize topology controls.
+ session.update(update,sdkRevision<'session'>(1),options);
+ // @ts-expect-error Existing Session invitations require a nonempty target set.
+ session.inviteParticipants({to:[],medium,intent:'join',capabilities:{},expectedTopologyRevision:revision},options);
+ session.connections.offer({connectionId:sdkId<'connection'>('new'),streams:{first:{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:{first:'opus',rest:[]}},rest:[]}},options);
+ // @ts-expect-error Offered streams use the frozen NonEmpty shape, not an array.
+ session.connections.offer({connectionId:sdkId<'connection'>('new'),streams:[{id:sdkId<'stream'>('audio'),kind:'audio',direction:'sendrecv',codecs:['opus']}]},options);
+ return mutation;
+}
+
+client.conversations.create({policy:'persistent',participants:[sdkId<'identity'>('recipient')]},{timeoutMs:1000,operationId});
+// @ts-expect-error Conversation creation takes Identity IDs, not uncontracted role objects.
+client.conversations.create({policy:'persistent',participants:[{identityId:sdkId<'identity'>('recipient'),role:'participant'}]},{timeoutMs:1000,operationId});

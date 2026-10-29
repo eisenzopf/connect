@@ -1,0 +1,242 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "d4e91c7120a6044cca6ebbd75c25489da2d4a383",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Unified browser Session update/re-invitation APIs and frozen collection shapes, with actual direct WT and bounded fallback WSS workflows, additive Screen/data policy, idle codec policy, leave/reinvite/reaccept, and historical original-operation recovery. No whole G6-061, live codec renegotiation, full media/platform/accessibility or acceptance qualification.",
+  "schema": 115,
+  "dependency_patch_count": 242,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "844823f426a4efd83810520b8337f2882328d56ed71c831154c92201a10827be",
+      "mode": 420
+    },
+    "contracts/sdk-gate-6-api.json": {
+      "sha256": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+      "mode": 420
+    },
+    "contracts/sdk-api/typescript/contract.ts": {
+      "sha256": "97f65235ac4dd9c24aa081584e23533f8ab26c7007a50217e05a9f8de8f6f297",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "52a7a45bac697906d542fe8358a3ad673bb6df5564eafe87027d4ff952779cf9",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk_sessions.ts": {
+      "sha256": "2676522564e4ba4e799e911d8aa67ad4bb928feb3681a5ed603bc7d536f2a434",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "63adcbd7c73d55e543e753be8bb040d25118326b02a2640786c4fc557b621c00",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "3e499dded6ca4a66906ba60fc74d2a2c4328926c26f0d9cc3fe0ecfffd240949",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_sessions.js": {
+      "sha256": "0fe3829ca24953e32471eaf54a746fb82e4eabb0978bdbab9bfe500ce2a4da3d",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk_sessions.d.ts": {
+      "sha256": "0a65c5892ccd9c80175af1b5117f48df3b70f36a48ca0229a91d164201b16491",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "8dbd80af5151e5620d7413a47a5d33d6db219e1bea46981166ef832bb594d6d0",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "06617e986dac4c5246142b4a94bda35b11e60d2213c1d1a7ae03994f8dffc530",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "9b44b1fd6575ab0a9efdf788b6cd4990918486659969d83f9dfd71b282420d9d",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "0bae5cad2ab1c2067e40913b26af2c3af3424ed24a4405851c14749330d98405",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "cf88e369ca0aa22e443b8e68851f159aca6dd535b3138cf561dcc29647f6933e",
+      "mode": 420
+    }
+  },
+  "verification": {
+    "source_input_count": 2729,
+    "source_inputs_manifest_sha256": "44cf041163611092ec32e4d6f6ef00a5bfbaa6e33c1d8f8dfae27c05aac644aa",
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          483
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 5.164766249945387,
+        "log_sha256": "c952bb78e324bb8930ace5478fd706c9561da38f150234e4c7c362f231ea713a"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3497268748469651,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.2000710000284016,
+        "log_sha256": "b24c70fb7863f73e2da81db2defd0d1fdf20d62fc7e421dd2f47729f08a98a1f"
+      },
+      {
+        "phase": "server-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.3704382081050426,
+        "log_sha256": "15e352dc9686ea22bcce8f476e7fded14913527a645d536f2d356d16348622ab"
+      },
+      {
+        "phase": "upstream-screen",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          2
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 0.5937200421467423,
+        "log_sha256": "2bbe746f05a59451f69235f5605b3f9d05142ff4de555b7a0bb0f5107ff9bf17"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 74.39623950002715,
+        "log_sha256": "20def9ca03851ea3a1db1b87cf05a257f9ded5eab01c8b34e32e0e14ae98d028"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 4,
+      "wss_media_connection": 1,
+      "wss_owned_capture_retired": 1,
+      "wss_owned_renderer_retired": 1,
+      "owned_device_permission": 2,
+      "permission_denial_ui": 2,
+      "keyboard_capture_retry": 2,
+      "device_source_choice": 2,
+      "operation_progress_ui": 2,
+      "wt_screen_connection": 1,
+      "wss_screen_connection": 1,
+      "owned_tab_capture": 2,
+      "owned_tab_capture_retired": 2,
+      "screen_kind_observed": 2,
+      "screen_recovery_without_custody": 2,
+      "screen_duplex_decoded": 2,
+      "screen_controls": 2,
+      "screen_resubscription": 2,
+      "restored_control_observations": 6,
+      "screen_camera_selector_refused": 1,
+      "session_updates": 8,
+      "session_reinvitations": 2,
+      "restored_session_updates": 2,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 57
+    },
+    "log_sha256": "75707b92957e2af77f9912601ba5bad2de4d1f6ebbc8f6af183fcf5f8d7956f5",
+    "flow": "Same two typed clients and separately enrolled transport profiles. Initial accepted Session has only audio/video media and an explicit broader capability offer; after ending camera, an original additive Screen/data update advances topology by one, then the existing actual opposite red/blue Screen delivery and causal gates run. After media ends, caller changes role and idle codec policy; recipient explicitly leaves, caller re-invites on the same Session with current topology and original offer intent, and recipient accepts its fresh source without copied wire IDs. Original update restoration after reconnect retains an earlier receipt while refresh shows current ended state.",
+    "identity": "57 distinct original communication mutations, four transport keys/credentials, two Devices, four explicitly verified synthetic Endpoints, no restore/poll resubmission. Eight actual Session updates, two existing-Session reinvitations and two historical/current-state comparisons.",
+    "inherited_current_regressions": "Same current fixture still verifies real owned-tab capture, actual opposite Screen decode, mute/hold suppression and recovery, exact WSS source selection, camera-kind refusal, subscription removal/reinstallation, original media/control observation without custody and current revocation refusal."
+  },
+  "implementation": [
+    "BrowserSession.update exposes participant-leave, role-change, medium-upgrade and codec-renegotiate as a discriminated input. Runtime rejects contradictory or unknown action fields, duplicate/empty/oversize lists and invalid names before IO. Canonical wire uses kind/details; original recorded outcome action names are checked independently of the session.update command name.",
+    "BrowserSession.inviteParticipants requires NonEmpty Participant targets and current topology revision, preserves the same Session scope, and returns the SDK-owned sessionInvite Operation kind. New decisions remain separate caller-saved original IDs.",
+    "Public Session medium and snapshot media are finite enums. Input capability/name/role/intent byte and list limits match the canonical Session protocol; permission and current resource checks remain in Store/service.",
+    "Frozen pre-alpha shapes now apply to Conversation creation (Identity IDs) and Connection offers (NonEmpty Streams and nested NonEmpty codecs). No legacy array-form offer or role-object creation path remains. Existing exact fixed browser media profile still refuses unsupported choices without downgrade.",
+    "Original result restoration grants no authority or media. Historical Session receipt snapshots remain distinct from current authorized refresh. No server/service/upstream policy implementation changed in this increment."
+  ],
+  "checks": "Final guarded cohort: 483 SDK functions, 37 Node regressions, two server Screen and two upstream Screen functions, ten real root integration functions, zero ignored. Standalone browser/Node typechecks, changed TS formatting, repository Rust formatting and HTTP/OpenAPI/plan/navigation reference checks pass.",
+  "prior_attempts": [
+    {
+      "scope": "481 signed component functions passed before the real server exposed an invalid Session update payload mapping; this is not canonical runtime qualification.",
+      "log_sha256": "626137bfbeeb5a59c8ac5346c0bfbd1b568e8d6c954bb7dc39be059df3219261"
+    },
+    {
+      "scope": "Real WT control fixture reaches the first Session role change, then receives an uncorrelated parser error and reaches the unchanged original mutation deadline. Initial payload incorrectly used action fields; the actual canonical Session update requires kind/details.",
+      "log_sha256": "ac3711775a25ba02fc3b989ee90ace7aa9b3366dd6d9e3a330054945376e1c65"
+    },
+    {
+      "scope": "Strengthened actual additive Screen/data policy fixture reaches the same parser refusal at the first update. No pass counted.",
+      "log_sha256": "75c275ca229adac294d12dc141fb12d5fb49b0df797f1a736148f25928622366"
+    },
+    {
+      "scope": "Partial mapping correction left participant-leave on the incorrect shape. New signed tests refuse it; this failed cohort is retained.",
+      "log_sha256": "4db9a63ec058f007303cf55ae0925565744f2ff8838fd8b0c4fe1b885e1b7c1f"
+    },
+    {
+      "scope": "Real fixture passes additive upgrade, Screen delivery and idle role/codec policy, then refuses the remaining malformed participant-leave mapping. No pass counted.",
+      "log_sha256": "585fd911d66830ec438b8f30bd9db2d637d7b5533653244cf91ea5c0874a7494"
+    },
+    {
+      "scope": "All57 original mutations and both transport flows pass after the complete canonical mapping correction. Predates final media enum typing and source guard.",
+      "log_sha256": "fc92bc2feb69ec7f2da297a3b69dc48f1be7d89e7b6398eed7ac08a6ef0c1729"
+    }
+  ],
+  "remaining": [
+    "Broader frozen Conversation messaging/receipts/events, Participant controls, browser consultation/handoff/replacement, capabilities/raw surface and full reference-app integration.",
+    "Invitation duplicate/cancellation handling and retention across abandoned snapshot reads, journal-based recovery and any required durable discovery remain unqualified. Notifications are still hints.",
+    "Live Session codec reconciliation and full media/failure/recovery/quality/browser/hosting/accessibility/persistence matrices remain separate. G6-054 remote media qualification remains open."
+  ],
+  "known_findings": [
+    "Existing installed positive provisioning CLI 15-second timeout and three unchanged full-tree TS formatting findings remain.",
+    "Cached debug stripping disk and unit-linker unwind warnings remain; no release/performance qualification."
+  ],
+  "privacy": "Raw SDP, candidates, device IDs, credentials, screenshots, browser profiles and logs remain ignored. Only source/log hashes, synthetic aggregate observations and counts are public. No additional model/account/provider/named remote execution or agents."
+}

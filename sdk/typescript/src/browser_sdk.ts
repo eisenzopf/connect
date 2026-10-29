@@ -1,10 +1,25 @@
 import {
+    fields,
+    nonEmpty,
+    sessionInviteBody,
+    sessionUpdateBody,
+    sessionCapabilities,
+    offeredStreams,
+    type BrowserSessionMedium,
+    type BrowserSessionUpdate,
+} from "./browser_sdk_sessions.js";
+export type {
+    BrowserSessionMedium,
+    BrowserSessionUpdate,
+} from "./browser_sdk_sessions.js";
+import {
     subscribeBody,
     unsubscribeBody,
     updateBody,
     selectionResult,
     updateResult,
     type BrowserNonEmpty,
+    type BrowserMedium,
     type BrowserStreamSelector,
     type BrowserConnectionUpdate,
     type BrowserConnectionUpdateReceipt,
@@ -224,7 +239,7 @@ export interface BrowserSessionSnapshot {
     readonly id: SessionId;
     readonly conversationId: ConversationId;
     readonly state: string;
-    readonly media: readonly string[];
+    readonly media: readonly BrowserMedium[];
     readonly intent: string | null;
     readonly capabilitiesOffer: Json;
     readonly codecPreferences: readonly string[];
@@ -278,7 +293,7 @@ function sessionView(
         id: v.id as SessionId,
         conversationId: cid as ConversationId,
         state: v.state,
-        media: v.media as string[],
+        media: v.media as BrowserMedium[],
         intent: v.intent as string | null,
         capabilitiesOffer: v.capabilities_offer,
         codecPreferences: v.codec_preferences as string[],
@@ -305,7 +320,14 @@ function sessionResult(
     const d = value.data;
     if (
         d.operation_id !== key.operationId ||
-        d.action !== key.command ||
+        (key.command === "session.update"
+            ? ![
+                  "participant-leave",
+                  "role-change",
+                  "medium-upgrade",
+                  "codec-renegotiate",
+              ].includes(String(d.action))
+            : d.action !== key.command) ||
         !object(d.session)
     )
         return bad();
@@ -475,6 +497,7 @@ export const browserOperationKinds = Object.freeze({
     }),
     sessionInvite: kind("session.invite", "session", sessionResult),
     sessionAccept: kind("session.accept", "session", sessionResult),
+    sessionUpdate: kind("session.update", "session", sessionResult),
     sessionEnd: kind("session.end", "session", sessionResult),
     sessionReject: kind("session.reject", "session", decisionResult),
     sessionCancelInvitation: kind("session.cancel", "session", decisionResult),
@@ -1064,10 +1087,7 @@ export class BrowserSdkClient {
         create: (
             input: {
                 policy: "persistent" | "ephemeral";
-                participants: readonly {
-                    identityId: IdentityId;
-                    role: string;
-                }[];
+                participants: readonly IdentityId[];
                 idleCloseSeconds?: number;
                 metadata?: Json;
             },
@@ -1082,11 +1102,10 @@ export class BrowserSdkClient {
                 invalid();
             const identities = new Set();
             const participants = input.participants.map((p) => {
-                sdkId(p.identityId);
-                if (identities.has(p.identityId) || !boundedText(p.role, 64))
-                    invalid();
-                identities.add(p.identityId);
-                return { identity_id: p.identityId, role: p.role };
+                sdkId(p);
+                if (identities.has(p)) invalid();
+                identities.add(p);
+                return { identity_id: p, role: "participant" };
             });
             const idle =
                 input.idleCloseSeconds ??
@@ -1371,41 +1390,22 @@ export class BrowserConversation {
             input: {
                 sessionId: SessionId;
                 to: readonly ParticipantId[];
-                medium: string;
+                medium: BrowserSessionMedium;
                 intent: string;
                 capabilities: Json;
             },
             options: BrowserSdkMutationOptions,
         ) => {
-            if (
-                !input ||
-                !identifier(input.sessionId) ||
-                !Array.isArray(input.to) ||
-                input.to.length > 128 ||
-                input.to.some((p) => !identifier(p)) ||
-                new Set(input.to).size !== input.to.length ||
-                ![
-                    "voice",
-                    "video",
-                    "voice+video",
-                    "screen-share",
-                    "text-chat",
-                    "mixed",
-                ].includes(input.medium) ||
-                !boundedText(input.intent) ||
-                !object(input.capabilities) ||
-                new TextEncoder().encode(canonicalJson(input.capabilities))
-                    .length > 16384
-            )
-                invalid();
+            fields(
+                input,
+                ["sessionId", "to", "medium", "intent", "capabilities"],
+                invalid,
+            );
+            if (!identifier(input.sessionId)) invalid();
+            const body = sessionInviteBody(input, invalid);
             return this.client[submit](
                 browserOperationKinds.sessionInvite,
-                {
-                    to: [...input.to],
-                    medium: input.medium,
-                    intent: input.intent,
-                    capabilities_offer: input.capabilities,
-                },
+                body,
                 { cid: this.id, sid: input.sessionId },
                 options,
             );
@@ -1438,26 +1438,19 @@ export class BrowserSession {
         offer: async (
             input: {
                 connectionId: ConnectionId;
-                streams: readonly [
-                    BrowserOfferedStream,
-                    ...BrowserOfferedStream[],
-                ];
+                streams: BrowserNonEmpty<BrowserOfferedStream>;
             },
             options: BrowserSdkMutationOptions,
         ): Promise<BrowserOperation<BrowserConnection>> => {
             if (
                 !input ||
                 !identifier(input.connectionId) ||
-                !Array.isArray(input.streams) ||
-                !input.streams.length ||
-                input.streams.length > 8 ||
-                input.streams.some((v) => !v || typeof v !== "object") ||
-                new Set(input.streams.map((v) => v.id)).size !==
-                    input.streams.length ||
                 !options ||
                 !identifier(options.operationId)
             )
                 invalid();
+            fields(input, ["connectionId", "streams"], invalid);
+            const streams = offeredStreams(input.streams, invalid);
             const low: BrowserConnectionOptions = {
                 conversationId: this.conversationId,
                 sessionId: this.id,
@@ -1465,7 +1458,7 @@ export class BrowserSession {
                 operationId: options.operationId,
             };
             const seen = new Set<string>();
-            for (const stream of input.streams) {
+            for (const stream of streams) {
                 if (
                     !stream ||
                     !identifier(stream.id) ||
@@ -1649,6 +1642,58 @@ export class BrowserSession {
         if (!s) throw new BrowserSdkError("receipt-unavailable", "read-only");
         return s;
     }
+    inviteParticipants(
+        input: {
+            readonly to: BrowserNonEmpty<ParticipantId>;
+            readonly medium: BrowserSessionMedium;
+            readonly intent: string;
+            readonly capabilities: Json;
+            readonly expectedTopologyRevision: SdkRevision<"topology">;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserSession>> {
+        fields(
+            input,
+            [
+                "to",
+                "medium",
+                "intent",
+                "capabilities",
+                "expectedTopologyRevision",
+            ],
+            invalid,
+        );
+        const body = sessionInviteBody(
+            { ...input, to: nonEmpty(input.to, identifier, 256, invalid) },
+            invalid,
+        );
+        return this.client[submit](
+            browserOperationKinds.sessionInvite,
+            body,
+            {
+                cid: this.conversationId,
+                sid: this.id,
+                expected_revision: sdkRevision(input.expectedTopologyRevision),
+            },
+            options,
+        );
+    }
+    update(
+        input: BrowserSessionUpdate,
+        expectedTopologyRevision: SdkRevision<"topology">,
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserSession>> {
+        return this.client[submit](
+            browserOperationKinds.sessionUpdate,
+            sessionUpdateBody(input, invalid),
+            {
+                cid: this.conversationId,
+                sid: this.id,
+                expected_revision: sdkRevision(expectedTopologyRevision),
+            },
+            options,
+        );
+    }
     accept(
         input: {
             capabilities: Json;
@@ -1656,13 +1701,8 @@ export class BrowserSession {
         },
         options: BrowserSdkMutationOptions,
     ): Promise<BrowserOperation<BrowserSession>> {
-        if (
-            !input ||
-            !object(input.capabilities) ||
-            new TextEncoder().encode(canonicalJson(input.capabilities)).length >
-                16384
-        )
-            invalid();
+        fields(input, ["capabilities", "expectedTopologyRevision"], invalid);
+        sessionCapabilities(input.capabilities, invalid);
         return this.client[submit](
             browserOperationKinds.sessionAccept,
             { capabilities_answer: input.capabilities },
@@ -1747,7 +1787,7 @@ export interface BrowserIncomingInvitation {
         readonly kind: "session.invite";
         readonly correlationId: OperationId;
     };
-    readonly medium: string;
+    readonly medium: BrowserSessionMedium;
     readonly intent: string;
     readonly capabilities: Json;
 }
@@ -1896,7 +1936,7 @@ function incoming(
                                 kind: "session.invite" as const,
                                 correlationId: f.operation_id as OperationId,
                             },
-                            medium: p.medium as string,
+                            medium: p.medium as BrowserSessionMedium,
                             intent: p.intent as string,
                             capabilities: copy(p.capabilities_offer),
                         }),
@@ -1946,7 +1986,7 @@ export interface BrowserOfferedStream {
     readonly id: StreamId;
     readonly kind: "audio" | "video" | "screen" | "data";
     readonly direction: "sendonly" | "recvonly" | "sendrecv" | "inactive";
-    readonly codecs: readonly [string, ...string[]];
+    readonly codecs: BrowserNonEmpty<string>;
 }
 export interface BrowserConnectionSnapshot {
     /** Current physical's last committed negotiated revision, when locally known. */

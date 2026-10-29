@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {BrowserSdkClient,BrowserSdkError,browserOperationKinds,sdkId,sdkRevision} from '../typescript/dist/browser.js';
 import {fixture} from './fixtures/browser_control_peer.mjs';
-const opts={timeoutMs:300},id=sdkId;
+const opts={timeoutMs:300},id=sdkId,one=first=>({first,rest:[]});
 const reference=(command='session.invite',extra={})=>({schema:'connect-operation-reference/1',operation_id:'original',command,scope:{conversation_id:'room',session_id:'session'},...extra});
 function scenario(run,{path='wss-webrtc',fault}={}) {
  let revision=0,state='invited',recordOverride,revisionOverride,mode=fault;const records=new Map();
@@ -31,7 +31,7 @@ function scenario(run,{path='wss-webrtc',fault}={}) {
   }
   if(frame.type.startsWith('session.')){
    let r=records.get(frame.operation_id);if(!r){revision++;state=frame.type==='session.reject'?'rejected':frame.type==='session.accept'?'accepted':'invited';
-    const result=frame.type==='session.reject'?{kind:'session_decision',data:{operation_id:frame.operation_id,conversation_id:'room',session_id:frame.sid,state:'rejected',revision,reason_code:486,reason:'Unavailable'}}:{kind:'session_control',data:{operation_id:frame.operation_id,action:frame.type,session:{...view(frame.sid),...(mode==='foreign-result'?{conversation_id:'foreign'}:{})}}};
+    const result=frame.type==='session.reject'?{kind:'session_decision',data:{operation_id:frame.operation_id,conversation_id:'room',session_id:frame.sid,state:'rejected',revision,reason_code:486,reason:'Unavailable'}}:{kind:'session_control',data:{operation_id:frame.operation_id,action:frame.type==='session.update'?frame.payload.kind:frame.type,session:{...view(frame.sid),...(mode==='foreign-result'?{conversation_id:'foreign'}:{})}}};
     r={operation_id:frame.operation_id,command_type:frame.type,state:'completed',revision:1,result};records.set(frame.operation_id,r);
    }return reply('operation.updated',{operation_id:mode==='foreign-ack'?'foreign':r.operation_id,state:r.state,revision:r.revision,result:r.result});
   }
@@ -112,8 +112,8 @@ test('Stream identity never escapes its current Connection/Session parent',()=>s
 test('typed Connection offer rejects invalid or unsupported intent before IO without downgrading codecs or directions',()=>scenario(async({client,f})=>{
  const session=client.conversations.byId(id('room')).sessions.byId(id('session')),n=f.sent.length;
  for(const streams of [[],[null],[{id:'source',kind:'audio',direction:'wrong',codecs:['opus']}],[{id:'source',kind:'audio',direction:'sendrecv',codecs:[]}]])await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams},{...opts,operationId:id('original')}),{kind:'validation',certainty:'not-submitted'});
- for(const stream of [{id:'source',kind:'audio',direction:'sendrecv',codecs:['pcmu']},{id:'source',kind:'video',direction:'sendonly',codecs:['vp8']}])await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:[stream]},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted'});
- await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:[{id:'source',kind:'data',direction:'sendrecv',codecs:['binary']}]},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted',operation:{operationId:'original',command:'connection.offer',scope:{conversationId:'room',sessionId:'session',connectionId:'connection'}}});
+ for(const stream of [{id:'source',kind:'audio',direction:'sendrecv',codecs:['pcmu']},{id:'source',kind:'video',direction:'sendonly',codecs:['vp8']}])await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:one({...stream,codecs:one(stream.codecs[0])})},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted'});
+ await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:one({id:'source',kind:'data',direction:'sendrecv',codecs:one('binary')})},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted',operation:{operationId:'original',command:'connection.offer',scope:{conversationId:'room',sessionId:'session',connectionId:'connection'}}});
  assert.equal(f.sent.length,n);
 }));
 test('historical Connection cannot render or prompt for capture and foreign Stream handles refuse locally',()=>scenario(async({client,f})=>{
@@ -133,3 +133,33 @@ test('same logical Stream is observed independently on publisher and subscriber 
 test('duplicate logical Stream within one Connection remains a protocol failure',()=>scenario(async({client})=>{
  await assert.rejects(()=>client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection')).streams.list(opts),{kind:'protocol'});
 },{fault:'duplicate-stream'}));
+
+for(const path of ['webtransport','wss-webrtc']) {
+ for(const input of [{action:'participant-leave',participantId:id('callee')},{action:'role-change',participantId:id('callee'),role:'observer'},{action:'medium-upgrade',media:{first:'audio',rest:['screen']}},{action:'codec-renegotiate',codecPreferences:{first:'opus',rest:['vp8']}}])test(`typed browser ${path} Session ${input.action} captures original intent and restores the original scoped outcome`,()=>scenario(async({client,f})=>{
+  const session=client.conversations.byId(id('room')).sessions.byId(id('session'));
+  const body=structuredClone(input),operation=await session.update(body,sdkRevision(0),{...opts,operationId:id('session-update')});
+  if(body.codecPreferences)body.codecPreferences.first='changed';if(body.media)body.media.first='video';
+  assert.equal(f.sent.filter(v=>v.type==='operation.get').length,0);assert.equal(operation.reference.command,'session.update');
+  const restored=client.operations.restore(operation.referenceJson(),browserOperationKinds.sessionUpdate),completed=await restored.wait(opts);
+  assert.equal(completed.value.id,'session');assert.equal(completed.value.receiptSnapshot.topologyRevision,1);assert.equal(f.sent.filter(v=>v.type==='session.update').length,1);
+  const wire=f.sent.find(v=>v.type==='session.update');assert.equal(wire.expected_revision,0);
+  const expected=input.action==='participant-leave'?{action:input.action,participant_id:'callee'}:input.action==='role-change'?{action:input.action,participant_id:'callee',role:'observer'}:input.action==='medium-upgrade'?{action:input.action,media:['audio','screen']}:{action:input.action,codec_preferences:['opus','vp8']};assert.deepEqual(JSON.parse(JSON.stringify(wire.payload)),{kind:expected.action,details:Object.fromEntries(Object.entries(expected).filter(([key])=>key!=='action'))});
+ },{path}));
+ test(`typed browser ${path} existing Session invitation retains scope, NonEmpty targets and explicit topology revision`,()=>scenario(async({client,f})=>{
+  const session=client.conversations.byId(id('room')).sessions.byId(id('session')),input={to:one(id('callee')),medium:'mixed',intent:'retry',capabilities:{audio:['opus']},expectedTopologyRevision:sdkRevision(0)};
+  const pending=session.inviteParticipants(input,{...opts,operationId:id('reinvite')});input.to.first=id('changed');input.capabilities.audio[0]='changed';
+  const operation=await pending,result=(await operation.wait(opts)).value;assert.equal(result.id,session.id);assert.equal(operation.reference.command,'session.invite');
+  const wire=f.sent.find(v=>v.type==='session.invite');assert.equal(wire.sid,session.id);assert.equal(wire.expected_revision,0);assert.deepEqual(JSON.parse(JSON.stringify(wire.payload)),{to:['callee'],medium:'mixed',intent:'retry',capabilities_offer:{audio:['opus']}});
+ },{path}));
+}
+test('Session updates and existing invitations reject ambiguous/empty/duplicate/oversize input before any IO',()=>scenario(async({client,f})=>{
+ const session=client.conversations.byId(id('room')).sessions.byId(id('session')),n=f.sent.length,mutation={...opts,operationId:id('original')};
+ for(const input of [{action:'participant-leave',participantId:'callee',role:'ignored'},{action:'role-change',participantId:'callee',role:'x'.repeat(65)},{action:'medium-upgrade',media:{first:'audio',rest:['audio']}},{action:'medium-upgrade',media:{first:'bogus',rest:[]}},{action:'codec-renegotiate',codecPreferences:{first:'opus',rest:['opus']}},{action:'codec-renegotiate',codecPreferences:{first:'opus',rest:Array.from({length:16},(_,i)=>'c'+i)}}])assert.throws(()=>session.update(input,sdkRevision(0),mutation),{kind:'validation'});
+ for(const input of [{to:[],medium:'voice',intent:'test',capabilities:{}},{to:one('callee'),medium:'voice',intent:'x'.repeat(129),capabilities:{}},{to:one('callee'),medium:'voice',intent:'test',capabilities:{audio:[]}},{to:{first:'callee',rest:['callee']},medium:'voice',intent:'test',capabilities:{}}])assert.throws(()=>session.inviteParticipants({...input,expectedTopologyRevision:sdkRevision(0)},mutation),{kind:'validation'});
+ assert.equal(f.sent.length,n);
+}));
+
+for(const path of ['webtransport','wss-webrtc'])test(`typed browser ${path} Conversation creation uses the frozen Identity collection`,()=>scenario(async({client,f})=>{
+ const input={policy:'persistent',participants:[id('recipient')]},pending=client.conversations.create(input,{...opts,operationId:id('create')});input.participants[0]=id('changed');const operation=await pending;assert.equal(operation.reference.command,'create');assert.deepEqual(JSON.parse(JSON.stringify(f.sent.find(v=>v.type==='conversation.create').payload)).initial_participants,[{identity_id:'recipient',role:'participant'}]);
+ const n=f.sent.length;assert.throws(()=>client.conversations.create({policy:'persistent',participants:[{identityId:'recipient',role:'participant'}]},{...opts,operationId:id('invalid')}),{kind:'validation'});assert.equal(f.sent.length,n);
+},{path}));

@@ -10,8 +10,10 @@ This checkpoint implements Client, Conversation, Participant, Session,
 Connection, Stream and Operation handles. Supported mutations are Conversation
 creation, Session invitation/acceptance/rejection/cancellation/end, and native
 WT/WSS audio/video/Screen Connection offer/end, typed Connection updates and
-Stream subscribe/unsubscribe. Complete media parity, broader Session controls and full app integration remain
-in progress. A successful Session control operation does not establish media.
+Stream subscribe/unsubscribe. Session controls include leave, role change,
+additive media upgrade, codec policy and inviting new appearances on an existing
+Session. Consultation/handoff, complete media parity and full app integration
+remain in progress. A successful Session control operation does not establish media.
 
 ```ts
 import {
@@ -31,7 +33,7 @@ const wait = { timeoutMs: 10000, signal: controller.signal };
 // Persist this logical intent and operation ID before calling the SDK.
 const create = await client.conversations.create({
     policy: "persistent",
-    participants: [{ identityId: savedRecipientIdentity, role: "participant" }],
+    participants: [savedRecipientIdentity],
 }, { ...wait, operationId: savedCreateOperationId });
 const conversation = (await create.wait(wait)).value;
 const target = await conversation.participants.byIdentity(savedRecipientIdentity, wait);
@@ -146,10 +148,10 @@ offer creates null-track transceivers and never prompts for capture permission.
 ```ts
 const offer = await session.connections.offer({
     connectionId: savedConnectionId,
-    streams: [
-        { id: savedAudioId, kind: "audio", direction: "sendrecv", codecs: ["opus"] },
-        { id: savedVideoId, kind: "video", direction: "sendrecv", codecs: ["vp8"] },
-    ],
+    streams: {
+        first: { id: savedAudioId, kind: "audio", direction: "sendrecv", codecs: { first: "opus", rest: [] } },
+        rest: [{ id: savedVideoId, kind: "video", direction: "sendrecv", codecs: { first: "vp8", rest: [] } }],
+    },
 }, { ...wait, operationId: savedOfferOperationId });
 // Capture uses the already saved Connection intent, before waiting for the
 // original offer's completion: WSS readiness requires actual primary RTP.
@@ -387,3 +389,65 @@ Stream handle retains its Session and Connection scope.
 
 [Typed browser stream control evidence](../evidence/gate-6/browser-sdk-stream-controls.json)
 records the verified bounds and remaining Gate 6 work.
+
+
+## Session policy and explicit re-invitation
+
+`session.update(input, expectedTopologyRevision, mutation)` accepts four
+`BrowserSessionUpdate` variants: `participant-leave` names a Participant;
+`role-change` names a Participant and role; `medium-upgrade` supplies nonempty
+`media`; and `codec-renegotiate` supplies nonempty `codecPreferences`.
+Every method returns an observable original Operation. Its completed result
+contains a Session handle with a historical `receiptSnapshot`; `refresh()` reads
+current authorized state and never replaces it with an older receipt.
+
+```ts
+const current = await session.refresh(wait);
+// Save this input, revision and original ID before IO.
+const upgrade = await session.update({
+    action: "medium-upgrade",
+    media: { first: "screen", rest: [] },
+}, current.topologyRevision, { ...wait, operationId: savedUpgradeOperationId });
+await upgrade.wait(wait);
+```
+
+An upgrade needs current offered/accepted capabilities and authorization. A
+Session policy result does not negotiate a new Connection or prove media flow.
+The real browser fixture starts with audio/video media, adds Screen and data
+policy, and then establishes and decodes Screen on separate original media
+Connections. Its codec preference check runs after those Connections have ended;
+live media reconciliation remains a separate qualification.
+
+`session.inviteParticipants(...)` invites nonempty Participant targets into the
+same Session. Supply the current `expectedTopologyRevision` and the existing
+Session's medium, intent and capability offer. It is a separate explicit
+mutation from the original invitation. A Participant that leaves can receive a
+fresh invitation source and accept again without copying Session IDs from wire
+frames or diagnostics. Current presence and management authorization still
+apply; a handle or old receipt grants no permission to rejoin.
+
+```ts
+const current = await session.refresh(wait);
+const reinvite = await session.inviteParticipants({
+    to: { first: target.id, rest: [] },
+    medium: "mixed",
+    intent: savedSessionIntent,
+    capabilities: savedSessionCapabilities,
+    expectedTopologyRevision: current.topologyRevision,
+}, { ...wait, operationId: savedReinviteOperationId });
+await reinvite.wait(wait);
+```
+
+Enrollment must explicitly permit `session.update` or `session.invite` and the
+required observations. `browserOperationKinds.sessionUpdate` restores only the
+original update; `sessionInvite` also restores an existing Session invitation.
+
+The pre-alpha façade now follows the frozen collection contract: Conversation
+creation takes Identity IDs, and Connection offers take `{ first, rest }` for
+both Streams and each Stream's codecs. No array-form offer or role-object
+creation compatibility path is retained. Unknown or ambiguous update fields,
+empty/repeated targets, media/codecs, malformed names and protocol size limits
+refuse locally before IO.
+
+[Browser Session control evidence](../evidence/gate-6/browser-sdk-session-controls.json)
+records the exact implemented and tested scope.

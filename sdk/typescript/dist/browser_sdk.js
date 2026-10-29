@@ -1,3 +1,4 @@
+import { fields, nonEmpty, sessionInviteBody, sessionUpdateBody, sessionCapabilities, offeredStreams, } from "./browser_sdk_sessions.js";
 import { subscribeBody, unsubscribeBody, updateBody, selectionResult, updateResult, } from "./browser_sdk_streams.js";
 import { BrowserRtcConnection, } from "./browser_sdk_webrtc.js";
 import { browserIceConfiguration } from "./browser_ice.js";
@@ -114,7 +115,14 @@ function sessionResult(value, client, key) {
         return bad();
     const d = value.data;
     if (d.operation_id !== key.operationId ||
-        d.action !== key.command ||
+        (key.command === "session.update"
+            ? ![
+                "participant-leave",
+                "role-change",
+                "medium-upgrade",
+                "codec-renegotiate",
+            ].includes(String(d.action))
+            : d.action !== key.command) ||
         !object(d.session))
         return bad();
     const view = sessionView(d.session, key.scope.conversationId, bad);
@@ -216,6 +224,7 @@ export const browserOperationKinds = Object.freeze({
     }),
     sessionInvite: kind("session.invite", "session", sessionResult),
     sessionAccept: kind("session.accept", "session", sessionResult),
+    sessionUpdate: kind("session.update", "session", sessionResult),
     sessionEnd: kind("session.end", "session", sessionResult),
     sessionReject: kind("session.reject", "session", decisionResult),
     sessionCancelInvitation: kind("session.cancel", "session", decisionResult),
@@ -700,11 +709,11 @@ export class BrowserSdkClient {
                 invalid();
             const identities = new Set();
             const participants = input.participants.map((p) => {
-                sdkId(p.identityId);
-                if (identities.has(p.identityId) || !boundedText(p.role, 64))
+                sdkId(p);
+                if (identities.has(p))
                     invalid();
-                identities.add(p.identityId);
-                return { identity_id: p.identityId, role: p.role };
+                identities.add(p);
+                return { identity_id: p, role: "participant" };
             });
             const idle = input.idleCloseSeconds ??
                 (input.policy === "ephemeral" ? 60 : undefined);
@@ -910,31 +919,11 @@ export class BrowserConversation {
             return new BrowserSession(this.client, this.id, id);
         },
         invite: (input, options) => {
-            if (!input ||
-                !identifier(input.sessionId) ||
-                !Array.isArray(input.to) ||
-                input.to.length > 128 ||
-                input.to.some((p) => !identifier(p)) ||
-                new Set(input.to).size !== input.to.length ||
-                ![
-                    "voice",
-                    "video",
-                    "voice+video",
-                    "screen-share",
-                    "text-chat",
-                    "mixed",
-                ].includes(input.medium) ||
-                !boundedText(input.intent) ||
-                !object(input.capabilities) ||
-                new TextEncoder().encode(canonicalJson(input.capabilities))
-                    .length > 16384)
+            fields(input, ["sessionId", "to", "medium", "intent", "capabilities"], invalid);
+            if (!identifier(input.sessionId))
                 invalid();
-            return this.client[submit](browserOperationKinds.sessionInvite, {
-                to: [...input.to],
-                medium: input.medium,
-                intent: input.intent,
-                capabilities_offer: input.capabilities,
-            }, { cid: this.id, sid: input.sessionId }, options);
+            const body = sessionInviteBody(input, invalid);
+            return this.client[submit](browserOperationKinds.sessionInvite, body, { cid: this.id, sid: input.sessionId }, options);
         },
     };
     constructor(client, id) {
@@ -960,15 +949,11 @@ export class BrowserSession {
         offer: async (input, options) => {
             if (!input ||
                 !identifier(input.connectionId) ||
-                !Array.isArray(input.streams) ||
-                !input.streams.length ||
-                input.streams.length > 8 ||
-                input.streams.some((v) => !v || typeof v !== "object") ||
-                new Set(input.streams.map((v) => v.id)).size !==
-                    input.streams.length ||
                 !options ||
                 !identifier(options.operationId))
                 invalid();
+            fields(input, ["connectionId", "streams"], invalid);
+            const streams = offeredStreams(input.streams, invalid);
             const low = {
                 conversationId: this.conversationId,
                 sessionId: this.id,
@@ -976,7 +961,7 @@ export class BrowserSession {
                 operationId: options.operationId,
             };
             const seen = new Set();
-            for (const stream of input.streams) {
+            for (const stream of streams) {
                 if (!stream ||
                     !identifier(stream.id) ||
                     !["audio", "video", "screen", "data"].includes(stream.kind) ||
@@ -1095,12 +1080,31 @@ export class BrowserSession {
             throw new BrowserSdkError("receipt-unavailable", "read-only");
         return s;
     }
+    inviteParticipants(input, options) {
+        fields(input, [
+            "to",
+            "medium",
+            "intent",
+            "capabilities",
+            "expectedTopologyRevision",
+        ], invalid);
+        const body = sessionInviteBody({ ...input, to: nonEmpty(input.to, identifier, 256, invalid) }, invalid);
+        return this.client[submit](browserOperationKinds.sessionInvite, body, {
+            cid: this.conversationId,
+            sid: this.id,
+            expected_revision: sdkRevision(input.expectedTopologyRevision),
+        }, options);
+    }
+    update(input, expectedTopologyRevision, options) {
+        return this.client[submit](browserOperationKinds.sessionUpdate, sessionUpdateBody(input, invalid), {
+            cid: this.conversationId,
+            sid: this.id,
+            expected_revision: sdkRevision(expectedTopologyRevision),
+        }, options);
+    }
     accept(input, options) {
-        if (!input ||
-            !object(input.capabilities) ||
-            new TextEncoder().encode(canonicalJson(input.capabilities)).length >
-                16384)
-            invalid();
+        fields(input, ["capabilities", "expectedTopologyRevision"], invalid);
+        sessionCapabilities(input.capabilities, invalid);
         return this.client[submit](browserOperationKinds.sessionAccept, { capabilities_answer: input.capabilities }, {
             cid: this.conversationId,
             sid: this.id,
