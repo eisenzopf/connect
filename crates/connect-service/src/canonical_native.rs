@@ -1,4 +1,5 @@
 //! One owned native exchange, real engine observations and isolated cleanup.
+pub(crate) mod workers;
 use crate::{
     canonical_media::Invocation,
     canonical_runtime::{Physical, Runtime},
@@ -226,6 +227,9 @@ impl Runtime {
     ) -> Result<Reply> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         let runtime = self.clone();
+        let ordinary = a.envelope().original()["payload"]
+            .get("replacement_preparation")
+            .is_none();
         {
             let mut work = self.work.lock().map_err(|_| Error::storage())?;
             while work.try_join_next().is_some() {}
@@ -237,8 +241,45 @@ impl Runtime {
                     "Native connection workers are at capacity",
                 ));
             }
+            let registration = if ordinary {
+                let connection = a
+                    .envelope()
+                    .scope(Scope::Connection)
+                    .ok_or_else(Error::forbidden)?;
+                let registration = self.native_workers.register(
+                    connection,
+                    self.media.store.limits().connections.saturating_mul(2),
+                    &self.stop,
+                )?;
+                if registration.is_none() {
+                    // A closed candidate lane admits metadata replay, never a
+                    // second preparation. Release the global work lock first.
+                    drop(work);
+                    let authority = a
+                        .authority::<StoreInvocationAuthority>()
+                        .ok_or_else(Error::forbidden)?;
+                    physical.validate(&a, authority)?;
+                    let transport =
+                        crate::canonical_runtime::endpoint_transport(physical.binding.transport())?;
+                    return Ok(Reply {
+                        record: self.media.store.prepare_native_offer_with_peer(
+                            &credential,
+                            proof(&a)?,
+                            physical.binding.media().map(|_| transport),
+                        )?,
+                        answered: false,
+                    });
+                }
+                registration
+            } else {
+                None
+            };
             work.spawn(async move {
-                Box::pin(runtime.native_worker(a, physical, credential, tx)).await;
+                let cancellation = registration.as_ref().map(|guard| guard.cancellation());
+                Box::pin(runtime.native_worker(a, physical, credential, tx, cancellation)).await;
+                if let Some(guard) = registration {
+                    guard.complete();
+                }
             });
         }
         rx.await.map_err(|_| Error::storage())?
@@ -249,6 +290,7 @@ impl Runtime {
         physical: Arc<Physical>,
         credential: String,
         tx: tokio::sync::oneshot::Sender<Result<Reply>>,
+        cancellation: Option<tokio_util::sync::CancellationToken>,
     ) {
         if physical.binding.transport() == rvoip_core::Transport::WebSocket {
             Box::pin(self.webrtc_worker(a, physical, credential, tx)).await;
@@ -263,14 +305,24 @@ impl Runtime {
         };
         let mut lease = None;
         let mut stage = "source";
-        let outcome = Box::pin(self.native_start(
-            a.clone(),
-            physical.clone(),
-            &credential,
-            &mut lease,
-            &mut stage,
-        ))
-        .await;
+        let outcome = {
+            let negotiation = Box::pin(self.native_start(
+                a.clone(),
+                physical.clone(),
+                &credential,
+                &mut lease,
+                &mut stage,
+            ));
+            if let Some(cancel) = &cancellation {
+                tokio::select! {
+                    biased;
+                    _ = cancel.cancelled() => Err(Error::new("cancelled", "Native offer worker was cancelled")),
+                    result = negotiation => result,
+                }
+            } else {
+                negotiation.await
+            }
+        };
         if let Err(error) = &outcome {
             tracing::debug!(stage,code = %error.code, "Native offer did not complete");
         }
@@ -286,9 +338,12 @@ impl Runtime {
             loop {
                 tokio::time::sleep(Duration::from_millis(100)).await;
                 let stopped = self.stop.is_cancelled();
+                let cancelled = cancellation
+                    .as_ref()
+                    .is_some_and(|token| token.is_cancelled());
                 let physical_closed = physical.lifetime.is_cancelled();
                 let route_live = native.is_connection_live(&id);
-                if stopped || physical_closed || !route_live {
+                if stopped || cancelled || physical_closed || !route_live {
                     tracing::debug!(connection = %id, stopped, physical_closed, route_live,
                         "Native custodian observed terminal lifetime");
                     break;

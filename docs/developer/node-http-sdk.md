@@ -170,3 +170,12 @@ helpers/six validators/two servers drain successfully. The run takes33.85seconds
 with8,238 guarded inputs and the executable unchanged. Original4s/15s/90s limits
 remain; no decoded-media or candidate-adoption qualification is inferred. Linux
 qualification and the separate candidate/consultation scenes remain open.
+
+The [ordinary-offer worker foundation](../evidence/gate-6/native-offer-worker-custody.json)
+registers custody before Store/Core start and retains the original lease through
+cancellation and cleanup. Closed lanes allow metadata replay, while panic/timeout
+keeps them closed. Three controlled product-module tests and a full service type
+check pass. The retirement interface has no adoption caller yet: the Store claim,
+exact binding transfer/history/recovery and actual physical regression on these
+changed service sources remain unimplemented or unqualified. The earlier native
+profile 8 and HTTPS evidence applies to its recorded source, not this new code.

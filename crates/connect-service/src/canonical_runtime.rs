@@ -49,6 +49,7 @@ pub(crate) struct Runtime {
     physical: Mutex<Vec<Weak<Physical>>>,
     capacity: usize,
     pub(crate) work: Mutex<tokio::task::JoinSet<()>>,
+    pub(crate) native_workers: crate::canonical_native::workers::Workers,
     pub(crate) credential_refresh_receipts: Mutex<
         std::collections::BTreeMap<
             String,
@@ -210,6 +211,7 @@ impl Runtime {
             invitation_callers: Mutex::new(Default::default()),
             host_configuration_closed: Mutex::new(false),
             work: Mutex::new(tokio::task::JoinSet::new()),
+            native_workers: Default::default(),
             credential_refresh_receipts: Mutex::new(Default::default()),
             stop,
             _retirement: retirement,

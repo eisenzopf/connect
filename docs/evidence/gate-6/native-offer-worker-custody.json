@@ -1,0 +1,42 @@
+{
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "base_commit": "eb155e555feffdd07f7a988fc8ac33e3abe85bf3",
+  "scope": "Ordinary native-offer worker registration and cancellation/join foundation. Registration precedes Store/Core start, guard completion follows original cleanup, closed lanes retain metadata replay only, and panic/timeout remains closed. Actual adoption, new Store claims/CAS/history/recovery and physical native behavior on these changed Service sources remain unqualified.",
+  "sources": {
+    "crates/connect-service/src/canonical_native.rs": {
+      "sha256": "9cb781bc5466f1c4caf7455dc5ede69d8f27a81a86bf5f2997ffb0afbe0323b7",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_native/workers.rs": {
+      "sha256": "2efd4bf9b64080089b7fc3a1f8675b13e65d941e738ad8160731afbe15364cba",
+      "mode": 420
+    },
+    "crates/connect-service/src/canonical_runtime.rs": {
+      "sha256": "83656098a98fa75ddd27ee3bbfa5c01f55d872a51699a785ae9c061529bbe2d6",
+      "mode": 420
+    }
+  },
+  "module_tests": {
+    "passed": true,
+    "scope": "Three actual registry-module custody tests through a private crate importing the product module, not full Service/Core or candidate-adoption qualification.",
+    "module_sha256": "2efd4bf9b64080089b7fc3a1f8675b13e65d941e738ad8160731afbe15364cba",
+    "log_sha256": "f7ba54d82ff2b2e7da2ada6a2bc3f0d64d2086dea8cc83f7287e21d00230ca14",
+    "root_lock_unchanged": true,
+    "functions": 3
+  },
+  "full_service_type_check": {
+    "passed": true,
+    "command": "cargo check --offline --locked -p connect-service",
+    "exit_code": 0,
+    "log_sha256": "5d2e691b41192d1217655a5226f364367f8b7eb4eca56b88629fb075da36a53a",
+    "unused_future_retirement_interface_warnings": 4,
+    "upstream_edits": false
+  },
+  "formatting_passed": true,
+  "candidate_adoption_implemented": false,
+  "physical_runtime_on_changed_service_qualified": false,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false
+}
