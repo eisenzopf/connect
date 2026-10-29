@@ -77,15 +77,31 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install pinned Python type-checking test dependency
-        run: python3 -m pip install --disable-pip-version-check mypy==2.4.0
+        run: |
+          python3 -m pip install --disable-pip-version-check mypy==2.4.0
+          python3 -m pip install --disable-pip-version-check --no-deps --require-hashes -r sdk/python/build-requirements.txt
       - name: Bounded synthetic Python helper and SDK regression checks
         run: python3 sdk/tests/check_python_helper.py --output .local/gate6-python-ci/evidence --types-python "$(command -v python3)"
+      - name: Prepare pinned sources and check isolated Python wheel installation
+        if: ${{ !cancelled() }}
+        run: |
+          bash scripts/prepare-dependencies.sh
+          python3 sdk/tests/check_python_installation.py --output .local/gate6-python-installed-ci/evidence
       - name: Upload source-only Python component evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gate6-python-source-evidence-${{ matrix.python }}
           path: .local/gate6-python-ci/evidence/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload installed Python component evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate6-python-installed-source-evidence-${{ matrix.python }}
+          path: .local/gate6-python-installed-ci/evidence/
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error

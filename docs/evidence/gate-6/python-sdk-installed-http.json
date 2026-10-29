@@ -1,0 +1,67 @@
+{
+  "task": "G6-063",
+  "date": "2026-10-28",
+  "component": "Clean installed Python HTTP worker/runtime subset",
+  "verification": {
+    "passed": true,
+    "scope": "Clean external venv wheel import and actual local synthetic HTTP control/worker ownership through public async and synchronous SDKs. No original native helper/server, restart, named remote or full SDK qualification.",
+    "build_tools": {
+      "setuptools": "80.9.0",
+      "wheel": "0.45.1"
+    },
+    "wheel_sha256": "6c7253a2f912d594cc46245a1e21846864e99af0892c9160e6570370f0cc529c",
+    "wheel_name": "connect_sdk-0.1.0-py3-none-any.whl",
+    "wheel_runtime_files_verified": 36,
+    "source_inputs_unchanged": true,
+    "source_count": 86,
+    "source_inputs_sha256": "67a8e5311649695993a34c46478ddd9610f689b59977b55ee83edc928455cef2",
+    "consumer": {
+      "profile": "connect-python-installed-http/1",
+      "passed": true,
+      "distribution_version": "0.1.0",
+      "python_version": "3.14.7",
+      "isolated_installed_import": true,
+      "typed_marker_installed": true,
+      "async_and_sync_control": true,
+      "fresh_physical_same_original_id": true,
+      "owned_workers_joined": 6,
+      "requests": 6,
+      "native_server_qualified": false,
+      "full_sdk_qualified": false
+    },
+    "consumer_log_sha256": "6f498e263d13b22075c05e07f6ee820d1effb1899ef1ddd1e587a1d20afe3461",
+    "raw_logs_and_temporary_state_excluded_from_artifact": true,
+    "finished_at": "2026-10-29T02:31:48.035207+00:00"
+  },
+  "repeated_build_same_wheel_sha256": "6c7253a2f912d594cc46245a1e21846864e99af0892c9160e6570370f0cc529c",
+  "dependency_preparation": {
+    "passed": true,
+    "source_lock_sha256": "418d50c4103cef3d90060a838df2d26b384e51034c4132f6faf79cc96b1368a2",
+    "upstream_edits": false
+  },
+  "behavior": [
+    "Build using hash-pinned setuptools80.9.0/wheel0.45.1, SOURCE_DATE_EPOCH and a private staged source; wheel runtime36files match guarded source bytes. No runtime third-party dependencies; py.typed installed.",
+    "Install wheel without index/dependencies into new venv without repository PYTHONPATH, run consumer with isolated -I from separate external project; import resolves inside that venv.",
+    "Public async and synchronous canonical HTTP control runs6actual local synthetic requests and6current-interpreter module workers; explicit replay preservesoriginalID/payload withfreshphysicalmetadata, immutableexports independent; alloriginalworkers joined.",
+    "Process phases bounded with processgroup TERM/KILL+wait; rawlogs/privatevenv/source outsideartifact, packageunderignored dist. Linux3.11/3.12/3.13/3.14 independent installed component lane added without hiding earlier component failure."
+  ],
+  "failed_attempts": [
+    {
+      "id": "632-preparation",
+      "result": "ENOSPC prevents even fixture directory/log creation before build. Removed4.1MB own regenerated Python movement cache and163.5MB reproducible pip HTTP download cache, preserving source/state/logs/evidence/installed dependencies/local built wheel cache. Preparation and pinned source verification then pass."
+    }
+  ],
+  "full_sdk_qualified": false,
+  "original_native_helper_qualified": false,
+  "original_server_qualified": false,
+  "restart_current_authority_qualified": false,
+  "linux_installed_matrix_qualified": false,
+  "named_remote_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "limits": [
+    "HTTP worker/package subset only; local responses are synthetic and no native Rust executable/server or restart/current-authorization journey executed.",
+    "Mixedf79 component failures remain open; new Linux installation matrix and current193-function synchronous source need original CI evidence.",
+    "Application HTTP coverage/native helper deployment and complete clean-venv original-server fixture remain required for G6-063."
+  ]
+}

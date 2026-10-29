@@ -456,3 +456,35 @@ task that completed with SDK cancellation while closing the client; retaining
 the initial task set before cleanup now retrieves that completion and closes
 without unexpected async diagnostics. Runner/request deadlines are unchanged.
 The installed original-server and expanded Linux scopes remain open.
+
+[Installed HTTP/runtime evidence](../evidence/gate-6/python-sdk-installed-http.json)
+qualifies a clean local wheel installation of this subset. Build tools are
+hash-pinned in `sdk/python/build-requirements.txt`; the runtime has no third-party
+dependencies. Two staged builds with the same source timestamp produce the same
+wheel digest. All36 runtime files match source bytes, including the HTTP worker
+and `py.typed` marker. The checker installs into a fresh venv, removes repository
+import paths, then invokes an isolated `-I` consumer from an external directory.
+Public async and synchronous HTTP control make six actual local synthetic
+requests; all six installed-module workers use that venv's interpreter and join.
+This proves the HTTP worker can deploy with the wheel. It does not qualify the
+original Rust helper/server, restart, current authorization or the complete SDK.
+The native `Client` and `AdministrativeClient` still require the deployed
+`connect` executable on PATH, or the explicitly selected executable. Their complete
+installed helper journey remains open.
+
+To reproduce, prepare dependencies, create a private build venv, install the
+hash-pinned build requirements there, then run:
+
+```sh
+python3 sdk/tests/check_python_installation.py \
+  --output .local/gate-6/python-installed-check \
+  --build-python .local/python-build/bin/python
+```
+
+The invoking Python needs pip; the clean consumer venv has no repository checkout
+or inherited site packages. Builds, install and consumer phases have explicit
+30s/30s/40s bounds with process-group cleanup on failure. Private logs, staged
+sources and the venv stay under `.local/`; wheels stay under `dist/sdk/python/`.
+The Linux Python matrix publishes installed-component evidence separately from
+core/HTTP test evidence, including when another component fails. Its new source
+still needs execution. No package publication occurs.
