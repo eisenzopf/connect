@@ -1,5 +1,12 @@
 # Python canonical SDK
 
+The installed wheel now also passes real local EdDSA/ES256 handoff and Endpoint
+replacement controls with independent decoded native media, original-reference
+recovery, eight helpers and four servers joined. The consumer uses the default
+`connect` lookup in its isolated installation. See [scoped movement evidence](../evidence/gate-6/python-installed-movements-local.json). All 194 component
+checks and the shared Node launcher regressions pass. Linux selection is wired
+but not yet qualified; this does not close G6-063 or claim Python media ownership.
+
 `connect_sdk.Client` is the asynchronous participant SDK. It owns one lazily
 started `connect sdk-stdio` process using `connect-sdk-helper/4`. The public Rust
 SDK still owns authentication, current authorization, the journal and operation

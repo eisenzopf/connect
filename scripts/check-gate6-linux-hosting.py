@@ -118,6 +118,26 @@ def node_failure_diagnostic(failure):
     assert failure['observedHttpStatus'] is None or type(failure['observedHttpStatus']) is int and 100 <= failure['observedHttpStatus'] <= 599
     return failure
 
+def python_movement_phase_diagnostic(value):
+    assert set(value)=={'algorithm','phase','seconds','deadline_seconds'}
+    assert value['algorithm'] in {'EdDSA','ES256'}
+    assert value['phase'] in {'registered','accepted','completed','stopped','closed'}
+    assert type(value['seconds']) in (int,float) and 0<=value['seconds']<=90
+    assert type(value['deadline_seconds']) is int and value['deadline_seconds']==15
+    return value
+
+
+def python_movement_failure_diagnostic(value):
+    assert set(value)=={'phase','checkpoint','kind','certainty','line','error_type'}
+    assert value['phase']=='failed'
+    assert value['checkpoint'] in {'register','recover','begin','completed','stopped','close','invalid'}
+    assert re.fullmatch(r'[a-z-]{1,64}',value['kind'])
+    assert value['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}',value['certainty'])
+    assert value['line'] is None or type(value['line']) is int and 0<value['line']<100000
+    assert value['error_type'] in {None,'AssertionError','AttributeError','KeyError','TypeError','ValueError','RuntimeError','OSError','TimeoutError'}
+    return value
+
+
 def run(node_sdk=False, python_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -141,6 +161,7 @@ def run(node_sdk=False, python_sdk=False):
         python_package = prepare_python(PRIVATE / 'python-native')
         os.environ['CONNECT_GATE6_PYTHON'] = str(ROOT / python_package['python'])
         os.environ['CONNECT_GATE6_PYTHON_CONSUMER'] = str(ROOT / python_package['consumer'])
+        os.environ['CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER'] = str(ROOT / python_package['movement_consumer'])
     before = sources()
     (EVIDENCE / "source-inputs.json").write_text(json.dumps(before, indent=2) + "\n")
     report = {"passed": False, "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -269,6 +290,13 @@ def run(node_sdk=False, python_sdk=False):
                 assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
                 assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
                 step['node_movement_failures'].append(failure)
+        step['python_movement_phases'] = []
+        step['python_movement_failures'] = []
+        for line in text.splitlines():
+            if line.startswith('installed-python-movement-phase '):
+                step['python_movement_phases'].append(python_movement_phase_diagnostic(json.loads(line.split(' ',1)[1])))
+            if line.startswith('installed-python-movement-failure '):
+                step['python_movement_failures'].append(python_movement_failure_diagnostic(json.loads(line.split(' ',1)[1])))
         step['node_administrative_phases'] = []
         step['node_administrative_failures'] = []
         step['node_administrative_drain_failures'] = []
@@ -593,6 +621,26 @@ def run(node_sdk=False, python_sdk=False):
                 'profile': 'python-native/1', 'results': results, 'request_budget_ms': 4000,
                 'phase_deadline_seconds': 15, 'whole_function_deadline_seconds': 90,
                 'scope': 'Clean installed wheel, original signed native Rust helper/server, saved reference and finite journal across actual server restart, current revocation, exact one-effect and joined original processes. No decoded media, named remote/provider/model or full SDK qualification.'}
+            movements=[]
+            for algorithm,label in (('EdDSA','eddsa'),('ES256','es256')):
+                for suffix in ('session_handoff_observe','move_speaker'):
+                    name=f'installed_python_{label}_{suffix}'
+                    case='canonical_native_connections::consultation::groups::sdk_movements::'+name
+                    text=sdk_case('installed-python-movement-'+name,case,environment={'CONNECT_GATE6_PYTHON_MOVEMENTS':'1'})
+                    if text is None:
+                        movements.append({'scenario':name,'algorithm':algorithm,'passed':False})
+                        continue
+                    assert re.findall(r'test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored;',text)==[('1','0','0')]
+                    witnesses=[json.loads(line.split('installed-python-movement-witness ',1)[1]) for line in text.splitlines() if 'installed-python-movement-witness ' in line]
+                    assert len(witnesses)==1
+                    witness=witnesses[0]
+                    assert witness['profile']=='python-movements/1' and witness['scenario']==name and witness['algorithms']==[algorithm]
+                    assert (witness['cases'],witness['helpers_joined'],witness['servers_joined'])==(1,2,1)
+                    assert witness['physical_peers_drained'] and witness['media_readers_drained']
+                    movements.append(dict(witness,passed=True))
+            report['installed_python_movements']={'passed':all(v['passed'] for v in movements),'profile':'python-movements/1',
+                'results':movements,'request_budget_ms':4000,'phase_deadline_seconds':15,'whole_function_deadline_seconds':90,
+                'scope':'Installed wheel/default PATH helper public handoff and Endpoint device replacement; independent actual native media, original-reference recovery and process/server joins. No programmatic Python media, named remote/provider/model or full SDK qualification.'}
         report['sdk_failures'] = sdk_failures
         assert not sdk_failures, 'Required installed SDK behavior failed; all independent scenes retained'
         report["behavior_passed"] = True

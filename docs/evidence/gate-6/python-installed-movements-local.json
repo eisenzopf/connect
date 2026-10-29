@@ -1,0 +1,244 @@
+{
+  "schema": "connect-gate6-python-installed-movements/1",
+  "task": "G6-063",
+  "date": "2026-10-29",
+  "base_commit": "294d14b4623d78596dc03e85b6b355f437ae079c",
+  "passed": true,
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper public handoff/device-move controls and independent decoded native media; no programmatic Python media, complete Python SDK, Linux/remote/provider/model or acceptance qualification.",
+  "current_runtime": {
+    "passed": true,
+    "results": [
+      {
+        "scenario": "installed_python_eddsa_session_handoff_observe",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 35.24925845814869,
+        "log_sha256": "4558b1e7a3e60cf6f84d7a3f5f5ee12923480000dc4c9697bef265e06ed8b3bc",
+        "witnesses": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "python-movements/1",
+            "scenario": "installed_python_eddsa_session_handoff_observe",
+            "servers_joined": 1
+          }
+        ]
+      },
+      {
+        "scenario": "installed_python_eddsa_move_speaker",
+        "algorithm": "EdDSA",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 40.68376358295791,
+        "log_sha256": "af16037730dc34a815c7d62dda250abafd4c2ca56a282c213160aa401472f78b",
+        "witnesses": [
+          {
+            "algorithms": [
+              "EdDSA"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "python-movements/1",
+            "scenario": "installed_python_eddsa_move_speaker",
+            "servers_joined": 1
+          }
+        ]
+      },
+      {
+        "scenario": "installed_python_es256_session_handoff_observe",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 32.70653041708283,
+        "log_sha256": "f3b647c1f1cb2b1c4a4eee4a4057fbfd500de9fa163fc031fd0c8fe91600b6cd",
+        "witnesses": [
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "python-movements/1",
+            "scenario": "installed_python_es256_session_handoff_observe",
+            "servers_joined": 1
+          }
+        ]
+      },
+      {
+        "scenario": "installed_python_es256_move_speaker",
+        "algorithm": "ES256",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "remaining_failed_group_terminated": false,
+        "seconds": 40.76566999987699,
+        "log_sha256": "e732246992abf877c37173215ed0ff57d83d5bbacfad4978ec4a970efaea8e4c",
+        "witnesses": [
+          {
+            "algorithms": [
+              "ES256"
+            ],
+            "cases": 1,
+            "helpers_joined": 2,
+            "media_readers_drained": true,
+            "physical_peers_drained": true,
+            "profile": "python-movements/1",
+            "scenario": "installed_python_es256_move_speaker",
+            "servers_joined": 1
+          }
+        ]
+      }
+    ],
+    "seconds": 150.1053860001266,
+    "source_inputs_unchanged": true,
+    "source_count": 8253,
+    "source_inputs_sha256": "3182e70773cccf4e981d64af8e9bf84011e0ae1385718ce6a18b5fbb37d96ebf",
+    "executable_sha256": "d24117b7456dd379229fbbae348e243d0d8478e3dbd8c63017b641888b886cc9",
+    "installed_wheel_sha256": "44ab11606bfae3345eaeb80bcf56f72b62a4ac7be2c33a0ba08bc38c0326fd31",
+    "python_version": "3.14.7",
+    "request_budget_ms": 4000,
+    "phase_deadline_seconds": 15,
+    "whole_function_deadline_seconds": 90,
+    "scope": "Actual local macOS arm64 installed Python wheel/default PATH helper public handoff/device-move controls and independent decoded native media; no programmatic Python media, complete Python SDK, Linux/remote/provider/model or acceptance qualification."
+  },
+  "owned_join_totals": {
+    "helpers": 8,
+    "servers": 4
+  },
+  "component": {
+    "passed": true,
+    "functions_passed": 194,
+    "seconds": 61.73158024996519,
+    "source_inputs_unchanged": true,
+    "source_inputs_sha256": "36caceda34508899d38dc35f14c935e237b1fe344256ae34e2631b70da2ca8e3",
+    "phases": {
+      "core": {
+        "exit_code": 0,
+        "budget_seconds": 60,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 42.60406208294444,
+        "log_sha256": "12b3b2797e31a5b414863cd8b31665e62202f008c124988112be6afdb4c12333"
+      },
+      "http": {
+        "exit_code": 0,
+        "budget_seconds": 30,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 14.393831375055015,
+        "log_sha256": "5b44ced432a4150a4b2d59b6238b9b43ee777cd13a2cec1325b751b4ce7b7ea2"
+      },
+      "http-lifetime": {
+        "exit_code": 0,
+        "budget_seconds": 10,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "seconds": 4.695545999798924,
+        "log_sha256": "8842196c36c311f12966cf0c9ca40977035298f7d980012d1ee93724e7ced400"
+      }
+    },
+    "failed_functions": [],
+    "unexpected_async_diagnostics": false
+  },
+  "ci_diagnostics_checks": 8,
+  "ci_lane_added": true,
+  "ci_lane_executed_on_linux": false,
+  "ci_refresh": {
+    "build_passed": true,
+    "source_count": 8253,
+    "source_inputs_sha256": "d61b816db7a0ae51e742a3a5ebe9a6d9fb7694f5316fd7c81d67f70c3754d4e3",
+    "executables_identical": true,
+    "only_input_changes_after_runtime": [
+      "scripts/check-gate6-linux-hosting.py",
+      "scripts/tests/test_gate6_linux_diagnostics.py"
+    ]
+  },
+  "node_shared_launcher_regression": [
+    {
+      "scenario": "installed_node_eddsa_session_handoff_observe",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "d61b816db7a0ae51e742a3a5ebe9a6d9fb7694f5316fd7c81d67f70c3754d4e3",
+      "seconds": 36.05307720787823,
+      "test_executable_sha256": "d24117b7456dd379229fbbae348e243d0d8478e3dbd8c63017b641888b886cc9",
+      "witnesses": [
+        {
+          "algorithms": [
+            "EdDSA"
+          ],
+          "cases": 1,
+          "helpers_joined": 2,
+          "media_readers_drained": true,
+          "physical_peers_drained": true,
+          "profile": "node-movements/3",
+          "scenario": "installed_node_eddsa_session_handoff_observe",
+          "servers_joined": 1
+        }
+      ]
+    },
+    {
+      "scenario": "installed_node_es256_move_speaker",
+      "passed": true,
+      "source_inputs_unchanged": true,
+      "source_inputs_sha256": "d61b816db7a0ae51e742a3a5ebe9a6d9fb7694f5316fd7c81d67f70c3754d4e3",
+      "seconds": 41.48048829101026,
+      "test_executable_sha256": "d24117b7456dd379229fbbae348e243d0d8478e3dbd8c63017b641888b886cc9",
+      "witnesses": [
+        {
+          "algorithms": [
+            "ES256"
+          ],
+          "cases": 1,
+          "helpers_joined": 2,
+          "media_readers_drained": true,
+          "physical_peers_drained": true,
+          "profile": "node-movements/3",
+          "scenario": "installed_node_es256_move_speaker",
+          "servers_joined": 1
+        }
+      ]
+    }
+  ],
+  "retained_fixture_failures": [
+    {
+      "run": "797",
+      "handoff_passed": 2,
+      "move_failed": 2,
+      "reason": "Optional empty payload_extensions was omitted by Rust serialization; new consumer indexed it directly before submitting the move. No SDK API fault inferred."
+    },
+    {
+      "run": "800",
+      "move_failed": 2,
+      "structured_location": {
+        "line": 85,
+        "error_type": "KeyError"
+      },
+      "fix": "Default absent payload_extensions to an empty map, preserving the same canonical intent and original mutation IDs; final four cases pass."
+    }
+  ],
+  "deployment": "Clean installed wheel runtime and isolated interpreter; Client(config) uses matching trusted connect on the fixture private PATH. No checkout imports or executable override in consumer. SDK runtime module bytes remain identical to the verified installed wheel. Full candidate assets/installation parity remain G6-069/G6-070.",
+  "remaining": "Complete Python control journey, incoming/event/error/recovery and synchronous/asynchronous integration scope remain G6-063. Programmatic media is G6-064; complete installed language/facade/platform matrix is G6-070."
+}

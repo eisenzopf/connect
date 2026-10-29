@@ -10,6 +10,7 @@ struct Process {
     output: Lines<BufReader<ChildStdout>>,
     algorithm: String,
     mode: String,
+    language: &'static str,
     helpers: usize,
 }
 impl Process {
@@ -23,7 +24,9 @@ impl Process {
         assert!(line.len() <= 8192);
         let value: Value = serde_json::from_str(&line).unwrap();
         if value["phase"] == "failed" {
-            let prefix = if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
+            let prefix = if self.language == "python" {
+                "installed-python-movement-failure"
+            } else if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
                 "installed-node-movement-failure"
             } else {
                 "installed-node-consultation-failure"
@@ -31,7 +34,9 @@ impl Process {
             eprintln!("{prefix} {value}");
         }
         assert_eq!(value["phase"], expected);
-        let prefix = if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
+        let prefix = if self.language == "python" {
+            "installed-python-movement-phase"
+        } else if matches!(self.mode.as_str(), "handoff" | "move" | "move-recovery") {
             "installed-node-movement-phase"
         } else {
             "installed-node-consultation-phase"
@@ -80,6 +85,7 @@ async fn start_configured(
     consumer_env: &str,
     initial: &str,
 ) -> (Process, Value) {
+    let python = consumer_env == "CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER";
     let token = config.credential.clone();
     let script = PathBuf::from(std::env::var_os(consumer_env).unwrap())
         .canonicalize()
@@ -119,7 +125,28 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
     .unwrap();
     let stderr = f.temp.path().join(format!("node-consult-{mode}.stderr"));
     init::private_write(&stderr, b"").unwrap();
-    let mut child = tokio::process::Command::new("node")
+    let mut command = if python {
+        let interpreter = PathBuf::from(std::env::var_os("CONNECT_GATE6_PYTHON").unwrap());
+        assert!(interpreter.is_absolute() && interpreter.is_file());
+        let bin = f.temp.path().join(format!("python-{mode}-bin"));
+        std::fs::create_dir_all(&bin).unwrap();
+        if !bin.join("connect").exists() {
+            std::os::unix::fs::symlink(&wrapper, bin.join("connect")).unwrap();
+        }
+        let mut paths = vec![bin];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+        let mut command = tokio::process::Command::new(interpreter);
+        command
+            .arg("-I")
+            .env("PATH", std::env::join_paths(paths).unwrap())
+            .env_remove("PYTHONPATH")
+            .env_remove("PYTHONHOME")
+            .env_remove("PYTHONUSERBASE");
+        command
+    } else {
+        tokio::process::Command::new("node")
+    };
+    let mut child = command
         .arg(&script)
         .arg(input)
         .env("CONNECT_G6_NODE_PID_FILE", &pid_file)
@@ -139,6 +166,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
         output,
         algorithm: f.client.signing_algorithm.clone(),
         mode: mode.into(),
+        language: if python { "python" } else { "node" },
         helpers: 1,
     };
     let value = process.phase(initial).await;
@@ -260,8 +288,27 @@ impl MovementProbe {
         MOVEMENT_SERVERS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     }
     pub(in crate::canonical_native_connections::consultation) fn enabled() -> bool {
-        std::env::var_os("CONNECT_GATE6_NODE_MOVEMENTS").as_deref()
-            == Some(std::ffi::OsStr::new("1"))
+        let node = std::env::var_os("CONNECT_GATE6_NODE_MOVEMENTS").as_deref()
+            == Some(std::ffi::OsStr::new("1"));
+        let python = std::env::var_os("CONNECT_GATE6_PYTHON_MOVEMENTS").as_deref()
+            == Some(std::ffi::OsStr::new("1"));
+        assert!(
+            !(node && python),
+            "Select exactly one installed SDK movement lane"
+        );
+        node || python
+    }
+    pub(in crate::canonical_native_connections::consultation) fn python() -> bool {
+        Self::enabled()
+            && std::env::var_os("CONNECT_GATE6_PYTHON_MOVEMENTS").as_deref()
+                == Some(std::ffi::OsStr::new("1"))
+    }
+    fn consumer_env() -> &'static str {
+        if Self::python() {
+            "CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER"
+        } else {
+            "CONNECT_GATE6_NODE_MOVEMENT_CONSUMER"
+        }
     }
     pub(in crate::canonical_native_connections::consultation) async fn register(
         f: &Fixture,
@@ -280,7 +327,7 @@ impl MovementProbe {
             config,
             mode,
             json!({"command":command,"consultation":consultation}),
-            "CONNECT_GATE6_NODE_MOVEMENT_CONSUMER",
+            Self::consumer_env(),
             "registered",
         )
         .await;
@@ -333,7 +380,7 @@ impl MovementProbe {
             config,
             "move-recovery",
             json!({"reference":reference,"state":state}),
-            "CONNECT_GATE6_NODE_MOVEMENT_CONSUMER",
+            Self::consumer_env(),
             "stopped",
         )
         .await;

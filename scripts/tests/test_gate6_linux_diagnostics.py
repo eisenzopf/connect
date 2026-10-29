@@ -9,6 +9,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 check = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['node_failure_diagnostic']
 progress = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['node_progress_diagnostic']
+python_movement = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_movement_failure_diagnostic']
+python_phase = runpy.run_path(str(ROOT/'scripts/check-gate6-linux-hosting.py'))['python_movement_phase_diagnostic']
 
 
 def failure(checkpoint='events-bootstrap'):
@@ -18,6 +20,20 @@ def failure(checkpoint='events-bootstrap'):
 
 
 class InstalledFailureDiagnostics(unittest.TestCase):
+    def test_python_movement_diagnostics_keep_only_bounded_source_locations(self):
+        value=dict(phase='failed',checkpoint='begin',kind='consumer-assertion',certainty=None,line=85,error_type='KeyError')
+        self.assertEqual(python_movement(value),value)
+        for invalid in [dict(value,message='private payload'),dict(value,credential='private'),dict(value,line=True),
+                        dict(value,line=100000),dict(value,error_type='private account'),dict(value,checkpoint='/private/config')]:
+            with self.assertRaises(AssertionError):python_movement(invalid)
+
+    def test_python_movement_phases_preserve_the_original_bounds(self):
+        value=dict(algorithm='ES256',phase='completed',seconds=2.5,deadline_seconds=15)
+        self.assertEqual(python_phase(value),value)
+        for invalid in [dict(value,seconds=True),dict(value,seconds=float('nan')),dict(value,seconds=91),
+                        dict(value,deadline_seconds=30),dict(value,phase='private payload')]:
+            with self.assertRaises(AssertionError):python_phase(invalid)
+
     def test_relative_progress_accepts_fixed_stages_without_payloads_or_private_paths(self):
         for algorithm in ['EdDSA','ES256']:
             for stage in ['session-finish','events-bootstrap','events-original','events-resume']:

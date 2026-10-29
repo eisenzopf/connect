@@ -672,12 +672,23 @@ pub(super) fn shutdown_joined(node: bool) {
     }
 }
 fn node_witness(scenario: &str, algorithms: &[&str], cases: usize) {
+    let python = super::super::sdk_controls::NodeMovementProbe::python();
+    assert!(scenario.starts_with(if python {
+        "installed_python_"
+    } else {
+        "installed_node_"
+    }));
     let (helpers, servers) = super::super::sdk_controls::NodeMovementProbe::joined();
     assert_eq!(helpers, cases * 2);
     assert_eq!(servers, cases);
     eprintln!(
-        "installed-node-movement-witness {}",
-        json!({"profile":"node-movements/3","scenario":scenario,
+        "{} {}",
+        if python {
+            "installed-python-movement-witness"
+        } else {
+            "installed-node-movement-witness"
+        },
+        json!({"profile":if python {"python-movements/1"} else {"node-movements/3"},"scenario":scenario,
         "algorithms":algorithms,"helpers_joined":helpers,"servers_joined":servers,"cases":cases,
         "physical_peers_drained":true,"media_readers_drained":true})
     );
@@ -881,3 +892,47 @@ async fn installed_node_es256_move_candidate() {
     super::replacement::exercise_node_candidate_replacement_case("ES256").await;
     node_witness("installed_node_es256_move_candidate", &["ES256"], 1);
 }
+
+async fn python_movement_case(algorithm: &'static str, scenario: &str, handoff: bool) {
+    assert!(super::super::sdk_controls::NodeMovementProbe::python());
+    assert!(std::env::var_os("CONNECT_GATE6_PYTHON_MOVEMENT_CONSUMER").is_some());
+    if handoff {
+        super::handoff::handoff_case_with_sdk(
+            connect_protocol::transitions::OutgoingDisposition::Observe,
+            connect_protocol::transitions::RoleScope::Session,
+            false,
+            Some(algorithm),
+        )
+        .await;
+    } else {
+        super::replacement::exercise_node_replacement_case(
+            algorithm,
+            true,
+            false,
+            (false, false, false),
+        )
+        .await;
+    }
+    node_witness(scenario, &[algorithm], 1);
+}
+macro_rules! python_movement_case {
+    ($name:ident,$algorithm:literal,$handoff:literal) => {
+        #[tokio::test]
+        #[ignore = "Requires installed Python movement consumer and explicit CONNECT_GATE6_PYTHON_MOVEMENTS=1"]
+        async fn $name() {
+            python_movement_case($algorithm,stringify!($name),$handoff).await;
+        }
+    };
+}
+python_movement_case!(
+    installed_python_eddsa_session_handoff_observe,
+    "EdDSA",
+    true
+);
+python_movement_case!(
+    installed_python_es256_session_handoff_observe,
+    "ES256",
+    true
+);
+python_movement_case!(installed_python_eddsa_move_speaker, "EdDSA", false);
+python_movement_case!(installed_python_es256_move_speaker, "ES256", false);
