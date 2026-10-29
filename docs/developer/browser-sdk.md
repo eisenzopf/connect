@@ -1077,7 +1077,7 @@ return forms have been removed to match the approved TypeScript contract.
 all 25 mapped method surfaces, actual compiler witnesses and remaining gaps.
 The current browser shutdown still retires synchronously through `close()`;
 the frozen bounded asynchronous `close(options)` contract needs implementation
-and cleanup evidence. The declaration-only cross-language return samples also
-need a second private Participant to match the protocol minimum. These findings
+and cleanup evidence. The shared cross-language return samples now include owner and assistant;
+[their four compiler checks](../evidence/gate-6/browser-sdk-return-outlines.json) pass. Shutdown and the prior Screen finding
 keep G6-061 in progress; passing method-presence checks do not qualify runtime
 parity, shutdown or successful live movement media.

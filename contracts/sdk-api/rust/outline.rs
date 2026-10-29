@@ -260,7 +260,7 @@ pub async fn return_consultation<A: Api>(
                 retain: context.retained.id().clone(),
                 with_participants: NonEmpty {
                     first: context.owner.id().clone(),
-                    rest: vec![],
+                    rest: vec![context.assistant.id().clone()],
                 },
                 hold: Hold::Silence,
                 expected_topology_revision: current.topology_revision,

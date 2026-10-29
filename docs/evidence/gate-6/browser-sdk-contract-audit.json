@@ -465,5 +465,12 @@
   "known_findings": [
     "CLI15second positive-provisioning timeout, three unchanged full-tree TS format findings, cached debug-strip ENOSPC/linker warnings; no release/performance/full Rust workspace claim."
   ],
-  "privacy": "Runtime logs/state/credentials/browser profiles remain ignored; public audit contains declaration source, hashes and synthetic counts only. No new model/account/provider/named remote execution or agents."
+  "privacy": "Runtime logs/state/credentials/browser profiles remain ignored; public audit contains declaration source, hashes and synthetic counts only. No new model/account/provider/named remote execution or agents.",
+  "resolutions": {
+    "single-participant-return-outline": {
+      "evidence": "docs/evidence/gate-6/browser-sdk-return-outlines.json",
+      "resolved": true,
+      "scope": "Shared declaration-only samples corrected; four compiler targets pass six negative cases each. Runtime qualification remains separate."
+    }
+  }
 }

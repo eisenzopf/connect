@@ -1,0 +1,211 @@
+{
+  "schema": "connect-gate6-sdk-contract-outlines/1",
+  "task": "G6-061",
+  "passed": true,
+  "scope": "Declaration-only target contract; Rust, browser/Node TypeScript, Python static outlines and six negative constraints per compiler target. No SDK runtime, package, media, transport or acceptance qualification.",
+  "candidate_finalized": true,
+  "versions": {
+    "typescript": "Version 7.0.2",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "python": "3.14.7",
+    "python_typecheck_target": "3.12",
+    "mypy": "2.4.0"
+  },
+  "checks": [
+    {
+      "name": "tsc-version",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/sdk/typescript/node_modules/.bin/tsc",
+        "--version"
+      ],
+      "exit": 0,
+      "log_sha256": "41024334022fa58f9c7337359517de307cbcfc6055c19f2b734245eacc2fe97a"
+    },
+    {
+      "name": "rustc-version",
+      "command": [
+        "rustc",
+        "--version"
+      ],
+      "exit": 0,
+      "log_sha256": "4ad84f16acc2f3bdcfbc7b0788f1e74a4e649b962154a585b8f8d0b28eb0dd06"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/format.sh",
+        "--check"
+      ],
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "browser-positive",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/sdk/typescript/node_modules/.bin/tsc",
+        "-p",
+        "contracts/sdk-api/typescript/browser.tsconfig.json"
+      ],
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "node-positive",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/sdk/typescript/node_modules/.bin/tsc",
+        "-p",
+        "contracts/sdk-api/typescript/node.tsconfig.json"
+      ],
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "python-positive",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+        "-m",
+        "mypy",
+        "--strict",
+        "--python-version",
+        "3.12",
+        "--warn-unused-ignores",
+        "--cache-dir",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/mypy-cache",
+        "contracts/sdk-api/python/contract.py",
+        "contracts/sdk-api/python/outline.py",
+        "contracts/sdk-api/python/negative.py"
+      ],
+      "exit": 0,
+      "log_sha256": "8228fcc5ce46d42d01caf3cd941f4e9c5f2bcc372bb5b147a2f0572d2dd675a8"
+    },
+    {
+      "name": "rust-positive",
+      "command": [
+        "rustc",
+        "--edition=2024",
+        "--crate-type=lib",
+        "--crate-name",
+        "gate6_sdk_contract",
+        "contracts/sdk-api/rust/outline.rs",
+        "--out-dir",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/rust-target"
+      ],
+      "exit": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "browser-negative",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/sdk/typescript/node_modules/.bin/tsc",
+        "--pretty",
+        "false",
+        "-p",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/negative/typescript/browser.tsconfig.json"
+      ],
+      "exit": 1,
+      "log_sha256": "587f9ba9fe360d7d3a8ae72524c8377095b6d62ee7c6ed880ac645403e96bc01"
+    },
+    {
+      "name": "node-negative",
+      "command": [
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/sdk/typescript/node_modules/.bin/tsc",
+        "--pretty",
+        "false",
+        "-p",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/negative/typescript/node.tsconfig.json"
+      ],
+      "exit": 1,
+      "log_sha256": "587f9ba9fe360d7d3a8ae72524c8377095b6d62ee7c6ed880ac645403e96bc01"
+    },
+    {
+      "name": "python-negative",
+      "command": [
+        "/Volumes/D2-2019/Developer/Connect/.local/gate-6/verification-venv/bin/python",
+        "-m",
+        "mypy",
+        "--strict",
+        "--python-version",
+        "3.12",
+        "--warn-unused-ignores",
+        "--cache-dir",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/mypy-cache",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/negative/python/negative.py"
+      ],
+      "exit": 1,
+      "log_sha256": "ed493d689ee2511a7e4179db45715bc176f5f734c0863e16242e591e05b5ee03"
+    },
+    {
+      "name": "rust-negative",
+      "command": [
+        "rustc",
+        "--edition=2024",
+        "--crate-type=lib",
+        "--crate-name",
+        "gate6_sdk_contract_negative",
+        "--error-format=json",
+        "contracts/sdk-api/rust/negative.rs",
+        "--out-dir",
+        "/Users/jonathaneisenzopf/.codex/worktrees/private-sip-lifetime/Connect/.local/gate-6/browser1214-outlines/rust-target"
+      ],
+      "exit": 1,
+      "log_sha256": "37b099cadccecdc5ad9ade54706255668b254544289f3d5afc0be74e654cbb5b"
+    }
+  ],
+  "negative_diagnostics": {
+    "browser": [
+      "TS2322",
+      "TS2322",
+      "TS2322",
+      "TS2741",
+      "TS2339",
+      "TS2322"
+    ],
+    "node": [
+      "TS2322",
+      "TS2322",
+      "TS2322",
+      "TS2741",
+      "TS2339",
+      "TS2322"
+    ],
+    "python": [
+      "assignment",
+      "assignment",
+      "call-arg",
+      "call-arg",
+      "attr-defined",
+      "arg-type"
+    ],
+    "rust": [
+      "E0308",
+      "E0308",
+      "E0061",
+      "E0063",
+      "E0599",
+      "E0277"
+    ]
+  },
+  "inputs_sha256": {
+    "contracts/sdk-api/README.md": "0ccba45fd75beff2d609fe3b25e3c206d774cce28f757b18fbf18c35772db836",
+    "contracts/sdk-api/python/contract.py": "30037a5fb0a413392cd8cb7415fa4734e3939c9dd191069afbd1d96d03bd6e03",
+    "contracts/sdk-api/python/negative.py": "1d532cadbf1738c5aed643ac2dcacf60914f60f6abcaf715b75c6543e367c5d0",
+    "contracts/sdk-api/python/outline.py": "556df4a36656e9ded6d71d8e73c558ca47b8c91438d0c4db4591f5ad4dbc1b10",
+    "contracts/sdk-api/rust/contract.rs": "eef8d68c623c712c999827652c69ad8ed3d0d5bb5034e3f057f4b584e02ad6f8",
+    "contracts/sdk-api/rust/negative.rs": "26f949a3401e53c25d9a649df79559e99e705e4ed3c8bea14dd7fbfa2bc7f97c",
+    "contracts/sdk-api/rust/outline.rs": "859605320868b67ddf4ae1e5c0ccfd4fe4a3230471c2e09c6b71a9808a5e68e2",
+    "contracts/sdk-api/typescript/browser.tsconfig.json": "0bbb4b46d4a74fbd787a13c85e60459e6054db4f261ad62a97c39fae4e7bcc37",
+    "contracts/sdk-api/typescript/contract.ts": "97f65235ac4dd9c24aa081584e23533f8ab26c7007a50217e05a9f8de8f6f297",
+    "contracts/sdk-api/typescript/negative.ts": "284001c2bf193ae72ee1713d541a7a29d8d740df13ce9eda4681ce78d80f156f",
+    "contracts/sdk-api/typescript/node.tsconfig.json": "8758e6bdb14d4ba1f11ee54d05a28c29047347fcb5e1fd152e7073fbde5f14b5",
+    "contracts/sdk-api/typescript/outline.ts": "d29674ab0a05715cdea4742fd25c03ae749e9804f73a862d9f346ac0432abccf",
+    "contracts/sdk-gate-6-api.json": "bf6146f279039c759633a9575d4dbb2c16b1642dd2ed0a1368d9094b2b2fa3f4",
+    "scripts/check-gate6-sdk-outlines.py": "1ae545b61df68278deaede31053c4561d0494214d06c86faa92bfff4a170bf1a",
+    "scripts/format.sh": "80e27ea09bbe7722eddf8ecad088a271fa4e337cce0cb3df7cb3538fc7148758",
+    "sdk/typescript/package-lock.json": "35956072de727d1e262cd6ac07428ebafb75f1c32b5b16969cf640a11122d1af"
+  },
+  "inputs_unchanged": true,
+  "checked_at": "2026-10-29T20:59:12.707297+00:00",
+  "change": "Return-consultation samples include owner and assistant, matching the canonical minimum of two distinct private Participants.",
+  "runtime_qualified": false
+}

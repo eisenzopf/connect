@@ -108,7 +108,7 @@ async def capability_refusal(client: ParticipantClient, wait: RequestOptions) ->
 
 async def return_consultation(context: Context, saved: SavedJourney, wait: RequestOptions) -> None:
     current = await context.session.refresh(wait)
-    consultation = await context.session.consult(ConsultInput(context.control.id, context.retained.id, NonEmpty(context.owner.id), 'silence', current.topology_revision), MutationOptions(saved.consult, wait))
+    consultation = await context.session.consult(ConsultInput(context.control.id, context.retained.id, NonEmpty(context.owner.id, [context.assistant.id]), 'silence', current.topology_revision), MutationOptions(saved.consult, wait))
     await consultation.wait_until_ready(wait)
     before_return = await context.session.refresh(wait)
     await (await consultation.return_to_retained(before_return.topology_revision, MutationOptions(saved.return_consult, wait))).wait(wait)

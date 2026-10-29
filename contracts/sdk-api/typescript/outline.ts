@@ -222,7 +222,7 @@ export async function returnConsultation(
         {
             via: context.control.id,
             retain: context.retained.id,
-            with: { first: context.owner.id, rest: [] },
+            with: { first: context.owner.id, rest: [context.assistant.id] },
             hold: "silence",
             expectedTopologyRevision: current.topologyRevision,
         },
