@@ -78,5 +78,5 @@ cases. An original signed target creates a preparing Connection at its separate
 Endpoint; Node selects that exact ID and must still obtain the original managed
 replacement ticket, generation-two IO and strict media boundaries. The expanded
 matrix has26 cases,52 helpers and26 servers. All24 original cases remain required;
-the two new cases await Linux execution. See
+the two new cases fail the preparation-row check on both Linux matrices at exact94. Ordinary pending offer metadata has no current observed runtime until readiness, while replacement currently requires preparing plus that runtime. Public candidate preparation/adoption remains unresolved. See
 [the candidate evidence record](../evidence/gate-6/node-move-candidate.json).

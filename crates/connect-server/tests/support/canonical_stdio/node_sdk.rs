@@ -119,7 +119,7 @@ os.execv(os.environ['CONNECT_G6_NODE_CONNECT'],[os.environ['CONNECT_G6_NODE_CONN
                     Err(_) => {
                         eprintln!(
                             "installed-typed-node-sdk-failure {}",
-                            json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"command":null,"observedState":null,"line":null,"column":null})
+                            json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"command":null,"observedState":null,"observedKind":null,"observedCertainty":null,"observedHttpStatus":null,"line":null,"column":null})
                         );
                         panic!("Original Node phase deadline elapsed");
                     }

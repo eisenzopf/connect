@@ -64,15 +64,31 @@ async fn run(algorithm: &str) {
         lines: &mut tokio::io::Lines<BufReader<tokio::process::ChildStdout>>,
         name: &str,
     ) -> Value {
-        let line = tokio::time::timeout(Duration::from_secs(15), lines.next_line())
-            .await
-            .unwrap()
-            .unwrap()
-            .unwrap();
-        assert!(line.len() < 4096);
-        let value: Value = serde_json::from_str(&line).unwrap();
-        assert_eq!(value["phase"], name);
-        value
+        let until = tokio::time::Instant::now() + Duration::from_secs(15);
+        let mut checkpoint = "https-snapshot".to_owned();
+        loop {
+            let line = match tokio::time::timeout_at(until, lines.next_line()).await {
+                Ok(line) => line.unwrap().expect("Node HTTPS phase result"),
+                Err(_) => {
+                    eprintln!(
+                        "installed-typed-node-sdk-failure {}",
+                        json!({"phase":"failed","checkpoint":checkpoint,"kind":"deadline","certainty":null,"command":null,"observedState":null,"observedKind":null,"observedCertainty":null,"observedHttpStatus":null,"line":null,"column":null})
+                    );
+                    panic!("Original Node HTTPS phase deadline elapsed");
+                }
+            };
+            assert!(line.len() < 4096);
+            let value: Value = serde_json::from_str(&line).unwrap();
+            if value["phase"] == "progress" {
+                checkpoint = value["checkpoint"].as_str().unwrap().to_owned();
+                continue;
+            }
+            if value["phase"] == "failed" {
+                eprintln!("installed-typed-node-sdk-failure {}", value);
+            }
+            assert_eq!(value["phase"], name);
+            return value;
+        }
     }
     let initial = phase(&mut lines, "initial").await;
     for field in [

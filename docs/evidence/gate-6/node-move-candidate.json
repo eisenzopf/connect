@@ -2,7 +2,7 @@
   "format": 1,
   "task": "G6-062",
   "date": "2026-10-28",
-  "status": "public-preparing-candidate-native-scene-implemented-runtime-pending",
+  "status": "public-candidate-preparation-fails-runtime-predicate",
   "implementation_parent_commit": "a277f06e07e50dc1bf9962c8793754fd6c44a909",
   "native_component_passed": false,
   "full_sdk_qualified": false,
@@ -34,12 +34,13 @@
     "runner_python_syntax_passed": true,
     "26_exact_unique_names_bound_to_rust_declarations": true,
     "local_rust_build": "skipped: retained disk exhaustion; Linux required",
-    "native_execution": "pending"
+    "native_execution": "Exact94 both Node22/26 and both EdDSA/ES256 fail replacement343:13 before candidate movement; see node-native-94.json."
   },
   "source_sha256": {
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/replacement.rs": "2a0bfb6914d931e8c87e437afdd33739154f714f428cd63e65cd8bf7256db93f",
     "crates/connect-server/tests/support/canonical_native_connections/consultation/groups/sdk_movements.rs": "4005c82576f4db30517ea7512410c1e7e61c155c965a79b9cb5ad44fbbbe5ebc",
     "sdk/tests/node_movement_server_consumer.mjs": "c9eaed4bbd1ec022d057adf7e5a67719bc95c6c6e8c9b02c010e15bad14888f0",
     "scripts/check-gate6-linux-hosting.py": "a100ec20e8e5afd4529823f235af3ae3daea4cd8468c11684340bba54f898c0d"
-  }
+  },
+  "source_audit": "Ordinary connection offer inserts preparing with observed_runtime_id NULL; native offer readiness atomically sets ready and observed_runtime_id. Replacement candidate lookup requires preparing and current observed_runtime_id. Public candidate ownership/adoption needs implementation; no Store/Core authority predicate relaxed."
 }

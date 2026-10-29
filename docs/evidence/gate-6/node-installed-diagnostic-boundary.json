@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "task": "G6-062",
+  "date": "2026-10-28",
+  "runtime_qualified": false,
+  "native_timeout_producer_schema_corrected": true,
+  "https_failure_checkpoints_added": true,
+  "absolute_phase_seconds": 15,
+  "whole_function_seconds": 90,
+  "verification": {
+    "privacy_and_producer_schema_functions_passed": 3,
+    "rust_format_passed": true,
+    "javascript_syntax_passed": true,
+    "runtime": "pending"
+  },
+  "sources": {
+    "scripts/check-gate6-linux-hosting.py": "e6ae908c65845d2904e1e14a7b9057dec2a22db104a5141754e9f1753b5b792f",
+    "scripts/tests/test_gate6_linux_diagnostics.py": "efcaa34f859b40223de1fe81311213f4d2e03bb7f4099db11fdf9a88e2e36111",
+    "crates/connect-server/tests/support/canonical_stdio/node_sdk.rs": "8dd2e4f26baba75b4bc66c07a3b64fc7cd4567a567fdaa9ba1feebddc44c1fce",
+    "crates/connect-server/tests/support/canonical_https_hosting/node.rs": "dca009e6a0d523db96a243df721ccb1d2993c6e25f96f1f3bdcb2df5918fddc8",
+    "sdk/tests/node_https_server_consumer.mjs": "2973cb0c4ecbf26c15431dedd9c5de9b4939fbf949f1c8df4d6781a23da6fa25"
+  }
+}

@@ -90,6 +90,22 @@ def audio_quiescence_diagnostic(value):
     return value
 
 
+
+def node_failure_diagnostic(failure):
+    assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
+    assert failure['phase'] == 'failed'
+    assert failure['checkpoint'] in {'https-snapshot','https-send','https-journal','https-receipts','https-revocation','events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
+        'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
+    assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
+    assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
+    assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
+    assert failure['command'] is None or failure['command'] in {'conversation.create','message.send','operation.cancel','operation.reconcile','session.invite','session.accept','session.update','session.end','session.reject','session.cancel','session.handoff','connection.replace','connection.offer','connection.update','connection.end','stream.subscribe','stream.unsubscribe','operation.get','conversation.get','message.history','conversation.participant.add','conversation.participant.update','conversation.participant.remove'}
+    assert failure['observedState'] is None or failure['observedState'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
+    assert failure['observedKind'] is None or re.fullmatch(r'[a-z-]{1,64}',failure['observedKind'])
+    assert failure['observedCertainty'] is None or re.fullmatch(r'[a-z-]{1,32}',failure['observedCertainty'])
+    assert failure['observedHttpStatus'] is None or type(failure['observedHttpStatus']) is int and 100 <= failure['observedHttpStatus'] <= 599
+    return failure
+
 def run(node_sdk=False):
     preflight()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -189,19 +205,7 @@ def run(node_sdk=False):
         for line in text.splitlines():
             if line.startswith('installed-typed-node-sdk-failure '):
                 failure = json.loads(line.split(' ', 1)[1])
-                assert set(failure) == {'phase', 'checkpoint', 'kind', 'certainty', 'command', 'observedState', 'observedKind', 'observedCertainty', 'observedHttpStatus', 'line', 'column'}
-                assert failure['phase'] == 'failed'
-                assert failure['checkpoint'] in {'events-bootstrap', 'events-original', 'events-resume', 'events-current-authority', 'create', 'capabilities', 'session', 'native-offer', 'peer-offer',
-                    'session-finish', 'native-movement-refusals', 'native-quality', 'native-gates', 'native-codecs', 'native-selection', 'native-end', 'native-recovery', 'native-end-http-recovery', 'native-end-status', 'native-end-wait', 'session-end-wait', 'session-end-refresh', 'message-receipts', 'raw-envelope', 'current-revocation'}
-                assert re.fullmatch(r'[a-z-]{1,64}', failure['kind'])
-                assert failure['certainty'] is None or re.fullmatch(r'[a-z-]{1,32}', failure['certainty'])
-                assert all(failure[k] is None or type(failure[k]) is int and 0 < failure[k] < 100000 for k in ('line', 'column'))
-                assert failure['command'] is None or failure['command'] in {'conversation.create','message.send','operation.cancel','operation.reconcile','session.invite','session.accept','session.update','session.end','session.reject','session.cancel','session.handoff','connection.replace','connection.offer','connection.update','connection.end','stream.subscribe','stream.unsubscribe','operation.get','conversation.get','message.history','conversation.participant.add','conversation.participant.update','conversation.participant.remove'}
-                assert failure['observedState'] is None or failure['observedState'] in {'accepted','preparing','ready','committing','completed','cancelled','failed','interrupted','unknown'}
-                assert failure['observedKind'] is None or re.fullmatch(r'[a-z-]{1,64}',failure['observedKind'])
-                assert failure['observedCertainty'] is None or re.fullmatch(r'[a-z-]{1,32}',failure['observedCertainty'])
-                assert failure['observedHttpStatus'] is None or type(failure['observedHttpStatus']) is int and 100 <= failure['observedHttpStatus'] <= 599
-                step['node_failures'].append(failure)
+                step['node_failures'].append(node_failure_diagnostic(failure))
         step['node_consultation_phases'] = []
         step['node_consultation_failures'] = []
         for line in text.splitlines():
