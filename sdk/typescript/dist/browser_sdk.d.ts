@@ -1,9 +1,10 @@
 import { BrowserTransportClient, type BrowserTransportClientOptions, type BrowserOperationReference } from "./browser_transport_client.js";
 import { CanonicalError, type CanonicalErrorKind, type Certainty } from "./canonical_error.js";
+import { type BrowserMediaCaptureOptions } from "./browser_media_capture.js";
 import { type Json, type JsonObject } from "./uctp_json.js";
 import { type Scope } from "./uctp_wire.js";
-import type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId } from "./sdk_identity.js";
-export type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, } from "./sdk_identity.js";
+import type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId } from "./sdk_identity.js";
+export type { SdkId, SdkRevision, ConversationId, IdentityId, ParticipantId, OperationId, SessionId, ConnectionId, StreamId, } from "./sdk_identity.js";
 export declare class BrowserSdkError extends CanonicalError {
     constructor(kind: CanonicalErrorKind, certainty: Certainty, operation?: BrowserOperationReference, problem?: CanonicalError["problem"]);
 }
@@ -37,7 +38,7 @@ export interface BrowserSdkOperationReference<T> extends BrowserOperationReferen
     readonly scope: {
         readonly conversationId?: ConversationId;
         readonly sessionId?: SessionId;
-        readonly connectionId?: never;
+        readonly connectionId?: ConnectionId;
     };
     readonly [result]: (value: T) => T;
 }
@@ -83,6 +84,8 @@ export interface BrowserSessionDecision {
     readonly topologyRevision: SdkRevision<"topology">;
 }
 export declare const browserOperationKinds: Readonly<{
+    connectionOffer: BrowserOperationKind<BrowserConnection>;
+    connectionEnd: BrowserOperationKind<BrowserConnection>;
     conversationCreate: BrowserOperationKind<BrowserConversation>;
     sessionInvite: BrowserOperationKind<BrowserSession>;
     sessionAccept: BrowserOperationKind<BrowserSession>;
@@ -105,7 +108,10 @@ export declare class BrowserOperation<T> {
 }
 declare const submit: unique symbol;
 export declare class BrowserSdkClient {
+    readonly role: "browser";
     readonly operationKinds: Readonly<{
+        connectionOffer: BrowserOperationKind<BrowserConnection>;
+        connectionEnd: BrowserOperationKind<BrowserConnection>;
         conversationCreate: BrowserOperationKind<BrowserConversation>;
         sessionInvite: BrowserOperationKind<BrowserSession>;
         sessionAccept: BrowserOperationKind<BrowserSession>;
@@ -169,6 +175,13 @@ export declare class BrowserSession {
     readonly conversationId: ConversationId;
     readonly id: SessionId;
     readonly receiptSnapshot?: BrowserSessionSnapshot | undefined;
+    readonly connections: {
+        byId: (id: ConnectionId) => BrowserConnection;
+        offer: (input: {
+            connectionId: ConnectionId;
+            streams: readonly [BrowserOfferedStream, ...BrowserOfferedStream[]];
+        }, options: BrowserSdkMutationOptions) => Promise<BrowserOperation<BrowserConnection>>;
+    };
     constructor(client: BrowserSdkClient, conversationId: ConversationId, id: SessionId, receiptSnapshot?: BrowserSessionSnapshot | undefined);
     refresh(options: BrowserSdkRequestOptions): Promise<BrowserSessionSnapshot>;
     accept(input: {
@@ -209,4 +222,98 @@ export interface BrowserIncomingInvitation {
 export interface BrowserIncomingInvitations extends AsyncIterableIterator<BrowserIncomingInvitation> {
     next(): Promise<IteratorResult<BrowserIncomingInvitation, undefined>>;
     close(): Promise<void>;
+}
+export interface BrowserCaptureHandle {
+    readonly closed: boolean;
+    pause(): void;
+    resume(): Promise<void>;
+    close(): void;
+}
+export interface BrowserRenderHandle {
+    readonly finished: Promise<void>;
+    readonly diagnostics: Readonly<{
+        closed: boolean;
+        paused: boolean;
+        audio: number;
+        video: number;
+    }>;
+    pause(): void;
+    resume(): Promise<void>;
+    close(): void;
+}
+export interface BrowserOfferedStream {
+    readonly id: StreamId;
+    readonly kind: "audio" | "video" | "screen" | "data";
+    readonly direction: "sendonly" | "recvonly" | "sendrecv" | "inactive";
+    readonly codecs: readonly [string, ...string[]];
+}
+export interface BrowserConnectionSnapshot {
+    readonly id: ConnectionId;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly participantId: ParticipantId;
+    readonly generation: number;
+    /** Store resource revision, independent of negotiated stream revision. */
+    readonly resourceRevision: SdkRevision<"connection-resource">;
+    readonly state: string;
+}
+export interface BrowserStreamSnapshot {
+    readonly id: StreamId;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly connectionId: ConnectionId | null;
+    readonly participantId: ParticipantId;
+    readonly medium: "audio" | "video" | "screen" | "data";
+    readonly state: string;
+    readonly resourceRevision: SdkRevision<"stream-resource">;
+    /** A current snapshot is an observation, never a local capture grant. */
+    readonly ownership: "observation";
+}
+export declare class BrowserConnection {
+    private readonly client;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly id: ConnectionId;
+    readonly receiptStreamRevision?: SdkRevision<"stream"> | undefined;
+    readonly streams: {
+        byId: (id: StreamId) => BrowserStream;
+        list: (options: BrowserSdkRequestOptions) => Promise<readonly BrowserStream[]>;
+    };
+    constructor(client: BrowserSdkClient, conversationId: ConversationId, sessionId: SessionId, id: ConnectionId, receiptStreamRevision?: SdkRevision<"stream"> | undefined);
+    refresh(options: BrowserSdkRequestOptions): Promise<BrowserConnectionSnapshot>;
+    end(input: {
+        reasonCode: number;
+        reason: string;
+        expectedStreamRevision?: SdkRevision<"stream">;
+    }, options: BrowserSdkMutationOptions): Promise<BrowserOperation<BrowserConnection>>;
+    private native;
+    /** Local capture is explicit and owns only this physical's negotiated senders. */
+    capture(input: {
+        audio?: boolean;
+        video?: "camera" | "screen";
+        audioDeviceId?: string;
+        videoDeviceId?: string;
+        stream?: MediaStream;
+        state?: BrowserMediaCaptureOptions["state"];
+    }, options: BrowserSdkRequestOptions): Promise<BrowserCaptureHandle>;
+    /** Decoded frames route to the owned renderer without protocol callbacks in app code. */
+    render(input: {
+        audio?: boolean;
+        video?: readonly {
+            stream: BrowserStream;
+            canvas: HTMLCanvasElement;
+        }[];
+        volume?: number;
+    }, options: BrowserSdkRequestOptions): Promise<BrowserRenderHandle>;
+}
+export declare class BrowserStream {
+    private readonly client;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly connectionId: ConnectionId;
+    readonly id: StreamId;
+    constructor(client: BrowserSdkClient, conversationId: ConversationId, sessionId: SessionId, connectionId: ConnectionId, id: StreamId);
+    /** @internal Only validates handle parentage, never current authority. */
+    belongs(client: BrowserSdkClient, cid: ConversationId, sid: SessionId, connid: ConnectionId): boolean;
+    refresh(options: BrowserSdkRequestOptions): Promise<BrowserStreamSnapshot>;
 }

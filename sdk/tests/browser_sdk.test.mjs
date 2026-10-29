@@ -7,7 +7,9 @@ const reference=(command='session.invite',extra={})=>({schema:'connect-operation
 function scenario(run,{path='wss-webrtc',fault}={}) {
  let revision=0,state='invited',recordOverride,revisionOverride,mode=fault;const records=new Map();
  const view=(sid='session')=>({id:sid,conversation_id:'room',state,media:['data'],intent:'synthetic',capabilities_offer:{data:['reliable-ordered']},codec_preferences:[],is_main:true,revision,topology_revision:revision,created_at:1,updated_at:2,ended_reason:null});
- const items=()=>[{kind:'conversation',data:{conversation_id:'room',revision,closed:false,policy:'persistent'}},...['caller','callee'].map((pid,i)=>({kind:'participant',data:{participant_id:pid,conversation_id:'room',identity_id:i?'wss_identity':'other',kind:'human',role:'participant',membership_epoch:1,active:mode!=='removed'||i===0,removal_reason:null}})),{kind:'session',data:view()},{kind:'session_participant',data:{session_id:'session',participant_id:'callee',membership_epoch:1,role:'participant',state:state==='invited'?'invited':'present'}}];
+ const items=()=>[{kind:'conversation',data:{conversation_id:'room',revision,closed:false,policy:'persistent'}},...['caller','callee'].map((pid,i)=>({kind:'participant',data:{participant_id:pid,conversation_id:'room',identity_id:i?'wss_identity':'other',kind:'human',role:'participant',membership_epoch:1,active:mode!=='removed'||i===0,removal_reason:null}})),{kind:'connection',data:{connection_id:mode==='foreign-connection'?'other':'connection',session_id:mode==='foreign-parent'?'other':'session',participant_id:'callee',membership_epoch:1,endpoint_id:'endpoint',device_id:'device',generation:1,revision:3,state:'ready',replaces:null}},
+ {kind:'stream',data:{stream_id:'source',session_id:'session',participant_id:'callee',connection_id:'connection',medium:'video',state:'active',revision:7}},
+ {kind:'session',data:view()},{kind:'session_participant',data:{session_id:'session',participant_id:'callee',membership_epoch:1,role:'participant',state:state==='invited'?'invited':'present'}}];
  return fixture(async f=>{
   const client=await BrowserSdkClient.connect({identityId:f.options.identityId,deviceId:f.options.device.id,tenantId:'tnt_default',endpoints:{webtransport:'https://fixture.invalid/connect','wss-webrtc':'wss://fixture.invalid/connect'},preferredTransport:path,timeoutMs:500,attemptTimeoutMs:100,resolveEnrollment:async()=>f.options});
   const peer=()=>path==='webtransport'?f.transports.at(-1):f.socket();
@@ -21,6 +23,9 @@ function scenario(run,{path='wss-webrtc',fault}={}) {
   if(frame.type==='operation.get'){
    const r=records.get(frame.payload.operation_id)??{operation_id:frame.payload.operation_id,command_type:'session.invite',state:mode==='pending'?'unknown':'completed',revision:1,result:{kind:'session_control',data:{operation_id:frame.payload.operation_id,action:'session.invite',session:view()}}};
    return reply('operation.updated',{...r,record_id:recordOverride??'record-'+frame.payload.operation_id,revision:revisionOverride??r.revision});
+  }
+  if(frame.type==='connection.end'){
+   const r={operation_id:frame.operation_id,command_type:frame.type,state:'completed',revision:1,result:{ended:true,connection_id:mode==='foreign-end'?'other':frame.connid}};records.set(frame.operation_id,r);return reply('operation.updated',r);
   }
   if(frame.type.startsWith('session.')){
    let r=records.get(frame.operation_id);if(!r){revision++;state=frame.type==='session.reject'?'rejected':frame.type==='session.accept'?'accepted':'invited';
@@ -80,4 +85,38 @@ test('recover keeps the typed result and reads only the original operation',()=>
 for(const forbidden of [{connid:'foreign'},{in_reply_to:'unknown'},{expected_revision:0}])test('incoming invitation refuses foreign scope '+Object.keys(forbidden)[0],()=>scenario(async({client,peer})=>{
  const incoming=client.incomingInvitations(opts);await peer().emit('session.invite',{from:'caller',to:['callee'],medium:'text-chat',intent:'synthetic',capabilities_offer:{}},forbidden.in_reply_to,{cid:'room',sid:'session',operation_id:'original-invite',...forbidden});
  await assert.rejects(()=>incoming.next(),{kind:'protocol'});await incoming.close();
+}));
+
+test('typed Connection and Stream refreshes remain current authorized observations with separate revision families',()=>scenario(async({client,f})=>{
+ const connection=client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection'));
+ const snapshot=await connection.refresh(opts);assert.equal(snapshot.resourceRevision,3);assert.equal(snapshot.streamRevision,undefined);
+ const streams=await connection.streams.list(opts);assert.equal(streams.length,1);const observed=await streams[0].refresh(opts);assert.equal(observed.connectionId,'connection');assert.equal(observed.resourceRevision,7);assert.equal(observed.ownership,'observation');
+ await assert.rejects(()=>connection.capture({video:'camera'},opts),{kind:'receipt-unavailable'});assert.equal(f.sent.some(v=>v.type==='connection.offer'),false);
+ const op=await connection.end({reasonCode:200,reason:'Finished',expectedStreamRevision:sdkRevision(1)},{...opts,operationId:id('end-original')});
+ assert.deepEqual(op.reference.scope,{conversationId:'room',sessionId:'session',connectionId:'connection'});assert.equal((await client.operations.recover(op.reference).wait(opts)).value.id,'connection');assert.equal(f.sent.filter(v=>v.type==='connection.end').length,1);
+}));
+for(const fault of ['foreign-connection','foreign-parent'])test('Connection current parent mismatch refuses '+fault,()=>scenario(async({client})=>{
+ await assert.rejects(()=>client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection')).refresh(opts),{kind:'receipt-unavailable'});
+},{fault}));
+test('foreign completed Connection end cannot retire another local owner',()=>scenario(async({client})=>{
+ const connection=client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('connection'));
+ const op=await connection.end({reasonCode:200,reason:'Finished'},{...opts,operationId:id('end-original')});await assert.rejects(()=>op.wait(opts),{kind:'protocol',certainty:'recorded'});
+},{fault:'foreign-end'}));
+test('Stream identity never escapes its current Connection/Session parent',()=>scenario(async({client,f})=>{
+ const connection=client.conversations.byId(id('room')).sessions.byId(id('session')).connections.byId(id('foreign'));
+ await assert.rejects(()=>connection.streams.byId(id('source')).refresh(opts),{kind:'receipt-unavailable'});assert.equal(f.sent.some(v=>v.type.startsWith('connection.')),false);
+}));
+
+test('typed Connection offer rejects invalid or unsupported intent before IO without downgrading codecs or directions',()=>scenario(async({client,f})=>{
+ const session=client.conversations.byId(id('room')).sessions.byId(id('session')),n=f.sent.length;
+ for(const streams of [[],[null],[{id:'source',kind:'audio',direction:'wrong',codecs:['opus']}],[{id:'source',kind:'audio',direction:'sendrecv',codecs:[]}]])await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams},{...opts,operationId:id('original')}),{kind:'validation',certainty:'not-submitted'});
+ for(const stream of [{id:'source',kind:'audio',direction:'sendrecv',codecs:['pcmu']},{id:'source',kind:'video',direction:'sendonly',codecs:['vp8']}])await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:[stream]},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted'});
+ await assert.rejects(()=>session.connections.offer({connectionId:id('connection'),streams:[{id:'source',kind:'data',direction:'sendrecv',codecs:['binary']}]},{...opts,operationId:id('original')}),{kind:'unsupported',certainty:'not-submitted',operation:{operationId:'original',command:'connection.offer',scope:{conversationId:'room',sessionId:'session',connectionId:'connection'}}});
+ assert.equal(f.sent.length,n);
+}));
+test('historical Connection cannot render or prompt for capture and foreign Stream handles refuse locally',()=>scenario(async({client,f})=>{
+ const session=client.conversations.byId(id('room')).sessions.byId(id('session')),connection=session.connections.byId(id('connection')),n=f.sent.length;
+ await assert.rejects(()=>connection.render({audio:false},opts),{kind:'receipt-unavailable'});
+ await assert.rejects(()=>connection.render({audio:false,video:[{stream:session.connections.byId(id('foreign')).streams.byId(id('source')),canvas:{}}]},opts),{kind:'validation'});
+ await assert.rejects(()=>connection.capture({audio:true},opts),{kind:'receipt-unavailable'});assert.equal(f.sent.length,n);
 }));

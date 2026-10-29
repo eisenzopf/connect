@@ -146,3 +146,54 @@ test('media peer sends current capture reports only after RTP writes and receive
     const bad=new Control('audio');bad.clockProfile='foreign-clock/2';const badPeer=new BrowserMediaPeer(bad);try{await assert.rejects(()=>badPeer.offerConnection({...input,data:undefined,audio:'audio'}),{code:'protocol'});}finally{badPeer.close();}
   }finally{peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
 });
+
+test('begin offer exposes accepted current parameters separately from recorded completion and installed resources',async()=>{
+ const c=new Control(),p=new BrowserMediaPeer(c);let complete,observed=false,ready=false;
+ c.operationStatus=()=>{observed=true;return new Promise(resolve=>complete=()=>resolve({state:'completed'}));};
+ try{
+  const begun=p.beginOfferConnection(input,{timeoutMs:500});void begun.ready.then(()=>ready=true);
+  await begun.accepted;assert.equal(begun.submissionAttempted,true);assert.equal(ready,false);
+  while(!observed)await new Promise(resolve=>setTimeout(resolve,1));assert.equal(ready,false);complete();
+  const connection=await begun.ready;assert.equal(connection.revision,1);assert.equal(c.sent.filter(x=>x.type==='connection.answer').length,1);
+ }finally{p.close();}
+});
+for(const mode of ['deadline','abort'])test('native offer codec preflight '+mode+' is bounded before submission and cannot reset the offer budget',async()=>{
+ const names=['AudioEncoder','AudioDecoder','AudioData'],saved=names.map(n=>Object.getOwnPropertyDescriptor(globalThis,n));
+ try{
+  for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:class {static isConfigSupported(){return new Promise(()=>{});}}});
+  const c=new Control(),p=new BrowserMediaPeer(c),abort=new AbortController();
+  try{
+   const begun=p.beginOfferConnection(input,{timeoutMs:50,signal:abort.signal});if(mode==='abort')setTimeout(()=>abort.abort(),5);
+   await assert.rejects(begun.accepted,{code:mode==='deadline'?'timeout':'cancelled'});await assert.rejects(begun.ready,{code:mode==='deadline'?'timeout':'cancelled'});
+   assert.equal(begun.submissionAttempted,false);assert.equal(c.sent.length,0);assert.equal(c.index,0);
+  }finally{p.close();}
+ }finally{names.forEach((n,i)=>saved[i]?Object.defineProperty(globalThis,n,saved[i]):delete globalThis[n]);}
+});
+
+test('retirement after accepted parameters prevents late completion from reinstalling local media and preserves the physical peer',async()=>{
+ const c=new Control(),p=new BrowserMediaPeer(c);let complete,observed=false;
+ c.operationStatus=()=>{observed=true;return new Promise(resolve=>complete=()=>resolve({state:'completed'}));};
+ try{
+  const begun=p.beginOfferConnection(input,{timeoutMs:500});await begun.accepted;
+  while(!observed)await new Promise(resolve=>setTimeout(resolve,1));p.retireLocalConnection('connection');complete();
+  await assert.rejects(begun.ready,{code:'closed'});assert.equal(c.closed,false);assert.equal(p.diagnostics.activeBindings,0);assert.throws(()=>p.revision('connection'),{code:'closed'});
+ }finally{p.close();}
+});
+
+test('retirement before prepared parameters arrives prevents any late confirmation and leaves other physical control usable',async()=>{
+ const c=new Control(),p=new BrowserMediaPeer(c),begin=c.begin.bind(c);
+ c.begin=(...args)=>{const started=begin(...args);p.retireLocalConnection('connection');return started;};
+ try{
+  const begun=p.beginOfferConnection(input,{timeoutMs:500});await assert.rejects(begun.accepted,{code:'closed'});await assert.rejects(begun.ready,{code:'closed'});
+  assert.equal(c.sent.length,0);assert.equal(c.closed,false);assert.equal(p.diagnostics.activeBindings,0);
+ }finally{p.close();}
+});
+
+test('begin offer captures original scope and stream intent before asynchronous codec preflight',async()=>{
+ const c=new Control(),p=new BrowserMediaPeer(c),draft=structuredClone(input),begin=c.begin.bind(c),offered=[];
+ c.begin=(...args)=>{offered.push({scope:structuredClone(args[2]),payload:structuredClone(args[1])});return begin(...args);};
+ try{
+  const begun=p.beginOfferConnection(draft,{timeoutMs:500});draft.operationId='replacement';draft.connectionId='foreign';draft.conversationId='foreign-room';draft.data[0].id='foreign-source';draft.data[0].protocol='text';
+  const connection=await begun.ready;assert.equal(connection.id,'connection');assert.equal(offered.length,1);assert.equal(offered[0].scope.operation_id,'offer');assert.equal(offered[0].scope.cid,'room');assert.equal(offered[0].scope.connid,'connection');assert.equal(offered[0].payload.streams_offered[0].id,'data');assert.deepEqual(offered[0].payload.streams_offered[0].codec_preferences,['binary']);
+ }finally{p.close();}
+});

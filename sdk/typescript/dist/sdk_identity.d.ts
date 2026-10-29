@@ -13,4 +13,6 @@ export type ParticipantId = SdkId<"participant">;
 export type MessageId = SdkId<"message">;
 export type OperationId = SdkId<"operation">;
 export type SessionId = SdkId<"session">;
+export type ConnectionId = SdkId<"connection">;
+export type StreamId = SdkId<"stream">;
 export {};

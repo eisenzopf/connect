@@ -9,6 +9,16 @@ import {
     type CanonicalErrorKind,
     type Certainty,
 } from "./canonical_error.js";
+import {
+    BrowserMediaPeer,
+    type BrowserMediaConnection,
+    type BrowserConnectionOptions,
+} from "./browser_media.js";
+import {
+    BrowserMediaCapture,
+    type BrowserMediaCaptureOptions,
+} from "./browser_media_capture.js";
+import { BrowserMediaRenderer } from "./browser_media_renderer.js";
 import { ConnectError } from "./errors.js";
 import {
     canonicalJson,
@@ -26,6 +36,8 @@ import type {
     ParticipantId,
     OperationId,
     SessionId,
+    ConnectionId,
+    StreamId,
 } from "./sdk_identity.js";
 export type {
     SdkId,
@@ -35,6 +47,8 @@ export type {
     ParticipantId,
     OperationId,
     SessionId,
+    ConnectionId,
+    StreamId,
 } from "./sdk_identity.js";
 
 export class BrowserSdkError extends CanonicalError {
@@ -133,7 +147,7 @@ export interface BrowserSdkOperationReference<
     readonly scope: {
         readonly conversationId?: ConversationId;
         readonly sessionId?: SessionId;
-        readonly connectionId?: never;
+        readonly connectionId?: ConnectionId;
     };
     readonly [result]: (value: T) => T;
 }
@@ -143,7 +157,7 @@ export interface BrowserOperationKind<T> {
 }
 interface Kind<T> {
     command: string;
-    scope: "root" | "session";
+    scope: "root" | "session" | "connection";
     decode: (
         value: Json,
         client: BrowserSdkClient,
@@ -304,7 +318,48 @@ function decisionResult(
         topologyRevision: d.revision as SdkRevision<"topology">,
     });
 }
+function connectionResult(
+    value: Json,
+    client: BrowserSdkClient,
+    key: BrowserOperationReference,
+): BrowserConnection {
+    const bad = () => current(client).malformed(key, "recorded");
+    if (!object(value)) return bad();
+    let revision: SdkRevision<"stream"> | undefined;
+    if (key.command === "connection.offer") {
+        if (
+            !numeric(value.stream_revision) ||
+            value.stream_revision < 1 ||
+            !Array.isArray(value.streams) ||
+            !value.streams.length ||
+            value.streams.length > 32 ||
+            value.streams.some((v) => !identifier(v)) ||
+            new Set(value.streams).size !== value.streams.length
+        )
+            return bad();
+        revision = value.stream_revision as SdkRevision<"stream">;
+    } else {
+        if (
+            value.ended !== true ||
+            value.connection_id !== key.scope.connectionId
+        )
+            return bad();
+        current(client).mediaPeer?.retireLocalConnection(
+            key.scope.connectionId!,
+        );
+        current(client).local.delete(key.scope.connectionId!);
+    }
+    return new BrowserConnection(
+        client,
+        key.scope.conversationId as ConversationId,
+        key.scope.sessionId as SessionId,
+        key.scope.connectionId as ConnectionId,
+        revision,
+    );
+}
 export const browserOperationKinds = Object.freeze({
+    connectionOffer: kind("connection.offer", "connection", connectionResult),
+    connectionEnd: kind("connection.end", "connection", connectionResult),
     conversationCreate: kind("create", "root", (v, c, k) => {
         if (
             !object(v) ||
@@ -353,7 +408,9 @@ function reference<T>(
             ? Object.keys(s).length !== 0
             : !identifier(s.conversation_id) ||
               !identifier(s.session_id) ||
-              s.connection_id !== undefined
+              (d.scope === "connection"
+                  ? !identifier(s.connection_id)
+                  : s.connection_id !== undefined)
     )
         invalid();
     return freeze({
@@ -366,6 +423,9 @@ function reference<T>(
             ...(s.session_id === undefined
                 ? {}
                 : { sessionId: s.session_id as string }),
+            ...(s.connection_id === undefined
+                ? {}
+                : { connectionId: s.connection_id as string }),
         },
     });
 }
@@ -407,7 +467,7 @@ class Budget {
         if (this.signal?.aborted)
             throw new BrowserSdkError("cancelled", "read-only");
         const left = this.until - performance.now();
-        if (left <= 0) throw new BrowserSdkError("deadline", "read-only");
+        if (left < 1) throw new BrowserSdkError("deadline", "read-only");
         return { timeoutMs: left, signal: this.signal };
     }
     async delay(): Promise<void> {
@@ -438,13 +498,19 @@ function translated(
         if (key && !error.operation)
             return new BrowserSdkError(
                 error.kind,
-                certainty,
+                error.certainty === "read-only" ? certainty : error.certainty,
                 key,
                 error.problem,
             );
         return error;
     }
     if (error instanceof ConnectError) {
+        if (error.code === "media-denied")
+            return new BrowserSdkError("application", certainty, key, {
+                code: 403,
+                category: "capture",
+                reason: "permission_denied",
+            });
         const kinds: Record<string, CanonicalErrorKind> = {
             timeout: "deadline",
             cancelled: "cancelled",
@@ -458,6 +524,11 @@ function translated(
             conflict: "conflict",
             unsupported: "unsupported",
             "unsupported-feature": "unsupported",
+            "unsupported-media-profile": "unsupported",
+            media: "application",
+            "media-failed": "application",
+            "media-output-failed": "application",
+            "media-input-failed": "application",
             "resync-required": "resync-required",
         };
         const kind: CanonicalErrorKind =
@@ -481,12 +552,41 @@ interface Snapshot {
     conversation: BrowserConversationSnapshot;
     sessions: Map<string, BrowserSessionSnapshot>;
     appearances: Map<string, JsonObject>;
+    connections: Map<string, BrowserConnectionSnapshot>;
+    streams: Map<string, BrowserStreamSnapshot>;
 }
 interface Hint {
     frame: Envelope;
     epoch: number;
 }
 class State {
+    mediaPeer?: BrowserMediaPeer;
+    local = new Map<
+        string,
+        {
+            cid: ConversationId;
+            sid: SessionId;
+            epoch: number;
+            ready: Promise<BrowserMediaConnection>;
+            audio?: string;
+            video?: string;
+            screen?: string;
+        }
+    >();
+    renderers = new Map<string, BrowserMediaRenderer>();
+    captures = new Map<string, object>();
+    nativePeer(): BrowserMediaPeer {
+        if (this.peer.controlTransport !== "webtransport")
+            throw new BrowserSdkError("unsupported", "not-submitted");
+        return (this.mediaPeer ??= new BrowserMediaPeer(this.peer, {
+            audio: (binding, frame) => {
+                this.renderers.get(binding.connectionId)?.audio(binding, frame);
+            },
+            video: (binding, frame) => {
+                this.renderers.get(binding.connectionId)?.video(binding, frame);
+            },
+        }));
+    }
     hints: Hint[] = [];
     hintBytes = 0;
     wake?: () => void;
@@ -523,6 +623,12 @@ class State {
             throw new BrowserSdkError("cancelled", "read-only");
     }
     watch() {
+        this.mediaPeer?.close();
+        this.mediaPeer = undefined;
+        this.local.clear();
+        for (const renderer of this.renderers.values()) renderer.close();
+        this.renderers.clear();
+        this.captures.clear();
         this.stopEvents?.();
         this.stopClose?.();
         this.hints = [];
@@ -615,7 +721,9 @@ class State {
         }
         const participants: BrowserParticipantSnapshot[] = [],
             sessions = new Map<string, BrowserSessionSnapshot>(),
-            appearances = new Map<string, JsonObject>();
+            appearances = new Map<string, JsonObject>(),
+            connections = new Map<string, BrowserConnectionSnapshot>(),
+            streams = new Map<string, BrowserStreamSnapshot>();
         let conversation: JsonObject | undefined;
         const memberIds = new Set();
         for (const item of facts) {
@@ -665,6 +773,14 @@ class State {
                 const s = sessionView(d, cid, () => this.malformed());
                 if (sessions.has(s.id)) this.malformed();
                 sessions.set(s.id, s);
+            } else if (item.kind === "connection") {
+                const c = connectionView(d, cid, () => this.malformed());
+                if (connections.has(c.id)) this.malformed();
+                connections.set(c.id, c);
+            } else if (item.kind === "stream") {
+                const v = streamView(d, cid, () => this.malformed());
+                if (streams.has(v.id)) this.malformed();
+                streams.set(v.id, v);
             } else if (item.kind === "session_participant") {
                 if (
                     !identifier(d.session_id) ||
@@ -699,6 +815,8 @@ class State {
             }),
             sessions,
             appearances,
+            connections,
+            streams,
         };
     }
 }
@@ -823,6 +941,7 @@ export class BrowserOperation<T> {
 }
 const submit = Symbol("submit");
 export class BrowserSdkClient {
+    readonly role = "browser" as const;
     readonly operationKinds = browserOperationKinds;
     readonly conversations = {
         byId: (id: ConversationId) => {
@@ -957,6 +1076,9 @@ export class BrowserSdkClient {
                     ...(scope.sid === undefined
                         ? {}
                         : { sessionId: scope.sid }),
+                    ...(scope.connid === undefined
+                        ? {}
+                        : { connectionId: scope.connid }),
                 },
             }),
             k,
@@ -974,12 +1096,12 @@ export class BrowserSdkClient {
             const updates = frames.filter(
                 (f) => f.type === "operation.updated",
             );
-            if (d.scope === "session") {
+            if (d.scope !== "root") {
                 if (
                     updates.length !== 1 ||
                     updates[0].cid !== scope.cid ||
                     updates[0].sid !== scope.sid ||
-                    updates[0].connid !== undefined ||
+                    updates[0].connid !== scope.connid ||
                     updates[0].payload.operation_id !== key.operationId ||
                     !states.has(String(updates[0].payload.state)) ||
                     !numeric(updates[0].payload.revision)
@@ -1113,6 +1235,144 @@ export class BrowserConversation {
     }
 }
 export class BrowserSession {
+    readonly connections = {
+        byId: (id: ConnectionId) => {
+            sdkId(id);
+            return new BrowserConnection(
+                this.client,
+                this.conversationId,
+                this.id,
+                id,
+            );
+        },
+        offer: async (
+            input: {
+                connectionId: ConnectionId;
+                streams: readonly [
+                    BrowserOfferedStream,
+                    ...BrowserOfferedStream[],
+                ];
+            },
+            options: BrowserSdkMutationOptions,
+        ): Promise<BrowserOperation<BrowserConnection>> => {
+            if (
+                !input ||
+                !identifier(input.connectionId) ||
+                !Array.isArray(input.streams) ||
+                !input.streams.length ||
+                input.streams.length > 8 ||
+                input.streams.some((v) => !v || typeof v !== "object") ||
+                new Set(input.streams.map((v) => v.id)).size !==
+                    input.streams.length ||
+                !options ||
+                !identifier(options.operationId)
+            )
+                invalid();
+            const low: BrowserConnectionOptions = {
+                conversationId: this.conversationId,
+                sessionId: this.id,
+                connectionId: input.connectionId,
+                operationId: options.operationId,
+            };
+            const seen = new Set<string>();
+            for (const stream of input.streams) {
+                if (
+                    !stream ||
+                    !identifier(stream.id) ||
+                    !["audio", "video", "screen", "data"].includes(
+                        stream.kind,
+                    ) ||
+                    !["sendrecv", "sendonly", "recvonly", "inactive"].includes(
+                        stream.direction,
+                    ) ||
+                    !Array.isArray(stream.codecs) ||
+                    !stream.codecs.length
+                )
+                    invalid();
+                // The installed native browser backend currently owns these exact
+                // fixed codecs/directions. Unsupported choices never downgrade.
+                if (
+                    stream.direction !== "sendrecv" ||
+                    stream.codecs.length !== 1 ||
+                    (stream.kind === "audio"
+                        ? stream.codecs[0] !== "opus"
+                        : stream.kind === "data"
+                          ? !["text", "json", "binary"].includes(
+                                stream.codecs[0],
+                            )
+                          : stream.codecs[0] !== "vp8") ||
+                    (stream.kind !== "data" && seen.has(stream.kind))
+                )
+                    throw new BrowserSdkError("unsupported", "not-submitted");
+                seen.add(stream.kind);
+                if (stream.kind === "data")
+                    (low.data ??= []).push({
+                        id: stream.id,
+                        protocol: stream.codecs[0] as
+                            "text" | "json" | "binary",
+                    });
+                else
+                    low[stream.kind as "audio" | "video" | "screen"] =
+                        stream.id;
+            }
+            const connectionId = low.connectionId;
+            const budget = new Budget(options),
+                s = current(this.client),
+                peer = s.peer,
+                epoch = s.owner.status.physicalEpoch;
+            const key = reference(
+                referenceJson({
+                    operationId: options.operationId,
+                    command: "connection.offer",
+                    scope: {
+                        conversationId: this.conversationId,
+                        sessionId: this.id,
+                        connectionId: input.connectionId,
+                    },
+                }),
+                browserOperationKinds.connectionOffer,
+            );
+            if (s.local.has(connectionId))
+                throw new BrowserSdkError("conflict", "not-submitted", key);
+            let begun:
+                | ReturnType<BrowserMediaPeer["beginOfferConnection"]>
+                | undefined;
+            try {
+                begun = s
+                    .nativePeer()
+                    .beginOfferConnection(low, budget.options());
+                const local = {
+                    cid: this.conversationId,
+                    sid: this.id,
+                    epoch,
+                    ready: begun.ready,
+                    audio: low.audio,
+                    video: low.video,
+                    screen: low.screen,
+                };
+                s.local.set(connectionId, local);
+                void begun.ready.catch(() => {
+                    if (s.local.get(connectionId) === local)
+                        s.local.delete(connectionId);
+                });
+                await begun.accepted;
+                s.observe(peer, epoch);
+                budget.options();
+                return new BrowserOperation(
+                    this.client,
+                    key,
+                    browserOperationKinds.connectionOffer,
+                );
+            } catch (error) {
+                throw translated(
+                    error,
+                    begun?.submissionAttempted ? "uncertain" : "not-submitted",
+                    key,
+                );
+            }
+        },
+    };
+
     constructor(
         private readonly client: BrowserSdkClient,
         readonly conversationId: ConversationId,
@@ -1405,4 +1665,453 @@ function incoming(
         },
     };
     return reader;
+}
+
+export interface BrowserCaptureHandle {
+    readonly closed: boolean;
+    pause(): void;
+    resume(): Promise<void>;
+    close(): void;
+}
+export interface BrowserRenderHandle {
+    readonly finished: Promise<void>;
+    readonly diagnostics: Readonly<{
+        closed: boolean;
+        paused: boolean;
+        audio: number;
+        video: number;
+    }>;
+    pause(): void;
+    resume(): Promise<void>;
+    close(): void;
+}
+export interface BrowserOfferedStream {
+    readonly id: StreamId;
+    readonly kind: "audio" | "video" | "screen" | "data";
+    readonly direction: "sendonly" | "recvonly" | "sendrecv" | "inactive";
+    readonly codecs: readonly [string, ...string[]];
+}
+export interface BrowserConnectionSnapshot {
+    readonly id: ConnectionId;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly participantId: ParticipantId;
+    readonly generation: number;
+    /** Store resource revision, independent of negotiated stream revision. */
+    readonly resourceRevision: SdkRevision<"connection-resource">;
+    readonly state: string;
+}
+export interface BrowserStreamSnapshot {
+    readonly id: StreamId;
+    readonly conversationId: ConversationId;
+    readonly sessionId: SessionId;
+    readonly connectionId: ConnectionId | null;
+    readonly participantId: ParticipantId;
+    readonly medium: "audio" | "video" | "screen" | "data";
+    readonly state: string;
+    readonly resourceRevision: SdkRevision<"stream-resource">;
+    /** A current snapshot is an observation, never a local capture grant. */
+    readonly ownership: "observation";
+}
+function connectionView(
+    d: JsonObject,
+    cid: ConversationId,
+    bad: () => never,
+): BrowserConnectionSnapshot {
+    if (
+        !identifier(d.connection_id) ||
+        !identifier(d.session_id) ||
+        !identifier(d.participant_id) ||
+        !identifier(d.endpoint_id) ||
+        !identifier(d.device_id) ||
+        !numeric(d.membership_epoch) ||
+        d.membership_epoch < 1 ||
+        !numeric(d.generation) ||
+        d.generation < 1 ||
+        !numeric(d.revision) ||
+        !boundedText(d.state, 64) ||
+        !(d.replaces === null || identifier(d.replaces))
+    )
+        return bad();
+    return freeze({
+        id: d.connection_id as ConnectionId,
+        conversationId: cid,
+        sessionId: d.session_id as SessionId,
+        participantId: d.participant_id as ParticipantId,
+        generation: d.generation,
+        resourceRevision: d.revision as SdkRevision<"connection-resource">,
+        state: d.state,
+    });
+}
+function streamView(
+    d: JsonObject,
+    cid: ConversationId,
+    bad: () => never,
+): BrowserStreamSnapshot {
+    if (
+        !identifier(d.stream_id) ||
+        !identifier(d.session_id) ||
+        !identifier(d.participant_id) ||
+        !(d.connection_id === null || identifier(d.connection_id)) ||
+        !["audio", "video", "screen", "data"].includes(String(d.medium)) ||
+        !boundedText(d.state, 64) ||
+        !numeric(d.revision)
+    )
+        return bad();
+    return freeze({
+        id: d.stream_id as StreamId,
+        conversationId: cid,
+        sessionId: d.session_id as SessionId,
+        connectionId: d.connection_id as ConnectionId | null,
+        participantId: d.participant_id as ParticipantId,
+        medium: d.medium as BrowserStreamSnapshot["medium"],
+        state: d.state,
+        resourceRevision: d.revision as SdkRevision<"stream-resource">,
+        ownership: "observation" as const,
+    });
+}
+async function boundedLocal<T>(
+    work: Promise<T>,
+    options: BrowserSdkRequestOptions,
+): Promise<T> {
+    const budget = new Budget(options);
+    return new Promise<T>((resolve, reject) => {
+        let settled = false;
+        const finish = (error: unknown, value?: T) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            options.signal?.removeEventListener("abort", abort);
+            error ? reject(error) : resolve(value!);
+        };
+        const abort = () =>
+            finish(new BrowserSdkError("cancelled", "read-only"));
+        const timer = setTimeout(
+            () => finish(new BrowserSdkError("deadline", "read-only")),
+            budget.options().timeoutMs,
+        );
+        options.signal?.addEventListener("abort", abort, { once: true });
+        if (options.signal?.aborted) abort();
+        work.then(
+            (value) => finish(undefined, value),
+            (error) => finish(translated(error, "read-only")),
+        );
+    });
+}
+export class BrowserConnection {
+    readonly streams = {
+        byId: (id: StreamId) => {
+            sdkId(id);
+            return new BrowserStream(
+                this.client,
+                this.conversationId,
+                this.sessionId,
+                this.id,
+                id,
+            );
+        },
+        list: async (
+            options: BrowserSdkRequestOptions,
+        ): Promise<readonly BrowserStream[]> => {
+            const snapshot = await current(this.client).snapshot(
+                this.conversationId,
+                options,
+            );
+            const connection = snapshot.connections.get(this.id);
+            if (!connection || connection.sessionId !== this.sessionId)
+                throw new BrowserSdkError("receipt-unavailable", "read-only");
+            return Object.freeze(
+                [...snapshot.streams.values()]
+                    .filter(
+                        (v) =>
+                            v.connectionId === this.id &&
+                            v.sessionId === this.sessionId,
+                    )
+                    .map((v) => this.streams.byId(v.id)),
+            );
+        },
+    };
+    constructor(
+        private readonly client: BrowserSdkClient,
+        readonly conversationId: ConversationId,
+        readonly sessionId: SessionId,
+        readonly id: ConnectionId,
+        readonly receiptStreamRevision?: SdkRevision<"stream">,
+    ) {
+        Object.freeze(this);
+    }
+    async refresh(
+        options: BrowserSdkRequestOptions,
+    ): Promise<BrowserConnectionSnapshot> {
+        const c = (
+            await current(this.client).snapshot(this.conversationId, options)
+        ).connections.get(this.id);
+        if (!c || c.sessionId !== this.sessionId)
+            throw new BrowserSdkError("receipt-unavailable", "read-only");
+        return c;
+    }
+    end(
+        input: {
+            reasonCode: number;
+            reason: string;
+            expectedStreamRevision?: SdkRevision<"stream">;
+        },
+        options: BrowserSdkMutationOptions,
+    ): Promise<BrowserOperation<BrowserConnection>> {
+        if (
+            !input ||
+            !Number.isInteger(input.reasonCode) ||
+            input.reasonCode < 0 ||
+            input.reasonCode > 65535 ||
+            !boundedText(input.reason, 256, true)
+        )
+            invalid();
+        return this.client[submit](
+            browserOperationKinds.connectionEnd,
+            { reason_code: input.reasonCode, reason: input.reason },
+            {
+                cid: this.conversationId,
+                sid: this.sessionId,
+                connid: this.id,
+                ...(input.expectedStreamRevision === undefined
+                    ? {}
+                    : {
+                          expected_revision: sdkRevision(
+                              input.expectedStreamRevision,
+                          ),
+                      }),
+            },
+            options,
+        );
+    }
+    private async native(options: BrowserSdkRequestOptions) {
+        const s = current(this.client),
+            peer = s.peer,
+            epoch = s.owner.status.physicalEpoch,
+            local = s.local.get(this.id);
+        if (
+            !local ||
+            local.cid !== this.conversationId ||
+            local.sid !== this.sessionId ||
+            local.epoch !== epoch
+        )
+            throw new BrowserSdkError("receipt-unavailable", "read-only");
+        const native = await boundedLocal(local.ready, options);
+        s.observe(peer, epoch);
+        if (s.local.get(this.id) !== local)
+            throw new BrowserSdkError("receipt-unavailable", "read-only");
+        return { native, local, s, peer, epoch };
+    }
+    /** Local capture is explicit and owns only this physical's negotiated senders. */
+    async capture(
+        input: {
+            audio?: boolean;
+            video?: "camera" | "screen";
+            audioDeviceId?: string;
+            videoDeviceId?: string;
+            stream?: MediaStream;
+            state?: BrowserMediaCaptureOptions["state"];
+        },
+        options: BrowserSdkRequestOptions,
+    ): Promise<BrowserCaptureHandle> {
+        if (
+            !input ||
+            (input.audio !== undefined && typeof input.audio !== "boolean") ||
+            (input.video !== undefined &&
+                !["camera", "screen"].includes(input.video)) ||
+            (!input.audio && !input.video)
+        )
+            invalid();
+        const captured = { ...input },
+            budget = new Budget(options),
+            { native, local, s, peer, epoch } = await this.native(
+                budget.options() as BrowserSdkRequestOptions,
+            );
+        const audio = captured.audio ? local.audio : undefined,
+            video =
+                captured.video === undefined
+                    ? undefined
+                    : captured.video === "screen"
+                      ? local.screen
+                      : local.video;
+        if ((captured.audio && !audio) || (captured.video && !video)) invalid();
+        if (s.captures.has(this.id))
+            throw new BrowserSdkError("conflict", "read-only");
+        const reservation = {};
+        s.captures.set(this.id, reservation);
+        const release = () => {
+            if (s.captures.get(this.id) === reservation)
+                s.captures.delete(this.id);
+        };
+        let capture: BrowserMediaCapture | undefined;
+        try {
+            capture = await BrowserMediaCapture.open(native, {
+                audioStreamId: audio,
+                videoStreamId: video,
+                videoSource: captured.video,
+                audioDeviceId: captured.audioDeviceId,
+                videoDeviceId: captured.videoDeviceId,
+                stream: captured.stream,
+                state: (state, error) => {
+                    if (state === "closed") release();
+                    captured.state?.(
+                        state,
+                        error ? translated(error, "read-only") : undefined,
+                    );
+                },
+                ...budget.options(),
+            });
+            s.observe(peer, epoch);
+            const owner = capture;
+            return Object.freeze({
+                get closed() {
+                    return owner.closed;
+                },
+                pause: () => owner.pause(),
+                resume: async () => {
+                    try {
+                        await owner.resume();
+                    } catch (error) {
+                        throw translated(error, "read-only");
+                    }
+                },
+                close: () => owner.close(),
+            });
+        } catch (error) {
+            release();
+            capture?.close();
+            throw translated(error, "read-only");
+        }
+    }
+    /** Decoded frames route to the owned renderer without protocol callbacks in app code. */
+    async render(
+        input: {
+            audio?: boolean;
+            video?: readonly {
+                stream: BrowserStream;
+                canvas: HTMLCanvasElement;
+            }[];
+            volume?: number;
+        },
+        options: BrowserSdkRequestOptions,
+    ): Promise<BrowserRenderHandle> {
+        if (
+            !input ||
+            (input.audio !== undefined && typeof input.audio !== "boolean") ||
+            (input.video !== undefined &&
+                (!Array.isArray(input.video) || input.video.length > 8))
+        )
+            invalid();
+        const video: Record<string, HTMLCanvasElement> = {};
+        for (const v of input.video ?? []) {
+            if (
+                !v ||
+                !(v.stream instanceof BrowserStream) ||
+                !v.stream.belongs(
+                    this.client,
+                    this.conversationId,
+                    this.sessionId,
+                    this.id,
+                ) ||
+                Object.hasOwn(video, v.stream.id)
+            )
+                invalid();
+            video[v.stream.id] = v.canvas;
+        }
+        const audio = input.audio,
+            volume = input.volume,
+            budget = new Budget(options),
+            { native, s, peer, epoch } = await this.native(
+                budget.options() as BrowserSdkRequestOptions,
+            );
+        if (s.renderers.has(this.id))
+            throw new BrowserSdkError("conflict", "read-only");
+        let renderer: BrowserMediaRenderer | undefined;
+        try {
+            renderer = await BrowserMediaRenderer.open(native, {
+                audio,
+                video,
+                volume,
+                ...budget.options(),
+            });
+            s.observe(peer, epoch);
+            if (s.renderers.has(this.id))
+                throw new BrowserSdkError("conflict", "read-only");
+            s.renderers.set(this.id, renderer);
+            const owner = renderer;
+            void renderer.finished
+                .finally(() => {
+                    if (s.renderers.get(this.id) === owner)
+                        s.renderers.delete(this.id);
+                })
+                .catch(() => {});
+            const finished = renderer.finished.catch((error) => {
+                throw translated(error, "read-only");
+            });
+            void finished.catch(() => {});
+            return Object.freeze({
+                finished,
+                get diagnostics() {
+                    const v = owner.diagnostics;
+                    return Object.freeze({
+                        closed: v.closed,
+                        paused: v.paused,
+                        audio: v.audio,
+                        video: v.video,
+                    });
+                },
+                pause: () => owner.pause(),
+                resume: async () => {
+                    try {
+                        await owner.resume();
+                    } catch (error) {
+                        throw translated(error, "read-only");
+                    }
+                },
+                close: () => owner.close(),
+            });
+        } catch (error) {
+            renderer?.close();
+            throw translated(error, "read-only");
+        }
+    }
+}
+export class BrowserStream {
+    constructor(
+        private readonly client: BrowserSdkClient,
+        readonly conversationId: ConversationId,
+        readonly sessionId: SessionId,
+        readonly connectionId: ConnectionId,
+        readonly id: StreamId,
+    ) {
+        Object.freeze(this);
+    }
+    /** @internal Only validates handle parentage, never current authority. */
+    belongs(
+        client: BrowserSdkClient,
+        cid: ConversationId,
+        sid: SessionId,
+        connid: ConnectionId,
+    ) {
+        return (
+            this.client === client &&
+            this.conversationId === cid &&
+            this.sessionId === sid &&
+            this.connectionId === connid
+        );
+    }
+    async refresh(
+        options: BrowserSdkRequestOptions,
+    ): Promise<BrowserStreamSnapshot> {
+        const v = (
+            await current(this.client).snapshot(this.conversationId, options)
+        ).streams.get(this.id);
+        if (
+            !v ||
+            v.sessionId !== this.sessionId ||
+            v.connectionId !== this.connectionId
+        )
+            throw new BrowserSdkError("receipt-unavailable", "read-only");
+        return v;
+    }
 }

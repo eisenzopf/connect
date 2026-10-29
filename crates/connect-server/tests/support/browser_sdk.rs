@@ -45,6 +45,14 @@ async fn installed_chrome_typed_sessions_invitations_and_operation_recovery() {
     ] {
         assert_eq!(result["result"][name], 2, "{name}");
     }
+    for name in [
+        "wt_native_connection",
+        "wt_owned_capture_retired",
+        "restored_media_observation_only",
+    ] {
+        assert_eq!(result["result"][name], 1, "{name}");
+    }
+    assert_eq!(result["result"]["original_mutations"], 18);
     assert_eq!(
         counts(&h),
         (before.0 + 4, before.1 + 2, before.2 + 4, before.3 + 4)

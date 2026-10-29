@@ -1,3 +1,4 @@
+import { BrowserDeadline } from "./browser_deadline.js";
 import { BrowserClient, type RequestOptions } from "./browser_client.js";
 import {
     BrowserOpusCodec,
@@ -289,6 +290,8 @@ export class BrowserMediaPeer {
         }
     }
     private serverOffer(state: ConnectionState, frame: Envelope): void {
+        if (this.stopped || this.connections.get(state.scope.connid) !== state)
+            return;
         if (
             state.reconciling ||
             [...this.transitions.values()].some(
@@ -308,12 +311,24 @@ export class BrowserMediaPeer {
         const work = this.reconcile(state, frame);
         state.reconciling = work;
         void work
-            .catch((error: unknown) => this.die(error))
+            .catch((error: unknown) => {
+                if (!(
+                    error instanceof ConnectError &&
+                    error.code === "closed" &&
+                    this.connections.get(state.scope.connid) !== state
+                ))
+                    this.die(error);
+            })
             .finally(() => {
                 state.reconciling = undefined;
                 const next = state.pendingServer;
                 state.pendingServer = undefined;
-                if (next && !this.stopped) this.serverOffer(state, next);
+                if (
+                    next &&
+                    !this.stopped &&
+                    this.connections.get(state.scope.connid) === state
+                )
+                    this.serverOffer(state, next);
             });
     }
     private async reconcile(
@@ -494,7 +509,16 @@ export class BrowserMediaPeer {
             clockProfile: declaredClock === "rtcp-sr-sdes/1",
         };
     }
+    private requireState(state: ConnectionState): void {
+        this.check();
+        if (this.connections.get(state.scope.connid) !== state)
+            throw new ConnectError(
+                "closed",
+                "Connection retired before media installation",
+            );
+    }
     private install(state: ConnectionState, plan: Plan): void {
+        this.requireState(state);
         const retained = new Set(plan.media.map((b) => b.handle));
         const current = new Map<string, Route>();
         for (const binding of plan.media) {
@@ -777,11 +801,72 @@ export class BrowserMediaPeer {
             }
         }
     }
+    /** Start one original offer. `accepted` means validated current physical
+     * parameters arrived; `ready` separately observes installation. Neither
+     * promise can retry the mutation or lend ownership after peer retirement. */
+    beginOfferConnection(
+        input: BrowserConnectionOptions,
+        options: RequestOptions = {},
+    ): {
+        accepted: Promise<void>;
+        ready: Promise<BrowserMediaConnection>;
+        readonly submissionAttempted: boolean;
+    } {
+        let accept!: () => void, reject!: (error: unknown) => void;
+        const accepted = new Promise<void>((yes, no) => {
+            accept = yes;
+            reject = no;
+        });
+        let attempted = false;
+        const ready = this.offerConnection(input, options, accept, () => {
+            attempted = true;
+        });
+        void accepted.catch(() => {});
+        void ready.catch(reject);
+        return {
+            accepted,
+            ready,
+            get submissionAttempted() {
+                return attempted;
+            },
+        };
+    }
     async offerConnection(
         input: BrowserConnectionOptions,
         options: RequestOptions = {},
+        accepted?: () => void,
+        attempted?: () => void,
     ): Promise<BrowserMediaConnection> {
         this.check();
+        const timeout = options.timeoutMs ?? 10000;
+        if (!Number.isFinite(timeout) || timeout < 1 || timeout > 60000)
+            throw new ConnectError("invalid-request", "Invalid media deadline");
+        const budget = new BrowserDeadline(timeout);
+        if (
+            !input ||
+            (input.data !== undefined &&
+                (!Array.isArray(input.data) ||
+                    input.data.length > 8 ||
+                    input.data.some(
+                        (v) =>
+                            !v ||
+                            !["text", "json", "binary"].includes(v.protocol),
+                    )))
+        )
+            throw new ConnectError(
+                "invalid-request",
+                "Invalid original native stream intent",
+            );
+        input = {
+            conversationId: input.conversationId,
+            sessionId: input.sessionId,
+            connectionId: input.connectionId,
+            operationId: input.operationId,
+            audio: input.audio,
+            video: input.video,
+            screen: input.screen,
+            data: input.data?.map((v) => ({ id: v.id, protocol: v.protocol })),
+        };
         const streams: JsonObject[] = [];
         for (const kind of ["audio", "video", "screen"] as const)
             if (input[kind])
@@ -816,7 +901,8 @@ export class BrowserMediaPeer {
                 "invalid-request",
                 "Use new scoped connection/operation IDs and 1–8 distinct streams",
             );
-        const support = await browserCodecSupport();
+        const support = await budget.run(browserCodecSupport, options.signal);
+        this.check();
         if (
             (input.audio && !support.audio) ||
             ((input.video || input.screen) && !support.video)
@@ -886,7 +972,9 @@ export class BrowserMediaPeer {
                     capabilities: caps,
                     streams_offered: streams,
                 },
-                options,
+                { ...options, timeoutMs: budget.remaining() },
+                accepted,
+                attempted,
             );
         } catch (error) {
             this.retire(input.connectionId);
@@ -900,6 +988,8 @@ export class BrowserMediaPeer {
         type: "connection.offer" | "stream.subscribe",
         payload: JsonObject,
         options: RequestOptions,
+        accepted?: () => void,
+        attempted?: () => void,
     ): Promise<void> {
         this.check();
         await this.stable(state);
@@ -934,6 +1024,7 @@ export class BrowserMediaPeer {
             operation_id: operationId,
             expected_revision: state.revision,
         };
+        attempted?.();
         const started = this.client.begin(type, payload, scope, {
             ...remaining(),
             terminalType:
@@ -1008,7 +1099,9 @@ export class BrowserMediaPeer {
                             for (const kind of sub.kinds)
                                 if (typeof kind === "string")
                                     selectedKinds.add(kind);
+                this.requireState(state);
                 const plan = this.plan(frame, state, selectedKinds);
+                accepted?.();
                 await this.answer(state, frame, operationId, remaining());
                 await started.response;
                 await this.completed(
@@ -1022,7 +1115,12 @@ export class BrowserMediaPeer {
                     for (const kind of selectedKinds)
                         state.selectedKinds.add(kind);
                 } catch (error) {
-                    this.die(error);
+                    if (!(
+                        error instanceof ConnectError &&
+                        error.code === "closed" &&
+                        this.connections.get(state.scope.connid) !== state
+                    ))
+                        this.die(error);
                     throw error;
                 }
             } else
@@ -1035,7 +1133,11 @@ export class BrowserMediaPeer {
         } catch (error) {
             if (
                 !(error instanceof ConnectError) ||
-                !["refused", "historical-operation"].includes(error.code)
+                (!["refused", "historical-operation"].includes(error.code) &&
+                    !(
+                        error.code === "closed" &&
+                        this.connections.get(state.scope.connid) !== state
+                    ))
             )
                 this.client.close(error);
             throw error;
@@ -1045,7 +1147,12 @@ export class BrowserMediaPeer {
             this.transitions.delete(operationId);
             const next = state.pendingServer;
             state.pendingServer = undefined;
-            if (next && !this.stopped) this.serverOffer(state, next);
+            if (
+                next &&
+                !this.stopped &&
+                this.connections.get(state.scope.connid) === state
+            )
+                this.serverOffer(state, next);
         }
     }
     private async completed(
@@ -1334,6 +1441,10 @@ export class BrowserMediaPeer {
         route.opus?.close();
         route.vp8?.close();
         route.assembler?.clear();
+    }
+    /** Retire local owners after observing an authorized durable end receipt. */
+    retireLocalConnection(id: string): void {
+        this.retire(id);
     }
     private retire(id: string): void {
         const state = this.connections.get(id);

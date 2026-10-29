@@ -32,3 +32,26 @@ if(hint){
 }
 await incoming.close();
 void [recovered,topology,foreignId,foreignResult,forged];
+
+const connection=room.sessions.byId(sdkId<'session'>('session')).connections.byId(sdkId<'connection'>('connection'));
+const stream=connection.streams.byId(sdkId<'stream'>('source'));
+// @ts-expect-error Stream resource revisions cannot authorize a native Connection end.
+connection.end({reasonCode:200,reason:'finished',expectedStreamRevision:sdkRevision<'stream-resource'>(1)},{timeoutMs:1000,operationId});
+// @ts-expect-error Connection identity cannot name a Stream.
+connection.streams.byId(connection.id);
+// @ts-expect-error Stream observations cannot grant local source custody.
+const source:'local-source'=(await stream.refresh({timeoutMs:1000})).ownership;
+void source;
+
+const role:'browser'=client.role;
+// @ts-expect-error The browser runtime role cannot be changed by application code.
+client.role='node';
+void role;
+
+const capture=await connection.capture({audio:true},{timeoutMs:1000});
+// @ts-expect-error Ordinary capture handles expose no protocol media sender.
+capture.connection;
+const renderer=await connection.render({audio:false},{timeoutMs:1000});
+// @ts-expect-error Ordinary render handles expose no borrowed RTP/frame callback API.
+renderer.video;
+void [capture,renderer];

@@ -24,6 +24,7 @@ struct Backend {
     peer_identity: String,
     http: reqwest::Client,
     files: Arc<HashMap<String, Vec<u8>>>,
+    typed_endpoints: Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
 }
 pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: String) -> Page {
     let mut files = HashMap::new();
@@ -72,6 +73,7 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
         peer_identity: h.f.peer.identity_id.clone(),
         http: h.http.clone(),
         files: Arc::new(files),
+        typed_endpoints: Arc::new(std::sync::Mutex::new(std::collections::HashSet::new())),
     };
     let cert = CertificateDer::from_pem_file(&h.f.config.certificate).unwrap();
     let key = PrivateKeyDer::from_pem_file(&h.f.config.private_key).unwrap();
@@ -114,10 +116,17 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                     let mut request:EnrollmentRequest=serde_json::from_slice(&body).unwrap();request.normalize().unwrap();
                                     assert!([&backend.identity,&backend.peer_identity].contains(&&request.identity_id));
                                     assert!(request.transport!=EnrollmentTransport::Quic);
-                                    assert_eq!(request.operations,vec!["conversation.get","create","operation.get","session.accept","session.cancel","session.end","session.invite","session.reject","session_get"]);
+                                    assert_eq!(request.operations,vec!["connection.end","connection.offer","conversation.get","create","operation.get","session.accept","session.cancel","session.end","session.invite","session.reject","session_get"]);
                                     let mut recipients=vec![backend.identity.clone(),backend.peer_identity.clone()];recipients.sort();
                                     assert_eq!(request.recipients,recipients);
                                     Some((format!("{}/v2/enrollments",backend.admin_origin),body))
+                                },
+                                "/typed-verify"=>{
+                                    let value:Value=serde_json::from_slice(&body).unwrap();let id=value["endpoint_id"].as_str().unwrap();
+                                    connect_protocol::transitions::id(id).unwrap();
+                                    assert!(backend.typed_endpoints.lock().unwrap().contains(id));
+                                    let command=ProvisioningCommand::VerifyEndpoint{operation_id:value["operation_id"].as_str().unwrap().into(),endpoint_id:id.into(),expected_revision:0,evidence_ref:"owned-loopback-synthetic-device-proof".into()};
+                                    Some((format!("{}/v2/endpoints/{id}/verify",backend.admin_origin),serde_json::to_vec(&command).unwrap()))
                                 },
                                 "/revoke"=>{
                                     let value:Value=serde_json::from_slice(&body).unwrap();let id=value["enrollment_id"].as_str().unwrap();connect_protocol::transitions::id(id).unwrap();
@@ -125,7 +134,12 @@ pub(super) async fn page(listener: tokio::net::TcpListener, h: &Hosted, origin: 
                                 }, _=>None,
                             };
                             if let Some((url,body))=target {
-                                let response=backend.http.post(url).bearer_auth(&backend.admin).header("Content-Type","application/json").body(body).send().await.unwrap();let status=response.status().as_u16();let bytes=response.bytes().await.unwrap();assert!(bytes.len()<=65536);(status,"application/json",bytes.to_vec())
+                                let response=backend.http.post(url).bearer_auth(&backend.admin).header("Content-Type","application/json").body(body).send().await.unwrap();let status=response.status().as_u16();let bytes=response.bytes().await.unwrap();assert!(bytes.len()<=65536);
+                                if path=="/typed-approve" && status==200 {
+                                    let value:Value=serde_json::from_slice(&bytes).unwrap();let id=value["result"]["Ok"]["endpoint_id"].as_str().unwrap();
+                                    backend.typed_endpoints.lock().unwrap().insert(id.into());
+                                }
+                                (status,"application/json",bytes.to_vec())
                             }else{(404,"text/plain",b"missing".to_vec())}
                         }else{(403,"text/plain",b"refused".to_vec())};
                         // HTML MIME is needed for the isolated page; modules remain JS.
@@ -207,7 +221,7 @@ pub(super) async fn run(h: &Hosted, port: u16, page_url: &str, run: Value, phase
     let input = h.f.temp.path().join(format!("browser-{phase}.json"));
     std::fs::write(
         &input,
-        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run})).unwrap(),
+        serde_json::to_vec(&json!({"debug_port":port,"page_url":page_url,"run":run,"user_gesture":phase=="typed-browser"})).unwrap(),
     )
     .unwrap();
     let driver = Path::new(env!("CARGO_MANIFEST_DIR"))

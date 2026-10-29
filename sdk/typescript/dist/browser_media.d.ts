@@ -112,10 +112,19 @@ export declare class BrowserMediaPeer {
     private stable;
     private answer;
     private plan;
+    private requireState;
     private install;
     private drain;
     private receive;
-    offerConnection(input: BrowserConnectionOptions, options?: RequestOptions): Promise<BrowserMediaConnection>;
+    /** Start one original offer. `accepted` means validated current physical
+     * parameters arrived; `ready` separately observes installation. Neither
+     * promise can retry the mutation or lend ownership after peer retirement. */
+    beginOfferConnection(input: BrowserConnectionOptions, options?: RequestOptions): {
+        accepted: Promise<void>;
+        ready: Promise<BrowserMediaConnection>;
+        readonly submissionAttempted: boolean;
+    };
+    offerConnection(input: BrowserConnectionOptions, options?: RequestOptions, accepted?: () => void, attempted?: () => void): Promise<BrowserMediaConnection>;
     private transition;
     private completed;
     private state;
@@ -129,6 +138,8 @@ export declare class BrowserMediaPeer {
     private dataReceived;
     end(id: string, operationId: string, options: RequestOptions): Promise<void>;
     private remove;
+    /** Retire local owners after observing an authorized durable end receipt. */
+    retireLocalConnection(id: string): void;
     private retire;
     close(): void;
 }

@@ -1,27 +1,30 @@
 import {BrowserClient,BrowserEnrollmentKey,BrowserEnrollmentStore,BrowserSdkClient,browserOperationKinds,sdkId} from '/sdk/browser.js';
 const trace=[];
-const originalRequest=BrowserClient.prototype.request,originalEvents=BrowserClient.prototype.onEvent;
-BrowserClient.prototype.request=async function(...args){const frames=await originalRequest.apply(this,args);trace.push({request:args[0],operation:args[2]?.operation_id});return frames;};
+const originalBegin=BrowserClient.prototype.begin,originalEvents=BrowserClient.prototype.onEvent;
+BrowserClient.prototype.begin=function(...args){const begun=originalBegin.apply(this,args);trace.push({request:args[0],operation:args[2]?.operation_id});return begun;};
 BrowserClient.prototype.onEvent=function(callback){return originalEvents.call(this,frame=>{trace.push({event:frame.type});return callback(frame);});};
+const within=async(work,label)=>{let timer;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' deadline')),5000);})]);}finally{clearTimeout(timer);}};
 const assert=(v,m)=>{if(!v)throw Error(m);};
 const decode=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),v=>v.charCodeAt(0));
 async function post(path,value){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify(value)});assert(r.ok,'fixture backend response');return r.json();}
 globalThis.runBrowserFixture=async cfg=>{try{
  const publicKey=await crypto.subtle.importKey('raw',decode(cfg.server_public_raw),{name:'Ed25519'},true,['verify']),server={key:publicKey,keyId:cfg.server_keyid,algorithm:'EdDSA',notBefore:cfg.server_not_before,expiresAt:cfg.server_expires_at};
  const vault=new BrowserEnrollmentStore('connect-typed-browser'),identities=[cfg.identity_id,cfg.recipient_id],profiles=[],now=Math.floor(Date.now()/1000),pins=[{algorithm:'sha-256',value:decode(cfg.certificate_sha256)}];
- const operations=['conversation.get','create','operation.get','session.accept','session.cancel','session.end','session.invite','session.reject','session_get'];
+ const operations=['connection.end','connection.offer','conversation.get','create','operation.get','session.accept','session.cancel','session.end','session.invite','session.reject','session_get'];
  for(let actor=0;actor<2;actor++){
   const byPath={},device='device-'+cfg.suffix+'-'+actor;
   for(const transport of ['webtransport','wss-webrtc']){
    const name=cfg.suffix+'-'+actor+'-'+transport,key=await BrowserEnrollmentKey.generate('EdDSA');
-   await vault.prepare(name,cfg.api_origin,{operation_id:'approve-'+name,completion_operation_id:'claim-'+name,identity_id:identities[actor],device:{id:device,kind:'browser',platform:'owned-Chrome'},key_id:'key-'+name,algorithm:key.algorithm,public_key:key.publicKey,transport,endpoint_address:location.origin+'/device/'+name,capabilities:['control','data'],browser_origin:location.origin,operations,recipients:identities,credential_expires_at:now+300,challenge_expires_at:now+120},key);
+   await vault.prepare(name,cfg.api_origin,{operation_id:'approve-'+name,completion_operation_id:'claim-'+name,identity_id:identities[actor],device:{id:device,kind:'browser',platform:'owned-Chrome'},key_id:'key-'+name,algorithm:key.algorithm,public_key:key.publicKey,transport,endpoint_address:location.origin+'/device/'+name,capabilities:['control','data','audio','video'],browser_origin:location.origin,operations,recipients:identities,credential_expires_at:now+300,challenge_expires_at:now+120},key);
    const offer=(await post('/typed-approve',await vault.request(name))).result.Ok,session=await vault.acceptOffer(name,offer);await session.claim();
+   // Explicit trusted fixture setup: key enrollment does not assert Endpoint assurance.
+   await post('/typed-verify',{endpoint_id:offer.endpoint_id,operation_id:'verify-'+name});
    byPath[transport]={name,contact:{url:transport==='webtransport'?cfg.wt_url:cfg.wss_url,server,...(transport==='webtransport'?{serverCertificateHashes:pins}:{})}};
   }
   profiles.push({device,byPath});
  }
- const savedCancellations=new Map();
- const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0};
+ const savedCancellations=new Map();let savedNative;
+ const result={passed:true,direct_wt:0,bounded_wss_fallback:0,incoming_rejections:0,incoming_accepts:0,explicit_retry:0,cancellations:0,recovered_original:0,current_authority_refusal:0,wt_native_connection:0,wt_owned_capture_retired:0,wt_owned_renderer_retired:0,restored_media_observation_only:0};
  for(const path of ['webtransport','wss-webrtc']){
   const resolutions=[[],[]],clients=[];
   try{
@@ -43,7 +46,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
     for(const action of ['reject','accept']){
      const sessionId=sdkId('session-'+action+'-'+suffix),invitationId=mutation('invite-'+action);
      sessionStorage.setItem('invite-id-'+suffix,JSON.stringify({sessionId,operationId:invitationId.operationId}));
-     const invite=await room.sessions.invite({sessionId,to:[target.id],medium:'text-chat',intent:'synthetic',capabilities:{data:['reliable-ordered']}},invitationId);
+     const invite=await room.sessions.invite({sessionId,to:[target.id],medium:'voice+video',intent:'synthetic',capabilities:{audio:['opus'],video:['vp8']}},invitationId);
      const pending=(await invite.wait(options)).value;
      assert(pending.id===sessionId,'invitation original operation completed');
      const hint=(await incoming.next()).value;
@@ -56,14 +59,44 @@ globalThis.runBrowserFixture=async cfg=>{try{
       assert(completed.value.state==='rejected'&&(await hint.session.refresh(options)).state==='rejected','current rejected state');result.incoming_rejections++;
      }else{
       assert(completed.value.id===pending.id,'accept typed result');result.incoming_accepts++;result.explicit_retry++;
+      if(path==='webtransport'){
+       const native=await pending.connections.offer({connectionId:sdkId('native-'+suffix),streams:[{id:sdkId('audio-'+suffix),kind:'audio',direction:'sendrecv',codecs:['opus']},{id:sdkId('video-'+suffix),kind:'video',direction:'sendrecv',codecs:['vp8']}]},mutation('native-offer'));
+       savedNative=native.referenceJson();const connection=(await native.wait(options)).value;
+       const observed=await connection.refresh(options);assert(observed.id===connection.id&&observed.generation===1&&observed.streamRevision===undefined,'current Connection resource observation');
+       const sources=await connection.streams.list(options);assert(sources.length===2,'typed Stream handles');
+       for(const stream of sources){const view=await stream.refresh(options);assert(view.ownership==='observation'&&view.connectionId===connection.id,'observations grant no capture');}
+       result.wt_native_connection++;
+       const context=new AudioContext({sampleRate:48000}),oscillator=context.createOscillator(),destination=context.createMediaStreamDestination(),canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;canvas.getContext('2d').fillRect(0,0,640,360);oscillator.frequency.value=500;oscillator.connect(destination);oscillator.start();
+       const stream=new MediaStream([...destination.stream.getAudioTracks(),...canvas.captureStream(30).getVideoTracks()]);
+       let capture,renderer;try{
+        await within(context.resume(),'Owned synthetic audio startup');
+        capture=await connection.capture({audio:true,video:'camera',stream},{timeoutMs:3000});assert(!capture.closed,'explicit owned synthetic capture starts');
+        let duplicateCapture;try{await connection.capture({audio:true,stream},{timeoutMs:1000});}catch(error){duplicateCapture=error;}
+        assert(duplicateCapture?.kind==='conflict'&&!capture.closed,'duplicate capture cannot replace an active source');
+        const videoSource=sources.find(v=>v.id===sdkId('video-'+suffix)),output=document.createElement('canvas');
+        renderer=await connection.render({audio:false,video:[{stream:videoSource,canvas:output}]},options);
+        assert(output.width===640&&output.height===360,'owned renderer configures its scoped canvas');
+        let duplicateRender;try{await connection.render({audio:false},options);}catch(error){duplicateRender=error;}
+        assert(duplicateRender?.kind==='conflict','duplicate renderer cannot replace its local owner');
+        await new Promise(resolve=>setTimeout(resolve,100));
+        const ended=await connection.end({reasonCode:200,reason:'Finished',expectedStreamRevision:connection.receiptStreamRevision},mutation('native-end'));await ended.wait(options);
+        assert(capture.closed&&stream.getTracks().every(t=>t.readyState==='ended'),'recorded end retires owned tracks');result.wt_owned_capture_retired++;
+        await within(renderer.finished,'Owned renderer retirement');result.wt_owned_renderer_retired++;
+       }finally{renderer?.close();capture?.close();for(const track of stream.getTracks())track.stop();oscillator.stop();await within(context.close(),'Owned source graph closure');}
+      }
       const latest=await pending.refresh(options),end=await pending.end({reasonCode:200,reason:'Finished',expectedTopologyRevision:latest.topologyRevision},mutation('end'));
       const saved=end.referenceJson();sessionStorage.setItem('end-reference-'+suffix,JSON.stringify(saved));await end.wait(options);
       await caller.reconnect({preferredTransport:path});
+      if(path==='webtransport'){
+       const historical=(await caller.operations.restore(savedNative,browserOperationKinds.connectionOffer).wait(options)).value;
+       let refused;try{await historical.capture({audio:true},options);}catch(error){refused=error;}
+       assert(refused?.kind==='receipt-unavailable','restored historical offer has no new physical media custody');result.restored_media_observation_only++;
+      }
       const restored=caller.operations.restore(JSON.parse(sessionStorage.getItem('end-reference-'+suffix)),browserOperationKinds.sessionEnd),ended=await restored.wait(options);
       assert(ended.value.receiptSnapshot.state==='ended'&&(await ended.value.refresh(options)).state==='ended','original receipt survives physical replacement');result.recovered_original++;
      }
     }
-    const cancelInvite=await room.sessions.invite({sessionId:sdkId('session-cancel-'+suffix),to:[target.id],medium:'text-chat',intent:'synthetic',capabilities:{data:['reliable-ordered']}},mutation('invite-cancel'));
+    const cancelInvite=await room.sessions.invite({sessionId:sdkId('session-cancel-'+suffix),to:[target.id],medium:'voice+video',intent:'synthetic',capabilities:{audio:['opus'],video:['vp8']}},mutation('invite-cancel'));
     const invited=(await cancelInvite.wait(options)).value,received=(await incoming.next()).value;
     assert(received.session.id===invited.id,'cancellation recipient scope');
     const live=await invited.refresh(options),cancel=await invited.cancelInvitation({reasonCode:487,reason:'Cancelled',expectedTopologyRevision:live.topologyRevision},mutation('cancel'));
@@ -87,7 +120,7 @@ globalThis.runBrowserFixture=async cfg=>{try{
    assert(originalClaim?.kind==='authentication'&&originalClaim?.certainty==='refused','revoked original claim cannot restore a new physical');result.current_authority_refusal++;
   }finally{client.close();}
  }
- const mutations=trace.filter(x=>x.operation&&x.request!=='operation.get');
- assert(mutations.length===16&&new Set(mutations.map(x=>x.operation)).size===16,'eight original mutations per path, no status/restore resubmission');
+ const mutations=trace.filter(x=>x.operation&&['conversation.create','session.invite','session.accept','session.reject','session.cancel','session.end','connection.offer','connection.end'].includes(x.request));
+ assert(mutations.length===18&&new Set(mutations.map(x=>x.operation)).size===18,'sixteen Session mutations and two native mutations, no status/restore resubmission');
  return {...result,credentials:4,devices:2,endpoints:4,original_mutations:mutations.length};
-}catch(error){throw Error(String(error)+"\n"+JSON.stringify(trace));}};
+}catch(error){throw Error(String(error)+"\n"+JSON.stringify(error.problem??{})+"\n"+JSON.stringify(trace));}};

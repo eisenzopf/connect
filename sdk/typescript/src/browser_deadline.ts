@@ -8,17 +8,32 @@ export class BrowserDeadline {
     }
     remaining(): number {
         const milliseconds = this.expires - performance.now();
-        if (milliseconds <= 0)
+        if (milliseconds < 1)
             throw new ConnectError("timeout", "WebRTC participation timed out");
         return milliseconds;
     }
-    async run<T>(operation: () => Promise<T>): Promise<T> {
+    async run<T>(
+        operation: () => Promise<T>,
+        signal?: AbortSignal,
+    ): Promise<T> {
         const remaining = this.remaining();
+        if (signal?.aborted)
+            throw new ConnectError("cancelled", "Browser wait cancelled");
         let timer: ReturnType<typeof setTimeout> | undefined;
+        let abort: (() => void) | undefined;
         try {
             return await Promise.race([
                 operation(),
                 new Promise<never>((_, reject) => {
+                    abort = () =>
+                        reject(
+                            new ConnectError(
+                                "cancelled",
+                                "Browser wait cancelled",
+                            ),
+                        );
+                    signal?.addEventListener("abort", abort, { once: true });
+                    if (signal?.aborted) abort();
                     timer = setTimeout(
                         () =>
                             reject(
@@ -33,6 +48,7 @@ export class BrowserDeadline {
             ]);
         } finally {
             clearTimeout(timer);
+            if (abort) signal?.removeEventListener("abort", abort);
         }
     }
 }

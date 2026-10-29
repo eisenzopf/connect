@@ -106,6 +106,15 @@ export {
     sdkRevision,
 } from "./browser_sdk.js";
 export type {
+    BrowserCaptureHandle,
+    BrowserRenderHandle,
+    BrowserConnection,
+    BrowserStream,
+    BrowserOfferedStream,
+    BrowserConnectionSnapshot,
+    BrowserStreamSnapshot,
+    ConnectionId,
+    StreamId,
     BrowserConversation,
     BrowserSession,
     BrowserParticipant,

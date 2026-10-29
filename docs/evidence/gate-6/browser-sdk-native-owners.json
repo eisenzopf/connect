@@ -1,0 +1,296 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "base_commit": "5d08d7d1fcbad7f5ab0b97cddda59d094b87e267",
+  "status": "in-progress",
+  "passed": true,
+  "acceptance_qualified": false,
+  "scope": "Typed native WebTransport Connection/Stream and local capture/render ownership checkpoint. Session control/rejection/retry/recovery still runs on both WT and bounded WSS fallback; native media composition is WT only. No WSS media parity, actual microphone/camera permission, screen selection, received decoded media quality, accessible UI, Linux/remote or complete G6-061 acceptance claim.",
+  "schema": 115,
+  "dependency_patch_count": 241,
+  "tested_inputs": {
+    "Cargo.lock": {
+      "sha256": "6205bfd0e642d2358296a650a5283c630ae57727c9c49df076ed8810ce43ff59",
+      "mode": 420
+    },
+    "dependencies/source-lock.json": {
+      "sha256": "8d80eb9350885def3de113170d95825dfa4238f3365572e878cc68cd72cd3664",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_sdk.ts": {
+      "sha256": "50ee9adb3c48003eda13f1d4ae98051f620c2bd9bb05866703b08c1f57b9c73e",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_media.ts": {
+      "sha256": "11bc5e6d7792d39a0a67ade84ed3225488bd63c48fbbceacb599ea2b49e29e12",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser_deadline.ts": {
+      "sha256": "ecca05494bdd8fd8893471679bed1248f69ebe9de825013a5b297044acbfa9b8",
+      "mode": 420
+    },
+    "sdk/typescript/src/sdk_identity.ts": {
+      "sha256": "afc12f1804d3391889b9a7579928f8ca1acb543f872896eab5ed04af71272cd0",
+      "mode": 420
+    },
+    "sdk/typescript/src/browser.ts": {
+      "sha256": "4118ebb34ac72e0eeeabf41ee5162bdd27fff9b8c59cf16a317d9aed385c404a",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.js": {
+      "sha256": "2a4bcc8596c1fd1b123b83f93aad75681429e8f22413605191a7d4f93a1c29da",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_sdk.d.ts": {
+      "sha256": "417e0acfba0e9c08ecc61494f16f62c9f249e039c5d57549aabe62ca111deabe",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.js": {
+      "sha256": "84ace664477b378bfa9493d13eb4cca9ecff5c51dea7308d150c4cd7762a2ee8",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_media.d.ts": {
+      "sha256": "3f7e1ff6af48adc8e034a7463a71c394d48b04d368bb7873cbd04640e031aade",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_deadline.js": {
+      "sha256": "0f75a16a0d484caf1009759e7389bd9be1c00fbc83d46bf183d7fe8b3b571f9e",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser_deadline.d.ts": {
+      "sha256": "bea99b78619cff0782f1c35ce8f6900fdd9f91381dd8d352c9ca1f3475a3c381",
+      "mode": 420
+    },
+    "sdk/typescript/dist/sdk_identity.d.ts": {
+      "sha256": "2379954fe6a42c5b3355ddf5694393179624957c39c5e033c29f2ad88b0654d3",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.js": {
+      "sha256": "cfa883062ad0f2d82362923e2793c241deb92f53b79840bce02a68a229ffe0e5",
+      "mode": 420
+    },
+    "sdk/typescript/dist/browser.d.ts": {
+      "sha256": "27d520b627b481cc94886009a11ee97b91ccb59a845e01d41872d8ee607f3966",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk.test.mjs": {
+      "sha256": "06fada63bdebc2080274895baf2f20e1421fb173d9281e1196df63307fa02ef7",
+      "mode": 420
+    },
+    "sdk/tests/browser_sdk_types.mts": {
+      "sha256": "303927bc2e67052c611f37084abfe17c664a4bcd4f85d5e37fe22f038d0b2ed9",
+      "mode": 420
+    },
+    "sdk/tests/browser_media.test.mjs": {
+      "sha256": "936f836f9043f812f1e2d3f0e376bad555674a5f1e00cb36fd6546675be88fc6",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/enrollment_browser.rs": {
+      "sha256": "3fd0f9ad3a02ae29fb4a6b6efcf7b772c3f13646ebcb8fd79f71253b820baf1e",
+      "mode": 420
+    },
+    "crates/connect-server/tests/support/browser_sdk.rs": {
+      "sha256": "bef569c1a97e07109e1ccb2944505a3a4f7d1c27f854e51826bd564885ba08e4",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-enrollment-browser/typed-browser.mjs": {
+      "sha256": "71a834a7ca91c4de50a52e0376d99efcf7fb0eacbe228198ab1ad52b32d198f9",
+      "mode": 420
+    },
+    "crates/connect-server/tests/fixtures/gate6-webtransport-browser/run-browser.mjs": {
+      "sha256": "77d7278893271eab1dc4de8a76413823a67862e509052a658601fee5000a41de",
+      "mode": 420
+    },
+    "crates/connect-store/src/peer_authority/native_endpoint.rs": {
+      "sha256": "4eeb2abf12bb1cfe802d89027cbc812c2eaebd934e865e1e683752e42a100c7e",
+      "mode": 420
+    }
+  },
+  "source_manifest_sha256": "3eb01332028a2ab434fec80274044eeeaa85c44ca96efad41d88bb17509564de",
+  "source_inputs_guarded": 2468,
+  "verification": {
+    "passed": true,
+    "results": [
+      {
+        "phase": "sdk",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          425
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 4.551182333147153,
+        "log_sha256": "6cedbe15c847959ff24c63c51b2817df88c3d4b1cabfe918ba90bb7b97de6a90"
+      },
+      {
+        "phase": "types",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [],
+        "source_inputs_unchanged": true,
+        "seconds": 0.27405116707086563,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "phase": "node",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          37
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 2.215435291873291,
+        "log_sha256": "a618d07f8077be279516cf075fdd3aec88adbf7ceb35ecec3a15013c3835cdea"
+      },
+      {
+        "phase": "enrollment",
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false,
+        "functions_passed": [
+          10
+        ],
+        "source_inputs_unchanged": true,
+        "seconds": 32.257248792098835,
+        "log_sha256": "e19513feca93001d0ee2806fc48bfa5620cd9d000cff892b271f87c16df27a8b"
+      }
+    ]
+  },
+  "actual_browser": {
+    "product": "Chrome/156.0.8078.48",
+    "result": {
+      "passed": true,
+      "direct_wt": 1,
+      "bounded_wss_fallback": 1,
+      "incoming_rejections": 2,
+      "incoming_accepts": 2,
+      "explicit_retry": 2,
+      "cancellations": 2,
+      "recovered_original": 2,
+      "current_authority_refusal": 2,
+      "wt_native_connection": 1,
+      "wt_owned_capture_retired": 1,
+      "wt_owned_renderer_retired": 1,
+      "restored_media_observation_only": 1,
+      "credentials": 4,
+      "devices": 2,
+      "endpoints": 4,
+      "original_mutations": 18
+    },
+    "log_sha256": "a3064f7ee45767168d6dfff2a0ad15ea5ee2872ddc330225bb596ec1d791c211",
+    "scope": "Same two-actor WT/WSS Session workflow plus one WT native audio/video Connection. Synthetic AudioContext/canvas tracks are transferred explicitly; no personal device or screen capture. Renderer startup/retirement and canvas ownership are checked; received decoded-frame quality is not qualified.",
+    "mutation_observation": "Read-only fixture observer forwards production BrowserClient.begin unchanged. Exactly eighteen distinct canonical mutation calls: sixteen Session/Conversation mutations across two paths plus one original WT offer/end. Internal parameter confirmation and status reads are not new logical mutation submissions. Four additional trusted Endpoint verifications are explicit fixture setup and excluded from this communication mutation count."
+  },
+  "implemented": [
+    "Typed BrowserConnection and BrowserStream handles expose current authorized snapshots and fixed parent scopes. Resource revisions use separate brands from negotiated stream revision; Stream snapshots remain observations. Shared Connection/Stream ID brands load no Node runtime.",
+    "Typed Session.connections.offer uses the current WT physical media owner with original Connection/Stream/operation IDs, supported explicit duplex Opus/VP8/ordered-data profile, and separate accepted-parameter and installed-ready promises. It returns an observable Operation after validated original parameters, not an implicit operation wait. Unsupported codecs/directions and WSS media refuse locally without fallback or downgrade.",
+    "Native codec preflight, parameter exchange and completion share the original finite deadline and cancellation. Original scope/stream input is captured before asynchronous capability work. Preflight refusal retains not-submitted certainty; attempted offers preserve uncertain original keys. Failed local offers release their owner slots.",
+    "Connection end preserves full original scope and observable receipt. A recorded completed end retires local media; late prepared parameters or completion cannot re-install a retired Connection or unnecessarily close other physical control. Server reconciliation also ignores locally retired state.",
+    "Connection.capture/render select already installed current physical resources without protocol frame/RTP plumbing in ordinary app code. Captured source and renderer owners are exclusive per Connection, tied to physical/Connection retirement, and exposed through narrow immutable public handles. Local permission denial becomes a fixed capture problem rather than a transport failure.",
+    "Restoring an original completed offer after reconnect returns a historical handle with no new resource allocation, SDP, capture prompt or media custody. Typed current Connection/Stream observations never grant capture.",
+    "Owned fixture separately verifies only its exact approved synthetic Endpoints through the trusted HTTP administration path with an attributed proof reference. Enrollment is not silently upgraded and no administration bearer reaches browser code. Native Endpoint selection policy remains unchanged."
+  ],
+  "behavior": [
+    "25 signed typed browser functions include new current Connection/Stream observations, parent mismatches, original scoped end recovery, foreign completed end refusal, unsupported native offer validation, no IO downgrade, and historical/foreign media handle refusal.",
+    "Six additional media-owner functions cover accepted-vs-installed progress, codec preflight deadline/cancellation without submission, captured original intent through async preflight, and retirement before/after prepared parameters without late installation or collateral physical closure.",
+    "Actual Chrome obtains typed WT audio/video offer completion, current Connection and two Stream handles, starts owned synthetic capture plus scoped canvas renderer, refuses duplicate capture/render owners, and observes end stop all supplied tracks and settle renderer retirement. After explicit control reconnect, original completed offer restore cannot capture again.",
+    "Both WT and bounded350ms-WT-blackhole->separate-profile-WSS paths retain incoming rejection, new explicit retry/accept, end, reconnect/original receipt, cancellation, and independently revoked original claim/status refusal. Exactly four credentials/keys, two Devices and four Endpoints persist.",
+    "Final stable-source verification:425SDK functions,37targeted Node SDK/session/incoming functions,10real combined enrollment functions,0ignored. Shared browser/Node negative type checks cover Connection/Stream families, resource-vs-stream revisions, runtime role and hidden protocol methods on ordinary capture/render handles. Node runtime JS and production service source remain byte-identical to the base."
+  ],
+  "prior_attempts": [
+    {
+      "passed": false,
+      "log_sha256": "c0dcc8a753784497fda4f403de61150b764a122a7579f146ed73125665a69b72",
+      "observation": "Initial TypeScript collection narrowing failed; added the validated fixed kind index before emission. No runtime pass claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "4996d42afcf7a42eeeaca12c4386dca92df54269df6e5233220b4e2994cd7dbd",
+      "observation": "Fixture observer rewrite accidentally retained a reference to removed originalRequest; corrected observer to forward the original begin call exactly once."
+    },
+    {
+      "passed": false,
+      "log_sha256": "71f7f018f29680bf509f12ecc669dfbda6f51ace911f41cd0c342d72ef3469ae",
+      "observation": "New media offer was refused before any Connection record. Initial fixture had only a data Session/Endpoint profile; added explicit audio/video intent and capabilities, without claiming that declaration proves Endpoint assurance."
+    },
+    {
+      "passed": false,
+      "log_sha256": "6ab6f62062e5322fbea8510c377307e93d3b60bdf7fb0964c6ebeaf8589551f0",
+      "observation": "Media offer still refused. The isolated diagnostic database confirms an accepted audio/video Session and zero native operation/Connection effects."
+    },
+    {
+      "passed": false,
+      "log_sha256": "28cb16f2f77de927c2e45d14bfc0c09272abfac7458cb5a76962eda547d2fc41",
+      "observation": "Temporary local diagnostic identified not-ready: Device has no verified native Endpoint. Enrollment deliberately leaves assurance unverified. Diagnostic source was restored byte-for-byte before final cohort; production assurance remains unchanged."
+    },
+    {
+      "passed": false,
+      "log_sha256": "0f17511766f3badeb29edb431d419f7f7a44443e34ee81363c8f238f37f1f5c7",
+      "observation": "Retained isolated database diagnostic reproduced refusal and confirmed no durable offer/Connection effect; no completed native workflow claimed."
+    },
+    {
+      "passed": false,
+      "log_sha256": "f2f44d50b2624b22a1961e44b0c9490fd51a3d7d6e529d6e56700845543dc4aa",
+      "observation": "After explicit trusted fixture Endpoint verification, synthetic AudioContext startup lacked a browser user gesture and the driver reached its Runtime.evaluate bound. Added the explicit owned-page gesture and finite synthetic source/renderer closure waits."
+    },
+    {
+      "passed": false,
+      "log_sha256": "e20163e96cc82857ebbc73b33cc5292f4f8c1910ccfc7eb28a1261b520fa3eec",
+      "observation": "First guarded425/37/10 cohort passed, then diff check found compiler-generated trailing whitespace from an inline parameter documentation comment. Removed the source comment, regenerated and reran final guarded cohort."
+    }
+  ],
+  "trust_scope": "Fresh owned Chrome profile, explicit synthetic leaf SPKI exception for HTTPS/WSS, short-lived WT hash and independent server signatures. Explicit owned-page browser user gesture is fixture setup; source tracks come only from AudioContext and owned canvas. No personal browser/device/screen, system trust, model/account/provider/named remote execution.",
+  "remaining": [
+    "Transport-independent WSS media adapter and complete typed WT/fallback media parity; current WSS Connection offer refuses before IO.",
+    "Typed subscriptions/Connection updates, broader frozen Session/messaging/event/capability API, and durable invitation recovery/deduplication.",
+    "Device/source choice, actual owned synthetic user-media permissions and owned-tab screen capture, permission denial and keyboard-accessible pending/ready/failed UI with persisted intent/recovery.",
+    "Received decoded media/quality and complete end-to-end lifecycle qualification through the high-level facade, plus complete G6-061 requirement audit before changing task status."
+  ],
+  "open_gate_findings": [
+    "Existing installed positive provisioning CLI15second subprocess timeout remains unresolved; no CLI change or full Rust workspace pass claimed.",
+    "Three unchanged full-tree TypeScript format findings remain protocol.ts/record_context.ts/task_protocol.ts; changed files are checked separately.",
+    "Generic browser Operation result copy currently has a64KiB local bound; maximal Conversation-result coverage still belongs to the full SDK API audit."
+  ],
+  "privacy": "Raw logs, proofs, credentials, browser profiles, retained synthetic diagnostic database and TLS state remain ignored under.local. Public evidence has source/log digests, aggregate counts and scoped observations only.",
+  "reference_checks": {
+    "dependencies": {
+      "passed": true,
+      "log_sha256": "1093da5a89cb3a48536e09fcf6739ec78936602cafa1afc80cd118d2cf3338aa"
+    },
+    "format": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typescript-format": {
+      "passed": true,
+      "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    "navigation": {
+      "passed": true,
+      "log_sha256": "a0cb801adbd78507da1372011dee2cdefcba2088d28d0bf4669b9627813b7ef5"
+    },
+    "http-inventory": {
+      "passed": true,
+      "log_sha256": "d69dda5fcadb9200925072b387ea58b311f86e0980f4e64c1b127a741a038f78"
+    },
+    "application-openapi": {
+      "passed": true,
+      "log_sha256": "b1e05afa50c8b6b11f2c7639ca1faed511b09edb6c91eb6c70b88e54acfa0c11"
+    },
+    "canonical-openapi": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "enrollment-openapi": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "diff": {
+      "passed": true,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

@@ -6,11 +6,12 @@ transport selection, current enrollment and explicit reconnection rules as
 loads no Node helper. Identity and revision brands are shared with the Node
 SDK through a type-only leaf.
 
-This checkpoint implements Client, Conversation, Participant, Session and
-Operation control handles. Supported mutations are Conversation creation and
-Session invitation, acceptance, rejection, cancellation and end. Connection,
-Stream, broader Session controls, media composition and accessible UI remain
-in progress. A successful Session control operation does not establish media.
+This checkpoint implements Client, Conversation, Participant, Session,
+Connection, Stream and Operation handles. Supported mutations are Conversation
+creation, Session invitation/acceptance/rejection/cancellation/end, and native
+WebTransport Connection offer/end. Connection updates and subscriptions,
+WebRTC composition, broader Session controls and accessible UI remain in
+progress. A successful Session control operation does not establish media.
 
 ```ts
 import {
@@ -107,7 +108,7 @@ const same = client.operations.recover(original.reference);
 ```
 
 `restore` checks the SDK-owned kind and original scope locally before IO. There
-is no opaque continuation support in these six mutation kinds. Saved references
+is no opaque continuation support in these eight mutation kinds. Saved references
 and receipt snapshots do not confer current authorization. Explicit reconnect
 resolves the selected transport's original enrollment again; revoked preferred
 credentials refuse the round before any fallback attempt.
@@ -117,3 +118,83 @@ records the signed boundary and owned Chrome checks over direct WT and bounded
 WSS fallback. This checkpoint does not qualify camera/microphone permissions,
 source selection, capture/render handles, screen capture, keyboard UI, Linux,
 remote hosting or complete G6-061 acceptance.
+
+
+## Current physical media owners
+
+Key enrollment deliberately leaves Endpoint assurance unverified. Before native
+media, a trusted backend must separately attribute and verify the enrolled
+Endpoint through the administration API. A successful claim or control
+connection does not bypass this step. The owned fixture verifies only the
+closed set of its own approved synthetic Endpoints, with an explicit evidence
+reference; no browser receives administration credentials.
+
+`session.connections.offer` accepts persisted Connection/Stream IDs and typed
+stream intent. The current native browser profile supports duplex Opus audio,
+VP8 video/screen and ordered text/JSON/binary data. Unsupported directions or
+codecs refuse before submission; the SDK does not replace the requested
+profile. WSS media composition is still pending and refuses locally in this
+checkpoint, while the same Session control API works on both transports.
+
+```ts
+const offer = await session.connections.offer({
+    connectionId: savedConnectionId,
+    streams: [
+        { id: savedAudioId, kind: "audio", direction: "sendrecv", codecs: ["opus"] },
+        { id: savedVideoId, kind: "video", direction: "sendrecv", codecs: ["vp8"] },
+    ],
+}, { ...wait, operationId: savedOfferOperationId });
+const connection = (await offer.wait(wait)).value;
+const current = await connection.refresh(wait);
+const streams = await connection.streams.list(wait);
+```
+
+The mutation returns after validated current physical parameters arrive;
+negotiation continues under the original offer budget. Operation completion and
+local installation remain separate. `connection.capture(...)` and
+`connection.render(...)` wait within their own finite local read budgets for
+that physical installation. They never submit another offer. Codec preflight,
+parameter exchange and original completion share the original negotiation
+deadline; preflight cancellation cannot submit late intent.
+
+Connection and Stream `refresh()` return current authorized resource snapshots.
+Their `resourceRevision` brands are distinct from negotiated stream revision;
+use an independently observed negotiated revision for native control assertions.
+The offer's `receiptStreamRevision` is historical receipt data. Stream snapshots
+always report `ownership: "observation"`, including when another local owner
+happens to be active.
+
+Capture selects this offer's senders without protocol IDs in ordinary UI code:
+
+```ts
+const capture = await connection.capture({
+    audio: true,
+    video: "camera", // "screen" selects an explicitly offered screen Stream.
+    audioDeviceId: selectedLocalMicrophone,
+    videoDeviceId: selectedLocalCamera,
+}, { timeoutMs: 30000, signal: captureAbort.signal });
+// Alternatively transfer a matching, already owned synthetic MediaStream.
+// Its tracks stop when the capture or Connection retires.
+```
+
+Device IDs remain local capture constraints. Screen selection uses the browser
+permission UI and cannot take a camera device ID. Capture startup is bounded
+by its supplied 1–60000 ms deadline; active capture continues until explicit
+close, abort or owner retirement. One capture owner per Connection prevents
+two local sources from writing the same negotiated senders. A renderer routes
+borrowed decoded frames internally; the application supplies scoped receive
+Stream handles and canvases, rather than signed-envelope or RTP callbacks.
+
+`connection.end(input, mutation)` returns the original observable Operation;
+observing its completed receipt retires local media owners while preserving
+other Connections and the control client. Physical retirement also closes
+capture/playback. Restoring an offer after reconnect yields a historical handle,
+with no new local media resources, capture prompt or permission grant. A new
+explicit media offer is a separate saved user intent.
+
+This checkpoint's synthetic capture test does not prove camera permission,
+screen selection, received playback quality or full WT/WSS media parity. Those
+remain required before G6-061 can close.
+
+[Native media ownership evidence](../evidence/gate-6/browser-sdk-native-owners.json)
+records the current typed WT Connection/Stream and local owner checks.
