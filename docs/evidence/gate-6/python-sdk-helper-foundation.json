@@ -1,0 +1,309 @@
+{
+  "format": 1,
+  "task": "G6-063",
+  "date": "2026-10-28",
+  "component": "owned helper transport foundation",
+  "full_sdk_qualified": false,
+  "acceptance_qualified": false,
+  "publication": false,
+  "verification": {
+    "passed": true,
+    "scope": "Python standard-library owned SDK process/FIFO/deadline/cancellation/strict JSON tests through a synthetic helper, plus existing fake local SDK/HTTP/codec regression tests. No original Rust executable, real production server, installed package, full typed Python SDK or G6-063 qualification.",
+    "exit_code": 0,
+    "timed_out": false,
+    "forced_cleanup": false,
+    "source_inputs_unchanged": true,
+    "source_count": 54,
+    "source_inputs_sha256": "646b4eba7e1ddf5f24aa7e192bd50c39252bc0964aed2e09cc369240d0623d4e",
+    "log_sha256": "a31a53830874736a2f572d72e9b25258e172f68fd16ff9aef7aec6959f6bee8e",
+    "unexpected_async_diagnostics": false,
+    "failed_functions": [],
+    "raw_logs_and_temporary_state_excluded_from_artifact": true,
+    "functions_passed": 53,
+    "owned_sdk_helper_functions_passed": 17,
+    "functions": [
+      "test_clients.ContractTests.test_rust_result_fixtures_validate_in_python",
+      "test_clients.HttpTests.test_http_denial_validation_redirects_bounds_and_stall",
+      "test_clients.HttpTests.test_raw_artifact_bytes_round_trip_without_base64",
+      "test_clients.NativeTests.test_application_denial_preserves_client",
+      "test_clients.NativeTests.test_binary_media_helper_is_bounded_and_keeps_audio_out_of_json",
+      "test_clients.NativeTests.test_chunked_frames_and_concurrent_callers",
+      "test_clients.NativeTests.test_health_readiness_validation_and_older_server_compatibility",
+      "test_clients.NativeTests.test_invalid_deadline_is_rejected",
+      "test_clients.NativeTests.test_malformed_frames_close_client_with_protocol_error",
+      "test_clients.NativeTests.test_media_diagnostics_cannot_fill_an_unread_helper_pipe",
+      "test_clients.NativeTests.test_missing_helper_has_stable_error",
+      "test_clients.NativeTests.test_partial_and_absent_responses_obey_deadline_and_reap_helper",
+      "test_clients.NativeTests.test_remote_media_end_is_prompt_and_distinct_from_uncertainty",
+      "test_contacts.ContactResponses.test_contact_cannot_infer_sms_consent_or_accept_malformed_ownership",
+      "test_contacts.ContactResponses.test_pairing_rejects_bad_state_expiry_and_challenge_without_echo",
+      "test_control_receipts.ControlReceipts.test_exact_reference_is_required_and_bad_reference_never_causes_a_retry",
+      "test_conversations.Conversations.test_create_requires_exact_receipt_and_keeps_input_without_retry",
+      "test_conversations.Conversations.test_untrusted_large_integer_and_null_receipt_are_protocol_rejections",
+      "test_events.Events.test_bounded_wait",
+      "test_events.Events.test_invalid_results",
+      "test_events.Events.test_nonfinite_or_invalid_unicode",
+      "test_events.Events.test_valid_results",
+      "test_media_diagnostics.MediaDiagnostics.test_bad_counter_sensitive_field_and_collection_bound_rejected",
+      "test_media_diagnostics.MediaDiagnostics.test_valid_sampled_scope_and_nullable_absence",
+      "test_membership.Membership.test_exact_receipt_closed_current_dto_and_no_mutation_retry",
+      "test_membership.Membership.test_query_scope_cursor_and_page_bounds",
+      "test_microphone_codec.MicrophoneCodecTests.test_extreme_samples_and_twenty_millisecond_frame",
+      "test_microphone_codec.MicrophoneCodecTests.test_silence_sign_and_full_scale_vectors",
+      "test_record_context.RecordContextTests.test_available_unavailable_and_deleted_keep_truthful_references",
+      "test_record_context.RecordContextTests.test_private_fingerprints_and_foreign_identity_are_rejected",
+      "test_sdk_helper.OwnedSdkHelper.test_absolute_deadline_includes_intent_capture_before_process_or_queue_admission",
+      "test_sdk_helper.OwnedSdkHelper.test_close_during_process_creation_retains_one_owned_start_and_never_submits_the_cancelled_job",
+      "test_sdk_helper.OwnedSdkHelper.test_corrupt_foreign_duplicate_oversized_and_coercible_replies_fail_closed",
+      "test_sdk_helper.OwnedSdkHelper.test_decode_scope_failure_is_protocol_not_an_unrelated_transport_failure",
+      "test_sdk_helper.OwnedSdkHelper.test_error_correlation_cannot_substitute_another_logical_id_command_or_scope",
+      "test_sdk_helper.OwnedSdkHelper.test_graceful_original_process_close_joins_and_forced_close_remains_incomplete",
+      "test_sdk_helper.OwnedSdkHelper.test_json_budgets_preserve_dense_large_replies_without_accepting_duplicate_or_nonfinite_values",
+      "test_sdk_helper.OwnedSdkHelper.test_local_validation_pre_cancellation_and_missing_executable_do_not_submit",
+      "test_sdk_helper.OwnedSdkHelper.test_only_valid_startup_phase_can_prove_no_mutation_was_submitted",
+      "test_sdk_helper.OwnedSdkHelper.test_original_process_captures_queued_intent_and_keeps_profile_and_logical_identity",
+      "test_sdk_helper.OwnedSdkHelper.test_python_task_cancellation_stays_cancelled_and_retains_original_intent_metadata",
+      "test_sdk_helper.OwnedSdkHelper.test_queue_budget_and_close_settle_original_waits_without_replay",
+      "test_sdk_helper.OwnedSdkHelper.test_queued_explicit_cancellation_is_not_submitted_and_preserves_control",
+      "test_sdk_helper.OwnedSdkHelper.test_sent_deadline_fences_original_owner_and_preserves_mutation_uncertainty",
+      "test_sdk_helper.OwnedSdkHelper.test_structured_error_retains_recorded_observation_without_diagnostics_or_helper_loss",
+      "test_sdk_helper.OwnedSdkHelper.test_trusted_backend_has_its_own_exact_profile_and_never_downgrades",
+      "test_sdk_helper.OwnedSdkHelper.test_unsent_deadline_removes_only_that_job_without_fencing_or_restarting",
+      "test_tasks.TaskTests.test_additional_wait_is_bounded_and_not_applied_to_mutations",
+      "test_tasks.TaskTests.test_malformed_extension_cannot_negotiate",
+      "test_tasks.TaskTests.test_malformed_optional_fields_states_and_nested_outcomes",
+      "test_tasks.TaskTests.test_native_negotiation_stable_ids_and_pending_wait",
+      "test_tasks.TaskTests.test_old_server_is_unsupported_and_ordinary_operations_still_work",
+      "test_tasks.TaskTests.test_typed_result_families_and_legacy_optional_fields"
+    ],
+    "python_version": "3.14.7",
+    "node_version": "v26.7.0",
+    "seconds": 8.02720604208298,
+    "finished_at": "2026-10-29T00:02:45.806281+00:00"
+  },
+  "source_inputs": {
+    "crates/connect-client/src/sdk/helper.rs": {
+      "sha256": "093ca2ed71f188cda585cd30fa4e9da31037acae40808ff22c0c001148da61a7",
+      "mode": 420
+    },
+    "examples/conversation-client/pcmu.py": {
+      "sha256": "2d53a2b397ca9837c5297dc7c5f44bd135206275b6bac6159c1b0f91517646d4",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/__init__.py": {
+      "sha256": "31cfad8efa48466b64bf5ed312bdec1202e06e338531ddd4268565218e02f408",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/_sdk_helper.py": {
+      "sha256": "36afa7f9aa3e9097b2db9143a550678a728ed5a4c019788d0625daaf12c6c455",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/_validation.py": {
+      "sha256": "1f2d99c6f69d8fd7fd76db09a377d015c981ff0d9ba5b567f6b4d1f9d157b4fc",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/agent_observations.py": {
+      "sha256": "d84303cdcf3f13a51278b8566297d834c45c7552522d42bca811380a3734b91e",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/contact_validation.py": {
+      "sha256": "8afce6ce76a91703c34ba5e6d00987618c330b3e7cce82c56d1d6e1a44a780ff",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/conversation_validation.py": {
+      "sha256": "a9cc40c6135ed1dd543e001b2fbd08193bc575a7c5c2e15ef7dd1fab99e94fd6",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/errors.py": {
+      "sha256": "0a6086f3129c92ade6f01b5ab030a6c9152348427f28ce280482b2ec19b478e5",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/event_validation.py": {
+      "sha256": "d231550124f3f128bcde39579cbc29857e2eba00281b83645f518740fd7aabbb",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/http.py": {
+      "sha256": "1d8ac3f233b2f1dace92deeb2f0a09dc076852d16f79bd6632efdd6b27e79443",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/media_validation.py": {
+      "sha256": "cb452252a276f06b21876e6dd59b33f7e1f638fdc3f9706431bd2704903a1e4d",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/membership_types.py": {
+      "sha256": "c173fd6dd98c724073f0367ee402738e9d5093de0654be839cc8bde99f51387c",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/membership_validation.py": {
+      "sha256": "ee0892040f8314ffa6ca12b353415e1754eb919162a98f77fb0ea189f671114e",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/native.py": {
+      "sha256": "5b35e113a85cfdb2f8a113f0ab02c8a9051208df6f7a1ca8380b63366d3b4343",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/native_audio.py": {
+      "sha256": "0500c71ba048d6b165c6fefc8d3168c4d7a2bff68eb238f26e9c306bf3c2d08a",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/operations.py": {
+      "sha256": "c4627117eb000dbd6ad631ea79a782aebd7aa1819479d262d1f9bc4fa2edd8e4",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/protocol.py": {
+      "sha256": "dd182d3dc039b042d21cac5ffda624a0088eba3270d932ea75994e66a6b077d2",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/py.typed": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/record_context.py": {
+      "sha256": "0307eb4f4e9cde7162b198975d607c02f0ea407dcac06e1a22e6e542d1826f6c",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/sdk_types.py": {
+      "sha256": "3deb474d0c83dbdaa5044eb0e7246416e349d37725950d24e15e7cf72b4b0831",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/task_operations.py": {
+      "sha256": "ecd3c461df74fd1298a9b91dec705fd142d5a2ccd42240cbe45c03cfa30d5ce9",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/task_protocol.py": {
+      "sha256": "be291a3b39abb2743a150751fd5174bcae78a0b1ec79ef3a445c180da7be6555",
+      "mode": 420
+    },
+    "sdk/python/connect_sdk/task_types.py": {
+      "sha256": "56112211c1d877c51fc28bb2b2eb8d28fdeea0725da59f5a9dc6af76966f635a",
+      "mode": 420
+    },
+    "sdk/python/pyproject.toml": {
+      "sha256": "524386a4199f5acb65599d9784bcb4994672221fd8abafb5ad011801309226c4",
+      "mode": 420
+    },
+    "sdk/tests/attachment_links_probe.py": {
+      "sha256": "e056d8b557420addf3b951401608fa4523a0e3eb88f2d2d815c2706405aa7443",
+      "mode": 420
+    },
+    "sdk/tests/check_canonical_helper.py": {
+      "sha256": "70de57681d94a1ef8443d7520852169b3adcf6845bed63a52ac4baf2e2758e9f",
+      "mode": 420
+    },
+    "sdk/tests/check_python_helper.py": {
+      "sha256": "3b3160837e55a87efc225e9ae388a971f62de37b20a795dabdef976c6c6be9f1",
+      "mode": 420
+    },
+    "sdk/tests/contact_probe.py": {
+      "sha256": "19caa48f63c886c11230b016db41f416356543851c3fade5f416258b3eb38b48",
+      "mode": 420
+    },
+    "sdk/tests/conversations_probe.py": {
+      "sha256": "d3dbaf8211a9f36e3414085917a997c4a79e9c20ae71a6abb4b63a5cefddd980",
+      "mode": 420
+    },
+    "sdk/tests/events_probe.py": {
+      "sha256": "c156211ef108e37b8104798daf9c624855646228127812a9e835c85d88515e28",
+      "mode": 420
+    },
+    "sdk/tests/fixtures/sdk_helper.mjs": {
+      "sha256": "9694035a66b40101065c41a0a35690fec8a88afd4602d786b990225f7eba8fd1",
+      "mode": 493
+    },
+    "sdk/tests/helper_auth_probe.py": {
+      "sha256": "8fba34b40fca4dc29ba282227acdddfb33dd2dc64b27043c25e39e7339653ca8",
+      "mode": 420
+    },
+    "sdk/tests/helper_fixture.py": {
+      "sha256": "1ec26743afbb91d73d9bef7692853a5e3058a4cb4bd128374c3fdbc4adcde9fc",
+      "mode": 493
+    },
+    "sdk/tests/membership_probe.py": {
+      "sha256": "de535eb095200e8539833febaa425404bf464af2dc5f71ebcf9c5a225d8a9267",
+      "mode": 420
+    },
+    "sdk/tests/messages_probe.py": {
+      "sha256": "547a5154a10e8bb53f28f9b047baeebe95c59c9d1ec7c6a6342f8ab95c52e0ca",
+      "mode": 420
+    },
+    "sdk/tests/native_grant_probe.py": {
+      "sha256": "5d1002bfad95e8c2780567f81a8396958e4b4c091884ae5a57f84bf589749e5c",
+      "mode": 420
+    },
+    "sdk/tests/operations_probe.py": {
+      "sha256": "c3c23c4db79605775c93198a09c63e12d5163cbdbba47a9b42979d1a17297a44",
+      "mode": 420
+    },
+    "sdk/tests/prepare_native_consumer.py": {
+      "sha256": "ebb157affc63705db3cc0316a4ca374a98e1166d8320d8b2993ca70c0e310879",
+      "mode": 420
+    },
+    "sdk/tests/python_probe.py": {
+      "sha256": "78291a22a507c5ecdad39fa08bd044c87b31d05c675c805ada5c46a8ae77e929",
+      "mode": 420
+    },
+    "sdk/tests/receipts_probe.py": {
+      "sha256": "8b01f0a37600b5a4cd8bb0c9817381d166090a97076e29ffef6908daf466eeb9",
+      "mode": 420
+    },
+    "sdk/tests/session_probe.py": {
+      "sha256": "2e86f4851fc52acf455ba60efc864a31bb7c34dce985d7141b48c49f6f6fa1e3",
+      "mode": 420
+    },
+    "sdk/tests/task_matrix_probe.py": {
+      "sha256": "0e300c994ef88b25f47a2caa0cdd3dbd73003c93d0adc61b7e5306847b31a86a",
+      "mode": 420
+    },
+    "sdk/tests/test_clients.py": {
+      "sha256": "b15fccc60b550956e389cadf66204d40292495a7211c2575a5a4a0c2aaf4ada5",
+      "mode": 420
+    },
+    "sdk/tests/test_contacts.py": {
+      "sha256": "ffbee9292271fe2e7d2bc5891303c99eb147dd166dc0e69e09e703cc40d3c675",
+      "mode": 420
+    },
+    "sdk/tests/test_control_receipts.py": {
+      "sha256": "37a98dd891d233251ef977f3934bd6c159b195c14b90c765d3e348025a0269d2",
+      "mode": 420
+    },
+    "sdk/tests/test_conversations.py": {
+      "sha256": "34af66e5671022d2efdda5f6a8a7e2bbb4e457de52fb03011c2d85ae4cc89f7e",
+      "mode": 420
+    },
+    "sdk/tests/test_events.py": {
+      "sha256": "e03c8b9b115f6b2d2e38fc04673a0ca15918f1fb1f436f7a97975dd2fe0c6fbf",
+      "mode": 420
+    },
+    "sdk/tests/test_media_diagnostics.py": {
+      "sha256": "fbe668eca0364a589218ed291ac5c890377257b7ef5a628bec929a54f27053c7",
+      "mode": 420
+    },
+    "sdk/tests/test_membership.py": {
+      "sha256": "f2bf45f750cb89fd3ee167dd1ab52a8f57ac1bb92bf465cb778f38fc202195e4",
+      "mode": 420
+    },
+    "sdk/tests/test_microphone_codec.py": {
+      "sha256": "b3e976a7b7eace49270e264562b988bba4e765f52b44323ede161bdc1a566f99",
+      "mode": 420
+    },
+    "sdk/tests/test_record_context.py": {
+      "sha256": "fe991bff3811835775fc9976b3fa4408febbd4d5151106d3cbcb397c693e3dd7",
+      "mode": 420
+    },
+    "sdk/tests/test_sdk_helper.py": {
+      "sha256": "627983f22574e90574b91e17dd9e41e3fd0ee17eb5a79d7deccdda4de9d1b430",
+      "mode": 420
+    },
+    "sdk/tests/test_tasks.py": {
+      "sha256": "d37aa749103d52ced30801a27c4e71a6dc237ce1c9f11115917daf8ac71aaafa",
+      "mode": 420
+    }
+  },
+  "remaining": [
+    "Public typed async handles and explicit synchronous API design",
+    "Operation/result/reference decoding and all canonical controls",
+    "Durable events, restart recovery and current authorization",
+    "Local/remote trust, raw and HTTP facade parity",
+    "Clean installed virtual environment and complete original-server control fixture"
+  ]
+}

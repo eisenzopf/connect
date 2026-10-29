@@ -199,7 +199,7 @@ createInterface({input:process.stdin}).on('line',line=>{
    else result={Ok:snap};
  }
  if(config.mode==='admin-conflict'&&a.type==='administrative_provision'&&a.command.alias==='changed')result={Err:{kind:'conflict',certainty:'refused',operation:null,problem:null,observation:null}};
- if(config.mode==='refuse'&&n===1)result={Err:{kind:config.kind??'receipt-unavailable',certainty:config.certainty??'recorded',operation:null,problem:{code:410,category:'receipt-unavailable',reason:'receipt-expired'},observation:config.observation??null}};
+ if(config.mode==='refuse'&&n===1)result={Err:{kind:config.kind??'receipt-unavailable',certainty:config.certainty??'recorded',operation:config.errorOperation??null,problem:{code:410,category:'receipt-unavailable',reason:'receipt-expired'},observation:config.observation??null}};
  if(config.mode==='state-array') {const snap=result.Ok?.snapshot??result.Ok;if(snap?.state)snap.state=[snap.state];}
  if(config.mode==='decision-state-array'&&result.Ok?.value?.observedState)result.Ok.value.observedState=[result.Ok.value.observedState];
  if(config.mode==='participant-kind-array'&&result.Ok?.kind)result.Ok.kind=[result.Ok.kind];
