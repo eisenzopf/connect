@@ -1,0 +1,28 @@
+{
+  "task": "G6-061",
+  "date": "2026-10-29",
+  "scope": "Target-owned WebTransport browser media peer revision after original independently muted preparation. Isolated SDK unit behavior only; no new live handoff qualification.",
+  "passed": true,
+  "full_task_complete": false,
+  "finding": "The negotiated native binding begins at revision1, but the original target-owned preparation receipt confirms its gate at revision2. Retain that exact confirmed revision so a subsequent explicit typed control can reach current server admission.",
+  "behavior": [
+    "Only an original connection.offer with the captured handoff-preparation marker can apply this special revision update. The completed receipt must confirm stream_revision2, the exact preparation profile and prepared_muted=true, while the installed binding remains revision1.",
+    "Wrong revision, false mute confirmation or missing preparation metadata produces a protocol failure and closes the original peer. The original offer marker is captured before asynchronous codec support; mutation of the caller input cannot change it."
+  ],
+  "verification": {
+    "command": "node --test sdk/tests/browser_media.test.mjs",
+    "passed": 21,
+    "failed": 0,
+    "log_sha256": "2efc41028b29e3549582b9ea20a4a7745cb92126ab000efaa01a6576b0504fad",
+    "broader_uncommitted_cohort": "835 SDK tests plus browser/Node type checks and37 Node tests pass, but contains separate uncommitted WSS implementation. This checkpoint does not qualify that work."
+  },
+  "tested_sources": {
+    "sdk/typescript/src/browser_media.ts": "f7459197737378d49245e6141dcb0ad22b5dd13c33ffda4e450f3aaa534e5d57",
+    "sdk/typescript/dist/browser_media.js": "f0588c445b6b063f99b1aa3ffc0db59e232038669fecbfc2bb3c121e0f9593d2",
+    "sdk/tests/browser_media.test.mjs": "7559c6cfb40d6325973e6ad46dcf08bf724d27f3e7ee4446ba47ad8e07046f3b"
+  },
+  "limitations": [
+    "Read-only source-authorization preflight and successful WSS handoff remain uncommitted runtime work.",
+    "Authoritative stream-revision refresh after audience changes remains a separate open control-parity issue."
+  ]
+}

@@ -927,6 +927,10 @@ its original offer. The host isolates this source until an attributed handoff
 commits. The target supplies that completed offer's `snapshot.recordId` as
 `policyRef`; the caller saves it with the complete handoff intent before IO.
 The host revalidates the target's current physical grant, membership and readiness.
+The native peer retains revision 2 only after the original completed receipt
+confirms the muted preparation; malformed confirmation closes that peer.
+[Preparation revision evidence](../evidence/gate-6/browser-sdk-preparation-revision.json)
+covers the exact receipt checks.
 A copied source offer record is refused before a handoff effect starts.
 
 This independent preparation currently supports WebTransport. The selected

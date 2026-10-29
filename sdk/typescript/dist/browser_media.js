@@ -855,6 +855,20 @@ export class BrowserMediaPeer {
             }
             else
                 completed = await this.completed(state.scope.cid, operationId, until, options.signal);
+            if (type === "connection.offer" &&
+                jsonObject(payload.handoff_preparation)) {
+                const result = completed.result;
+                if (!jsonObject(result) ||
+                    state.revision !== 1 ||
+                    result.stream_revision !== 2 ||
+                    !jsonObject(result.handoff_preparation) ||
+                    result.handoff_preparation.profile !==
+                        "connect-handoff-preparation-v1" ||
+                    result.handoff_preparation.prepared_muted !== true)
+                    return fail("Original handoff preparation did not confirm its muted revision");
+                this.requireState(state);
+                state.revision = 2;
+            }
             if (type !== "connection.offer" &&
                 requestedRevision !== undefined) {
                 const result = completed.result;

@@ -257,9 +257,15 @@ test('target-owned native handoff preparation is captured once and mixed media r
  class Codec {static async isConfigSupported(){return {supported:true};}state='unconfigured';configure(){this.state='configured';}close(){this.state='closed';}}
  for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:Codec});
  const client=new Control('audio'),peer=new BrowserMediaPeer(client),offer={conversationId:'room',sessionId:'session',connectionId:'connection',operationId:'prepare',audio:'audio',purpose:'handoff-preparation'};
+ client.operationStatus=async()=>({operation_id:'prepare',state:'completed',result:{stream_revision:2,handoff_preparation:{profile:'connect-handoff-preparation-v1',prepared_muted:true}}});
  let original;const begin=client.begin;client.begin=function(type,payload,...args){if(type==='connection.offer'&&payload.substrate==='webtransport')original=structuredClone(payload);return begin.call(this,type,payload,...args);};
- try{const pending=peer.offerConnection(offer);offer.purpose='forged';await pending;
+ try{const pending=peer.offerConnection(offer);offer.purpose='forged';const prepared=await pending;assert.equal(prepared.revision,2);
  assert.deepEqual(original.handoff_preparation,{profile:'connect-handoff-preparation-v1'});
+ for(const result of [{stream_revision:1,handoff_preparation:{profile:'connect-handoff-preparation-v1',prepared_muted:true}},{stream_revision:2,handoff_preparation:{profile:'connect-handoff-preparation-v1',prepared_muted:false}},{stream_revision:2}]){
+  const client=new Control('audio'),peer=new BrowserMediaPeer(client);client.operationStatus=async()=>({operation_id:'prepare',state:'completed',result});
+  try{await assert.rejects(()=>peer.offerConnection({...offer,purpose:'handoff-preparation'}),{code:'protocol'});assert.equal(client.closed,true);}finally{peer.close();}
+ }
+
  }finally{peer.close();for(const[n,d]of old)if(d)Object.defineProperty(globalThis,n,d);else delete globalThis[n];}
  for(const patch of [{purpose:'forged'},{video:'video'},{screen:'screen'},{data:[{id:'data',protocol:'binary'}]},{audio:undefined}]){const client=new Control('audio'),peer=new BrowserMediaPeer(client);try{await assert.rejects(()=>peer.offerConnection({...offer,purpose:'handoff-preparation',...patch}),{code:'invalid-request'});assert.equal(client.sent.length,0);}finally{peer.close();}}
 });
