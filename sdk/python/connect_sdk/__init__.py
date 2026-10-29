@@ -14,6 +14,9 @@ from .sdk_raw import RawCanonical, ValidatedEnvelope
 from .sdk_administration import AdministrativeClient, AdministrativeOperations, TrustedProvisioningCommand
 from .sdk_http import CanonicalHttpClient, HttpCommandScope, HttpControlTransport, HttpEnvelope
 from .sdk_sync import SynchronousSdk
+from .sdk_media import Media, MediaConnection, MediaStream
+from .sdk_media_types import (MediaBinding, MediaNegotiation, NegotiatedMediaStream, RtpHeader,
+    RtpPacket, SenderClockReport, ClockPacket, MediaGap, MediaPacket, LocalMediaSubmission, MediaStats)
 from .sdk_types import (
     Cancellation, CapabilitySnapshot, Completion, ConversationId, ConversationRevision, Json,
     ConversationSnapshot, DecisionReceipt, DeliveryObservation, IdentityId, IdentityKind,
@@ -38,6 +41,8 @@ __all__ = ["ConnectError", "NativeClient", "NativeAudioClient", "HttpClient", "C
 from .task_types import TASK_PROFILE, TaskCommand, TaskDefinition, TaskOutcome, TaskRecord, TaskScope
 
 from .membership_types import MembershipAction, MembershipRequest, MembershipOutcome, MembershipSnapshot, MembershipInvitations
+__all__ += ['Media','MediaConnection','MediaStream','MediaBinding','MediaNegotiation','NegotiatedMediaStream',
+            'RtpHeader','RtpPacket','SenderClockReport','ClockPacket','MediaGap','MediaPacket','LocalMediaSubmission','MediaStats']
 __all__ += ["MembershipAction", "MembershipRequest", "MembershipOutcome", "MembershipSnapshot", "MembershipInvitations"]
 __all__ += [
     "Client", "Conversation", "Participant", "Operation", "OperationKind", "OperationKinds", "OperationReference",

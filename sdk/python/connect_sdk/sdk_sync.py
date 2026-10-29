@@ -39,8 +39,10 @@ class SynchronousSdk(Generic[C]):
         if type(client) not in (Client, AdministrativeClient, CanonicalHttpClient):
             raise SdkError("configuration", "read-only")
         helper = getattr(client, "_helper", None)
+        media = getattr(client, "media", None)
         if (getattr(client, "_closed", False) or getattr(client, "_loop", None) is not None
-                or helper is not None and (helper._closed or helper._loop is not None)):
+                or helper is not None and (helper._closed or helper._loop is not None)
+                or media is not None and media._owner.loop is not None):
             raise SdkError("configuration", "read-only")
         with _registry_lock:
             if id(client) in _owners:

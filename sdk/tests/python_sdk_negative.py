@@ -1,4 +1,4 @@
-"""Thirty-seven unsuppressed public-type constraints; compilation must fail exactly thirty-seven."""
+"""Forty unsuppressed public-type constraints; compilation must fail exactly forty."""
 from connect_sdk import (
     Client, Conversation, ConversationId, MessageId, MutationOptions, Operation,
     ParticipantId, RequestOptions, TopologyRevision,
@@ -6,7 +6,7 @@ from connect_sdk import (
     ConversationRevision, ConversationRole, HandoffInput, IdentityId, MoveInput, MoveResult, SessionRole,
     AdministrativeClient,
     CanonicalHttpClient, HttpCommandScope, Scope,
-    SynchronousSdk,
+    SynchronousSdk, RtpPacket,
 )
 
 
@@ -68,3 +68,10 @@ def synchronous_roles(native: SynchronousSdk[Client], admin: SynchronousSdk[Admi
     native.run(lambda client:client.provision({}))
     admin.run(lambda client:client.conversations.list(options))
     native._client=native._client
+
+
+async def invalid_media(client: Client, options: RequestOptions) -> None:
+    connection = client.conversations.by_id(ConversationId('room')).sessions.by_id(SessionId('session')).connections.by_id(ConnectionId('connection'))
+    await connection.media.stream_by_id(StreamId('audio')).send_rtp(b'not-a-packet', options)
+    connection.media.stream_by_id(ParticipantId('wrong-family'))
+    RtpPacket('not-a-sequence', b'not-a-packet')

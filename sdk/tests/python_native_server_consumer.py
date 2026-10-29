@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import sys
+import struct
+import time
 
 import connect_sdk
 from connect_sdk import (Client, ConversationId, MessageId, MutationOptions,
@@ -14,7 +16,7 @@ from connect_sdk import (Client, ConversationId, MessageId, MutationOptions,
                         MediumUpgrade, CodecRenegotiate, OfferedStream, Quality,
                         Mute, HoldConnection, ResumeConnection, ConnectionCodecRenegotiate,
                         ParticipantStreams, ParticipantLeave, Cancellation,
-                        CanonicalHttpClient, HttpCommandScope, SynchronousSdk)
+                        CanonicalHttpClient, HttpCommandScope, SynchronousSdk, RtpPacket, SenderClockReport)
 
 spec=json.loads(Path(sys.argv[1]).read_text())
 assert Path.cwd().resolve()==Path(spec['project']).resolve()
@@ -174,6 +176,30 @@ async def controls(owner):
         remote=await offer(peer_solo,'python-control-peer','python-control-peer-audio','python-control-peer-offer')
         assert native.receipt_stream_revision>0 and (await native.refresh(options)).stream_revision is None
         audio=native.streams.by_id(StreamId('python-control-audio'))
+        selected_media=await native.media.refresh(options)
+        assert selected_media.binding.connection_id==native.id
+        assert [s.id for s in selected_media.streams]==['python-control-audio']
+        assert selected_media.streams[0].stream_local_id is not None
+        native_stream=native.streams.by_id(StreamId('python-control-audio')).media
+        pcmu=bytes(0x80 if n%16<8 else 0 for n in range(160))
+        original_packet=RtpPacket(1,struct.pack('!BBHII',0x80,0,1,160,0x70594d31)+pcmu)
+        admitted=await native_stream.send_rtp(original_packet,options)
+        assert admitted.boundary=='local-media-queue' and admitted.datagram_sequence==1
+        seconds=time.time()+2208988800
+        ntp=(int(seconds)<<32)+int((seconds-int(seconds))*2**32)
+        report=SenderClockReport(0x70594d31,ntp,160,1,160,'synthetic-python-media')
+        if selected_media.source_clock:
+            clock=await native_stream.send_clock(2,report,options)
+            assert clock.boundary=='local-media-queue' and clock.datagram_sequence==2
+        else:
+            try:
+                await native_stream.send_clock(2,report,options)
+            except SdkError as error:
+                assert (error.kind,error.certainty)==('unsupported','not-submitted')
+            else:
+                raise AssertionError('Unnegotiated clock accepted')
+        media_stats=await owner.media.stats(options)
+        assert media_stats.queued_packets<=256 and media_stats.queued_bytes<=4*1024*1024
         assert (await audio.refresh(options)).ownership=='observation'
         revision=native.receipt_stream_revision
         async def update_connection(value,id):
@@ -217,7 +243,9 @@ async def controls(owner):
     emit({'phase':'controls-completed','conversation_id':room.id,
           'incoming_source_sha256':hashlib.sha256(hint.operation_id.encode()).hexdigest(),
           'participant_epoch_advanced':True,'stale_revisions_refused':True,'incoming_original_hint':True,
-          'session_decisions_completed':True,'native_controls_completed':True,'stream_selection_completed':True})
+          'session_decisions_completed':True,'native_controls_completed':True,'stream_selection_completed':True,
+          'native_media_negotiation':True,'native_rtp_local_queue':True,'native_clock_local_queue':selected_media.source_clock,
+          'native_clock_unnegotiated_refused':not selected_media.source_clock})
 
 
 async def run():

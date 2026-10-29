@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .sdk_media import MediaConnection, MediaStream
 
 from .client import Client, Operation, OperationKind, _bad, _id, _invalid, _mutation, _natural, _object, _revision
 from .sdk_sessions import _medium, _nonempty, _text
@@ -123,6 +126,10 @@ class Connection:
     id: ConnectionId
     receipt_stream_revision: StreamRevision | None = None
 
+    @property
+    def media(self) -> MediaConnection:
+        return self._client.media.connection(self.conversation_id,self.session_id,self.id)
+
     def __post_init__(self):
         _id(self.conversation_id);_id(self.session_id);_id(self.id)
         if self.receipt_stream_revision is not None and not _natural(self.receipt_stream_revision,1):
@@ -209,6 +216,10 @@ class Streams:
 class Stream:
     _connection: Connection
     id: StreamId
+
+    @property
+    def media(self) -> MediaStream:
+        return self._connection.media.stream_by_id(self.id)
 
     def __post_init__(self):
         _id(self.id)

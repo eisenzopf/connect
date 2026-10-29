@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 mod channel;
 pub(super) use channel::Channel;
 pub const PROFILE: &str = "connect-sdk-media/1";
+pub const CAPABILITY: &str = "managed-media-ipc-v1";
 pub const WINDOW: usize = 16;
 
 /// Private SDK-owned listener and one-use attachment token. Never Debug its token.

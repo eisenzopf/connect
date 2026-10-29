@@ -68,6 +68,21 @@ impl ManagedClient {
         let options = RequestOptions::new(Duration::from_millis(request.timeout_ms))?;
         let until = tokio::time::Instant::now() + options.timeout;
         match request.action {
+            Action::CapabilitiesRefresh => {
+                let mut value = super::execute(
+                    &self.client,
+                    Request {
+                        timeout_ms: request.timeout_ms,
+                        action: Action::CapabilitiesRefresh,
+                    },
+                )
+                .await?;
+                value["features"]
+                    .as_array_mut()
+                    .ok_or_else(|| failure(ErrorKind::Protocol))?
+                    .push(json!(media::CAPABILITY));
+                Ok(value)
+            }
             Action::MediaAttach { attachment } => {
                 let mut media = tokio::time::timeout_at(until, self.media.lock())
                     .await

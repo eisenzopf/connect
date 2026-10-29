@@ -232,10 +232,14 @@ async fn managed_media_channel_authenticates_original_custody_bounds_inflight_an
         assert_eq!(kind, wire::Kind::Failure);
         assert_eq!(bounded["kind"], "application");
         assert_eq!(bounded["certainty"], "not-submitted");
-        owner
+        let capabilities = owner
             .execute(request(json!({"type":"capabilities_refresh"})))
             .await
             .unwrap();
+        assert!(capabilities["features"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(media::CAPABILITY)));
         assert_eq!(
             offer.status(options()).await.unwrap().state,
             sdk::OperationState::Completed
@@ -273,7 +277,7 @@ async fn managed_media_channel_authenticates_original_custody_bounds_inflight_an
             json!({"profile":media::PROFILE,"algorithm":algorithm,
             "wrong_attachment_refused":true,"remote_attachment_refused":true,"original_binding_observed":true,
             "restored_foreign_custody_refused":true,"invalid_packet_and_metadata_refused":true,
-            "inflight_bounded":16,"control_live_while_media_reads_blocked":true,"detach_cancelled_and_joined_reads":true,
+            "inflight_bounded":16,"control_live_while_media_reads_blocked":true,"managed_media_version_declared":true,"detach_cancelled_and_joined_reads":true,
             "server_joined":true,"physical_peers_drained":true,"media_readers_drained":true})
         );
     }

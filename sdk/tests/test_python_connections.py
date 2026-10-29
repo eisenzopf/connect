@@ -4,7 +4,7 @@ from connect_sdk import (
     CodecOutcome, Connection, ConnectionCodecRenegotiate, ConnectionId,
     GateOutcome, HoldConnection, Mute, MutationOptions, NonEmpty, OfferedStream,
     OperationId, ParticipantId, ParticipantStreams, Quality, QualityOutcome,
-    RequestOptions, ResumeConnection, SdkError, StreamId, StreamRevision, StreamTarget,
+    RequestOptions, ResumeConnection, SdkError, StreamId, StreamRevision, StreamTarget, MediaConnection,
 )
 from _python_sdk_fixture import PythonSdkFixture
 
@@ -34,8 +34,11 @@ class TypedPythonConnections(PythonSdkFixture):
         self.assertIsNone(connections.by_id('connection').receipt_stream_revision)
         current=await connection.refresh(OPTIONS)
         self.assertIsNone(current.stream_revision);self.assertEqual((current.generation,current.state),(1,'active'))
-        for name in ['send_audio','receive_audio','publish','media']:
+        for name in ['send_audio','receive_audio','publish']:
             self.assertFalse(hasattr(connection,name))
+        self.assertIsInstance(connection.media,MediaConnection)
+        with self.assertRaises(SdkError) as unavailable:await connection.media.refresh(OPTIONS)
+        self.assertEqual((unavailable.exception.kind,unavailable.exception.certainty),('unsupported','read-only'))
         self.assertEqual((await connection.streams.by_id('audio').refresh(OPTIONS)).ownership,'observation')
         with self.assertRaises(FrozenInstanceError):connection.receipt_stream_revision=100
 

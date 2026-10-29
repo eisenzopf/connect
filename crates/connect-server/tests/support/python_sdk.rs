@@ -208,9 +208,19 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         "session_decisions_completed",
         "native_controls_completed",
         "stream_selection_completed",
+        "native_media_negotiation",
+        "native_rtp_local_queue",
     ] {
         assert_eq!(controls[field], true);
     }
+    assert!(
+        controls["native_clock_local_queue"].is_boolean()
+            && controls["native_clock_unnegotiated_refused"].is_boolean()
+    );
+    assert_ne!(
+        controls["native_clock_local_queue"],
+        controls["native_clock_unnegotiated_refused"]
+    );
     let database = rusqlite::Connection::open_with_flags(
         &f.config.database,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
@@ -525,7 +535,7 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
     f.server.shutdown().await.unwrap();
     eprintln!(
         "installed-python-native-witness {}",
-        json!({"profile":"python-native/3","algorithm":algorithm,
+        json!({"profile":"python-native/4","algorithm":algorithm,
         "original_reference_recovered":true,"same_id_replay":true,"changed_intent_refused":true,"typed_capability_refusal":true,
         "signed_finite_journal":true,"same_cause_after_restart":true,"current_read_refused":true,
         "current_replay_refused":true,"current_new_mutation_refused":true,"independent_store_original_cause":true,
@@ -533,6 +543,8 @@ os.execv(os.environ['CONNECT_G6_PYTHON_CONNECT'],[os.environ['CONNECT_G6_PYTHON_
         "participant_epoch_advanced":true,"stale_revisions_refused":true,"incoming_original_hint":true,
         "session_decisions_completed":true,"native_controls_completed":true,"stream_selection_completed":true,
         "independent_control_records":true,"typed_message_event":true,
+        "native_media_negotiation":true,"native_rtp_local_queue":true,
+        "native_clock_local_queue":controls["native_clock_local_queue"],"native_clock_unnegotiated_refused":controls["native_clock_unnegotiated_refused"],
         "local_wait_cancelled_read_only":true,"durable_cancel_original_preserved":true,"unattributed_reconciliation_refused":true,
         "canonical_http_same_original_record":true,"independent_http_receipt_agreement":true,
         "receipt_queued_without_delivery":true,"attributed_delivery":true,"read_default_withheld_then_opted_in":true,

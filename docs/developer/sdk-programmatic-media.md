@@ -1,7 +1,8 @@
 # Programmatic Node/Python media
 
 G6-064 is in progress. Binary framing and managed Rust helper routing are
-implemented; Node/Python media APIs are still being implemented. The
+implemented; the [Python packet API](python-media.md) is implemented and Node
+media and reliable typed data remain in progress. The
 current control SDK's Stream and Connection observations do not acquire media
 custody by being restored from IDs or operation receipts.
 
@@ -44,7 +45,10 @@ The writer validates bounds before writing a prefix. A writer actor must finish
 the original frame or retire its channel if an application cancels its wait;
 restarting a partial write would corrupt the next boundary.
 
-The managed helper now accepts `media_attach` with an explicit loopback TCP
+Managed capabilities include the private `managed-media-ipc-v1` version marker.
+A language facade checks it alongside native media support before attachment;
+unsupported versions refuse explicitly rather than selecting another interface.
+The managed helper accepts `media_attach` with an explicit loopback TCP
 endpoint and a private one-use 64-character lowercase hex token. It rejects
 remote/wildcard addresses, port zero and malformed tokens before connecting.
 The helper sends a request with correlation ID 1 and metadata
@@ -78,8 +82,12 @@ The [routing evidence](../evidence/gate-6/sdk-media-ipc-routing.json) covers rea
 EdDSA/ES256 listener attachment, authentication/custody refusals, 16 blocked
 receives with live control, bounded detach and server/runtime drainage. It does
 not qualify language media interfaces or decoded media on this IPC path. Those
-interfaces, bounded language queues, cancellation and the app-owned
-encoding/decoding utility path remain to be implemented and verified.
+Node interfaces and the app-owned encoding/decoding utility path remain to be
+implemented and verified. Python's bounded packet ownership/cancellation is
+recorded separately in its scoped packet evidence. Reliable typed data must
+retain Rust's full 64 KiB payload bound, original message/operation IDs and
+Core queue-admission boundary; a following IPC revision must support that full
+contract rather than treating data as small RTP packets.
 
 Completion still requires actual Node/Python identified audio, decoded video
 through the documented utility path and typed data, plus slow consumers, limits,

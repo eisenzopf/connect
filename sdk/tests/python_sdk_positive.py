@@ -14,7 +14,7 @@ from connect_sdk import (
     RawCanonical, ValidatedEnvelope,
     AdministrativeClient, TrustedProvisioningCommand, Json,
     CanonicalHttpClient, HttpCommandScope, HttpEnvelope,
-    SynchronousSdk, CapabilitySnapshot,
+    SynchronousSdk, CapabilitySnapshot, MediaNegotiation, MediaPacket, RtpPacket, SenderClockReport, LocalMediaSubmission,
 )
 
 
@@ -113,3 +113,12 @@ def synchronous(native: SynchronousSdk[Client], admin: SynchronousSdk[Administra
     assert_type(native.run(lambda client:operation.wait(options)).value,Conversation)
     assert_type(admin.run(lambda client:administration(client,options)),None)
     assert_type(http.run(lambda client:client.request('operation.get',{'operation_id':'original'},HttpCommandScope(),options)),Sequence[HttpEnvelope])
+
+
+async def media_packets(client: Client, options: RequestOptions) -> None:
+    connection = client.conversations.by_id(ConversationId('room')).sessions.by_id(SessionId('session')).connections.by_id(ConnectionId('connection'))
+    assert_type(await connection.media.refresh(options), MediaNegotiation)
+    stream = connection.streams.by_id(StreamId('audio')).media
+    assert_type(await stream.send_rtp(RtpPacket(1, bytes.fromhex('80000001000000a000000001') + bytes([127])*160), options), LocalMediaSubmission)
+    assert_type(await stream.receive_packet(options), MediaPacket)
+    assert_type(await stream.send_clock(2, SenderClockReport(1, 2**64-1, 160, 1, 160, 'source'), options), LocalMediaSubmission)

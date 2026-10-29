@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 import os
+import asyncio
 import re
 from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, cast
 
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from .sdk_events import EventStream
     from .sdk_incoming import InvitationStream
     from .sdk_raw import RawCanonical
+    from .sdk_media import Media
 
 from ._sdk_helper import _SdkHelper, _encode
 from .sdk_types import (
@@ -500,7 +502,10 @@ class Capabilities:
                     or len(set(value["features"])) != len(value["features"])):
                 return _bad()
             # Expose only interfaces actually implemented by this Python facade.
-            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations", "raw-canonical")))
+            features={f for f in value["features"] if f in ("original-id-operations", "message-receipts", "durable-events", "incoming-invitations", "raw-canonical")}
+            if 'managed-media-ipc-v1' in value['features'] and 'native-programmatic-media' in value['features']:
+                features.add('native-programmatic-media')
+            return CapabilitySnapshot("connect/2", "python", "quic", None, frozenset(features))
         return await self._client._helper.request({"type":"capabilities_refresh"}, options, decode)
 
     async def require(self, feature: str, options: RequestOptions) -> None:
@@ -519,15 +524,18 @@ class Client:
     conversations: Conversations
     capabilities: Capabilities
     raw: RawCanonical
+    media: Media
 
     def __init__(self, config: str | os.PathLike, executable: str | os.PathLike = "connect"):
         from .sdk_raw import RawCanonical
+        from .sdk_media import Media
         object.__setattr__(self, "_helper", _SdkHelper(config, executable))
         object.__setattr__(self, "operation_kinds", _KINDS)
         object.__setattr__(self, "operations", Operations(self))
         object.__setattr__(self, "conversations", Conversations(self))
         object.__setattr__(self, "capabilities", Capabilities(self))
         object.__setattr__(self, "raw", RawCanonical(self._helper))
+        object.__setattr__(self, "media", Media(self._helper))
 
     def _from_reply(self, value: Any, kind: OperationKind[T], key: OperationKey) -> Operation[T]:
         try:
@@ -548,7 +556,22 @@ class Client:
         return await self._helper.request(action, options.request, lambda value:self._from_reply(value, kind, key), key, True)
 
     async def close(self, options: RequestOptions) -> None:
-        await self._helper.close(options)
+        if type(options) is not RequestOptions:
+            raise SdkError('validation','read-only')
+        loop=asyncio.get_running_loop()
+        if (self._helper._loop is not None and self._helper._loop is not loop
+                or self.media._owner.loop is not None and self.media._owner.loop is not loop):
+            raise SdkError('configuration','read-only')
+        started=loop.time()
+        media_error=None
+        try:
+            await self.media.close(options)
+        except BaseException as failure:
+            media_error=failure
+        remaining=max(1,int(options.timeout_ms-(loop.time()-started)*1000))
+        await self._helper.close(RequestOptions(remaining,options.signal))
+        if media_error is not None:
+            raise media_error
 
     async def __aenter__(self) -> Client:
         return self
