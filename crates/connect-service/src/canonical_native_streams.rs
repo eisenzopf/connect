@@ -355,6 +355,12 @@ impl Runtime {
             .map_err(|e| {
                 tracing::debug!(?e, requested_revision=?a.envelope().expected_revision(), actual_revision=?native.media_controller(&id).ok().map(|c| c.revision()), "Native stream plan refused");
                 match e {
+                    rvoip_uctp::v2::native_negotiation::NativeOfferError::NegotiationBusy => {
+                        Error::new("busy", "Native media negotiation is in progress")
+                    }
+                    rvoip_uctp::v2::native_negotiation::NativeOfferError::RevisionConflict { expected, actual } => {
+                        Error::new("conflict", &format!("Native stream revision conflicts (expected {expected}, current {actual})"))
+                    }
                     rvoip_uctp::v2::native_negotiation::NativeOfferError::Conflict => {
                         Error::new("conflict", "Native stream revision or catalog conflicts")
                     }

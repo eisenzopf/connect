@@ -1321,6 +1321,11 @@
       "path": "patches/rvoip/gate6-webrtc-logical-screen.patch",
       "source": "G6-061 preserve logical Screen bindings over the single negotiated VP8 RTP source: explicit physical-slot equivalence in admission/source readiness/failure fan-out while original port/current authorization/capture-clock checks remain. Refuse camera+screen sharing or data; server and typed SDK qualification recorded separately.",
       "sha256": "8d6b6b6d236633c5f4f53659e46b1fc280864c52898aff4d41400e9e6a8db62e"
+    },
+    {
+      "path": "patches/rvoip/gate6-native-gate-preflight-refusals.patch",
+      "source": "G6-061 distinguish native gate admission blocked by an in-progress negotiation from a captured expected/current stream revision conflict. No implicit control retry or engine effect; signed QUIC/WT tests hold a real replacement negotiation, verify both refusals leave the current revision unchanged, then submit a distinct current-revision recovery intent. Historical ambiguous Screen trace is retained separately.",
+      "sha256": "359ddc65a8eb3dd29b133d8a1cf214270b68db4ccc80e3b6b2f73231f547f17b"
     }
   ]
 }

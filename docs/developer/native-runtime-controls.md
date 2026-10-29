@@ -30,6 +30,21 @@ effect. A held invocation must match the exact engine plan's action, stream set,
 revision and Connection. It cannot borrow the initial offer's negotiation grant
 or create a counteroffer.
 
+Before an engine attempt starts, an occupied native negotiation reports a failed
+original operation with problem code `busy` and message
+`Native media negotiation is in progress`. A stale gate revision reports
+`conflict` with the captured expected and current revisions, for example
+`Native stream revision conflicts (expected 10, current 11)`. These decisions
+create no engine attempt or effect. They do not invoke an automatic retry.
+Current authorization is still required to read the failed original receipt;
+restoring that receipt cannot change its failure or resume media.
+
+After the competing negotiation settles, refresh the current state and choose
+whether to submit a new control intent with a new logical operation ID. Reusing
+the failed original ID reads its retained failure. Uncertainty after an engine
+attempt starts remains governed by original-operation recovery; the preflight
+refusal evidence does not prove an interrupted attempt had no effect.
+
 One committed control advances the stream revision once and changes no codec,
 handle, transport generation, Session role or allocated Connection count.
 `operation.updated` plus its correlated ACK reports the retained operation

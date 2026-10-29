@@ -1,0 +1,92 @@
+{
+  "task": "G6-061",
+  "status": "in-progress",
+  "date": "2026-10-29",
+  "passed": true,
+  "task_complete": false,
+  "acceptance_qualified": false,
+  "base_commit": "80ea7928c9c2cfa208f4fe091be0c42cd9b3b899",
+  "scope": "Native gate preflight implementation checkpoint. Five signed native adapter functions with controlled host/domain; actual QUIC and WebTransport contention/refusal/new-intent recovery. No durable Connect receipt, actual Chrome, full G6-061, remote or installed qualification.",
+  "schema": 115,
+  "dependency_patch_count": 243,
+  "change": "Native gate planning distinguishes NegotiationBusy from RevisionConflict {expected, actual}; compared values captured at the decision. Other native conflicts unchanged. The service maps before-attempt gate refusals to busy and revision-specific conflict without an automatic engine or mutation retry. Root/Chrome durable no-effect/original-receipt/new-resume checks are prepared but pending the ongoing production harness build.",
+  "behavior": "A real server-origin proposal holds the request slot. A new mute is refused busy with original revision/binding unchanged; after the signed reply releases the proposal a distinct mute commits revision2. A stale unmute fails with expected1/current2; a distinct current unmute commits3. Exactly four observed outcomes and one stream budget. Existing public gate refusal/lifecycle and decoded directional hold/mute regressions pass.",
+  "verification": {
+    "passed": true,
+    "scope": "Signed native adapter boundary only; controlled host/domain; no durable Connect receipt or actual Chrome qualification.",
+    "functions_passed": 5,
+    "binary_sha256": "9f41a9b19f8ea31ca237e96852cc62d1a90111753c604411bb58c40923c9bd4e",
+    "source_inputs": {
+      "patches/rvoip/gate6-native-gate-preflight-refusals.patch": "359ddc65a8eb3dd29b133d8a1cf214270b68db4ccc80e3b6b2f73231f547f17b",
+      "dependencies/source-lock.json": "7ec2aad52e3dc1cadad5f79bb73af278d386980448ae63530e94d115caac7d52",
+      "crates/connect-service/src/canonical_native_streams.rs": "2393dd633eaeca5c47d29076bcfceada3d408c04a27231b64e7fa431e11f57de",
+      ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native.rs": "4117a1d8149976dfa05c9988c9b926e05ac8bf930a8c12549214ffe7258fe560",
+      ".deps/rvoip/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs": "706f2d97d90b3935cf58f83c3dcbc0494ae43605f5a1f3b2efee3c113bdf09a3",
+      ".deps/rvoip/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs": "e9f47cb69721f8922e00451d3e94a2a1e39de6ee82418ccd08710d6a9eacce4c",
+      ".deps/rvoip/.git/connect-files.json": "cd9c5ebc84d3dcea357a1e1f726b4eb71fefcec1252e43671e9eec73f9260a21",
+      ".deps/rvoip/.git/connect-prepared.json": "e21e3d91aae274e16ce0faca64facea39127d1f6fb711bc40345b4095d00b93d"
+    },
+    "results": [
+      {
+        "name": "preflight",
+        "functions_passed": 1,
+        "exit_code": 0,
+        "seconds": 0.08347762492485344,
+        "source_inputs_unchanged": true,
+        "log_sha256": "0600892aae59bc9d9f4d104ab399fdccdc98a37778263ff7ba65741680c2394a"
+      },
+      {
+        "name": "refusal",
+        "functions_passed": 2,
+        "exit_code": 0,
+        "seconds": 0.23450262495316565,
+        "source_inputs_unchanged": true,
+        "log_sha256": "2ca14eb82ef9846fd9b1cb4750d7a6677c2a156b754a09a516fbaf48059af09b"
+      },
+      {
+        "name": "hold",
+        "functions_passed": 1,
+        "exit_code": 0,
+        "seconds": 0.3007633339148015,
+        "source_inputs_unchanged": true,
+        "log_sha256": "7397e836b8e3ec0388b7a057587f831c0276340f3810eb6d33c582605d7ca6dd"
+      },
+      {
+        "name": "mute",
+        "functions_passed": 1,
+        "exit_code": 0,
+        "seconds": 0.25556720793247223,
+        "source_inputs_unchanged": true,
+        "log_sha256": "6cdae19734dc55c5b487f0f32e989c6e893ff062497bc438c41dc8b99816ff40"
+      }
+    ]
+  },
+  "iterations": [
+    {
+      "name": "upstream-first.log",
+      "sha256": "e99ffa98d8df3f3f11e72ce58ff8020def1770c1f94f143d9a4c25f44afa3dd5",
+      "passed": false,
+      "interpretation": "Target discovery did not run a test"
+    },
+    {
+      "name": "upstream-second.log",
+      "sha256": "585dee4544baee6670f6e65b2eea29e3c6646c79ad885ea14457ed4a380f6ad7",
+      "passed": false,
+      "interpretation": "Held client proposal blocks this incoming control dispatcher; three-second driver read deadline retained"
+    },
+    {
+      "name": "upstream-backtrace.log",
+      "sha256": "f5a4ed187b34e17b58fa122209b69ba3a8c2a2c834233a12411f54c4571af88f",
+      "passed": false,
+      "interpretation": "Held client proposal blocks this incoming control dispatcher; three-second driver read deadline retained"
+    },
+    {
+      "name": "upstream-server-proposal.log",
+      "sha256": "cdc924e43c1f0c0de88ed33b602610ec6b05078e2e2dd496e6c4308d19c485c6",
+      "passed": true,
+      "interpretation": "Held server-origin proposal exercises real request-slot contention; both QUIC and WT branches and explicit recovery pass"
+    }
+  ],
+  "historical_limit": "Old1154Screen-resume generic revision/catalog failure is preserved and cannot be retrospectively assigned a branch. Supported failure/recovery meaning and forthcoming diagnostics improve; actual browser proof is not inferred from adapter tests.",
+  "privacy": "Local synthetic endpoints only; no model/account/provider/namedremote execution or agents. Raw logs/state remain ignored."
+}

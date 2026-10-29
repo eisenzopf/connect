@@ -1,0 +1,77 @@
+--- a/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native_negotiation/mod.rs
+@@ -34,6 +34,10 @@
+     Capacity,
+     #[error("native media revision conflicts")]
+     Conflict,
++    #[error("native media negotiation is in progress")]
++    NegotiationBusy,
++    #[error("native media revision conflicts (expected {expected}, current {actual})")]
++    RevisionConflict { expected: u64, actual: u64 },
+     #[error("native media operation cancelled")]
+     Cancelled,
+     #[error("native media operation expired")]
+--- a/crates/uctp/rvoip-uctp/src/v2/native.rs
++++ b/crates/uctp/rvoip-uctp/src/v2/native.rs
+@@ -995,7 +995,7 @@
+             .as_ref()
+             .ok_or(NativeOfferError::Unsupported)?;
+         if broker.is_busy() {
+-            return Err(NativeOfferError::Conflict);
++            return Err(NativeOfferError::NegotiationBusy);
+         }
+         if !super::native_control::scope_matches(a, broker.scope())
+             || !installed.controller.matches_data_credential(a.principal())
+@@ -1006,8 +1006,12 @@
+             a.envelope(),
+             &installed.controller.active_bindings(),
+         )?;
+-        if plan.expected_revision() != installed.controller.revision() {
+-            return Err(NativeOfferError::Conflict);
++        let actual = installed.controller.revision();
++        if plan.expected_revision() != actual {
++            return Err(NativeOfferError::RevisionConflict {
++                expected: plan.expected_revision(),
++                actual,
++            });
+         }
+         Ok(plan)
+     }
+--- a/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
++++ b/crates/uctp/rvoip-uctp/tests/support/canonical_media/native_offers/server_requests.rs
+@@ -482,3 +482,35 @@
+     drop(s.grants.0.clone().try_write_owned().unwrap());
+     drop(s.wire_policy.grants.clone().try_write_owned().unwrap());
+ }
++
++#[tokio::test]
++async fn actual_native_gate_preflight_distinguishes_busy_and_stale_then_accepts_explicit_recovery() {
++    for kind in ["quic", "wt"] {
++        let (mut s, origin, policy) = setup(kind, 0).await;
++        let original = s.controller().active_bindings();
++        let request = proposal(&s, 1, "gate_busy_server_proposal");
++        let o = origin.clone();
++        let task = tokio::spawn(async move {
++            o.request(request, policy, deadline(), CancellationToken::new()).await
++        });
++        let offer = callback(&mut s).await;
++        gate_reply(&mut s, gate_command("mute", 1, Some(&["first"]), None), "error").await;
++        assert_eq!(s.record.controls.lock().unwrap().last(), Some(&Err(NativeOfferError::NegotiationBusy)));
++        assert_eq!(s.controller().revision(), 1);
++        assert_eq!(s.controller().active_bindings()[0].transport_id, original[0].transport_id);
++        s.confirm(&offer).await;
++        drop(task.await.unwrap().unwrap());
++        assert!(origin.ready());
++        let after_busy = gate_reply(&mut s, gate_command("mute", 1, Some(&["first"]), None), "ack").await;
++        assert_eq!(after_busy.original()["payload"]["details"]["local_control_commit"]["revision"], 2);
++        gate_reply(&mut s, gate_command("unmute", 1, Some(&["first"]), None), "error").await;
++        assert_eq!(s.record.controls.lock().unwrap().last(), Some(&Err(NativeOfferError::RevisionConflict { expected: 1, actual: 2 })));
++        assert_eq!(s.controller().revision(), 2);
++        let recovered = gate_reply(&mut s, gate_command("unmute", 2, Some(&["first"]), None), "ack").await;
++        assert_eq!(recovered.original()["payload"]["details"]["local_control_commit"]["revision"], 3);
++        assert_eq!(*s.record.controls.lock().unwrap(), vec![Err(NativeOfferError::NegotiationBusy), Ok(2), Err(NativeOfferError::RevisionConflict { expected: 1, actual: 2 }), Ok(3)]);
++        assert_eq!(recovered.original()["payload"]["details"]["local_control_commit"]["streams"][0]["source_muted"], false);
++        assert_eq!(s.controller().stream_open_budget().0, 1);
++        s.wire.server.shutdown().await.unwrap();
++    }
++}
